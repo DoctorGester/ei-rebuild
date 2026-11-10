@@ -69,10 +69,9 @@ public:
     // 0x50: the player's party saved without its variables (Party::SaveParty, which draws an ISAAC key) as
     // a sized block.
     void SendPartyUpdate();
-    // Ours. 0x51: the saved hero `companion` (its party without variables, a sized block) joins the hero.
-    void SendAddCompanion(Party* companion);
-    // Ours. 0x52: the companion with unit `unitId` leaves the party.
-    void SendRemoveCompanion(int unitId);
+    // Ours. 0x51: the saved hero `companion` (its party without variables, a sized block) joins the hero; `restore`
+    // is the list asked for again at a zone's start, the only add the server takes (the list changes in the base).
+    void SendAddCompanion(Party* companion, bool restore);
     // Ours: the saved companions (SavedParties::companions) asked for again once the hero stands in a zone whose
     // host takes companions; set by OnCompanions, done by RunTick.
     void RestoreCompanions();

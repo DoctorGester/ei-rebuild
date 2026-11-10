@@ -2,12 +2,27 @@
   "scenario": "net_pair_companion",
   "install": "rebirth",
   "recorded": "2026-11-10",
-  "commit": "0d856e25c",
+  "commit": "8fcfb4d7f",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "New scenario: companions added by the HUD button, fighting, dying, written back, restored in the next zone and sent away.",
+  "reason": "MP1a: companions are picked in the multiplayer base (briefing screen button, a local list) and asked for again in each network zone; the scenario adds in the base, the companion comes by restore, F3 and a mid-game add do nothing in the zone",
   "side": "peer",
-  "source": "image"
+  "source": "image",
+  "change": [
+    "digest: 108 of 197 records differ, first at record 89 (world update 1800, tick 1097, frame 359, zone bz1mpg); outcomes CHANGED: zone, spawns, game result, script; max unit move 6.68 (obj1000011214, record 105); the digests have different numbers of records",
+    "  digest: the new run has more records; the other ends before its record 197 (world update 3960, frame 791, tick 3257, zone -)",
+    "  first difference at record 89 (world update 1800, tick 1097, frame 359, zone bz1mpg): 7 fields",
+    "    obj1000011214 (80 unhuma \"peer\") pos.x: 60.415184 in the old golden, 59.25 in the new run (d 1.17)",
+    "    obj1000011214 (80 unhuma \"peer\") pos.y: 52.1647453 in the old golden, 54.25 in the new run (d 2.09)",
+    "    obj1000011214 (80 unhuma \"peer\") #ai: 8BA50468 in the old golden, B27BCA8B in the new run",
+    "    ... 4 more",
+    "  outcomes: CHANGED zone, spawns, game result, script; same: deaths, money, quest variables, party and items",
+    "    zone: record 107: - in the old golden, bz1mpg in the new run (+13 more)",
+    "    spawns: obj1646 (87 stto5) only in the new run, from record 106 (+18731 more)",
+    "    game result: world gameResult: 0 in the old golden, 1 in the new run, from record 106 (+13 more)",
+    "    script: script #files differs (hashes only), from record 106 (+99 more)",
+    "... 31 more lines"
+  ]
 }

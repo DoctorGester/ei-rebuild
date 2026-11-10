@@ -5,3 +5,5 @@ size = 1
 model = "sonnet"
 note = "User 2026-11-10: the companions list should only be adjustable in the base zone (where quests are taken: GameFlow::MultiplayerZone(), bz1mpg..bz4mpg by game type). The HUD button and F3 only there; the server refuses AddCompanion/RemoveCompanion from a player outside it. Companions still last the whole game. net_pair_companion adds and sends away in the base, its goldens re-recorded."
 order = 1317
+status = "review"
+started = "2026-11-10"

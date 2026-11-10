@@ -2,12 +2,27 @@
   "scenario": "net_pair_companion",
   "install": "rebirth",
   "recorded": "2026-11-10",
-  "commit": "0d856e25c",
+  "commit": "8fcfb4d7f",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "New scenario: companions added by the HUD button, fighting, dying, written back, restored in the next zone and sent away.",
+  "reason": "MP1a: companions are picked in the multiplayer base (briefing screen button, a local list) and asked for again in each network zone; the scenario adds in the base, the companion comes by restore, F3 and a mid-game add do nothing in the zone",
   "source": "image",
-  "saves": "1 decoded saves (tools/savefile.py), the same in 2 runs"
+  "saves": "2 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "digest: 253 of 295 records differ, first at record 42 (world update 860, tick 282, frame 171, zone bz1mpg); outcomes CHANGED: zone, deaths, spawns, money, quest variables, party and items, game result, script; max unit move 102 (obj1000011214, record 74); the digests have different numbers of records",
+    "  digest: the records no longer line up at record 253: the old golden world update 5080 tick 3952, the new run world update 5080 tick 4502",
+    "  digest: the new run has more records; the other ends before its record 295 (world update 5920, frame 1183, tick 4792, zone z3q2)",
+    "  first difference at record 42 (world update 860, tick 282, frame 171, zone bz1mpg): 8 fields",
+    "    obj1000011214 (80 unhuma \"host\") pos.x: 61.2068214 in the old golden, 59.25 in the new run (d 1.96)",
+    "    obj1000011214 (80 unhuma \"host\") pos.y: 58.6204643 in the old golden, 54.25 in the new run (d 4.37)",
+    "    obj1000011214 (80 unhuma \"host\") #ai: 65AB6544 in the old golden, B27BCA8B in the new run",
+    "    ... 5 more",
+    "  outcomes: CHANGED zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "    zone: record 79: z3q2 in the old golden, bz1mpg in the new run (+46 more)",
+    "    deaths: obj4517 dead: 1 in the old golden, 0 in the new run, from record 133 (+279 more)",
+    "    spawns: obj1 (84 stst001) only in the old golden, from record 79 (+72187 more)",
+    "... 42 more lines"
+  ]
 }

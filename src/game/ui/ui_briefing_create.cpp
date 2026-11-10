@@ -21,6 +21,7 @@
 #include "game/ui/ui_scrollbar.h"
 #include "game/ui/ui_scroll_text.h"
 #include "game/ui/ui_briefing.h"
+#include "game/ui/ui_companions.h"
 #include "game/ui/ui_camera_input.h"
 #include "game/units/unit.h"
 #include "game/ai/unit_ai.h"
@@ -185,6 +186,8 @@ void BriefingScreen::CreateScreen() {
     if (IsMultiplayerClient()) {
         chat = AddChild(std::make_unique<ChatWindow>(this));
         PlayersChanged(1);
+        // Ours: the companions are picked here.
+        if (CompanionsOffered()) AddChild(std::make_unique<CompanionButton>());
     } else {
         chat = nullptr;
     }

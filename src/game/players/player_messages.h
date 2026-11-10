@@ -107,11 +107,11 @@ enum class ClientMessage : std::uint8_t {
     FightAtWill = 0x3B,
     LastPosition = 0x40,
     PartyUpdate = 0x50,
-    // Ours: a saved hero to walk with the player's hero, a sized block (Party::SaveParty without variables);
-    // sent only to a server that sent ServerMessage::Companions.
+    // Ours: a dword (1 for the client's list asked for again in a new zone; an add with 0 is refused), then a saved
+    // hero to walk with the player's hero, a sized block (Party::SaveParty without variables); sent only to a server
+    // that sent ServerMessage::Companions.
     AddCompanion = 0x51,
-    // Ours: a companion leaves the party, a dword (its unit's id); sent only to a server that sent
-    // ServerMessage::Companions.
+    // Ours: a companion leaves the party, a dword (its unit's id); refused (the list changes in the base zone only).
     RemoveCompanion = 0x52,
 };
 
@@ -294,15 +294,14 @@ public:
     // Message 0x50: a sized block loaded into the party (no variables); one naming items or spells this game's
     // databases lack empties the party, and the player leaves as for OnNewParty.
     bool OnPartyUpdate();
-    // Ours. Message 0x51: a saved hero joins the party as a companion when the host allows companions
-    // (ServerSession::companions) and the player is joined in a network zone with a living leader and room for one
-    // more: its record (items copied into the party, a fresh object id, following the leader) is appended, its unit
-    // made beside the leader and the party sent. Anything else is read and dropped. Returns true.
+    // Ours. Message 0x51: the client's saved companions asked for again at a zone's start (the leading dword is 1; the
+    // list itself changes only in the base zone, on the client): a saved hero joins the party as a companion when the
+    // host allows companions (ServerSession::companions) and the player is joined in a network zone with a living
+    // leader and room for one more: its record (items copied into the party, a fresh object id, following the
+    // leader) is appended, its unit made beside the leader and the party sent. Anything else, an add with the dword
+    // 0 too, is read and dropped (logged). Returns true.
     bool OnAddCompanion();
-    // Ours. Message 0x52: the companion whose unit has the given id leaves: its record synced from the living unit
-    // and the party sent (the client writes it to its file), then the unit taken out of the world (a dead one left
-    // lying, the player's no more), the record dropped and the party sent again. Anything else is read and dropped.
-    // Returns true.
+    // Ours. Message 0x52 (nothing sends it any more): read and dropped (logged). Returns true.
     bool OnRemoveCompanion();
     // "Able" units below: present, not blocked (flag 0x800000) and not dead.
     bool OnLeave();             // Message 0x01: the connection's Leave

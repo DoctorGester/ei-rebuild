@@ -1,13 +1,18 @@
 #pragma once
 
-// Ours: the companions window of a network zone (the HUD's companions button or F3 while the host takes
-// companions): the hero's companions, then the player's other saved heroes; the picked one is removed or added. And
-// the HUD's button. See docs/notes/ui.md ("Companions window").
+// Ours: the companions window of the multiplayer base (the base screen's companions button or F3): the heroes picked
+// as companions (SavedParties::companions), then the player's other saved heroes; the picked one is removed from the
+// list or added to it. The list changes only here: the base is a local zone, and each network zone only asks for the
+// list again (PlayerClient::RestoreCompanions). See docs/notes/ui.md ("Companions window").
 
 #include "game/ui/ui.h"
 
 #include <string>
 #include <vector>
+
+// The base screen offers the companions window: a multiplayer game whose host (when this game is the host) takes
+// companions. A joined game's host option is unknown here; the zone's start drops the files past its limit.
+bool CompanionsOffered();
 
 class CompanionWindow : public UiContainer {
 public:
@@ -16,9 +21,7 @@ public:
     void CloseScreen() override;
     void OnEvent(UiEvent& event) override;
 
-    // The picked hero asked for as a companion (PlayerClient::SendAddCompanion) while there is room, or the picked
-    // companion sent away (SendRemoveCompanion; its file leaving until its last record is written); the window
-    // closes.
+    // The picked hero added to the list while there is room, or the picked companion taken off it; the window closes.
     void Act();
     void Close();
 
@@ -34,18 +37,14 @@ private:
     std::vector<UiRegion*> rows;
 };
 
-class BattleScreen;
-
-// The HUD's companions button: a framed "+" on a shade right of the portraits while the zone's host takes companions
-// (PlayerClient::companionLimit); a click opens the companions window. Placed again whenever the portraits change.
-class HudCompanionButton : public UiWindow {
+// The base screen's companions button: a framed "+" on a shade at the screen's bottom right; a click opens the
+// companions window.
+class CompanionButton : public UiWindow {
 public:
-    explicit HudCompanionButton(BattleScreen* newOwner) : owner(newOwner) {}
     void OnEvent(UiEvent& event) override;
-    // Every frame: shown or hidden, beside the last portrait.
+    // The first frame: the button built.
     void Update() override;
 
-    BattleScreen* owner = nullptr;
     UiRegion* button = nullptr;
-    int placedAt = -1;                // the button's left edge, -1 hidden
+    bool built = false;
 };

@@ -63,6 +63,10 @@ int SessionPlayerLimit();
 int ServerPartyRecords(int player);
 int CompanionUnit(int index);
 int NearestEnemy(int id);
+// The companions picked in the base (SavedParties::companions); the add of the saved hero `name` sent from the
+// local client as a mid-game add (restore 0; false when there is no such hero or client).
+int CompanionList();
+bool AskCompanion(const char* name);
 bool SavedHero(const char* name, std::string* file, float* experience);
 
 // ---- the game's global objects (harness_objects.h; image/harness_objects_image.cpp)
