@@ -27,12 +27,12 @@ the tick and the zone reset it shares), the old-save shim (`script_lua_resume.cp
   arguments are evaluated in no fixed order. The loops (For, ForIf, Every / Any / Sum) re-read their counter and
   condition slots directly.
 - `ScriptDefinition`: index, qualified name, parameter type letters ("fso"), the if-then pairs {conditions block,
-  commands block}, its variables. `ScriptRun`: block, index, ticks, sleep start, the kill flag (a pointer to the
-  instance's flag; null for the WorldScript), a copy of the variables. Instances are copies of a definition whose first
-  field is the "killed" flag.
+  commands block}, its variables. `ScriptRun`, a Lua run's state: ticks, sleep start, the kill flag (a pointer to the
+  instance's flag; null for the WorldScript). An old-format save's instances are copies of a definition whose first
+  field is the "killed" flag, its waiting runs `ScriptSavedRun`s (block, index, ticks, sleep start, the instance's
+  index, a copy of the variables), both only on the way to the old-save shim.
 - `Script`: a command block's id is the list's count right after the append (the WorldScript's with bit 31 set); the
-  temporaries lists always keep one entry; a counter of For nesting (temporaries are not freed while it is positive);
-  the loaded flag and file counter; error text / code / line. Areas hold parts `{isRect; x, y, x2 | radius^2, y2}`
+  temporaries lists always keep one entry; the loaded flag and file counter; error text / code / line. Areas hold parts `{isRect; x, y, x2 | radius^2, y2}`
   (AddRectToArea / AddRoundToArea make a missing area; IsInArea of an unknown id is 0 and makes none). A script body
   (`LoadScriptBody`) that fails to parse drops the blocks and pairs it added. FX
   sources are sound sources (volume, radius, idle, placement radius, min / max delay, countdown). Point lights: 256
