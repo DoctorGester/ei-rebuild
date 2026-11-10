@@ -11,6 +11,7 @@
 #include "game/app/singletons.h"
 #include "game/map/map_spec.h"
 #include "game/map/mob_script_decoder.h"
+#include "game/objects/map_object_manager.h"
 #include "game/world/diplomacy.h"
 #include "game/app/options.h"
 #include "game/script/script.h"
@@ -102,6 +103,26 @@ void ReadScripts(Chunk* chunk, std::string* scripts, bool encoded) {
     *scripts = encoded ? chunk->ReadEncodedString() : chunk->ReadString();
 }
 
+// Whether the factory makes the record's class (parent_id) for a record of its kind: the world casts the object it
+// builds to the kind's type, so a class that makes none (a hand-written record without parent_id is 0) or another
+// kind's would crash the zone's load. Kinds with no class of their own (lights, sounds, particles) always fit.
+bool ClassFits(const Spec& spec) {
+    if (spec.kind != SpecKind::Object && spec.kind != SpecKind::Unit && spec.kind != SpecKind::Flame &&
+        spec.kind != SpecKind::Trap && spec.kind != SpecKind::Lever)
+        return true;
+    const auto type = static_cast<MapObjectType>(static_cast<const ObjectSpec&>(spec).parentId);
+    switch (spec.kind) {
+    case SpecKind::Unit: return IsUnitType(type);
+    case SpecKind::Flame: return type == MapObjectType::Torch;
+    case SpecKind::Trap: return type == MapObjectType::MagicTrap;
+    case SpecKind::Lever: return type == MapObjectType::Lever;
+    default:
+        // An object record may hold a unit's class too (the main menu's unmoco2 is one).
+        return IsUnitType(type) || type == MapObjectType::Tree || type == MapObjectType::Building ||
+               type == MapObjectType::Stone || type == MapObjectType::StuffObject;
+    }
+}
+
 } // namespace
 
 void MobRecords::Add(std::unique_ptr<Spec> spec) {
@@ -158,6 +179,12 @@ void LoadMob(MobContents& contents, int keepIds, std::string_view name) {
     int done = 0;
     for (auto& node : records.byId) {
         Spec* spec = node.second;
+        if (!ClassFits(*spec)) {
+            game::Warning("map objects: %s record %d: parent_id %d is not a class that fits its kind; the record is left out",
+                          name, spec->id, static_cast<const ObjectSpec*>(spec)->parentId);
+            ++done;
+            continue;
+        }
         if (spec->kind == SpecKind::Trap) {
             auto* record = static_cast<TrapSpec*>(spec);
             record->trap.sides = 0;
