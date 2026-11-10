@@ -1765,7 +1765,7 @@ cunit1000205 #vitals 42557372
 cunit1000206 #place 0581AB39
 cunit1000206 #unit 39D43514
 cunit1000206 #vitals 75BE0BF3
-@ 1 update 40 frame 7 tick 40 zone gz1g hash BAC2A27F n 828
+@ 1 update 40 frame 7 tick 40 zone gz1g hash C75B15AC n 828
 world tick 40
 world updates 40
 world timeBase 5.97222233
@@ -7762,9 +7762,10 @@ aievents height 29
 script #files 012FC665
 script #ggroup C3CD34F6
 script #globals AD81D100
+script #gobject 52F34D93
 script #inst 5741CB30
 script #instances 31BC9CAE
-script #run 27D0507F
+script #run B86E3D3D
 script #runs 8F0E1077
 client tick 40
 client ticksRun 12

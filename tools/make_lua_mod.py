@@ -1,6 +1,6 @@
 r"""A mod whose zone 1 mission script is Lua (docs/notes/mods.md, "Scripts in Lua"; tests/scenarios/mod_lua_*.txt).
 
-usage: python tools/make_lua_mod.py <saves dir> plain|changed|none
+usage: python tools/make_lua_mod.py <saves dir> plain|changed|none|named|broken|addmob
 
 Writes <saves dir>\lua_mod (the scenarios' `mod harness_saves\lua_mod`): a config.reg with [MOD] Title, Rebirth.txt and
   plain    Maps\zone1.lua   the game's zone1.mob script as ei-convert writes it (a converted install's own Maps\zone1.lua,
@@ -11,6 +11,16 @@ Writes <saves dir>\lua_mod (the scenarios' `mod harness_saves\lua_mod`): a confi
                             variable every 20 ticks into the game variable l8.count; the definition prints a line when
                             the count reaches 3 and then fails (its error on the console)
   none     no Maps\zone1.lua: the same mod on the old executor (mod_lua_none, mod_lua_plain's twin)
+  named    Maps\zone1.mob.toml   zone1.mob's objects as ei-convert writes them, its `script` key naming zone1_named.lua
+           Maps\zone1_named.lua  the conversion with a console line at the WorldScript's end ("L8b: the TOML's script")
+           Maps\zone1.lua        the same with another line ("L8b: zone1.lua"), which the key passes over
+  broken   Maps\zone1.lua   a file Lua does not load (a function left open at its end): error 18 at the zone's load
+and for addmob, no mod:
+  addmob   <saves dir>\l8b_addmob.lua  the Lua of <saves dir>\l8b_addmob.mob (make_trap_mob.py makes the .mob, no
+                            script in it), which `AddMob("..\saves\l8b_addmob.mob")` loads into zone 1's mission script
+                            while it runs on the old executor: the script goes on in Lua. Its WorldScript prints a line
+                            with two of the zone's globals (the shim took them over), starts a definition that prints
+                            when the count reaches 3, and counts every 20 ticks into the game variable l8b.count
 """
 import os, re, subprocess, sys, tempfile
 
@@ -46,6 +56,33 @@ CHANGES = '''    -- L8's mod: two console lines, its definition, then a count ke
         SetGameVar(0, "l8.count", count)
     end
 '''
+# The named kind's lines, at the end of each file's WorldScript.
+NAMED = '    print("L8b: the TOML\'s script")\n'
+UNNAMED = '    print("L8b: zone1.lua")\n'
+BROKEN = '-- L8b (tools/make_lua_mod.py broken): Lua does not load this file.\nfunction WorldScript(\n'
+ADDMOB = '''-- L8b (tools/make_lua_mod.py addmob): the Lua of an AddMob'd .mob, loaded into zone 1's mission script while it
+-- runs on the old executor, which then goes on in Lua (docs/notes/mods.md, "Scripts in Lua").
+L8bWatch = Script {
+    {
+        condition = function() return GetGameVar(0, "l8b.count") >= 3 end,
+        action = function()
+            KillScript()
+            print("L8b: the count reached 3")
+        end,
+    },
+}
+
+function WorldScript()
+    print("L8b: the AddMob'd Lua runs: heroes " .. #Heroes .. ", Ogre " .. (Ogre and "kept" or "none"))
+    L8bWatch()
+    local count = 0
+    while true do
+        Sleep(20)
+        count = count + 1
+        SetGameVar(0, "l8b.count", count)
+    end
+end
+'''
 
 
 def write(path, data):
@@ -54,10 +91,10 @@ def write(path, data):
         f.write(data)
 
 
-def zone1_lua():
-    """The game's zone1.mob script as Lua (ei-convert's): a converted install's own Maps\\zone1.lua, else written by
-    the run's build's ei-convert from a copy of the vanilla install's zone1.mob."""
-    converted = exe_path.install_file('vanilla', 'Maps', 'zone1.lua')
+def zone1_converted(name):
+    """A file ei-convert writes for the game's zone1.mob (zone1.lua, zone1.mob.toml): a converted install's own, else
+    written by the run's build's ei-convert from a copy of the vanilla install's zone1.mob."""
+    converted = exe_path.install_file('vanilla', 'Maps', name)
     if os.path.exists(converted):
         with open(converted, 'r', encoding='utf-8', newline='') as f:
             return f.read()
@@ -68,30 +105,49 @@ def zone1_lua():
         with open(exe_path.install_file('vanilla', 'Maps', 'zone1.mob'), 'rb') as f:
             write(source, f.read())
         subprocess.run([convert, os.path.join(scratch, 'in'), os.path.join(scratch, 'out')], check=True, capture_output=True)
-        with open(os.path.join(scratch, 'out', 'Maps', 'zone1.lua'), 'r', encoding='utf-8', newline='') as f:
+        with open(os.path.join(scratch, 'out', 'Maps', name), 'r', encoding='utf-8', newline='') as f:
             return f.read()
 
 
-def changed(text):
-    """The converted zone1.lua with the mod's definition before its WorldScript and its lines at the WorldScript's end."""
+def changed(text, definition, lines):
+    """The converted zone1.lua with `definition` before its WorldScript and `lines` at the WorldScript's end."""
     text = text.replace('\r\n', '\n')
     start = re.search(r'^function WorldScript\(\)\n', text, re.M)
     end = re.compile(r'^end\n', re.M).search(text, start.end()) if start else None
     if not end:
         sys.exit('make_lua_mod: zone1.lua has no WorldScript function')
-    return text[:start.start()] + DEFINITION + text[start.start():end.start()] + CHANGES + text[end.start():]
+    return text[:start.start()] + definition + text[start.start():end.start()] + lines + text[end.start():]
 
 
 def main():
-    if len(sys.argv) != 3 or sys.argv[2] not in ('plain', 'changed', 'none'):
+    kinds = ('plain', 'changed', 'none', 'named', 'broken', 'addmob')
+    if len(sys.argv) != 3 or sys.argv[2] not in kinds:
         sys.exit(__doc__)
+    kind = sys.argv[2]
+    if kind == 'addmob':
+        write(os.path.join(sys.argv[1], 'l8b_addmob.lua'), ADDMOB.encode('utf-8'))
+        print(f'{sys.argv[1]}: addmob')
+        return
     root = os.path.join(sys.argv[1], MOD)
     write(os.path.join(root, 'config.reg'), mod.registry({'MOD': {'Title': 'L8 Lua mod'}}))
     write(os.path.join(root, 'Rebirth.txt'), b'')
-    kind = sys.argv[2]
-    if kind != 'none':
-        text = zone1_lua()
-        write(os.path.join(root, 'Maps', 'zone1.lua'), (changed(text) if kind == 'changed' else text).encode('utf-8'))
+    maps = os.path.join(root, 'Maps')
+    if kind in ('plain', 'changed'):
+        text = zone1_converted('zone1.lua')
+        if kind == 'changed':
+            text = changed(text, DEFINITION, CHANGES)
+        write(os.path.join(maps, 'zone1.lua'), text.encode('utf-8'))
+    elif kind == 'named':
+        text = zone1_converted('zone1.lua')
+        objects = zone1_converted('zone1.mob.toml').replace('\r\n', '\n')
+        objects, count = re.subn(r'^script = "zone1\.lua"$', 'script = "zone1_named.lua"', objects, flags=re.M)
+        if count != 1:
+            sys.exit('make_lua_mod: zone1.mob.toml has no script key naming zone1.lua')
+        write(os.path.join(maps, 'zone1.mob.toml'), objects.encode('utf-8'))
+        write(os.path.join(maps, 'zone1_named.lua'), changed(text, '', NAMED).encode('utf-8'))
+        write(os.path.join(maps, 'zone1.lua'), changed(text, '', UNNAMED).encode('utf-8'))
+    elif kind == 'broken':
+        write(os.path.join(maps, 'zone1.lua'), BROKEN.encode('utf-8'))
     print(f'{root}: {kind}')
 
 

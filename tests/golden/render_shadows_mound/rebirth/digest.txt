@@ -1311,7 +1311,7 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 7 tick 2454 zone gz1g hash 49651F08 n 828
+@ 1 update 40 frame 7 tick 2454 zone gz1g hash 820D4EC3 n 828
 world tick 2454
 world updates 42
 world timeBase 5.91888809
@@ -7407,7 +7407,7 @@ aievents height 25
 script #files 012FC665
 script #ggroup 88E32E53
 script #globals A5413D6F
-script #gobject E4632987
+script #gobject B1A92EE6
 script #inst 28278A8C
 script #instances 70CD2B32
 client tick 2453
@@ -7437,7 +7437,7 @@ cunit1922 #vitals 1F5A7471
 cunit1000011214 #place 9F1D99B9
 cunit1000011214 #unit 638F5C6A
 cunit1000011214 #vitals 95F03AB2
-@ 2 update 60 frame 11 tick 2474 zone gz1g hash 794794A3 n 828
+@ 2 update 60 frame 11 tick 2474 zone gz1g hash B22FC568 n 828
 world tick 2474
 world updates 62
 random isaac.count 163
@@ -7469,7 +7469,7 @@ cunit1916 #unit 0707EB2A
 cunit1921 #place 8F4F2889
 cunit1922 #place 19277FE1
 cunit1000011214 #place 3C3B6754
-@ 3 update 80 frame 15 tick 2494 zone gz1g hash D39E8926 n 828
+@ 3 update 80 frame 15 tick 2494 zone gz1g hash 18F6D8ED n 828
 world tick 2494
 world updates 82
 random isaac.count 43
@@ -7494,7 +7494,7 @@ client tick 2493
 client ticksRun 53
 cunit1916 #place A45830BF
 cunit1922 #place 4F1DF5CB
-@ 4 update 100 frame 19 tick 2514 zone gz1g hash B1EAA53D n 828
+@ 4 update 100 frame 19 tick 2514 zone gz1g hash 7A82F4F6 n 828
 world tick 2514
 world updates 102
 random isaac.count 178
@@ -7527,7 +7527,7 @@ aievents tick 2514
 client tick 2513
 client ticksRun 73
 cunit1916 #place 2D04DB2D
-@ 5 update 120 frame 23 tick 2534 zone gz1g hash 885EA9CD n 828
+@ 5 update 120 frame 23 tick 2534 zone gz1g hash 4336F806 n 828
 world tick 2534
 world updates 122
 random isaac.count 58
@@ -7549,7 +7549,7 @@ aievents tick 2534
 client tick 2533
 client ticksRun 93
 cunit1916 #place 2586FBEE
-@ 6 update 140 frame 27 tick 2554 zone gz1g hash 334E4FC3 n 828
+@ 6 update 140 frame 27 tick 2554 zone gz1g hash F8261E08 n 828
 world tick 2554
 world updates 142
 random isaac.count 184

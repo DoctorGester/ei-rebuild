@@ -186,8 +186,8 @@ std::vector<ScriptRunPosition> ScriptLuaScheduler::RunPositions() const {
 }
 
 // The persisted table: { globals = ..., types = ..., names = (SaveNames), texts = n, instances = { { values, count, killed }... }, runs = { {
-// thread (false when it ended), ticks, sleepStart, arguments, kill (the instance index, -1 for none) }... }, worlds =
-// { WorldScript... } }.
+// thread (false when it ended), ticks, sleepStart, arguments, kill (the instance index, -1 for none), values (a rule's
+// run), rule }... }, worlds = { WorldScript... } }.
 bool ScriptLuaScheduler::Save(std::string* data, std::string* error) {
     const int base = lua_gettop(L);
     lua.PushGlobals();
@@ -215,7 +215,7 @@ bool ScriptLuaScheduler::Save(std::string* data, std::string* error) {
     lua_createtable(L, static_cast<int>(runs.size()), 0);
     i = 0;
     for (const Run& run : runs) {
-        lua_createtable(L, 0, 5);
+        lua_createtable(L, 0, 7);
         if (run.ended) lua_pushboolean(L, false);
         else lua_rawgeti(L, LUA_REGISTRYINDEX, run.thread);
         lua_setfield(L, -2, "thread");
@@ -227,6 +227,12 @@ bool ScriptLuaScheduler::Save(std::string* data, std::string* error) {
         lua_setfield(L, -2, "arguments");
         lua_pushinteger(L, InstanceIndexOf(run.run.killFlag));
         lua_setfield(L, -2, "kill");
+        if (run.values != kNoReference) {
+            lua_rawgeti(L, LUA_REGISTRYINDEX, run.values);
+            lua_setfield(L, -2, "values");
+        }
+        lua_pushinteger(L, run.rule);
+        lua_setfield(L, -2, "rule");
         lua_rawseti(L, -2, ++i);
     }
     lua_setfield(L, root, "runs");
@@ -297,6 +303,8 @@ bool ScriptLuaScheduler::Restore(std::string_view data, std::string* error) {
         run.arguments = static_cast<int>(lua_tointeger(L, -1));
         lua_getfield(L, entry, "kill");
         run.run.killFlag = KillFlagOf(static_cast<int>(lua_tointeger(L, -1)));
+        run.rule = lua_getfield(L, entry, "rule") == LUA_TNUMBER ? static_cast<int>(lua_tointeger(L, -1)) : -1;
+        if (lua_getfield(L, entry, "values") == LUA_TTABLE) run.values = luaL_ref(L, LUA_REGISTRYINDEX);
         runs.push_back(std::move(run));
         lua_settop(L, entry - 1);
     }
@@ -383,7 +391,11 @@ ScriptLuaScheduler::Run ScriptLuaScheduler::NewRun(int count) {
     return run;
 }
 
-void ScriptLuaScheduler::Release(const Run& run) { luaL_unref(L, LUA_REGISTRYINDEX, run.thread); }
+void ScriptLuaScheduler::Release(const Run& run) {
+    static_assert(kNoReference == LUA_NOREF);
+    luaL_unref(L, LUA_REGISTRYINDEX, run.thread);
+    luaL_unref(L, LUA_REGISTRYINDEX, run.values);
+}
 
 // ScriptRun::Execute's step: false when the run had ended before it. A run that returns now stays in the list until
 // the next one, as Execute returns true after running a block's last command.
@@ -403,7 +415,7 @@ void ScriptLuaScheduler::Report(const char* message) {
 // ScriptIfThen::Run for each rule until one kills the instance: the condition called with the instance's own values;
 // when it holds, the action runs at once on a new thread with copies of them and the instance's kill flag, then goes
 // to the head of the run list without the flag (a run that ended too: Execute's true after the last command). A rule
-// without an action (an empty then-section) starts no run.
+// without an action (an empty then-section) starts no run. The run keeps its definition, rule and copies (Runs).
 void ScriptLuaScheduler::RunRules(Instance& instance) {
     const int base = lua_gettop(L);
     lua_rawgeti(L, LUA_REGISTRYINDEX, instance.values);
@@ -425,12 +437,25 @@ void ScriptLuaScheduler::RunRules(Instance& instance) {
         }
         lua_settop(L, rule);
         if (lua_getfield(L, rule, "action") != LUA_TFUNCTION) continue;
+        const int first = lua_gettop(L) + 1;
         for (int i = 1; i <= instance.count; ++i) {
             lua_rawgeti(L, values, i + 1);
             PushCopy(L, -1);
             lua_remove(L, -2);
         }
+        lua_createtable(L, instance.count + 1, 1);
+        lua_pushvalue(L, definition);
+        lua_rawseti(L, -2, 1);
+        for (int i = 0; i < instance.count; ++i) {
+            lua_pushvalue(L, first + i);
+            lua_rawseti(L, -2, i + 2);
+        }
+        lua_pushinteger(L, instance.count);
+        lua_setfield(L, -2, "n");
+        const int kept = luaL_ref(L, LUA_REGISTRYINDEX);
         Run run = NewRun(instance.count);
+        run.values = kept;
+        run.rule = static_cast<int>(r - 1);
         run.run.killFlag = &instance.killed;
         Continue(run);
         run.run.killFlag = nullptr;

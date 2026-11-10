@@ -602,7 +602,7 @@ cunit148 #vitals C17C1FEE
 cunit187 #place F3DF9084
 cunit187 #unit D3B5CFA9
 cunit187 #vitals 1DDF30F4
-@ 1 update 40 frame 7 tick 40 zone gz1g hash 545673AF n 791
+@ 1 update 40 frame 7 tick 40 zone gz1g hash 9F900279 n 791
 world tick 40
 world updates 40
 world timeBase 5.97222233
@@ -6349,7 +6349,7 @@ aievents height 25
 script #files 012FC665
 script #ggroup 393FB575
 script #globals A5413D6F
-script #gobject 3656F9F8
+script #gobject 890B9E0B
 script #inst AA0C8751
 script #instances 9EC34A1E
 client tick 40
@@ -6381,7 +6381,7 @@ cunit1884 #vitals C3E01DE4
 cunit1000011214 #place DFCF543E
 cunit1000011214 #unit C6081760
 cunit1000011214 #vitals 7D2D89BA
-@ 2 update 60 frame 11 tick 60 zone gz1g hash AC84A5A3 n 796
+@ 2 update 60 frame 11 tick 60 zone gz1g hash 6742D475 n 796
 world tick 60
 world updates 60
 world timedObjects 5
@@ -6434,7 +6434,7 @@ cunit1804 #place C2A14CCD
 cunit1804 #unit D72CA4CA
 cunit1884 #place AE30F036
 cunit1000011214 #place FF01FC81
-@ 3 update 80 frame 15 tick 60 zone gz1g hash 9AC821F7 n 796
+@ 3 update 80 frame 15 tick 60 zone gz1g hash 510E5021 n 796
 world updates 80
 world paused 1
 obj699 #unit 58199F9E
@@ -6448,13 +6448,13 @@ client tick 61
 client paused 1
 client ticksRun 52
 cunit1804 #unit 618078DC
-@ 4 update 100 frame 19 tick 60 zone gz1g hash 52F83F5D n 796
+@ 4 update 100 frame 19 tick 60 zone gz1g hash 993E4E8B n 796
 world updates 100
 random isaac.count 111
 player0 lastTick 60
 player0 var.gtime 6.03666687
 client ticksRun 72
-@ 5 update 120 frame 23 tick 61 zone gz1g hash 7E280F76 n 796
+@ 5 update 120 frame 23 tick 61 zone gz1g hash B5EE7EA0 n 796
 world tick 61
 world updates 122
 world paused 0
@@ -6543,7 +6543,7 @@ cunit1804 #place F6F6DFDB
 cunit1884 #place A0547F59
 cunit1000011214 #place B5FCCE44
 cunit1000011214 #unit 0AC3B75D
-@ 6 update 140 frame 27 tick 81 zone gz1g hash EA43C5AB n 796
+@ 6 update 140 frame 27 tick 81 zone gz1g hash 2185B47D n 796
 world tick 81
 world updates 142
 random isaac.count 167

@@ -1,13 +1,23 @@
 {
   "scenario": "mod_lost_in_astral_elevator",
   "install": "vanilla",
-  "recorded": "2026-11-06",
-  "commit": "fc84ce294",
+  "recorded": "2026-11-10",
+  "commit": "0c1c8717c",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MOD9: new scenario, Lost in Astral's gz1d2 lift from the user's save: the deck lever used through the battle screen's use pick, the ride down and the walk on",
+  "reason": "L8a: the digest's script record and the decoded saves describe a script in terms both executors share (runs by definition and rule without block or command, loop counters and evaluation slots left out, a save on Lua's state in the old fields), so a converted install's goldens are the normal install's",
   "source": "image",
-  "saves": "10 decoded saves (tools/savefile.py), the same in 2 runs"
+  "saves": "10 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "save LostInAstral/save1/bz1h.sav: 216 fields in 1 records differ: commands 216",
+    "  commands: 216 fields in 1 records; first commands blocks.0.cmd0.float0: 1.0 in the old golden, ~eval in the new run",
+    "save LostInAstral/save1/cz1h.sav: 39 fields in 1 records differ: commands 39",
+    "  commands: 39 fields in 1 records; first commands blocks.2.cmd0.float0: 2.0 in the old golden, ~eval in the new run",
+    "save LostInAstral/save1/gz1h.sav: 1122 fields in 1 records differ: commands 1122",
+    "  commands: 1122 fields in 1 records; first commands blocks.0.cmd0.float0: 0.0 in the old golden, ~eval in the new run",
+    "save LostInAstral/save1/mission.sav: 176 fields in 1 records differ: commands 176",
+    "  commands: 176 fields in 1 records; first commands blocks.2.cmd0.float0: 1.0 in the old golden, ~eval in the new run"
+  ]
 }

@@ -2,12 +2,17 @@
   "scenario": "mod_example",
   "install": "vanilla",
   "recorded": "2026-11-10",
-  "commit": "7c80b99f5",
+  "commit": "a5931a839",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MF10: new scenario mod_example, the modding guide's example mod (texts, items, recoloured ground PNGs, a pig added in zone1.mob.toml)",
+  "reason": "L8b: scenarios for a mod's Lua beyond a zone's own file (an AddMob'd .mob's .lua taking over the running script, a .mob.toml's script key naming another file, a .lua that does not load), and the example mod's zone 1 script as a .lua with the mod's lines (a console line, the pig greeting the party)",
   "source": "image",
-  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "console: differs from line 3: the old golden '0', the new run 'Example mod: zone1.lua runs'",
+    "digest: digest: the new run has more records; the other ends before its record 8 (world update 180, frame 38, tick 180, zone gz1g)",
+    "  digest: the new run has more records; the other ends before its record 8 (world update 180, frame 38, tick 180, zone gz1g)"
+  ]
 }

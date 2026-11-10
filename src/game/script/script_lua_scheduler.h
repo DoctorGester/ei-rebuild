@@ -62,17 +62,11 @@ public:
     // ... }` table, as lua_topointer gives it) and each waiting run's position (ticks and sleep start).
     std::vector<const void*> InstanceDefinitions() const;
     std::vector<ScriptRunPosition> RunPositions() const;
-    // For the harness's digest of a script on Lua (script_lua_mission.cpp), in list order: each instance's definition
-    // by the tree's name (else the name of a global holding it, else empty), its kill flag and its values as variables
-    // of their types (a number a float, nil an object); each waiting run's instance (the index its kill flag names,
-    // -1 for none).
-    struct InstanceView {
-        std::string name;
-        bool killed = false;
-        ScriptVars vars;
-    };
-    std::vector<InstanceView> Instances();
-    std::vector<int> RunInstances() const;
+    // Script::InstanceViews and RunViews on Lua (script_lua_mission.cpp), in list order: a definition by the tree's
+    // name (else the name of a global holding it, else empty); the values as the definition's variables when the script
+    // has it (its parameters set), else each by its own type (a number a float, nil an object).
+    std::vector<ScriptInstanceView> Instances();
+    std::vector<ScriptRunView> Runs();
 
     // The whole state persisted with Eris into *data: the scripts' own globals and the GlobalVars types
     // (ScriptLua::PushGlobals), the names and the count of texts converted, every instance (its definition and
@@ -101,6 +95,7 @@ public:
     std::function<void(const std::string& message)> report;
 
 private:
+    static constexpr int kNoReference = -2;   // LUA_NOREF
     struct Instance {
         int values = 0;   // the registry's {definition, arguments...}
         int count = 0;    // of arguments
@@ -112,6 +107,10 @@ private:
         ScriptRun run;
         int arguments = 0;   // on the thread's stack before its first resume
         bool ended = false;  // its function returned: dropped by the next tick (Execute's false)
+        // A rule's run: the registry's { definition, the values it started with..., n = their count } (Runs) and the
+        // rule's index from 0; a WorldScript's: none and -1.
+        int values = kNoReference;
+        int rule = -1;
     };
 
     void Start(lua_State* from);
@@ -126,6 +125,12 @@ private:
     bool Continue(Run& run);
     void RunRules(Instance& instance);
     void Release(const Run& run);
+    // The `count` values after the definition (at 1) of the table at `index` on the stack as variables: as
+    // `definition`'s (its variables, the parameters set in their order) when it has that many parameters, else each
+    // by its own type.
+    ScriptVars ValuesOf(int index, int count, const ScriptDefinition* definition);
+    // Each definition's name by its table (Instances).
+    std::unordered_map<const void*, std::string> DefinitionNames();
     void Report(const char* message);
 
     lua_State* L = nullptr;

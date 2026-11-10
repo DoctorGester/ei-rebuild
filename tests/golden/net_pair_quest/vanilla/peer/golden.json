@@ -1,21 +1,22 @@
 {
   "scenario": "net_pair_quest",
   "install": "vanilla",
-  "recorded": "2026-11-06",
-  "commit": "5cfaf3094",
+  "recorded": "2026-11-10",
+  "commit": "0c1c8717c",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R37f13: an object's parts are drawn whole after its one view test, so the client units' Static and Shown flags come from that verdict (Static: every part near enough neither hidden nor flat; the relight rule is gone); no server record differs",
+  "reason": "L8a: the digest's script record and the decoded saves describe a script in terms both executors share (runs by definition and rule without block or command, loop counters and evaluation slots left out, a save on Lua's state in the old fields), so a converted install's goldens are the normal install's",
   "side": "peer",
   "source": "image",
   "change": [
-    "digest: 56 of 541 records differ, first at record 395 (world update 7920, tick 7517, frame 1583, zone bz1mpg); outcomes the same; no unit position differs",
-    "  first difference at record 395 (world update 7920, tick 7517, frame 1583, zone bz1mpg): 1 fields",
-    "    cunit469697 (80 unhufe \"\") #unit: 6AC9040A in the old golden, 6DC0ACD6 in the new run",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  client units: 1 of 23 differ",
-    "    #unit: 1 client unit, 56 records, from 395; hash only (no numbers kept)"
+    "digest: 520 of 541 records differ, first at record 21 (world update 440, tick 37, frame 87, zone bz1mpg); outcomes CHANGED: script; no unit position differs",
+    "  first difference at record 21 (world update 440, tick 37, frame 87, zone bz1mpg): 1 fields",
+    "    script (script) #run: 4FFD8037 in the old golden, 8B1F9969 in the new run",
+    "  outcomes: CHANGED script; same: zone, deaths, spawns, money, quest variables, party and items, game result",
+    "    script: script #run differs (hashes only), from record 21 (+519 more)",
+    "  script: 1 of 1 differ",
+    "    run: 1 script, 520 records, from 21; hash only (no numbers kept)"
   ]
 }

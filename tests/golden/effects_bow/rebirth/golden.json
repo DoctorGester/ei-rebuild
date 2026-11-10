@@ -1,17 +1,24 @@
 {
   "scenario": "effects_bow",
   "install": "rebirth",
-  "recorded": "2026-11-09",
-  "commit": "ad82ab94c",
+  "recorded": "2026-11-10",
+  "commit": "0c1c8717c",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "A load keeps the saved weather: rolls only from Tick and the weather delay saved in visuals.sav, so scenarios that set the clock in rainy zones draw fewer rolls and every save gains the WeatherDelay section.",
+  "reason": "L8a: the digest's script record and the decoded saves describe a script in terms both executors share (runs by definition and rule without block or command, loop counters and evaluation slots left out, a save on Lua's state in the old fields), so a converted install's goldens are the normal install's",
   "source": "image",
   "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save savea/visuals.sav: 1 fields in 1 records differ: visuals 1",
-    "  visuals: 1 fields in 1 records; first visuals.weatherDelay weatherDelay: (none) in the old golden, 0 in the new run"
+    "digest: 19 of 20 records differ, first at record 1 (world update 40, tick 40, frame 7, zone gz1g); outcomes CHANGED: script; no unit position differs",
+    "  first difference at record 1 (world update 40, tick 40, frame 7, zone gz1g): 1 fields",
+    "    script (script) #gobject: 3656F9F8 in the old golden, 890B9E0B in the new run",
+    "  outcomes: CHANGED script; same: zone, deaths, spawns, money, quest variables, party and items, game result",
+    "    script: script #gobject differs (hashes only), from record 1 (+18 more)",
+    "  script: 1 of 1 differ",
+    "    gobject: 1 script, 19 records, from 1; hash only (no numbers kept)",
+    "save savea/mission.sav: 458 fields in 1 records differ: commands 458",
+    "  commands: 458 fields in 1 records; first commands blocks.0.cmd0.float0: 0.0 in the old golden, ~eval in the new run"
   ]
 }

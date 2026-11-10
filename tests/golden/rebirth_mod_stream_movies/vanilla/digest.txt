@@ -629,7 +629,7 @@ cunit129 #unit E07B8DDB
 cunit148 #place 14E8B91B
 cunit148 #unit 37ED9B5D
 cunit187 #place 8FD72F05
-@ 2 update 60 frame 289372 tick 60 zone gz1g hash C6F1E7A4 n 791
+@ 2 update 60 frame 322048 tick 60 zone gz1g hash 0D379672 n 791
 world tick 60
 world updates 60
 world timeBase 5.95555544
@@ -6376,7 +6376,7 @@ aievents height 25
 script #files 012FC665
 script #ggroup 393FB575
 script #globals A5413D6F
-script #gobject 3656F9F8
+script #gobject 890B9E0B
 script #inst AA0C8751
 script #instances 9EC34A1E
 client tick 60

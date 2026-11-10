@@ -1,0 +1,18 @@
+# A zone's .lua that Lua does not load (docs/notes/mods.md, "Scripts in Lua"; tools/make_lua_mod.py broken: a function
+# left open at its end): the zone's load reports Script::Load's error 18 with Lua's message on the console ("Script
+# error: zone1.mob line 0: Maps\zone1.lua:3: <name> or '...' expected near <eof>"), as the game reports a .mob's parse
+# error, and the game goes on with nothing of the file run: the zone's globals are not declared in Lua, so the engine's
+# text that adds the party to Heroes fails too ("Script error: text2:4: AddObject: argument 1 is no group (nil)").
+# prepare: make_lua_mod.py broken
+mod harness_saves\lua_mod
+waitmenu
+console thingamabob
+newgame
+waitline 15 Script error: zone1.mob line 0: Maps\zone1.lua:
+waitfor 15 IsGreater(HP(GetLeader()),0)
+expect Script error: text2:4: AddObject: argument 1 is no group (nil)
+wait 2000
+dump zone1
+check IsAlive(GetLeader())
+report
+quit

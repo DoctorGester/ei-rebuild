@@ -602,7 +602,7 @@ cunit148 #vitals C17C1FEE
 cunit187 #place F3DF9084
 cunit187 #unit D3B5CFA9
 cunit187 #vitals 1DDF30F4
-@ 1 update 40 frame 7 tick 40 zone gz1g hash 545673AF n 791
+@ 1 update 40 frame 7 tick 40 zone gz1g hash 9F900279 n 791
 world tick 40
 world updates 40
 world timeBase 5.97222233
@@ -6349,7 +6349,7 @@ aievents height 25
 script #files 012FC665
 script #ggroup 393FB575
 script #globals A5413D6F
-script #gobject 3656F9F8
+script #gobject 890B9E0B
 script #inst AA0C8751
 script #instances 9EC34A1E
 client tick 40
@@ -6381,7 +6381,7 @@ cunit1884 #vitals C3E01DE4
 cunit1000011214 #place DFCF543E
 cunit1000011214 #unit C6081760
 cunit1000011214 #vitals 7D2D89BA
-@ 2 update 60 frame 11 tick 60 zone gz1g hash 207DB45E n 795
+@ 2 update 60 frame 11 tick 60 zone gz1g hash AC08C5B7 n 795
 world tick 60
 world updates 60
 world objects 780
@@ -6461,7 +6461,7 @@ cunit1000066549 #vitals 8FC93AF9
 cunit1000066550 #place 16CD3F55
 cunit1000066550 #unit A79294A9
 cunit1000066550 #vitals 8FC93AF9
-@ 3 update 80 frame 15 tick 80 zone gz1g hash 13E8D57F n 793
+@ 3 update 80 frame 15 tick 80 zone gz1g hash 51143B4A n 793
 world tick 80
 world updates 80
 world objects 779
@@ -6516,7 +6516,7 @@ cunit1804 #place DF969219
 cunit1804 #unit 618078DC
 - cunit1000066549
 cunit1000066550 #place 886D3723
-@ 4 update 100 frame 19 tick 100 zone gz1g hash 1FF04D9D n 791
+@ 4 update 100 frame 19 tick 100 zone gz1g hash D4363C4B n 791
 world tick 100
 world updates 100
 world objects 778

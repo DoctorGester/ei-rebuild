@@ -45,6 +45,7 @@ example_mod\
   Res\database\items.idb.toml     items.idb's records changed or added
   Res\textures\Zone1000.png       textures.res's Zone1000.mmp, as a PNG
   Maps\zone1.mob.toml             zone 1's objects
+  Maps\zone1.lua                  zone 1's script
 ```
 
 - The root's files (`config.reg`, a readme, Rebirth's `.plg` plugins) are the mod's own and replace nothing: the game
@@ -544,6 +545,7 @@ the parts made from your install (the repository holds no game data):
 | `Res\database\items.idb.toml` | one field of the game's stone axe changed; a new weapon "example axe" |
 | `Res\textures\Zone1000.png` .. `Zone1007.png` (made) | zone 1's ground pages as ei-convert writes them, recoloured by the script (green becomes red); the PNGs keep their settings chunk |
 | `Maps\zone1.mob.toml` (made) | zone 1's objects as ei-convert writes them, with `examples/example_mod_additions/Maps/zone1.mob.toml` (a pig) appended |
+| `Maps\zone1.lua` (made) | zone 1's script as ei-convert writes it, with `examples/example_mod_additions/Maps/zone1.lua` put in before its WorldScript (a console line, and a definition whose rule has the pig greet the party) and a call of it as the WorldScript's first line |
 | `readme.txt` | the mod's own notes; a root file, read by nothing |
 
 ```
@@ -552,5 +554,5 @@ python tools\make_example_mod.py <folder> [--install <game folder>] [--convert <
 writes `<folder>\example_mod` (the install defaults to `EI_GAME_VANILLA`, the ei-convert to this checkout's build).
 
 The test scenario `tests/scenarios/mod_example.txt` plays it on the GOG and the Rebirth data: the changed text, the two
-weapons' damage after `GiveItem`, the pig by the party's start, the red ground in a capture, and the game reading each
-of the mod's files.
+weapons' damage after `GiveItem`, the pig by the party's start and its greeting, the red ground in a capture, and the
+game reading each of the mod's files.

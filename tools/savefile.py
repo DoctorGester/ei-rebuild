@@ -162,7 +162,10 @@ RULES = {
     'junk': 'bytes the game never sets before writing them (padding, stack leftovers, unused tails)',
     'identity': 'a pointer used as a record identity: numbered by first appearance (p1, p2, ...)',
     'lua': "a script's Lua state (Eris): its tables are written in the order of Lua's string hashes, whose seed differs "
-           'in every run',
+           'in every run; the fields before it describe the state as the old executor would',
+    'eval': "a script call's argument slot that a binding or nested call fills when the call runs: the old executor's "
+            "last value, which Lua's calls do not write",
+    'loop': "a loop's counter global, which the converted Lua keeps in the loop's function",
 }
 
 
@@ -328,10 +331,15 @@ class Reader:
         return v
 
     def lua(self, name, n, why):
-        """n bytes of a Lua state (rule lua): their size kept."""
+        """n bytes of a Lua state (rule lua): left out, not even their size (a save of the old executor has none)."""
         self.take(n)
         self.excluded(name, 'lua', why)
-        self.put(name, f'~lua {n} bytes')
+
+    def eval(self, name, n):
+        """n bytes of an evaluation slot (rule eval; a string's already read: 0)."""
+        self.take(n)
+        self.excluded(name, 'eval', RULES['eval'])
+        self.put(name, '~eval')
 
     def junk(self, name, n, why):
         """n bytes the game never set (rule junk)."""
