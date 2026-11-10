@@ -239,6 +239,23 @@ std::string ModAckStep(const std::string& argument) {
     return std::string("modack ") + unit + " " + speech + ": " + sound + ", expected " + expected;
 }
 
+std::string ModRecordStep(const std::string& argument) {
+    // "<kind> <name> = <expected>": the name may hold spaces.
+    char kind[32] = {};
+    const std::size_t equals = argument.find(" = ");
+    if (equals == std::string::npos || std::sscanf(argument.c_str(), "%31s", kind) != 1 || std::strlen(kind) + 1 >= equals)
+        return "modrecord " + argument + ": not <kind> <name> = <text>";
+    const std::string name = argument.substr(std::strlen(kind) + 1, equals - std::strlen(kind) - 1);
+    const std::string expected = argument.substr(equals + 3);
+    std::string text;
+    const long found = image::RecordText(kind, name.c_str(), &text);
+    if (found == -3) return "modrecord " + name + ": the client world has no map object manager";
+    if (found == 0) text = "-";
+    Log("harness: modrecord %s %s: %s (expected %s)", kind, name.c_str(), text.c_str(), expected.c_str());
+    if (text == expected) return std::string();
+    return "modrecord " + std::string(kind) + " " + name + ": " + text + ", expected " + expected;
+}
+
 std::string ModWeaponStep(const std::string& argument) {
     // The weapon's name is the line before its last word ("-") or its last two (the numbers).
     const std::size_t last = argument.find_last_of(' ');

@@ -212,7 +212,8 @@
 //   modfile <archive> <file> <bytes>, modlist <archive> <pattern> <count>, modarchive figures|links|textures <file> <bytes>,
 //   mapfile exists <name> yes|no, playstream <name>.mp3
 //                             Rebirth's mod-folder patches asked directly (harness_starter.h; S19d)
-//   modtext <name> <text>, modack <unit> <speech> <sound>, modweapon <weapon> <min> <max>
+//   modtext <name> <text>, modack <unit> <speech> <sound>, modweapon <weapon> <min> <max>,
+//   modrecord ack|anim|blood|footprint|scorch <name> = <text>
 //                             a mod's records as TOML seen by the game (harness_starter.h; MF3, MF5)
 //   waitline <seconds> <text> wait until the console has printed <text> (at any time in the run)
 //   read mod|game <path> yes|no, wrote mod|game <path> yes|no, waitread <seconds> mod|game <path>
@@ -2917,11 +2918,13 @@ void RunSteps() {
             }
         } else if (s.verb == "hudstate" || s.verb == "campputon" || s.verb == "modfile" || s.verb == "modlist" ||
                    s.verb == "modarchive" || s.verb == "mapfile" || s.verb == "playstream" || s.verb == "folderprofile" ||
-                   s.verb == "modtext" || s.verb == "modack" || s.verb == "modweapon") {
+                   s.verb == "modtext" || s.verb == "modack" || s.verb == "modweapon" ||
+                   s.verb == "modrecord") {
             std::string error = s.verb == "hudstate" ? HudState(s.argument)
                                 : s.verb == "modtext" ? starter::ModTextStep(s.argument)
                                 : s.verb == "modack" ? starter::ModAckStep(s.argument)
                                 : s.verb == "modweapon" ? starter::ModWeaponStep(s.argument)
+                                : s.verb == "modrecord" ? starter::ModRecordStep(s.argument)
                                 : s.verb == "campputon" ? CampPutOn(s.argument)
                                 : s.verb == "folderprofile" ? folder_profile::Step()
                                 : s.verb == "modlist" ? starter::ModListStep(s.argument)

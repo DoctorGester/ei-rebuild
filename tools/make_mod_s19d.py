@@ -33,7 +33,10 @@ nothing is committed. Kinds (docs/notes/rebirth.md, "Resources and paths"):
   toml      records as TOML (tests/scenarios/mod_toml_records.txt; docs/notes/mods.md, "Records as TOML"):
               config.reg.toml                 the mod's config.reg as TOML (no config.reg)
               Res\\texts\\texts.toml          one string of the game's texts.res changed ("string quit")
-              Res\\database\\acks.db.toml     one record of the game's acks.db changed (Haburu's speeches)
+              Res\\database\\acks.db.toml     two records of the game's acks.db changed (Haburu's scenario speeches; the
+                                              mercenary warrior's attack speeches alone)
+              Res\\database\\prints.db.toml   the stone blood print's wet alpha alone
+              Res\\database\\unanhoco.adb.toml  the cow's animation "cidle01" with another chance, alone
   databases game databases as TOML (tests/scenarios/mod_toml_databases.txt; docs/notes/mods.md, "Databases as TOML"):
               Res\\database\\items.idb.toml   the weapon "stone axe" with another damage; a weapon "mf5 axe" added
 Rebirth.txt and a config.reg with [MOD] Title are written in every kind (as the shipped mods have them; toml: its
@@ -136,10 +139,17 @@ def toml(root):
     write(os.path.join(root, 'config.reg.toml'), b'[MOD]\nTitle = "S19d test mod"\n')
     write(os.path.join(root, 'Rebirth.txt'), b'')
     write(os.path.join(root, 'Res', 'texts', 'texts.toml'), b'"string quit" = "MF3 mod text"\n')
-    # The record replaces the game's whole Haburu record: s24 gets another sound, s25 is gone.
+    # Records merge by field (MF3a). Haburu's record gives his scenario list, which replaces the game's whole list: s24
+    # gets another sound, s25 is gone; his other lists stay. The mercenary warrior's gives his attack list alone (his
+    # move list stays), the stone blood print's one wet value (the rest of it stays) and the cow's "cidle01" its
+    # chance (its other fields stay).
     write(os.path.join(root, 'Res', 'database', 'acks.db.toml'),
           b'[[unit]]\nname = "Haburu"\nscenario = [\n'
-          b'    { sound = "Acks\\\\Haburu\\\\Scenario\\\\MF3.wav", chance = 100, text = "MF3", name = "s24" },\n]\n')
+          b'    { sound = "Acks\\\\Haburu\\\\Scenario\\\\MF3.wav", chance = 100, text = "MF3", name = "s24" },\n]\n\n'
+          b'[[unit]]\nname = "Human Mercenary Warrior"\nattack = [\n'
+          b'    { sound = "Acks\\\\HMW\\\\Attack\\\\MF3a.wav", chance = 50 },\n]\n')
+    write(os.path.join(root, 'Res', 'database', 'prints.db.toml'), b'[[blood]]\nname = "stone"\nwet = { alpha = 0.25 }\n')
+    write(os.path.join(root, 'Res', 'database', 'unanhoco.adb.toml'), b'[[animation]]\nname = "cidle01"\nchance = 37\n')
 
 
 # A mod's items.idb.toml holds only what it changes: the game's "stone axe" keeps every field but the two given, and

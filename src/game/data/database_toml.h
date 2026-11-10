@@ -297,9 +297,14 @@ void WriteRecords(toml::Writer& writer, std::string_view table, const std::vecto
 // yet takes the fields given and keeps the others; a key no record has left is a new record (the type's defaults and
 // the fields given) at the end, so every record keeps its index. `what` names the database in the messages: a record
 // without its key is left out, an unknown key or a value of a type its field does not take is logged and skipped.
-template <class Record, class KeyOf>
+// `onNew(record, index)` finishes a new record before the fields are read (a place that is its own field).
+struct NoNewRecord {
+    template <class Record>
+    void operator()(Record&, std::size_t) const {}
+};
+template <class Record, class KeyOf, class OnNew = NoNewRecord>
 void MergeRecords(const toml::Value& table, std::vector<Record>& records, const char* key, KeyOf keyOf,
-                  const char* what, const std::string& path) {
+                  const char* what, const std::string& path, OnNew onNew = {}) {
     if (table.Exists() && !table.IsArray()) {
         game::Warning("%s: %s line %d: not an array of tables", what, path, table.Line());
         return;
@@ -316,6 +321,7 @@ void MergeRecords(const toml::Value& table, std::vector<Record>& records, const 
         while (index < records.size() && (merged[index] || keyOf(records[index]) != name)) ++index;
         if (index == records.size()) {
             records.emplace_back();
+            onNew(records.back(), index);
             merged.push_back(false);
         }
         merged[index] = true;
