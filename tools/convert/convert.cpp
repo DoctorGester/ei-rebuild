@@ -4,7 +4,8 @@
 //        ei-convert --check <install or archive>...        only the round trips
 // An install is walked for its archives (Res\<name>.res, or the folder of an unpacked one under a Res folder) and its
 // loose registries (*.reg; not those of Maps\, whose quest archives are not converted) and camera paths (*.cam). Of an
-// archive: its registries, materials (.mat), animation databases (.adb), acks.db and prints.db, each as
+// archive: its registries, materials (.mat), animation databases (.adb), acks.db, prints.db and the game databases
+// (convert_databases.h: units.udb, perks.pdb, spells.sdb, items.idb, quests.qdb, Levers.ldb), each as
 // <archive folder>\<name>.toml; a texts archive's (texts.res, textslmp.res) texts as <archive folder>\texts.toml. A
 // loose file as <name>.toml beside it. A record file's TOML has `replace = true`: it stands for the whole original,
 // nothing below it read (a mod's original hides the game's file too). The target mirrors the source's layout (MF1's loose folders); converted.txt
@@ -21,6 +22,8 @@
 #include "game/units/acks_db.h"
 #include "lib/text_case.h"
 #include "lib/toml.h"
+
+#include "convert_databases.h"
 
 #include <bit>
 #include <cstdarg>
@@ -398,6 +401,11 @@ void ConvertArchive(const fs::path& archivePath) {
             ConvertFile("acks.db", original, bytes, output, original, ConvertAcks);
         } else if (lower == "prints.db") {
             ConvertFile("prints.db", original, bytes, output, original, ConvertPrints);
+        } else if (IsDatabase(lower)) {
+            ConvertFile(lower, original, bytes, output, original,
+                        [&](const RecordFile& file, const std::string& path, std::string* toml, Differences& d) {
+                            ConvertDatabase(lower, file, path, WholeFile, toml, d.lines);
+                        });
         }
     }
     if (!texts) return;

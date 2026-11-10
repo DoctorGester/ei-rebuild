@@ -239,6 +239,26 @@ std::string ModAckStep(const std::string& argument) {
     return std::string("modack ") + unit + " " + speech + ": " + sound + ", expected " + expected;
 }
 
+std::string ModWeaponStep(const std::string& argument) {
+    // The weapon's name is the line before its last word ("-") or its last two (the numbers).
+    const std::size_t last = argument.find_last_of(' ');
+    const bool none = last != std::string::npos && argument.substr(last + 1) == "-";
+    const std::size_t middle =
+        none || last == std::string::npos || last == 0 ? last : argument.find_last_of(' ', last - 1);
+    if (middle == std::string::npos || middle == 0)
+        return "modweapon " + argument + ": not <weapon> <min> <max> or <weapon> -";
+    const std::string weapon = argument.substr(0, middle);
+    const std::string expected = argument.substr(middle + 1);
+    float minimum = 0.0f, maximum = 0.0f;
+    const long found = image::LocalWeaponDamage(weapon.c_str(), &minimum, &maximum);
+    if (found == -3) return "modweapon " + weapon + ": no server world";
+    char got[64] = "- -";
+    if (found == 1) std::snprintf(got, sizeof(got), "%g %g", minimum, maximum);
+    Log("harness: modweapon %s: %s (expected %s)", weapon.c_str(), got, expected.c_str());
+    if (expected == got || (found != 1 && expected == "-")) return std::string();
+    return "modweapon " + weapon + ": " + got + ", expected " + expected;
+}
+
 std::string PlayStreamStep(const std::string& argument) {
     if (argument.empty()) return "playstream needs a file name";
     image::PlayStream(argument.c_str());

@@ -4,6 +4,8 @@
 
 #include "game/combat/combat.h"
 #include "game/data/database_file.h"       // the archive file and the stream on the stack (shared with the other loads)
+#include "game/data/database_toml.h"
+#include "game/data/resource.h"
 #include "game/app/logic_settings.h"
 #include "game/net/net_delta.h"
 #include "game/app/options.h"
@@ -303,29 +305,31 @@ UnitLevelRecord* UnitLevelTable::FindByName(std::string_view name) {
 // --- The unit database ----------------------------------------------------------------------------
 
 int UnitDatabase::Load(const std::string& folder, const std::string& archive) {
-    std::string path = folder + archive;
     MappedResource resource;
-    resource.OpenResource(path);
-    std::uint32_t size;
-    void* data = resource.GetFile("units.udb", &size);
-    if (!data) game::FatalExit("Can't open units database\n");
-
-    MemoryStream stream;
-    stream.Fill(data, size);
-
-    LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializeUnitLevels(kLevelsChunk, &levels.records); });
-    FileByName(levels);
-    LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializeModels(kModelsChunk, &models.records); });
-    FileByName(models);
-    LoadTable(&stream, [&](ChunkArchive& archive) {
-        archive.SerializePrototypes(kPrototypesChunk, &prototypes.records);
-    });
-    FileByName(prototypes);
-    LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializeNpcs(kNpcsChunk, &npcs.records); });
-    FileByName(npcs);
-
-    resource.CloseFile(data);
+    resource.OpenResource(folder + archive);
+    const RecordFile file = resource.FindRecord("units.udb");
+    if (!file.Any()) game::FatalExit("Can't open units database\n");
     resource.CloseResource();
+    Read(file);
+    return 1;
+}
+
+void UnitDatabase::Read(const RecordFile& file) {
+    if (file.found) {
+        MemoryStream stream;
+        stream.Fill(file.original.data(), static_cast<std::uint32_t>(file.original.size()));
+        LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializeUnitLevels(kLevelsChunk, &levels.records); });
+        LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializeModels(kModelsChunk, &models.records); });
+        LoadTable(&stream, [&](ChunkArchive& archive) {
+            archive.SerializePrototypes(kPrototypesChunk, &prototypes.records);
+        });
+        LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializeNpcs(kNpcsChunk, &npcs.records); });
+    }
+    MergeTomls(file, [this](const toml::Value& root, const std::string& path) { MergeToml(root, path); });
+    FileByName(levels);
+    FileByName(models);
+    FileByName(prototypes);
+    FileByName(npcs);
 
     // Every prototype's model by its name (the record's place in the model table, or -1).
     for (int i = 0; i < static_cast<int>(prototypes.records.size()); ++i) {
@@ -342,36 +346,33 @@ int UnitDatabase::Load(const std::string& folder, const std::string& archive) {
             models.At(at)->slots[slot].levelIndex = index;
         }
     }
-    return 1;
 }
 
 // --- The skill database ---------------------------------------------------------------------------
 
 int SkillDatabase::Load(const std::string& folder, const std::string& archive) {
-    std::string path = folder + archive;
     MappedResource resource;
-    resource.OpenResource(path);
-    std::uint32_t size;
-    void* data = resource.GetFile("perks.pdb", &size);
-    if (!data) game::FatalExit("Can't open perks database\n");
+    resource.OpenResource(folder + archive);
+    const RecordFile file = resource.FindRecord("perks.pdb");
+    if (!file.Any()) game::FatalExit("Can't open perks database\n");
+    resource.CloseResource();
+    Read(file);
+    return 1;
+}
 
-    ChunkArchive ar;
-    {
+void SkillDatabase::Read(const RecordFile& file) {
+    if (file.found) {
+        ChunkArchive ar;
         MemoryStream stream;
-        stream.Fill(data, size);
+        stream.Fill(file.original.data(), static_cast<std::uint32_t>(file.original.size()));
         ar.Open(&stream, 1, 1);
         ar.SerializeSkills(kSkillsChunk, &skills);
         // The level records, inlined: as ChunkArchive::SerializeSkillLevels, with the vector's
         // clear and the record's chunk out of line.
         if (ar.EnterChunk(kSkillLevelsChunk)) {
-            int count;
-            if (ar.loading) {
-                levels.clear();
-                count = ar.CountChunks(kRecordChunk);
-                levels.resize(static_cast<std::uint32_t>(count));
-            } else {
-                count = static_cast<int>(levels.size());
-            }
+            levels.clear();
+            const int count = ar.CountChunks(kRecordChunk);
+            levels.resize(static_cast<std::uint32_t>(count));
             for (int i = 0; i < count; ++i) {
                 ar.Current()->occurrence = i + 1;
                 ar.SkillLevelChunk(kRecordChunk, &levels[i]);
@@ -379,10 +380,201 @@ int SkillDatabase::Load(const std::string& folder, const std::string& archive) {
             ar.LeaveChunk();
         }
         ar.Close(&stream);
-        resource.CloseFile(data);
-        resource.CloseResource();
     }
-    return 1;
+    MergeTomls(file, [this](const toml::Value& root, const std::string& path) { MergeToml(root, path); });
+}
+
+// --- As TOML ---------------------------------------------------------------------------------------
+
+using dbtoml::FloatBits;
+using dbtoml::Hex;
+using dbtoml::Signed;
+
+template <class Visit>
+void Fields(UnitLevelRecord& r, Visit& v) {
+    v("name", r.name);
+    v("slot_type", r.slotType);
+    v("values_a", r.valuesA);
+    v("values_b", r.valuesB);
+    v("vital_mask", Hex{r.vitalMask});
+}
+
+template <class Visit>
+void Fields(UnitModelSlot& r, Visit& v) {
+    v("level", r.levelName);
+    v("share", r.share);
+    v("factor", r.factor);
+}
+
+template <class Visit>
+void Fields(UnitModelRecord& r, Visit& v) {
+    v("name", r.name);
+    v("object_class", r.objectClass);
+    v("hit_point_regen", r.hitPointRegen);
+    v("mana_regen", r.manaRegen);
+    v.Unread("unread", r.unreadField);
+    v("movement_kind", r.movementKind);
+    v("angle", r.angle);
+    v("mode_speeds", r.modeSpeeds);
+    v("action_speeds", r.actionSpeeds);
+    v("reach_height_scale", r.reachHeightScale);
+    v("size_class", r.sizeClass);
+    v("size_class_small", r.sizeClassSmall);
+    v("size_scale", r.sizeScale);
+    v("damage_weights", r.damageWeights);
+    v("protection", r.protection);
+    v("slots", r.slots);
+    v("figure", r.figureName);
+    v.Unread("unread_list_a", r.unreadLists[0]);
+    v.Unread("unread_list_b", r.unreadLists[1]);
+    v("height", r.height);
+    v("blood_kind", r.bloodKind);
+    v("footprint_kind", r.footprintKind);
+    v("foot_part", r.footPart);
+    v("swap_feet", r.swapFeet);
+    v("cast_effect", r.castEffect);
+    v("hit_material", r.hitMaterial);
+    v("sound_folder", r.soundFolder);
+    v("sounds", r.soundNames);
+    v("idle_sound_chance", r.idleSoundChance);
+    v("attack_sound_chance", r.attackSoundChance);
+    v("eye_left", r.eyeLeft);
+    v("eye_bottom", r.eyeBottom);
+    v("eye_width", r.eyeWidth);
+    v("eye_height", r.eyeHeight);
+}
+
+template <class Visit>
+void Fields(UnitGoldRoll& r, Visit& v) {
+    v("chance", r.chance);
+    v("minimum", r.minimum);
+    v("maximum", r.maximum);
+    v.Unread("unread", r.unreadField);
+}
+
+template <class Visit>
+void Fields(UnitPrototypeRecord& r, Visit& v) {
+    v("name", r.name);
+    v("model", r.modelName);
+    v("skin", r.skin);
+    v("hair", r.hair);
+    v("scale", r.scale);
+    v("panel_view_size", r.panelViewSize);
+    v("height", r.height);
+    v("view_distance", r.viewDistance);
+    v("view_height", r.viewHeight);
+    v("shake", r.shake);
+    v("sound_folder", r.soundFolder);
+    v("hit_points", r.hitPoints);
+    v("mana", r.mana);
+    v("level", r.level);
+    v("experience_value", r.experienceValue);
+    v("protection_scale", r.protectionScale);
+    v("attack_category", r.attackCategory);
+    v("speed", r.speed);
+    v("combat", r.combat);
+    v("natural_weapon", r.naturalWeapon);
+    v("hit_sound_kind", r.hitSoundKind);
+    v("damage", r.damage);
+    v("damage_spread", r.damageSpread);
+    v("skill_level", r.skillLevel);
+    v("attributes_01", r.attributes01);
+    v("attribute_2", r.attribute2);
+    v("skills_3_to_5", r.skills3to5);
+    v("peripheral_range", r.peripheralRange);
+    v("perception", r.perception);
+    v("conspicuity", r.conspicuity);
+    v("gold", r.gold);
+    v("second_gold", r.secondGold);
+    v("loot_items", r.lootItems);
+    v("spells", r.spellNames);
+    v("armour", r.armourNames);
+    v("weapon", r.weaponName);
+    v("second_weapon", r.secondWeaponName);
+}
+
+template <class Visit>
+void Fields(UnitNpcRecord& r, Visit& v) {
+    v("name", r.name);
+    v.Unread("unread", r.unreadField);
+    v("experience", r.experience);
+    v("stats", r.stats);
+    v("attributes", r.attributes);
+    v("skills", r.skills);
+    v("perks", r.skillNames);
+    v("start_weapons", r.startWeapons);
+    v("start_quick_items", r.startQuickItems);
+    v("start_spells", r.startSpells);
+    v("experience_floor", r.experienceFloor);
+    v("start_money", r.startMoney);
+    v("voiced", r.voiced);
+}
+
+template <class Visit>
+void Fields(SkillRecord& r, Visit& v) {
+    v("name", r.name);
+    v.Unread("unread_text", r.unreadText);
+    v.Unread("unread", r.unreadField);
+    v("stats", r.statNames);
+}
+
+template <class Visit>
+void Fields(SkillLevelRecord& r, Visit& v) {
+    v("name", r.name);
+    v("display_name", r.displayName);
+    v.Unread("unread", r.unreadField);
+    v("required_level", r.requiredLevelName);
+    v("required_skill_name", r.requiredSkillName);
+    v("required_skill", Signed{r.values[0]});
+    v.Unread("unread_value_1", r.values[1]);
+    v("required_skill_value", r.values[2]);
+    v("required_strength", FloatBits{r.values[3]});
+    v("required_dexterity", FloatBits{r.values[4]});
+    v("required_intelligence", FloatBits{r.values[5]});
+    v("worth_exponent", Signed{r.values[6]});
+    v("value", r.values[7]);
+    v.Unread("unread_value_8", r.values[8]);
+    v.Unread("unread_value_9", r.values[9]);
+    v("learnable", r.learnable);
+    v("exclusion_group", r.exclusionGroup);
+}
+
+namespace {
+
+constexpr const char* kUnits = "units.udb";
+constexpr const char* kPerks = "perks.pdb";
+const auto kNameOf = [](const auto& record) { return record.name; };
+
+} // namespace
+
+void UnitDatabase::MergeToml(const toml::Value& root, const std::string& path) {
+    dbtoml::MergeRecords(root["level"], levels.records, "name", kNameOf, kUnits, path);
+    dbtoml::MergeRecords(root["model"], models.records, "name", kNameOf, kUnits, path);
+    dbtoml::MergeRecords(root["unit"], prototypes.records, "name", kNameOf, kUnits, path);
+    dbtoml::MergeRecords(root["npc"], npcs.records, "name", kNameOf, kUnits, path);
+    dbtoml::CheckTables(root, {"level", "model", "unit", "npc"}, kUnits, path);
+}
+
+std::string UnitDatabase::ToToml() const {
+    toml::Writer writer;
+    dbtoml::WriteRecords(writer, "level", levels.records);
+    dbtoml::WriteRecords(writer, "model", models.records);
+    dbtoml::WriteRecords(writer, "unit", prototypes.records);
+    dbtoml::WriteRecords(writer, "npc", npcs.records);
+    return writer.text;
+}
+
+void SkillDatabase::MergeToml(const toml::Value& root, const std::string& path) {
+    dbtoml::MergeRecords(root["skill"], skills, "name", kNameOf, kPerks, path);
+    dbtoml::MergeRecords(root["perk"], levels, "name", kNameOf, kPerks, path);
+    dbtoml::CheckTables(root, {"skill", "perk"}, kPerks, path);
+}
+
+std::string SkillDatabase::ToToml() const {
+    toml::Writer writer;
+    dbtoml::WriteRecords(writer, "skill", skills);
+    dbtoml::WriteRecords(writer, "perk", levels);
+    return writer.text;
 }
 
 // --- Unit sound counts -------------------------------------------------------------------------------

@@ -1,12 +1,14 @@
-// The item database: its records' Serialize, the tables' load and ItemDatabase::Load ("items.idb", at startup and
-// at every switch of the resource database). The spell database is spell_db.cpp. See item_db.h and
-// docs/notes/items_spells.md ("Databases and naming").
+// The item database: its records' Serialize and field lists (as TOML), the tables' load and ItemDatabase::Load
+// ("items.idb" or its TOML, at startup and at every switch of the resource database). The spell database is
+// spell_db.cpp. See item_db.h and docs/notes/items_spells.md ("Databases and naming").
 #include "game/items/item_db.h"
 #include "game/spells/spell_db.h"
 
 #include "game/data/chunk_archive.h"
 #include "game/core/core_streams.h"
 #include "game/data/database_file.h"
+#include "game/data/database_toml.h"
+#include "game/data/resource.h"
 #include "game/units/unit_db.h"   // InlineStrings
 
 #include "lib/crt.h"
@@ -152,37 +154,175 @@ void LootItemRecord::Serialize(ChunkArchive* ar) {
 // --- Tables --------------------------------------------------------------------------------------
 
 template <typename Record>
-void RecordTable<Record>::Load(ByteStream* source, int chunk) {
+void RecordTable<Record>::Read(ByteStream* source, int chunk) {
     ChunkArchive archive;
     archive.Open(source, 1, 1);
     RecordChunks(&archive, chunk, &records, &Record::Serialize);
     archive.Close(source);
+}
+
+template <typename Record>
+void RecordTable<Record>::FileNames() {
     for (Record& record : records) names[std::string(IndexKey(record))] = &record;
 }
-// SpellDatabase::Load (spell_db.cpp) loads these two.
-template void SpellTable::Load(ByteStream*, int);
-template void SpellModifierTable::Load(ByteStream*, int);
+// SpellDatabase::Read (spell_db.cpp) reads these two.
+template void SpellTable::Read(ByteStream*, int);
+template void SpellTable::FileNames();
+template void SpellModifierTable::Read(ByteStream*, int);
+template void SpellModifierTable::FileNames();
 
 bool ItemDatabase::Load(const std::string& folder, const std::string& archive) {
-    std::string path = folder + archive;
     MappedResource resource;
-    resource.OpenResource(path);
-    std::uint32_t size;
-    void* data = resource.GetFile("items.idb", &size);
-    if (!data) game::FatalExit("Can't open items database\n");
-
-    MemoryStream stream;
-    stream.Fill(data, size);
-    materials.Load(&stream, kMaterialsChunk);
-    weapons.Load(&stream, kWeaponsChunk);
-    armors.Load(&stream, kArmorsChunk);
-    quickItems.Load(&stream, kQuickItemsChunk);
-    questItems.Load(&stream, kQuestItemsChunk);
-    loot.Load(&stream, kLootChunk);
-
-    resource.CloseFile(data);
+    resource.OpenResource(folder + archive);
+    const RecordFile file = resource.FindRecord("items.idb");
+    if (!file.Any()) game::FatalExit("Can't open items database\n");
     resource.CloseResource();
+    Read(file);
     return true;
+}
+
+void ItemDatabase::Read(const RecordFile& file) {
+    if (file.found) {
+        MemoryStream stream;
+        stream.Fill(file.original.data(), static_cast<std::uint32_t>(file.original.size()));
+        materials.Read(&stream, kMaterialsChunk);
+        weapons.Read(&stream, kWeaponsChunk);
+        armors.Read(&stream, kArmorsChunk);
+        quickItems.Read(&stream, kQuickItemsChunk);
+        questItems.Read(&stream, kQuestItemsChunk);
+        loot.Read(&stream, kLootChunk);
+    }
+    MergeTomls(file, [this](const toml::Value& root, const std::string& path) { MergeToml(root, path); });
+    materials.FileNames();
+    weapons.FileNames();
+    armors.FileNames();
+    quickItems.FileNames();
+    questItems.FileNames();
+    loot.FileNames();
+}
+
+// --- As TOML ---------------------------------------------------------------------------------------
+
+using dbtoml::Hex;
+
+template <class Visit>
+void Fields(MaterialRecordHead& r, Visit& v) {
+    v("key", r.key);
+    v("sound", r.soundName);
+    v("name", r.name);
+    v("number", r.number);
+    v("unit_price", r.unitPrice);
+    v("weight_factor", r.weightFactor);
+    v("magic_power", r.magicPower);
+    v("magic_level", r.magicLevel);
+    v("condition_factor", r.conditionFactor);
+    v.Unread("unread", r.unreadField);
+    v("damage_factor", r.damageFactor);
+    v("absorb_factors", r.absorbFactors);
+    v("armour_flags", Hex{r.armourFlags});
+    v("class_mask", Hex{r.classMask});
+}
+
+// The head's fields but its category (each kind names that its own way).
+template <class Visit>
+void HeadFields(ItemRecordHead& r, Visit& v) {
+    v("name", r.name);
+    v("family", r.family);
+    v("type", r.type);
+    v("material_class", r.materialClass);
+    v.Unread("unread_head", r.unreadHeadField);
+    v("number", r.number);
+    v("variant", r.variant);
+    v("price", r.price);
+    v("weight", r.weight);
+    v.Unread("unread_value", r.unreadValue);
+    v("charge", r.charge);
+    v("magic_level", r.magicLevel);
+    v("condition", r.condition);
+    v("material_units", r.materialUnits);
+    v("class_mask", Hex{r.classMask});
+    v("buildable", r.buildable);
+}
+
+template <class Visit>
+void Fields(WeaponRecord& r, Visit& v) {
+    HeadFields(r, v);
+    v("attack_interval", r.category);
+    v("reach", r.reach);
+    v("damage", r.damage);
+    v("damage_spread", r.damageSpread);
+    v("damage_types", r.damageTypes);
+    v("skill_bonus", r.skillBonus);
+    v("attack_bonus", r.attackBonus);
+    v("defence_bonus", r.defenceBonus);
+    v.Unread("unread", r.unreadFields);
+}
+
+template <class Visit>
+void Fields(ArmorRecord& r, Visit& v) {
+    HeadFields(r, v);
+    v("first_factor", r.firstFactor);
+    v("absorb_first", r.absorbFirst);
+    v("first_flags", Hex{r.firstFlags});
+    v("others_factor", r.othersFactor);
+    v("absorb_others", r.absorbOthers);
+    v("others_flags", Hex{r.othersFlags});
+    v("shows_wounds", r.showsWounds);
+    v("layer", r.layer);
+    v.Unread("unread", r.unreadFields);
+}
+
+template <class Visit>
+void Fields(QuickItemRecord& r, Visit& v) {
+    HeadFields(r, v);
+    v("category", r.category);
+    v("action_value", r.actionValue);
+    v("spell_text", r.spellText);
+    v("attribute_bonus", r.attributeBonus);
+    v.Unread("unread", r.unreadFields);
+}
+
+template <class Visit>
+void Fields(QuestItemRecord& r, Visit& v) {
+    HeadFields(r, v);
+    v("id", r.category);
+    v("zones", r.zones);
+}
+
+template <class Visit>
+void Fields(LootItemRecord& r, Visit& v) {
+    HeadFields(r, v);
+    v("kind", r.category);
+    v("record_type", r.recordType);
+    v("index", r.index);
+}
+
+namespace {
+
+constexpr const char* kItems = "items.idb";
+const auto kKeyOf = [](const auto& record) { return std::string(IndexKey(record)); };
+
+} // namespace
+
+void ItemDatabase::MergeToml(const toml::Value& root, const std::string& path) {
+    dbtoml::MergeRecords(root["material"], materials.records, "key", kKeyOf, kItems, path);
+    dbtoml::MergeRecords(root["weapon"], weapons.records, "name", kKeyOf, kItems, path);
+    dbtoml::MergeRecords(root["armor"], armors.records, "name", kKeyOf, kItems, path);
+    dbtoml::MergeRecords(root["quick_item"], quickItems.records, "name", kKeyOf, kItems, path);
+    dbtoml::MergeRecords(root["quest_item"], questItems.records, "name", kKeyOf, kItems, path);
+    dbtoml::MergeRecords(root["loot"], loot.records, "name", kKeyOf, kItems, path);
+    dbtoml::CheckTables(root, {"material", "weapon", "armor", "quick_item", "quest_item", "loot"}, kItems, path);
+}
+
+std::string ItemDatabase::ToToml() const {
+    toml::Writer writer;
+    dbtoml::WriteRecords(writer, "material", materials.records);
+    dbtoml::WriteRecords(writer, "weapon", weapons.records);
+    dbtoml::WriteRecords(writer, "armor", armors.records);
+    dbtoml::WriteRecords(writer, "quick_item", quickItems.records);
+    dbtoml::WriteRecords(writer, "quest_item", questItems.records);
+    dbtoml::WriteRecords(writer, "loot", loot.records);
+    return writer.text;
 }
 
 } // namespace itemdb

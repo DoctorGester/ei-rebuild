@@ -9,6 +9,8 @@
 #include "game/core/text_split.h"
 #include "game/data/chunk_archive.h"
 #include "game/data/database_file.h"
+#include "game/data/database_toml.h"
+#include "game/data/resource.h"
 #include "game/data/registry.h"
 #include "game/script/script.h"
 
@@ -130,26 +132,78 @@ constexpr int kBriefingsChunk = 2;
 } // namespace
 
 int QuestDatabase::Load(const std::string& folder) {
-    std::string base = folder;
     MappedResource resource;
-    dbfile::OpenDatabase(resource, base);
-    std::uint32_t size;
-    void* data = resource.GetFile("quests.qdb", &size);
-    if (!data) game::FatalExit("Can't open quests database\n");
-
-    MemoryStream stream;
-    stream.Fill(data, size);
-
-    LoadTable(&stream, [this](ChunkArchive& archive) { archive.SerializeQuests(kQuestsChunk, &quests); });
-    for (QuestRecord& record : quests) questsByName[record.name] = &record;
-    LoadTable(&stream, [this](ChunkArchive& archive) {
-        archive.SerializeBriefings(kBriefingsChunk, &briefings.records);
-    });
-    for (QuestBriefingRecord& record : briefings.records) briefings.index[record.name] = &record;
-
-    resource.CloseFile(data);
+    dbfile::OpenDatabase(resource, folder);
+    const RecordFile file = resource.FindRecord("quests.qdb");
+    if (!file.Any()) game::FatalExit("Can't open quests database\n");
     resource.CloseResource();
+    Read(file);
     return 1;
+}
+
+void QuestDatabase::Read(const RecordFile& file) {
+    if (file.found) {
+        MemoryStream stream;
+        stream.Fill(file.original.data(), static_cast<std::uint32_t>(file.original.size()));
+        LoadTable(&stream, [this](ChunkArchive& archive) { archive.SerializeQuests(kQuestsChunk, &quests); });
+        LoadTable(&stream, [this](ChunkArchive& archive) {
+            archive.SerializeBriefings(kBriefingsChunk, &briefings.records);
+        });
+    }
+    MergeTomls(file, [this](const toml::Value& root, const std::string& path) { MergeToml(root, path); });
+    for (QuestRecord& record : quests) questsByName[record.name] = &record;
+    for (QuestBriefingRecord& record : briefings.records) briefings.index[record.name] = &record;
+}
+
+// --- As TOML ---------------------------------------------------------------------------------------
+
+using Lists = QuestBriefingRecord::ListKind;
+
+template <class Visit>
+void Fields(QuestRecord& r, Visit& v) {
+    v("name", r.name);
+    v("text", r.text);
+    v("exp", r.exp);
+    v("money", r.money);
+    v("zone", r.zone);
+    v("order", r.order);
+    v("places", r.places);
+    v.Unread("unread", r.unreadField);
+}
+
+template <class Visit>
+void Fields(QuestBriefingRecord& r, Visit& v) {
+    v("name", r.name);
+    v("text", r.text);
+    v("exp", r.exp);
+    v("money", r.money);
+    v("give_items", r.lists[Lists::GiveItems]);
+    v("remove_items", r.lists[Lists::RemoveItems]);
+    v("give_quests", r.lists[Lists::GiveQuests]);
+    v("complete_quests", r.lists[Lists::CompleteQuests]);
+    v("available_zones", r.lists[Lists::AvailableZones]);
+    v("complete_zones", r.lists[Lists::CompleteZones]);
+    v("specials", r.specials);
+}
+
+namespace {
+
+constexpr const char* kQuests = "quests.qdb";
+const auto kNameOf = [](const auto& record) { return record.name; };
+
+} // namespace
+
+void QuestDatabase::MergeToml(const toml::Value& root, const std::string& path) {
+    dbtoml::MergeRecords(root["quest"], quests, "name", kNameOf, kQuests, path);
+    dbtoml::MergeRecords(root["briefing"], briefings.records, "name", kNameOf, kQuests, path);
+    dbtoml::CheckTables(root, {"quest", "briefing"}, kQuests, path);
+}
+
+std::string QuestDatabase::ToToml() const {
+    toml::Writer writer;
+    dbtoml::WriteRecords(writer, "quest", quests);
+    dbtoml::WriteRecords(writer, "briefing", briefings.records);
+    return writer.text;
 }
 
 // operator[]: an unknown name is filed with null.

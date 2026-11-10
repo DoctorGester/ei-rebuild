@@ -61,7 +61,8 @@ what they do not say. The HUD panels and windows are in `ui.md`; players and the
   ChunkArchive over the file's memory stream; each record filed in the index (a material under its key, an item
   prototype under its name, a spell or modifier under its code; a later record of the same key replaces the earlier). A
   modifier's code is a `char[4]` read as a C string. Lists inside records are emptied and refilled with one value per
-  field chunk. Nothing copies a record (the tables are resized from empty while loading).
+  field chunk. Nothing copies a record (the tables are resized from empty while loading). Either file may be TOML
+  instead, or a TOML file may merge records over it by key, before the records are filed (mods.md, "Databases as TOML").
 - Quick item categories (field 0x15, `QuickItemCategory`): 5 for "wand 1".."wand 6" (the spell is put in, casts pay from
   the charge), 8 for the potions and the scrolls' "spell container" (the spell comes from spellText; potions are used up
   and only on the user), 0 for the danger sensor; 2 (`Consumable`) has no prototype in the data. A loot prototype's

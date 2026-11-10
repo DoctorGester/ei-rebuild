@@ -65,6 +65,11 @@ std::string ModTextStep(const std::string& argument);
 // "modack <unit> <speech> <sound>": the acks database's record <unit> has the named speech <speech> with the sound
 // <sound> ("-": no such speech), as SayNamedAck finds it. Records as TOML: a mod's acks.db.toml record over the game's.
 std::string ModAckStep(const std::string& argument);
+// "modweapon <weapon> <min> <max>": the local player (its given items, then its party's) holds a weapon of the
+// prototype named <weapon> (the rest of the line before the two numbers), whose damage as the game reckons it from the
+// item's prototype and material (WeaponMinDamage, WeaponMaxDamage) is <min> to <max> ("%g"; "-": no such weapon).
+// Databases as TOML (docs/notes/mods.md): a mod's items.idb.toml weapon over the game's, or one it adds.
+std::string ModWeaponStep(const std::string& argument);
 // "playstream <name>": the music stream is asked for <name> (an .mp3 of the stream folder, with its extension), as the main
 // menu's music is; the stream's steps run on the virtual clock, so a scenario waits for it with "waitread"
 // (harness_modtrace.h) and the wait takes the same world updates every run.

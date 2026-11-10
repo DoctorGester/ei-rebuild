@@ -16,6 +16,10 @@
 #include <vector>
 
 class ChunkArchive;
+struct RecordFile;
+namespace toml {
+class Value;
+}
 
 struct QuestRecord {
     // Reads (archive loading) or writes the record: string field 0 the name, 1 exp, 2 +0x10, 3 the zone,
@@ -68,10 +72,16 @@ struct QuestBriefingTable {
 // The quest database: the quests and the briefings, each with its index by name.
 struct QuestDatabase {
 
-    // Rebirth-patched; called by WinMain at startup. "quests.qdb" of `folder` + "database.res": the quests
-    // (chunk 1) and the briefings (chunk 2), each read through an archive of its own and filed under its
-    // records' names. 1; an archive or file that cannot be opened ends the game.
+    // Rebirth-patched; called by WinMain at startup. "quests.qdb" of `folder` + "database.res" (its TOML too,
+    // docs/notes/mods.md "Databases as TOML"): Read. 1; an archive that cannot be opened, or one without the file,
+    // ends the game.
     int Load(const std::string& folder);
+    // The original's quests (chunk 1) and briefings (chunk 2), each read through an archive of its own; the TOML
+    // files merged over them; every record filed under its name.
+    void Read(const RecordFile& file);
+    // A TOML file's [[quest]] and [[briefing]] records merged by name.
+    void MergeToml(const toml::Value& root, const std::string& path);
+    std::string ToToml() const;
     // The quests of a registry file in memory (`image`, `size` bytes) filed into the database; false when it is not
     // a registry.
     bool LoadRegistry(const void* image, std::size_t size);

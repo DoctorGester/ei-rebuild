@@ -17,6 +17,10 @@
 
 class ByteStream;
 class ChunkArchive;
+struct RecordFile;
+namespace toml {
+class Value;
+}
 
 // EngineObject::type of an item: which database its prototype lives in.
 enum class ItemKind : int {
@@ -272,9 +276,10 @@ inline std::string_view IndexKey(const ItemRecordHead& record) { return record.n
 // last one).
 template <typename Record>
 struct RecordTable {
-    // The records of chunk `chunk` read from `source` through an archive of their own, then every record filed in
-    // the index under its key.
-    void Load(ByteStream* source, int chunk);
+    // The records of chunk `chunk` read from `source` through an archive of their own.
+    void Read(ByteStream* source, int chunk);
+    // Every record filed in the index under its key, in order (a later record of a key replaces an earlier one).
+    void FileNames();
 
     std::uint32_t Count() const { return static_cast<std::uint32_t>(records.size()); }
     // The record at `index`, or nullptr when out of range.
@@ -298,11 +303,17 @@ using QuestItemTable = RecordTable<QuestItemRecord>;
 using LootItemTable = RecordTable<LootItemRecord>;
 
 struct ItemDatabase {
-    // "items.idb" of the archive `folder` + `archive`: the materials (chunk 1, filed under their key), the weapons
-    // (2) and the armour (3), each through an archive of its own and filed under its name, then the quick items,
-    // quest items and loot (chunks 4-6, their loads). True; an archive or file that cannot be opened ends the
-    // game.
+    // "items.idb" of the archive `folder` + `archive` (its TOML too, docs/notes/mods.md "Databases as TOML"): Read.
+    // True; an archive that cannot be opened, or one without the file, ends the game.
     bool Load(const std::string& folder, const std::string& archive);
+    // The original's tables (materials chunk 1, weapons 2, armour 3, quick items 4, quest items 5, loot 6, each
+    // through an archive of its own), the TOML files merged over them, then every table's index filled.
+    void Read(const RecordFile& file);
+    // A TOML file's records merged by key: [[material]] by key, [[weapon]], [[armor]], [[quick_item]],
+    // [[quest_item]] and [[loot]] by name.
+    void MergeToml(const toml::Value& root, const std::string& path);
+    // Every table as TOML.
+    std::string ToToml() const;
 
     MaterialTable materials;
     WeaponTable weapons;

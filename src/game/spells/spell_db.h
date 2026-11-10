@@ -115,10 +115,16 @@ using SpellModifierTable = RecordTable<SpellModifierRecord>;
 
 // The spell database: the spells and the modifiers by code, and the three lists of spells.sdb's chunks 3-5.
 struct SpellDatabase {
-    // "spells.sdb" of the archive `folder` + `archive`: the spells (chunk 1) and the modifiers (chunk 2), each
-    // read through an archive of its own and filed under its code, then the three lists through a third. True; an
-    // archive or file that cannot be opened ends the game.
+    // "spells.sdb" of the archive `folder` + `archive` (its TOML too, docs/notes/mods.md "Databases as TOML"):
+    // Read. True; an archive that cannot be opened, or one without the file, ends the game.
     bool Load(const std::string& folder, const std::string& archive);
+    // The original's spells (chunk 1) and modifiers (chunk 2), each read through an archive of its own, then the
+    // three lists through a third; the TOML files merged over them; the spells and modifiers filed under their codes.
+    void Read(const RecordFile& file);
+    // A TOML file's records merged: [[spell]] and [[modifier]] by code, [[scroll_recipe]], [[armor_recipe]] and
+    // [[weapon_recipe]] by spell.
+    void MergeToml(const toml::Value& root, const std::string& path);
+    std::string ToToml() const;
 
     SpellTable spells;
     SpellModifierTable modifiers;

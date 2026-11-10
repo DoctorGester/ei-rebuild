@@ -246,6 +246,10 @@ long GameText(const char* name, std::string* text);
 // The sound of unit record `unit`'s named speech `speech` in the acks database the units speak from (SayNamedAck):
 // 1 found, 0 no such speech, -3 no such record.
 long AckSound(const char* unit, const char* speech, std::string* sound);
+// The first weapon of the prototype named `weapon` among the local player's given items, then its party's: its
+// damage as the game reckons it (WeaponMinDamage, WeaponMaxDamage of its packed id). 1 found, 0 none, -3 without the
+// server world's players.
+long LocalWeaponDamage(const char* weapon, float* minimum, float* maximum);
 // The size of `name` in a manager's archives ("figures": the figure manager's, "links": the link figure loader's,
 // "textures": the texture manager's), in their order: 0 without it, -3 when the client world has no such manager.
 long ModManagerFile(const char* which, const char* name);

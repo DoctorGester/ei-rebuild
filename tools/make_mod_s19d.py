@@ -1,6 +1,6 @@
 """Writes a Rebirth mod for the S19d scenarios (the mod-folder patches the S19b scenario leaves unchecked).
 
-usage: python tools/make_mod_s19d.py <saves dir> stream|archives|maps|loose|toml [--zip <name> [--top]]
+usage: python tools/make_mod_s19d.py <saves dir> stream|archives|maps|loose|toml|databases [--zip <name> [--top]]
   <saves dir>   the run's harness_saves folder; the mod goes to <saves dir>\\s19d_mod, which the scenario selects with
                 the harness step "mod harness_saves\\s19d_mod" (the settings' Mod)
   --zip <name>  the mod as one zip instead (docs/notes/mods.md, "Zip mods"), <saves dir>\\<name>: "s19d_mod.zip" for the
@@ -34,6 +34,8 @@ nothing is committed. Kinds (docs/notes/rebirth.md, "Resources and paths"):
               config.reg.toml                 the mod's config.reg as TOML (no config.reg)
               Res\\texts\\texts.toml          one string of the game's texts.res changed ("string quit")
               Res\\database\\acks.db.toml     one record of the game's acks.db changed (Haburu's speeches)
+  databases game databases as TOML (tests/scenarios/mod_toml_databases.txt; docs/notes/mods.md, "Databases as TOML"):
+              Res\\database\\items.idb.toml   the weapon "stone axe" with another damage; a weapon "mf5 axe" added
 Rebirth.txt and a config.reg with [MOD] Title are written in every kind (as the shipped mods have them; toml: its
 TOML).
 """
@@ -140,7 +142,41 @@ def toml(root):
           b'    { sound = "Acks\\\\Haburu\\\\Scenario\\\\MF3.wav", chance = 100, text = "MF3", name = "s24" },\n]\n')
 
 
-KINDS = {'stream': stream, 'archives': archives, 'maps': maps, 'loose': loose, 'toml': toml}
+# A mod's items.idb.toml holds only what it changes: the game's "stone axe" keeps every field but the two given, and
+# "mf5 axe" (a name the game lacks) is a new weapon at the end of the table (the fields left out are 0).
+DATABASE_ITEMS = b'''[[weapon]]
+name = "stone axe"
+damage = 9.5
+damage_spread = 1.25
+
+[[weapon]]
+name = "mf5 axe"
+family = "axe"
+type = 1
+material_class = "Stone"
+number = 1
+price = 500.0
+weight = 4.0
+charge = 30.0
+magic_level = 6
+condition = 4378.0
+material_units = 4
+class_mask = 0x1
+buildable = 1
+attack_interval = 33
+damage = 7.0
+damage_spread = 0.5
+damage_types = [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+defence_bonus = -5.0
+'''
+
+
+def databases(root):
+    config(root)
+    write(os.path.join(root, 'Res', 'database', 'items.idb.toml'), DATABASE_ITEMS)
+
+
+KINDS = {'stream': stream, 'archives': archives, 'maps': maps, 'loose': loose, 'toml': toml, 'databases': databases}
 
 
 def zip_folder(root, target, top):
