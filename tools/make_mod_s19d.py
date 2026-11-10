@@ -1,6 +1,7 @@
 """Writes a Rebirth mod for the S19d scenarios (the mod-folder patches the S19b scenario leaves unchecked).
 
-usage: python tools/make_mod_s19d.py <saves dir> stream|archives|maps|loose|toml|databases|png [--zip <name> [--top]]
+usage: python tools/make_mod_s19d.py <saves dir> stream|archives|maps|loose|toml|databases|png|heights
+                                    [--zip <name> [--top]]
   <saves dir>   the run's harness_saves folder; the mod goes to <saves dir>\\s19d_mod, which the scenario selects with
                 the harness step "mod harness_saves\\s19d_mod" (the settings' Mod)
   --zip <name>  the mod as one zip instead (docs/notes/mods.md, "Zip mods"), <saves dir>\\<name>: "s19d_mod.zip" for the
@@ -42,6 +43,10 @@ nothing is committed. Kinds (docs/notes/rebirth.md, "Resources and paths"):
   png       textures as PNG (tests/scenarios/mod_png_texture.txt; docs/notes/mods.md, "Textures as PNG"):
               Res\\textures\\Zone1000.png .. Zone1007.png   zone 1's terrain pages as four coloured quadrants
                                                        (render_loose_bmp's), 256 x 256, with no settings chunk
+  heights   a map's heights as a PNG (tests/scenarios/mod_map_heights.txt; docs/notes/mods.md, "Maps as folders"):
+              Maps\\zone1.mpr             a copy of the install's (packed from its folder on an unpacked or converted one)
+              Maps\\zone1\\heights.png    its heights (from the sectors, or from the converted folder's heights.png) with
+                                        a plateau of 60000 raised around HILL: over the archive's map, the rest its own
 Rebirth.txt and a config.reg with [MOD] Title are written in every kind (as the shipped mods have them; toml: its
 TOML).
 """
@@ -207,7 +212,99 @@ def png(root):
         write(os.path.join(root, 'Res', 'textures', f'Zone1{i:03d}.png'), picture)
 
 
-KINDS = {'stream': stream, 'archives': archives, 'maps': maps, 'loose': loose, 'toml': toml, 'databases': databases, 'png': png}
+# heights: the plateau's middle (a vertex of zone 1, away from where a new game starts), its flat radius and the radius
+# where it meets the ground, in cells; its height in heights.png's units (60000 of 65534: 20.1 of zone 1's 21.95).
+HILL = (40, 100)
+HILL_TOP, HILL_FOOT = 4.0, 12.0
+HILL_HEIGHT = 60000
+
+
+def png_chunks(data):
+    """The chunks of the PNG `data` as (type, bytes)."""
+    at, out = 8, []
+    while at + 8 <= len(data):
+        length, kind = struct.unpack_from('>I4s', data, at)
+        out.append((kind, data[at + 8:at + 8 + length]))
+        at += 12 + length
+    return out
+
+
+def png_grey16(data):
+    """A 16-bit grey PNG (the converted folder's heights.png): width, height and the samples row by row."""
+    chunks = png_chunks(data)
+    width, height, bits, colour = struct.unpack_from('>IIBB', chunks[0][1])
+    if bits != 16 or colour != 0:
+        sys.exit(f'make_mod_s19d: heights.png is not 16-bit grey ({bits} bits, colour type {colour})')
+    raw = zlib.decompress(b''.join(body for kind, body in chunks if kind == b'IDAT'))
+    stride, step = width * 2, 2
+    rows, prior = [], bytearray(stride)
+    for y in range(height):
+        kind, line = raw[y * (stride + 1)], bytearray(raw[y * (stride + 1) + 1:(y + 1) * (stride + 1)])
+        for i in range(stride):
+            left = line[i - step] if i >= step else 0
+            up, corner = prior[i], prior[i - step] if i >= step else 0
+            if kind == 1: line[i] = (line[i] + left) & 0xFF
+            elif kind == 2: line[i] = (line[i] + up) & 0xFF
+            elif kind == 3: line[i] = (line[i] + (left + up) // 2) & 0xFF
+            elif kind == 4:
+                p = left + up - corner
+                pa, pb, pc = abs(p - left), abs(p - up), abs(p - corner)
+                line[i] = (line[i] + (left if pa <= pb and pa <= pc else up if pb <= pc else corner)) & 0xFF
+        rows.append(line)
+        prior = line
+    return width, height, [struct.unpack('>%dH' % width, bytes(line)) for line in rows]
+
+
+def png_grey16_file(width, height, rows):
+    """A 16-bit grey PNG of the rows (lists of samples), each row unfiltered."""
+    def chunk(kind, data):
+        return struct.pack('>I', len(data)) + kind + data + struct.pack('>I', zlib.crc32(kind + data))
+    raw = b''.join(b'\0' + struct.pack('>%dH' % width, *row) for row in rows)
+    header = struct.pack('>IIBBBBB', width, height, 16, 0, 0, 0, 0)
+    return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', header) + chunk(b'IDAT', zlib.compress(raw)) + chunk(b'IEND', b'')
+
+
+def map_heights(files):
+    """The vertex grid's heights of a map archive's files (lower-case names): its heights.png, or its map file's and
+    sectors' (a vertex two sectors share from the earlier one, as the folder's grid has it)."""
+    if 'heights.png' in files:
+        return png_grey16(files['heights.png'])
+    mp_name = next(name for name in files if name.endswith('.mp'))
+    _, _, sectors_x, sectors_y = struct.unpack_from('<IfII', files[mp_name], 0)
+    stem = mp_name[:-3]
+    width, height = sectors_x * 32 + 1, sectors_y * 32 + 1
+    rows = [[0] * width for _ in range(height)]
+    for sy in range(sectors_y - 1, -1, -1):
+        for sx in range(sectors_x - 1, -1, -1):
+            sector = files[f'{stem}{sx:03d}{sy:03d}.sec']
+            for r in range(33):
+                for c in range(33):
+                    rows[sy * 32 + r][sx * 32 + c] = struct.unpack_from('<H', sector, 5 + (r * 33 + c) * 8 + 2)[0]
+    return width, height, rows
+
+
+def heights(root):
+    import unpack_install
+    config(root)
+    archive = os.path.join(root, 'Maps', 'zone1.mpr')
+    copy_archive(vanilla('Maps', 'zone1.mpr'), archive)
+    with open(archive, 'rb') as f:
+        data = f.read()
+    files = {name.lower(): data[offset:offset + size] for name, offset, size, _ in unpack_install.entries(data)}
+    width, height, rows = map_heights(files)
+    rows = [list(row) for row in rows]
+    for y in range(height):
+        for x in range(width):
+            distance = ((x - HILL[0]) ** 2 + (y - HILL[1]) ** 2) ** 0.5
+            if distance >= HILL_FOOT:
+                continue
+            share = 1.0 if distance <= HILL_TOP else (HILL_FOOT - distance) / (HILL_FOOT - HILL_TOP)
+            rows[y][x] = max(rows[y][x], round(rows[y][x] + (HILL_HEIGHT - rows[y][x]) * share))
+    write(os.path.join(root, 'Maps', 'zone1', 'heights.png'), png_grey16_file(width, height, rows))
+
+
+KINDS = {'stream': stream, 'archives': archives, 'maps': maps, 'loose': loose, 'toml': toml, 'databases': databases, 'png': png,
+         'heights': heights}
 
 
 def zip_folder(root, target, top):

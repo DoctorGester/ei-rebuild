@@ -40,6 +40,11 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `tools/convert/convert_textures.h`, `.cpp` | ei-convert's textures: each as PNG, its round trip measured |
 | `tests/unit/texture_png.cpp` | the unit check (ei_unit_check, the POSIX port check) |
 | `tests/scenarios/mod_png_texture.txt` | a mod's PNG terrain pages seen on the ground |
+| `src/game/map/map_folder.h`, `.cpp`; `src/lib/png.h`, `.cpp` | maps as folders ("Maps as folders"): `Decode`, `EncodeMap` / `EncodeSector`, `WriteFolder`, `Assemble`; the PNG writer over miniz |
+| `src/game/data/resource.cpp` | `MappedResource::FolderMap` / `FolderMapFile`: an archive's map file and sectors made from its folder |
+| `tools/convert/convert_maps.h`, `.cpp` | ei-convert's maps: each as its folder, the round trip byte for byte |
+| `tests/unit/map_folder.cpp` | the unit check (ei_unit_check, the POSIX port check) |
+| `tests/scenarios/mod_map_heights.txt` | a mod's heights.png seen as the ground's height (`ground`) |
 
 ## Choosing a mod
 
@@ -256,7 +261,8 @@ the original: Lost in Astral's own `.adb`, `ai.reg` and the like hide the game's
 it mod_lost_in_astral_start's units differed). A mod's file of only the records it changes leaves it out.
 
 The game databases (units.udb, items.idb, ...) can be TOML too: "Databases as TOML". What stays binary: the quest
-zones' `quest.reg` (a `.mq`'s, read as bytes for the briefings: MF9), the maps.
+zones' `quest.reg` (a `.mq`'s, read as bytes for the briefings: MF9), the maps' objects (`.mob`: MF9); the maps
+themselves can be folders ("Maps as folders").
 
 ### Merging by field
 
@@ -468,6 +474,91 @@ data (`build\stub`, the Linux workflow's) gives the same kinds of counts, every 
 - `ei-convert --check` on both installs (every texture's round trip holding), and on the stub data in the Linux suites'
   workflow.
 - `work.py test <ID> --converted --golden` (and `--rebirth-only`): the converted installs have every texture as a PNG.
+
+## Maps as folders
+
+A map can be a folder of TOML and PNGs (MF8, user 2026-11-09). Every `.mpr` still loads. The folder is the archive's
+own loose folder ("Loose files"): `Maps\zone1\` for `Maps\zone1.mpr`, with fixed file names, so a modder finds it by
+unpacking the archive or converting the install. When a place of the archive's lookup (top first, as "Loose files") has
+one of the files below, the archive's map file `<name>.MP` and its sectors `<name>XXXYYY.SEC` are made from the folder
+over the original (src/game/map/map_folder.h, `Assemble`; resource.cpp `MappedResource::FolderMap`) and every reader
+reads those: the landscape (`Terrain::LoadMap`, the sectors) and the AI map (`AIMap::LoadTerrain`) alike. The made files
+are kept while the archive is open; `ListFiles` lists their names. A folder file that does not read (not a PNG, another
+size, a value out of range) is logged ("warning: maps: <folder>: ...") and left out. The `.mob` objects and the quest
+zones stay as they are (MF9).
+
+| File | What | Pixels |
+|---|---|---|
+| `map.toml` | the header: `name` (the files' name inside the archive), `height_range`, `sectors = [x, y]`, `pages`, `page_size`, `tile_size`, `water_sectors` (a text per row of sectors: `W` with water, `.` without), `classes` (per tile texture its class 0 .. 15: sounds and prints), `animated` (`{texture, frames}`), `[[material]]` (`kind`, `colour`, `opacity`, `light`, `priority`) | |
+| `heights.png` | the ground's heights, a vertex a pixel | 16-bit grey |
+| `normals.png` | the ground's normals | 16-bit RGB: the sector file's codes widened by repeating their bits: x and y 1000 + 1000 x (11 bits), z 1000 z (10 bits); a normal map's look, up is (0.49, 0.49, 0.98) |
+| `offsets.png` | the ground vertices' sideways displacements | 8-bit RGB: R = 128 + x, G = 128 + y (1/252 of a cell a step), B 128 |
+| `water.png` | the water surface's heights | 16-bit grey (0 in a sector without water) |
+| `water_normals.png` | the water's normals | as normals.png |
+| `tiles.png` | the ground's tiles, a tile a pixel | 8-bit RGB: R the texture's low byte, G its high byte, B the quarter turns x 85 (0, 85, 170, 255) |
+| `water_tiles.png` | the water's tiles | as tiles.png |
+| `water_materials.png` | the water's material per tile | 8-bit grey: the `[[material]]` index, 255 none |
+| `seams.toml` | where two sectors' copies of a shared vertex differ (below) | |
+
+- Grids: the map is `sectors` x / y sectors of 32 x 32 cells; a cell is the vertices' spacing and one world unit
+  (zone 1: 6 x 8 sectors, 192 x 256 units). The vertex layers are (32 x + 1) x (32 y + 1) pixels, the tile layers
+  16 x by 16 y (a tile is 2 x 2 cells); the PNG's first row is y = 0 (world (0, 0) at the image's top left, x to the
+  right, y down). A sector's own vertices are the grid's 33 x 33 from
+  (32 sx, 32 sy).
+- Heights: a pixel's world height is value x height_range / 65534 (zone 1: 21.95 units at 65534). Painting heights in
+  an editor gives what it shows. Normals: when heights.png comes from a place above normals.png (a mod's heights.png
+  over the game's map, or one painted into a converted folder whose normals.png was removed), the normals are worked out
+  from the heights, each vertex's the mean of its four faces (displacements counted); so a modder paints heights alone.
+  The shipped normals are not the heights' (made by another tool from finer data), so they are kept in normals.png.
+- Seams: each sector holds its own copy of the vertices on its edges. The grid takes the earlier sector's (lower y,
+  then lower x; the one the height queries read), and `seams.toml` lists where a later sector's copy differs, by what
+  it adds (`{sector, vertex, height, offset, normal}`, `ground` and `water`). Vanilla's 38 maps have 100, Rebirth's 88
+  (its mods too) 2,015. Seams from a place below a layer are left out of it: painted heights meet at the edges,
+  worked-out normals are the same in each sector.
+- Water: the water grid takes the first copy among the sectors with water; a sector without water has none of its
+  water layers (its water tiles and materials none). `water_sectors` says which sectors have water: 19 of Rebirth's
+  sectors have water tiles but no water material.
+- Merging, each file from the first place that has it, no lower than the original's (the first place with a map file);
+  each PNG replaces its layer whole, `map.toml` merges by key over the original's header (a list whole). A new size in
+  `map.toml` starts every layer of the other size again (flat, dry, no turn). A folder without an original needs
+  `map.toml` (named by its `name`, else the folder's).
+- Rebirth's Maps (mod_folders.cpp `SelectMaps`): a mod whose `Maps\` has `zone1\` reads the mod's `Maps\zone1.mpr` in
+  place of the game's, so a mod that paints heights alone ships the archive (or its folder) with them, as the test mod
+  does.
+- Not held (no loader reads them): each material's warp speed and reserved bytes, the water vertices' displacements; a
+  sector flag byte 1 (water vertices without water tiles: none ship) comes back as 3.
+
+### ei-convert's maps
+
+ei-convert writes each `.mpr` (and each unpacked `Maps\<zone>\` holding a map file) as its folder
+(tools/convert/convert_maps.cpp) and lists the map file and the sectors as converted (the archive left holds the rest).
+Each round trip: the folder's files assembled as the game assembles them (the only place), the map file and every
+sector made from them and compared byte for byte with the original, the unread bytes above zeroed.
+
+Counts (2026-11-10, `ei-convert --check`, every round trip holding):
+
+| | Maps | Sectors (with water) | Seams | Originals | Folders | Assembled in |
+|---|---|---|---|---|---|---|
+| Vanilla | 38 | 2,504 (747) | 100 | 30.5 MB | 18.7 MB | 0.19 s (the slowest zone19, 0.018 s) |
+| Rebirth (its mods too) | 88 | 6,141 (1,949) | 2,015 | 75.8 MB | 44.2 MB | 0.45 s (the slowest zone1, 0.018 s) |
+| Stub data | 126 | 8,645 (2,696) | 2,115 | 106.3 MB | 62.8 MB | 0.64 s |
+
+Loading: a zone's folder is assembled at its archive's first file read, in about 20 ms (the 16-bit PNGs' decode), so
+maps add little to a converted install's load (its textures cost the time: "Textures as PNG"):
+`mod_lost_in_astral_cz_ingos` and `_gipat` on converted Rebirth took 54 s and 45 s (2026-11-10, four games at once;
+29 s and 15 s unconverted), against 53 s and 41 s with the maps still archives.
+
+### Checks
+
+- `ei_unit_check`'s map checks (tests/unit/map_folder.cpp): the PNG writer's 16-bit grey and 8-bit RGB read back by
+  stb_image; a made-up map with water and seams through its files and back byte for byte; heights.png over the
+  original (worked-out normals, the rest the original's, its seams' heights and normals left out); flat normals up.
+- `mod_map_heights` (both installs; tools/make_mod_s19d.py heights): a mod with zone 1's archive and a heights.png
+  raising a plateau of 60000 (20.1 units) where the ground is at about 1; `ground` reads the landscape's and the AI
+  map's height there and 20 cells away (the archive's), and the trace has the PNG read.
+- `ei-convert --check` on both installs (every map's round trip holding), and on the stub data in the Linux suites'
+  workflow.
+- `work.py test <ID> --converted --golden` (and `--rebirth-only`): the converted installs have every map as a folder.
 
 ## A mod's config.reg
 

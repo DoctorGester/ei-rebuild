@@ -33,6 +33,7 @@ int RunPathLayersChecks();
 int RunWeatherFieldChecks();
 int RunTomlChecks();
 int RunTexturePngChecks();
+int RunMapFolderChecks();
 
 namespace {
 void Check(bool ok, const char* message) {
@@ -59,6 +60,7 @@ int main() {
     Check(RunWeatherFieldChecks() == 0, "the weather's particles move smoothly");
     Check(RunTomlChecks() == 0, "the TOML writer read back");
     Check(RunTexturePngChecks() == 0, "textures as PNG and back");
+    Check(RunMapFolderChecks() == 0, "maps as folders and back");
     Check(CallerCaptured(), "caller frame starts at the return address");
     Check(lib::FormatLocalTime(0, "%Y-%m-%d").size() == 10, "format saved timestamp");
     const std::string tooLong(128, 'x');

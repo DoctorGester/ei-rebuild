@@ -51,6 +51,7 @@
 #include "game/core/coder.h"
 #include "game/sound/sound.h"
 #include "game/map/folder.h"
+#include "game/terrain/terrain.h"
 #include "lib/crt.h"
 #include "game/ui/screen_layout.h"
 
@@ -570,6 +571,13 @@ bool SwitchMod(const char* folder) { return app::RequestModSwitch(folder); }
 bool ModSwitchPending() { return app::ModSwitchPending(); }
 
 bool MapsFileExists(const char* name) { return MapFileExists(name); }
+
+bool GroundHeights(float x, float y, float* client, float* server) {
+    if (!g_clientWorld.terrain || !g_clientWorld.terrain->mapLoaded || !g_serverWorld.aiMap.loaded) return false;
+    *client = g_clientWorld.terrain->HeightAt(x, y, terrain::Layer::Ground);
+    *server = g_serverWorld.GridHeight(x, y);
+    return true;
+}
 
 namespace {
 void (*g_streamWrites)(void* stream, std::uint32_t size, void* const* frame) = nullptr;

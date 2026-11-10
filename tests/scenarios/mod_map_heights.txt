@@ -1,0 +1,21 @@
+# Maps as folders (docs/notes/mods.md, "Maps as folders"): a mod of our own, tools/make_mod_s19d.py heights, written
+# into the run's harness_saves\s19d_mod, which "mod" makes the settings' Mod (either install). Its Maps\zone1.mpr is
+# the vanilla install's zone 1 (packed from its folder on an unpacked or converted copy) and its Maps\zone1\heights.png
+# that map's heights with a plateau of 60000 (20.1 of zone 1's height range 21.95) around vertex (40, 100), where the
+# ground is at about 1. The PNG stands over the archive's heights; the rest of the map is the archive's own (normals
+# worked out from the new heights). The landscape and the AI map both have the plateau ("ground": the drawn ground and
+# what GetZValue answers), the ground 20 cells from it along x is the archive's (351 of 65534: 0.12), and the trace has the
+# PNG read.
+# prepare: make_mod_s19d.py heights
+mod harness_saves\s19d_mod
+reject Script error
+waitmenu
+console thingamabob
+
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+ground 40 100 19.5 20.5
+ground 20 100 0 0.5
+read mod Maps\zone1\heights.png yes
+report
+quit
