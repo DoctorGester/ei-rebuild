@@ -1,0 +1,7 @@
+id = "MF12"
+title = "Releases ship the example mod (with its Lua) and ei-convert"
+group = "mods"
+size = 2
+model = "opus"
+note = "User 2026-11-10: include the example mod in releases. The repo/release hold no game data, so ship examples/example_mod's own files and the additions, plus ei-convert in every release zip, and have ei-convert make the install-derived parts (zone 1's pages recoloured, zone1.mob.toml + pig, zone1.lua + the mod's lines) from the player's own install in one command (port tools/make_example_mod.py's steps; players have no Python). Release notes and docs/modding.md point at it; mod_example scenario uses the same path."
+order = 1326
