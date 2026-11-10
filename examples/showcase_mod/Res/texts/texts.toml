@@ -1,0 +1,27 @@
+# The mod's texts (docs/modding.md, "Texts"): the island's name, the quest, the golem, the items and the spell.
+"zone gz1g" = "Showcase Island"
+
+"quest showcase_golem" = """
+Break the golem\r
+A stone golem guards the path across the island. Break it, and the things it guards are yours.\r
+#subobj 1\r
+Find the golem and break it\r
+It stands by the path, north-east of where you came ashore.\r
+"""
+
+"UNIT ShowcaseGolem" = "Stone golem"
+
+"weapon showcase_hammer granite" = """
+Golem-breaker\r
+A granite hammer with a blue rune, kept by the island's golem.\r
+"""
+
+"armor showcase_boots thin" = """
+Wanderer's boots\r
+Soft leather boots with stitched bands, kept by the island's golem.\r
+"""
+
+"SPELL spark" = """
+Spark\r
+The showcase mod's spell record. It has no effect of its own: a new spell cannot have one yet.\r
+"""

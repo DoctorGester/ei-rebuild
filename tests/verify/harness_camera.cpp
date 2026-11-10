@@ -203,6 +203,7 @@ void Step(const std::string& verb, const std::string& argument, std::vector<std:
             const bool first = g_objectLight || std::strcmp(who, "arrow") == 0;
             g_objectId = first                                 ? 0
                          : std::strcmp(who, "leader") == 0 ? digest::LocalLeader()
+                         : who[0] == '#'                    ? std::atoi(who + 1)
                                                             : image::TextKey(who);
             if (g_objectId < 0 || (g_objectId == 0 && !first)) {
                 failures->push_back(std::string("objtrace: no unit ") + who);

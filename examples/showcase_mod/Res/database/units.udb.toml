@@ -1,0 +1,54 @@
+# The mod's creature (docs/modding.md, "Databases"): a model (its figure Res\figures\scgolem.glb, its animation list
+# Res\database\scgolem.adb.toml) and a prototype, both new records after the game's. Maps\zone1.mob.toml places one;
+# its texture is the placement's (parent_iname "ScGolem00": Res\textures\scgolem00.png). The footstep sounds are the
+# game's stone ones (names of the install's files, not files of the mod).
+
+[[model]]
+name = "Showcase Golem"
+object_class = 51
+hit_point_regen = 0.005
+mana_regen = 0.1
+movement_kind = 1
+angle = 180.0
+mode_speeds = [0.5, 0.15, 0.26, 0.13]
+action_speeds = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+reach_height_scale = 0.4
+size_class = 3
+size_class_small = 1
+size_scale = 1.0
+damage_weights = [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0]
+protection = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+slots = [{ level = "skull", share = 1.0, factor = 1.01 }, { level = "torso", share = 3.0, factor = 1.01 }, { level = "arm", share = 1.0, factor = 0.34 }, { level = "arm", share = 1.0, factor = 0.34 }, { level = "leg", share = 2.0, factor = 0.67 }, { level = "leg", share = 2.0, factor = 0.67 }]
+figure = "scgolem"
+blood_kind = 8
+footprint_kind = 5
+foot_part = 3
+cast_effect = 1
+hit_material = "Stone"
+sound_folder = ""
+sounds = ["steps\\Human\\Stone", "steps\\Human\\Stone", "steps\\Human\\Stone", "steps\\Human\\Stone", "steps\\Human\\Stone", "steps\\Human\\Stone", "steps\\Human\\Water", "steps\\Human\\Stone", "steps", "steps\\Human\\Snow", "steps\\Human\\Snow", "steps\\Human\\Stone", "steps\\Human\\Snow", "steps\\Human\\Dirt", "steps\\Human\\Dirt", "steps\\Human\\Stone"]
+
+[[unit]]
+name = "ShowcaseGolem"
+model = "Showcase Golem"
+scale = [0.5, 0.5, 0.5]
+panel_view_size = 1.0
+view_height = 1.0
+hit_points = 30.0
+level = 1
+experience_value = 12.0
+protection_scale = 7.0
+attack_category = 55.0
+speed = 1.0
+combat = [0.0, 10.0, 40.0, 10.0, 1.0]
+natural_weapon = 3
+hit_sound_kind = 11
+damage = 4.0
+damage_spread = 3.0
+skill_level = 3.0
+attributes_01 = 100.0
+attribute_2 = 100.0
+peripheral_range = 1.7
+perception = [8.5, 100.0, 0.0, 2.8, 0.0, 10.0]
+conspicuity = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+gold = { chance = 100.0, minimum = 5.0, maximum = 10.0 }

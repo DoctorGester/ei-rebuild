@@ -1,0 +1,39 @@
+# The mod's items (docs/modding.md, "Databases"): two new records after the game's. Their numbers are new, so their
+# inventory models and textures are the mod's: hammer 9 is Res\figures\initwehm9.glb with
+# Res\redress\unhumahm_09.<material>.0.png, boots 20 Res\figures\initarbt20.glb with Res\redress\unhumabt_20.<material>.0.png.
+
+[[weapon]]
+name = "showcase hammer"
+family = "hammer"
+type = 4
+material_class = "Stone"
+number = 9
+price = 600.0
+weight = 5.0
+charge = 30.0
+magic_level = 6
+condition = 4400.0
+material_units = 5
+class_mask = 0x1
+attack_interval = 36
+damage = 4.0
+damage_spread = 2.0
+damage_types = [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0]
+
+[[armor]]
+name = "showcase boots"
+family = "boots"
+type = 5
+material_class = "Leather"
+number = 20
+price = 40.0
+weight = 3.0
+charge = 1.0
+magic_level = 1
+condition = 400.0
+material_units = 3
+first_factor = 0.66
+absorb_first = [1.2, 1.2, 1.2, 1.2, 1.2, 1.2, 1.2]
+others_factor = 0.66
+absorb_others = [1.2, 1.2, 1.2, 1.2, 1.2, 1.2, 1.2]
+shows_wounds = 1

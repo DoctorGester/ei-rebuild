@@ -26,7 +26,8 @@
 // The objects' drawn motion (drawn::PoseOf, R19; renderer.md section 14, "Objects") the same way, sampled after
 // each frame's draw (the main loop's frame step, taken over for this: TracedFrameStep):
 //   objtrace start <who> [part|-] [log]
-//                             follow `who` ("leader", a script name, "arrow": the first bow arrow in flight,
+//                             follow `who` ("leader", a script name, "#<id>" a map object by its id (a unit a
+//                             .mob.toml places has no script name), "arrow": the first bow arrow in flight,
 //                             then that one until it is gone, or "spelllight": the first moving point light
 //                             effect, a spell's or a missile's, likewise) or its part's place in the figure (e.g.
 //                             "rh3", the right hand: the pose alone, its blends) or "light", its own light (own: the
