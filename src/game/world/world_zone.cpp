@@ -91,7 +91,7 @@ void WorldServer::LoadMapObjects(std::string_view fileName, int keepIds) {
     std::string path = MapPath(file);
     if (!root->Open(path, platform::FileMode::Read))
         game::FatalExit("CWorldServer::LoadMapObjects()\nUnable to read file \"%s\"\n", file);
-    bool read = root->Load(keepIds);
+    bool read = root->Load(keepIds, fileName);
     fileObject->Close();
     if (!read) game::FatalExit("CWorldServer::LoadMapObjects\nUnable to read file \"%s\"\n", file);
 }
