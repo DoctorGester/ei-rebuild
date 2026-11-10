@@ -543,7 +543,9 @@ parts (3,583 FIG8 records, 55 older ones), 1 file carried as it is, 217,252 corn
 0.35 s. Rebirth (its mods too): 978 figures (483 sets, 495 loose), 4,639 parts (4,569 FIG8, 55 older), 46 files carried
 as they are (Lost in Astral's stray entries, a .bon that is no archive), 306,364 corners on 223,208 slots, 365,451
 triangles; 34.6 MB as 62.3 MB, 0.42 s. Loading costs little: the read and the files' making take well under a
-millisecond a figure.
+millisecond a figure. Timed alone (`--quiet`, 2026-11-10), `mod_lost_in_astral_cz_ingos` and `_gipat` take 44 s and
+34 s converted (textures and models) against 30 s and 13 s unpacked, below "Textures as PNG"'s 53 s and 41 s; in a
+whole converted suite, four games at once, cz_ingos still ran out of its 60 s once (step 46 of 52).
 
 ### Checks
 
