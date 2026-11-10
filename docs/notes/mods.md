@@ -729,7 +729,11 @@ A `.mob`'s script runs from a `.lua` when one is there (L8, user 2026-11-10; the
   before (the parser's declarations and `fileCount`: later texts' names) and converted (the scheduler's `names`: the
   Lua names those texts refer to), and the `.lua` is loaded in its place (a UTF-8 byte order mark dropped), its chunk
   `Maps\<file>` (`mobtoml::ScriptLuaName`), its WorldScript started. A file that does not load is error 18 with Lua's
-  message (the caller's `Script error: zone1.mob line 0: Maps\zone1.lua:<line>: ...`). Every later text (an AddMob'd
+  message (the caller's `Script error: zone1.mob line 0: Maps\zone1.lua:<line>: ...`). A `.mob` text the game's
+  parser stops in keeps that error (the caller's report, as before) and leaves the script as the parser does: not
+  loaded (no ticks) and the WorldScript not started, so a converted install's `.lua` of it (what came before the
+  error) plays as the game (Lost in Astral's bz23k.mob and zone10hunter.mob); a mod's `.lua` for such a `.mob` needs a
+  `.mob` that parses. Every later text (an AddMob'd
   mob without a `.lua`, QFinish's quests, execs files) goes through Script::Load to the scheduler as L7's runtime
   conversion; the console's lines stay in the world's second script, on the old executor.
 - **On Lua.** `Script::Tick` is the scheduler's tick (a Reset inside it drops the scheduler after it: `retired`),
@@ -738,7 +742,7 @@ A `.mob`'s script runs from a `.lua` when one is there (L8, user 2026-11-10; the
   `Script::GlobalValues` (Rebirth's `listgvar`, the digest): the old executor's variables, or on Lua the Lua values
   under the old names (the names map), then the globals only a Lua GlobalVars declared.
 - **Saves.** `Script::SaveState` writes the old format as before (the parsed program, the variables as the parser left
-  them, no instances or runs) with `loaded` 2 (`kScriptLoadedOnLua`) and after the areas the scheduler's Eris state
+  them, no instances or runs) with 2 added to `loaded` (`kScriptLoadedOnLua`) and after the areas the scheduler's Eris state
   (`ScriptLuaScheduler::Save`, a count and its bytes; one that does not persist is written empty and said on the
   console). `LoadState` reads it back into a new scheduler (`Restore`): a save on Lua goes on there with its own code,
   whatever the zone's files say now, and an old-format save stays on the old executor. A script not on Lua writes
@@ -774,9 +778,16 @@ A `.mob`'s script runs from a `.lua` when one is there (L8, user 2026-11-10; the
   count from 1).
 - With EI_LUA_BOTH=1 the three pass with the mission shadow stopped at the zone's load ("2 times on a mod's Lua": the
   zone's .mob and LoadZoneScripts' reload).
+- A converted install (`work.py test <ID> --converted --golden`, and `--rebirth-only`; 2026-11-10) runs every zone's
+  mission script from its ei-convert `.lua`: every run passes (vanilla 284, Rebirth 160), and every golden that
+  differs (vanilla 186 of 233, Rebirth 129 of 145) differs in the script alone (the digest's script record, hashed:
+  runs without block ids, the loop counters as above; the saves' `commands` entity), no unit position, quest variable
+  or other entity. Before the .mob's parse error was kept, Lost in Astral's bz23k.mob (the parser stops at its line
+  267) ran its WorldScript at load on Lua (a quest variable set the game never sets) and its error line was missing;
+  zone10hunter.mob's too. The earlier "every golden the same" of a converted install holds again for the rest once the
+  script's fields compare (L8a).
 - Not covered by a scenario: an AddMob'd .mob's `.lua` (the shim's take-over of a running script), a TOML's `script`
-  key naming another file, a converted install (`--converted`: every zone runs on Lua, and the script's digest fields
-  of runs differ from the goldens: no block ids; the loop counters as above).
+  key naming another file (L8b).
 
 ## Models as glTF
 

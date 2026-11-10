@@ -495,9 +495,10 @@ end
   text only. `pairs` walks a table's keys in the same order every time: numbers, then strings (by their bytes), then
   `false` and `true`.
 - **Errors** go to the console (and `ei-rebuild.log`) as `Script error: ...`. A file that does not load: `Script
-  error: zone1.mob line 0: Maps\zone1.lua:<line>: <message>`, and the zone runs without its script. An error while it
-  runs: `Script error: Maps\zone1.lua:<line>: <message>`; that function stops (an error in a condition: the rule does
-  not hold), and the rest of the script goes on.
+  error: zone1.mob line 0: Maps\zone1.lua:<line>: <message>`, and the zone runs without its script. A `.mob` whose own
+  script the game cannot read (`Script error: <zone>.mob line <n>: ...`) keeps the game's handling: the zone's script
+  does not run, `.lua` or not. An error while it runs: `Script error: Maps\zone1.lua:<line>: <message>`; that
+  function stops (an error in a condition: the rule does not hold), and the rest of the script goes on.
 - **Saves.** A game saved in such a zone keeps the script's whole Lua state, every waiting function with its local
   variables, and goes on from there when it is loaded. A loaded save keeps running the code it was saved with, even
   when the mod's file has changed since; the new file runs the next time the zone is loaded fresh.
