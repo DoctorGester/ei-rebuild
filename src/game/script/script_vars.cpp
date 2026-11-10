@@ -92,11 +92,6 @@ int ScriptVars::FindOfType(ScriptType type, std::string_view name) const {
     }
 }
 
-void ScriptVars::RemoveDeletedObjects() {
-    for (ScriptObjectRef& value : objects.values) value.ReleaseIfDeleted();
-    for (ScriptGroup& group : groups.values) group.RemoveDeleted();
-}
-
 // ---- ScriptDefinition::AddParameter -------------------------------------------------------------
 
 // An unknown type is accepted and adds no letter.
@@ -112,27 +107,6 @@ bool ScriptDefinition::AddParameter(const std::string& parameterName, ScriptType
     }
     if (added) params += ScriptTypeLetter(type);
     return added;
-}
-
-void ScriptCall::SetParameters(const std::vector<ScriptBinding>& bindings, ScriptVars* vars) {
-    for (const ScriptBinding& b : bindings) {
-        switch (b.type) {
-        case ScriptType::Float:
-            floatArgs[b.argIndex] = vars->floats.values[b.varIndex];
-            break;
-        case ScriptType::String:
-            stringArgs[b.argIndex] = vars->strings.values[b.varIndex];
-            break;
-        case ScriptType::Object:
-            objectArgs[b.argIndex] = &vars->objects.values[b.varIndex];
-            break;
-        case ScriptType::Group:
-            groupArgs[b.argIndex] = &vars->groups.values[b.varIndex];
-            break;
-        default:
-            game::FatalExit("ScriptCall::SetParameters, unknown parameter type");
-        }
-    }
 }
 
 void ScriptCall::Clear() {

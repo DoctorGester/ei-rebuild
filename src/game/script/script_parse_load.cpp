@@ -5,8 +5,7 @@
 #include "game/script/script_parse.h"
 #include "game/script/script_addon.h"
 #include "game/script/script_ir.h"
-#include "game/script/script_lua.h"
-#include "game/script/script_lua_shadow.h"
+#include "game/script/script_lua_scheduler.h"
 
 #include "lib/crt.h"
 #include "lib/str.h"
@@ -358,26 +357,27 @@ bool Script::LoadCommands(std::vector<ScriptCall>* commands, TokenReader* tokens
 bool Script::Load(std::string* text, bool runWorldScript, scriptir::File* ir) {
     scriptir::File own;
     scriptir::File& out = ir ? *ir : own;
-    out = scriptir::File{};
-    out.fileCount = fileCount;
-    const bool toLua = lua && lua->loadText;
-    out.ok = Parse(text, runWorldScript && !toLua, out);
-    if (!out.ok) GetError(&out.error);
-    if (shadow) shadow->Loaded(this, out, *text, runWorldScript);
-    if (toLua) {
-        std::string error;
-        if (!lua->loadText(out, *text, runWorldScript, &error) && out.ok) {
-            errorLine = 0;
-            errorCode = ScriptParseError::Lua;
-            errorText = error;
-            out.ok = false;
-            GetError(&out.error);
-        }
+    Parse(text, out);
+    std::string error;
+    if (!Runner().LoadText(out, *text, runWorldScript, &error) && out.ok) {
+        errorLine = 0;
+        errorCode = ScriptParseError::Lua;
+        errorText = error;
+        out.ok = false;
+        GetError(&out.error);
     }
     return out.ok;
 }
 
-bool Script::Parse(std::string* text, bool runWorldScript, scriptir::File& out) {
+bool Script::Parse(std::string* text, scriptir::File& out) {
+    out = scriptir::File{};
+    out.fileCount = fileCount;
+    out.ok = ParseSections(text, out);
+    if (!out.ok) GetError(&out.error);
+    return out.ok;
+}
+
+bool Script::ParseSections(std::string* text, scriptir::File& out) {
     std::vector<ScriptToken> tokens;
     ScriptDefinition definition;
     ScriptDefinition* decl = &definition;
@@ -514,7 +514,6 @@ bool Script::Parse(std::string* text, bool runWorldScript, scriptir::File& out) 
         }
     }
 
-    if (worldScript && runWorldScript) RunWorldScript(worldScript);
     loaded = 1;
     ++fileCount;
     return true;

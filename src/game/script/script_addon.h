@@ -11,7 +11,7 @@ namespace scriptaddon {
 
 // What a handler is passed. Calc functions: `result` is CalcFloat's local float, CalcObject's ScriptObjectRef**
 // (holding the new temporary), CalcGroup's ScriptGroup** (holding the new temporary group) or
-// CalcString's std::string*. Commands (ScriptRun::Execute): `cont` is the command's "go on"
+// CalcString's std::string*. Commands (ScriptRun::RunCommand): `cont` is the command's "go on"
 // flag (1 on entry) and `run` the running script; `result` is null.
 struct Call {
     // The result slot, of the type the calling Calc function gives it (none for a command).
@@ -57,11 +57,8 @@ bool RejectsMatch(const char* keyword, char next);
 // and a '?' is skipped.
 void SignatureStep(ScriptCall* cmd, std::string_view signature, std::size_t* letter, int tokenId);
 
-// ScriptCall::CalcString (which the patched CalcParameters calls for a string argument):
-// prepares the arguments, then Rebirth's string function (none: the game ends).
-void CalcString(ScriptCall* cmd, Script* script, ScriptVars* vars, std::string* result);
-// The string function from the prepared arguments: CalcString's work, which a lockstep shadow (script_lua_shadow.h)
-// records around.
-void EvaluateString(ScriptCall* cmd, Script* script, std::string* result);
+// The string functions' CalcString (the Lua bindings' 'S' functions): Rebirth's string function (none: the game
+// ends).
+void CalcString(ScriptCall* cmd, Script* script, std::string* result);
 
 } // namespace scriptaddon

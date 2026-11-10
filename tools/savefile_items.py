@@ -349,7 +349,7 @@ def read_command(r, depth=0):
     """SSCCmd::Save (004B6360): id, the float and string arguments, the object and group argument counts,
     the local and global bindings (ScriptBinding: type, argIndex, varIndex), the nested calls, the called
     script's id. A float or string slot a binding or a nested call fills is the value it put there when it last ran
-    (rule eval): the old executor's, which Lua's calls do not write."""
+    (rule eval): the game's executor's, which our Lua calls do not write."""
     start = r.p
     evaluated = _command_slots(r, depth)
     r.p = start

@@ -1,12 +1,12 @@
-// A mission script on Lua (docs/notes/mods.md, "Scripts in Lua"; docs/notes/lua-scripting.md, "Mods"): a .mob's script
-// whose .lua stands for it runs on the Lua scheduler in place of the old executor (Script::LoadLua), and the global
-// variables read either way (Script::GlobalValues, GlobalGroup). Tick, ResetZone, Reset and the saves hand a script
-// on Lua to its scheduler (script_exec_run.cpp, script_blocks.cpp, script_save.cpp, script_load.cpp).
+// A script's scheduler (Script::Runner), a .mob's script whose .lua stands for it (Script::LoadLua; docs/notes/mods.md,
+// "Scripts in Lua"), and the scheduler's state as the game's executor kept it: the global variables
+// (Script::GlobalValues, GlobalGroup), the instances and runs (InstanceViews, RunViews). Tick, ResetZone, Reset and
+// the saves hand the script to its scheduler (script_exec_run.cpp, script_blocks.cpp, script_save.cpp,
+// script_load.cpp).
 #include "game/script/script_lua_scheduler.h"
 
 #include "game/script/script_ir.h"
 #include "game/script/script_lua_number.h"
-#include "game/script/script_lua_shadow.h"
 
 #include "eris/lauxlib.h"
 #include "eris/lua.h"
@@ -16,37 +16,25 @@
 #include <unordered_map>
 #include <utility>
 
+ScriptLuaScheduler& Script::Runner() {
+    if (!runner) runner = std::make_unique<ScriptLuaScheduler>(this);
+    return *runner;
+}
+
 bool Script::LoadLua(std::string* text, std::string_view luaText, const std::string& chunk) {
-    if (!runner) {
-        // What the old executor holds so far (nothing for a zone's own .mob, whose load starts from a reset) goes on in
-        // the scheduler: the old-save shim's conversion of this script's program and state.
-        auto made = std::make_unique<ScriptLuaScheduler>(this);
-        std::string resumed, error;
-        if (!made->Resume(*this, &resumed, &error)) {
-            errorLine = 0;
-            errorCode = ScriptParseError::Lua;
-            errorText = "the script so far did not go on in Lua: " + error;
-            return false;
-        }
-        if (shadow) shadow->RunsOnLua(this);
-        DropInstancesAndRuns();
-        globals.ResetValues();   // the declarations stay: the later texts' names
-        runner = std::move(made);
-    }
     // The .mob's text gives the declarations that the texts loaded after it (AddMob'd mobs, quests, execs files) find,
     // in the parser and in the Lua names; its own conversion is not run. A text the parser stops in keeps its error,
     // reported as the game reports it, and leaves the script as the game's parser does (Script::Parse sets `loaded`
     // only for a whole text): the WorldScript not started (ei-convert's .lua of it holds what came before the error).
     scriptir::File tree;
-    tree.fileCount = fileCount;
-    tree.ok = Parse(text, false, tree);
-    if (!tree.ok) GetError(&tree.error);
-    runner->Convert(tree, *text);
+    Parse(text, tree);
+    ScriptLuaScheduler& lua = Runner();
+    lua.Convert(tree, *text);
     std::string_view source = luaText;
     if (source.starts_with("\xEF\xBB\xBF")) source.remove_prefix(3);   // a UTF-8 byte order mark
     std::string error;
     const std::string name = "=" + chunk;
-    if (!runner->Load(source, name.c_str(), tree.ok, &error) && tree.ok) {
+    if (!lua.Load(source, name.c_str(), tree.ok, &error) && tree.ok) {
         errorLine = 0;
         errorCode = ScriptParseError::Lua;
         errorText = error;
@@ -207,7 +195,7 @@ std::vector<ScriptRunView> ScriptLuaScheduler::Runs() {
         lua_pop(L, 2);
         const auto definition = byName.find(view.script);
         view.vars = ValuesOf(-1, count, definition != byName.end() ? definition->second : nullptr);
-        // The values only, as Script::RunCommands copies them: a run's variables have no names.
+        // The values only, as the game's runs held them (copies of the instance's): a run's variables have no names.
         view.vars.floats.names.clear();
         view.vars.strings.names.clear();
         view.vars.objects.names.clear();
@@ -217,47 +205,15 @@ std::vector<ScriptRunView> ScriptLuaScheduler::Runs() {
     return views;
 }
 
-std::vector<ScriptInstanceView> Script::InstanceViews() {
-    if (runner) return runner->Instances();
-    std::vector<ScriptInstanceView> views;
-    for (const ScriptDefinition& instance : instances) views.push_back({instance.name, instance.killed, instance.vars});
-    return views;
-}
+std::vector<ScriptInstanceView> Script::InstanceViews() { return Runner().Instances(); }
 
-std::vector<ScriptRunView> Script::RunViews() {
-    if (runner) return runner->Runs();
-    // A then-section's definition and rule (an instance's pairs are its definition's blocks).
-    std::unordered_map<const ScriptBlock*, std::pair<const ScriptDefinition*, int>> rules;
-    for (const ScriptDefinition& definition : definitions)
-        for (std::size_t r = 0; r < definition.ifThen.size(); ++r)
-            rules.emplace(definition.ifThen[r].commands, std::pair(&definition, static_cast<int>(r)));
-    std::vector<ScriptRunView> views;
-    for (const ScriptRun& run : runs) {
-        ScriptRunView& view = views.emplace_back();
-        if (const auto found = rules.find(run.position.block); found != rules.end()) {
-            view.script = found->second.first->name;
-            view.rule = found->second.second;
-        }
-        view.ticks = run.position.ticks;
-        view.sleepStart = run.position.sleepStart;
-        if (run.killFlag) {
-            view.instance = -2;
-            int index = 0;
-            for (const ScriptDefinition& instance : instances) {
-                if (&instance.killed == run.killFlag) view.instance = index;
-                ++index;
-            }
-        }
-        view.vars = run.vars;
-    }
-    return views;
-}
+std::vector<ScriptRunView> Script::RunViews() { return Runner().Runs(); }
 
 ScriptVars Script::GlobalValues(bool declaredOnly) {
-    if (!runner) return globals;
+    ScriptLuaScheduler& scheduler = Runner();
     ScriptVars values;
-    lua_State* L = runner->lua.State();
-    const scriptlua::LuaNames& names = runner->names;
+    lua_State* L = scheduler.lua.State();
+    const scriptlua::LuaNames& names = scheduler.names;
     std::set<std::string> listed;
     auto add = [&](ScriptType type, const std::vector<std::string>& declared) {
         for (const std::string& name : declared) {
@@ -276,7 +232,7 @@ ScriptVars Script::GlobalValues(bool declaredOnly) {
     if (declaredOnly) return values;
     // The globals a Lua GlobalVars declared beyond those (a mod's own), sorted by name.
     std::vector<std::pair<std::string, ScriptType>> extra;
-    for (const auto& [name, type] : runner->lua.GlobalTypes())
+    for (const auto& [name, type] : scheduler.lua.GlobalTypes())
         if (!listed.contains(name)) extra.emplace_back(name, type);
     std::ranges::sort(extra);
     for (const auto& [name, type] : extra) {
@@ -288,13 +244,10 @@ ScriptVars Script::GlobalValues(bool declaredOnly) {
 }
 
 ScriptGroup Script::GlobalGroup(std::string_view name) {
-    if (!runner) {
-        const int index = globals.FindOfType(ScriptType::Group, name);
-        return index < 0 ? ScriptGroup() : globals.groups.values[static_cast<std::size_t>(index)];
-    }
-    lua_State* L = runner->lua.State();
-    const auto found = runner->names.globals.find(std::string(name));
-    const std::string luaName = found != runner->names.globals.end() ? found->second : std::string(name);
+    ScriptLuaScheduler& scheduler = Runner();
+    lua_State* L = scheduler.lua.State();
+    const auto found = scheduler.names.globals.find(std::string(name));
+    const std::string luaName = found != scheduler.names.globals.end() ? found->second : std::string(name);
     ScriptGroup group;
     lua_getglobal(L, luaName.c_str());
     if (luaL_testudata(L, -1, "ei.group")) group = *scriptlua::CheckGroup(L, -1);

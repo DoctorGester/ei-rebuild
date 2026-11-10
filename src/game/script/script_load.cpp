@@ -1,12 +1,12 @@
 // Loading the mission script from a savegame (Script::LoadState) and the loaders of its parts:
 // the particle / FX / lightning lists, command blocks, WorldScript blocks, if-then
-// arrays, the four kinds of variables, script instances and runs. The mirror image of script_save.cpp; see
-// docs/notes/script.md. Every piece is read through the stream's Read in the save's order and in its pieces.
+// arrays, the four kinds of variables, script instances and runs (an old-format save's, for the old-save shim). The
+// mirror image of script_save.cpp; see docs/notes/script.md. Every piece is read through the stream's Read in the
+// save's order and in its pieces.
 #include "game/core/base_manager.h"
 #include "game/core/core_streams.h"
 #include "game/script/script.h"
 #include "game/script/script_lua_scheduler.h"
-#include "game/script/script_lua_shadow.h"
 #include "game/console/console.h"
 #include "game/effects/world_effect.h"
 
@@ -179,7 +179,9 @@ ScriptBlock* Script::FindBlock(int id) const {
 // ---- Script::LoadState ---------------------------------------------------------------------------
 
 // Reads what SaveState wrote, in the same order; every block id resolves in this script. Areas are read only
-// from stream version 0x57 on.
+// from stream version 0x57 on. The globals', instances' and runs' fields hold the saved state either way: an
+// old-format save's for the shim, ours the scheduler's as far as those fields go (script_save.cpp, WriteLuaState),
+// which its Lua state after the areas holds whole.
 void Script::LoadState(ByteStream* stream) {
     DropRunner();
     pointLights.resize(stream->ReadCount());
@@ -222,22 +224,24 @@ void Script::LoadState(ByteStream* stream) {
             for (ScriptAreaPart& part : area.parts) stream->ReadValue(part);
         }
     }
-    // A script saved on Lua goes on there with its saved state, whatever the zone's files say now (a save keeps
-    // running the code it was saved with). The old format's globals, instances and runs hold the Lua's as far as
-    // those fields go (script_save.cpp, WriteLuaState): dropped, as the old executor's are when a script goes on Lua.
+    // The script goes on with its saved state, whatever the zone's files say now (a save keeps running the code it
+    // was saved with): our save's Lua state, or an old-format save's program and state through the old-save shim.
+    // One that does not go on leaves the script empty, said on the console.
+    std::string error;
     if (onLua) {
-        DropInstancesAndRuns();
-        globals.ResetValues();
         std::string data(static_cast<std::size_t>(stream->ReadCount()), '\0');
         stream->Read(data.data(), static_cast<std::uint32_t>(data.size()));
-        runner = std::make_unique<ScriptLuaScheduler>(this);
-        std::string error;
-        if (!data.empty() && !runner->Restore(data, &error)) {
+        if (!data.empty() && !Runner().Restore(data, &error)) {
             console::EndLine(console::g_consoleOut << "Script error: the save's Lua state did not load: " << error);
-            runner = std::make_unique<ScriptLuaScheduler>(this);
+            DropRunner();
         }
-        if (shadow) shadow->RunsOnLua(this);
-        return;
+    } else {
+        std::string text;
+        if (!Runner().Resume(*this, &text, &error)) {
+            console::EndLine(console::g_consoleOut << "Script error: the save's script did not go on in Lua: " << error);
+            DropRunner();
+        }
     }
-    if (shadow) shadow->StateLoaded(this);
+    DropInstancesAndRuns();
+    globals.ResetValues();   // the declarations stay: the later texts' names
 }

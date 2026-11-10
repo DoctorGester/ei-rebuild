@@ -1,5 +1,5 @@
-// Evaluation of script functions: ScriptCall::CalcParameters, CalcFloat, CalcObject and CalcGroup. Rebirth's functions
-// (script_addon.h) are tried first.
+// Evaluation of script functions: ScriptCall::CalcFloat, CalcObject and CalcGroup (the Lua bindings' functions). Rebirth's
+// functions (script_addon.h) are tried first.
 // Floating point: the comparisons are plain (a NaN argument compares as IEEE says, where the
 // old x87 compare counted it as equal and less).
 #include "game/ai/ai_map.h"
@@ -18,7 +18,6 @@
 #include "game/core/random.h"
 #include "game/script/script.h"
 #include "game/script/script_addon.h"
-#include "game/script/script_lua_shadow.h"
 #include "game/units/unit.h"
 #include "game/ai/unit_ai.h"
 #include "game/world/world.h"
@@ -78,55 +77,7 @@ void InsertSeen(ScriptGroup* group, UnitServer* controller) {
 
 Player* ScriptArgs::FindPlayer() { return g_serverWorld.GetPlayer(lib::Truncate(Float())); }
 
-void ScriptCall::PrepareArguments(Script* script, ScriptVars* vars) {
-    SetParameters(localBindings, vars);
-    SetParameters(globalBindings, &script->globals);
-    for (int i = 0; i < std::ssize(subCalls); ++i) {
-        // A loop's condition is evaluated here once more, with the counter as it is: the lockstep shadow leaves it
-        // out (the Lua makes no such call) unless it draws.
-        if (script->shadow && &subCalls[i] == ConditionCall() && ScriptShadow::IsLoop(id)) {
-            const ScriptShadow::PreEvaluation pre(script, id);
-            CalcParameters(script, vars, &subCalls[i]);
-            continue;
-        }
-        CalcParameters(script, vars, &subCalls[i]);
-    }
-}
-
-const ScriptSubCall* ScriptCall::ConditionCall() const {
-    for (const ScriptSubCall& call : subCalls)
-        if (call.type == ScriptType::Float) return &call;
-    return nullptr;
-}
-
-void ScriptCall::CalcParameters(Script* script, ScriptVars* vars, const ScriptSubCall* call) {
-    switch (call->type) {
-    case ScriptType::Float:
-        floatArgs[call->argIndex] = call->cmd->CalcFloat(script, vars);
-        return;
-    case ScriptType::String: {
-        // Only Rebirth's functions return strings.
-        scriptaddon::CalcString(call->cmd.get(), script, vars, &stringArgs[call->argIndex]);
-        return;
-    }
-    case ScriptType::Object:
-        call->cmd->CalcObject(script, vars, &objectArgs[call->argIndex]);
-        return;
-    case ScriptType::Group:
-        call->cmd->CalcGroup(script, vars, &groupArgs[call->argIndex]);
-        return;
-    default:
-        game::FatalExit("ScriptCall::CalcParameters, unknown function parameter type");
-    }
-}
-
-float ScriptCall::CalcFloat(Script* script, ScriptVars* vars) {
-    PrepareArguments(script, vars);
-    if (script->shadow) return script->shadow->Float(this, script, vars);
-    return EvaluateFloat(script, vars);
-}
-
-float ScriptCall::EvaluateFloat(Script* script, ScriptVars* vars) {
+float ScriptCall::CalcFloat(Script* script) {
     float result = 0.0f;
     {
         scriptaddon::Call call{this, script, &result, nullptr, nullptr};
@@ -316,45 +267,6 @@ float ScriptCall::EvaluateFloat(Script* script, ScriptVars* vars) {
         return result;
     }
 
-    // Every/Any/Sum(var, group, condition): the condition (the nested float call) is evaluated
-    // again for each member of the group with the object variable set to that member. Without a
-    // nested call the condition is a constant.
-    case ScriptFunction::Every:
-    case ScriptFunction::Any:
-    case ScriptFunction::Sum: {
-        const ScriptSubCall* condition = ConditionCall();
-        if (!condition) {
-            if (function == ScriptFunction::Every) result = floatArgs[0];
-            else if (function == ScriptFunction::Any) {
-                result = ScriptBool(floatArgs[0] != 0.0f);
-            }
-            else result = static_cast<float>(groupArgs[0]->size()) * floatArgs[0];
-            return result;
-        }
-        result = ScriptBool(function == ScriptFunction::Every);
-        ScriptGroup* g = groupArgs[0];
-        if (g->empty()) return result;
-        int k = 0;
-        do {
-            *objectArgs[0] = (*g)[static_cast<std::size_t>(k)];
-            CalcParameters(script, vars, condition);
-            if (function == ScriptFunction::Every) {
-                if (floatArgs[0] == 0.0f) {
-                    return 0.0f;
-                }
-            } else if (function == ScriptFunction::Any) {
-                if (floatArgs[0] != 0.0f) {
-                    return 1.0f;
-                }
-            } else {
-                result = floatArgs[0] + result;
-            }
-            ++k;
-            g = groupArgs[0];
-        } while (k < std::ssize(*g));
-        return result;
-    }
-
     case ScriptFunction::HaveItem: { // HaveItem(player, item)
         Player* player = args.FindPlayer();
         const int item = lib::Truncate(args.Float());
@@ -451,13 +363,7 @@ float ScriptCall::EvaluateFloat(Script* script, ScriptVars* vars) {
     }
 }
 
-void ScriptCall::CalcObject(Script* script, ScriptVars* vars, ScriptObjectRef** result) {
-    PrepareArguments(script, vars);
-    if (script->shadow) script->shadow->Object(this, script, result);
-    else EvaluateObject(script, result);
-}
-
-void ScriptCall::EvaluateObject(Script* script, ScriptObjectRef** result) {
+void ScriptCall::CalcObject(Script* script, ScriptObjectRef** result) {
     *result = script->NewTempObject();
     {
         scriptaddon::Call call{this, script, result, nullptr, nullptr};
@@ -517,13 +423,7 @@ void ScriptCall::EvaluateObject(Script* script, ScriptObjectRef** result) {
     }
 }
 
-void ScriptCall::CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result) {
-    PrepareArguments(script, vars);
-    if (script->shadow) script->shadow->Group(this, script, result);
-    else EvaluateGroup(script, result);
-}
-
-void ScriptCall::EvaluateGroup(Script* script, ScriptGroup** result) {
+void ScriptCall::CalcGroup(Script* script, ScriptGroup** result) {
     *result = &script->tempGroups.emplace_back();
     ScriptGroup* group = *result;
     scriptaddon::Call call{this, script, result, nullptr, nullptr};

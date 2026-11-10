@@ -4,7 +4,9 @@
 // and commands are trees of ScriptCall nodes; each node is one built-in function or command (ScriptKeyword table)
 // whose arguments are constants, variables (ScriptBinding) or nested calls (ScriptSubCall). Values have four
 // types: 1 float, 2 string, 3 object (a counted reference to a world object), 4 group (a sorted set of object
-// references).
+// references). The parse tree of each text is converted to Lua (script_lua_writer.h) and runs on the script's Lua
+// scheduler (script_lua_scheduler.h), whose bindings call the built-ins here by id; the ScriptCall trees are the
+// program a save keeps (docs/notes/lua-scripting.md).
 
 #include <cstddef>
 #include <cstdint>
@@ -31,9 +33,7 @@ class EffectPointLight;
 class EffectParticle;
 class EffectSound;
 class EffectLightning;
-class ScriptLua;
 class ScriptLuaScheduler;
-class ScriptShadow;
 
 enum class ScriptType : int {
     None = 0,
@@ -168,7 +168,6 @@ struct ScriptVars {
     ScriptVarRef FindVariable(std::string_view name) const;
     // The index of the name among the variables of one ScriptType, -1 when there is none.
     int FindOfType(ScriptType type, std::string_view name) const;
-    void RemoveDeletedObjects();
 
     ScriptNamedValues<float> floats;
     ScriptNamedValues<std::string> strings;
@@ -218,7 +217,7 @@ enum class ScriptParseError : int {
     DuplicateScript = 15,
     MultipleDeclaration = 16,
     CannotRead = 17,
-    Lua = 18,               // ours: the text's converted Lua did not load (the Lua runtime's, ScriptLua::loadText)
+    Lua = 18,               // ours: the text's Lua did not load (ScriptLuaScheduler::LoadText, Script::LoadLua)
 };
 
 class Script;
@@ -413,37 +412,24 @@ struct ScriptSubCall {
     std::unique_ptr<ScriptCall> cmd;
 };
 
-// One function or command call in a script. Object and group arguments point at the
-// variable (or the caller's temporary) holding the value, so they see later assignments.
+// One function or command call in a script: in the parser's program (bindings, nested calls and loop bodies as
+// written, the arguments a binding or nested call fills left as their slots), or a Lua binding's call (every argument
+// a value: script_lua.cpp). Object and group arguments point at the value.
 class ScriptCall {
 public:
-    // The object / group argument slots are left null, bound when run; the called block's id is resolved in
-    // `script` (FindBlock). Assign and CallScript keep their target in leading argument slots on disk, as the
-    // game did: Assign the variable index in float 0 and its type - 1 in float 1, CallScript the definition's
-    // index in float 0 and its name in string 0 (the bindings and nested calls count those slots).
+    // The object / group argument slots are left null; the called block's id is resolved in `script` (FindBlock).
+    // Assign and CallScript keep their target in leading argument slots on disk, as the game did: Assign the variable
+    // index in float 0 and its type - 1 in float 1, CallScript the definition's index in float 0 and its name in
+    // string 0 (the bindings and nested calls count those slots).
     void Load(ByteStream* stream, const Script* script);
-    // Floats and strings by value, objects and groups by address.
-    void SetParameters(const std::vector<ScriptBinding>& bindings, ScriptVars* vars);
     void Save(ByteStream* stream) const;
 
-    // Evaluation: each first binds the variables (local, then global) and evaluates the nested calls into the
-    // arguments (PrepareArguments), then computes the function `id` into *result.
-    void CalcParameters(Script* script, ScriptVars* vars, const ScriptSubCall* call);
-    // The value (a condition is 0 false, else true; 0 for a missing object).
-    float CalcFloat(Script* script, ScriptVars* vars);
+    // The function `id` computed from the arguments. The value (a condition is 0 false, else true; 0 for a missing
+    // object).
+    float CalcFloat(Script* script);
     // *result is a new temporary of `script`.
-    void CalcObject(Script* script, ScriptVars* vars, ScriptObjectRef** result);
-    void CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result);
-    // The function computed from the prepared arguments: the Calc* functions' work, which a lockstep shadow
-    // (script_lua_shadow.h) records around.
-    float EvaluateFloat(Script* script, ScriptVars* vars);
-    void EvaluateObject(Script* script, ScriptObjectRef** result);
-    void EvaluateGroup(Script* script, ScriptGroup** result);
-
-    void PrepareArguments(Script* script, ScriptVars* vars);
-    // The nested call that computes a float: the condition of Every / Any / Sum / ForIf. Null when there is none
-    // (the condition is then the constant in float 0).
-    const ScriptSubCall* ConditionCall() const;
+    void CalcObject(Script* script, ScriptObjectRef** result);
+    void CalcGroup(Script* script, ScriptGroup** result);
 
     // Every argument, binding and nested call dropped; id, target and body become 0.
     void Clear();
@@ -529,21 +515,17 @@ struct ScriptBlock {
 struct ScriptIfThen {
     // Two block ids resolved in `script` (FindBlock).
     void Load(ByteStream* stream, const Script* script);
-    // Evaluates the conditions in the instance's variables; when all are nonzero, runs the commands.
-    void Run(Script* script, ScriptDefinition* instance) const;
     ScriptBlock* conditions = nullptr;
     ScriptBlock* commands = nullptr;
 };
 
-// A Script / DeclareScript definition. Script instances are copies of their definition: an instance's
-// `killed` is set by KillScript and its `vars` hold the call's arguments.
+// A Script / DeclareScript definition. An old-format save's instances are copies of their definition: an instance's
+// `killed` is its kill flag and its `vars` hold the call's arguments.
 struct ScriptDefinition {
     // Name and parameter string (terminators included), the if-then pairs (block ids), the variables.
     void Save(ByteStream* stream) const;
     // Reads what Save wrote, the blocks resolved in `script`; if-then pairs naming a block it lacks are dropped.
     void Load(ByteStream* stream, const Script* script);
-    // A script call's arguments into the instance's variables; a type's count that does not match ends the game.
-    void BindCall(const ScriptCall* call);
     // False when the name is taken.
     bool AddParameter(const std::string& name, ScriptType type);
     // Emptied (Script::Load before each `Script` section).
@@ -558,39 +540,32 @@ struct ScriptDefinition {
 
 // ---- Command execution ----
 
-// Where a run is: its block, the next command, the Execute calls so far and the Sleep start.
+// Where a run is: its block and next command (an old-format save's), the ticks it ran so far and the Sleep start.
 struct ScriptRunPosition {
     ScriptBlock* block = nullptr;   // the commands
     int index = 0;                  // next command
-    int ticks = 0;                  // Execute calls so far (Sleep and WaitSegment count these)
+    int ticks = 0;                  // ticks run so far (Sleep and WaitSegment count these)
     int sleepStart = -1;            // ticks when the running Sleep started, -1 when none
 };
 
-// A running command block: the WorldScript, a then-section, or a For body (For runs its body in the same
-// ScriptRun, saving and restoring the position). Runs not finished after one Execute stay in the
-// run list and continue each tick.
+// A running command block: the WorldScript's or a then-section's. A Lua run's (ScriptLua::Continue; the commands its
+// bindings run go through RunCommand), or an old-format save's waiting run, which the old-save shim resumes
+// (ScriptLuaScheduler::Resume).
 struct ScriptRun {
     // Block id, index, ticks, sleep start, the index of its instance in `script`'s instance list (-1 when
     // absent), the variables. Load resolves the block in `script` (FindBlock); an index out of range leaves no
     // instance.
     void Load(ByteStream* stream, Script* script);
-    void Save(ByteStream* stream, const Script* script) const;
-    // Runs commands from `index` until one waits (Sleep, WaitSegment, SleepUntil, SleepUntilIdle) or the block
-    // ends. Returns false when the block had already ended on entry.
-    bool Execute(Script* script);
-    // One command of the run, its arguments already prepared (Execute's step; the Lua bindings call it with a call of
-    // their own): false when the command waits (the run stays on it).
+    // One command of the run (a Lua binding's call): false when the command waits (the run stays on it).
     bool RunCommand(Script* script, ScriptCall* cmd);
-    // RunCommand's work, which a lockstep shadow (script_lua_shadow.h) records around.
-    bool Perform(Script* script, ScriptCall* cmd);
 
     ScriptRunPosition position;
     bool* killFlag = nullptr;       // the script instance's killed flag, null for the WorldScript
     ScriptVars vars;                // a copy of the instance's variables
 };
 
-// A script's instances and waiting runs in the terms both executors share (Script::InstanceViews, RunViews;
-// docs/notes/lua-scripting.md, "Mods"): what the harness's digest reads and a save on Lua writes in the old format's
+// A script's instances and waiting runs as the game's executor kept them (Script::InstanceViews, RunViews;
+// docs/notes/lua-scripting.md, "Saves"): what the harness's digest reads and a save writes in the old format's
 // fields. An instance by its definition's name, its kill flag and its values; a run by its definition and if-then
 // pair (none for a WorldScript's: an empty name, -1), its ticks and sleep start, the instance its kill flag names (-1
 // for none, -2 for one not in the list) and its values. No block or command: Lua has none.
@@ -653,12 +628,13 @@ public:
 
     // Negative ids in the WorldScript blocks, others in the command blocks; null when absent.
     ScriptBlock* FindBlock(int id) const;
-    // Reads what SaveState wrote; the areas only from stream version 0x57 on. A lockstep shadow then resumes its Lua
-    // from the loaded state (script_lua_shadow.h).
+    // Reads what SaveState wrote (or an old-format save: vanilla's, or ours before the Lua scheduler ran every
+    // script); the areas only from stream version 0x57 on. The script goes on in a new scheduler: from the save's Lua
+    // state, or from the old format's program and state through the old-save shim (ScriptLuaScheduler::Resume).
     void LoadState(ByteStream* stream);
     // Point lights, particle / FX / lightning sources, two counters, the command blocks and WorldScript
-    // blocks, the definitions, the globals, the instances, the runs, the loaded flag and file counter, the
-    // areas.
+    // blocks, the definitions, the globals, the instances, the runs (the scheduler's in the old format's fields as far
+    // as they go), the loaded flag (with kScriptLoadedOnLua) and file counter, the areas, then the scheduler's state.
     void SaveState(ByteStream* stream);
     void DeleteArea(int id);
     // Point lights (256 slots): create (id, x, y, z, radius, r, g, b), move (id, x, y, z, steps, remove when
@@ -666,9 +642,6 @@ public:
     void CreatePointLight(ScriptArgs args);
     void MovePointLight(ScriptArgs args);
     void DeletePointLight(ScriptArgs args);
-    // Runs `block` once in a new ScriptRun (a copy of the instance's variable values); an unfinished run goes
-    // to the head of the run list.
-    void RunCommands(ScriptBlock* block, ScriptDefinition* instance);
     ScriptObjectRef* NewTempObject();
     // The first area with the id (a linear search), or null.
     ScriptArea* FindArea(int id);
@@ -730,56 +703,54 @@ public:
     // Commands up to ')'; null `locals` means an empty variable set (the WorldScript). A For body sees the
     // enclosing `locals`.
     bool LoadCommands(std::vector<ScriptCall>* commands, TokenReader* tokens, ScriptVars* locals, scriptir::Block& block);
-    // The text is replaced by its #define-expanded form. The parse tree goes to `ir` when given. With a Lua runtime
-    // that takes the script's texts (ScriptLua::loadText) the tree is converted and loaded into it, and the
-    // WorldScript starts there, not here; its failure is error 18 with the Lua's message.
+    // Parse, then the tree converted and loaded into the scheduler (ScriptLuaScheduler::LoadText; its WorldScript
+    // started with `runWorldScript`); the Lua's failure is error 18 with its message. The parse tree goes to `ir`
+    // when given.
     bool Load(std::string* text, bool runWorldScript, scriptir::File* ir = nullptr);
-    // Load's preprocessing and sections; false on the first error.
-    bool Parse(std::string* text, bool runWorldScript, scriptir::File& out);
+    // The text parsed into this script's declarations and program, its parse tree into `out` (its fileCount, ok and
+    // error set), without running it; the text is replaced by its #define-expanded form. False on the first error.
+    bool Parse(std::string* text, scriptir::File& out);
     // With the WorldScript started; error 0x11 when the file cannot be read.
     bool LoadFile(const std::string& path);
     // A .mob's script whose Lua stands for it (a mod's .lua, docs/notes/mods.md "Scripts in Lua"): `text` parsed for
-    // its declarations (the names of the texts after it), `luaText` run in its place on the Lua scheduler (`chunk` its
-    // name in Lua's messages, its WorldScript started), which this script runs on from now on (`runner`; what the old
-    // executor held so far resumed there by the old-save shim). False with Load's error 18 and the Lua's message.
+    // its declarations (the names of the texts after it), `luaText` run in its place on the scheduler (`chunk` its
+    // name in Lua's messages, its WorldScript started). False with Load's error 18 and the Lua's message.
     bool LoadLua(std::string* text, std::string_view luaText, const std::string& chunk);
-    // The global variables as the old executor keeps them (its names by type, in declaration order); on Lua their
-    // Lua values under those names, then (unless `declaredOnly`) the globals only a Lua GlobalVars declared (their
-    // Lua names, sorted).
+    // The global variables by the parser's names (by type, in declaration order) with their Lua values, then (unless
+    // `declaredOnly`) the globals only a Lua GlobalVars declared (their Lua names, sorted).
     ScriptVars GlobalValues(bool declaredOnly = false);
-    // The instances and waiting runs in list order, from the old executor or the Lua scheduler (ScriptInstanceView).
+    // The scheduler's instances and waiting runs in list order (ScriptInstanceView).
     std::vector<ScriptInstanceView> InstanceViews();
     std::vector<ScriptRunView> RunViews();
-    // The global group `name` (the old executor's name), empty when there is none.
+    // The global group `name` (the parser's name), empty when there is none.
     ScriptGroup GlobalGroup(std::string_view name);
+    // The scheduler this script runs on, made when there is none (after a Reset).
+    ScriptLuaScheduler& Runner();
 
     // The id is the block count after it.
     ScriptBlock* NewCommandList();
     // id = count | 0x80000000.
     ScriptBlock* NewWorldScript();
-    // It first executes on the next tick.
-    void RunWorldScript(ScriptBlock* block);
 
-    // Outside For loops; keeps one empty group and one released object reference.
+    // Keeps one empty group and one released object reference.
     void FreeTemporaries();
-    // When a script is loaded: the waiting runs, every instance's if-then pairs (killed instances dropped), the
-    // globals' deleted objects dropped, then TickEffects.
+    // When a script is loaded: the scheduler's tick (the waiting runs, every instance's rules, the deleted objects
+    // dropped, then TickEffects).
     void Tick();
-    // The tick's end: the timed effects (FX sources, point lights, particle sources), then the temporaries freed (the
-    // Lua scheduler's too, script_lua_scheduler.h).
+    // The tick's end: the timed effects (FX sources, point lights, particle sources), then the temporaries freed.
     void TickEffects();
     // Frees everything loaded (the point light slots stay, zeroed); error text "Unknown error", the two counters
     // -2.
     void Reset();
-    // After every removal of a world object (`removed`, for the lockstep shadow): deleted objects dropped from every
-    // variable set and from the values of `lua`, then the temporaries freed.
-    void PurgeDeletedObjects(const MapObject* removed = nullptr);
+    // After every removal of a world object: deleted objects dropped from the scheduler's values, then the
+    // temporaries freed.
+    void PurgeDeletedObjects();
     void DropInstancesAndRuns();
-    // EnterZone: instances, runs and effects dropped (ResetEffects), global values reset, each WorldScript block run
-    // again.
+    // EnterZone: the scheduler's zone reset (instances, runs and effects dropped, globals zeroed, each text's
+    // WorldScript started again).
     void ResetZone();
-    // The zone reset's part beside the scripts: the For depth and the temporaries reset, every effect removed (point
-    // light slots zeroed; the FX source, particle source and lightning lists emptied).
+    // The zone reset's part beside the scripts: the temporaries freed, every effect removed (point light slots
+    // zeroed; the FX source, particle source and lightning lists emptied).
     void ResetEffects();
 
     std::vector<ScriptPointLight> pointLights;      // 256 slots
@@ -788,40 +759,39 @@ public:
     std::vector<ScriptLightning> lightning;
     int nextParticleId = -2;    // the next automatic particle source / lightning id (-2, -3, ...)
     int nextFxId = -2;          // the next automatic FX source id
-    std::list<ScriptBlock> blocks;                   // lists: commands and runs point into them
+    // The parser's program (what a save keeps and the old-save shim converts): command blocks (lists: calls and runs
+    // point into them), definitions, the declared globals (the parser's names; values only from an old-format save,
+    // for the shim) and WorldScript blocks.
+    std::list<ScriptBlock> blocks;
     std::vector<ScriptDefinition> definitions;      // Script / DeclareScript definitions
     ScriptVars globals;
-    std::list<ScriptDefinition> instances;          // runs point into it; started while it is walked
-    std::list<ScriptRun> runs;                      // waiting runs; added to while it is walked
+    // An old-format save's instances and waiting runs, from LoadState to the old-save shim (empty after it).
+    std::list<ScriptDefinition> instances;          // runs point into it
+    std::list<ScriptRun> runs;
     std::list<ScriptBlock> worldBlocks;
     std::vector<ScriptArea> areas;
     int loaded = 0;
     int fileCount = 0;
     std::list<ScriptGroup> tempGroups;              // one is kept; lists: results point into them
     std::list<ScriptObjectRef> tempObjects;         // one is kept
-    int forDepth = 0;           // nesting of running For loops
     std::string errorText;
     ScriptParseError errorCode = ScriptParseError::None;
     int errorLine = 0;
     ScriptQuestBuilder quest;   // Reset leaves it
-    // The Lua runtime bound to this script (the last one made on it), whose values PurgeDeletedObjects purges too,
-    // and which Load hands every text to when it takes them (its loadText).
-    ScriptLua* lua = nullptr;
-    // The lockstep shadow running this script's converted Lua beside it (script_lua_shadow.h; EI_LUA_BOTH), or the
-    // shadow whose Lua runs on this script; null in the game.
-    ScriptShadow* shadow = nullptr;
-    // The Lua scheduler this script runs on in place of the old executor (LoadLua, a save's Lua state), or null: Tick,
-    // ResetZone and the saves go to it. Reset drops it (after the tick when the tick runs: `retired`).
+    // The Lua scheduler this script runs on (Runner): every text Load loads, Tick, ResetZone and the saves go to it.
+    // Reset drops it (after the tick when the tick runs: `retired`).
     std::unique_ptr<ScriptLuaScheduler> runner;
     std::unique_ptr<ScriptLuaScheduler> retired;
     bool runnerTicking = false;
 
 private:
+    // Parse's preprocessing and sections; false on the first error.
+    bool ParseSections(std::string* text, scriptir::File& out);
     void DropRunner();
 };
 
-// Added to SaveState's `loaded` (0 or 1) for a script on Lua: its Lua state (ScriptLuaScheduler::Save, count and
-// bytes) follows the areas.
+// Added to SaveState's `loaded` (0 or 1): the scheduler's state (ScriptLuaScheduler::Save, count and bytes) follows
+// the areas. A save without it (vanilla's, or ours before every script ran on Lua) is the old format.
 inline constexpr int kScriptLoadedOnLua = 2;
 
 // The id of a command or function (ScriptKeyword::id, ScriptCall::id; the names are the table's). 1..68 are the

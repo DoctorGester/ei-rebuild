@@ -10,7 +10,7 @@ Writes <saves dir>\lua_mod (the scenarios' `mod harness_saves\lua_mod`): a confi
                             second the keys `pairs` walks), starts a definition of the mod's and then counts in a local
                             variable every 20 ticks into the game variable l8.count; the definition prints a line when
                             the count reaches 3 and then fails (its error on the console)
-  none     no Maps\zone1.lua: the same mod on the old executor (mod_lua_none, mod_lua_plain's twin)
+  none     no Maps\zone1.lua: the same mod with the .mob converted at its load (mod_lua_none, mod_lua_plain's twin)
   named    Maps\zone1.mob.toml   zone1.mob's objects as ei-convert writes them, its `script` key naming zone1_named.lua
            Maps\zone1_named.lua  the conversion with a console line at the WorldScript's end ("L8b: the TOML's script")
            Maps\zone1.lua        the same with another line ("L8b: zone1.lua"), which the key passes over
@@ -18,8 +18,7 @@ Writes <saves dir>\lua_mod (the scenarios' `mod harness_saves\lua_mod`): a confi
 and for addmob, no mod:
   addmob   <saves dir>\l8b_addmob.lua  the Lua of <saves dir>\l8b_addmob.mob (make_trap_mob.py makes the .mob, no
                             script in it), which `AddMob("..\saves\l8b_addmob.mob")` loads into zone 1's mission script
-                            while it runs on the old executor: the script goes on in Lua. Its WorldScript prints a line
-                            with two of the zone's globals (the shim took them over), starts a definition that prints
+                            while it runs. Its WorldScript prints a line with two of the zone's globals, starts a definition that prints
                             when the count reaches 3, and counts every 20 ticks into the game variable l8b.count
 """
 import os, re, subprocess, sys, tempfile
@@ -61,7 +60,7 @@ NAMED = '    print("L8b: the TOML\'s script")\n'
 UNNAMED = '    print("L8b: zone1.lua")\n'
 BROKEN = '-- L8b (tools/make_lua_mod.py broken): Lua does not load this file.\nfunction WorldScript(\n'
 ADDMOB = '''-- L8b (tools/make_lua_mod.py addmob): the Lua of an AddMob'd .mob, loaded into zone 1's mission script while it
--- runs on the old executor, which then goes on in Lua (docs/notes/mods.md, "Scripts in Lua").
+-- runs (docs/notes/mods.md, "Scripts in Lua").
 L8bWatch = Script {
     {
         condition = function() return GetGameVar(0, "l8b.count") >= 3 end,

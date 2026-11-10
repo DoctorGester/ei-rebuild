@@ -3,11 +3,10 @@
 Files (`src/game/`): `script.h` (the records and `Script`), `script_*.cpp` (group, vars, eval, parse, parse_load, ir, exec,
 exec_run, exec_helpers, save, load, blocks, cleanup, effects, quest, unit_modes, addon* (Rebirth, `rebirth.md`)),
 `quest_database.cpp`, `text_manager.cpp`. Scenarios: `script_parse`, `script_exec`, `script_copy`, `script_fx`,
-`script_quest`, `world_load` (save / load round trip), `console`, `effects`, `particles`, `zone_gz2g_traps`. The plan to
-run the scripts on Lua, its runtime (`script_lua.*`), the writer of converted scripts (`script_lua_writer.*`) and
-their scheduler in Script::Tick's order (`script_lua_scheduler.*`; Script::TickEffects and ResetEffects are the parts
-of the tick and the zone reset it shares), and the lockstep shadow beside each world script (`script_lua_shadow.*`,
-EI_LUA_BOTH; `Script::shadow`, the evaluation's hooks around `Evaluate*` / `ScriptRun::Perform`): `lua-scripting.md`.
+`script_quest`, `world_load` (save / load round trip), `console`, `effects`, `particles`, `zone_gz2g_traps`. Every
+script runs on Lua: its runtime (`script_lua.*`), the writer of converted scripts (`script_lua_writer.*`) and their
+scheduler in the game's tick order (`script_lua_scheduler.*`; Script::TickEffects and ResetEffects are the parts of
+the tick and the zone reset it shares), the old-save shim (`script_lua_resume.cpp`): `lua-scripting.md`.
 
 ## Data structures
 
@@ -79,9 +78,9 @@ qualified) or a nested call of a function with the right result type.
 The parser reads the tokens through a `TokenReader` (`Next(&id)` takes a token and classifies it, `Expect(lexeme)` checks
 the next one, `EndOfFileError()` reports on the last line); error codes are `ScriptParseError`. Each Load also fills a
 parse tree beside its structures (`script_ir.h`, handed out through `Load`'s `ir`; lua-scripting.md, "Design" and
-"Survey"); the executor never reads it. A Lua runtime on the script that takes its texts (`ScriptLua::loadText`, the
-scheduler's) gets the tree of every load and starts the WorldScript itself; its failure is error 18, ours
-(lua-scripting.md, "Texts at runtime").
+"Survey"). `Script::Parse` stops there (ei-convert's survey, `Script::LoadLua`); `Script::Load` hands the tree to the
+script's scheduler, which converts and loads it and starts its WorldScript; its failure is error 18, ours
+(lua-scripting.md, "Texts at runtime"). The structures are the program a save keeps (below).
 
 **Lexer** (`ClassifyToken`): lines start at 1 and count `\n` in white space and block comments; a token runs to white
 space (a space inside quotes does not end it) or to one of `, ) ( : =` after its first character, at most 255
@@ -96,19 +95,24 @@ locale-aware `_strnicmp` per byte cost ~400 ms of a zone load).
 
 ## Runtime
 
-The world calls `Script::Tick` every world update for its two scripts. A tick, when loaded:
-1. every waiting run continues with `ScriptRun::Execute`; one returning 0 is removed; 2. every instance drops deleted
+The world calls `Script::Tick` every world update for its two scripts; the tick is the Lua scheduler's
+(lua-scripting.md, "Scheduler"), which keeps the game's executor's order and rules described here, its bindings
+calling the built-ins (`ScriptCall::CalcFloat` / `CalcObject` / `CalcGroup`, `scriptaddon::CalcString`,
+`ScriptRun::RunCommand`). The game's tick, when loaded:
+1. every waiting run continues (Execute); one that had already ended is removed; 2. every instance drops deleted
 objects from its variables and runs its if-then pairs in order (conditions with CalcFloat, temporaries freed after each,
 the first zero ends it, a NaN holds; when all hold the commands block runs once in a new run (index 0, a copy of the
-instance's variables, kill flag = the instance) and, if Execute returns 1, a copy goes to the head of the run list)
+instance's variables, kill flag = the instance) and, if Execute returns 1 (every block but an empty one: a run that
+ran to its end leaves at its next Execute), a copy goes to the head of the run list without the flag)
 until one kills it; 3. global object variables and groups drop deleted objects; 4. timed effects: FX sources respawn
 their effect when the countdown runs out (`Next() % (max - min + 1) + min`, a class 0x48 object at a random offset within
 the radius), point lights move for their remaining steps then stop, particle sources move, count down their lifetime
 and are removed; 5. temporaries freed. The WorldScript and every console `@` line first run on the next tick.
 
-`Execute`: counts the call; returns 0 if the block had already ended; otherwise drops deleted objects, then per command
-binds variables (`SetParameters`), evaluates nested calls (`CalcParameters`), runs the command (`RunCommand`, which the
-Lua bindings call too, lua-scripting.md), frees temporaries, advances. A waiting command leaves the index on itself and Execute returns 1: Sleep(n) records the tick count and waits
+The game's `Execute`: counts the call; returns 0 if the block had already ended; otherwise drops deleted objects, then
+per command binds variables, evaluates nested calls (again on every Execute: a wait's argument is read on each poll),
+runs the command, frees temporaries, advances. A waiting command leaves the index on itself and Execute returns 1:
+Sleep(n) records the tick count and waits
 while `ticks - start < n` (FISTP-rounded n; so n further Execute calls), then resets it to -1; WaitSegment(n) waits while
 the run has been executed fewer than n times in total; SleepUntil(c) while c is 0 (a NaN goes on); SleepUntilIdle(unit) while the
 unit's brain has an action. For(counter, group)(body) / ForIf(counter, group, condition)(body) walk the group from last
@@ -136,8 +140,10 @@ value array. Effect elements: object id (-1 none), then fields; loading looks th
 Block ids resolve in the lists of the world's first script (negative ids in the WorldScript blocks, others in the
 command blocks; unknown gives null). A definition's or instance's if-then pair and a run whose block did not resolve
 (a save made with other scripts) are dropped at load, and a For / ForIf whose body did not resolve is cleared into a
-command that does nothing (id 0; the block keeps its length, so runs' saved indices stay right), so the savers and
-Execute always have their blocks. Runs: block id, index, ticks, sleep start, the instance index (0 out of range),
+command that does nothing (id 0; the block keeps its length, so runs' saved indices stay right), so the saver and the
+old-save shim always have their blocks. Our saves write the scheduler's globals, instances and runs in those fields as
+far as they go and its Lua state after the areas, 2 added to the loaded flag; an old-format save (vanilla's, or ours
+before every script ran on Lua) goes on through the old-save shim (lua-scripting.md, "Saves"). Runs: block id, index, ticks, sleep start, the instance index (0 out of range),
 the variables (object ids looked up, group members sorted).
 
 ## Quests, unit modes, text manager

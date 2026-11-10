@@ -486,8 +486,8 @@ void ReadRuns(Script* s, Builder& b) {
 }
 
 // The mission script (Script, script.h): its running instances and waiting runs (ReadRuns), the global variables
-// (floats by name, the rest as hashes), and the effects it keeps with their countdowns; on the old executor or on Lua
-// (its scheduler and Lua globals) alike.
+// (floats by name, the rest as hashes), and the effects it keeps with their countdowns: the scheduler's, as the game's
+// executor kept them (Script::InstanceViews, RunViews, GlobalValues).
 void ReadScript(Script* s, Builder& b) {
     b.Int("loaded", s->loaded);
     b.Int("files", s->fileCount);
@@ -496,9 +496,7 @@ void ReadScript(Script* s, Builder& b) {
     ReadRuns(s, b);
     // The global variables by name (by index past the names, "<kind>#"): floats, strings (a hash of the
     // text), objects (the id) and groups (a hash of the sorted ids).
-    ScriptVars luaGlobals;
-    if (s->runner) luaGlobals = s->GlobalValues();
-    const ScriptVars& g = s->runner ? luaGlobals : s->globals;
+    const ScriptVars g = s->GlobalValues();
     auto field = [&b](const char* kind, const auto& names, std::size_t v, Kind type, std::uint32_t value) {
         if (v < names.size()) b.Add(Intern(std::string(kind) + "." + Text(names[v])), -1, type, value);
         else b.Add(Intern(std::string(kind) + "#"), static_cast<int>(v), type, value);

@@ -361,7 +361,7 @@ target_link_libraries(ei-rebuild PRIVATE ei_game)
 add_executable(ei-convert tools/convert/convert.cpp tools/convert/convert_databases.cpp tools/convert/convert_maps.cpp
                tools/convert/convert_textures.cpp tools/convert/convert_mobs.cpp
                tools/convert/convert_models.cpp tools/convert/convert_scripts.cpp tools/convert/lua_check.cpp
-               tools/convert/lua_both.cpp tools/convert/lua_globals.cpp tools/convert/example_mod.cpp
+               tools/convert/lua_globals.cpp tools/convert/example_mod.cpp
                ${EI_GAME_CALLS} ${EI_SDL_CALLS})
 target_include_directories(ei-convert PRIVATE src third_party)
 target_link_libraries(ei-convert PRIVATE ei_game SDL3::SDL3-static)

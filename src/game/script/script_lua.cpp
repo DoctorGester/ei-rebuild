@@ -7,7 +7,6 @@
 #include "game/objects/map_object.h"
 #include "game/script/script_addon.h"
 #include "game/script/script_lua_number.h"
-#include "game/script/script_lua_shadow.h"
 #include "game/world/world.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
@@ -374,35 +373,34 @@ void ReadArguments(lua_State* L, Binding* binding) {
     if (arg <= top) luaL_error(L, "%s: %d arguments, too many", binding->name, top);
 }
 
-// Every keyword but the loops, Every / Any / Sum: the call evaluated by id, as the game's executor does it.
+// Every keyword but the loops, Every / Any / Sum: the call evaluated by id (CalcFloat, CalcObject, CalcGroup,
+// CalcString, RunCommand).
 int CallBinding(lua_State* L) {
     auto* binding = static_cast<Binding*>(lua_touserdata(L, lua_upvalueindex(1)));
     ScriptLua* lua = ScriptLua::Of(L);
     Script* script = lua->script;
-    lua->calling = L;
     ReadArguments(L, binding);
     ScriptCall& call = binding->call;
-    ScriptVars noVariables;   // a call of its own: no variables bound
     int results = 1;
     switch (binding->result) {
     case 'F':
-        lua_pushnumber(L, ToLuaNumber(call.CalcFloat(script, &noVariables)));
+        lua_pushnumber(L, ToLuaNumber(call.CalcFloat(script)));
         break;
     case 'S': {
         std::string text;
-        scriptaddon::CalcString(&call, script, &noVariables, &text);
+        scriptaddon::CalcString(&call, script, &text);
         lua_pushlstring(L, text.data(), text.size());
         break;
     }
     case 'O': {
         ScriptObjectRef* object = nullptr;
-        call.CalcObject(script, &noVariables, &object);
+        call.CalcObject(script, &object);
         PushObject(L, object->object);
         break;
     }
     case 'G': {
         ScriptGroup* group = nullptr;
-        call.CalcGroup(script, &noVariables, &group);
+        call.CalcGroup(script, &group);
         PushGroup(L, *group);
         break;
     }
@@ -499,8 +497,6 @@ int Aggregate(lua_State* L) {
     const char* const name = kind == ScriptFunction::Every ? "Every" : kind == ScriptFunction::Any ? "Any" : "Sum";
     const int at = CheckLoopArguments(L, name, 1, 0);
     const ScriptGroup* group = CheckGroup(L, at);
-    ScriptShadow* const shadow = ScriptLua::Of(L)->script->shadow;
-    if (shadow) shadow->EnterLoop(*group);
     float result;
     if (lua_type(L, at + 1) == LUA_TNUMBER) {
         const float constant = FromLuaNumber(lua_tonumber(L, at + 1));
@@ -527,10 +523,6 @@ int Aggregate(lua_State* L) {
                 result = value + result;
             }
         }
-    }
-    if (shadow) {
-        ScriptLua::Of(L)->calling = L;
-        shadow->LeaveLoop(kind, result);
     }
     lua_pushnumber(L, ToLuaNumber(result));
     return 1;
@@ -565,16 +557,10 @@ MapObject* MemberAt(const ScriptGroup* group, int i) {
 int ForEach(lua_State* L) {
     const int at = CheckLoopArguments(L, "ForEach", 0, 1);
     const ScriptGroup* group = CheckGroup(L, at);
-    ScriptShadow* const shadow = ScriptLua::Of(L)->script->shadow;
-    if (shadow) shadow->EnterLoop(*group);
     for (int i = static_cast<int>(group->size()) - 1; i >= 0; --i) {
         PushMember(L, at, MemberAt(group, i));
         RunBody(L, at + 1);
         lua_pop(L, 1);
-    }
-    if (shadow) {
-        ScriptLua::Of(L)->calling = L;
-        shadow->LeaveLoop(ScriptFunction::For, 0.0f);
     }
     return 0;
 }
@@ -583,16 +569,10 @@ int ForEach(lua_State* L) {
 int ForEachIf(lua_State* L) {
     const int at = CheckLoopArguments(L, "ForEachIf", 1, 1);
     const ScriptGroup* group = CheckGroup(L, at);
-    ScriptShadow* const shadow = ScriptLua::Of(L)->script->shadow;
-    if (shadow) shadow->EnterLoop(*group);
     for (int i = static_cast<int>(group->size()) - 1; i >= 0; --i) {
         PushMember(L, at, MemberAt(group, i));
         if (!IsZero(MemberCondition(L, at + 1, "ForEachIf"))) RunBody(L, at + 2);
         lua_pop(L, 1);
-    }
-    if (shadow) {
-        ScriptLua::Of(L)->calling = L;
-        shadow->LeaveLoop(ScriptFunction::ForIf, 0.0f);
     }
     return 0;
 }
@@ -942,13 +922,9 @@ ScriptLua::ScriptLua(Script* script) : script(script), state(luaL_newstate()) {
     lua_pop(L, 1);
     lua_setfield(L, LUA_REGISTRYINDEX, kBuiltinsKey);
     lua_settop(L, 0);
-    script->lua = this;
 }
 
-ScriptLua::~ScriptLua() {
-    if (script->lua == this) script->lua = nullptr;
-    lua_close(state);
-}
+ScriptLua::~ScriptLua() { lua_close(state); }
 
 ScriptLua* ScriptLua::Of(lua_State* L) { return *static_cast<ScriptLua**>(lua_getextraspace(L)); }
 
@@ -1069,18 +1045,6 @@ void ScriptLua::SetGlobals(int index) {
 void ScriptLua::RemoveDeletedObjects() {
     for (ObjectValue* value = objects; value; value = value->next) value->ref.ReleaseIfDeleted();
     for (GroupValue* value = groups; value; value = value->next) value->group.RemoveDeleted();
-}
-
-void ScriptLua::RemoveObjects(const std::function<bool(const MapObject*)>& gone) {
-    for (ObjectValue* value = objects; value; value = value->next)
-        if (value->ref.object && gone(value->ref.object)) value->ref.object = nullptr;
-    std::vector<MapObject*> dropped;
-    for (GroupValue* value = groups; value; value = value->next) {
-        dropped.clear();
-        for (const ScriptObjectRef& member : value->group)
-            if (member.object && gone(member.object)) dropped.push_back(member.object);
-        for (MapObject* object : dropped) value->group.Remove(object);
-    }
 }
 
 bool ScriptLua::Persist(std::string* data, std::string* error) {
