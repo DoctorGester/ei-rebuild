@@ -4,5 +4,6 @@ group = "mods"
 depends = ["MF10"]
 note = "Found by MF10 (2026-11-10): a hand-written unit record without parent_id (0) crashes WorldServer::CreateObject at the zone load (CreateObjectAs returns null, then allowed(object)). A shipped .mob always has a fitting class. Make the TOML reader (mob_toml.cpp) or CreateObject log 'warning: map objects: ... parent_id ...' and leave the record out; a scenario with such a record in a mod's zone1.mob.toml. docs/modding.md 'Map objects' then says it is logged."
 order = 1321
-status = "review"
+status = "done"
 started = "2026-11-10"
+done = "2026-11-10"
