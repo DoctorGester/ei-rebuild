@@ -15,6 +15,7 @@
 #include "game/core/asset_text.h"
 #include "lib/crt.h"
 #include "game/data/resource.h"
+#include "game/data/database_toml.h"
 #include "lib/toml.h"
 
 #include <cstring>
@@ -364,161 +365,88 @@ struct UnitKind {
     int kind = 0;
     int list = 0;
 };
-std::vector<UnitKind> TomlUnitKinds() {
-    std::vector<UnitKind> lists;
-    for (const KindEntry& entry : kUnitKinds) {
-        if (entry.list == kNoList) continue;
-        if (entry.kind > kBoredKind && (lists.empty() || lists.back().kind < kBoredKind)) lists.push_back({kBoredKind, kBored});
-        lists.push_back({entry.kind, entry.list});
-    }
-    return lists;
-}
-
-// A speech's TOML: its strings (UTF-8; the empty ones left out), its chance and with `environment` its flags.
-std::string SpeechToml(const SpeechRecord& speech, const std::uint32_t* environment) {
-    std::vector<std::pair<std::string, std::string>> pairs;
-    if (!speech.sound.empty()) pairs.emplace_back("sound", toml::String(text::FromAssetText(speech.sound)));
-    pairs.emplace_back("chance", toml::Int(speech.chance));
-    if (!speech.text.empty()) pairs.emplace_back("text", toml::String(text::FromAssetText(speech.text)));
-    if (!speech.name.empty()) pairs.emplace_back("name", toml::String(text::FromAssetText(speech.name)));
-    if (environment) pairs.emplace_back("environment", toml::Hex(*environment));
-    return toml::InlineTable(pairs);
-}
-
-void WriteList(toml::Writer& writer, int kind, const acks::Speeches& list) {
-    if (list.records.empty()) return;
-    std::vector<std::string> items;
-    for (const SpeechRecord& speech : list.records) items.push_back(SpeechToml(speech, nullptr));
-    writer.Pair(kKindNames[kind], toml::Array(items, true));
-}
-
-// A string field of a speech read from TOML into the asset code page.
-void ReadAssetString(const toml::Value& value, std::string* out) {
-    std::string read;
-    if (toml::Read(value, &read)) *out = text::ToAssetText(read);
-}
-
-void ReadSpeech(const toml::Value& value, SpeechRecord* speech) {
-    ReadAssetString(value["sound"], &speech->sound);
-    toml::Read(value["chance"], &speech->chance);
-    ReadAssetString(value["text"], &speech->text);
-    ReadAssetString(value["name"], &speech->name);
-}
-
-void ReadList(const toml::Value& value, acks::Speeches* list) {
-    list->records.resize(static_cast<std::size_t>(value.Size()));
-    for (int i = 0; i < value.Size(); ++i) ReadSpeech(value.At(i), &list->records[i]);
-}
-
-// The list of `record` that `key` names (the kinds `first`.. of `lists`), or null.
-template <std::size_t N>
-acks::Speeches* ListNamed(std::string_view key, int first, acks::Speeches (&lists)[N]) {
-    for (std::size_t i = 0; i < N; ++i)
-        if (kKindNames[first + i] == key) return &lists[i];
-    return nullptr;
-}
-
-// The record `name` of `records` that this merge has not replaced yet (by its index), else a new one at the end.
-template <class Record>
-Record& RecordToMerge(std::vector<Record>& records, std::vector<bool>& replaced, const std::string& name) {
-    for (std::size_t i = 0; i < records.size(); ++i) {
-        if (i < replaced.size() && replaced[i]) continue;
-        if (records[i].head.name != name) continue;
-        replaced.resize(records.size());
-        replaced[i] = true;
-        records[i] = Record();
-        records[i].head.name = name;
-        return records[i];
-    }
-    records.emplace_back().head.name = name;
-    return records.back();
-}
-
-// Each record of the TOML array of tables `table` merged into `records`; `read(key, value, record)` reads one key
-// of a record but its name, false for one it does not know.
-template <class Record, class ReadKey>
-void MergeRecords(const toml::Value& table, std::vector<Record>& records, const std::string& path, ReadKey read) {
-    std::vector<bool> replaced;
-    for (int i = 0; i < table.Size(); ++i) {
-        const toml::Value item = table.At(i);
-        std::string name;
-        ReadAssetString(item["name"], &name);
-        Record& record = RecordToMerge(records, replaced, name);
-        for (int k = 0; k < item.Size(); ++k) {
-            const std::string_view key = item.KeyAt(k);
-            if (key != "name" && !read(key, item.ValueAt(k), record))
-                game::Warning("acks: %s line %d: unknown key %s", path, item.ValueAt(k).Line(), std::string(key));
+const std::vector<UnitKind>& TomlUnitKinds() {
+    static const std::vector<UnitKind> lists = [] {
+        std::vector<UnitKind> built;
+        for (const KindEntry& entry : kUnitKinds) {
+            if (entry.list == kNoList) continue;
+            if (entry.kind > kBoredKind && (built.empty() || built.back().kind < kBoredKind))
+                built.push_back({kBoredKind, kBored});
+            built.push_back({entry.kind, entry.list});
         }
-    }
+        return built;
+    }();
+    return lists;
 }
 
 } // namespace
 
+// The records' field lists (database_toml.h): a speech's strings and flags (the empty strings left out), and a record's
+// name and speech lists by ack kind, a list left out when empty.
+template <class Visit>
+void Fields(SpeechRecord& r, Visit& v) {
+    v.Unread("sound", r.sound);
+    v("chance", r.chance);
+    v.Unread("text", r.text);
+    v.Unread("name", r.name);
+}
+
 namespace acks {
 
-void AckDatabase::MergeToml(const toml::Value& root, const std::string& path) {
-    const std::vector<UnitKind> unitKinds = TomlUnitKinds();
-    MergeRecords(root["unit"], units.records, path, [&](std::string_view key, const toml::Value& value, UnitAcks& record) {
-        for (const UnitKind& list : unitKinds) {
-            if (kKindNames[list.kind] != key) continue;
-            if (list.list == kBored) {
-                record.environmentSpeeches.entries.resize(static_cast<std::size_t>(value.Size()));
-                for (int i = 0; i < value.Size(); ++i) {
-                    EnvironmentSpeech& speech = record.environmentSpeeches.entries[i];
-                    ReadSpeech(value.At(i), &speech.speech);
-                    toml::Read(value.At(i)["environment"], &speech.environment);
-                }
-            } else {
-                ReadList(value, SpeechListOf(record, list.list));
-            }
-            return true;
-        }
-        return false;
-    });
-    MergeRecords(root["model"], models.records, path, [](std::string_view key, const toml::Value& value, ModelAcks& record) {
-        Speeches* list = ListNamed(key, kFirstModelKind, record.lists);
-        if (list) ReadList(value, list);
-        return list != nullptr;
-    });
-    MergeRecords(root["extra"], extras.records, path, [](std::string_view key, const toml::Value& value, ExtraAcks& record) {
-        Speeches* list = ListNamed(key, kFirstExtraKind, record.lists);
-        if (list) ReadList(value, list);
-        return list != nullptr;
-    });
-    for (int i = 0; i < root.Size(); ++i) {
-        const std::string_view key = root.KeyAt(i);
-        if (key != "unit" && key != "model" && key != "extra" && !IsReplaceKey(key, root.ValueAt(i)))
-            game::Warning("acks: %s line %d: unknown table %s", path, root.ValueAt(i).Line(), std::string(key));
+template <class Visit>
+void Fields(EnvironmentSpeech& r, Visit& v) {
+    Fields(r.speech, v);
+    v("environment", dbtoml::Hex{r.environment});
+}
+
+// A list of speeches, one per line; given in TOML it replaces the record's list whole.
+template <class T>
+std::string ListText(const std::vector<T>& list) {
+    std::vector<std::string> items;
+    for (const T& entry : list) items.push_back(dbtoml::ValueText(entry));
+    return toml::Array(items, true);
+}
+std::string ValueText(const Speeches& list) { return ListText(list.records); }
+bool ReadValue(const toml::Value& value, Speeches& list) { return dbtoml::ReadValue(value, list.records); }
+bool IsUnset(const Speeches& list) { return list.records.empty(); }
+std::string ValueText(const EnvironmentSpeeches& list) { return ListText(list.entries); }
+bool ReadValue(const toml::Value& value, EnvironmentSpeeches& list) { return dbtoml::ReadValue(value, list.entries); }
+bool IsUnset(const EnvironmentSpeeches& list) { return list.entries.empty(); }
+
+template <class Visit>
+void Fields(UnitAcks& r, Visit& v) {
+    v("name", r.head.name);
+    for (const UnitKind& list : TomlUnitKinds()) {
+        if (list.list == kBored) v.Unread(kKindNames[list.kind], r.environmentSpeeches);
+        else v.Unread(kKindNames[list.kind], *SpeechListOf(r, list.list));
     }
+}
+
+template <class Visit>
+void Fields(ModelAcks& r, Visit& v) {
+    v("name", r.head.name);
+    for (int i = 0; i < 5; ++i) v.Unread(kKindNames[kFirstModelKind + i], r.lists[i]);
+}
+
+template <class Visit>
+void Fields(ExtraAcks& r, Visit& v) {
+    v("name", r.head.name);
+    for (int i = 0; i < 2; ++i) v.Unread(kKindNames[kFirstExtraKind + i], r.lists[i]);
+}
+
+void AckDatabase::MergeToml(const toml::Value& root, const std::string& path) {
+    const auto nameOf = [](const auto& record) -> const std::string& { return record.head.name; };
+    dbtoml::MergeRecords(root["unit"], units.records, "name", nameOf, "acks.db", path);
+    dbtoml::MergeRecords(root["model"], models.records, "name", nameOf, "acks.db", path);
+    dbtoml::MergeRecords(root["extra"], extras.records, "name", nameOf, "acks.db", path);
+    dbtoml::CheckTables(root, {"unit", "model", "extra"}, "acks.db", path);
 }
 
 std::string AckDatabase::ToToml() const {
     toml::Writer writer;
-    const std::vector<UnitKind> unitKinds = TomlUnitKinds();
-    for (const UnitAcks& record : units.records) {
-        writer.ArrayTable("unit");
-        writer.Pair("name", toml::String(text::FromAssetText(record.head.name)));
-        for (const UnitKind& list : unitKinds) {
-            if (list.list != kBored) {
-                WriteList(writer, list.kind, *SpeechListOf(const_cast<UnitAcks&>(record), list.list));
-                continue;
-            }
-            std::vector<std::string> items;
-            for (const EnvironmentSpeech& speech : record.environmentSpeeches.entries)
-                items.push_back(SpeechToml(speech.speech, &speech.environment));
-            if (!items.empty()) writer.Pair(kKindNames[kBoredKind], toml::Array(items, true));
-        }
-    }
-    for (const ModelAcks& record : models.records) {
-        writer.ArrayTable("model");
-        writer.Pair("name", toml::String(text::FromAssetText(record.head.name)));
-        for (int i = 0; i < 5; ++i) WriteList(writer, kFirstModelKind + i, record.lists[i]);
-    }
-    for (const ExtraAcks& record : extras.records) {
-        writer.ArrayTable("extra");
-        writer.Pair("name", toml::String(text::FromAssetText(record.head.name)));
-        for (int i = 0; i < 2; ++i) WriteList(writer, kFirstExtraKind + i, record.lists[i]);
-    }
+    dbtoml::WriteRecords(writer, "unit", units.records);
+    dbtoml::WriteRecords(writer, "model", models.records);
+    dbtoml::WriteRecords(writer, "extra", extras.records);
     return writer.text;
 }
 

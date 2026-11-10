@@ -41,6 +41,8 @@
 #include "game/ui/ui_drop_list.h"
 #include "game/ui/ui_saveload.h"
 #include "game/ui/ui_options.h"
+#include "game/terrain/ground_print.h"
+#include "game/objects/map_object_manager.h"
 #include "game/units/acks_db.h"
 #include "game/units/unit.h"
 #include "game/units/unit_client_models.h"
@@ -464,6 +466,54 @@ long AckSound(const char* unit, const char* speech, std::string* sound) {
         return 1;
     }
     return 0;
+}
+
+long RecordText(const char* kind, const char* name, std::string* text) {
+    char line[256] = {};
+    const std::string key = name;
+    const std::string table = kind;
+    if (table == "ack") {
+        // "<unit>/<kind number>": the unit record's speeches of that ack kind.
+        const std::size_t slash = key.rfind('/');
+        if (slash == std::string::npos) return 0;
+        acks::UnitAcks* record = g_ackDatabase.units.Find(key.substr(0, slash));
+        if (!record) return 0;
+        const auto found = record->head.speeches.find(std::atoi(key.c_str() + slash + 1));
+        if (found == record->head.speeches.end() || !found->second) return 0;
+        const std::vector<SpeechRecord>& list = found->second->records;
+        std::snprintf(line, sizeof(line), "%d %s", static_cast<int>(list.size()),
+                      list.empty() ? "-" : list.front().sound.c_str());
+    } else if (table == "anim") {
+        // "<figure>/<animation>": the animation's fields.
+        const std::size_t slash = key.rfind('/');
+        MapObjectManager* manager = g_clientWorld.GetMapObjectManager();
+        if (!manager) return -3;
+        const FigureAnimation* animation =
+            slash == std::string::npos ? nullptr : manager->FindFigureAnimation(key.substr(0, slash), key.substr(slash + 1));
+        if (!animation) return 0;
+        std::snprintf(line, sizeof(line), "chance %u frames %u key %x flags %x moment %u", animation->chance,
+                      animation->frameCount, animation->key, animation->flags, animation->moment);
+    } else {
+        // blood, footprint or scorch: a print of the ground's surface by name.
+        const PrintLook* dry = nullptr;
+        const PrintLook* wet = nullptr;
+        const auto find = [&](const auto& records) {
+            for (const auto& record : records) {
+                if (record.name != key) continue;
+                dry = &record.dryLook;
+                wet = &record.wetLook;
+                return;
+            }
+        };
+        if (table == "blood") find(g_printsDatabase.blood);
+        else if (table == "scorch") find(g_printsDatabase.scorch);
+        else find(g_printsDatabase.footprints);
+        if (!dry) return 0;
+        std::snprintf(line, sizeof(line), "dry %g %d %d wet %g %d %d", dry->alpha, dry->life, dry->lifetime, wet->alpha,
+                      wet->life, wet->lifetime);
+    }
+    *text = line;
+    return 1;
 }
 
 long LocalWeaponDamage(const char* weapon, float* minimum, float* maximum) {

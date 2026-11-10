@@ -234,9 +234,9 @@ commit), the writer our own (src/lib/toml.h: floats as the shortest text that re
 |---|---|---|---|
 | a registry `.reg`: `Config\ai.reg`, `Res\music.reg`, `Res\smessbase.reg`, `Res\streamsn.reg`, aiinfo.res's `tileDesc.reg`, menus.res's `menus.reg`, a mod's `config.reg` | `Config\ai.reg.toml`, `Res\aiinfo\tileDesc.reg.toml`, `<mod>\config.reg.toml`, ... | a table per section, a key per value: integer, float, string, or an array of one (an empty array answers any array type) | merged by section and key (no case) |
 | materials.res's `.mat` | `Res\materials\<name>.mat.toml` | name, diffuse / ambient / specular / emissive `[r, g, b, a]`, power | the keys given over the colours |
-| database.res's `.adb` | `Res\database\<name>.adb.toml` | name, start, length, end, `[[animation]]` (name, index, key, flags, chance, frames, stride, arrow, steps, moment, sound_frame, sounds) | the header's keys given; an animation replaces the first of its name, or is appended |
-| `acks.db` (database.res) | `Res\database\acks.db.toml` | `[[unit]]`, `[[model]]`, `[[extra]]`: name and the speech lists by ack kind (AckKind in snake case: `selected`, `move`, ..., `bored` with `environment`, `scenario` the named ones), each speech `{ sound, chance, text, name }` | a record replaces the first of its name in its table, or is appended |
-| `prints.db` (database.res, databaselmp.res) | `Res\database\prints.db.toml` | `[[blood]]`, `[[footprint]]`, `[[scorch]]`: name, `dry` / `wet` = `{ alpha, life, lifetime }` (a footprint's `unread`: chunk 10) | as acks.db (a table's index is the ground's surface class) |
+| database.res's `.adb` | `Res\database\<name>.adb.toml` | name, start, length, end, `[[animation]]` (name, index, key, flags, chance, frames, stride, arrow, steps, moment, sound_frame, sounds) | the header's keys given; an animation's fields given over the first of its name that the file has not merged yet, or it is appended ("Merging by field") |
+| `acks.db` (database.res) | `Res\database\acks.db.toml` | `[[unit]]`, `[[model]]`, `[[extra]]`: name and the speech lists by ack kind (AckKind in snake case: `selected`, `move`, ..., `bored` with `environment`, `scenario` the named ones), each speech `{ sound, chance, text, name }` | per field ("Merging by field"): a speech list given replaces that list whole; a record of a new name is appended |
+| `prints.db` (database.res, databaselmp.res) | `Res\database\prints.db.toml` | `[[blood]]`, `[[footprint]]`, `[[scorch]]`: name, `dry` / `wet` = `{ alpha, life, lifetime }` (a footprint's `unread`: chunk 10) | per field: `dry` and `wet` merge by their own keys (`wet = { alpha = 0.25 }`); a new name is appended (a table's index is the ground's surface class) |
 | texts.res's, textslmp.res's entries | `Res\texts\texts.toml`, `Res\textslmp\texts.toml`: one per archive | `"<entry name>" = "<text>"` (quoted keys, multi-line text as `"""`, CR kept as `\r`) | per entry: a folder's own file of the name, then its texts.toml, in the archive's order of places; so a mod's texts.toml holds only the strings it changes |
 | `Camera\<name>.cam` | `Camera\<name>.cam.toml` | `[[key]]`: time, position `[x, y, z]`, rotation `[w, x, y, z]` | the top TOML is the whole path |
 
@@ -244,7 +244,7 @@ Merging (`FindRecordFile` / `MappedResource::FindRecord`, resource.h; `MergeToml
 the first place that has the original, and that place's own, are read; the bottom one is merged first over the original,
 so the top one (the mod's) wins. A TOML file with no original anywhere builds the records alone. One that does not parse
 is logged ("warning: records: ...") and left out; an unknown key is logged with the file. A merge never removes a
-record: a mod replaces one, or adds one. A TOML file with the top-level key `replace = true` is the whole file: the
+record: a mod changes fields of one, or adds one ("Merging by field"). A TOML file with the top-level key `replace = true` is the whole file: the
 search ends there, nothing below it (its place's original, lower TOML files, the game's file) is read, as a mod's
 original hides the game's file. ei-convert writes it in every record file it converts, so a converted copy plays as
 the original: Lost in Astral's own `.adb`, `ai.reg` and the like hide the game's rather than merging over them (without
@@ -252,6 +252,21 @@ it mod_lost_in_astral_start's units differed). A mod's file of only the records 
 
 The game databases (units.udb, items.idb, ...) can be TOML too: "Databases as TOML". What stays binary: the quest
 zones' `quest.reg` (a `.mq`'s, read as bytes for the briefings: MF9), the maps.
+
+### Merging by field
+
+Every record file of these tables (acks.db, prints.db, the .adb animations, and the game databases of "Databases as
+TOML") merges one way (user 2026-11-10; the shared code is `dbtoml::MergeRecords`, src/game/data/database_toml.h): a TOML
+record is matched to the first record of its key (the name) that this file has not merged yet and gives the fields it
+has; the others keep what the original, or a TOML file below, had. A key no record has is a new record at the end of its
+table, so every record keeps its index. Each record type lists its fields once (`Fields(record, visit)`, in acks_db.cpp,
+ground_print.cpp and map_object_manager.cpp), which the writer and the merge both walk. So a mod gives only what it
+changes: one ack kind's speech list, one print's `wet = { alpha = 0.25 }`, one animation's `chance = 37`. A list is
+the unit of a field: a speech list (`attack = [...]`) given replaces the record's whole list; the arrays of an animation
+(`arrow`, `steps`, `sounds`) are read whole, the rest of a short one zero. A record without its `name` is logged and
+left out; a new animation's `index` is its place unless the record gives one. Names that repeat (the empty ones in some
+.adb) are matched in order, as in "Databases as TOML". Registries (per section and key), `.mat` (per key) and texts (per
+entry) merged by key already; a camera's key list is the whole path.
 
 ### ei-convert
 
@@ -280,8 +295,11 @@ its TOML when the install has that alone (make_test_mod.py).
 
 - `ei_unit_check`'s toml checks: the writer's strings, keys, numbers and 200,000 floats read back through tomlc17.
 - `mod_toml_records` (both installs; tools/make_mod_s19d.py toml): a mod with only `config.reg.toml`, a `texts.toml`
-  that changes "string quit" and an `acks.db.toml` that replaces Haburu's record; the interface's text and the acks
-  database the units speak from have the mod's (`modtext`, `modack`).
+  that changes "string quit", an `acks.db.toml` that gives Haburu's scenario list and the mercenary warrior's attack
+  list alone, a `prints.db.toml` that gives the stone blood print's wet alpha alone and a `unanhoco.adb.toml` that
+  gives the chance of the animation "cidle01" alone; the interface's text and the records have the mod's fields and
+  the game's others (`modtext`, `modack`, `modrecord`: the mercenary's move list is the game's six speeches, the print's
+  dry look and its wet life and lifetime, the animation's frames, key, flags and moment).
 - `ei-convert --check` on both installs (all round trips hold), and on the stub data in the Linux suites' workflow.
 - `work.py test <ID> --converted --golden --rebirth`: every golden the same.
 

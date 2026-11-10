@@ -65,6 +65,9 @@ std::string ModTextStep(const std::string& argument);
 // "modack <unit> <speech> <sound>": the acks database's record <unit> has the named speech <speech> with the sound
 // <sound> ("-": no such speech), as SayNamedAck finds it. Records as TOML: a mod's acks.db.toml record over the game's.
 std::string ModAckStep(const std::string& argument);
+// "modrecord <kind> <name> = <text>": a record of a database as image::RecordText writes it is <text> ("-": no such
+// record). Records as TOML: a mod's TOML record gives only the fields it changes, the others keep the game's.
+std::string ModRecordStep(const std::string& argument);
 // "modweapon <weapon> <min> <max>": the local player (its given items, then its party's) holds a weapon of the
 // prototype named <weapon> (the rest of the line before the two numbers), whose damage as the game reckons it from the
 // item's prototype and material (WeaponMinDamage, WeaponMaxDamage) is <min> to <max> ("%g"; "-": no such weapon).
