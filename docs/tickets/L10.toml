@@ -5,4 +5,4 @@ size = 2
 model = "opus"
 depends = ["L9"]
 note = "User 2026-11-10: review src/game/script (and ei-convert's script tools, savefile.py, digest views) after the old executor's removal; delete what only existed for it or for comparing executors (data kept only for the executor, two-step parse-then-convert structures that could be one, compatibility fields in the save writer beyond what old saves' shim needs, stale comments/notes). Report the list first in build/l10_review.md, then apply the clear ones; goldens unchanged."
-order = 1328
+order = 1332
