@@ -17,6 +17,7 @@
 #include "game/objects/torch.h"
 #include "game/objects/traps.h"
 #include "game/data/resource_manager.h"
+#include "game/core/asset_text.h"
 #include "game/units/unit.h"
 #include "game/units/unit_create.h"
 #include "game/units/unit_db.h"
@@ -28,6 +29,7 @@
 #include "lib/rounding.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
+#include "lib/toml.h"
 
 #include <algorithm>
 #include <bit>
@@ -122,10 +124,11 @@ void LoadWithinFile(T& out, const std::uint8_t* data, std::uint32_t size, std::s
 // The database of an .adb file. Four of the game's (unmozozo, unmoco3, unmoco4, inmm1) are of an older, shorter
 // entry and end before `count` full entries: their entries are read at the current stride, the bytes past the file as
 // zero (the original read past the file).
-std::unique_ptr<AnimationDatabase> ReadAnimationDatabase(const std::uint8_t* data, std::uint32_t size) {
+std::unique_ptr<AnimationDatabase> ReadAdbImage(const std::uint8_t* data, std::uint32_t size) {
     AdbHeader header;
     LoadWithinFile(header, data, size, 0);
     auto database = std::make_unique<AnimationDatabase>();
+    database->unreadName.assign(header.unreadName, str::BoundedLength(header.unreadName, sizeof(header.unreadName)));
     database->start = header.start;
     database->length = header.length;
     database->end = header.end;
@@ -138,17 +141,142 @@ std::unique_ptr<AnimationDatabase> ReadAnimationDatabase(const std::uint8_t* dat
     return database;
 }
 
+// An animation's name as the record holds it: the asset code page's text, cut to its 16 bytes.
+void SetAnimationName(FigureAnimationRecord& record, std::string_view utf8) {
+    const std::string name = text::ToAssetText(utf8);
+    std::fill(std::begin(record.name), std::end(record.name), '\0');
+    std::copy_n(name.data(), std::min(name.size(), sizeof(record.name)), record.name);
+}
+
+// The name's bytes up to its terminator.
+std::string_view BoundedName(const FigureAnimationRecord& record) {
+    return std::string_view(record.name, str::BoundedLength(record.name, sizeof(record.name)));
+}
+
+std::string AnimationName(const FigureAnimationRecord& record) {
+    return text::FromAssetText(BoundedName(record));
+}
+
+// The numbers of an array field with its trailing zeros left out (none: an empty array).
+std::string TrimmedArray(const std::uint32_t* values, int count) {
+    while (count > 0 && values[count - 1] == 0) --count;
+    std::vector<std::string> items;
+    for (int i = 0; i < count; ++i) items.push_back(toml::Int(values[i]));
+    return toml::Array(items);
+}
+
+// The fields of one animation from its TOML table; false for a key it does not know.
+bool ReadAnimationKey(std::string_view key, const toml::Value& value, FigureAnimationRecord& record) {
+    if (key == "name") {
+        std::string name;
+        if (toml::Read(value, &name)) SetAnimationName(record, name);
+    } else if (key == "index") {
+        toml::Read(value, &record.index);
+    } else if (key == "key") {
+        toml::Read(value, &record.key);
+    } else if (key == "flags") {
+        toml::Read(value, &record.flags);
+    } else if (key == "chance") {
+        toml::Read(value, &record.chance);
+    } else if (key == "frames") {
+        toml::Read(value, &record.frameCount);
+    } else if (key == "stride") {
+        toml::Read(value, &record.stride);
+    } else if (key == "arrow") {
+        std::uint32_t arrow[2];
+        toml::ReadArray(value, arrow, 2);
+        record.arrowFrom = arrow[0];
+        record.arrowTo = arrow[1];
+    } else if (key == "steps") {
+        toml::ReadArray(value, record.stepFrames, 4);
+    } else if (key == "moment") {
+        toml::Read(value, &record.moment);
+    } else if (key == "sound_frame") {
+        toml::Read(value, &record.soundFrame);
+    } else if (key == "sounds") {
+        toml::ReadArray(value, record.sounds, 4);
+    } else {
+        return false;
+    }
+    return true;
+}
+
 } // namespace
+
+std::unique_ptr<AnimationDatabase> ReadAnimationDatabase(const RecordFile& file) {
+    auto database = file.found ? ReadAdbImage(reinterpret_cast<const std::uint8_t*>(file.original.data()),
+                                              static_cast<std::uint32_t>(file.original.size()))
+                               : std::make_unique<AnimationDatabase>();
+    AnimationDatabase* read = database.get();
+    MergeTomls(file, [read](const toml::Value& root, const std::string& path) { read->MergeToml(root, path); });
+    return database;
+}
+
+void AnimationDatabase::MergeToml(const toml::Value& root, const std::string& path) {
+    std::string name;
+    if (toml::Read(root["name"], &name)) unreadName = text::ToAssetText(name);
+    toml::Read(root["start"], &start);
+    toml::Read(root["length"], &length);
+    toml::Read(root["end"], &end);
+    std::vector<bool> replaced;
+    const toml::Value table = root["animation"];
+    for (int i = 0; i < table.Size(); ++i) {
+        const toml::Value item = table.At(i);
+        FigureAnimationRecord record;
+        std::string itemName;
+        toml::Read(item["name"], &itemName);
+        SetAnimationName(record, itemName);
+        std::size_t index = 0;
+        while (index < animations.size() &&
+               ((index < replaced.size() && replaced[index]) || BoundedName(animations[index]) != BoundedName(record)))
+            ++index;
+        record.index = static_cast<std::uint8_t>(index);
+        for (int k = 0; k < item.Size(); ++k)
+            if (!ReadAnimationKey(item.KeyAt(k), item.ValueAt(k), record))
+                game::Warning("adb: %s line %d: unknown key %s", path, item.ValueAt(k).Line(), std::string(item.KeyAt(k)));
+        if (index == animations.size()) animations.emplace_back();
+        replaced.resize(animations.size());
+        replaced[index] = true;
+        animations[index] = FigureAnimation{record, this};
+    }
+    for (int i = 0; i < root.Size(); ++i) {
+        const std::string_view key = root.KeyAt(i);
+        if (key != "name" && key != "start" && key != "length" && key != "end" && key != "animation")
+            game::Warning("adb: %s line %d: unknown key %s", path, root.ValueAt(i).Line(), std::string(key));
+    }
+}
+
+std::string AnimationDatabase::ToToml() const {
+    toml::Writer writer;
+    writer.Pair("name", toml::String(text::FromAssetText(unreadName)));
+    writer.Pair("start", toml::Float(start));
+    writer.Pair("length", toml::Float(length));
+    writer.Pair("end", toml::Float(end));
+    for (const FigureAnimation& animation : animations) {
+        writer.ArrayTable("animation");
+        writer.Pair("name", toml::String(AnimationName(animation)));
+        writer.Pair("index", toml::Int(animation.index));
+        writer.Pair("key", toml::Hex(animation.key));
+        writer.Pair("flags", toml::Hex(animation.flags));
+        writer.Pair("chance", toml::Int(animation.chance));
+        writer.Pair("frames", toml::Int(animation.frameCount));
+        writer.Pair("stride", toml::Float(animation.stride));
+        if (animation.arrowFrom != 0 || animation.arrowTo != 0)
+            writer.Pair("arrow", toml::Array({toml::Int(animation.arrowFrom), toml::Int(animation.arrowTo)}));
+        writer.Pair("steps", TrimmedArray(animation.stepFrames, 4));
+        writer.Pair("moment", toml::Int(animation.moment));
+        writer.Pair("sound_frame", toml::Int(animation.soundFrame));
+        writer.Pair("sounds", TrimmedArray(animation.sounds, 4));
+    }
+    return writer.text;
+}
 
 AnimationDatabase* MapObjectManager::AnimationDatabaseOf(const std::string& figure) {
     std::string file = figure + ".adb";
     if (auto found = animationDatabases.find(file); found != animationDatabases.end()) return found->second.get();
-    std::uint32_t size = 0;
-    void* data = GetFile(file, &size);
-    if (!data) return nullptr;
-    auto database = ReadAnimationDatabase(static_cast<const std::uint8_t*>(data), size);
-    CloseFile(data);
-    return animationDatabases.emplace(std::move(file), std::move(database)).first->second.get();
+    const RecordFile record = FindRecord(file);
+    if (!record.Any()) return nullptr;
+    return animationDatabases.emplace(std::move(file), ReadAnimationDatabase(record)).first->second.get();
 }
 
 FigureAnimation* MapObjectManager::FindAnimation(const std::string& figure, std::uint32_t key) {

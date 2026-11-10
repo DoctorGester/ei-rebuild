@@ -23,6 +23,10 @@
 class ByteStream;
 class ChunkArchive;
 class Texture;
+struct RecordFile;
+namespace toml {
+class Value;
+}
 
 // A texture by name. The device binds it by looking the texture up again by name.
 struct NamedTexture {
@@ -186,6 +190,15 @@ struct PrintsDatabase {
     // archive of its own and filed under its records' names. 1; an archive or file that cannot be opened ends the
     // game.
     int Load(const std::string& folder);
+    // Load's work on the file found: the tables of the original, then of each TOML file over it (MergeToml), filed.
+    void Read(const RecordFile& file);
+
+    // TOML (docs/notes/mods.md, "Records as TOML"): [[blood]], [[footprint]] and [[scorch]] tables, each a record:
+    // name, dry = { alpha, life, lifetime }, wet = { ... }, a footprint's unread = [three numbers] (chunk 10). Merge:
+    // a record replaces the first of its name in its table (not one this file replaced already), or is appended (a
+    // table's index is the ground's surface class); an unknown key is logged (with `path`).
+    void MergeToml(const toml::Value& root, const std::string& path);
+    std::string ToToml() const;
 
     std::vector<PrintRecord> blood;
     std::unordered_map<std::string, PrintRecord*> bloodByName;

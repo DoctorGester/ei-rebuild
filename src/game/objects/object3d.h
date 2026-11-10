@@ -21,6 +21,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <deque>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -36,6 +37,10 @@ inline constexpr const char* kHeroFigureParts[kHeroPartCount] = {
     "hd", "bd", "hp", "hr", "lh1", "lh2", "lh3", "rh1", "rh2", "rh3", "ll1", "ll2", "ll3", "rl1", "rl2", "rl3"};
 class LinkMesh;
 struct FigureModel;
+struct RecordFile;
+namespace toml {
+class Value;
+}
 
 // FigureAnimation::key, as the figures' animation databases (database.res, "<figure>.adb") give it, and the
 // keys the units ask for (docs/notes/combat.md, "Animation keys"):
@@ -238,11 +243,22 @@ struct AnimationDatabase {
         return ((end - start) * t + start) / length;
     }
 
+    // TOML (docs/notes/mods.md, "Records as TOML"): name, start, length, end and [[animation]] tables (name, index,
+    // key, flags, chance, frames, stride, arrow = [from, to], steps, moment, sound_frame, sounds; a missing number
+    // is 0, a missing index the record's place). Merge: the fields given over the header's; an animation replaces
+    // the first of its name (not one this file replaced already), or is appended; an unknown key is logged (with
+    // `path`).
+    void MergeToml(const toml::Value& root, const std::string& path);
+    std::string ToToml() const;
+
+    std::string unreadName;         // the header's ("Zombie00")
     float start = 0.0f;             // \ the animation time factor maps t to
     float length = 0.0f;            // | (start + (end - start) * t) / length
     float end = 0.0f;               // /
     std::vector<FigureAnimation> animations;
 };
+// The database of a figure's .adb `file`: the original's, then each TOML file over it (AnimationDatabase::MergeToml).
+std::unique_ptr<AnimationDatabase> ReadAnimationDatabase(const RecordFile& file);
 
 // The side-specific half of a 3D object (Object3D::attached): Object3DClientSpecific (class id 0x37) on
 // the client, Object3DServer (0x38, stubs) on the server.

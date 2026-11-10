@@ -456,13 +456,14 @@ void ForgetConvertedTexts(const MappedResource* source) {
 }
 
 // The lookup: the data of file `key` in the first archive of `list` that has it, its archive
-// into `*source` (when not null).
-void* FindFile(TextSources* list, std::string_view key, std::uint32_t* size, MappedResource** source) {
+// into `*source` (when not null). With `utf8` a text of a texts.toml too (MappedResource::FindText; *utf8 true then).
+void* FindFile(TextSources* list, std::string_view key, std::uint32_t* size, MappedResource** source, bool* utf8) {
     // A key that is text (the people's names, "pers <name>") back in the archive's code page.
     std::string assetKey;
     if (text::ToAssetText(key, &assetKey)) key = assetKey;
     for (const TextSource& archive : list->archives) {
-        if (void* data = archive.source->GetFile(key, size)) {
+        void* data = utf8 ? archive.source->FindText(key, size, utf8) : archive.source->GetFile(key, size);
+        if (data) {
             if (source) *source = archive.source;
             return data;
         }
@@ -519,13 +520,14 @@ TextManager::TextManager() {
 TextManager::~TextManager() { ClearSources(); }
 
 void* TextSources::Find(std::string_view key, std::uint32_t* size) {
-    return FindFile(this, key, size, nullptr);
+    return FindFile(this, key, size, nullptr, nullptr);
 }
 
 void* TextSources::FindKeyText(std::string_view key, std::uint32_t* size) {
     MappedResource* source = nullptr;
-    void* data = FindFile(this, key, size, &source);
-    return data ? AsGameText(source, data, size) : nullptr;
+    bool utf8 = false;
+    void* data = FindFile(this, key, size, &source, &utf8);
+    return data && !utf8 ? AsGameText(source, data, size) : data;
 }
 
 std::vector<std::string> TextSources::ListKeys(const char* pattern) {

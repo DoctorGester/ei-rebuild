@@ -19,6 +19,12 @@
 
 #include "platform/platform.h"
 
+#include <functional>
+
+namespace toml {
+class Value;
+}
+
 
 #pragma pack(push, 1)
 struct ResHeader {
@@ -65,11 +71,38 @@ public:
     char* names = nullptr;
 };
 
+// A record file (docs/notes/mods.md, "Records as TOML"): the original, when one is found, and the TOML files of its
+// name and ".toml" over it, top first: those of every place it is looked for above the first that has the original,
+// and that place's own.
+struct TomlFile {
+    std::string path;       // where it was read, for messages
+    std::string text;
+};
+struct RecordFile {
+    bool found = false;     // the original
+    std::string original;   // its bytes
+    std::vector<TomlFile> tomls;
+
+    bool Any() const { return found || !tomls.empty(); }
+};
+
+// The record file at `path` (a game folder's file, or one outside it such as a mod's config.reg) in each layer of the
+// path map, top first: the TOML files down to the first layer that has the file, and the file.
+RecordFile FindRecordFile(const std::string& path);
+// Each of `file`'s TOML files parsed and handed to `merge` with its path, the bottom one first (so the top one's
+// records win); one that does not parse is logged and left out.
+void MergeTomls(const RecordFile& file, const std::function<void(const toml::Value& root, const std::string& path)>& merge);
+
 // An archive's loose files in one folder (docs/notes/mods.md, "Loose files"): the folder in full and its files by
 // name as the archive names its entries (the asset code page, ASCII letters in lower case).
 struct LooseFiles {
     std::string folder;
     std::map<std::string, platform::LayerFile, std::less<>> byName;
+    // The folder's texts.toml (docs/notes/mods.md, "Records as TOML"; not among byName), read with the folder: its
+    // keys (in the asset code page, as the entries' names) and UTF-8 texts in the file's order.
+    std::string textsPath;
+    std::vector<std::pair<std::string, std::string>> texts;
+    std::map<std::string, std::size_t, std::less<>> textIndex;   // by LooseKey
 };
 
 // Reads an archive with file I/O, loading individual files into memory on request. The folder of the archive's name
@@ -91,6 +124,12 @@ public:
     virtual void FreeAllFiles();
     // Whether one of Sources() has `name`.
     bool HasFile(std::string_view name);
+    // The record file `name` in Sources() (its TOML files in the folders; the original as GetFile finds it).
+    RecordFile FindRecord(std::string_view name);
+    // The text `name` (a texts archive's entry, docs/notes/mods.md "Records as TOML") in Sources(): a folder's file
+    // of the name, then the folder's texts.toml; an archive's entry. `*utf8` tells which: the TOML's text is UTF-8,
+    // a file's the asset code page's.
+    void* FindText(std::string_view name, std::uint32_t* size, bool* utf8);
 
     // Fills `names` with the names in Sources() that match `pattern` (drive, directory, name and extension matched
     // separately with * and ?), or with every name when `pattern` is null: a folder's files by name, an archive's
@@ -128,7 +167,9 @@ private:
         MappedResource* entries = nullptr;    // or an archive's entries
     };
     std::vector<Source> Sources();
-    void* FindFile(std::string_view name, std::uint32_t* size);
+    // GetFile's search; with `utf8` (FindText) a folder's texts.toml too.
+    void* Find(std::string_view name, std::uint32_t* size, bool* utf8);
+    void* FindFile(std::string_view name, std::uint32_t* size, bool* utf8);
     // The loose file at `path` loaded as `name` (shared when loaded already); null when it cannot be read.
     void* LoadLooseFile(std::string_view name, const std::string& path, std::uint32_t* size);
 };

@@ -14,6 +14,11 @@
 #include <unordered_map>
 #include <vector>
 
+struct RecordFile;
+namespace toml {
+class Value;
+}
+
 // A material's lighting colours: diffuse, ambient, specular and emissive (r, g, b, a) and the specular power.
 // 0x44 bytes.
 struct MaterialColors {
@@ -105,9 +110,18 @@ struct MaterialKindFile {
     const char* file = nullptr;
 };
 constexpr int kMagicMaterialKind = 0x17;
-// The colours a material file holds: after its name (a 16-bit length, then the text).
-inline const void* MaterialFileColors(const void* data) {
-    std::uint16_t nameLength = lib::Load<std::uint16_t>(data);
-    return static_cast<const char*>(data) + nameLength + 2;
-}
+
+// A material file (*.mat of materials.res): its name (a 16-bit length, then the text; unread) and its colours.
+struct MaterialFile {
+    // The original's (what lies past its end read as zero), then each TOML file over it (MergeToml); false when
+    // there is neither.
+    bool Read(const RecordFile& file);
+    // TOML (docs/notes/mods.md, "Records as TOML"): name, diffuse, ambient, specular, emissive (each [r, g, b, a])
+    // and power; those given over the colours. An unknown key is logged (with `path`).
+    void MergeToml(const toml::Value& root, const std::string& path);
+    std::string ToToml() const;
+
+    std::string unreadName;
+    MaterialColors colors;
+};
 

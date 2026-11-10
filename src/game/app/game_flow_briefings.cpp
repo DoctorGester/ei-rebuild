@@ -160,7 +160,7 @@ void GameFlow::RegisterQuests(const std::string& folder) {
     bool registered = texts->OpenData(folder + "\\quest.reg") != 0;
     if (!registered) return;
     // The quest table reads from the texts' cursor (the section just opened).
-    g_questDatabase.LoadRegistry(texts->cursor);    // (its result is not read)
+    g_questDatabase.LoadRegistry(texts->cursor, texts->length);    // (its result is not read)
     g_mapDatabase.Load(folder + "\\map.txt");
     std::string name(folder);
     folders.push_back(name);

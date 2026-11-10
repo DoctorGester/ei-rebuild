@@ -157,6 +157,12 @@ struct FolderLayer {
 // The game's `folder` in each layer that has it, top first, and the folder itself last (with no files when it is not
 // there).
 std::vector<FolderLayer> FilesByLayer(std::string_view folder);
+// The same for the files `names` of the folder only (not those below it): each layer's those of them it has.
+std::vector<FolderLayer> FilesByLayer(std::string_view folder, const std::vector<std::string>& names);
+// A layer's file (a FilesByLayer path) read whole as it is, not mapped again: the game folder's own file, which a read
+// through the map would take from a layer over it that has one of its name (a record file's TOML in each layer,
+// docs/notes/mods.md "Records as TOML").
+bool ReadLayerFile(std::string_view path, std::string* bytes);
 
 // The whole file `path` into `bytes`, shared with any writer (an editor or a sync tool holding it open); false (and
 // `bytes` empty) when it does not open or a read fails, with the system's error code in `error`.

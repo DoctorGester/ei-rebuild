@@ -23,6 +23,9 @@ public:
     void* GetFile(std::string_view name, std::uint32_t* size) override;
     bool CloseFile(void* data) override;
     bool HasFile(std::string_view name) override;
+    // The record file `name` (docs/notes/mods.md, "Records as TOML"): each archive's in order, its TOML files kept,
+    // down to the first that has the original.
+    RecordFile FindRecord(std::string_view name);
     void FreeAllFiles() override;
 
     // FigureManager's AddArchive virtual with memory-mapped archives.

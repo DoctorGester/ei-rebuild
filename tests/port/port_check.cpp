@@ -31,6 +31,7 @@ int RunAudioMixChecks();
 int RunDisplaySizesChecks();
 int RunPathLayersChecks();
 int RunWeatherFieldChecks();
+int RunTomlChecks();
 
 namespace {
 void Check(bool ok, const char* message) {
@@ -55,6 +56,7 @@ int main() {
     Check(RunAudioMixChecks() == 0, "the audio mixer on an offline output");
     Check(RunDisplaySizesChecks() == 0, "the resolution row's sizes from a display's modes");
     Check(RunWeatherFieldChecks() == 0, "the weather's particles move smoothly");
+    Check(RunTomlChecks() == 0, "the TOML writer read back");
     Check(CallerCaptured(), "caller frame starts at the return address");
     Check(lib::FormatLocalTime(0, "%Y-%m-%d").size() == 10, "format saved timestamp");
     const std::string tooLong(128, 'x');
