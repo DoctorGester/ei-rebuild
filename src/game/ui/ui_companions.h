@@ -1,13 +1,17 @@
 #pragma once
 
 // Ours: the companions window of a network zone (the HUD's companions button or F3 while the host takes
-// companions): the hero's companions, then the player's other saved heroes; the picked one is removed or added. And
-// the HUD's button. See docs/notes/ui.md ("Companions window").
+// companions and the party stands in the multiplayer base zone): the hero's companions, then the player's other
+// saved heroes; the picked one is removed or added. And the HUD's button. See docs/notes/ui.md ("Companions window").
 
 #include "game/ui/ui.h"
 
 #include <string>
 #include <vector>
+
+// The local client may change its companions now: a multiplayer client whose host takes companions and whose party
+// stands in the multiplayer base zone (the server refuses the messages elsewhere). The button and F3 ask this.
+bool CompanionsOffered();
 
 class CompanionWindow : public UiContainer {
 public:

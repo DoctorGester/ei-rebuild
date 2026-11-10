@@ -8,6 +8,7 @@
 #include "game/console/console.h"
 #include "game/core/core_maths.h"
 #include "game/core/core_streams.h"
+#include "game/app/game_flow.h"
 #include "game/app/singletons.h"
 #include "game/items/item_manager.h"
 #include "game/app/logic_settings.h"
@@ -440,7 +441,16 @@ bool PlayerServer::OnPartyUpdate() {
     return DropForOtherDatabase(this);
 }
 
+// The companions list changes only in the multiplayer base zone: the message is read and dropped (logged).
+bool PlayerServer::RefuseOutsideBase(const char* what) {
+    console::EndLine(console::g_netLogOut << "player " << player->playerId << ": " << what
+                                          << " refused outside the base zone (" << player->GetParty()->zone << ")");
+    return true;
+}
+
 bool PlayerServer::OnAddCompanion() {
+    std::uint32_t restore = 0;
+    in.ReadValue(restore);
     MemoryStream block;
     in.ReadSized(&block);
     block.MemoryStream::Seek(0);
@@ -450,6 +460,7 @@ bool PlayerServer::OnAddCompanion() {
     Party* party = player->GetParty();
     Unit* leader = party->members.empty() ? nullptr : g_serverWorld.FindUnit(static_cast<int>(party->members[0].unitId));
     const bool room = std::ssize(party->members) <= HostCompanions();
+    if (!restore && !g_gameFlow.InMultiplayerBase(party)) return RefuseOutsideBase("companion");
     if (state != State::Joined || g_serverWorld.gameState != GameState::Network || !room || !leader || leader->IsDead() ||
         std::ssize(companion.members) != 1 || !HasEveryRecord(&companion)) {
         console::EndLine(console::g_netLogOut << "player " << player->playerId << ": companion refused");
@@ -475,6 +486,7 @@ bool PlayerServer::OnRemoveCompanion() {
     in.ReadValue(unitId);
     if (!in.ok) return true;
     Party* party = player->GetParty();
+    if (!g_gameFlow.InMultiplayerBase(party)) return RefuseOutsideBase("companion removal");
     int index = 1;
     while (index < std::ssize(party->members) && static_cast<int>(party->members[index].unitId) != unitId) ++index;
     if (state != State::Joined || g_serverWorld.gameState != GameState::Network || index >= std::ssize(party->members)) {

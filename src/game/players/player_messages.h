@@ -107,8 +107,9 @@ enum class ClientMessage : std::uint8_t {
     FightAtWill = 0x3B,
     LastPosition = 0x40,
     PartyUpdate = 0x50,
-    // Ours: a saved hero to walk with the player's hero, a sized block (Party::SaveParty without variables);
-    // sent only to a server that sent ServerMessage::Companions.
+    // Ours: a dword (1 when the client restores its list in a new zone, else 0), then a saved hero to walk with the
+    // player's hero, a sized block (Party::SaveParty without variables); sent only to a server that sent
+    // ServerMessage::Companions.
     AddCompanion = 0x51,
     // Ours: a companion leaves the party, a dword (its unit's id); sent only to a server that sent
     // ServerMessage::Companions.
@@ -296,13 +297,16 @@ public:
     bool OnPartyUpdate();
     // Ours. Message 0x51: a saved hero joins the party as a companion when the host allows companions
     // (ServerSession::companions) and the player is joined in a network zone with a living leader and room for one
-    // more: its record (items copied into the party, a fresh object id, following the leader) is appended, its unit
+    // more, and the party stands in the multiplayer base zone (a restore of the client's list, which lasts the
+    // whole game, is taken anywhere): its record (items copied into the party, a fresh object id, following the leader) is appended, its unit
     // made beside the leader and the party sent. Anything else is read and dropped. Returns true.
     bool OnAddCompanion();
+    // The log line for a companion message from a party outside the multiplayer base zone. Returns true.
+    bool RefuseOutsideBase(const char* what);
     // Ours. Message 0x52: the companion whose unit has the given id leaves: its record synced from the living unit
     // and the party sent (the client writes it to its file), then the unit taken out of the world (a dead one left
-    // lying, the player's no more), the record dropped and the party sent again. Anything else is read and dropped.
-    // Returns true.
+    // lying, the player's no more), the record dropped and the party sent again. Anything else is read and dropped,
+    // a party outside the multiplayer base zone too. Returns true.
     bool OnRemoveCompanion();
     // "Able" units below: present, not blocked (flag 0x800000) and not dead.
     bool OnLeave();             // Message 0x01: the connection's Leave

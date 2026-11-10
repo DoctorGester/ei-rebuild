@@ -34,6 +34,9 @@ struct GameFlow {
     // The multiplayer start zone for the client session's game type: "bz2mpg".."bz4mpg" for
     // 1..3, else "bz1mpg".
     std::string MultiplayerZone();
+    // Ours: the party stands in the multiplayer base zone (MultiplayerZone, where quests are taken; the companions
+    // list changes only there).
+    bool InMultiplayerBase(const Party* party);
     // Starts a multiplayer game: the party manager is reset, a single party record gets the unit id
     // 0x3B9AF5CE, the party outside a game is sent to the start zone with "z.MPGame1" = 1 and
     // redeployed; the flow loads that zone (state 4) and the client's game state request becomes kind 1.

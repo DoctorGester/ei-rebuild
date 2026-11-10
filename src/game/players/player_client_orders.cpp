@@ -169,10 +169,11 @@ void PlayerClient::SendPartyUpdate() {
     out.WriteSized(&block);
 }
 
-void PlayerClient::SendAddCompanion(Party* companion) {
+void PlayerClient::SendAddCompanion(Party* companion, bool restore) {
     MemoryStream block;
     companion->SaveParty(&block, false);
     WriteType(&out, ClientMessage::AddCompanion);
+    out.WriteValue(static_cast<std::uint32_t>(restore));
     out.WriteSized(&block);
 }
 

@@ -234,6 +234,10 @@
 //   checklimit <n>            require the client session's player limit (ClientSession::PlayerLimit) to be <n>
 //   checkpaused 0|1           require the server world's pause flag to be off / on (the host's pause mode)
 //   companions <n>            require server player 0's party to hold <n> records (its hero and companions)
+//   companionbutton 0|1       require the companions button and F3 to be offered (1) or not (0) to the local client
+//   askcompanion add <name>|remove
+//                             send the add of saved hero <name>, or the removal of the first companion, from the
+//                             local client past the window (the server refuses it outside the base zone)
 //   heroxp <name> [more]      log the experience of the saved hero <name>, its file read from the disk; with
 //                             "more" require it above what the previous heroxp of <name> logged
 //   waitfor <seconds> <expression>
@@ -3164,6 +3168,20 @@ void RunSteps() {
             if (records != want)
                 g_failures.push_back("companions: server player 0's party has " + std::to_string(records) +
                                      " records, not " + std::to_string(want));
+        } else if (s.verb == "companionbutton") {
+            const bool want = std::atoi(s.argument.c_str()) != 0;
+            const bool offered = image::CompanionsOffered();
+            Log("harness: companionbutton: the companions button is %s (wanted %s)", offered ? "offered" : "hidden",
+                want ? "offered" : "hidden");
+            if (offered != want)
+                g_failures.push_back(std::string("companionbutton: the companions button is ") +
+                                     (offered ? "offered" : "hidden"));
+        } else if (s.verb == "askcompanion") {
+            char what[16] = {}, name[64] = {};
+            std::sscanf(s.argument.c_str(), "%15s %63s", what, name);
+            const bool add = std::string(what) == "add";
+            if (!image::AskCompanion(add ? name : nullptr))
+                g_failures.push_back("askcompanion " + s.argument + ": nothing to send");
         } else if (s.verb == "heroxp") {
             char name[64] = {}, more[16] = {};
             std::sscanf(s.argument.c_str(), "%63s %15s", name, more);

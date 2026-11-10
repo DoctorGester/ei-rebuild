@@ -900,14 +900,11 @@ void BattleScreen::KeyDown(UiEvent& event) {
         return;
     }
 
-    // F3: the companions window while the zone's host takes companions.
-    if (event.key == platform::KeyAfter(platform::Key::F1, 2) && IsMultiplayerClient()) {
-        PlayerClient* client = g_clientWorld.LocalView();
-        if (client && client->companionLimit > 0) {
-            g_interface.PushWindow(std::make_unique<CompanionWindow>(), WindowBackdrop::FirstWindow);
-            event.handled = true;
-            return;
-        }
+    // F3: the companions window where the companions can be changed (CompanionsOffered).
+    if (event.key == platform::KeyAfter(platform::Key::F1, 2) && CompanionsOffered()) {
+        g_interface.PushWindow(std::make_unique<CompanionWindow>(), WindowBackdrop::FirstWindow);
+        event.handled = true;
+        return;
     }
 
     const int action = g_keyActions[event.scan];

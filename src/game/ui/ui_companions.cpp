@@ -1,6 +1,8 @@
 // Ours: the companions window (ui_companions.h). See docs/notes/ui.md ("Companions window").
 #include "game/ui/ui_companions.h"
 
+#include "game/app/game_flow.h"
+#include "game/app/singletons.h"
 #include "game/players/party.h"
 #include "game/players/player_client.h"
 #include "game/players/saved_parties.h"
@@ -73,12 +75,12 @@ int CompanionUnit(const MpHeroRecord& hero) {
     return -1;
 }
 
+} // namespace
+
 bool CompanionsOffered() {
     PlayerClient* client = IsMultiplayerClient() ? g_clientWorld.LocalView() : nullptr;
-    return client && client->companionLimit > 0;
+    return client && client->companionLimit > 0 && g_gameFlow.InMultiplayerBase(LocalPlayerData());
 }
-
-} // namespace
 
 void CompanionWindow::CreateScreen() {
     LoadTexture("saveload", TextureKind::Interface);
@@ -138,7 +140,7 @@ void CompanionWindow::Act() {
             client->SendRemoveCompanion(unitId);
         }
     } else if (hero && Room()) {
-        client->SendAddCompanion(hero->GetParty());
+        client->SendAddCompanion(hero->GetParty(), false);
         g_savedParties.companions.push_back(hero->file);
     }
     g_interface.PlayInterfaceSound(kMessageBoxOkSound);

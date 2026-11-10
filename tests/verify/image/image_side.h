@@ -63,6 +63,11 @@ int SessionPlayerLimit();
 int ServerPartyRecords(int player);
 int CompanionUnit(int index);
 int NearestEnemy(int id);
+// The local client's companions button and F3 are on now (CompanionsOffered); a companion message sent straight from
+// the client, past the window (an add of the saved hero named `name`, or the first companion's removal for a null
+// name; false when there is nothing to send).
+bool CompanionsOffered();
+bool AskCompanion(const char* name);
 bool SavedHero(const char* name, std::string* file, float* experience);
 
 // ---- the game's global objects (harness_objects.h; image/harness_objects_image.cpp)

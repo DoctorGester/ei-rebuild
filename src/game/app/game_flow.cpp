@@ -532,6 +532,10 @@ std::string GameFlow::MultiplayerZone() {
     return kMultiplayerZones[type <= 3 ? type : 0];
 }
 
+bool GameFlow::InMultiplayerBase(const Party* party) {
+    return IsLive(net::g_gameClient) && party->zone == MultiplayerZone();
+}
+
 void GameFlow::BeginMultiplayerGame() {
     PartyManagerNewGameFour(&g_partyManager);
     g_savedParties.companions.clear();

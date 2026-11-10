@@ -426,7 +426,7 @@ void PlayerClient::RestoreCompanions() {
     if (std::ssize(files) > static_cast<std::ptrdiff_t>(companionLimit)) files.resize(companionLimit);
     for (const std::string& file : files)
         for (MpHeroRecord& entry : g_savedParties.entries)
-            if (entry.file == file && entry.party.members.size() == 1) SendAddCompanion(entry.GetParty());
+            if (entry.file == file && entry.party.members.size() == 1) SendAddCompanion(entry.GetParty(), true);
 }
 
 bool PlayerClient::KeepParty(Party* party) {
