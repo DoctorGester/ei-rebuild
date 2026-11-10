@@ -112,6 +112,8 @@ terrain_sector.h), `terrain.cpp`, `terrain_landscape.cpp`, `terrain_lights.cpp`,
   light on demand). `SectorAt` is a cache over the grid with an LRU list and a 240-frame age limit (the list owns the
   sectors, the grid only points at them). `SurfaceClass` is the texture class under a point (footprints, blood,
   effects); `SurfaceHeight` the ground raised to the water surface.
+- A map can be a folder of TOML and PNGs beside its archive (mods.md, "Maps as folders"): the archive makes the map
+  file and the sectors from it, so these readers see the same files.
 - **Landscape passes, light tests**: `DrawGround` / `DrawWater` differ only in the page range (ground
   0..LayerPages()-1, water the next LayerPages(); LayerPages() = pages + the two extra pages); a page's texture is
   bound at the first sector with tiles on it. `DrawPages` per visible sector: clip test, the pending water levels, then the drawn sectors
