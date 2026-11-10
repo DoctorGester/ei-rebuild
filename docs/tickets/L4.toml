@@ -4,5 +4,6 @@ group = "lua"
 depends = ["L3"]
 note = "User 2026-11-10: revised with the current knowledge; readable Lua files (mods and converted missions), Lua 5.3 + Eris (docs/notes/lua-scripting.md). Waiting runs first, then instances, then deleted-object dropping, timed effects, temporaries; a new instance at the head; same-tick vs next-tick starts; Execute counts for WaitSegment; Sleep in ticks; NaN as false where the original has it. Done 2026-11-10: ScriptLuaScheduler (src/game/script/script_lua_scheduler.*) in Script::Tick's order; lockstep lua_both::Compare, ei-convert --scripts ... --lockstep N (corpus at 300 ticks: 520 scripts, 494 the same, 0 differ, 26 left out); build check at 100 ticks."
 order = 640
-status = "review"
+status = "done"
 started = "2026-11-10"
+done = "2026-11-10"
