@@ -290,7 +290,9 @@ bool MappedResource::ReadSource(const Source& source, std::string_view name, std
         const auto file = source.loose->byName.find(LooseKey(name));
         if (file == source.loose->byName.end()) return false;
         *where = file->second.path;
-        return platform::ReadWholeFile(file->second.path, bytes);
+        // The layer's own file: a read through the path map would take a layer over it that has one of its name
+        // (a mod's model without animations over the game's with them).
+        return platform::ReadLayerFile(file->second.path, bytes);
     }
     if (source.entries->FindEntry(name) == -1) return false;
     std::uint32_t size = 0;

@@ -11,8 +11,8 @@
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
-#include <iterator>
 #include <functional>
+#include <memory>
 #include <set>
 #include <string>
 #include <system_error>
@@ -154,10 +154,23 @@ std::vector<FolderLayer> FilesByLayer(std::string_view folder, const std::vector
 
 bool ReadLayerFile(std::string_view path, std::string* bytes) {
     bytes->clear();
-    std::ifstream file(Native(path, PathUse::Layer), std::ios::binary);
+    const std::string system = SystemPath(path, PathUse::Layer);
+    if (std::shared_ptr<const std::string> zipped; ZipFile(system, &zipped)) {
+        if (zipped) *bytes = *zipped;
+        return zipped != nullptr;
+    }
+    // In one read of its size (a layer's glTF models and PNG textures are large).
+    std::ifstream file(NativePath(system), std::ios::binary | std::ios::ate);
     if (!file) return false;
-    bytes->assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
-    return !file.bad();
+    const std::streamoff size = file.tellg();
+    if (size < 0) return false;
+    bytes->resize(static_cast<std::size_t>(size));
+    file.seekg(0);
+    if (!file.read(bytes->data(), static_cast<std::streamsize>(size))) {
+        bytes->clear();
+        return false;
+    }
+    return true;
 }
 
 } // namespace platform
