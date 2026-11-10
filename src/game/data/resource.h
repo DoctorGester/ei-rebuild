@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -108,6 +109,9 @@ struct LooseFiles {
     std::string textsPath;
     std::vector<std::pair<std::string, std::string>> texts;
     std::map<std::string, std::size_t, std::less<>> textIndex;   // by LooseKey
+    // The folder's figure models as glTF (docs/notes/mods.md, "Models as glTF"): each name without its extension to
+    // its file's name (byName's key; a .gltf before a .glb of the same name).
+    std::map<std::string, std::string, std::less<>> models;
 };
 
 // Reads an archive with file I/O, loading individual files into memory on request. The folder of the archive's name
@@ -124,11 +128,12 @@ public:
     virtual void CloseResource();
     // The file `name` from the first of Sources() that has it; with a mod a "t\" or "s\" name not found is looked for
     // once more without the prefix (Rebirth's ResOverride). An .mmp's PNG (<name>.png) in a source stands for the .mmp
-    // there (docs/notes/mods.md, "Textures as PNG"): the .mmp made from it is handed out.
+    // there (docs/notes/mods.md, "Textures as PNG"): the .mmp made from it is handed out. So does a figure model's glTF
+    // for the figure files it holds (.mod, .bon, .lnk, .fig; "Models as glTF").
     void* GetFile(std::string_view name, std::uint32_t* size);
     virtual bool CloseFile(void* data);
     virtual void FreeAllFiles();
-    // Whether one of Sources() has `name` (an .mmp's PNG for it).
+    // Whether one of Sources() has `name` (an .mmp's PNG for it, a figure file's glTF).
     bool HasFile(std::string_view name);
     // The record file `name` in Sources() (its TOML files in the folders; the original as GetFile finds it).
     RecordFile FindRecord(std::string_view name);
@@ -155,6 +160,12 @@ public:
     // The archive's folder (OpenResource) in each layer of the path map over the game folder, top first, and its own.
     std::vector<LooseFiles> looseOver;
     LooseFiles looseOwn;
+    // The archive's own entries that are figure models as glTF (LooseFiles::models), read at their first use.
+    std::map<std::string, std::string, std::less<>> modelEntries;
+    bool modelEntriesRead = false;
+    // The figure files made from each glTF read (by where it was read; none when it fails to parse): docs/notes/mods.md,
+    // "Models as glTF".
+    std::map<std::string, std::optional<std::map<std::string, std::string>>> madeModels;
 
 protected:
     // The archive's entry `name` (shared when loaded already), or null.
@@ -180,6 +191,13 @@ private:
     // no such PNG or it makes none (logged). Docs/notes/mods.md, "Textures as PNG".
     void* PngTexture(std::string_view name, const std::string& pngName, const std::vector<Source>& sources, std::size_t at,
                      std::uint32_t* size);
+    // The figure file `name` (.mod, .bon, .lnk or .fig) made from a glTF in `source` that holds it (the longest name
+    // that begins it first; shared when made already); null when none there does. Docs/notes/mods.md, "Models as glTF".
+    void* ModelFile(std::string_view name, const Source& source, std::uint32_t* size);
+    // Whether a glTF in `source` holds the figure file `name`.
+    bool HasModelFile(std::string_view name, const Source& source);
+    // The files made from the glTF `model` (its file's name) in `source`, read once; null when it fails to parse.
+    const std::map<std::string, std::string>* MadeModel(const Source& source, const std::string& model);
     // GetFile's search; with `utf8` (FindText) a folder's texts.toml too.
     void* Find(std::string_view name, std::uint32_t* size, bool* utf8);
     void* FindFile(std::string_view name, std::uint32_t* size, bool* utf8);

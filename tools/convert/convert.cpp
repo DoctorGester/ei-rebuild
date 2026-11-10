@@ -7,7 +7,8 @@
 // archive: its registries, materials (.mat), animation databases (.adb), acks.db, prints.db and the game databases
 // (convert_databases.h: units.udb, perks.pdb, spells.sdb, items.idb, quests.qdb, Levers.ldb), each as
 // <archive folder>\<name>.toml; a texts archive's (texts.res, textslmp.res) texts as <archive folder>\texts.toml; its
-// textures (.mmp) as <archive folder>\<name>.png (convert_textures.cpp, docs/notes/mods.md "Textures as PNG"). A
+// textures (.mmp) as <archive folder>\<name>.png (convert_textures.cpp, docs/notes/mods.md "Textures as PNG"); its
+// figure models (.mod, .bon, .lnk, .fig) as <archive folder>\<figure>.glb (convert_models.cpp, "Models as glTF"). A
 // loose file as <name>.toml beside it. A record file's TOML has `replace = true`: it stands for the whole original,
 // nothing below it read (a mod's original hides the game's file too). The target mirrors the source's layout (MF1's loose folders); converted.txt
 // there lists the converted originals (relative to the source), which tools/convert_install.py removes from its copy.
@@ -25,6 +26,7 @@
 #include "lib/toml.h"
 
 #include "convert_databases.h"
+#include "convert_models.h"
 #include "convert_textures.h"
 
 #include <bit>
@@ -373,6 +375,40 @@ std::string Relative(const fs::path& path) {
     return relative;
 }
 
+// The figure models among an archive's names, each figure as one .glb (convert_models.cpp), its round trip checked.
+void ConvertModels(MappedResource& archive, const std::vector<std::string>& names, const std::string& folderRelative) {
+    std::vector<std::string> left;
+    for (const convert_models::Group& group : convert_models::Groups(names, &left)) {
+        std::map<std::string, std::string> files;
+        for (const std::string& name : group.files) {
+            std::uint32_t size = 0;
+            void* data = archive.GetFile(name, &size);
+            if (!data) continue;
+            files[name] = std::string(static_cast<const char*>(data), size);
+            archive.CloseFile(data);
+        }
+        Count& count = g_counts["model"];
+        ++count.files;
+        std::string glb;
+        const std::vector<std::string> lines = convert_models::RoundTrip(group, files, &glb);
+        const std::string where = folderRelative + "\\" + text::FromAssetText(group.name);
+        if (!lines.empty()) {
+            ++count.failed;
+            std::printf("FAILED model %s:\n", where.c_str());
+            for (std::size_t i = 0; i < lines.size() && i < 10; ++i) std::printf("    %s\n", lines[i].c_str());
+            continue;
+        }
+        if (g_options.target.empty()) continue;
+        const fs::path path = g_options.target / PathOf(where + ".glb");
+        fs::create_directories(path.parent_path());
+        fs::remove(path);
+        std::ofstream(path, std::ios::binary) << glb;
+        for (const std::string& name : group.files) g_converted.push_back(folderRelative + "\\" + text::FromAssetText(name));
+    }
+    for (const std::string& line : left) std::printf("ei-convert: left as it is: %s\\%s\n", folderRelative.c_str(), line.c_str());
+    g_counts["model files left as they are"].files += static_cast<int>(left.size());
+}
+
 // The record entries of an archive (its texts too for a texts archive) converted.
 void ConvertArchive(const fs::path& archivePath) {
     const fs::path folder = fs::path(archivePath).replace_extension();
@@ -385,7 +421,9 @@ void ConvertArchive(const fs::path& archivePath) {
     const bool texts = stem == "texts" || stem == "textslmp";
     toml::Writer textsToml;
     std::vector<std::pair<std::string, std::string>> textEntries;   // the entries' names and UTF-8 texts
+    ConvertModels(archive, names, folderRelative);
     for (const std::string& name : names) {
+        if (convert_models::IsFigureFile(name)) continue;
         std::uint32_t size = 0;
         void* data = archive.GetFile(name, &size);
         if (!data) continue;
@@ -541,6 +579,7 @@ int main(int argc, char** argv) {
         return 1;
     }
     convert_textures::PrintMeasures();
+    convert_models::PrintMeasures();
     int failed = 0;
     for (const auto& [format, count] : g_counts) {
         std::printf("ei-convert: %s: %d files, %d failed\n", format.c_str(), count.files, count.failed);
