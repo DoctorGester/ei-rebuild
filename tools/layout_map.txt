@@ -478,6 +478,9 @@ script_load.cpp             script/script_load.cpp
 script_save.cpp             script/script_save.cpp
 script_addon.h              script/script_addon.h
 script_addon.cpp            script/script_addon.cpp
+script_lua.h                script/script_lua.h
+script_lua.cpp              script/script_lua.cpp
+script_lua_number.h         script/script_lua_number.h
 script_addon_handlers.h     script/script_addon_handlers.h
 script_addon_commands.cpp   script/script_addon_commands.cpp
 script_addon_math.cpp       script/script_addon_math.cpp

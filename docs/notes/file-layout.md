@@ -338,7 +338,7 @@ Risks:
 | `data/` | 15 | 5126 | C168d |
 | `effects/` | 23 | 10833 | C168g |
 | `items/` | 10 | 2855 | C168g |
-| `map/` | 13 | 3077 | C168e |
+| `map/` | 13 | 3086 | C168e |
 | `models/` | 23 | 7580 | C168g |
 | `mods/` | 6 | 603 | C168d |
 | `net/` | 21 | 7991 | C168h |
@@ -346,16 +346,16 @@ Risks:
 | `players/` | 24 | 5493 | C168e |
 | `saves/` | 7 | 828 | C168d |
 | `scene/` | 30 | 4414 | C168g |
-| `script/` | 22 | 7218 | C168h |
+| `script/` | 25 | 8173 | C168h |
 | `sound/` | 3 | 1679 | C168e |
 | `spells/` | 8 | 2560 | C168g |
 | `terrain/` | 12 | 3554 | C168g |
 | `ui/` | 97 | 33141 | C168h |
 | `units/` | 27 | 9739 | C168f |
 | `world/` | 35 | 10253 | C168e |
-| all | 495 | 156760 | |
+| all | 498 | 157724 | |
 
-542 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
+545 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
 
 ### Every file
 
@@ -799,6 +799,9 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | script_ir.cpp | script/script_ir.cpp |  |  |
 | script_ir.h | script/script_ir.h |  |  |
 | script_load.cpp | script/script_load.cpp |  |  |
+| script_lua.cpp | script/script_lua.cpp |  |  |
+| script_lua.h | script/script_lua.h |  |  |
+| script_lua_number.h | script/script_lua_number.h |  |  |
 | script_parse.cpp | script/script_parse.cpp |  |  |
 | script_parse.h | script/script_parse.h |  |  |
 | script_parse_load.cpp | script/script_parse_load.cpp |  |  |
