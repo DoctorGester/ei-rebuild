@@ -26,8 +26,9 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
     void ForgetSentObjects() override {}
-    // A unit joined (`player` set) or left the player: the interface is told; a multiplayer client whose party
-    // has one member, `unit`, puts its id (-1 when it left) in the login record and raises its version.
+    // A unit joined (`player` set) or left the player: the interface is told; on a multiplayer client, when `unit`
+    // is the party's hero (its first record), its id (-1 when it left) goes in the login record and the record's
+    // version rises.
     void UnitChanged(Unit* unit) override;
     // Connecting, partyUnitIds freed, both streams emptied, localSession and sendParty cleared, both coders
     // reset.
@@ -68,6 +69,13 @@ public:
     // 0x50: the player's party saved without its variables (Party::SaveParty, which draws an ISAAC key) as
     // a sized block.
     void SendPartyUpdate();
+    // Ours. 0x51: the saved hero `companion` (its party without variables, a sized block) joins the hero.
+    void SendAddCompanion(Party* companion);
+    // Ours. 0x52: the companion with unit `unitId` leaves the party.
+    void SendRemoveCompanion(int unitId);
+    // Ours: the saved companions (SavedParties::companions) asked for again once the hero stands in a zone whose
+    // host takes companions; set by OnCompanions, done by RunTick.
+    void RestoreCompanions();
     // The zone requests. When the client is between zones they first return the local party
     // (GameFlow::ReturnLocalParty), send it (SendPartyUpdate) and the joined message 0x05 (SendingCamera).
     // 0x03: take exit `exit`.
@@ -165,6 +173,8 @@ public:
     bool OnLoginAccepted();
     // Message 0x01. The player disconnects (Player::Disconnect).
     bool OnDisconnect();
+    // Ours. Message 0x84: a dword, the companions the host takes (companionLimit).
+    bool OnCompanions();
     // Message 0x11. The server's reason for dropping the player (a text): the session leaves with it
     // (LeaveAfterTick; the original had no handler, and the dispatcher's error ended the game).
     bool OnError();
@@ -248,5 +258,8 @@ public:
     std::vector<int> otherUnitIds;
     // Why the session leaves after this tick (LeaveAfterTick); empty while it stays.
     std::string leaveReason;
+    // Ours: the companions this zone's host takes (ServerMessage::Companions), 0 none (ResetState).
+    std::uint32_t companionLimit = 0;
+    bool restoreCompanions = false;   // ours: RestoreCompanions still to do in this zone (ResetState clears it)
 };
 

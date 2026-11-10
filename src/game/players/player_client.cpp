@@ -2,6 +2,7 @@
 // running the server's messages) and its login. See player_client.h and docs/notes/objects.md.
 
 #include "game/players/player_client.h"
+#include "game/players/saved_parties.h"
 
 #include "game/ai/ai_map.h"
 #include "game/core/base_manager.h"
@@ -135,6 +136,7 @@ bool PlayerClient::RunTick() {
         login.version = kLoginVersion;
         std::memcpy(login.name, kLoginName, std::strlen(kLoginName) + 1);
         std::memcpy(login.password, kLoginPassword, std::strlen(kLoginPassword) + 1);
+        std::memcpy(login.password + kCompanionMarkAt, kCompanionLoginMark, sizeof(kCompanionLoginMark));
         login.partyId = player->partyId;
         WriteType(&out, ClientMessage::Login);
         out.WriteValue(login);
@@ -148,6 +150,7 @@ bool PlayerClient::RunTick() {
         Vector2 point = XY(*anchor);   // sent as two floats
         WriteType(&out, ClientMessage::LastPosition);
         out.WriteValue(point);
+        RestoreCompanions();
         return SendToServer();
     }
     default:
@@ -226,6 +229,7 @@ int PlayerClient::DispatchMessages() {
         case ServerMessage::SetVariable: handled = OnSetVariable(); break;
         case ServerMessage::DeleteVariable: handled = OnDeleteVariable(); break;
         case ServerMessage::PartyUpdate: handled = OnPartyUpdate(); break;
+        case ServerMessage::Companions: handled = OnCompanions(); break;
         default: return PlayerMessageError("Packet has no handler prevID=%x curID=%x\n", previous, messageType);
         }
         if (!handled) return PlayerMessageError("Error during parsing update prevID=%x curID=%x\n", previous, messageType);
@@ -401,6 +405,28 @@ bool PlayerClient::OnPartyUpdate() {
         KeepParty(player->GetParty());
     }
     return true;
+}
+
+bool PlayerClient::OnCompanions() {
+    in.ReadValue(companionLimit);
+    console::EndLine(console::g_netLogOut << "client: the host takes " << companionLimit << " companions");
+    restoreCompanions = !g_savedParties.companions.empty();
+    return true;
+}
+
+void PlayerClient::RestoreCompanions() {
+    if (!restoreCompanions) return;
+    const Party* party = player->GetParty();
+    if (party->members.empty()) return;
+    Unit* hero = g_clientWorld.FindUnit(static_cast<int>(party->members[0].unitId));
+    if (!hero || hero->IsDead()) return;
+    restoreCompanions = false;
+    // Beyond this host's limit the session's companions are dropped.
+    std::vector<std::string>& files = g_savedParties.companions;
+    if (std::ssize(files) > static_cast<std::ptrdiff_t>(companionLimit)) files.resize(companionLimit);
+    for (const std::string& file : files)
+        for (MpHeroRecord& entry : g_savedParties.entries)
+            if (entry.file == file && entry.party.members.size() == 1) SendAddCompanion(entry.GetParty());
 }
 
 bool PlayerClient::KeepParty(Party* party) {
@@ -595,6 +621,8 @@ void PlayerClient::ResetState() {
     out.Resize(0);
     localSession = 0;
     sendParty = 0;
+    companionLimit = 0;
+    restoreCompanions = false;
     compressor.Reset();
     decompressor.Reset();
 }

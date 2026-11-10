@@ -76,10 +76,10 @@ struct GameFlow {
     void SwitchMultiplayerZone();
     // Hosts a multiplayer game: new server (game type) and client sessions, the client connects to
     // 127.0.0.1 with the password (20 bytes) as hello, then the server's name ("Server" when empty),
-    // maxPlayers (also the local client's), the pause mode, password, listing (not `unlisted`) and masterKey are set
-    // (both between calls patched by Rebirth).
-    void StartServer(std::string_view name, int maxPlayers, net::PauseMode pauseMode, int gameType, std::string_view password,
-                     bool unlisted, int masterKey);
+    // maxPlayers (also the local client's), the pause mode, the companions a player may add (ours), password,
+    // listing (not `unlisted`) and masterKey are set (both between calls patched by Rebirth).
+    void StartServer(std::string_view name, int maxPlayers, net::PauseMode pauseMode, int companions, int gameType,
+                     std::string_view password, bool unlisted, int masterKey);
     void StartClient();
     void JoinServer(const net::NetAddress* address, std::string_view password);
     // The flow's requests: the state (state) the flow's update acts on next, the zone or save name

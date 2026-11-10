@@ -493,6 +493,9 @@ public:
     // Brings the player's party records up to date with its living units (items, spells and statistics rebuilt from
     // the unit).
     void SyncPartyRecords(Player* player);
+    // Ours: the player's companions (its records after the first) up to date with their living units as
+    // SyncPartyRecords does, each then whole again (RestoreSlots); the player's items are left alone.
+    void SyncCompanions(Player* player);
     // Before a zone change: every record of `records` notes its unit's leader, gets a placement (if `placements`), is
     // rebuilt from its unit, and the unit is removed (a dead one just loses its owner).
     void StoreParty(std::vector<PartyUnitRecord*>* records, Party* partyRecords, std::vector<UnitPlacement>* placements);

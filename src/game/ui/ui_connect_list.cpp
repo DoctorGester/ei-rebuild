@@ -90,6 +90,16 @@ constexpr AddedText kPauseTip = {
     "объявляются и пауза, и продолжение. Любой игрок: каждый, с объявлением. Нет: пауз нет",
     "Who may pause the game. As the original: the leader only, the pause announced. The leader, announced: pauses and "
     "resumes announced. Any player: everyone, announced. Off: no pauses"};
+// Ours: the new game's companions switch (off, or the most a player may add) and its tip.
+constexpr AddedText kCompanionTexts[] = {
+    {"Спутники: нет", "Companions: off"},
+    {"Спутники: два", "Companions: two"},
+};
+constexpr AddedText kCompanionTip = {
+    "В зоне каждый игрок может взять с собой двух своих других героев (F3). Видно только клиентам этой программы: "
+    "игроки оригинальной игры играют одним героем",
+    "In a zone each player may take two of their other saved heroes along (F3). Only this program's clients see it: "
+    "players of the original game play one hero"};
 const char* Shown(const AddedText& text) { return GameTextsInRussian() ? text.russian : text.english; }
 
 } // namespace
@@ -108,7 +118,9 @@ void MpConnectScreen::DrawListVanilla() {
         unlistedSwitch->SetTip(0);
         passwordSwitch->SetTip(0);
         pauseSwitch->SetTip(0);
+        companionSwitch->SetTip(0);
     } else if (!newGameTips) {
+        companionSwitch->SetTipString(Shown(kCompanionTip));
         unlistedSwitch->SetTip(kTipUnlisted);
         passwordSwitch->SetTip(kTipPassword);
         pauseSwitch->SetTipString(Shown(kPauseTip));
@@ -222,6 +234,11 @@ void MpConnectScreen::PaintList(UiSurface& surface) const {
         Down(&row);
         Down(&row);
         DrawLabel(surface, label(3), &row, render::text::Format::Left, colour);
+        {
+            Rect companionRow{460, row.top, 600, row.bottom};
+            DrawLabel(surface, Shown(kCompanionTexts[companions != 0 ? 1 : 0]), &companionRow,
+                      render::text::Format::Left, colour);
+        }
         Down(&row);
         row.left = 390;
         for (int i = 0; i < kGameTypes; ++i) {

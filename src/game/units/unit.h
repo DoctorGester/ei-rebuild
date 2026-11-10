@@ -866,6 +866,9 @@ struct PartyUnitRecord {
     // ClearItems, then each of the four lists sized to `source`'s and filled with `party`'s copies of its items, each
     // with the source item's count and a reference.
     void CopyItemsFrom(const PartyUnitRecord* source, Party* party);
+    // Ours: this record becomes a copy of `source`, a record of another party: every field, and the items as
+    // CopyItemsFrom makes them in `party`, this record's.
+    void CopyFrom(const PartyUnitRecord& source, Party* party);
     // The weights of the entries of the four lists added up (empty entries skipped).
     float CarriedWeight() const;
 
