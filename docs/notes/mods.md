@@ -45,6 +45,9 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `tools/convert/convert_maps.h`, `.cpp` | ei-convert's maps: each as its folder, the round trip byte for byte |
 | `tests/unit/map_folder.cpp` | the unit check (ei_unit_check, the POSIX port check) |
 | `tests/scenarios/mod_map_heights.txt` | a mod's heights.png seen as the ground's height (`ground`) |
+| `src/game/map/mob_toml.h`, `.cpp` | a .mob's objects as TOML and back ("Map objects as TOML"): `Write`, `Read`, `Find`, `FieldImages` |
+| `src/game/map/mob_reader.cpp`, `map_spec.h` | `MobContents` (what a .mob holds), `MobFile::ReadChunks`, `LoadMob` (applied to the server) |
+| `tools/convert/convert_mobs.h`, `.cpp` | ei-convert's map objects: each .mob's TOML, its round trip compared field by field |
 | `src/game/models/figure_gltf.h`, `.cpp`; `third_party/cgltf/` | figure models as glTF and back ("Models as glTF"): `FromFiles`, `Files`, `ToGlb` (our writer), `FromGltf` (cgltf, reading only) |
 | `src/lib/json.h`, `.cpp` | a small JSON reader (the glTF's extras) and the writer's strings and floats |
 | `src/game/data/resource.cpp` | `MappedResource::ModelFile`, `HasModelFile`, `MadeModel`: a figure file answered from a glTF where it is found |
@@ -266,9 +269,9 @@ original hides the game's file. ei-convert writes it in every record file it con
 the original: Lost in Astral's own `.adb`, `ai.reg` and the like hide the game's rather than merging over them (without
 it mod_lost_in_astral_start's units differed). A mod's file of only the records it changes leaves it out.
 
-The game databases (units.udb, items.idb, ...) can be TOML too: "Databases as TOML". What stays binary: the quest
-zones' `quest.reg` (a `.mq`'s, read as bytes for the briefings: MF9), the maps' objects (`.mob`: MF9); the maps
-themselves can be folders ("Maps as folders").
+The game databases (units.udb, items.idb, ...) can be TOML too: "Databases as TOML"; the maps can be folders ("Maps as
+folders"), the maps' objects TOML ("Map objects as TOML"). What stays binary: the quest zones' `quest.reg` (a `.mq`'s,
+read as bytes for the briefings), a `.mob`'s scripts and AI graph.
 
 ### Merging by field
 
@@ -490,8 +493,8 @@ one of the files below, the archive's map file `<name>.MP` and its sectors `<nam
 over the original (src/game/map/map_folder.h, `Assemble`; resource.cpp `MappedResource::FolderMap`) and every reader
 reads those: the landscape (`Terrain::LoadMap`, the sectors) and the AI map (`AIMap::LoadTerrain`) alike. The made files
 are kept while the archive is open; `ListFiles` lists their names. A folder file that does not read (not a PNG, another
-size, a value out of range) is logged ("warning: maps: <folder>: ...") and left out. The `.mob` objects and the quest
-zones stay as they are (MF9).
+size, a value out of range) is logged ("warning: maps: <folder>: ...") and left out. The `.mob` objects are "Map
+objects as TOML"; the quest zones stay as they are.
 
 | File | What | Pixels |
 |---|---|---|
@@ -565,6 +568,97 @@ maps add little to a converted install's load (its textures cost the time: "Text
 - `ei-convert --check` on both installs (every map's round trip holding), and on the stub data in the Linux suites'
   workflow.
 - `work.py test <ID> --converted --golden` (and `--rebirth-only`): the converted installs have every map as a folder.
+
+## Map objects as TOML
+
+A `.mob`'s chunks but its scripts can be TOML (MF9, user 2026-11-10): `Maps\zone1.mob.toml` beside `Maps\zone1.mob`.
+Every `.mob` still loads. `WorldServer::LoadMapObjects` (world_zone.cpp) asks `mobtoml::Find` (src/game/map/mob_toml.h)
+for the TOML, looked for as a record file's (`FindRecordFile` without reading the original: each layer of the path map
+top first, down to the first that has the .mob); the top one that parses is the whole of the objects, the weather and
+the player table (no merge: a mod's file holds every record, as a camera path's). The scripts are still read from the
+`.mob` (`MobFile::ReadChunks(false)`: its script chunks alone), and so are the AI graph (`ReadAIGraph`) and the main
+script (`LoadZoneScripts`); with a TOML the `.mob` may be missing (no scripts then). L5 moves the scripts to the
+`.lua` that the TOML's `script` key names. Both readers build one `mapspec::MobContents` (map_spec.h: the records,
+the weather, the player table, the relations flag, the scripts), which `mapspec::LoadMob` applies as the zone loader
+did.
+
+```toml
+# A .mob's map objects (docs/notes/mods.md, "Map objects as TOML"); its script stays in the .mob.
+script = "zone1.lua"
+applies_relations = true
+
+[[weather]]
+wind = [0.0, 1.0, 0.0]
+...
+[players]
+names = ["Player-0", ...]
+relations = [
+    [0, 1, 2, ...],
+    ...
+]
+
+[[object]]
+kind = "unit"
+id = 12
+...
+```
+
+- `[[object]]`: the records in the file's order (the order they are filed by id; the zone loader walks `byId`, whose
+  order is the insertions', so the order is behaviour). `kind`: `object`, `unit`, `flame`, `trap`, `lever`,
+  `light`, `sound`, `particle` (the chunks B001, BBBB0000, BBBF0000, BBAB0000, BBAC0000, AA01, CC01, DD01). Then
+  `id` and each field that differs from the kind's defaults (the record's constructor: a missing key is the default).
+  Each kind's fields are those its chunks set, listed once in mob_toml.cpp (`Fields(record, visit)`), which the
+  writer, the reader and ei-convert's comparison walk:
+  - every object kind: `id`, `name`, `model`, `texture`, `primary_texture`, `skin_texture`, `parent_iname`,
+    `parent_id`, `position`, `rotation` (`[w, x, y, z]`), `scale` (`[x, y, z]`), `side`, `player`, `shadow`,
+    `visible` (true / false), `parts`, `comment`;
+  - flame: `volume`, `offset`, `sound`; trap: `spell`, `sides` (hex; the loader sets it from the player table),
+    `period`, `single_target`, `area` (`{ x, y, radius }` circles), `points` (`[x, y]`); lever: `lock`
+    (`{ mask, id, level }`), `state`, `state_count`, `cycling`, `direct_use_blocked`, `keeps_map_flag`;
+  - unit: `prototype`, `apply_stats`, the item lists `carried`, `quick_items`, `spells`, `weapons`, `armour`;
+    `[object.stats]` (the statistics chunk BBBB0004 by field: `hit_points`, `speed`, `mode_speeds`, `perception`,
+    ...; its unused bytes `unread_...` only when not zero), `[[object.behaviour]]` (up to five: `type`, `alarm`,
+    `alert_mode` by name, `alarm_kind`, `enabled`, `guard`, `guard_radius`, `call_radius`, `loop`,
+    `always_updated`, `unread`), each with its `[[object.behaviour.patrol]]` (`position`, `waypoints` of
+    `{ position, time, look_wait, stop_first }`);
+  - light: `id`, `name`, `position`, `colour`, `radius`, `shadows`, `comment`; sound: `id`, `name`, `position`,
+    `sounds`, `volume`, `radius`, `min_interval`, `max_interval`, `ambient`, `unread` (chunk CC0E), `comment`;
+    particle: `id`, `name`, `position`, `type`, `scale`, `comment`.
+- `[[weather]]` (chunk ABD0, each applied in order): `wind`, `wind_strength`, `time`; its two unused values are
+  not kept. `[players]` (chunk DDDDDDD1): `names` and `relations` (32 rows of 32: 0 itself, 1, 2 hostile).
+  `applies_relations`: the last of the flag chunks C000 / D000 (false: the table only tells traps their targets).
+- Strings are UTF-8 both ways (the chunk reader converts the .mob's 1251); floats the shortest text that reads back.
+  A record of an unknown kind, an unknown key or a value its field does not take is logged ("warning: map objects:
+  <file> line n: ...") and left out.
+- A record id the file repeats: the later record takes the earlier's place in `byId` (the original leaked the earlier
+  one); the TOML writes the later record at its own place. ei-convert compares the walks, so a file where that moved
+  the order would fail its check (Lost in Astral's files repeat two ids; their walks hold).
+
+### ei-convert's map objects
+
+ei-convert writes each `.mob` of an install (any folder: the mods' too) as `<path>.mob.toml`
+(tools/convert/convert_mobs.cpp), naming `<stem>.lua` as its script when it has one, and does not list the `.mob` as
+converted: a converted copy keeps it for its scripts and AI graph. Each round trip: the .mob read by the game's
+reader, written, read back by `mobtoml::Read`, and compared: the records in `byId`'s walk, every field by its bytes
+(`mobtoml::FieldImages`: floats by their bits, the five behaviour records, the statistics), the weather, the player
+table, the flag.
+
+Counts (2026-11-10, `ei-convert --check`, every round trip holding):
+
+| | Files | Records | Repeated ids | .mob | TOML | Read back in |
+|---|---|---|---|---|---|---|
+| Vanilla | 99 | 52,670 (43,655 objects, 7,953 units, 408 levers, 212 particles, 209 lights, 133 flames, 87 sounds, 13 traps) | 0 | 60.0 MB | 25.4 MB | 0.6 s |
+| Rebirth's maps | 99 | 52,822 (43,789 objects, 7,954 units, 225 lights, ...) | 0 | 60.0 MB | 25.5 MB | 0.6 s |
+| AllHeroes | 11 | 4,011 (3,481 objects, 274 units, ...) | 0 | 4.6 MB | 1.6 MB | 0.04 s |
+| Lost in Astral | 130 | 90,403 (80,134 objects, 7,216 units, 1,617 levers, ...) | 2 | 89.2 MB | 34.8 MB | 0.8 s |
+
+Zone 1's TOML (777 records, 12,824 lines, 0.3 MB) reads in about 10 ms.
+
+### Checks
+
+- `ei-convert --check` on both installs (every `.mob`'s round trip holding), and on the stub data in the Linux suites'
+  workflow.
+- `work.py test <ID> --converted --golden` (and `--rebirth-only`): every zone's objects come from its TOML.
 
 ## Models as glTF
 

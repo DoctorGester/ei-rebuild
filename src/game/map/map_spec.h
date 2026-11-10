@@ -8,6 +8,7 @@
 #include "game/units/unit_record.h"
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <string_view>
 #include "lib/bit_flags.h"
@@ -285,24 +286,42 @@ public:
     unitrecord::UnitRecord record;   // the statistics and item lists (applied to the unit by the world server)
 };
 
-// The records of a .mob file by id (a local of the zone loader) and the largest id read.
+// The records of a .mob file (a local of the zone loader).
 struct MobRecords {
+    // Takes `spec`, filed under its id (a later record of an id takes the earlier one's place in byId).
+    void Add(std::unique_ptr<Spec> spec);
+
     lib::HashMap<std::int32_t, Spec*> byId;   // walked in STLport's order: the objects are created in it
-    std::int32_t maxId = 0;
+    std::vector<std::unique_ptr<Spec>> read;  // every record, in the order read
+};
+
+// The weather of a .mob (chunk 0xABD0: the wind and the time of day, applied to the server).
+struct MobWeather {
+    Vector3 wind = {0.0f, 1.0f, 0.0f};
+    float windStrength = 0.0f;
+    float time = 0.0f;
+};
+
+// What a .mob file holds, read from its chunks or from its TOML (docs/notes/mods.md, "Map objects as TOML").
+struct MobContents {
+    MobRecords records;
+    ZoneDiplomacy diplomacy;
+    std::vector<MobWeather> weather;   // each applied, in order
+    bool appliesRelations = true;      // the last of chunks 0xC000 (true) / 0xD000 (false); true without either
+    std::string scripts;
 };
 
 // A .mob file's root chunk (WorldServer::LoadMapObjects opens it).
 class MobFile : public RootChunk {
 public:
-    // Reads the file's top-level chunks: the scripts (0xACCEECCA plain, 0xACCEECCB encoded) into `scripts`,
-    // the weather (0xABD0: wind and time of day, applied to the server), the records (0xB000) into `records`,
-    // the players (0xDDDDDDD1) into `diplomacy`. Returns the last 0xC000 (true) / 0xD000 (false) seen, true
-    // without either.
-    bool ReadChunks(MobRecords* records, ZoneDiplomacy* diplomacy, std::string* scripts);
-    // Reads the file, applies its player relations, makes every record's world object (traps learn their
-    // hostile players, units their alarm records), frees the records, then loads the scripts unless
-    // `keepIds`' low byte is set (a script error goes to the console under `name`). Returns true.
-    bool Load(int keepIds, std::string_view name);
+    // Reads the file's top-level chunks: the scripts (0xACCEECCA plain, 0xACCEECCB encoded), the weather (0xABD0),
+    // the records (0xB000), the players (0xDDDDDDD1) and the relations flag; with `objects` false the scripts alone.
+    MobContents ReadChunks(bool objects = true);
 };
+
+// Applies a .mob's contents to the server world: the weather, the player relations (when it applies them), every
+// record's world object (traps learn their hostile players and position, units their alarm records), then the
+// scripts unless `keepIds`' low byte is set (a script error goes to the console under `name`).
+void LoadMob(MobContents& contents, int keepIds, std::string_view name);
 
 } // namespace mapspec
