@@ -61,7 +61,8 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
 - `newgame` starts a new single-player game (the hero on zone1); `load <slot>` loads a save.
 - `console <command>` types into the game's console. `console thingamabob` unlocks scripting; then `@<command>` runs a
   world script command (e.g. `@AddUnitToServer(...)`, `@Attack(...)`) and `#<expression>` prints a script expression.
-- `check <expression>` requires the expression to print nonzero; `expect`/`reject <text>` look for console output.
+- `check <expression>` requires the expression to print nonzero; `expect`/`reject <text>` look for console output;
+  `allow <text>` exempts lines containing <text> from `reject`.
 - `waitfor <seconds> <expression>` waits until the expression is nonzero (fails after <seconds>); prefer it to fixed
   `wait`s. `waitline <seconds> <text>` waits until the console has printed <text> (e.g. `Saved savea`).
 - Waits on the interface rather than the clock (each fails the run after <seconds>): `waitmenu [seconds]` (default 30)

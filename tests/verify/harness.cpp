@@ -241,6 +241,8 @@
 //                             that takes longer than <seconds>
 //   expect <text>             require <text> in the console output since the previous expect
 //   reject <text>             fail if <text> appears in the console output from now on
+//   allow <text>              lines containing <text> are exempt from reject (a known message, e.g. a mod's
+//                             AddMob'd script the original drops too)
 //   report                    write the verify totals to harness_report.txt
 //   diskfull <text>           TEST ONLY (harness_disk_full.txt): writes to files whose path contains
 //                             <text> fail with ERROR_DISK_FULL from now on (harness_crash.h)
@@ -703,6 +705,7 @@ std::string LogText() {
 }
 std::size_t g_expectFrom = 0;                // first line "expect" looks at
 std::vector<std::string> g_rejected;         // texts that must not appear
+std::vector<std::string> g_allowed;          // lines containing one of these are exempt from g_rejected
 std::vector<std::string> g_failures;
 // A pending "check": the console line index its output starts at, and when to give up.
 bool g_checking = false;
@@ -832,8 +835,10 @@ void OnConsoleLine(std::string_view text) {
         while (!line.empty() && (line.back() == '\n' || line.back() == '\r')) line.pop_back();
         Log("console: %s", line.c_str());
         if (!g_captureAfter.empty() && line.find(g_captureAfter) != std::string::npos) g_captureAfterSeen = true;
+        bool allowed = false;
+        for (const std::string& a : g_allowed) allowed = allowed || line.find(a) != std::string::npos;
         for (const std::string& r : g_rejected)
-            if (line.find(r) != std::string::npos) g_failures.push_back("rejected output: " + line);
+            if (!allowed && line.find(r) != std::string::npos) g_failures.push_back("rejected output: " + line);
         g_console.push_back(std::move(line));
     }
 }
@@ -3501,6 +3506,8 @@ void RunSteps() {
             }
         } else if (s.verb == "reject") {
             g_rejected.push_back(s.argument);
+        } else if (s.verb == "allow") {
+            g_allowed.push_back(s.argument);
         } else if (s.verb == "diskfull") {
             crash::FailWritesTo(s.argument.c_str());
         } else if (s.verb == "expectcrash") {

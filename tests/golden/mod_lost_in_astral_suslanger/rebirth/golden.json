@@ -1,28 +1,16 @@
 {
   "scenario": "mod_lost_in_astral_suslanger",
   "install": "rebirth",
-  "recorded": "2026-11-09",
-  "commit": "ad82ab94c",
+  "recorded": "2026-11-10",
+  "commit": "7423f98b3",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "A load keeps the saved weather: rolls only from Tick and the weather delay saved in visuals.sav, so scenarios that set the clock in rainy zones draw fewer rolls and every save gains the WeatherDelay section.",
+  "reason": "L1a: AddMob'd script load errors printed on the console; scenarios allow the known ones",
   "source": "image",
   "saves": "48 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 26 of 28 records differ, first at record 2 (world update 60, tick 60, frame 11, zone gz1h); outcomes CHANGED: quest variables, party and items, script; max unit move 5.45 (obj33318939, record 19)",
-    "  first difference at record 2 (world update 60, tick 60, frame 11, zone gz1h): 377 fields",
-    "    world (world) timedObjects: 197 in the old golden, 196 in the new run (d 1)",
-    "    random (random) isaac.count: 84 in the old golden, 97 in the new run (d 13)",
-    "    obj980429 (80 unhuma \"\") #ai: 77024D75 in the old golden, 87251A51 in the new run",
-    "    ... 374 more",
-    "  outcomes: CHANGED quest variables, party and items, script; same: zone, deaths, spawns, money, game result",
-    "    quest variables: 1 variables differ (randsah); first from record 14: player0 randsah: 8.23603916 in the old golden, 3.43300152 in the new run",
-    "    party and items: player0 objects: 13 in the old golden, 14 in the new run, from record 9",
-    "    script: script #fx differs (hashes only), from record 2 (+5 more)",
-    "  world: 1 of 1 differ",
-    "    timedObjects: 1 world, 1 record, from 2; max |d| 1 at world timedObjects, record 2: 197 -> 196",
-    "... 107 more lines"
+    "console: differs from line 11: the old golden '1', the new run 'Script error: zone1evil.mob line 8: Duplicate script VCheck#1#1'"
   ]
 }

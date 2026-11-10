@@ -1,17 +1,16 @@
 {
   "scenario": "mod_lost_in_astral_ingos",
   "install": "rebirth",
-  "recorded": "2026-11-09",
-  "commit": "ad82ab94c",
+  "recorded": "2026-11-10",
+  "commit": "7423f98b3",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "A load keeps the saved weather: rolls only from Tick and the weather delay saved in visuals.sav, so scenarios that set the clock in rainy zones draw fewer rolls and every save gains the WeatherDelay section.",
+  "reason": "L1a: AddMob'd script load errors printed on the console; scenarios allow the known ones",
   "source": "image",
   "saves": "38 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save LostInAstral/savea/visuals.sav: 1 fields in 1 records differ: visuals 1",
-    "  visuals: 1 fields in 1 records; first visuals.weatherDelay weatherDelay: (none) in the old golden, -2 in the new run"
+    "console: differs from line 12: the old golden '1', the new run \"Script error: bz23k.mob line 267: Unexpected token 'BuyHaburuMain#2#1#0'\""
   ]
 }

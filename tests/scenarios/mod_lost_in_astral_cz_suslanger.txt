@@ -7,6 +7,8 @@
 # data (no starter\Mods) only the menu runs.
 mod starter\Mods\LostInAstral
 reject Script error
+# AddMob'd scripts that fail to load in the original too (L1a): printed, not this run's failure
+allow Script error: zone1evil.mob line 8: Duplicate script VCheck#1#1
 waitmenu
 digest off
 rebirth console thingamabob

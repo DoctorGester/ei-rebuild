@@ -9,6 +9,7 @@
   Saved savea
   1
   Script error: bz23k.mob line 267: Unexpected token 'BuyHaburuMain#2#1#0'
+  Script error: bz23k.mob line 267: Unexpected token 'BuyHaburuMain#2#1#0'
   1
   1
   1
