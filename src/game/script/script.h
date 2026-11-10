@@ -32,6 +32,7 @@ class EffectParticle;
 class EffectSound;
 class EffectLightning;
 class ScriptLua;
+class ScriptShadow;
 
 enum class ScriptType : int {
     None = 0,
@@ -431,6 +432,11 @@ public:
     // *result is a new temporary of `script`.
     void CalcObject(Script* script, ScriptVars* vars, ScriptObjectRef** result);
     void CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result);
+    // The function computed from the prepared arguments: the Calc* functions' work, which a lockstep shadow
+    // (script_lua_shadow.h) records around.
+    float EvaluateFloat(Script* script, ScriptVars* vars);
+    void EvaluateObject(Script* script, ScriptObjectRef** result);
+    void EvaluateGroup(Script* script, ScriptGroup** result);
 
     void PrepareArguments(Script* script, ScriptVars* vars);
     // The nested call that computes a float: the condition of Every / Any / Sum / ForIf. Null when there is none
@@ -573,6 +579,8 @@ struct ScriptRun {
     // One command of the run, its arguments already prepared (Execute's step; the Lua bindings call it with a call of
     // their own): false when the command waits (the run stays on it).
     bool RunCommand(Script* script, ScriptCall* cmd);
+    // RunCommand's work, which a lockstep shadow (script_lua_shadow.h) records around.
+    bool Perform(Script* script, ScriptCall* cmd);
 
     ScriptRunPosition position;
     bool* killFlag = nullptr;       // the script instance's killed flag, null for the WorldScript
@@ -725,9 +733,9 @@ public:
     // Frees everything loaded (the point light slots stay, zeroed); error text "Unknown error", the two counters
     // -2.
     void Reset();
-    // After every removal of a world object: deleted objects dropped from every variable set and from the values of
-    // `lua`, then the temporaries freed.
-    void PurgeDeletedObjects();
+    // After every removal of a world object (`removed`, for the lockstep shadow): deleted objects dropped from every
+    // variable set and from the values of `lua`, then the temporaries freed.
+    void PurgeDeletedObjects(const MapObject* removed = nullptr);
     void DropInstancesAndRuns();
     // EnterZone: instances, runs and effects dropped (ResetEffects), global values reset, each WorldScript block run
     // again.
@@ -760,6 +768,9 @@ public:
     ScriptQuestBuilder quest;   // Reset leaves it
     // The Lua runtime bound to this script (the last one made on it), whose values PurgeDeletedObjects purges too.
     ScriptLua* lua = nullptr;
+    // The lockstep shadow running this script's converted Lua beside it (script_lua_shadow.h; EI_LUA_BOTH), or the
+    // shadow whose Lua runs on this script; null in the game.
+    ScriptShadow* shadow = nullptr;
 };
 
 // The id of a command or function (ScriptKeyword::id, ScriptCall::id; the names are the table's). 1..68 are the

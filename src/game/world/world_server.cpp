@@ -19,6 +19,7 @@
 #include "game/players/player_manager.h"
 #include "game/data/registry.h"
 #include "game/script/script.h"
+#include "game/script/script_lua_shadow.h"
 #include "game/ai/sector_map.h"
 #include "game/objects/side_managers.h"
 #include "game/spells/spell.h"
@@ -219,8 +220,8 @@ void WorldServer::RemoveObject(unsigned objectId) {
     object->AddRef();   // held to the end, released twice there (with the maps' reference)
     if (unit) unit->SetPlayer(nullptr);
     object->flags |= MapObjectFlag::Removed;
-    MainScript()->PurgeDeletedObjects();     // what refers to removed objects dropped
-    SecondScript()->PurgeDeletedObjects();
+    MainScript()->PurgeDeletedObjects(object);     // what refers to removed objects dropped
+    SecondScript()->PurgeDeletedObjects(object);
 
     // Every world object forgets it (the walk stops at an entry without an object).
     for (auto node = objects.map.begin(); node != objects.map.end() && node->second; ++node)
@@ -281,6 +282,10 @@ constexpr float kWindStrength = 0.4f;
 void WorldServer::Create() {
     Destroy();
     World::Create();
+    if (ScriptShadow::Enabled()) {   // the Lua lockstep (EI_LUA_BOTH)
+        ScriptShadow::Attach(MainScript(), "mission");
+        ScriptShadow::Attach(SecondScript(), "console");
+    }
     if (!messages.Open(g_textFolder + kMessagesFileName)) game::FatalExit("%s", kCantOpenText);
 
     specificManager = std::make_unique<ServerSpecificManager>();

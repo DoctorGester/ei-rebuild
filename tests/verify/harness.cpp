@@ -550,6 +550,7 @@
 #include "platform/platform.h"
 #include "game/app/harness_hooks.h"
 #include "game/net/net_second_master.h"
+#include "game/script/script_lua_shadow.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "harness_objects.h"
@@ -1214,6 +1215,7 @@ void WriteReport() {
     if (!g_capturedFrames.empty()) std::fprintf(f, "\nframes captured:\n");
     for (const std::string& frame : g_capturedFrames) std::fprintf(f, "  %s\n", frame.c_str());
     if (std::string digest = digest::Summary(); !digest.empty()) std::fprintf(f, "\nstate digest: %s\n", digest.c_str());
+    if (std::string lua = ScriptShadow::Summary(); !lua.empty()) std::fprintf(f, "\n%s\n", lua.c_str());
     sys::WindowReport(f);
     netlocal::Report(f);
     pair::Report(f);
@@ -1227,6 +1229,7 @@ void WriteReport() {
     if (std::string paired = pair::Failure(); !paired.empty()) failures.push_back(paired);    // harness_pair.h
     if (std::string pinned = settings::Failure(); !pinned.empty()) failures.push_back(pinned);   // harness_settings.h
     if (std::string written = InstallFailure(); !written.empty()) failures.push_back(written);   // MapPath
+    if (std::string lua = ScriptShadow::Failure(); !lua.empty()) failures.push_back(lua);   // script_lua_shadow.h
 
     for (const std::string& failure : failures) std::fprintf(f, "FAILED: %s\n", failure.c_str());
     std::fprintf(f, "RESULT: %s\n", !failures.empty() ? "FAIL" : "PASS");

@@ -78,6 +78,9 @@ public:
     // Every object and group value Lua holds drops deleted objects (what Script::PurgeDeletedObjects and the tick do
     // to the script's variables).
     void RemoveDeletedObjects();
+    // The same with another test: every value drops the objects `gone` names (the lockstep shadow's purges, which
+    // know which objects the game had removed by then).
+    void RemoveObjects(const std::function<bool(const MapObject*)>& gone);
 
     // Eris: the value on top of the stack persisted into *data (popped), or the value of `data` pushed. The
     // permanents are the globals table and every function in it and in the libraries' tables under its name, so the
@@ -87,6 +90,8 @@ public:
 
     Script* script = nullptr;
     ScriptRun* currentRun = nullptr;
+    // The thread of the last binding call (where the lockstep shadow says a difference is).
+    lua_State* calling = nullptr;
     // Starts an instance of a definition (a call of a `Script { ... }` value), the definition and the call's arguments
     // on the stack; the scheduler's. Without one a call is a Lua error.
     std::function<void(lua_State* L)> startScript;

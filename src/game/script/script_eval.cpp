@@ -18,6 +18,7 @@
 #include "game/core/random.h"
 #include "game/script/script.h"
 #include "game/script/script_addon.h"
+#include "game/script/script_lua_shadow.h"
 #include "game/units/unit.h"
 #include "game/ai/unit_ai.h"
 #include "game/world/world.h"
@@ -80,7 +81,16 @@ Player* ScriptArgs::FindPlayer() { return g_serverWorld.GetPlayer(lib::Truncate(
 void ScriptCall::PrepareArguments(Script* script, ScriptVars* vars) {
     SetParameters(localBindings, vars);
     SetParameters(globalBindings, &script->globals);
-    for (int i = 0; i < std::ssize(subCalls); ++i) CalcParameters(script, vars, &subCalls[i]);
+    for (int i = 0; i < std::ssize(subCalls); ++i) {
+        // A loop's condition is evaluated here once more, with the counter as it is: the lockstep shadow leaves it
+        // out (the Lua makes no such call) unless it draws.
+        if (script->shadow && &subCalls[i] == ConditionCall() && ScriptShadow::IsLoop(id)) {
+            const ScriptShadow::PreEvaluation pre(script, id);
+            CalcParameters(script, vars, &subCalls[i]);
+            continue;
+        }
+        CalcParameters(script, vars, &subCalls[i]);
+    }
 }
 
 const ScriptSubCall* ScriptCall::ConditionCall() const {
@@ -112,6 +122,11 @@ void ScriptCall::CalcParameters(Script* script, ScriptVars* vars, const ScriptSu
 
 float ScriptCall::CalcFloat(Script* script, ScriptVars* vars) {
     PrepareArguments(script, vars);
+    if (script->shadow) return script->shadow->Float(this, script, vars);
+    return EvaluateFloat(script, vars);
+}
+
+float ScriptCall::EvaluateFloat(Script* script, ScriptVars* vars) {
     float result = 0.0f;
     {
         scriptaddon::Call call{this, script, &result, nullptr, nullptr};
@@ -438,6 +453,11 @@ float ScriptCall::CalcFloat(Script* script, ScriptVars* vars) {
 
 void ScriptCall::CalcObject(Script* script, ScriptVars* vars, ScriptObjectRef** result) {
     PrepareArguments(script, vars);
+    if (script->shadow) script->shadow->Object(this, script, result);
+    else EvaluateObject(script, result);
+}
+
+void ScriptCall::EvaluateObject(Script* script, ScriptObjectRef** result) {
     *result = script->NewTempObject();
     {
         scriptaddon::Call call{this, script, result, nullptr, nullptr};
@@ -499,6 +519,11 @@ void ScriptCall::CalcObject(Script* script, ScriptVars* vars, ScriptObjectRef** 
 
 void ScriptCall::CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result) {
     PrepareArguments(script, vars);
+    if (script->shadow) script->shadow->Group(this, script, result);
+    else EvaluateGroup(script, result);
+}
+
+void ScriptCall::EvaluateGroup(Script* script, ScriptGroup** result) {
     *result = &script->tempGroups.emplace_back();
     ScriptGroup* group = *result;
     scriptaddon::Call call{this, script, result, nullptr, nullptr};
