@@ -4,5 +4,6 @@ group = "mods"
 depends = ["MF9"]
 note = "MF9 checks the TOML loader on converted installs only (the TOML in the .mob's own layer). A mod scenario: the game's zone1.mob.toml from ei-convert with one unit moved and one added, in a mod's Maps folder without a .mob (the scripts then come from the game's .mob), seen in a new game. Also open: the .mob's AI graph chunk (0x31415926, ReadAIGraph) stays binary."
 order = 1319
-status = "review"
+status = "done"
 started = "2026-11-10"
+done = "2026-11-10"
