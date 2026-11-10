@@ -31,6 +31,7 @@ class EffectPointLight;
 class EffectParticle;
 class EffectSound;
 class EffectLightning;
+class ScriptLua;
 
 enum class ScriptType : int {
     None = 0,
@@ -707,18 +708,25 @@ public:
 
     // Outside For loops; keeps one empty group and one released object reference.
     void FreeTemporaries();
-    // When a script is loaded: the waiting runs, every instance's if-then pairs (killed instances dropped), then
-    // the timed effects (FX sources, point lights, particle sources).
+    // When a script is loaded: the waiting runs, every instance's if-then pairs (killed instances dropped), the
+    // globals' deleted objects dropped, then TickEffects.
     void Tick();
+    // The tick's end: the timed effects (FX sources, point lights, particle sources), then the temporaries freed (the
+    // Lua scheduler's too, script_lua_scheduler.h).
+    void TickEffects();
     // Frees everything loaded (the point light slots stay, zeroed); error text "Unknown error", the two counters
     // -2.
     void Reset();
-    // After every removal of a world object: deleted objects dropped from every variable set, then the
-    // temporaries freed.
+    // After every removal of a world object: deleted objects dropped from every variable set and from the values of
+    // `lua`, then the temporaries freed.
     void PurgeDeletedObjects();
     void DropInstancesAndRuns();
-    // EnterZone: instances, runs and effects dropped, global values reset, each WorldScript block run again.
+    // EnterZone: instances, runs and effects dropped (ResetEffects), global values reset, each WorldScript block run
+    // again.
     void ResetZone();
+    // The zone reset's part beside the scripts: the For depth and the temporaries reset, every effect removed (point
+    // light slots zeroed; the FX source, particle source and lightning lists emptied).
+    void ResetEffects();
 
     std::vector<ScriptPointLight> pointLights;      // 256 slots
     std::vector<ScriptParticleSource> particles;
@@ -742,6 +750,8 @@ public:
     ScriptParseError errorCode = ScriptParseError::None;
     int errorLine = 0;
     ScriptQuestBuilder quest;   // Reset leaves it
+    // The Lua runtime bound to this script (the last one made on it), whose values PurgeDeletedObjects purges too.
+    ScriptLua* lua = nullptr;
 };
 
 // The id of a command or function (ScriptKeyword::id, ScriptCall::id; the names are the table's). 1..68 are the

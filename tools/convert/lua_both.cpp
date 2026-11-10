@@ -1,39 +1,48 @@
-// Short script texts run both ways: see lua_both.h.
+// Script texts run both ways: see lua_both.h.
 #include "lua_both.h"
 
+#include "game/app/singletons.h"
+#include "game/core/base_manager.h"
 #include "game/core/random.h"
 #include "game/objects/map_object.h"
+#include "game/objects/map_object_manager.h"
+#include "game/players/player_manager.h"
 #include "game/script/script.h"
+#include "game/spells/spell.h"
 #include "game/script/script_ir.h"
 #include "game/script/script_lua.h"
 #include "game/script/script_lua_number.h"
+#include "game/script/script_lua_scheduler.h"
 #include "game/script/script_lua_writer.h"
+#include "game/world/world.h"
 
 #include "eris/lauxlib.h"
 #include "eris/lua.h"
 
+#include <algorithm>
 #include <bit>
 #include <cstdint>
 #include <cstdio>
 #include <format>
-#include <iterator>
-#include <list>
 #include <map>
+#include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace lua_both {
 
 namespace {
 
-// The texts of one case, each loaded before the tick of its number.
-struct Text {
+// The texts of one short case, each loaded before the tick of its number; the zone reset before `resetTick`.
+struct CaseText {
     int tick = 0;
     const char* text = nullptr;
 };
 struct Case {
     const char* name = nullptr;
-    std::vector<Text> texts;
+    std::vector<CaseText> texts;
+    int resetTick = -1;
 };
 
 constexpr int kTicks = 24;
@@ -137,164 +146,23 @@ WorldScript(
 )
 )"}}};
 
-const Case* const kCases[] = {&kRules, &kKills, &kNames, &kLater, &kNumbers};
+// The zone reset: instances and runs dropped, every global zeroed and every text's WorldScript started again (the last
+// loaded first), an empty WorldScript and an empty then-section (no run), a run that ends staying a tick.
+const Case kReset{"reset",
+                  {{0, R"(
+GlobalVars( n : float, g : group, s : string, u : object )
+DeclareScript Count()
+Script Count ( if ( IsLess( n, 100 ) ) then ( n = Add( n, 1 ) ) if ( IsEqual( n, 3 ) ) then () )
+WorldScript( u = GetObject( 1001 ) AddObject( g, u ) s = "x" Count() Sleep( 2 ) n = Add( n, 10 ) )
+)"},
+                   {2, "WorldScript()"},
+                   {3, R"(
+GlobalVars( m : float )
+WorldScript( m = Add( m, Random( 5 ) ) Sleep( 20 ) m = Add( m, 1 ) )
+)"}},
+                  8};
 
-// A scheduler of Script::Tick's order for converted Lua: the waiting runs, the instances' rules, then the deleted
-// objects dropped and the script's timed effects (L4 builds the game's).
-class Scheduler {
-public:
-    Scheduler(ScriptLua& lua, Script& script) : lua(lua), script(script), L(lua.State()) {
-        lua.startScript = [this](lua_State* from) { Start(from); };
-    }
-    ~Scheduler() {
-        lua.startScript = nullptr;
-        for (const Run& run : runs) luaL_unref(L, LUA_REGISTRYINDEX, run.thread);
-        for (const Instance& instance : instances) luaL_unref(L, LUA_REGISTRYINDEX, instance.values);
-    }
-    Scheduler(const Scheduler&) = delete;
-    Scheduler& operator=(const Scheduler&) = delete;
-
-    // A text's chunk run; its WorldScript a run at the head of the list, first resumed by the next tick.
-    bool Load(const std::string& text, std::string* error) {
-        if (!lua.RunChunk(text, "=converted", error)) return false;
-        if (lua_getglobal(L, "WorldScript") == LUA_TFUNCTION) runs.push_front(NewRun(0));
-        else lua_pop(L, 1);
-        lua_pushnil(L);
-        lua_setglobal(L, "WorldScript");
-        return true;
-    }
-
-    void Tick(std::vector<std::string>* errors) {
-        for (auto run = runs.begin(); run != runs.end();) {
-            const auto next = std::next(run);
-            if (!Continue(*run, errors)) {
-                luaL_unref(L, LUA_REGISTRYINDEX, run->thread);
-                runs.erase(run);
-            }
-            run = next;
-        }
-        for (auto instance = instances.begin(); instance != instances.end();) {
-            const auto next = std::next(instance);
-            RunRules(*instance, errors);
-            if (instance->killed) {
-                luaL_unref(L, LUA_REGISTRYINDEX, instance->values);
-                instances.erase(instance);
-            }
-            instance = next;
-        }
-        lua.RemoveDeletedObjects();
-        script.loaded = 1;
-        script.Tick();   // no runs or instances of its own: its timed effects and temporaries
-    }
-
-    std::size_t Instances() const { return instances.size(); }
-    std::size_t Runs() const { return runs.size(); }
-
-private:
-    struct Instance {
-        int values = LUA_NOREF;   // the registry's {definition, arguments...}
-        int count = 0;            // of arguments
-        bool killed = false;
-    };
-    struct Run {
-        int thread = LUA_NOREF;
-        lua_State* state = nullptr;
-        ScriptRun run;
-        int arguments = 0;   // on the thread's stack before its first resume
-        // Returned: Execute's run stays in the list until its next call finds the block ended.
-        bool ended = false;
-    };
-
-    // A call of a definition: an instance at the head of the list, its arguments copied.
-    void Start(lua_State* from) {
-        const int top = lua_gettop(from);
-        lua_createtable(from, top, 0);
-        for (int i = 1; i <= top; ++i) {
-            PushCopy(from, i);
-            lua_rawseti(from, -2, i);
-        }
-        Instance& instance = instances.emplace_front();
-        instance.values = luaL_ref(from, LUA_REGISTRYINDEX);
-        instance.count = top - 1;
-    }
-
-    // The value at `index`, a group as a new one (the game copied the values into an instance's and a run's variables).
-    static void PushCopy(lua_State* state, int index) {
-        index = lua_absindex(state, index);
-        if (luaL_testudata(state, index, "ei.group")) {
-            lua_getglobal(state, "CopyGroup");
-            lua_pushvalue(state, index);
-            lua_call(state, 1, 1);
-        } else {
-            lua_pushvalue(state, index);
-        }
-    }
-
-    // The function and the `count` values above it on L's stack moved to a new thread.
-    Run NewRun(int count) {
-        Run run;
-        run.state = lua_newthread(L);
-        lua_insert(L, -(count + 2));
-        lua_xmove(L, run.state, count + 1);
-        run.thread = luaL_ref(L, LUA_REGISTRYINDEX);
-        run.arguments = count;
-        return run;
-    }
-
-    // Execute's step: false when the run had ended before it (it is dropped).
-    bool Continue(Run& run, std::vector<std::string>* errors) {
-        if (run.ended) return false;
-        std::string error;
-        run.ended = !lua.Continue(run.state, &run.run, run.arguments, &error);
-        run.arguments = 0;
-        if (!error.empty()) errors->push_back(error);
-        return true;
-    }
-
-    // The rules in order until one kills the instance: a rule whose condition holds runs its action at once, a run with
-    // the instance's kill flag, which then goes to the head of the run list without it (one that ended too, as
-    // Execute's result says).
-    void RunRules(Instance& instance, std::vector<std::string>* errors) {
-        const int base = lua_gettop(L);
-        lua_rawgeti(L, LUA_REGISTRYINDEX, instance.values);
-        const int values = lua_gettop(L);
-        lua_rawgeti(L, values, 1);
-        const int definition = lua_gettop(L);
-        const lua_Integer rules = luaL_len(L, definition);
-        for (lua_Integer r = 1; r <= rules && !instance.killed; ++r) {
-            lua_settop(L, definition);
-            lua_rawgeti(L, definition, r);
-            const int rule = lua_gettop(L);
-            if (lua_getfield(L, rule, "condition") == LUA_TFUNCTION) {
-                for (int i = 1; i <= instance.count; ++i) lua_rawgeti(L, values, i + 1);
-                if (lua_pcall(L, instance.count, 1, 0) != LUA_OK) {
-                    errors->push_back(lua_tostring(L, -1));
-                    continue;
-                }
-                if (!lua_toboolean(L, -1)) continue;
-            }
-            lua_settop(L, rule);
-            lua_getfield(L, rule, "action");
-            for (int i = 1; i <= instance.count; ++i) {
-                lua_rawgeti(L, values, i + 1);
-                PushCopy(L, -1);
-                lua_remove(L, -2);
-            }
-            Run run = NewRun(instance.count);
-            run.run.killFlag = &instance.killed;
-            Continue(run, errors);
-            run.run.killFlag = nullptr;
-            runs.push_front(std::move(run));
-        }
-        lua_settop(L, base);
-    }
-
-    ScriptLua& lua;
-    Script& script;
-    lua_State* L = nullptr;
-    std::list<Instance> instances;   // the kill flags of runs point into it
-    std::list<Run> runs;
-};
+const Case* const kCases[] = {&kRules, &kKills, &kNames, &kLater, &kNumbers, &kReset};
 
 constexpr ScriptType kTypes[] = {ScriptType::Float, ScriptType::String, ScriptType::Object, ScriptType::Group};
 
@@ -306,13 +174,18 @@ std::string GroupText(const ScriptGroup& group) {
     return text + " }";
 }
 
-// One tick's state: each global's value by its tree name, the instance and waiting run counts.
+// One tick's state: each global's value by its tree name, the instance and waiting run counts, the random draws.
 struct Snapshot {
     std::map<std::string, std::string> globals;
     std::map<std::string, ScriptType> types;
     std::size_t instances = 0;
     std::size_t runs = 0;
+    int draws = 0;
 };
+
+int g_draws = 0;   // the random generator's draws so far (its observer counts them)
+
+void CountDraw(IsaacRandom&, std::uint32_t, const void*) { ++g_draws; }
 
 Snapshot GameSnapshot(Script& script) {
     Snapshot snapshot;
@@ -337,15 +210,15 @@ Snapshot GameSnapshot(Script& script) {
     }
     snapshot.instances = script.instances.size();
     snapshot.runs = script.runs.size();
+    snapshot.draws = g_draws;
     return snapshot;
 }
 
 // The Lua side's values of the game snapshot's globals (the left-out ones skipped: a declaration never found, and a
 // counter no text reads outside its loops, which the Lua does not write).
-Snapshot LuaSnapshot(ScriptLua& lua, const scriptlua::LuaNames& names, const Snapshot& game,
-                     const Scheduler& scheduler) {
+Snapshot LuaSnapshot(ScriptLuaScheduler& scheduler, const scriptlua::LuaNames& names, const Snapshot& game) {
     Snapshot snapshot;
-    lua_State* L = lua.State();
+    lua_State* L = scheduler.lua.State();
     for (const auto& [irName, type] : game.types) {
         const auto found = names.globals.find(irName);
         if (found == names.globals.end()) continue;
@@ -363,10 +236,12 @@ Snapshot LuaSnapshot(ScriptLua& lua, const scriptlua::LuaNames& names, const Sna
             value = lua_type(L, -1) == LUA_TSTRING ? std::format("\"{}\"", lua_tostring(L, -1)) : "not a string";
             break;
         case ScriptType::Object:
-            value = ObjectText(scriptlua::CheckObject(L, -1)->object);
+            value = lua_isnil(L, -1) || luaL_testudata(L, -1, "ei.object")
+                        ? ObjectText(scriptlua::CheckObject(L, -1)->object)
+                        : std::string("not an object");
             break;
         case ScriptType::Group:
-            value = GroupText(*scriptlua::CheckGroup(L, -1));
+            value = luaL_testudata(L, -1, "ei.group") ? GroupText(*scriptlua::CheckGroup(L, -1)) : "not a group";
             break;
         default:
             break;
@@ -374,8 +249,9 @@ Snapshot LuaSnapshot(ScriptLua& lua, const scriptlua::LuaNames& names, const Sna
         lua_pop(L, 1);
         snapshot.globals[irName] = value;
     }
-    snapshot.instances = scheduler.Instances();
-    snapshot.runs = scheduler.Runs();
+    snapshot.instances = scheduler.InstanceCount();
+    snapshot.runs = scheduler.RunCount();
+    snapshot.draws = g_draws;
     return snapshot;
 }
 
@@ -384,75 +260,194 @@ std::string Difference(const Snapshot& game, const Snapshot& lua) {
     if (game.instances != lua.instances)
         return std::format("instances: {} in the game, {} in Lua", game.instances, lua.instances);
     if (game.runs != lua.runs) return std::format("waiting runs: {} in the game, {} in Lua", game.runs, lua.runs);
+    if (game.draws != lua.draws)
+        return std::format("random draws so far: {} in the game, {} in Lua", game.draws, lua.draws);
     for (const auto& [name, value] : lua.globals)
         if (game.globals.at(name) != value)
             return std::format("{}: {} in the game, {} in Lua", name, game.globals.at(name), value);
     return {};
 }
 
-// One case both ways; true when every tick matched.
-bool RunCase(const Case& test) {
-    const IsaacRandom random = g_random;
+// The random generator as it was, its draws counted while it lives.
+struct DrawCounter {
+    DrawCounter() : saved(g_random) { IsaacRandom::SetDrawObserver(CountDraw); }
+    ~DrawCounter() {
+        IsaacRandom::SetDrawObserver(nullptr);
+        g_random = saved;
+    }
+    // The generator and the count back to the start (the other side's run).
+    void Restart() {
+        g_random = saved;
+        g_draws = 0;
+    }
+    DrawCounter(const DrawCounter&) = delete;
+    DrawCounter& operator=(const DrawCounter&) = delete;
+
+    IsaacRandom saved;
+};
+
+// The server world's managers the commands reach (World::Create's, without the data it loads): the effects (sounds,
+// lights, bolts, particle sources), the players and map objects (none), the spells (no database: none made), the
+// camera.
+void PrepareWorld() {
+    if (!g_serverWorld.timedObjectManager) {
+        g_serverWorld.timedObjectManager = std::make_unique<EffectManager>();
+        g_serverWorld.timedObjectManager->Init(&g_serverWorld);
+    }
+    if (!g_serverWorld.players) {
+        g_serverWorld.players = std::make_unique<PlayerManager>();
+        g_serverWorld.players->Init(&g_serverWorld);
+    }
+    if (!g_serverWorld.objectManager) {
+        g_serverWorld.objectManager = std::make_unique<MapObjectManager>();
+        // Not created: its Create opens the data archives; the walks of its objects find none.
+    }
+    if (!g_serverWorld.spellManager) {
+        g_serverWorld.spellConstructor = std::make_unique<SpellConstructor>();
+        g_serverWorld.spellConstructor->Create();
+        g_serverWorld.spellManager = std::make_unique<SpellManager>();
+        g_serverWorld.spellManager->Init(&g_serverWorld);
+    }
+    g_clientWorld.camera = &g_camera;
+}
+
+// The commands and functions the test world cannot run: they need the game's data or its window.
+// AddMobEx (Rebirth's) loads its file whether or not it was loaded; GSListPlayerVars needs its player.
+constexpr std::string_view kNeedsGame[] = {"PlayMovie", "PlayCamera", "AddMobEx", "GSListPlayerVars"};
+
+// What a text's calls need from the test world: the first keyword it cannot run, and the files AddMob loads.
+struct Needs {
+    const char* missing = nullptr;
+    std::vector<std::string> mobs;
+};
+
+void FindNeeds(const scriptir::Block& block, Needs& needs);
+
+void FindNeeds(const scriptir::Call& call, Needs& needs) {
+    const char* keyword = KeywordName(static_cast<ScriptLexeme>(call.id));
+    if (keyword && std::ranges::find(kNeedsGame, keyword) != std::end(kNeedsGame) && !needs.missing)
+        needs.missing = keyword;
+    if (call.id == ScriptFunction::AddMob) {
+        if (!call.args.empty() && call.args[0].kind == scriptir::ArgKind::Text) needs.mobs.push_back(call.args[0].text);
+        else if (!needs.missing) needs.missing = "AddMob of a computed name";
+    }
+    for (const scriptir::Arg& arg : call.args)
+        if (arg.call) FindNeeds(*arg.call, needs);
+    if (call.body) FindNeeds(*call.body, needs);
+}
+
+void FindNeeds(const scriptir::Block& block, Needs& needs) {
+    for (const scriptir::Call& call : block.calls) FindNeeds(call, needs);
+}
+
+Needs FindNeeds(const std::vector<Text>& texts) {
+    Needs needs;
+    Script script;
+    for (const Text& text : texts) {
+        std::string copy = text.text;
+        scriptir::File file;
+        script.Load(&copy, false, &file);
+        for (const scriptir::Block& block : file.worldScripts) FindNeeds(block, needs);
+        for (const scriptir::Definition& definition : file.definitions) {
+            for (const scriptir::Rule& rule : definition.rules) {
+                FindNeeds(rule.conditions, needs);
+                FindNeeds(rule.commands, needs);
+            }
+        }
+    }
+    return needs;
+}
+
+// The world's list of loaded .mob files with the ones the texts AddMob (the lockstep loads them as texts of the
+// script: LoadMobFile then finds each loaded), as it was again at the end.
+struct MobFiles {
+    explicit MobFiles(const std::vector<std::string>& mobs) : saved(g_serverWorld.mobFiles) {
+        for (const std::string& mob : mobs) g_serverWorld.mobFiles.push_back(mob);
+    }
+    ~MobFiles() { g_serverWorld.mobFiles = saved; }
+    MobFiles(const MobFiles&) = delete;
+    MobFiles& operator=(const MobFiles&) = delete;
+
+    std::vector<std::string> saved;
+};
+
+}   // namespace
+
+bool g_logMuted = false;
+
+Outcome Compare(const std::vector<Text>& texts, int ticks, int resetTick) {
+    PrepareWorld();
+    struct Mute {
+        Mute() { g_logMuted = true; }
+        ~Mute() { g_logMuted = false; }
+    } mute;
+    Outcome outcome;
+    const Needs needs = FindNeeds(texts);
+    if (needs.missing) {
+        outcome.leftOut = needs.missing;
+        return outcome;
+    }
+    const MobFiles mobFiles(needs.mobs);
+    DrawCounter counter;
+    counter.Restart();
     std::vector<Snapshot> gameTicks;
-    std::vector<scriptir::File> trees(test.texts.size());
+    std::vector<scriptir::File> trees(texts.size());
     {
         Script script;
-        for (int tick = 0; tick < kTicks; ++tick) {
-            for (std::size_t t = 0; t < test.texts.size(); ++t) {
-                if (test.texts[t].tick != tick) continue;
-                std::string text = test.texts[t].text;
-                if (!script.Load(&text, true, &trees[t])) {
-                    std::printf("lua_check: %s: text %zu fails to load: line %d: %s\n", test.name, t,
-                                trees[t].error.line, trees[t].error.text.c_str());
-                    return false;
-                }
+        int loads = 0;
+        for (int tick = 0; tick < ticks; ++tick) {
+            for (std::size_t t = 0; t < texts.size(); ++t) {
+                if (texts[t].tick != tick) continue;
+                std::string text = texts[t].text;
+                if (script.Load(&text, true, &trees[t])) ++loads;
             }
+            if (tick == resetTick) script.ResetZone();
             script.Tick();
+            // A load of the game's own: compared up to the tick before.
+            if (script.fileCount > loads) {
+                outcome.questLoaded = true;
+                break;
+            }
             gameTicks.push_back(GameSnapshot(script));
         }
     }
-    const IsaacRandom afterGame = g_random;
-    g_random = random;
 
+    counter.Restart();
     Script script;
-    ScriptLua lua(&script);
+    ScriptLuaScheduler scheduler(&script);
     scriptlua::LuaNames names;
-    Scheduler scheduler(lua, script);
-    std::vector<std::string> errors;
-    bool same = true;
-    for (int tick = 0; tick < kTicks && same; ++tick) {
-        for (std::size_t t = 0; t < test.texts.size(); ++t) {
-            if (test.texts[t].tick != tick) continue;
-            const scriptlua::LuaText converted = scriptlua::WriteLua(trees[t], names, test.name);
+    for (int tick = 0; tick < std::ssize(gameTicks) && outcome.difference.empty(); ++tick) {
+        for (std::size_t t = 0; t < texts.size(); ++t) {
+            if (texts[t].tick != tick) continue;
+            const scriptlua::LuaText converted = scriptlua::WriteLua(trees[t], names, texts[t].name);
+            const std::string chunk = "=" + texts[t].name + ".lua";
             std::string error;
-            if (!scheduler.Load(converted.text, &error)) errors.push_back(error);
+            if (!scheduler.Load(converted.text, chunk.c_str(), trees[t].ok, &error)) scheduler.errors.push_back(error);
         }
-        scheduler.Tick(&errors);
-        const std::string difference =
-            Difference(gameTicks[static_cast<std::size_t>(tick)],
-                       LuaSnapshot(lua, names, gameTicks[static_cast<std::size_t>(tick)], scheduler));
-        if (!difference.empty()) {
-            std::printf("lua_check: %s, tick %d: %s\n", test.name, tick, difference.c_str());
-            same = false;
-        }
+        if (tick == resetTick) scheduler.ResetZone();
+        scheduler.Tick();
+        const Snapshot& game = gameTicks[static_cast<std::size_t>(tick)];
+        std::string difference = Difference(game, LuaSnapshot(scheduler, names, game));
+        if (difference.empty() && !scheduler.errors.empty()) difference = "Lua error: " + scheduler.errors.front();
+        if (!difference.empty()) outcome.difference = std::format("tick {}: {}", tick, difference);
+        outcome.ticks = tick + 1;
+        outcome.mostInstances = std::max(outcome.mostInstances, game.instances);
+        outcome.mostRuns = std::max(outcome.mostRuns, game.runs);
     }
-    for (const std::string& error : errors) std::printf("lua_check: %s: %s\n", test.name, error.c_str());
-    IsaacRandom luaNext = g_random;
-    IsaacRandom gameNext = afterGame;
-    if (same && luaNext.Next() != gameNext.Next()) {
-        std::printf("lua_check: %s: the Lua drew another count of random numbers\n", test.name);
-        same = false;
-    }
-    return same && errors.empty();
+    return outcome;
 }
-
-}   // namespace
 
 int Check(int* checks) {
     int failures = 0;
     for (const Case* test : kCases) {
         ++*checks;
-        if (!RunCase(*test)) ++failures;
+        std::vector<Text> texts;
+        for (const CaseText& text : test->texts) texts.push_back({text.tick, test->name, text.text});
+        const Outcome outcome = Compare(texts, kTicks, test->resetTick);
+        if (outcome.difference.empty() && outcome.ticks == kTicks) continue;
+        ++failures;
+        std::printf("lua_check: %s: %s\n", test->name,
+                    outcome.difference.empty() ? "the game loaded a text of its own" : outcome.difference.c_str());
     }
     return failures;
 }

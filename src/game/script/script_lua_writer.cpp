@@ -332,9 +332,12 @@ private:
                 --depth;
                 Line("end,");
             }
-            Line(std::format("action = function({})", list));
-            Commands(rule.commands);
-            Line("end,");
+            // An empty then-section starts no run (Execute's false on its first call): no action.
+            if (!rule.commands.calls.empty()) {
+                Line(std::format("action = function({})", list));
+                Commands(rule.commands);
+                Line("end,");
+            }
             --depth;
             Line("},");
         }
@@ -348,6 +351,11 @@ private:
         Line("");
         if (index > 0) {
             Line("-- A second WorldScript, which the game's parser refuses.");
+            return;
+        }
+        // Its run would end at its first Execute: nothing to start.
+        if (block.calls.empty()) {
+            Line("-- An empty WorldScript.");
             return;
         }
         if (!file.ok)

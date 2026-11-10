@@ -4,8 +4,9 @@ Files (`src/game/`): `script.h` (the records and `Script`), `script_*.cpp` (grou
 exec_run, exec_helpers, save, load, blocks, cleanup, effects, quest, unit_modes, addon* (Rebirth, `rebirth.md`)),
 `quest_database.cpp`, `text_manager.cpp`. Scenarios: `script_parse`, `script_exec`, `script_copy`, `script_fx`,
 `script_quest`, `world_load` (save / load round trip), `console`, `effects`, `particles`, `zone_gz2g_traps`. The plan to
-run the scripts on Lua, its runtime (`script_lua.*`) and the writer of converted scripts (`script_lua_writer.*`), not
-run by the game yet: `lua-scripting.md`.
+run the scripts on Lua, its runtime (`script_lua.*`), the writer of converted scripts (`script_lua_writer.*`) and
+their scheduler in Script::Tick's order (`script_lua_scheduler.*`; Script::TickEffects and ResetEffects are the parts
+of the tick and the zone reset it shares), not run by the game yet: `lua-scripting.md`.
 
 ## Data structures
 

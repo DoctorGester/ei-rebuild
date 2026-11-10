@@ -3,7 +3,8 @@
 // The mission scripts' Lua runtime (docs/notes/lua-scripting.md, "Bindings"): a Lua 5.3 state (third_party/eris) with
 // every command and function of the keyword table bound under a readable Lua name, each calling the same CalcFloat /
 // CalcObject / CalcGroup / RunCommand code by id; objects and groups as userdata over ScriptObjectRef / ScriptGroup;
-// the state persisted with Eris. Nothing in the game runs it yet (no scheduler, nothing in the saves).
+// the state persisted with Eris. The scheduler of Script::Tick's order runs converted scripts on it
+// (script_lua_scheduler.h); nothing in the game runs it yet (L5), nothing is in the saves (L6).
 
 #include <functional>
 #include <string>
@@ -45,7 +46,8 @@ ScriptGroup* CheckGroup(lua_State* L, int index);
 
 class ScriptLua {
 public:
-    // The bindings run against `script` (its temporaries, effects, quest builder; RunCommand's script).
+    // The bindings run against `script` (its temporaries, effects, quest builder; RunCommand's script), which
+    // purges this runtime's values with its own (Script::lua).
     explicit ScriptLua(Script* script);
     ~ScriptLua();
     ScriptLua(const ScriptLua&) = delete;
@@ -70,6 +72,8 @@ public:
     // The type ("float", "string", "object", "group") a GlobalVars table declared the global `name` with; empty when
     // none did.
     std::string GlobalType(std::string_view name);
+    // Every global a GlobalVars table declared back to its type's zero value (0, "", nil, a new empty group).
+    void ResetGlobals();
 
     // Every object and group value Lua holds drops deleted objects (what Script::PurgeDeletedObjects and the tick do
     // to the script's variables).
