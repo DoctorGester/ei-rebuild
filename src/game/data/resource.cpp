@@ -607,7 +607,7 @@ bool MMIOResource::CloseFile(void*) { return true; }
 
 void MMIOResource::FreeAllFiles() {}
 
-RecordFile FindRecordFile(const std::string& path) {
+RecordFile FindRecordFile(const std::string& path, bool readOriginal) {
     RecordFile record;
     const std::size_t slash = path.find_last_of("\\/");
     const std::string folder = slash == std::string::npos ? std::string(".") : path.substr(0, slash);
@@ -627,7 +627,7 @@ RecordFile FindRecordFile(const std::string& path) {
         }
         if (original || record.replaced) break;
     }
-    if (!record.replaced) record.found = platform::ReadWholeFile(path, &record.original);
+    if (!record.replaced && readOriginal) record.found = platform::ReadWholeFile(path, &record.original);
     return record;
 }
 

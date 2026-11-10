@@ -55,7 +55,8 @@ exit index restarts with every "#zone"; "#allod" reads word 0 of its five lines 
 patrols / waypoints, particle source, light, sound; chunk readers and writers, the zone diplomacy table.
 `UnitRecord::ApplyTo` applies a .mob unit record to a new unit: stats (chunk BBBB0004), controller fields, protection
 from the prototype, the five item lists, spells, armour, weapons (chunk BBBB000A); a record without stats gives only
-the items.
+the items. The records can come from a TOML beside the .mob (`game/map/mob_toml.h`; mods.md, "Map objects as TOML"):
+both readers fill one `MobContents`, which `mapspec::LoadMob` applies.
 
 ## Players
 

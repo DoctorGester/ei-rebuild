@@ -13,7 +13,9 @@
 // figure models (.mod, .bon, .lnk, .fig) as <archive folder>\<figure>.glb (convert_models.cpp, "Models as glTF"). A
 // map archive (Maps\<zone>.mpr, or the folder of an unpacked one under a Maps folder) as its folder's map.toml and PNG
 // layers (convert_maps.cpp, docs/notes/mods.md "Maps as folders"). A .mob's script as <zone>.lua beside it
-// (convert_scripts.h, docs/notes/lua-scripting.md "Converted scripts"). A loose file as <name>.toml beside it. A record
+// (convert_scripts.h, docs/notes/lua-scripting.md "Converted scripts"), its other chunks as <zone>.mob.toml
+// (convert_mobs.cpp, docs/notes/mods.md "Map objects as TOML"; the .mob stays for its scripts and AI graph, so it is not
+// listed as converted). A loose file as <name>.toml beside it. A record
 // file's TOML has `replace = true`: it stands for the whole original, nothing below it read (a mod's original hides the
 // game's file too). The target mirrors the source's layout (MF1's loose folders); converted.txt there lists the
 // converted originals (relative to the source), which tools/convert_install.py removes from its copy.
@@ -32,6 +34,7 @@
 
 #include "convert_databases.h"
 #include "convert_maps.h"
+#include "convert_mobs.h"
 #include "convert_models.h"
 #include "convert_scripts.h"
 #include "lua_check.h"
@@ -520,6 +523,29 @@ void ConvertMapArchive(const fs::path& archivePath) {
         g_converted.push_back(folderRelative + "\\" + text::FromAssetText(original));
 }
 
+// A .mob's chunks but its scripts as <name>.mob.toml beside it, written only when the round trip holds. The .mob is not
+// listed as converted: the game still reads its scripts and AI graph.
+void ConvertMob(const fs::path& path) {
+    const std::string relative = Relative(path);
+    Count& count = g_counts["map objects"];
+    ++count.files;
+    const int logged = g_logLines;
+    convert_mobs::Converted converted = convert_mobs::RoundTrip(path);
+    if (g_logLines != logged) converted.differences.push_back("the loaders logged");
+    if (!converted.differences.empty()) {
+        ++count.failed;
+        std::printf("FAILED map objects %s:\n", relative.c_str());
+        for (std::size_t i = 0; i < converted.differences.size() && i < 10; ++i)
+            std::printf("    %s\n", converted.differences[i].c_str());
+        return;
+    }
+    if (g_options.target.empty()) return;
+    const fs::path output = g_options.target / PathOf(relative + ".toml");
+    fs::create_directories(output.parent_path());
+    fs::remove(output);   // a link into another copy (tools/convert_install.py) is not written through
+    std::ofstream(output, std::ios::binary) << converted.toml;
+}
+
 // Whether `folder` holds a map file (.mp): an unpacked map archive's folder.
 bool HoldsMapFile(const fs::path& folder) {
     for (const fs::directory_entry& entry : fs::directory_iterator(folder))
@@ -535,7 +561,7 @@ bool UnderFolderNamed(const fs::path& relative, const std::string& name) {
 
 void ConvertInstall(const fs::path& source) {
     std::set<std::string> archives;   // lower case, full paths without the extension
-    std::vector<fs::path> archivePaths, mapPaths;
+    std::vector<fs::path> archivePaths, mapPaths, mobPaths;
     auto addArchive = [&](const fs::path& path) {
         if (archives.insert(Lower(Utf8(fs::path(path).replace_extension()))).second) archivePaths.push_back(path);
     };
@@ -561,9 +587,11 @@ void ConvertInstall(const fs::path& source) {
         if (extension == ".res") addArchive(entry->path());
         else if (extension == ".mpr") addMap(entry->path());
         else if ((extension == ".reg" && !UnderFolderNamed(relative, "maps")) || extension == ".cam") loose.push_back(entry->path());
+        else if (extension == ".mob") mobPaths.push_back(entry->path());
     }
     for (const fs::path& archive : archivePaths) ConvertArchive(archive);
     for (const fs::path& map : mapPaths) ConvertMapArchive(map);
+    for (const fs::path& mob : mobPaths) ConvertMob(mob);
     for (const fs::path& path : loose) {
         std::string bytes;
         if (!ReadFile(path, &bytes)) continue;
@@ -647,6 +675,7 @@ int main(int argc, char** argv) {
     }
     convert_textures::PrintMeasures();
     convert_maps::PrintMeasures();
+    convert_mobs::PrintMeasures();
     convert_models::PrintMeasures();
     int failed = 0;
     for (const auto& [format, count] : g_counts) {

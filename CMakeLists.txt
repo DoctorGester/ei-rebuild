@@ -353,7 +353,7 @@ target_link_libraries(ei-rebuild PRIVATE ei_game)
 # written as TOML and its textures as PNG by the game's own loaders, each one's round trip checked; --scripts, the script
 # survey and parse tree check (docs/notes/lua-scripting.md, "Survey"). Its own ei::Log (the output's lines).
 add_executable(ei-convert tools/convert/convert.cpp tools/convert/convert_databases.cpp tools/convert/convert_maps.cpp
-               tools/convert/convert_textures.cpp
+               tools/convert/convert_textures.cpp tools/convert/convert_mobs.cpp
                tools/convert/convert_models.cpp tools/convert/convert_scripts.cpp tools/convert/lua_check.cpp
                tools/convert/lua_both.cpp tools/convert/lua_globals.cpp
                ${EI_GAME_CALLS} ${EI_SDL_CALLS})

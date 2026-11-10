@@ -93,8 +93,9 @@ struct RecordFile {
 };
 
 // The record file at `path` (a game folder's file, or one outside it such as a mod's config.reg) in each layer of the
-// path map, top first: the TOML files down to the first layer that has the file, and the file.
-RecordFile FindRecordFile(const std::string& path);
+// path map, top first: the TOML files down to the first layer that has the file, and the file (unless `readOriginal`
+// is false: the TOML files alone).
+RecordFile FindRecordFile(const std::string& path, bool readOriginal = true);
 // Each of `file`'s TOML files parsed and handed to `merge` with its path, the bottom one first (so the top one's
 // records win); one that does not parse is logged and left out.
 void MergeTomls(const RecordFile& file, const std::function<void(const toml::Value& root, const std::string& path)>& merge);

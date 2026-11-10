@@ -31,7 +31,7 @@ struct UnitRecordStats {
     float reachHeightScale = 0.0f;  // +0x34 -> reachHeightScale
     std::uint8_t sizeClass = 0;     // +0x38 -> sizeClass
     std::uint8_t sizeClassSmall = 0;  // +0x39 -> sizeClass20 and sizeClass60
-    std::uint8_t unused_3A[2] = {};
+    std::uint8_t unreadAfterSizes[2] = {};
     float reach = 0.0f;             // +0x3C -> combat[0]
     float attack = 0.0f;            // +0x40 -> combat[1]
     float defence = 0.0f;           // +0x44 -> combat[3]
@@ -39,13 +39,13 @@ struct UnitRecordStats {
     float damage = 0.0f;            // +0x4C -> damage
     float damageSpread = 0.0f;      // +0x50 -> damageSpread
     std::uint8_t damageWeights[7] = {};  // +0x54 the first 7 bytes of UnitStats::damageWeights
-    std::uint8_t unused_5B[0x70 - 0x5B] = {};
+    std::uint8_t unreadAfterWeights[0x70 - 0x5B] = {};
     std::uint8_t protectionScale = 0;  // +0x70 times the prototype model's protection (vitals, each twice)
-    std::uint8_t unused_71[3] = {};
+    std::uint8_t unreadAfterProtection[3] = {};
     float perception[6] = {};         // +0x74 -> UnitStats perception (base and current)
     float conspicuity[6] = {};         // +0x8C -> conspicuity
     std::uint8_t attributes[3] = {};  // +0xA4 -> attributes
-    std::uint8_t unused_A7[0xAC - 0xA7] = {};
+    std::uint8_t unreadTail[0xAC - 0xA7] = {};
 };
 static_assert(offsetof(UnitRecordStats, speed) == 0x10);
 static_assert(offsetof(UnitRecordStats, reachHeightScale) == 0x34);
