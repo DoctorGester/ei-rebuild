@@ -1,14 +1,15 @@
-# Companions: a player's other saved hero walks with its hero as a companion, added and sent away only in the base
-# zone (where quests are taken; GameFlow::InMultiplayerBase), kept for the whole game. This game makes two heroes,
+# Companions: a player's other saved hero walks with its hero as a companion. The list is picked only in the
+# multiplayer base (the briefing screen: a local zone with no server; the companions button or F3) and kept for the
+# whole game; each network zone only asks for it again (PlayerClient::RestoreCompanions). This game makes two heroes,
 # "comp" and then "host" (the one it plays), hosts with the create-server screen's companions switch on (region 30)
 # and the peer (peer/net_pair_companion.txt) joins. In the base:
-# - The HUD's companions button opens the companions window; its first row is "comp" (region 2), OK (region 0) asks
-#   the server for it (ClientMessage::AddCompanion): the party holds two records and the companion stands beside the
-#   hero. The sheriff's second topic (z3q2_1, as net_pair_zone) picks the map; out through the gate into z3q2, where
-#   the companion comes back by itself (PlayerClient::RestoreCompanions).
-# In z3q2 (outside the base):
-# - The button is hidden and F3 opens nothing; an add and a removal sent past the window are refused by the server
-#   (the party keeps its two records).
+# - The base screen's companions button opens the companions window; its first row is "comp" (region 2), OK
+#   (region 0) puts it on the list (SavedParties::companions), nothing is sent. The sheriff's second topic (z3q2_1,
+#   as net_pair_zone) picks the map; out through the gate into z3q2.
+# In z3q2 (a network zone):
+# - comp is asked for by the client (ClientMessage::AddCompanion with the restore dword): the party holds two
+#   records and the companion stands beside the hero. The HUD has no companions button, F3 opens nothing and an add
+#   sent past the list (askcompanion) is refused by the server: the party keeps its two records.
 # - The companion fights: it kills the hostile unit nearest it (the harness's hit), so the kill's experience is
 #   shared among the zone's heroes, the companion's share among them; then it is killed itself (the hero's death
 #   penalty on its experience, PlayerServer::CompanionDied). Then the hero dies (as net_host_death): the hero's rule,
@@ -16,8 +17,8 @@
 # - The peer quits (the exits stay closed while another player is in the game). Back out through exit 1 (as
 #   net_host_death), the hero and the companion selected: the party goes home and the client writes the companion's record
 #   into comp's own file (SavedParties::ReturnCompanions); heroxp reads that file from the disk.
-# Back in the base: out through the gate again, comp comes back by itself (companions last the game) and kills; home
-# again, F3 and OK on its row send it away (ClientMessage::RemoveCompanion); its record is in comp's file.
+# Back in the base the list still holds comp: out through the gate again, comp comes back by itself (companions last
+# the game) and kills; home again, F3 and OK on its row take it off the list.
 rebirth resolution desktop
 timeout 60
 peer net_pair_companion
@@ -73,21 +74,20 @@ peersignal hosted
 peerwait 90 joined
 frames 20
 
-# The companion joins in the base: the HUD's companions button (right of the portraits: the hero's and the peer's)
-# opens the window, its first row is comp.
-companions 1
-companionbutton 1
+# The companion is picked in the base: the base screen's companions button (bottom right) opens the window, its
+# first row is comp.
+companionlist 0
 frames 5
 capture companion_button
-layout click 455 577
+layout click 777 577
 frames 10
 capture companion_window
 clickregion 2
 frames 3
 clickregion 0
 frames 30
-companions 2
-capture companion_hud
+companionlist 1
+capture companion_base
 
 # The sheriff's second topic (z3q2_1) picks the map.
 clickground 63 64 dblclick
@@ -109,16 +109,13 @@ peerwait 120 peerin
 frames 60
 companions 2
 
-# Outside the base the list stays as it is: the button is hidden, F3 opens no window (the battle screen stays on
-# top) and the server refuses an add and a removal sent past the window.
-companionbutton 0
-capture companion_hidden
+# Outside the base the list stays as it is: the HUD has no companions button, F3 opens no window (the battle
+# screen stays on top) and the server refuses an add sent past the list.
+capture companion_hud
 key f3
 frames 10
 waitwindow 5 battle
-askcompanion add comp
-frames 10
-askcompanion remove
+askcompanion comp
 frames 10
 companions 2
 
@@ -180,9 +177,9 @@ key enter
 waitwindow 60 briefing
 frames 40
 heroxp comp more
-companions 2
+companionlist 1
 
-# Sent away in the base (F3, the first row is the companion, OK): its record goes back to comp's file.
+# Taken off the list in the base (F3, the first row is the companion, OK).
 key f3
 frames 10
 clickregion 2
@@ -190,7 +187,7 @@ frames 3
 capture companion_send_away
 clickregion 0
 frames 30
-companions 1
+companionlist 0
 heroxp comp
 frames 20
 report

@@ -7215,7 +7215,7 @@ cunit831510 #place 2B608AE6
 cunit831510 #unit A10BB686
 cunit848411 #place 8EE22F70
 cunit848411 #unit 4FBB1153
-@ 89 update 1800 frame 359 tick 1097 zone bz1mpg hash 7F7F4191 n 389
+@ 89 update 1800 frame 359 tick 1097 zone bz1mpg hash A2456FF1 n 389
 world tick 1097
 world updates 1800
 random isaac.count 71
@@ -7258,11 +7258,6 @@ obj927062 #vitals 73806309
 obj999742 #unit C9738A7B
 obj999742 #vitals 73806309
 obj1000002436 #vitals 039FDEFC
-obj1000011214 pos.x 60.415184
-obj1000011214 pos.y 52.1647453
-obj1000011214 #ai 8BA50468
-obj1000011214 #place 6D4B9A24
-obj1000011214 #unit 32160F9F
 obj1000011214 #vitals EE4A4405
 obj1000063817 #vitals 039FDEFC
 obj1007671245 #vitals 039FDEFC
@@ -7280,9 +7275,7 @@ cunit831510 #unit 0C4AFEDD
 cunit848411 #place 298D65D2
 cunit848411 #unit 64467FF4
 cunit999742 #unit D5E76F11
-cunit1000011214 #place 8627FAB8
-cunit1000011214 #unit 1F8C6697
-@ 90 update 1820 frame 363 tick 1117 zone bz1mpg hash 8B4EBB2C n 389
+@ 90 update 1820 frame 363 tick 1117 zone bz1mpg hash 8C2B0C20 n 389
 world tick 1117
 world updates 1820
 random isaac.count 227
@@ -7318,11 +7311,6 @@ obj848411 #vitals 6DB74AF6
 obj927062 #vitals CA16AB29
 obj999742 #vitals CA16AB29
 obj1000002436 #vitals BF5FD12C
-obj1000011214 pos.x 60.9949989
-obj1000011214 pos.y 49.5050011
-obj1000011214 #ai C57CFA1D
-obj1000011214 #place B21F4073
-obj1000011214 #unit 603D15C3
 obj1000011214 #vitals D24608AC
 obj1000063817 #vitals BF5FD12C
 obj1007671245 #vitals BF5FD12C
@@ -7337,10 +7325,7 @@ cunit831510 #place 8CCA5CE6
 cunit831510 #unit A10BB686
 cunit848411 #place D8D9F791
 cunit848411 #unit 4116D508
-cunit1000011214 #place CF3ED33F
-cunit1000011214 #unit 4088B5AB
-cunit1000063817 #unit 78BA1121
-@ 91 update 1840 frame 367 tick 1137 zone bz1mpg hash 850A4B49 n 389
+@ 91 update 1840 frame 367 tick 1137 zone bz1mpg hash FA0E3CAE n 389
 world tick 1137
 world updates 1840
 random isaac.count 127
@@ -7394,8 +7379,7 @@ cunit831510 #place 3701D1E8
 cunit831510 #unit 0C4AFEDD
 cunit848411 #place D0CD1712
 cunit848411 #unit D2876088
-cunit1000011214 #place 8A988E6C
-@ 92 update 1860 frame 371 tick 1157 zone bz1mpg hash 1A1275C0 n 389
+@ 92 update 1860 frame 371 tick 1157 zone bz1mpg hash 77F7DD1F n 389
 world tick 1157
 world updates 1860
 random isaac.count 27
@@ -7451,8 +7435,7 @@ cunit831510 #unit A10BB686
 cunit848411 #place AA35E1EE
 cunit927062 #unit 1D9C2C06
 cunit999742 #unit 8162696B
-cunit1000011214 #place F2AFB329
-@ 93 update 1880 frame 375 tick 1177 zone bz1mpg hash 0CD69022 n 389
+@ 93 update 1880 frame 375 tick 1177 zone bz1mpg hash F0644C85 n 389
 world tick 1177
 world updates 1880
 random isaac.count 183
@@ -7503,7 +7486,7 @@ cunit399469 #place D4E6FDB7
 cunit399469 #unit 46EC3EB0
 cunit831510 #place 49A727DA
 cunit848411 #place F4B5EE59
-@ 94 update 1900 frame 379 tick 1197 zone bz1mpg hash EBAE8E3B n 389
+@ 94 update 1900 frame 379 tick 1197 zone bz1mpg hash C31618F9 n 389
 world tick 1197
 world updates 1900
 random isaac.count 83
@@ -7557,7 +7540,7 @@ cunit831510 #place 1E1ECED3
 cunit848411 #place 43E6C052
 cunit848411 #unit 77CA9382
 cunit999742 #unit B82A2918
-@ 95 update 1920 frame 383 tick 1217 zone bz1mpg hash C4173F5A n 389
+@ 95 update 1920 frame 383 tick 1217 zone bz1mpg hash A9F29785 n 389
 world tick 1217
 world updates 1920
 random isaac.count 239
@@ -7616,7 +7599,7 @@ cunit399469 #unit 512A46B7
 cunit831510 #place 971BF592
 cunit848411 #place 11B063EF
 cunit848411 #unit 34BF3E4C
-@ 96 update 1940 frame 387 tick 1237 zone bz1mpg hash 335BD312 n 389
+@ 96 update 1940 frame 387 tick 1237 zone bz1mpg hash CFE90FB5 n 389
 world tick 1237
 world updates 1940
 random isaac.count 139
@@ -7675,7 +7658,7 @@ cunit399469 #unit 7CD4C535
 cunit831510 #place D039ED32
 cunit848411 #place EC6D11AB
 cunit848411 #unit FBC63E02
-@ 97 update 1960 frame 391 tick 1257 zone bz1mpg hash 223F8561 n 389
+@ 97 update 1960 frame 391 tick 1257 zone bz1mpg hash 0A8713A3 n 389
 world tick 1257
 world updates 1960
 random isaac.count 39
@@ -7727,7 +7710,7 @@ cunit831510 #place 56D9748D
 cunit848411 #place 4585E53C
 cunit848411 #unit 03637F58
 cunit999742 #unit A5AB8D0E
-@ 98 update 1980 frame 395 tick 1277 zone bz1mpg hash 2CA6111E n 389
+@ 98 update 1980 frame 395 tick 1277 zone bz1mpg hash 4143B9C1 n 389
 world tick 1277
 world updates 1980
 random isaac.count 195
@@ -7785,7 +7768,7 @@ cunit831510 #place AFBA430C
 cunit831510 #unit CC3066BD
 cunit848411 #place B97E5BFF
 cunit848411 #unit AE223703
-@ 99 update 2000 frame 399 tick 1297 zone bz1mpg hash D95FC91D n 389
+@ 99 update 2000 frame 399 tick 1297 zone bz1mpg hash 25ED15BA n 389
 world tick 1297
 world updates 2000
 random isaac.count 95
@@ -7846,7 +7829,7 @@ cunit831510 #unit 317D6B39
 cunit848411 #place 648BA1B9
 cunit848411 #unit 018DF936
 cunit999742 #unit ED69D757
-@ 100 update 2020 frame 403 tick 1317 zone bz1mpg hash 37EC49DA n 389
+@ 100 update 2020 frame 403 tick 1317 zone bz1mpg hash 1F54DF18 n 389
 world tick 1317
 world updates 2020
 random isaac.count 251
@@ -7897,7 +7880,7 @@ cunit399469 #place 756539AA
 cunit831510 #place D3A46142
 cunit848411 #place D62AC6FB
 cunit848411 #unit B036AE0B
-@ 101 update 2040 frame 407 tick 1337 zone bz1mpg hash DE61782B n 389
+@ 101 update 2040 frame 407 tick 1337 zone bz1mpg hash B384D0F4 n 389
 world tick 1337
 world updates 2040
 random isaac.count 151
@@ -7958,7 +7941,7 @@ cunit831510 #unit 0CD60D32
 cunit848411 #place CA10B599
 cunit848411 #unit 02286A34
 cunit927062 #unit 1D5A740C
-@ 102 update 2060 frame 411 tick 1357 zone bz1mpg hash C2E80F5B n 389
+@ 102 update 2060 frame 411 tick 1357 zone bz1mpg hash 3E5AD3FC n 389
 world tick 1357
 world updates 2060
 random isaac.count 51
@@ -8012,7 +7995,7 @@ cunit831510 #place 1A7AC950
 cunit831510 #unit 21387BBA
 cunit848411 #place 73CBA404
 cunit999742 #unit B9ECD12D
-@ 103 update 2080 frame 415 tick 1377 zone bz1mpg hash 1340C4C6 n 389
+@ 103 update 2080 frame 415 tick 1377 zone bz1mpg hash 7FBBE7EE n 389
 world tick 1377
 world updates 2080
 random isaac.count 207
@@ -8053,6 +8036,11 @@ obj848411 #vitals 1DDDBE79
 obj927062 #vitals BA7C5FA6
 obj999742 #vitals BA7C5FA6
 obj1000002436 #vitals CF3525A3
+obj1000011214 pos.x 59.8782616
+obj1000011214 pos.y 53.2434731
+obj1000011214 #ai 8BA50468
+obj1000011214 #place 8F697685
+obj1000011214 #unit 5E0416FA
 obj1000011214 #vitals A22CFC23
 obj1000063817 #vitals CF3525A3
 obj1007671245 #vitals CF3525A3
@@ -8065,7 +8053,9 @@ cunit182595 #place 1B9EACF9
 cunit399469 #place 0FFE3DD1
 cunit831510 #place 729D3699
 cunit848411 #place B24DE6CD
-@ 104 update 2100 frame 419 tick 1397 zone bz1mpg hash 53AAAC4E n 389
+cunit1000011214 #place 14FD7DEC
+cunit1000011214 #unit F2BA3245
+@ 104 update 2100 frame 419 tick 1397 zone bz1mpg hash DDA3198E n 389
 world tick 1397
 world updates 2100
 random isaac.count 107
@@ -8106,11 +8096,11 @@ obj927062 #vitals 73806309
 obj999742 #unit 300BB5FB
 obj999742 #vitals 73806309
 obj1000002436 #vitals 039FDEFC
-obj1000011214 pos.x 59.4571075
-obj1000011214 pos.y 47.864727
-obj1000011214 #ai FCA234FE
-obj1000011214 #place 929EA920
-obj1000011214 #unit 7F3FAEA4
+obj1000011214 pos.x 60.9949989
+obj1000011214 pos.y 49.5050011
+obj1000011214 #ai C57CFA1D
+obj1000011214 #place B21F4073
+obj1000011214 #unit 2383A692
 obj1000011214 #vitals EE4A4405
 obj1000063817 #vitals 039FDEFC
 obj1007671245 #vitals 039FDEFC
@@ -8124,9 +8114,10 @@ cunit399469 #place 605C41CA
 cunit831510 #place 31536FED
 cunit831510 #unit 8C7933E1
 cunit848411 #place 6E0FADAC
-cunit1000011214 #place 6AF100E5
-cunit1000011214 #unit 2F063D33
-@ 105 update 2120 frame 423 tick 1417 zone bz1mpg hash 75FB535A n 389
+cunit1000011214 #place 204A8D42
+cunit1000011214 #unit E539899E
+cunit1000063817 #unit 78BA1121
+@ 105 update 2120 frame 423 tick 1417 zone bz1mpg hash 44D23B07 n 389
 world tick 1417
 world updates 2120
 random isaac.count 7
@@ -8136,51 +8127,36 @@ player0 var.gtime 1.54555559
 obj143005 #vitals 3870A294
 obj182595 pos.x 58.4886551
 obj182595 pos.y 85.9603119
-obj182595 #ai 1C8AA753
 obj182595 #place 8A75FF20
 obj182595 #vitals 6DB74AF6
 obj183332 #vitals FE1E0BAB
-obj196568 #ai 692AFAA9
 obj196568 #vitals CA16AB29
 obj326331 #vitals CA16AB29
-obj386717 #ai 4EF3305C
 obj386717 #vitals CA16AB29
 obj399469 pos.x 70.4307022
 obj399469 pos.y 89.0346527
-obj399469 #ai D9753F7A
 obj399469 #place 3C561EBE
 obj399469 #vitals 6DB74AF6
-obj469697 #ai 4EF3305C
 obj469697 #vitals CA16AB29
 obj481569 #vitals CA16AB29
-obj534153 #ai E09537D6
 obj534153 #vitals CA16AB29
-obj601927 #ai 26996F43
 obj601927 #vitals CA16AB29
 obj686200 #vitals CA16AB29
 obj732495 #vitals CA16AB29
-obj812970 #ai 4EF3305C
 obj812970 #vitals CA16AB29
 obj831510 pos.x 82.1361771
 obj831510 pos.y 75.7670212
-obj831510 #ai E11EF3FD
 obj831510 #place 1CEA1233
 obj831510 #vitals 1C817897
 obj848411 pos.x 62.5589828
 obj848411 pos.y 90.3146744
-obj848411 #ai 7489D03E
 obj848411 #place B0D5539C
 obj848411 #vitals 6DB74AF6
 obj927062 #unit 53BF6E08
 obj927062 #vitals CA16AB29
 obj999742 #unit A9B9000E
 obj999742 #vitals CA16AB29
-obj1000002436 #ai BFA0EA85
 obj1000002436 #vitals BF5FD12C
-obj1000011214 pos.x 58.9925041
-obj1000011214 pos.y 43.1343079
-obj1000011214 #ai C091623D
-obj1000011214 #place 121B0B7D
 obj1000011214 #vitals D24608AC
 obj1000063817 #vitals BF5FD12C
 obj1007671245 #vitals BF5FD12C
@@ -8195,14 +8171,747 @@ cunit399469 #unit 00BAC88C
 cunit831510 #place 7506C7DF
 cunit848411 #place 8B1D94C3
 cunit848411 #unit 8AA4E250
-cunit927062 #unit E3A7B6B3
 cunit999742 #unit 63B0A50A
-cunit1000011214 #place 57E324C4
-cunit1000011214 #unit 637258D8
-cunit1000063817 #unit 8647D39E
-@ 106 update 2140 frame 427 tick 1437 zone bz1mpg hash 4D1DC6ED n 341
+cunit1000011214 #place 22F9C0EE
+@ 106 update 2140 frame 427 tick 1437 zone bz1mpg hash AA3D8BAA n 389
 world tick 1437
 world updates 2140
+random isaac.count 163
+random isaac.a 0x8AABF46D
+random isaac.b 0xA463F27E
+random isaac.c 0x0000001D
+random isaac.results 0x03F98DEB
+random isaac.memory 0x9F9B8AB2
+random crt.rand 0x5C45AE0F
+obj143005 #vitals 481A561B
+obj182595 pos.x 58.25
+obj182595 pos.y 85.75
+obj182595 #ai 737BA0E3
+obj182595 #place 76824F03
+obj182595 #unit 1682E30A
+obj182595 #vitals 1DDDBE79
+obj183332 #vitals 8E74FF24
+obj196568 #vitals BA7C5FA6
+obj326331 #vitals BA7C5FA6
+obj386717 #vitals BA7C5FA6
+obj399469 pos.x 69.6691589
+obj399469 pos.y 89.413559
+obj399469 #place 4AF6EC42
+obj399469 #vitals 1DDDBE79
+obj469697 #vitals BA7C5FA6
+obj481569 #vitals BA7C5FA6
+obj534153 #vitals BA7C5FA6
+obj601927 #vitals BA7C5FA6
+obj686200 #vitals BA7C5FA6
+obj732495 #vitals BA7C5FA6
+obj812970 #vitals BA7C5FA6
+obj831510 pos.x 83.3264542
+obj831510 pos.y 75.9158096
+obj831510 #place D5F54963
+obj831510 #vitals 6CEB8C18
+obj848411 pos.x 62.25
+obj848411 pos.y 90.75
+obj848411 #ai 5DCE155E
+obj848411 #place CF24F174
+obj848411 #unit D22867E2
+obj848411 #vitals 1DDDBE79
+obj927062 #vitals BA7C5FA6
+obj999742 #vitals BA7C5FA6
+obj1000002436 #vitals CF3525A3
+obj1000011214 #vitals A22CFC23
+obj1000063817 #vitals CF3525A3
+obj1007671245 #vitals CF3525A3
+missile0 # 367DA9A5
+aievents tick 1437
+script #run 27CD14DE
+client tick 1436
+client ticksRun 1417
+cunit182595 #place B10BF9C4
+cunit182595 #unit AD137DD9
+cunit399469 #place 13D2B8C6
+cunit399469 #unit BB3A0866
+cunit831510 #place 3D515C6A
+cunit848411 #place 8941572F
+cunit848411 #unit 2374FFBF
+cunit1000011214 #place B9EF9456
+@ 107 update 2160 frame 431 tick 1457 zone bz1mpg hash 9E965E46 n 389
+world tick 1457
+world updates 2160
+random isaac.count 63
+random crt.rand 0xC492DC9D
+obj143005 #vitals C6A2CA31
+obj182595 #vitals 654B0DAD
+obj183332 #vitals 700289A5
+obj196568 #vitals 73806309
+obj326331 #vitals 73806309
+obj386717 #vitals 73806309
+obj399469 pos.x 68.9110184
+obj399469 pos.y 89.6461411
+obj399469 #place BDA2AE0F
+obj399469 #vitals 654B0DAD
+obj469697 #vitals 73806309
+obj481569 #vitals 73806309
+obj534153 #vitals 73806309
+obj601927 #vitals 73806309
+obj686200 #vitals 73806309
+obj732495 #vitals 73806309
+obj812970 #vitals 73806309
+obj831510 pos.x 84.4964066
+obj831510 pos.y 76.1654663
+obj831510 #place 9BEFFC30
+obj831510 #vitals 5F8F6A51
+obj848411 #vitals 654B0DAD
+obj927062 #vitals 73806309
+obj999742 #unit 808F830E
+obj999742 #vitals 73806309
+obj1000002436 #vitals 039FDEFC
+obj1000011214 #vitals EE4A4405
+obj1000063817 #vitals 039FDEFC
+obj1007671245 #vitals 039FDEFC
+missile0 # DF4C7ABB
+aievents tick 1457
+script #run 3A4270D6
+client tick 1456
+client ticksRun 1437
+cunit182595 #place 453E83E0
+cunit399469 #place 446BEDEB
+cunit831510 #place F72D6F2C
+cunit831510 #unit 21387BBA
+cunit848411 #place E114F693
+cunit999742 #unit EC3845C4
+cunit1000011214 #place F2AFB329
+@ 108 update 2180 frame 435 tick 1477 zone bz1mpg hash 467C8DAF n 389
+world tick 1477
+world updates 2180
+random isaac.count 219
+random isaac.a 0xD98E0A4E
+random isaac.b 0xDEE47B72
+random isaac.c 0x0000001E
+random isaac.results 0x87F04287
+random isaac.memory 0x0A1A38B8
+random crt.rand 0x1336A5EF
+player0 lastTick 1475
+player0 var.gtime 1.61666667
+obj143005 #vitals 3870A294
+obj182595 pos.x 58.3427696
+obj182595 pos.y 86.3993835
+obj182595 #ai 0F485AC1
+obj182595 #place F91E3279
+obj182595 #unit 8DCC1168
+obj182595 #vitals 6DB74AF6
+obj183332 #vitals FE1E0BAB
+obj196568 #vitals CA16AB29
+obj326331 #vitals CA16AB29
+obj386717 #vitals CA16AB29
+obj399469 pos.x 68.0756149
+obj399469 pos.y 89.8534164
+obj399469 #place 5F3A63CC
+obj399469 #vitals 6DB74AF6
+obj469697 #vitals CA16AB29
+obj481569 #vitals CA16AB29
+obj534153 #vitals CA16AB29
+obj601927 #vitals CA16AB29
+obj686200 #vitals CA16AB29
+obj732495 #vitals CA16AB29
+obj812970 #vitals CA16AB29
+obj831510 pos.x 85.6268616
+obj831510 pos.y 76.5659637
+obj831510 #place 108F82E2
+obj831510 #vitals 1C817897
+obj848411 #vitals 6DB74AF6
+obj927062 #vitals CA16AB29
+obj999742 #vitals CA16AB29
+obj1000002436 #vitals BF5FD12C
+obj1000011214 #vitals D24608AC
+obj1000063817 #vitals BF5FD12C
+obj1007671245 #vitals BF5FD12C
+missile0 # 648A608B
+aievents tick 1477
+script #run 2EB878FC
+client tick 1476
+client ticksRun 1457
+cunit182595 #place FA2E200F
+cunit182595 #unit 7069B74B
+cunit399469 #place 976BC217
+cunit399469 #unit 51AEEEED
+cunit831510 #place 33C4EE6A
+cunit848411 #place 373468C9
+@ 109 update 2200 frame 439 tick 1497 zone bz1mpg hash D01BB42D n 389
+world tick 1497
+world updates 2200
+random isaac.count 119
+random crt.rand 0xDFA145C2
+obj143005 #vitals 481A561B
+obj182595 pos.x 58.4671745
+obj182595 pos.y 87.2702026
+obj182595 #place 2BFDB6FE
+obj182595 #vitals 1DDDBE79
+obj183332 #vitals 8E74FF24
+obj196568 #vitals BA7C5FA6
+obj326331 #vitals BA7C5FA6
+obj386717 #vitals BA7C5FA6
+obj399469 pos.x 67.5049973
+obj399469 pos.y 89.9950027
+obj399469 #ai 658A70F4
+obj399469 #place CEFE05FB
+obj399469 #unit 7DF6DAAC
+obj399469 #vitals 1DDDBE79
+obj469697 #vitals BA7C5FA6
+obj481569 #vitals BA7C5FA6
+obj534153 #vitals BA7C5FA6
+obj601927 #vitals BA7C5FA6
+obj686200 #vitals BA7C5FA6
+obj732495 #vitals BA7C5FA6
+obj812970 #vitals BA7C5FA6
+obj831510 pos.x 86.7248306
+obj831510 pos.y 77.0447693
+obj831510 #place 5E220765
+obj831510 #vitals 6CEB8C18
+obj848411 #vitals 1DDDBE79
+obj927062 #vitals BA7C5FA6
+obj999742 #unit 6C38680D
+obj999742 #vitals BA7C5FA6
+obj1000002436 #vitals CF3525A3
+obj1000011214 #vitals A22CFC23
+obj1000063817 #vitals CF3525A3
+obj1007671245 #vitals CF3525A3
+missile0 # 88B1FE14
+aievents tick 1497
+script #inst 4A662CFB
+script #instances 31BC9CAE
+script #run C38BE279
+script #runs 4D320538
+client tick 1496
+client ticksRun 1477
+cunit182595 #place 77FA599D
+cunit182595 #unit B188AA9B
+cunit399469 #place 191EB7E4
+cunit399469 #unit EB6B573F
+cunit831510 #place 2D9F520F
+cunit831510 #unit 8C7933E1
+cunit848411 #place 5A6FF0BE
+@ 110 update 2220 frame 443 tick 1517 zone bz1mpg hash 6B16D60C n 389
+world tick 1517
+world updates 2220
+random isaac.count 19
+random crt.rand 0x64B31B59
+obj143005 #vitals C6A2CA31
+obj182595 pos.x 58.5915756
+obj182595 pos.y 88.1410217
+obj182595 #place 6A5A7265
+obj182595 #vitals 654B0DAD
+obj183332 #vitals 700289A5
+obj196568 #vitals 73806309
+obj326331 #vitals 73806309
+obj386717 #vitals 73806309
+obj399469 #vitals 654B0DAD
+obj469697 #vitals 73806309
+obj481569 #vitals 73806309
+obj534153 #vitals 73806309
+obj601927 #vitals 73806309
+obj686200 #vitals 73806309
+obj732495 #vitals 73806309
+obj812970 #vitals 73806309
+obj831510 pos.x 87.9010391
+obj831510 pos.y 77.2802048
+obj831510 #place 6893AA49
+obj831510 #vitals 5F8F6A51
+obj848411 #vitals 654B0DAD
+obj927062 #unit 0364DD9F
+obj927062 #vitals 73806309
+obj999742 #unit 2822211C
+obj999742 #vitals 73806309
+obj1000002436 #vitals 039FDEFC
+obj1000011214 #vitals EE4A4405
+obj1000063817 #vitals 039FDEFC
+obj1007671245 #vitals 039FDEFC
+missile0 # 678C5BF4
+aievents tick 1517
+script #instances 46BBAC38
+script #run A709D430
+script #runs 3A3535AE
+script #inst -
+client tick 1516
+client ticksRun 1497
+cunit182595 #place 41990FA6
+cunit182595 #unit 814CCB8D
+cunit399469 #place 9822D8E3
+cunit831510 #place E42E7BC5
+cunit831510 #unit 21387BBA
+cunit999742 #unit 01BE66C0
+@ 111 update 2240 frame 447 tick 1537 zone bz1mpg hash 59407872 n 389
+world tick 1537
+world updates 2240
+random isaac.count 175
+random isaac.a 0xA8B684E9
+random isaac.b 0x5979BBD1
+random isaac.c 0x0000001F
+random isaac.results 0x7A945653
+random isaac.memory 0x72AF2BB1
+random crt.rand 0x646C97FE
+obj143005 #vitals 3870A294
+obj182595 pos.x 58.7159805
+obj182595 pos.y 89.0118484
+obj182595 #place 1228819C
+obj182595 #vitals 6DB74AF6
+obj183332 #vitals FE1E0BAB
+obj196568 #vitals CA16AB29
+obj326331 #vitals CA16AB29
+obj386717 #vitals CA16AB29
+obj399469 #vitals 6DB74AF6
+obj469697 #vitals CA16AB29
+obj481569 #vitals CA16AB29
+obj534153 #vitals CA16AB29
+obj601927 #vitals CA16AB29
+obj686200 #vitals CA16AB29
+obj732495 #vitals CA16AB29
+obj812970 #vitals CA16AB29
+obj831510 pos.x 89.0779648
+obj831510 pos.y 77.5120087
+obj831510 #place 67980C42
+obj831510 #vitals 1C817897
+obj848411 #vitals 6DB74AF6
+obj927062 #unit EDCDE6DB
+obj927062 #vitals CA16AB29
+obj999742 #vitals CA16AB29
+obj1000002436 #vitals BF5FD12C
+obj1000011214 #vitals D24608AC
+obj1000063817 #vitals BF5FD12C
+obj1007671245 #vitals BF5FD12C
+missile0 # 8BB7C56B
+aievents tick 1537
+script #run 4857599B
+client tick 1536
+client ticksRun 1517
+cunit182595 #place 6C9D5AD7
+cunit399469 #place 5953F219
+cunit831510 #place 62263ABD
+cunit927062 #unit 1327A1CB
+@ 112 update 2260 frame 451 tick 1557 zone bz1mpg hash 221B97D3 n 389
+world tick 1557
+world updates 2260
+random isaac.count 75
+random crt.rand 0x77A9C387
+player0 lastTick 1539
+player0 var.gtime 1.68777776
+obj143005 #vitals 481A561B
+obj182595 pos.x 58.75
+obj182595 pos.y 89.25
+obj182595 #ai 7B0FF3CF
+obj182595 #place 3B797FE9
+obj182595 #unit 065523E2
+obj182595 #vitals 1DDDBE79
+obj183332 #vitals 8E74FF24
+obj196568 #vitals BA7C5FA6
+obj326331 #vitals BA7C5FA6
+obj386717 #vitals BA7C5FA6
+obj399469 #vitals 1DDDBE79
+obj469697 #vitals BA7C5FA6
+obj481569 #vitals BA7C5FA6
+obj534153 #vitals BA7C5FA6
+obj601927 #vitals BA7C5FA6
+obj686200 #vitals BA7C5FA6
+obj732495 #vitals BA7C5FA6
+obj812970 #vitals BA7C5FA6
+obj831510 pos.x 90.2500458
+obj831510 pos.y 77.7083359
+obj831510 #place 981EBFA6
+obj831510 #vitals 6CEB8C18
+obj848411 #vitals 1DDDBE79
+obj927062 #vitals BA7C5FA6
+obj999742 #unit 3142CD3F
+obj999742 #vitals BA7C5FA6
+obj1000002436 #vitals CF3525A3
+obj1000011214 #vitals A22CFC23
+obj1000063817 #vitals CF3525A3
+obj1007671245 #vitals CF3525A3
+missile0 # 62861675
+aievents tick 1557
+script #run B98CD2F4
+client tick 1556
+client ticksRun 1537
+cunit182595 #place D9988041
+cunit182595 #unit 077B43D0
+cunit399469 #place F77E8257
+cunit831510 #place F47E898E
+cunit831510 #unit 9F42398B
+cunit999742 #place 56626DF2
+cunit999742 #unit 1D5CB055
+@ 113 update 2280 frame 455 tick 1577 zone bz1mpg hash 3225AE79 n 389
+world tick 1577
+world updates 2280
+random isaac.count 231
+random isaac.a 0xB8ADF96C
+random isaac.b 0x299BE5E7
+random isaac.c 0x00000020
+random isaac.results 0x544B45E0
+random isaac.memory 0xA175D1BB
+random crt.rand 0xA37C5655
+obj143005 #vitals C6A2CA31
+obj182595 pos.x 59.2479591
+obj182595 pos.y 89.0840149
+obj182595 #ai 2BAA015C
+obj182595 #place 1048B490
+obj182595 #unit 369704BF
+obj182595 #vitals 654B0DAD
+obj183332 #vitals 700289A5
+obj196568 #vitals 73806309
+obj326331 #vitals 73806309
+obj386717 #vitals 73806309
+obj399469 #vitals 654B0DAD
+obj469697 #vitals 73806309
+obj481569 #vitals 73806309
+obj534153 #vitals 73806309
+obj601927 #vitals 73806309
+obj686200 #vitals 73806309
+obj732495 #vitals 73806309
+obj812970 #vitals 73806309
+obj831510 pos.x 91.3678131
+obj831510 pos.y 77.8946381
+obj831510 #place 243B7490
+obj831510 #vitals 5F8F6A51
+obj848411 #vitals 654B0DAD
+obj927062 #vitals 73806309
+obj999742 #vitals 73806309
+obj1000002436 #vitals 039FDEFC
+obj1000011214 #vitals EE4A4405
+obj1000063817 #vitals 039FDEFC
+obj1007671245 #vitals 039FDEFC
+missile0 # B91CB90E
+aievents tick 1577
+script #run 389F168F
+client tick 1576
+client ticksRun 1557
+cunit182595 #place 5E32E705
+cunit182595 #unit 259E853B
+cunit831510 #place 7F109C29
+cunit831510 #unit 1F4FD898
+cunit999742 #place D1FA713D
+@ 114 update 2300 frame 459 tick 1597 zone bz1mpg hash 9880396D n 389
+world tick 1597
+world updates 2300
+random isaac.count 131
+random crt.rand 0xFE4622B0
+obj143005 #vitals 3870A294
+obj182595 pos.x 60.0960274
+obj182595 pos.y 88.8509903
+obj182595 #place E874E719
+obj182595 #vitals 6DB74AF6
+obj183332 #vitals FE1E0BAB
+obj196568 #vitals CA16AB29
+obj326331 #vitals CA16AB29
+obj386717 #vitals CA16AB29
+obj399469 #vitals 6DB74AF6
+obj469697 #vitals CA16AB29
+obj481569 #vitals CA16AB29
+obj534153 #vitals CA16AB29
+obj601927 #vitals CA16AB29
+obj686200 #vitals CA16AB29
+obj732495 #vitals CA16AB29
+obj812970 #vitals CA16AB29
+obj831510 pos.x 92.25
+obj831510 pos.y 78.25
+obj831510 #ai 134709DA
+obj831510 #place 273F36D5
+obj831510 #unit 13A4AF6C
+obj831510 #vitals 1C817897
+obj848411 #vitals 6DB74AF6
+obj927062 #vitals CA16AB29
+obj999742 #vitals CA16AB29
+obj1000002436 #vitals BF5FD12C
+obj1000011214 #vitals D24608AC
+obj1000063817 #vitals BF5FD12C
+obj1007671245 #vitals BF5FD12C
+missile0 # 55272791
+aievents tick 1597
+script #run 05284DD7
+client tick 1596
+client ticksRun 1577
+cunit182595 #place 3B7CEFAC
+cunit182595 #unit 155AE42D
+cunit831510 #place 482E30DF
+cunit831510 #unit 777C149C
+@ 115 update 2320 frame 463 tick 1617 zone bz1mpg hash 36FA5EE4 n 389
+world tick 1617
+world updates 2320
+random isaac.count 31
+random crt.rand 0xD889F02F
+player0 lastTick 1603
+player0 var.gtime 1.75888884
+obj143005 #vitals 481A561B
+obj182595 pos.x 60.9494247
+obj182595 pos.y 88.6376419
+obj182595 #place 08F80CA5
+obj182595 #vitals 1DDDBE79
+obj183332 #vitals 8E74FF24
+obj196568 #vitals BA7C5FA6
+obj326331 #vitals BA7C5FA6
+obj386717 #vitals BA7C5FA6
+obj399469 #vitals 1DDDBE79
+obj469697 #vitals BA7C5FA6
+obj481569 #vitals BA7C5FA6
+obj534153 #vitals BA7C5FA6
+obj601927 #vitals BA7C5FA6
+obj686200 #vitals BA7C5FA6
+obj732495 #vitals BA7C5FA6
+obj812970 #vitals BA7C5FA6
+obj831510 pos.x 91.6266556
+obj831510 pos.y 78.0396729
+obj831510 #ai D17F00C6
+obj831510 #place 4117CE5B
+obj831510 #unit 1D2D16A2
+obj831510 #vitals 6CEB8C18
+obj848411 #vitals 1DDDBE79
+obj927062 #unit 017A0DD8
+obj927062 #vitals BA7C5FA6
+obj999742 #unit EC057438
+obj999742 #vitals BA7C5FA6
+obj1000002436 #vitals CF3525A3
+obj1000011214 #vitals A22CFC23
+obj1000063817 #vitals CF3525A3
+obj1007671245 #vitals CF3525A3
+missile0 # BA1A8271
+aievents tick 1617
+script #run F9A125CC
+client tick 1616
+client ticksRun 1597
+cunit182595 #place 999D27E0
+cunit182595 #unit 259E853B
+cunit831510 #place 375370B5
+cunit831510 #unit 6D556B5D
+cunit999742 #unit 54FD988F
+@ 116 update 2340 frame 467 tick 1637 zone bz1mpg hash 07AA0BA2 n 389
+world tick 1637
+world updates 2340
+random isaac.count 187
+random isaac.a 0xEDDD620C
+random isaac.b 0x7CB64BAE
+random isaac.c 0x00000021
+random isaac.results 0x0E00E81F
+random isaac.memory 0xCC6677CE
+random crt.rand 0xC4004991
+obj143005 #vitals C6A2CA31
+obj182595 pos.x 61.7359009
+obj182595 pos.y 88.2639465
+obj182595 #place 40B54F8B
+obj182595 #vitals 654B0DAD
+obj183332 #vitals 700289A5
+obj196568 #vitals 73806309
+obj326331 #vitals 73806309
+obj386717 #vitals 73806309
+obj399469 #vitals 654B0DAD
+obj469697 #vitals 73806309
+obj481569 #vitals 73806309
+obj534153 #vitals 73806309
+obj601927 #vitals 73806309
+obj686200 #vitals 73806309
+obj732495 #vitals 73806309
+obj812970 #vitals 73806309
+obj831510 pos.x 90.501236
+obj831510 pos.y 77.524086
+obj831510 #place 8EA9C68F
+obj831510 #vitals 5F8F6A51
+obj848411 #ai C4D8E3E1
+obj848411 #vitals 654B0DAD
+obj927062 #vitals 73806309
+obj999742 #vitals 73806309
+obj1000002436 #vitals 039FDEFC
+obj1000011214 #vitals EE4A4405
+obj1000063817 #vitals 039FDEFC
+obj1007671245 #vitals 039FDEFC
+missile0 # 56211CEE
+aievents tick 1637
+script #run 16A309F4
+client tick 1636
+client ticksRun 1617
+cunit182595 #place 16F1CBF7
+cunit831510 #place 90C6C9F9
+cunit831510 #unit 834FC073
+@ 117 update 2360 frame 471 tick 1657 zone bz1mpg hash 16FE2D89 n 389
+world tick 1657
+world updates 2360
+random isaac.count 87
+random crt.rand 0x226F802D
+obj143005 #vitals 3870A294
+obj182595 pos.x 61.75
+obj182595 pos.y 88.25
+obj182595 #ai FCA8AAC5
+obj182595 #place 7F275BEC
+obj182595 #unit 4DB99AFB
+obj182595 #vitals 6DB74AF6
+obj183332 #vitals FE1E0BAB
+obj196568 #vitals CA16AB29
+obj326331 #vitals CA16AB29
+obj386717 #vitals CA16AB29
+obj399469 #vitals 6DB74AF6
+obj469697 #vitals CA16AB29
+obj481569 #vitals CA16AB29
+obj534153 #vitals CA16AB29
+obj601927 #vitals CA16AB29
+obj686200 #vitals CA16AB29
+obj732495 #vitals CA16AB29
+obj812970 #vitals CA16AB29
+obj831510 pos.x 89.3037415
+obj831510 pos.y 77.3504639
+obj831510 #place 6DB45603
+obj831510 #vitals 1C817897
+obj848411 pos.x 63.0041466
+obj848411 pos.y 90.5991745
+obj848411 #ai B19C6461
+obj848411 #place 0A5C42DF
+obj848411 #unit 59E11754
+obj848411 #vitals 6DB74AF6
+obj927062 #vitals CA16AB29
+obj999742 #unit F565981B
+obj999742 #vitals CA16AB29
+obj1000002436 #vitals BF5FD12C
+obj1000011214 #vitals D24608AC
+obj1000063817 #vitals BF5FD12C
+obj1007671245 #vitals BF5FD12C
+missile0 # BF10CFF0
+aievents tick 1657
+script #run E828FB23
+client tick 1656
+client ticksRun 1637
+cunit182595 #place 3C0A5C9D
+cunit182595 #unit 89646987
+cunit831510 #place 146D5BCC
+cunit831510 #unit 4CF4C0C1
+cunit848411 #place A6750C06
+cunit848411 #unit 5F6BDC6A
+cunit999742 #unit 481F4E1A
+@ 118 update 2380 frame 475 tick 1677 zone bz1mpg hash 991A6C10 n 389
+world tick 1677
+world updates 2380
+random isaac.count 243
+random isaac.a 0x9C45768C
+random isaac.b 0xD43B28CC
+random isaac.c 0x00000022
+random isaac.results 0xEC440402
+random isaac.memory 0xBC9357E2
+random crt.rand 0x21E621CB
+player0 lastTick 1667
+player0 var.gtime 1.82999992
+obj143005 #vitals 481A561B
+obj182595 pos.x 61.474762
+obj182595 pos.y 87.5565414
+obj182595 #ai 492055E0
+obj182595 #place 1A9DF00A
+obj182595 #unit 3CC3B03A
+obj182595 #vitals 1DDDBE79
+obj183332 #vitals 8E74FF24
+obj196568 #vitals BA7C5FA6
+obj326331 #vitals BA7C5FA6
+obj386717 #vitals BA7C5FA6
+obj399469 #vitals 1DDDBE79
+obj469697 #vitals BA7C5FA6
+obj481569 #vitals BA7C5FA6
+obj534153 #vitals BA7C5FA6
+obj601927 #vitals BA7C5FA6
+obj686200 #vitals BA7C5FA6
+obj732495 #vitals BA7C5FA6
+obj812970 #vitals BA7C5FA6
+obj831510 pos.x 88.1134644
+obj831510 pos.y 77.201683
+obj831510 #place D1BF97B0
+obj831510 #vitals 6CEB8C18
+obj848411 pos.x 63.8942299
+obj848411 pos.y 90.3685913
+obj848411 #place C405015E
+obj848411 #vitals 1DDDBE79
+obj927062 #vitals BA7C5FA6
+obj999742 #vitals BA7C5FA6
+obj1000002436 #vitals CF3525A3
+obj1000011214 pos.x 59.988018
+obj1000011214 pos.y 48.9401207
+obj1000011214 #ai FCA234FE
+obj1000011214 #place B863C361
+obj1000011214 #unit 897EF5B7
+obj1000011214 #vitals A22CFC23
+obj1000063817 #vitals CF3525A3
+obj1007671245 #vitals CF3525A3
+missile0 # 9E6C6C3B
+aievents tick 1677
+script #run 693B3F58
+client tick 1676
+client ticksRun 1657
+cunit182595 #place 8144158E
+cunit182595 #unit F08D64F4
+cunit831510 #place 734E6FFC
+cunit848411 #place AB5317F1
+cunit848411 #unit 5EF1A822
+cunit1000011214 #place BD99FED5
+cunit1000011214 #unit 5F4FAEDF
+@ 119 update 2400 frame 479 tick 1697 zone bz1mpg hash 2F194816 n 389
+world tick 1697
+world updates 2400
+random isaac.count 143
+random crt.rand 0x29679358
+obj143005 #ai 287B0C78
+obj143005 #vitals C6A2CA31
+obj182595 pos.x 60.7165298
+obj182595 pos.y 87.1082687
+obj182595 #ai 1C8AA753
+obj182595 #place 06584788
+obj182595 #vitals 654B0DAD
+obj183332 #ai B44FCD82
+obj183332 #vitals 700289A5
+obj196568 #ai 692AFAA9
+obj196568 #vitals 73806309
+obj326331 #vitals 73806309
+obj386717 #ai 4EF3305C
+obj386717 #vitals 73806309
+obj399469 #ai 24EF142C
+obj399469 #vitals 654B0DAD
+obj469697 #ai 4EF3305C
+obj469697 #vitals 73806309
+obj481569 #vitals 73806309
+obj534153 #ai E09537D6
+obj534153 #vitals 73806309
+obj601927 #ai 26996F43
+obj601927 #vitals 73806309
+obj686200 #vitals 73806309
+obj732495 #vitals 73806309
+obj812970 #ai 4EF3305C
+obj812970 #vitals 73806309
+obj831510 pos.x 86.9231873
+obj831510 pos.y 77.0528946
+obj831510 #ai 629E44C5
+obj831510 #place E1CEF76A
+obj831510 #vitals 5F8F6A51
+obj848411 pos.x 64.7108231
+obj848411 pos.y 90.0963898
+obj848411 #ai D2B5D0C5
+obj848411 #place 96B1FDA3
+obj848411 #vitals 654B0DAD
+obj927062 #vitals 73806309
+obj999742 #vitals 73806309
+obj1000002436 #ai BFA0EA85
+obj1000002436 #vitals 039FDEFC
+obj1000011214 pos.x 58.9951744
+obj1000011214 pos.y 44.3338432
+obj1000011214 #ai C091623D
+obj1000011214 #place 861F30FE
+obj1000011214 #vitals EE4A4405
+obj1000063817 #vitals 039FDEFC
+obj1007671245 #vitals 039FDEFC
+missile0 # 7257F2A4
+aievents tick 1697
+script #run 548C6400
+client tick 1696
+client ticksRun 1677
+cunit182595 #place A23C5E8A
+cunit182595 #unit C04905E2
+cunit831510 #place 20C0918F
+cunit848411 #place 113D9C11
+cunit848411 #unit 5308F56A
+cunit927062 #unit EDDA6374
+cunit1000011214 #place C0146207
+cunit1000011214 #unit 13CA02DD
+cunit1000063817 #unit 8647D39E
+@ 120 update 2420 frame 483 tick 1717 zone bz1mpg hash EE030CDA n 341
+world tick 1717
+world updates 2420
 world gameResult 0
 world zoneLoaded 0
 world sessionKind 0
@@ -8211,13 +8920,8 @@ world mapObjects 0
 world timedObjects 0
 world updateMap 0
 world projectiles 0
-random isaac.count 232
-random isaac.a 0x8AABF46D
-random isaac.b 0xA463F27E
-random isaac.c 0x0000001D
-random isaac.results 0x03F98DEB
-random isaac.memory 0x9F9B8AB2
-random crt.rand 0x93C8311C
+random isaac.count 87
+random crt.rand 0x803F073F
 - player0
 - obj1646
 - obj143005
@@ -8255,7 +8959,7 @@ random crt.rand 0x93C8311C
 - timed924345
 - timed935039
 - missile0
-aievents tick 1437
+aievents tick 1717
 script #files EF21A749
 script #globals AAEC1519
 script #loaded C0F92B20
@@ -8263,8 +8967,8 @@ script #runs F80920E1
 script #ggroup -
 script #gobject -
 script #run -
-client tick 1436
-client ticksRun 1417
+client tick 1716
+client ticksRun 1697
 client objects 0
 client units 0
 client synchronised 0
@@ -8279,10 +8983,10 @@ client synchronised 0
 - cunit1000011214
 - cunit1000063817
 - cunit1007671245
-@ 107 update 2160 frame 431 tick 1457 zone - hash E4451AC4 n 994
-world tick 1457
-world updates 2160
-world timeBase 10.2011108
+@ 121 update 2440 frame 487 tick 1737 zone - hash 1677270E n 984
+world tick 1737
+world updates 2440
+world timeBase 9.88444424
 world wind.x 0.692531884
 world wind.y -0.721387386
 world windStrength 0x3E8F5C29
@@ -8291,7 +8995,12 @@ world exits 0
 world scriptsActive 0
 world objects 979
 world sentObjects 979
-random isaac.count 65
+random isaac.count 176
+random isaac.a 0x8C028174
+random isaac.b 0x9E8A4C04
+random isaac.c 0x00000023
+random isaac.results 0x8BA98243
+random isaac.memory 0xE7165EE3
 + obj1 84 stst001
 obj1 hp 1000.0
 obj1 mana 1000.0
@@ -15481,1102 +16190,1086 @@ obj4872 # 3AF04FC6
 - obj941984
 - obj982882
 - obj990046
-aievents tick 1457
+aievents tick 1737
 aievents width 37
 aievents height 41
-client tick 1577
-client ticksRun 17
-client objects 991
-client units 10
-client synchronised 11
-+ cunit4517 80 unanwibo ""
-cunit4517 #place 06A87EE9
-cunit4517 #unit D9A5CB6C
-cunit4517 #vitals 1D70ACB1
-+ cunit4518 80 unanwibo ""
-cunit4518 #place 61DBA220
-cunit4518 #unit 5CE11F9C
-cunit4518 #vitals 1D70ACB1
-+ cunit4651 80 unanwibo ""
-cunit4651 #place B40C9297
-cunit4651 #unit 2ADE3A3C
-cunit4651 #vitals 1D70ACB1
-+ cunit4767 80 unanhoha ""
-cunit4767 #place F06CDEF2
-cunit4767 #unit 31A1B4CC
-cunit4767 #vitals 2FDB08B6
-+ cunit4768 80 unanhoha ""
-cunit4768 #place 616CFC9D
-cunit4768 #unit D20B70A3
-cunit4768 #vitals 2FDB08B6
-+ cunit4895 80 unanwibo ""
-cunit4895 #place 1F545C64
-cunit4895 #unit 094CDE36
-cunit4895 #vitals 1D70ACB1
-+ cunit4896 80 unanwibo ""
-cunit4896 #place DD30B379
-cunit4896 #unit 9B777AFE
-cunit4896 #vitals 1D70ACB1
-+ cunit1000324 80 unmoto ""
-cunit1000324 #place 25ECAF2D
-cunit1000324 #unit B663F3B1
-cunit1000324 #vitals C014D408
-+ cunit1000000013 80 unhuma "host"
-cunit1000000013 #place D90EBF7C
-cunit1000000013 #unit 23C52C41
-cunit1000000013 #vitals 68C46754
-+ cunit1000000014 80 unhuma "peer"
-cunit1000000014 #place 12120D98
-cunit1000000014 #unit 6307998A
-cunit1000000014 #vitals 68C46754
-@ 108 update 2180 frame 435 tick 1477 zone - hash D23EBC59 n 994
-world tick 1477
-world updates 2180
-aievents tick 1477
-client tick 1597
-client ticksRun 37
-client objects 990
-client synchronised 10
-cunit4517 #place 142858CB
-cunit4517 #unit 6DA6B0E5
-cunit4518 #place FC9CF115
-cunit4651 #place 2C7450A6
-cunit4651 #unit 9EDD41B5
-cunit4767 #place BC75BA7F
-cunit4768 #place 9C83FF92
-cunit4895 #place 84D6334B
-cunit4896 #place C3F263FC
-cunit1000324 #place 2C2409DD
-cunit1000000013 #place 776A86B1
-cunit1000000013 #unit DA314622
-cunit1000000014 #place 719C873E
-cunit1000000014 #unit B6D708F6
-@ 109 update 2200 frame 439 tick 1497 zone - hash DBE7581B n 994
-world tick 1497
-world updates 2200
-aievents tick 1497
-client tick 1617
-client ticksRun 57
-cunit4517 #place 5B8D3E6D
-cunit4517 #unit 3D779DFB
-cunit4651 #place 279AC704
-cunit4651 #unit 5123C595
-cunit1000324 #place 378DC63C
-cunit1000000013 #place FCC5B9F3
-cunit1000000014 #place FA33B87C
-@ 110 update 2220 frame 443 tick 1517 zone - hash 921E7F7B n 994
-world tick 1517
-world updates 2220
-aievents tick 1517
-client tick 1637
-client ticksRun 77
-cunit4517 #place BC935539
-cunit4517 #unit D9A5CB6C
-cunit4651 #place E729C3AE
-cunit4651 #unit 7B83E47E
-cunit4767 #place 04E3B180
-@ 111 update 2240 frame 447 tick 1537 zone - hash 2C50C964 n 994
-world tick 1537
-world updates 2240
-aievents tick 1537
-client tick 1657
-client ticksRun 97
-cunit4517 #place 0E5ADE7F
-cunit4517 #unit DC5F3FF9
-cunit4518 #place C13A3B95
-cunit4518 #unit 572C76EF
-cunit4651 #place BD665179
-cunit4651 #unit 97DF0A26
-cunit4767 #place EAE590E1
-cunit4895 #place 7C659006
-cunit4896 #place 3142DCDF
-cunit4896 #unit 711908C2
-@ 112 update 2260 frame 451 tick 1557 zone - hash DF1E5BB6 n 994
-world tick 1557
-world updates 2260
-aievents tick 1557
-client tick 1677
-client ticksRun 117
-cunit4517 #place C28633A7
-cunit4518 #place 8A30B7C0
-cunit4651 #place F063D1FA
-cunit4651 #unit B66964D5
-cunit4767 #place 5C6E2FD6
-cunit4895 #place 028E014B
-cunit4896 #place F847F55C
-@ 113 update 2280 frame 455 tick 1577 zone - hash 99AB6E09 n 994
-world tick 1577
-world updates 2280
-aievents tick 1577
-client tick 1697
-client ticksRun 137
-cunit4517 #place C2C65034
-cunit4518 #place 2D7618E8
-cunit4518 #unit B3FE2078
-cunit4651 #place 8E2615CE
-cunit4651 #unit E0CAB2C2
-cunit4896 #place 7343FAF7
-cunit4896 #unit A8C1EEA3
-@ 114 update 2300 frame 459 tick 1597 zone - hash ED9B5C4A n 994
-world tick 1597
-world updates 2300
-aievents tick 1597
-client tick 1717
-client ticksRun 157
-cunit4517 #place 63E7D784
-cunit4518 #place AA228113
-cunit4518 #unit 572C76EF
-cunit4651 #place 8BDCC2ED
-cunit4651 #unit EA0825BC
-cunit4767 #place 310BBCC9
-cunit4768 #place ED782353
-cunit4896 #place 4F27DDD9
-cunit4896 #unit 1CC2952A
-@ 115 update 2320 frame 463 tick 1617 zone - hash 2F1CDE44 n 994
-world tick 1617
-world updates 2320
-aievents tick 1617
-client tick 1737
-client ticksRun 177
-cunit4518 #place B20DE696
-cunit4651 #place 1C2A3066
-cunit4767 #place D056B941
-cunit4768 #place ADC64D4B
-cunit4895 #place 2666B0A1
-cunit4895 #unit 65A6F792
-cunit4896 #place 0684F479
-cunit4896 #unit A8C1EEA3
-@ 116 update 2340 frame 467 tick 1637 zone - hash 118A39C8 n 993
-world tick 1637
-world updates 2340
-aievents tick 1637
-client tick 1757
-client ticksRun 197
-client objects 989
-client units 9
-client synchronised 9
-- cunit4518
-cunit4651 #place 4168394E
-cunit4767 #place 865EF020
-cunit4768 #place BF468936
-cunit4895 #place 7833F70D
-cunit4896 #place CDA869B7
-cunit4896 #unit 711908C2
-@ 117 update 2360 frame 471 tick 1657 zone - hash 6536D34A n 993
-world tick 1657
-world updates 2360
-aievents tick 1657
-client tick 1777
-client ticksRun 217
-cunit4651 #place 30D530A9
-cunit4767 #place 4B7DF843
-cunit4895 #place D8BAA3CD
-cunit4896 #place 0A671F17
-cunit4896 #unit A8C1EEA3
-@ 118 update 2380 frame 475 tick 1677 zone - hash 63BC4A9E n 993
-world tick 1677
-world updates 2380
-aievents tick 1677
-client tick 1797
-client ticksRun 237
-cunit4517 #place B5894A80
-cunit4768 #place 6C9DA55D
-cunit4895 #place 6A7E06FF
-cunit4895 #unit A8F2F3C1
-cunit4896 #place B4894053
-cunit4896 #unit 711908C2
-@ 119 update 2400 frame 479 tick 1697 zone - hash 4E01F9B9 n 993
-world tick 1697
-world updates 2400
-aievents tick 1697
-client tick 1817
-client ticksRun 257
-cunit4517 #place 2CD69BD4
-cunit4768 #place 2F0D751C
-cunit4895 #place 8C2EE682
-cunit4895 #unit 65A6F792
-cunit4896 #place 81EF3782
-@ 120 update 2420 frame 483 tick 1717 zone - hash 39457E5E n 992
-world tick 1717
-world updates 2420
-aievents tick 1717
-client tick 1837
-client ticksRun 277
-client objects 988
-client units 8
-client synchronised 8
-cunit4517 #place 886D3DA9
-cunit4768 #place C436E024
-- cunit4895
-cunit4896 #place 789E8A25
-cunit4896 #unit C0EF2124
-@ 121 update 2440 frame 487 tick 1737 zone - hash 3E05BB33 n 992
-world tick 1737
-world updates 2440
-aievents tick 1737
-client tick 1857
-client ticksRun 297
-cunit4517 #place 7E4F5C28
-cunit4517 #unit D5277E07
-cunit4767 #place 9BAD8319
-cunit4768 #place 25CFBD50
-cunit4768 #unit A8444CA9
-cunit4896 #place 799CC174
-@ 122 update 2460 frame 491 tick 1757 zone - hash 38380C27 n 991
+client tick 1856
+client ticksRun 12
+client objects 979
+@ 122 update 2460 frame 491 tick 1757 zone - hash 488762AA n 993
 world tick 1757
 world updates 2460
 aievents tick 1757
 client tick 1877
-client ticksRun 317
-client objects 987
-client units 7
-client synchronised 7
-cunit4517 #place DF5A7892
-cunit4651 #place 5BD83D0A
-cunit4651 #unit 3CEA2F89
-cunit4767 #place FE379334
-- cunit4768
-cunit4896 #place 369E6958
-@ 123 update 2480 frame 495 tick 1777 zone - hash 6159BA25 n 991
+client ticksRun 32
+client objects 989
+client units 9
+client synchronised 9
++ cunit4517 80 unanwibo ""
+cunit4517 #place ACC8E81D
+cunit4517 #unit AA0C6E1F
+cunit4517 #vitals 1D70ACB1
++ cunit4651 80 unanwibo ""
+cunit4651 #place 12B561B4
+cunit4651 #unit EA85C8E5
+cunit4651 #vitals 1D70ACB1
++ cunit4767 80 unanhoha ""
+cunit4767 #place F8E0932D
+cunit4767 #unit 09EB5316
+cunit4767 #vitals 2FDB08B6
++ cunit4768 80 unanhoha ""
+cunit4768 #place C3BC7C15
+cunit4768 #unit B1F3ACDA
+cunit4768 #vitals 2FDB08B6
++ cunit4896 80 unanwibo ""
+cunit4896 #place BD886752
+cunit4896 #unit 640E72F0
+cunit4896 #vitals 1D70ACB1
++ cunit1000324 80 unmoto ""
+cunit1000324 #place 265D3666
+cunit1000324 #unit D2695F6D
+cunit1000324 #vitals C014D408
++ cunit1000000013 80 unhuma "host"
+cunit1000000013 #place 53136841
+cunit1000000013 #unit CF276700
+cunit1000000013 #vitals 68C46754
++ cunit1000000014 80 unhuma "comp"
+cunit1000000014 #place 13A7F804
+cunit1000000014 #unit 520399FE
+cunit1000000014 #vitals 68C46754
++ cunit1000000015 80 unhuma "peer"
+cunit1000000015 #place 182B3CCE
+cunit1000000015 #unit 9C60C3B0
+cunit1000000015 #vitals 68C46754
+@ 123 update 2480 frame 495 tick 1777 zone - hash 835B9B9A n 993
 world tick 1777
 world updates 2480
 aievents tick 1777
 client tick 1897
-client ticksRun 337
-cunit4517 #place 5F80A993
-cunit4517 #unit 0CFF9866
-cunit4651 #place E1A61174
-cunit4651 #unit 74CB5C14
-cunit4767 #place B31E39CC
-cunit4896 #place F5F54DB4
-@ 124 update 2500 frame 499 tick 1797 zone - hash 45C6746D n 991
+client ticksRun 52
+cunit4517 #place 8A4C9555
+cunit4517 #unit 73D4887E
+cunit4896 #place C2238FB9
+cunit1000324 #place 378DC63C
+cunit1000000013 #place FCC5B9F3
+cunit1000000014 #place FA33B87C
+cunit1000000015 #place 81891F16
+@ 124 update 2500 frame 499 tick 1797 zone - hash CB75407C n 993
 world tick 1797
 world updates 2500
 aievents tick 1797
 client tick 1917
-client ticksRun 357
-cunit4517 #place 04511BB7
-cunit4651 #place AD95AEA9
-cunit4651 #unit 3CEA2F89
-cunit4767 #place 54BB57EF
-@ 125 update 2520 frame 503 tick 1817 zone - hash 6B9B960F n 992
+client ticksRun 72
+cunit4517 #place 56BFBC24
+cunit4517 #unit AA0C6E1F
+cunit4651 #place 59747F28
+cunit4767 #place D4E61FE5
+cunit4896 #place DD14974A
+@ 125 update 2520 frame 503 tick 1817 zone - hash A02389C7 n 993
 world tick 1817
 world updates 2520
 aievents tick 1817
 client tick 1937
-client ticksRun 377
-client objects 988
-client units 8
-client synchronised 8
-cunit4517 #place 928526D0
-cunit4517 #unit B8FCE3EF
-cunit4651 #place 825F1A41
-cunit4767 #place E69B8768
-cunit4767 #unit 0E58B33F
-cunit4896 #place 876B0111
-+ cunit1000000015 80 unhuma "comp"
-cunit1000000015 #place 42BD992E
-cunit1000000015 #unit 066B5A85
-cunit1000000015 #vitals 68C46754
-@ 126 update 2540 frame 507 tick 1837 zone - hash 6A4BDAE6 n 992
+client ticksRun 92
+cunit4517 #place F03A9DC5
+cunit4517 #unit AE7401F7
+cunit4651 #place 55F78A89
+cunit4767 #place CBACBB68
+cunit4768 #place D5794531
+cunit4896 #place 1B4C46B7
+@ 126 update 2540 frame 507 tick 1837 zone - hash D253337A n 993
 world tick 1837
 world updates 2540
 aievents tick 1837
 client tick 1957
-client ticksRun 397
-cunit4517 #place 22694F9E
-cunit4517 #unit 0CFF9866
-cunit4651 #place EE9C10FF
-cunit4651 #unit E14AA600
-cunit4767 #place 46CFC809
-cunit4767 #unit A30E8046
-cunit4896 #place B7432F55
-cunit1000000015 #place 81891F16
-@ 127 update 2560 frame 511 tick 1857 zone - hash 1390D6C2 n 992
+client ticksRun 112
+cunit4517 #place 1B954695
+cunit4517 #unit AA0C6E1F
+cunit4651 #place 15EDFBBD
+cunit4767 #place 0121241F
+cunit4768 #place F6EBCF68
+@ 127 update 2560 frame 511 tick 1857 zone - hash B7D35A76 n 993
 world tick 1857
 world updates 2560
 aievents tick 1857
 client tick 1977
-client ticksRun 417
-cunit4517 #place 07F745F3
-cunit4651 #place CDEA1E2B
-cunit4651 #unit 5549DD89
-cunit4767 #place F9AFAE6B
-cunit4896 #place 6E8D1348
-@ 128 update 2580 frame 515 tick 1877 zone - hash EFE6D025 n 992
+client ticksRun 132
+cunit4517 #place B5A33DB8
+cunit4517 #unit CEEBA1A0
+cunit4768 #place 90CF65E2
+@ 128 update 2580 frame 515 tick 1877 zone - hash F4F3B75E n 993
 world tick 1877
 world updates 2580
 aievents tick 1877
 client tick 1997
-client ticksRun 437
-cunit4517 #place 5191D7D9
-cunit4651 #place 9A459A51
-cunit4651 #unit E14AA600
-cunit4767 #place D52C15C4
-cunit4896 #place D5E259F3
-@ 129 update 2600 frame 519 tick 1897 zone - hash CAD5B99A n 992
+client ticksRun 152
+cunit4517 #place 44D6B021
+@ 129 update 2600 frame 519 tick 1897 zone - hash 2E486DF7 n 993
 world tick 1897
 world updates 2600
 aievents tick 1897
 client tick 2017
-client ticksRun 457
-cunit4517 #place FA8A0189
-cunit4517 #unit B8FCE3EF
-cunit4651 #place 33A81457
-cunit4651 #unit 2C1EA253
-cunit4767 #place 7272AF4F
-@ 130 update 2620 frame 523 tick 1917 zone - hash 57A8D746 n 992
+client ticksRun 172
+cunit4517 #place D3B6C7A1
+cunit4768 #place 2ADED6F1
+cunit4768 #unit 2FEDB8DF
+@ 130 update 2620 frame 523 tick 1917 zone - hash 78EA6A01 n 993
 world tick 1917
 world updates 2620
 aievents tick 1917
 client tick 2037
-client ticksRun 477
-cunit4517 #place 1D575181
-cunit4517 #unit AC00FF8F
-cunit4651 #place C3EE9150
-cunit4651 #unit 5549DD89
-cunit4896 #place C8CC6916
-cunit4896 #unit C41CDAAE
-@ 131 update 2640 frame 527 tick 1937 zone - hash AD158DE5 n 992
+client ticksRun 192
+cunit4517 #place 659FBE7F
+cunit4651 #place B456DF41
+cunit4768 #place CD53146F
+cunit4768 #unit 97755B5E
+cunit4896 #place 5109B104
+@ 131 update 2640 frame 527 tick 1937 zone - hash 9A6A6B68 n 994
 world tick 1937
 world updates 2640
 aievents tick 1937
 client tick 2057
-client ticksRun 497
-cunit4517 #place 63FA5829
-cunit4517 #unit 0CD1F8D4
-cunit4651 #place C029AE3E
-cunit4651 #unit 4BA9720D
-cunit4896 #place 488A462A
-@ 132 update 2660 frame 531 tick 1957 zone - hash E249EFFD n 992
+client ticksRun 212
+client objects 990
+client units 10
+client synchronised 10
+cunit4651 #place 0361E9E3
+cunit4767 #place 35B7F81B
+cunit4767 #unit FA1D97E1
+cunit4768 #place 1C79F5C2
+cunit4768 #unit D9BAB12A
++ cunit4895 80 unanwibo ""
+cunit4895 #place A9E66999
+cunit4895 #unit F19B933F
+cunit4895 #vitals 1D70ACB1
+cunit4896 #place 2C7DEDFF
+@ 132 update 2660 frame 531 tick 1957 zone - hash 2AA69743 n 993
 world tick 1957
 world updates 2660
 aievents tick 1957
 client tick 2077
-client ticksRun 517
-cunit4517 #place 9AF8E853
-cunit4651 #place BC7BF83D
-cunit4896 #place 98F54A66
-cunit4896 #unit 0948DEFD
-@ 133 update 2680 frame 535 tick 1977 zone - hash 2D1F65B7 n 992
+client ticksRun 232
+client objects 989
+client units 9
+client synchronised 9
+cunit4651 #place 9E3FD727
+- cunit4767
+cunit4768 #place ED77FD7D
+cunit4895 #place 0B82A2E9
+cunit4895 #unit 4598E8B6
+cunit4896 #place 7B8971F1
+@ 133 update 2680 frame 535 tick 1977 zone - hash F556DAF4 n 993
 world tick 1977
 world updates 2680
 aievents tick 1977
 client tick 2097
-client ticksRun 537
-cunit4517 #place 87B64C3E
-cunit4517 #unit C7F80FB8
-cunit4517 #vitals 2BC9DF80
-cunit4651 #place C3D7D83D
-cunit4767 #place DEA98C13
-cunit4767 #unit 3CB84FDE
-cunit4896 #place B47F7F84
-cunit4896 #unit C41CDAAE
-@ 134 update 2700 frame 539 tick 1997 zone - hash 33F6BC43 n 992
+client ticksRun 252
+cunit4517 #place D12C2DA6
+cunit4517 #unit FDD97784
+cunit4651 #place AEEC9159
+cunit4651 #unit 602A2BBD
+cunit4768 #place E39DD35B
+cunit4895 #place 8A52CF19
+cunit4895 #unit 0270F2E6
+@ 134 update 2700 frame 539 tick 1997 zone - hash 745C3C7D n 993
 world tick 1997
 world updates 2700
 aievents tick 1997
 client tick 2117
-client ticksRun 557
-cunit4517 #place 2F1EA236
-cunit4651 #place 6A06DC8B
-cunit4767 #place EAFA7114
-cunit4767 #unit 73C9F5AE
-cunit4896 #place 02262790
-cunit4896 #unit 0948DEFD
-@ 135 update 2720 frame 543 tick 2017 zone - hash D1D13C63 n 992
+client ticksRun 272
+cunit4517 #place 357E9BCC
+cunit4517 #unit 308D73D7
+cunit4651 #place D1D6CA46
+cunit4651 #unit 08487EC2
+cunit4768 #place 0945B855
+cunit4895 #place 9C86591D
+@ 135 update 2720 frame 543 tick 2017 zone - hash 00464BC6 n 993
 world tick 2017
 world updates 2720
 aievents tick 2017
 client tick 2137
-client ticksRun 577
-cunit4767 #place 0C1A41B4
-cunit4896 #place 7F6DE71E
-@ 136 update 2740 frame 547 tick 2037 zone - hash 5439150F n 992
+client ticksRun 292
+cunit4517 #place CE611C8F
+cunit4517 #unit 848E085E
+cunit4651 #place D4E6F492
+cunit4768 #place 2B9642A6
+cunit4895 #place 995BD9C6
+cunit4895 #unit 150F82DE
+@ 136 update 2740 frame 547 tick 2037 zone - hash 13E08E66 n 993
 world tick 2037
 world updates 2740
 aievents tick 2037
 client tick 2157
-client ticksRun 597
-cunit4767 #place EFD582E8
-cunit4896 #place 56E5D8B0
-cunit4896 #unit BD4BA574
-@ 137 update 2760 frame 551 tick 2057 zone - hash 190CDAF9 n 992
+client ticksRun 312
+cunit4517 #place 3ABFBBEB
+cunit4651 #place FFE02396
+cunit4768 #place B5483C4F
+cunit4895 #place 6551E8C9
+@ 137 update 2760 frame 551 tick 2057 zone - hash 85ACA1FB n 992
 world tick 2057
 world updates 2760
 aievents tick 2057
 client tick 2177
-client ticksRun 617
-cunit4651 #place 94DD74F7
-cunit4767 #place FE672F0A
-cunit4896 #place F236B4D9
-cunit4896 #unit D4E85774
-@ 138 update 2780 frame 555 tick 2077 zone - hash 75F9AC63 n 992
+client ticksRun 332
+client objects 988
+client units 8
+client synchronised 8
+cunit4517 #place 299DBEA5
+cunit4651 #place C4116E13
+cunit4651 #unit EC9A2855
+cunit4768 #place 23584863
+- cunit4895
+cunit4896 #place FCA8C5D4
+@ 138 update 2780 frame 555 tick 2077 zone - hash FEEDBFF0 n 993
 world tick 2077
 world updates 2780
 aievents tick 2077
 client tick 2197
-client ticksRun 637
-cunit4651 #place D50C349E
-cunit4896 #place 8653AE10
-cunit4896 #unit A98EFB04
-@ 139 update 2800 frame 559 tick 2097 zone - hash A7705721 n 992
+client ticksRun 352
+client objects 989
+client units 9
+client synchronised 9
+cunit4517 #place AC0CCAE6
+cunit4517 #unit 308D73D7
++ cunit4518 80 unanwibo ""
+cunit4518 #place 53E52DC8
+cunit4518 #unit 27E97962
+cunit4518 #vitals 1D70ACB1
+cunit4651 #place 06D3D4EB
+cunit4651 #unit 08487EC2
+cunit4768 #place EBAECC57
+cunit4896 #place D592371D
+@ 139 update 2800 frame 559 tick 2097 zone - hash EECDCE0A n 993
 world tick 2097
 world updates 2800
 aievents tick 2097
 client tick 2217
-client ticksRun 657
-cunit4651 #place A58618BF
-cunit4896 #place 1CC3690C
-@ 140 update 2820 frame 563 tick 2117 zone - hash EA249BA8 n 992
+client ticksRun 372
+cunit4517 #place 5BBBC05D
+cunit4517 #unit 848E085E
+cunit4518 #place FFD7D1F4
+cunit4651 #place F2E5049C
+cunit4768 #place 2FFFC056
+cunit4896 #place F671AFCF
+@ 140 update 2820 frame 563 tick 2117 zone - hash FC46A2ED n 993
 world tick 2117
 world updates 2820
 aievents tick 2117
 client tick 2237
-client ticksRun 677
-cunit4651 #place 80B5B4C5
-cunit4896 #place 0A8E19EF
-@ 141 update 2840 frame 567 tick 2137 zone - hash 316768FF n 992
+client ticksRun 392
+cunit4517 #place 3B706B88
+cunit4518 #place 64E8CC02
+cunit4651 #place 23D3CBD5
+cunit4651 #unit A64C83B5
+@ 141 update 2840 frame 567 tick 2137 zone - hash 53092B7C n 993
 world tick 2137
 world updates 2840
 aievents tick 2137
 client tick 2257
-client ticksRun 697
-cunit4896 #place D4E32293
-@ 142 update 2860 frame 571 tick 2157 zone - hash F9EBAB09 n 993
+client ticksRun 412
+cunit4517 #place 242215B5
+cunit4517 #unit FDD97784
+cunit4518 #place 80ADA862
+cunit4651 #place 7E90BE09
+@ 142 update 2860 frame 571 tick 2157 zone - hash 26B9EF86 n 993
 world tick 2157
 world updates 2860
 aievents tick 2157
 client tick 2277
-client ticksRun 717
-client objects 989
-client units 9
-client synchronised 9
-+ cunit4518 80 unanwibo ""
-cunit4518 #place 4C37D6C0
-cunit4518 #unit 5038C318
-cunit4518 #vitals 1D70ACB1
-cunit4651 #place 9487C375
-cunit4651 #unit BF77E77A
-cunit4767 #place A5FBAEF0
-@ 143 update 2880 frame 575 tick 2177 zone - hash C4EE2F51 n 993
+client ticksRun 432
+cunit4517 #place 79D849D3
+cunit4651 #place A3E671FB
+cunit4896 #place 09765B02
+@ 143 update 2880 frame 575 tick 2177 zone - hash 55249093 n 993
 world tick 2177
 world updates 2880
 aievents tick 2177
 client tick 2297
-client ticksRun 737
-cunit4518 #place 0DDAA24A
-cunit4518 #unit 3DE35EF0
-cunit4651 #place DD46019E
-cunit4651 #unit 6E17361B
-cunit4767 #place 7847D20A
-cunit4896 #place 42B28388
-cunit1000000015 #unit F430A96E
-cunit1000000015 #vitals 5E4567CB
-@ 144 update 2900 frame 579 tick 2197 zone - hash 0466F5EB n 993
+client ticksRun 452
+cunit4517 #place 6F78DA74
+cunit4517 #unit 308D73D7
+cunit4651 #place C3E91F55
+cunit4896 #place 20DF0DED
+@ 144 update 2900 frame 579 tick 2197 zone - hash BF1DCDD3 n 993
 world tick 2197
 world updates 2900
 aievents tick 2197
 client tick 2317
-client ticksRun 757
-cunit4518 #place F411B984
-cunit4518 #unit E43BB891
-cunit4651 #place BC2EF404
-cunit4651 #unit 4B474DE8
-cunit4767 #place 6B3A32E5
-cunit4896 #place 2AC87C26
-@ 145 update 2920 frame 583 tick 2217 zone - hash 2BC6BCCC n 993
+client ticksRun 472
+cunit4517 #place B9C77A02
+cunit4517 #unit 1EF1F6CF
+cunit4651 #place 6A316C82
+cunit4768 #place 1AAF9543
+cunit4896 #place 21959A52
+@ 145 update 2920 frame 583 tick 2217 zone - hash 60254239 n 993
 world tick 2217
 world updates 2920
 aievents tick 2217
 client tick 2337
-client ticksRun 777
-cunit4518 #place 906882FC
-cunit4518 #unit 5038C318
-cunit4651 #place 1F5DFF1D
-cunit4896 #place 88B4F6AD
-@ 146 update 2940 frame 587 tick 2237 zone - hash D3632567 n 993
+client ticksRun 492
+cunit4517 #place D5F6481C
+cunit4651 #place 1D5A4EFC
+cunit4768 #place 84635140
+cunit4896 #place 5D42AD67
+@ 146 update 2940 frame 587 tick 2237 zone - hash 98BF0D11 n 993
 world tick 2237
 world updates 2940
 aievents tick 2237
 client tick 2357
-client ticksRun 797
-cunit4518 #place E7016B9D
-cunit4518 #unit E43BB891
-cunit4651 #place 7367F074
-cunit4896 #place B5FFD87B
-cunit4896 #unit DCD6D26B
-@ 147 update 2960 frame 591 tick 2257 zone - hash CC0124DD n 993
+client ticksRun 512
+cunit4517 #place 640F9B89
+cunit4518 #place 813FC214
+cunit4651 #place 93C97D4A
+cunit4768 #place C2D953E4
+@ 147 update 2960 frame 591 tick 2257 zone - hash 6CA6393F n 993
 world tick 2257
 world updates 2960
 aievents tick 2257
 client tick 2377
-client ticksRun 817
-cunit4518 #place 62201E94
-cunit4651 #place 7E0628C2
-cunit4896 #place 0D027BFC
-cunit4896 #unit 68D5A9E2
-@ 148 update 2980 frame 595 tick 2277 zone - hash F6F4AEFD n 993
+client ticksRun 532
+cunit4517 #place F27152FA
+cunit4517 #unit 09A6E118
+cunit4518 #place 3B10F71C
+cunit4768 #place CF8C46CC
+@ 148 update 2980 frame 595 tick 2277 zone - hash 487369A5 n 993
 world tick 2277
 world updates 2980
 aievents tick 2277
 client tick 2397
-client ticksRun 837
-cunit4518 #place 3F355705
-cunit4518 #unit 3DE35EF0
-cunit4767 #place 1D0A7416
-cunit4896 #place FE8137AF
-cunit4896 #unit 9F37DEA4
-@ 149 update 3000 frame 599 tick 2297 zone - hash D1E1CE1F n 993
+client ticksRun 552
+cunit4517 #place F6C5D935
+cunit4518 #place B7E3591E
+cunit4768 #place 26BBADAC
+cunit4768 #unit 72147716
+@ 149 update 3000 frame 599 tick 2297 zone - hash DC38C4DE n 993
 world tick 2297
 world updates 3000
 aievents tick 2297
 client tick 2417
-client ticksRun 857
-cunit4518 #place B3D09B04
-cunit4518 #unit E43BB891
-cunit4767 #place 4794DD9B
-cunit4896 #place DEDCE7CD
-@ 150 update 3020 frame 603 tick 2317 zone - hash A6864006 n 993
+client ticksRun 572
+cunit4517 #place 74789203
+cunit4517 #unit D07E0779
+cunit4518 #place 73E03125
+cunit4518 #unit 8BB8C8F5
+cunit4651 #place 777E72BA
+cunit4768 #place A71DA70B
+cunit4896 #place F044F044
+cunit4896 #unit 3D634DCD
+cunit4896 #vitals 2BC9DF80
+@ 150 update 3020 frame 603 tick 2317 zone - hash D8E549EA n 993
 world tick 2317
 world updates 3020
 aievents tick 2317
 client tick 2437
-client ticksRun 877
-cunit4518 #place 2A162943
-cunit4651 #place 9FCDE684
-cunit4767 #place 97E61EBA
-cunit4896 #place 5798A0AF
-@ 151 update 3040 frame 607 tick 2337 zone - hash 3D09D8EB n 993
+client ticksRun 592
+cunit4517 #place FB167AB4
+cunit4517 #unit BDA59A91
+cunit4518 #place 6B7A7782
+cunit4518 #unit F2EFB72F
+cunit4651 #place 10A3724F
+cunit4768 #place 98DA3EF8
+cunit4896 #place 51F775FD
+@ 151 update 3040 frame 607 tick 2337 zone - hash 373EE01F n 993
 world tick 2337
 world updates 3040
 aievents tick 2337
 client tick 2457
-client ticksRun 897
-cunit4518 #place 401F4549
-cunit4518 #unit BF1208DC
-cunit4651 #place 54FF402F
-cunit4896 #place 54329974
-@ 152 update 3060 frame 611 tick 2357 zone - hash 433DFCB3 n 993
+client ticksRun 612
+cunit4517 #place 1142E632
+cunit4517 #unit E1653BC0
+cunit4518 #place 9360BEE4
+cunit4518 #unit 3FBBB37C
+cunit4651 #place F53E7DB9
+cunit4768 #place 0DF9824F
+cunit4896 #place 457A6279
+@ 152 update 3060 frame 611 tick 2357 zone - hash 6D435FAB n 993
 world tick 2357
 world updates 3060
 aievents tick 2357
 client tick 2477
-client ticksRun 917
-cunit4518 #place FBDC251B
-cunit4518 #unit 57C7B4B3
-cunit4651 #place F9D04B67
-@ 153 update 3080 frame 615 tick 2377 zone - hash 7632CECC n 992
+client ticksRun 632
+cunit4517 #place 7E5B9053
+cunit4518 #place 7A93848C
+cunit4518 #unit DB69E5EB
+cunit4896 #place C78420F0
+@ 153 update 3080 frame 615 tick 2377 zone - hash 16B6D697 n 993
 world tick 2377
 world updates 3080
 aievents tick 2377
 client tick 2497
-client ticksRun 937
-client objects 988
-client units 8
-client synchronised 8
-cunit4518 #place 9AED71FA
-cunit4651 #place EF6B8F64
-- cunit4767
-cunit4896 #place 6DBC56A6
-cunit4896 #unit 8C1CD280
-@ 154 update 3100 frame 619 tick 2397 zone - hash AA79C95F n 992
+client ticksRun 652
+cunit4517 #place 5EB9F653
+cunit4518 #place 8D02F574
+cunit4518 #unit 3FBBB37C
+@ 154 update 3100 frame 619 tick 2397 zone - hash F5C6F692 n 993
 world tick 2397
 world updates 3100
 aievents tick 2397
 client tick 2517
-client ticksRun 957
-cunit4518 #place 181A25B3
-cunit4651 #place 3ACEFFA4
-cunit4896 #place EAB4F70F
-cunit4896 #unit 98E0CEE0
-@ 155 update 3120 frame 623 tick 2417 zone - hash AE2D2EC2 n 992
+client ticksRun 672
+cunit4518 #place C8393693
+cunit4518 #unit D7322185
+cunit4768 #place B86998C1
+@ 155 update 3120 frame 623 tick 2417 zone - hash 7DBED283 n 994
 world tick 2417
 world updates 3120
 aievents tick 2417
 client tick 2537
-client ticksRun 977
-cunit4651 #place 784C81CD
-cunit4896 #place 164B5F7B
-@ 156 update 3140 frame 627 tick 2437 zone - hash 8E59B386 n 992
+client ticksRun 692
+client objects 990
+client units 10
+client synchronised 10
+cunit4518 #place 918A69FC
++ cunit4767 80 unanhoha ""
+cunit4767 #place F31649F3
+cunit4767 #unit 1EBFA071
+cunit4767 #vitals 2FDB08B6
+cunit4768 #place 3C937F51
+@ 156 update 3140 frame 627 tick 2437 zone - hash ED30A00E n 994
 world tick 2437
 world updates 3140
 aievents tick 2437
 client tick 2557
-client ticksRun 997
-cunit4896 #place 27C3555C
-@ 157 update 3160 frame 631 tick 2457 zone - hash CBCCDFB1 n 992
+client ticksRun 712
+cunit4518 #place D719E5FB
+cunit4651 #place 2290ABA9
+cunit4767 #place 3CF12248
+cunit4768 #place B42B35AD
+@ 157 update 3160 frame 631 tick 2457 zone - hash E5B48D35 n 994
 world tick 2457
 world updates 3160
 aievents tick 2457
 client tick 2577
-client ticksRun 1017
-cunit4518 #place BA2595E3
-cunit4896 #place A0548FD9
-cunit4896 #unit 8C1CD280
-@ 158 update 3180 frame 635 tick 2477 zone - hash 9B444742 n 992
+client ticksRun 732
+cunit4518 #place 6B2AEBDE
+cunit4518 #unit C19B9B53
+cunit4651 #place C2FCC171
+cunit4767 #place D68AA49D
+cunit4767 #unit 90C74605
+@ 158 update 3180 frame 635 tick 2477 zone - hash DC839EAA n 994
 world tick 2477
 world updates 3180
 aievents tick 2477
 client tick 2597
-client ticksRun 1037
-cunit4518 #place F32BEB25
-cunit4896 #place 011E70E5
-cunit4896 #unit 98E0CEE0
-@ 159 update 3200 frame 639 tick 2497 zone - hash BA7B8DFF n 992
+client ticksRun 752
+cunit4517 #place F5CFB7E3
+cunit4518 #place 40136460
+cunit4518 #unit E459975F
+cunit4651 #place D152F27C
+cunit4767 #place 2BC232E3
+@ 159 update 3200 frame 639 tick 2497 zone - hash 1B226E02 n 994
 world tick 2497
 world updates 3200
 aievents tick 2497
 client tick 2617
-client ticksRun 1057
-cunit4518 #place 68F7498A
-cunit4651 #place AAAED475
-cunit4896 #place 7F6BE5A1
-cunit4896 #unit 8C1CD280
-@ 160 update 3220 frame 643 tick 2517 zone - hash 8B9417D8 n 992
+client ticksRun 772
+cunit4517 #place 69990A75
+cunit4518 #place 041BB474
+cunit4518 #unit 505AECD6
+cunit4767 #place 51A4E151
+cunit4767 #unit 33C8CB32
+cunit1000000014 #unit 3C2EFC9C
+cunit1000000014 #vitals 5E4567CB
+@ 160 update 3220 frame 643 tick 2517 zone - hash 2DD182B0 n 994
 world tick 2517
 world updates 3220
 aievents tick 2517
 client tick 2637
-client ticksRun 1077
-cunit4518 #place 2E8C5E6C
-cunit4651 #place BA9165D5
-cunit4896 #place A63F8D71
-cunit4896 #unit 2CE3B569
-@ 161 update 3240 frame 647 tick 2537 zone - hash 9235E561 n 992
+client ticksRun 792
+cunit4517 #place A08D72C3
+cunit4518 #place 8F93EA43
+cunit4518 #unit E459975F
+cunit4767 #place 988E21E5
+cunit4767 #unit C5B15C1C
+@ 161 update 3240 frame 647 tick 2537 zone - hash C608F844 n 994
 world tick 2537
 world updates 3240
 aievents tick 2537
 client tick 2657
-client ticksRun 1097
-cunit4651 #place FE73C1AA
-cunit4896 #place 795BA973
-@ 162 update 3260 frame 651 tick 2557 zone - hash 7CC4F294 n 992
+client ticksRun 812
+cunit4517 #place 33FCEEB8
+cunit4518 #place 40D7E387
+cunit4518 #unit EF191375
+cunit4767 #place F9CE6415
+cunit4767 #unit A8EC74F5
+cunit4768 #place 7F35706A
+cunit4768 #unit 82F82C0C
+@ 162 update 3260 frame 651 tick 2557 zone - hash 5BBE3A8D n 994
 world tick 2557
 world updates 3260
 aievents tick 2557
 client tick 2677
-client ticksRun 1117
-cunit4651 #place 1931777D
-cunit4896 #place 2476AF91
-@ 163 update 3280 frame 655 tick 2577 zone - hash 9C829698 n 992
+client ticksRun 832
+cunit4517 #place 8B7F4395
+cunit4518 #place A9251D48
+cunit4767 #place EC7F8955
+cunit4768 #place 37FCBF47
+cunit4768 #unit EFFB4ACC
+@ 163 update 3280 frame 655 tick 2577 zone - hash A7973ECA n 994
 world tick 2577
 world updates 3280
 aievents tick 2577
 client tick 2697
-client ticksRun 1137
-cunit4518 #place ECDE15BC
-cunit4896 #place B3E4EFC2
-cunit4896 #unit 29BCCB4A
-@ 164 update 3300 frame 659 tick 2597 zone - hash E11A9DD8 n 992
+client ticksRun 852
+cunit4517 #place AAF26E18
+cunit4518 #place 9E86E0BC
+cunit4651 #place 46E651E8
+cunit4651 #unit 146D0D2F
+cunit4767 #place 9210E7C2
+cunit4768 #place EC65F3BC
+cunit4768 #unit 73263739
+@ 164 update 3300 frame 659 tick 2597 zone - hash 4DF7C81F n 994
 world tick 2597
 world updates 3300
-random isaac.count 62
 aievents tick 2597
 client tick 2717
-client ticksRun 1157
-cunit4518 #place E4F00368
-cunit4651 #place ED03192A
-cunit4651 #unit C2AAB178
-cunit4896 #place 31C119FD
-@ 165 update 3320 frame 663 tick 2617 zone - hash EFA88B38 n 993
+client ticksRun 872
+cunit4517 #place 6647F8FD
+cunit4517 #unit 74083E0B
+cunit4518 #place 5D55ABFE
+cunit4651 #place 825BF7CD
+cunit4651 #unit A06E76A6
+cunit4768 #place 0AE1CB7A
+@ 165 update 3320 frame 663 tick 2617 zone - hash D6EC1238 n 994
 world tick 2617
 world updates 3320
 aievents tick 2617
 client tick 2737
-client ticksRun 1177
-client objects 989
-client units 9
-client synchronised 9
-cunit4518 #place EFD4D276
-cunit4651 #place FF4F0221
-cunit4651 #unit 1B725719
-+ cunit4767 80 unanhoha ""
-cunit4767 #place 10158594
-cunit4767 #unit 85D4B47A
-cunit4767 #vitals 2FDB08B6
-cunit4896 #place 54D87F5D
-@ 166 update 3340 frame 667 tick 2637 zone - hash 2126AFC4 n 993
+client ticksRun 892
+cunit4517 #place FC912CDE
+cunit4517 #unit ADD0D86A
+cunit4518 #place E54579D4
+cunit4651 #place ED242C55
+cunit4651 #unit CDB5EB4E
+cunit4768 #place 2EC3657C
+@ 166 update 3340 frame 667 tick 2637 zone - hash A6E485FC n 994
 world tick 2637
 world updates 3340
 aievents tick 2637
 client tick 2757
-client ticksRun 1197
-cunit4651 #place 3ABED5F9
-cunit4767 #place 10D0C6B6
-cunit4767 #unit 02844AFC
-cunit4896 #place 5C5A0C95
-@ 167 update 3360 frame 671 tick 2657 zone - hash B0CFA820 n 993
+client ticksRun 912
+cunit4517 #place 12D7BEC3
+cunit4651 #place 61C6791D
+cunit4651 #unit A06E76A6
+cunit4768 #place 2DB7005B
+@ 167 update 3360 frame 671 tick 2657 zone - hash DADBDF4D n 994
 world tick 2657
 world updates 3360
 aievents tick 2657
 client tick 2777
-client ticksRun 1217
-cunit4518 #place D7AF5072
-cunit4518 #unit 16220040
-cunit4651 #place 55A822F7
-cunit4651 #unit A849FE43
-cunit4767 #place 3E26850C
-cunit4896 #place 88A84714
-@ 168 update 3380 frame 675 tick 2677 zone - hash FD443983 n 993
+client ticksRun 932
+cunit4517 #place 0C174D78
+cunit4651 #place 45B2F746
+cunit4768 #place 8B015043
+@ 168 update 3380 frame 675 tick 2677 zone - hash A5CE6C67 n 994
 world tick 2677
 world updates 3380
 aievents tick 2677
 client tick 2797
-client ticksRun 1237
-cunit4518 #place CEA31E4A
-cunit4518 #unit E412220C
-cunit4651 #place 2C4A5F4B
-cunit4767 #place 5DC68153
-cunit4896 #place 8537E852
-cunit1000000013 #unit 42BBBC80
-cunit1000000013 #vitals 5E4567CB
-@ 169 update 3400 frame 679 tick 2697 zone - hash 1A1F8AAF n 993
+client ticksRun 952
+cunit4517 #place C274A55C
+cunit4517 #unit 74083E0B
+cunit4651 #place 76A2C241
+cunit4651 #unit 146D0D2F
+cunit4768 #place D38B1D50
+@ 169 update 3400 frame 679 tick 2697 zone - hash CA12CC8A n 994
 world tick 2697
 world updates 3400
 aievents tick 2697
 client tick 2817
-client ticksRun 1257
-cunit4518 #place A5417801
-cunit4651 #place E8D2FEAA
-cunit4767 #place 988AFE89
-cunit4896 #place 0DA987C7
-cunit4896 #unit 4C210B6D
-@ 170 update 3420 frame 683 tick 2717 zone - hash 95422332 n 993
+client ticksRun 972
+cunit4517 #place 64333F6C
+cunit4517 #unit ADD0D86A
+cunit4518 #place A698700B
+cunit4651 #place 357632E2
+cunit4651 #unit A06E76A6
+cunit4768 #place F1FF1E0F
+@ 170 update 3420 frame 683 tick 2717 zone - hash 73F95DD0 n 994
 world tick 2717
 world updates 3420
 aievents tick 2717
 client tick 2837
-client ticksRun 1277
-cunit4518 #place EC8BB96A
-cunit4518 #unit 2946265F
-cunit4767 #place 4D9ACA9D
-cunit4896 #place 21C00E7D
-cunit4896 #unit 95F9ED0C
-@ 171 update 3440 frame 687 tick 2737 zone - hash 19CE4583 n 993
+client ticksRun 992
+cunit4517 #place 723133C0
+cunit4517 #unit 102BAE28
+cunit4518 #place BCF93501
+cunit4651 #place 098CAE5F
+cunit4651 #unit 146D0D2F
+@ 171 update 3440 frame 687 tick 2737 zone - hash 5E11F08B n 994
 world tick 2737
 world updates 3440
 aievents tick 2737
 client tick 2857
-client ticksRun 1297
-cunit4518 #place 8F597A24
-cunit4518 #unit E412220C
-cunit4767 #place D1FE3E9E
-cunit4896 #place 55472AFE
-cunit4896 #unit 21FA9685
-@ 172 update 3460 frame 691 tick 2757 zone - hash F3FEB5E4 n 993
+client ticksRun 1012
+cunit4517 #place 8286802D
+cunit4518 #place 619F02ED
+cunit4651 #place 5D5E0191
+cunit4651 #unit B4CAFDFC
+cunit4767 #place 1385F652
+cunit4767 #unit 0C5FEF69
+@ 172 update 3460 frame 691 tick 2757 zone - hash 2DE3F278 n 994
 world tick 2757
 world updates 3460
 aievents tick 2757
 client tick 2877
-client ticksRun 1317
-cunit4518 #place D06DF316
-cunit4767 #place 4906B64F
-cunit4896 #place 04C5FC0C
-cunit4896 #unit 58ADE95F
-@ 173 update 3480 frame 695 tick 2777 zone - hash 19BDCFCF n 994
+client ticksRun 1032
+cunit4517 #place B0B2F940
+cunit4651 #place DB8152E6
+cunit4767 #place A13DFFE2
+cunit4768 #place 2C8932EA
+@ 173 update 3480 frame 695 tick 2777 zone - hash 1F662829 n 994
 world tick 2777
 world updates 3480
 aievents tick 2777
 client tick 2897
-client ticksRun 1337
-client objects 990
-client units 10
-client synchronised 10
-cunit4518 #place 1F7A8D5A
-cunit4767 #place DB23E33B
-cunit4896 #place A6AAC958
-cunit4896 #unit 95F9ED0C
-cunit1000000015 #place 722D662E
-cunit1000000015 #unit 42BE9E0C
-cunit1000000015 #vitals 68C46754
-+ cunit1001000013 80 unhuma "host"
-cunit1001000013 #place D90EBF7C
-cunit1001000013 #unit 19A92F19
-cunit1001000013 #vitals 68C46754
-@ 174 update 3500 frame 699 tick 2797 zone - hash 5F6219A6 n 995
+client ticksRun 1052
+cunit4517 #place 7300A28C
+cunit4651 #place 4B030E49
+cunit4767 #place 488BF357
+cunit4768 #place 59112B73
+@ 174 update 3500 frame 699 tick 2797 zone - hash ADC833CC n 994
 world tick 2797
 world updates 3500
 aievents tick 2797
 client tick 2917
-client ticksRun 1357
-client objects 991
-client units 11
-client synchronised 11
-cunit4518 #place D29C3788
-cunit4518 #unit 00C0749B
-cunit4767 #place A284C462
-+ cunit4895 80 unanwibo ""
-cunit4895 #place 2FB57CCA
-cunit4895 #unit B3F22F2F
-cunit4895 #vitals 1D70ACB1
-cunit4896 #place 535C7F7C
-cunit4896 #unit 58ADE95F
-cunit1000000015 #place 172465C6
-cunit1000000015 #unit BB4AF46F
-cunit1001000013 #place 912F0495
-cunit1001000013 #unit E05D457A
-@ 175 update 3520 frame 703 tick 2817 zone - hash 91CEF9E3 n 994
+client ticksRun 1072
+cunit4767 #place 895BCB25
+cunit4768 #place 2DF20079
+@ 175 update 3520 frame 703 tick 2817 zone - hash 3045AAD2 n 994
 world tick 2817
 world updates 3520
 aievents tick 2817
 client tick 2937
-client ticksRun 1377
-client objects 990
-client units 10
-client synchronised 10
-- cunit4518
-cunit4651 #place C381A5E3
-cunit4767 #place 0F6A1F65
-cunit4895 #place F46086E2
-cunit4895 #unit CAA550F5
-cunit4896 #place E673BC3C
-cunit4896 #unit A637D160
-cunit1000000015 #place 7ACED8A0
-cunit1001000013 #place FCC5B9F3
-@ 176 update 3540 frame 707 tick 2837 zone - hash 25235229 n 994
+client ticksRun 1092
+cunit4517 #place 5F9B102E
+cunit4651 #place EDBC9CFF
+cunit4768 #place CF7B2EF0
+@ 176 update 3540 frame 707 tick 2837 zone - hash 4A88FBF1 n 994
 world tick 2837
 world updates 3540
 aievents tick 2837
 client tick 2957
-client ticksRun 1397
-cunit4651 #place 295B4531
-cunit4767 #place 5FE7EB15
-cunit4895 #place D64DFBF8
-cunit4895 #unit 07F154A6
-cunit4896 #place 6C114876
-@ 177 update 3560 frame 711 tick 2857 zone - hash 985EEB0B n 994
+client ticksRun 1112
+cunit4517 #place B23100A1
+cunit4518 #place 21EF96E5
+cunit4651 #place 0B94F2BE
+cunit4768 #place A93F9304
+cunit4768 #unit 2FCBD4C0
+@ 177 update 3560 frame 711 tick 2857 zone - hash 6D348F2D n 994
 world tick 2857
 world updates 3560
 aievents tick 2857
 client tick 2977
-client ticksRun 1417
-cunit4651 #place 0B108B70
-cunit4767 #place 170D1FA5
-cunit4895 #place 8CEF46CF
-cunit4895 #unit CAA550F5
-cunit4896 #place 2A9C68B2
-@ 178 update 3580 frame 715 tick 2877 zone - hash A9B2A994 n 994
+client ticksRun 1132
+cunit4517 #place 55A82233
+cunit4518 #place B1A34406
+cunit4651 #place CA83EF92
+cunit4768 #place 7826F1D3
+cunit4768 #unit 97533741
+@ 178 update 3580 frame 715 tick 2877 zone - hash 6D486BE8 n 993
 world tick 2877
 world updates 3580
 aievents tick 2877
 client tick 2997
-client ticksRun 1437
-cunit4767 #place F9584678
-cunit4895 #place A2455DD0
-cunit4895 #unit 07F154A6
-cunit4896 #place BB9FB3B0
-@ 179 update 3600 frame 719 tick 2897 zone - hash EB843EB6 n 994
+client ticksRun 1152
+client objects 989
+client units 9
+client synchronised 9
+cunit4517 #place 56542806
+cunit4518 #place BC5F7D17
+cunit4651 #place 145771BF
+cunit4767 #place F8A46998
+- cunit4768
+@ 179 update 3600 frame 719 tick 2897 zone - hash BFFA8BE1 n 993
 world tick 2897
 world updates 3600
 aievents tick 2897
 client tick 3017
-client ticksRun 1457
-cunit4767 #place F6E9A67B
-cunit4895 #place AAE61DE8
-@ 180 update 3620 frame 723 tick 2917 zone - hash EAAE65CD n 994
+client ticksRun 1172
+cunit4518 #place 092AD052
+cunit4518 #unit 7ED54C74
+cunit4767 #place BA0C92B7
+@ 180 update 3620 frame 723 tick 2917 zone - hash 814EB62F n 993
 world tick 2917
 world updates 3620
 aievents tick 2917
 client tick 3037
-client ticksRun 1477
-cunit4895 #place 74CFD323
-cunit4895 #unit B3F22F2F
-cunit4896 #place 5D5DBE8B
-@ 181 update 3640 frame 727 tick 2937 zone - hash A4590630 n 994
+client ticksRun 1192
+cunit4518 #place D7083613
+cunit4518 #unit A70DAA15
+cunit4767 #place 740D8616
+@ 181 update 3640 frame 727 tick 2937 zone - hash 2F4A4D05 n 993
 world tick 2937
 world updates 3640
 aievents tick 2937
 client tick 3057
-client ticksRun 1497
-cunit4895 #place 88516737
-cunit4895 #unit C34FEF1C
-cunit4896 #place 9773EA18
-@ 182 update 3660 frame 731 tick 2957 zone - hash E4261454 n 994
+client ticksRun 1212
+cunit4518 #place 5E40F6E8
+cunit4518 #unit 7ED54C74
+cunit4767 #place D08C1574
+@ 182 update 3660 frame 731 tick 2957 zone - hash 4FB6B947 n 993
 world tick 2957
 world updates 3660
 aievents tick 2957
 client tick 3077
-client ticksRun 1517
-cunit4651 #place ACE712E3
-cunit4651 #unit 27787316
-cunit4767 #place F0F75EB6
-cunit4767 #unit 8A927168
-cunit4895 #place A6CB53B5
-cunit4896 #place DEC04E32
-@ 183 update 3680 frame 735 tick 2977 zone - hash 586D7D02 n 995
+client ticksRun 1232
+cunit4517 #place D1B6A3A4
+cunit4518 #place 5B1F001B
+cunit4651 #place B47F47C0
+cunit4651 #unit DA341FA0
+cunit4767 #place 8717BA72
+@ 183 update 3680 frame 735 tick 2977 zone - hash 90A55F0F n 993
 world tick 2977
 world updates 3680
 aievents tick 2977
 client tick 3097
-client ticksRun 1537
-client objects 991
-client units 11
-client synchronised 11
-cunit4651 #place 2F4EEEAC
-cunit4651 #unit 937B089F
-cunit4767 #place BCF4A1CC
-+ cunit4768 80 unanhoha ""
-cunit4768 #place 0994A160
-cunit4768 #unit D2581C1E
-cunit4768 #vitals 2FDB08B6
-cunit4895 #place 2F940D32
-cunit4896 #place C0E83137
-@ 184 update 3700 frame 739 tick 2997 zone - hash BB5515C8 n 995
+client ticksRun 1252
+cunit4517 #place 807864A1
+cunit4518 #place 17FE7948
+cunit4651 #place F17E165C
+cunit4767 #place 4D75C4AE
+@ 184 update 3700 frame 739 tick 2997 zone - hash 98A81104 n 993
 world tick 2997
 world updates 3700
 aievents tick 2997
 client tick 3117
-client ticksRun 1557
-cunit4651 #place 4E802441
-cunit4651 #unit 5E2F0CCC
-cunit4767 #place 0D7016D2
-cunit4767 #unit 7B7F773F
-cunit4768 #place 1C3E2533
-cunit4768 #unit C3EA65AA
-cunit4895 #place 746A85CB
-cunit4896 #place F3E28729
-@ 185 update 3720 frame 743 tick 3017 zone - hash 8CFEFEB0 n 995
+client ticksRun 1272
+cunit4517 #place 52A6232A
+cunit4518 #place BE509336
+cunit4651 #place 202D817F
+cunit4651 #unit 17601BF3
+cunit1000000013 #unit 0C3F5CD6
+cunit1000000013 #vitals 5E4567CB
+@ 185 update 3720 frame 743 tick 3017 zone - hash 6C858CCB n 993
 world tick 3017
 world updates 3720
 aievents tick 3017
 client tick 3137
-client ticksRun 1577
-cunit4651 #place 8238646D
-cunit4651 #unit 4AA3EEFE
-cunit4767 #place D5608A32
-cunit4768 #place 65D39C71
-cunit4896 #place 5C6730D1
-@ 186 update 3740 frame 747 tick 3037 zone - hash 3B127036 n 995
+client ticksRun 1292
+cunit4518 #place 599CC522
+cunit4651 #place F7A515D8
+cunit4651 #unit DA341FA0
+@ 186 update 3740 frame 747 tick 3037 zone - hash 2848840C n 994
 world tick 3037
 world updates 3740
 aievents tick 3037
 client tick 3157
-client ticksRun 1597
-cunit4651 #place 1D3EF9D6
-cunit4651 #unit 27787316
-cunit4767 #place B31FDCFF
-cunit4768 #place D692924A
-cunit4895 #place E70EA937
-cunit4895 #unit AB1B8F3C
-cunit4896 #place 5C0BB06B
-@ 187 update 3760 frame 751 tick 3057 zone - hash A273D25D n 995
+client ticksRun 1312
+client objects 990
+client units 10
+client synchronised 10
+cunit4518 #place 33532702
+cunit4518 #unit 18202666
+cunit4651 #place 60404E3A
+cunit4651 #unit 17601BF3
++ cunit4895 80 unanwibo ""
+cunit4895 #place 895B7805
+cunit4895 #unit 9C073BA5
+cunit4895 #vitals 1D70ACB1
+@ 187 update 3760 frame 751 tick 3057 zone - hash 4D6A1AF9 n 994
 world tick 3057
 world updates 3760
 aievents tick 3057
 client tick 3177
-client ticksRun 1617
-cunit4651 #place A92987D9
-cunit4651 #unit 4AA3EEFE
-cunit4767 #place 7D70C308
-cunit4768 #place 01F3541D
-cunit4895 #place 2A9EEED0
-cunit4895 #unit 664F8B6F
-cunit4896 #place 563E2491
-@ 188 update 3780 frame 755 tick 3077 zone - hash 0B3BB43E n 995
+client ticksRun 1332
+cunit4518 #place B2C00B15
+cunit4651 #place 35D6C416
+cunit4651 #unit DA341FA0
+cunit4767 #place 576F146B
+cunit4895 #place E4307BD6
+cunit4895 #unit 7BF29A66
+@ 188 update 3780 frame 755 tick 3077 zone - hash 3AFABED9 n 994
 world tick 3077
 world updates 3780
+random isaac.count 173
 aievents tick 3077
 client tick 3197
-client ticksRun 1637
-cunit4651 #place 290EBE53
-cunit4651 #unit 937B089F
-cunit4767 #place 7A1998D3
-cunit4895 #place 6161314E
-cunit4895 #unit AB1B8F3C
-cunit4896 #place 84D5FEC6
-@ 189 update 3800 frame 759 tick 3097 zone - hash 8BE375E5 n 995
+client ticksRun 1352
+cunit4518 #place C3313CFC
+cunit4651 #place 20FF01EE
+cunit4767 #place 0F04488E
+cunit4895 #place DE3BFC02
+@ 189 update 3800 frame 759 tick 3097 zone - hash 9E647281 n 994
 world tick 3097
 world updates 3800
 aievents tick 3097
 client tick 3217
-client ticksRun 1657
-cunit4651 #place A291CE03
-cunit4767 #place 2CDC9C1E
-cunit4895 #place BC1047F9
-cunit4895 #unit 72C3695D
-cunit4896 #place E570B46E
-@ 190 update 3820 frame 763 tick 3117 zone - hash 98F4713D n 995
+client ticksRun 1372
+cunit4518 #place 9B27BBAE
+cunit4651 #place 91AEB3AD
+cunit4767 #place 9C8D1A10
+cunit4895 #place D59BA991
+@ 190 update 3820 frame 763 tick 3117 zone - hash EE3796F8 n 995
 world tick 3117
 world updates 3820
 aievents tick 3117
 client tick 3237
-client ticksRun 1677
-+ cunit4518 80 unanwibo ""
-cunit4518 #place 629F20FF
-cunit4518 #unit 83AA3DA0
-cunit4518 #vitals 1D70ACB1
-cunit4651 #place DA3E482B
-- cunit4895
-@ 191 update 3840 frame 767 tick 3137 zone - hash CEC39582 n 995
+client ticksRun 1392
+client objects 991
+client units 11
+client synchronised 11
+cunit4517 #place 554BC201
+cunit4518 #place CC536803
+cunit4518 #unit 374779CC
+cunit4651 #place E2DDA0ED
+cunit4651 #unit 43D9A896
+cunit4767 #place D6458819
+cunit4895 #place 4753B4E1
+cunit1000000014 #place B7D52C03
+cunit1000000014 #unit F5AFC113
+cunit1000000014 #vitals 68C46754
++ cunit1001000013 80 unhuma "host"
+cunit1001000013 #place 31DE4D50
+cunit1001000013 #unit 4D3AD386
+cunit1001000013 #vitals 68C46754
+@ 191 update 3840 frame 767 tick 3137 zone - hash 6ECFB65A n 995
 world tick 3137
 world updates 3840
 aievents tick 3137
 client tick 3257
-client ticksRun 1697
-cunit4518 #place 86B41E49
-cunit4518 #unit 37A94629
-cunit4651 #place 7F6E5CDD
-cunit4651 #unit 4AA3EEFE
-@ 192 update 3860 frame 771 tick 3157 zone - hash DB0B3888 n 995
+client ticksRun 1412
+cunit4517 #place 433DF4A7
+cunit4518 #place 1C9C1578
+cunit4518 #unit D3952F5B
+cunit4651 #place 539D6B5C
+cunit1000000014 #place 613EB219
+cunit1001000013 #place E735D34A
+@ 192 update 3860 frame 771 tick 3157 zone - hash 85519D6C n 995
 world tick 3157
 world updates 3860
 aievents tick 3157
 client tick 3277
-client ticksRun 1717
-cunit4518 #place D968BB48
-cunit4518 #unit EE71A048
-cunit4651 #place CEC2E816
-cunit4651 #unit 5C858CBF
-cunit4767 #place 78165AD3
-cunit4768 #place 4CEF36C8
-cunit4896 #place 6253B442
-cunit4896 #unit 9D07202A
-@ 193 update 3880 frame 775 tick 3177 zone - hash 9696F956 n 995
+client ticksRun 1432
+cunit4517 #place 7DB1434E
+cunit4518 #place 059AE17E
+cunit4518 #unit 374779CC
+cunit4651 #place 9B8C6FCD
+cunit1000000014 #place 7ACED8A0
+cunit1001000013 #place FCC5B9F3
+@ 193 update 3880 frame 775 tick 3177 zone - hash D916737E n 995
 world tick 3177
 world updates 3880
 aievents tick 3177
 client tick 3297
-client ticksRun 1737
-cunit4518 #place C7D43493
-cunit4518 #unit 83AA3DA0
-cunit4651 #place 7E3F69E6
-cunit4767 #place 15F195FA
-cunit4768 #place 3A8ED9DE
-cunit4896 #place 156145A6
-@ 194 update 3900 frame 779 tick 3197 zone - hash 5BB18366 n 995
+client ticksRun 1452
+cunit4517 #place 688F7579
+cunit4517 #unit C9AA41BF
+cunit4518 #place 76717C5E
+cunit4767 #place DC436A3B
+cunit4767 #unit B8F731D7
+cunit4895 #place BFAEA9E1
+cunit4895 #unit 4386CF35
+@ 194 update 3900 frame 779 tick 3197 zone - hash E5BC0693 n 994
 world tick 3197
 world updates 3900
 aievents tick 3197
 client tick 3317
-client ticksRun 1757
-cunit4518 #place 1DE4FE65
-cunit4518 #unit EE71A048
-cunit4651 #place A7B42F89
-cunit4651 #unit 20B5E4AD
-cunit4767 #place C21CA94A
-cunit4768 #place B417D178
-cunit4896 #place 667F67D1
-@ 195 update 3920 frame 783 tick 3217 zone - hash 65482758 n 995
+client ticksRun 1472
+client objects 990
+client units 10
+client synchronised 10
+cunit4517 #place DEA035C4
+cunit4518 #place 75BE02E2
+cunit4767 #place DA5795A8
+cunit4767 #unit 327BD553
+- cunit4895
+@ 195 update 3920 frame 783 tick 3217 zone - hash 54C2B8EB n 993
 world tick 3217
 world updates 3920
 aievents tick 3217
 client tick 3337
-client ticksRun 1777
-cunit4518 #place FCD9F575
-cunit4651 #place 90E25407
-cunit4896 #place 2520344C
-cunit4896 #unit 50532479
-@ 196 update 3940 frame 787 tick 3237 zone - hash 5EB1FDFF n 995
+client ticksRun 1492
+client objects 989
+client units 9
+client synchronised 9
+cunit4517 #place 8A526671
+- cunit4518
+cunit4651 #place 6645F77E
+cunit4767 #place D5EA6721
+@ 196 update 3940 frame 787 tick 3237 zone - hash 401D2642 n 993
 world tick 3237
 world updates 3940
 aievents tick 3237
 client tick 3357
-client ticksRun 1797
-cunit4518 #place 66A19281
-cunit4518 #unit D2F7E3E2
-cunit4651 #place D5978F85
-cunit4767 #place 8084FE01
-cunit4767 #unit 58088267
-cunit4896 #place C19466F4
-cunit4896 #unit 9D07202A
+client ticksRun 1512
+cunit4517 #place E0CB63B5
+cunit4651 #place 959E16AE
+cunit4767 #place 15E267DC
+@ 197 update 3960 frame 791 tick 3257 zone - hash F027FE52 n 993
+world tick 3257
+world updates 3960
+aievents tick 3257
+client tick 3377
+client ticksRun 1532
+cunit4517 #place 70B3F60F
+cunit4651 #place A8C371A7
+cunit4651 #unit A57CDD04
+cunit4767 #place 2F006963
+@ 198 update 3980 frame 795 tick 3277 zone - hash CA5DBB66 n 993
+world tick 3277
+world updates 3980
+aievents tick 3277
+client tick 3397
+client ticksRun 1552
+cunit4517 #place D7D35B92
+cunit4651 #place 31F9DC9C
+@ 199 update 4000 frame 799 tick 3297 zone - hash B6F78243 n 994
+world tick 3297
+world updates 4000
+aievents tick 3297
+client tick 3417
+client ticksRun 1572
+client objects 990
+client units 10
+client synchronised 10
+cunit4517 #place D6D7B6A9
+cunit4651 #place D886407B
+cunit4651 #unit 117FA68D
++ cunit4768 80 unanhoha ""
+cunit4768 #place 2143ECB7
+cunit4768 #unit 163C5802
+cunit4768 #vitals 2FDB08B6
+@ 200 update 4020 frame 803 tick 3317 zone - hash 651A3E13 n 994
+world tick 3317
+world updates 4020
+aievents tick 3317
+client tick 3437
+client ticksRun 1592
+cunit4517 #place 67EA07C4
+cunit4517 #unit 04FE45EC
+cunit4651 #place C804EA47
+cunit4651 #unit A57CDD04
+cunit4767 #place EFC9BB0A
+cunit4768 #place D45989AF
+cunit4768 #unit DFA8DA64
+@ 201 update 4040 frame 807 tick 3337 zone - hash 9D507140 n 994
+world tick 3337
+world updates 4040
+aievents tick 3337
+client tick 3457
+client ticksRun 1612
+cunit4517 #place 4AA0E06B
+cunit4517 #unit C9AA41BF
+cunit4651 #place 9FE10C55
+cunit4767 #place 22947747
+cunit4768 #place CFBC3D4E
+cunit4768 #unit 2EFB2C08
+@ 202 update 4060 frame 811 tick 3357 zone - hash 38265B02 n 994
+world tick 3357
+world updates 4060
+aievents tick 3357
+client tick 3477
+client ticksRun 1632
+cunit4517 #place 4029CDEB
+cunit4651 #place FD070F76
+cunit4651 #unit 0583BAED
+cunit4767 #place 872B578D
+cunit4768 #place F9D616EB
+@ 203 update 4080 frame 815 tick 3377 zone - hash 0E19D2E3 n 994
+world tick 3377
+world updates 4080
+aievents tick 3377
+client tick 3497
+client ticksRun 1652
+cunit4517 #place 98AA9FB2
+cunit4517 #unit 680EEBB7
+cunit4651 #place DB295EE1
+cunit4651 #unit A57CDD04
+cunit4768 #place 64F625B3
+@ 204 update 4100 frame 819 tick 3397 zone - hash 40A09472 n 994
+world tick 3397
+world updates 4100
+aievents tick 3397
+client tick 3517
+client ticksRun 1672
+cunit4517 #place FCB75128
+cunit4651 #place CE8811F0
+cunit4651 #unit 98FC29CD
+@ 205 update 4120 frame 823 tick 3417 zone - hash 4B407B69 n 994
+world tick 3417
+world updates 4120
+aievents tick 3417
+client tick 3537
+client ticksRun 1692
+cunit4517 #place 2B8FF54A
+cunit4651 #place 859C4266
+@ 206 update 4140 frame 827 tick 3437 zone - hash 2C27BF63 n 995
+world tick 3437
+world updates 4140
+aievents tick 3437
+client tick 3557
+client ticksRun 1712
+client objects 991
+client units 11
+client synchronised 11
+cunit4517 #place E7750BFA
++ cunit4518 80 unanwibo ""
+cunit4518 #place 3D7838B7
+cunit4518 #unit 0A8DD40E
+cunit4518 #vitals 1D70ACB1
+cunit4651 #place 623FF76D
+@ 207 update 4160 frame 831 tick 3457 zone - hash 1918B9BE n 995
+world tick 3457
+world updates 4160
+aievents tick 3457
+client tick 3577
+client ticksRun 1732
+cunit4517 #place F34619AC
+cunit4518 #place CBD765C8
+cunit4518 #unit D4A7F582
+cunit4651 #place 402C2B01
+cunit4767 #place 833251B9
+cunit4767 #unit A0B4C981
+@ 208 update 4180 frame 835 tick 3477 zone - hash 34A1A33A n 995
+world tick 3477
+world updates 4180
+aievents tick 3477
+client tick 3597
+client ticksRun 1752
+cunit4517 #place 46197AFF
+cunit4518 #place 080ECB7D
+cunit4518 #unit 8593B23E
+cunit4767 #place 9F40436C
+cunit4768 #place CBD05202
+@ 209 update 4200 frame 839 tick 3497 zone - hash E0C01292 n 995
+world tick 3497
+world updates 4200
+aievents tick 3497
+client tick 3617
+client ticksRun 1772
+cunit4517 #place A109BDF3
+cunit4518 #place 6D2141AD
+cunit4767 #place 23FB05F1
+cunit4768 #place 2F4A1198
+@ 210 update 4220 frame 843 tick 3517 zone - hash A9EB3114 n 995
+world tick 3517
+world updates 4220
+aievents tick 3517
+client tick 3637
+client ticksRun 1792
+cunit4517 #place 9D66A8B4
+cunit4517 #unit 6C5135AB
+cunit4518 #place CD9DE0D3
+cunit4767 #place AE0653A4
+cunit4768 #place 3D123A6A
+@ 211 update 4240 frame 847 tick 3537 zone - hash 43A37DF9 n 995
+world tick 3537
+world updates 4240
+aievents tick 3537
+client tick 3657
+client ticksRun 1812
+cunit4517 #place D181E4F2
+cunit4517 #unit B589D3CA
+cunit4518 #place ED9C9A71
+cunit4768 #place 9CF326A0
+@ 212 update 4260 frame 851 tick 3557 zone - hash 8757E707 n 995
+world tick 3557
+world updates 4260
+aievents tick 3557
+client tick 3677
+client ticksRun 1832
+cunit4517 #place B4980264
+cunit4517 #unit 6C5135AB
+cunit4651 #place C9463522
+cunit4651 #unit B9ACEB81
+cunit4768 #place 274261CB

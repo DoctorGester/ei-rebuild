@@ -47,19 +47,16 @@ struct SavedParties {
     // Ours. Whether `hero` is in the running game: the hero played (outsideGame's file) or a companion.
     bool InUse(const MpHeroRecord* hero) const;
     // The party's records after the first are companions: each goes back to the entry of its file (the first
-    // companion or leaving file whose hero has the record's name and prototype; the entry's record becomes a copy)
-    // and that file is written; then the party keeps its first record only. A leaving file no record went to is
-    // dropped. False (nothing written) for a party of one.
+    // companion file whose hero has the record's name and prototype; the entry's record becomes a copy) and that
+    // file is written; then the party keeps its first record only. False (nothing written) for a party of one.
     bool ReturnCompanions(Party* party);
 
     std::string folder;
     std::vector<MpHeroRecord> entries;
     MpHeroRecord outsideGame;
-    // Ours: the files of the heroes asked for as companions in this game, in the order asked, asked for again in
-    // each zone (PlayerClient::RestoreCompanions); emptied when a multiplayer game begins. A removed one moves to
-    // `leaving` until a party message without it has come (its last record written).
+    // Ours: the files of the heroes picked as companions in the multiplayer base (the companions window), in the order
+    // picked, asked for in each network zone (PlayerClient::RestoreCompanions); emptied when a multiplayer game begins.
     std::vector<std::string> companions;
-    std::vector<std::string> leaving;
 };
 extern SavedParties g_savedParties;
 // The party of the record kept outside a running game (the multiplayer hero).

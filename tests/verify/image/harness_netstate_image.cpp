@@ -7,7 +7,6 @@
 #include "game/players/player.h"
 #include "game/players/player_client.h"
 #include "game/players/saved_parties.h"
-#include "game/ui/ui_companions.h"
 #include "game/units/unit.h"
 #include "game/world/world.h"
 
@@ -56,17 +55,11 @@ int NearestEnemy(int id) {
     return nearest;
 }
 
-bool CompanionsOffered() { return ::CompanionsOffered(); }
+int CompanionList() { return static_cast<int>(g_savedParties.companions.size()); }
 
 bool AskCompanion(const char* name) {
     PlayerClient* client = g_clientWorld.LocalView();
     if (!client) return false;
-    if (!name) {
-        const int unitId = CompanionUnit(0);
-        if (unitId < 0) return false;
-        client->SendRemoveCompanion(unitId);
-        return true;
-    }
     for (MpHeroRecord& entry : g_savedParties.entries) {
         const std::string& script = entry.party.members.empty() ? std::string() : entry.party.members[0].scriptName;
         if (script.substr(0, script.find('|')) != name) continue;

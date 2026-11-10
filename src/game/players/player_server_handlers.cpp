@@ -8,7 +8,6 @@
 #include "game/console/console.h"
 #include "game/core/core_maths.h"
 #include "game/core/core_streams.h"
-#include "game/app/game_flow.h"
 #include "game/app/singletons.h"
 #include "game/items/item_manager.h"
 #include "game/app/logic_settings.h"
@@ -441,13 +440,8 @@ bool PlayerServer::OnPartyUpdate() {
     return DropForOtherDatabase(this);
 }
 
-// The companions list changes only in the multiplayer base zone: the message is read and dropped (logged).
-bool PlayerServer::RefuseOutsideBase(const char* what) {
-    console::EndLine(console::g_netLogOut << "player " << player->playerId << ": " << what
-                                          << " refused outside the base zone (" << player->GetParty()->zone << ")");
-    return true;
-}
-
+// The list of companions changes only in the multiplayer base zone, a local zone without a server: here a client
+// only asks for its list again at a zone's start (`restore`); every other add is read and dropped (logged).
 bool PlayerServer::OnAddCompanion() {
     std::uint32_t restore = 0;
     in.ReadValue(restore);
@@ -455,12 +449,16 @@ bool PlayerServer::OnAddCompanion() {
     in.ReadSized(&block);
     block.MemoryStream::Seek(0);
     if (!in.ok) return true;
+    if (!restore) {
+        console::EndLine(console::g_netLogOut << "player " << player->playerId
+                                              << ": companion refused outside the base zone");
+        return true;
+    }
     Party companion;
     companion.LoadParty(&block, false);
     Party* party = player->GetParty();
     Unit* leader = party->members.empty() ? nullptr : g_serverWorld.FindUnit(static_cast<int>(party->members[0].unitId));
     const bool room = std::ssize(party->members) <= HostCompanions();
-    if (!restore && !g_gameFlow.InMultiplayerBase(party)) return RefuseOutsideBase("companion");
     if (state != State::Joined || g_serverWorld.gameState != GameState::Network || !room || !leader || leader->IsDead() ||
         std::ssize(companion.members) != 1 || !HasEveryRecord(&companion)) {
         console::EndLine(console::g_netLogOut << "player " << player->playerId << ": companion refused");
@@ -481,29 +479,13 @@ bool PlayerServer::OnAddCompanion() {
     return true;
 }
 
+// Nothing sends it any more (the list changes in the base zone only): read and dropped (logged).
 bool PlayerServer::OnRemoveCompanion() {
     int unitId = 0;
     in.ReadValue(unitId);
-    if (!in.ok) return true;
-    Party* party = player->GetParty();
-    if (!g_gameFlow.InMultiplayerBase(party)) return RefuseOutsideBase("companion removal");
-    int index = 1;
-    while (index < std::ssize(party->members) && static_cast<int>(party->members[index].unitId) != unitId) ++index;
-    if (state != State::Joined || g_serverWorld.gameState != GameState::Network || index >= std::ssize(party->members)) {
-        console::EndLine(console::g_netLogOut << "player " << player->playerId << ": companion removal refused");
-        return true;
-    }
-    g_serverWorld.SyncCompanions(player);
-    SendParty();
-    if (Unit* unit = g_serverWorld.FindUnit(unitId)) {
-        if (unit->IsDead()) unit->SetPlayer(nullptr);
-        else g_serverWorld.RemoveObject(static_cast<unsigned>(unitId));
-    }
-    const PartyUnitRecord* record = &party->members[index];
-    console::EndLine(console::g_netLogOut << "player " << player->playerId << ": companion " << record->scriptName
-                                          << " left");
-    party->members.erase(party->members.begin() + index);
-    SendParty();
+    if (in.ok)
+        console::EndLine(console::g_netLogOut << "player " << player->playerId
+                                              << ": companion removal refused outside the base zone");
     return true;
 }
 

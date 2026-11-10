@@ -63,10 +63,9 @@ int SessionPlayerLimit();
 int ServerPartyRecords(int player);
 int CompanionUnit(int index);
 int NearestEnemy(int id);
-// The local client's companions button and F3 are on now (CompanionsOffered); a companion message sent straight from
-// the client, past the window (an add of the saved hero named `name`, or the first companion's removal for a null
-// name; false when there is nothing to send).
-bool CompanionsOffered();
+// The companions picked in the base (SavedParties::companions); the add of the saved hero `name` sent from the
+// local client as a mid-game add (restore 0; false when there is no such hero or client).
+int CompanionList();
 bool AskCompanion(const char* name);
 bool SavedHero(const char* name, std::string* file, float* experience);
 

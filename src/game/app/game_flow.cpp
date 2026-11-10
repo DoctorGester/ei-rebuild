@@ -532,14 +532,9 @@ std::string GameFlow::MultiplayerZone() {
     return kMultiplayerZones[type <= 3 ? type : 0];
 }
 
-bool GameFlow::InMultiplayerBase(const Party* party) {
-    return IsLive(net::g_gameClient) && party->zone == MultiplayerZone();
-}
-
 void GameFlow::BeginMultiplayerGame() {
     PartyManagerNewGameFour(&g_partyManager);
     g_savedParties.companions.clear();
-    g_savedParties.leaving.clear();
     if (std::ssize(GlobalParty()->members) == 1) GlobalParty()->members.data()->unitId = kMultiplayerHeroId;
     GlobalParty()->zone = MultiplayerZone();
     GlobalParty()->variables.Set(kMultiplayerVariable, 1.0f);

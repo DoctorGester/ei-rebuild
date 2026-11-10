@@ -1,10 +1,9 @@
 // Ours: the companions window (ui_companions.h). See docs/notes/ui.md ("Companions window").
 #include "game/ui/ui_companions.h"
 
-#include "game/app/game_flow.h"
 #include "game/app/singletons.h"
 #include "game/players/party.h"
-#include "game/players/player_client.h"
+#include "game/net/net_session.h"
 #include "game/players/saved_parties.h"
 #include "game/ui/ui_battle.h"
 #include "game/ui/ui_hud.h"
@@ -52,10 +51,14 @@ std::string HeroName(const MpHeroRecord& hero) {
     return name.substr(0, name.find('|'));
 }
 
-bool Room() {
-    PlayerClient* client = g_clientWorld.LocalView();
-    return client && g_savedParties.companions.size() < client->companionLimit;
+// The most companions: the host's own option; a joined game's is unknown until a zone (kMostCompanions, which the
+// zone's start trims).
+int Limit() {
+    const net::ServerSession* server = net::g_gameServer.Get();
+    return server ? static_cast<int>(server->companions) : net::kMostCompanions;
 }
+
+bool Room() { return std::ssize(g_savedParties.companions) < Limit(); }
 
 MpHeroRecord* Entry(const std::string& file) {
     for (MpHeroRecord& hero : g_savedParties.entries)
@@ -63,24 +66,9 @@ MpHeroRecord* Entry(const std::string& file) {
     return nullptr;
 }
 
-// The unit id of the local party's companion that is saved hero `hero` (its name and prototype), -1 none.
-int CompanionUnit(const MpHeroRecord& hero) {
-    const Party* party = LocalPlayerData();
-    const PartyUnitRecord& saved = hero.party.members[0];
-    for (int i = 1; i < std::ssize(party->members); ++i) {
-        const PartyUnitRecord& record = party->members[i];
-        if (record.scriptName == saved.scriptName && record.prototype == saved.prototype)
-            return static_cast<int>(record.unitId);
-    }
-    return -1;
-}
-
 } // namespace
 
-bool CompanionsOffered() {
-    PlayerClient* client = IsMultiplayerClient() ? g_clientWorld.LocalView() : nullptr;
-    return client && client->companionLimit > 0 && g_gameFlow.InMultiplayerBase(LocalPlayerData());
-}
+bool CompanionsOffered() { return IsMultiplayerClient() && Limit() > 0; }
 
 void CompanionWindow::CreateScreen() {
     LoadTexture("saveload", TextureKind::Interface);
@@ -131,18 +119,9 @@ void CompanionWindow::Paint(UiSurface& out) const {
 }
 
 void CompanionWindow::Act() {
-    PlayerClient* client = g_clientWorld.LocalView();
-    MpHeroRecord* hero = picked >= 0 && picked < std::ssize(files) ? Entry(files[picked]) : nullptr;
-    if (hero && picked < companionRows) {
-        std::erase(g_savedParties.companions, hero->file);
-        if (const int unitId = CompanionUnit(*hero); unitId >= 0) {
-            g_savedParties.leaving.push_back(hero->file);
-            client->SendRemoveCompanion(unitId);
-        }
-    } else if (hero && Room()) {
-        client->SendAddCompanion(hero->GetParty(), false);
-        g_savedParties.companions.push_back(hero->file);
-    }
+    const MpHeroRecord* hero = picked >= 0 && picked < std::ssize(files) ? Entry(files[picked]) : nullptr;
+    if (hero && picked < companionRows) std::erase(g_savedParties.companions, hero->file);
+    else if (hero && Room()) g_savedParties.companions.push_back(hero->file);
     g_interface.PlayInterfaceSound(kMessageBoxOkSound);
     g_interface.SetPendingValue(kClosed);
 }
@@ -186,36 +165,26 @@ void CompanionWindow::CloseScreen() {
     ClearSurfaces();
 }
 
-void HudCompanionButton::Update() {
-    // Right of the last portrait, its bottom half (the portraits stand over 510..600).
-    int left = -1;
-    if (CompanionsOffered() && owner->portraits && !owner->portraits->regions.empty())
-        left = owner->portraits->regions.back()->bounds.right + 6;
-    if (left == placedAt) return;
-    placedAt = left;
-    ClearSceneObjects();
-    ClearSurfaces();
-    ClearRegions();
-    button = nullptr;
-    rect = Rect{};
-    if (left < 0) return;
-    const int right = left + 30;
-    rect = Rect{left, 562, right, 592};
-    Shade(this, 7.0f, static_cast<float>(left), 562.0f, static_cast<float>(right), 592.0f);
-    AddSurface(NewSurface(Rect{left, 562, right, 592}))->PaintWith([](UiSurface& out) {
+void CompanionButton::Update() {
+    if (built) return;
+    built = true;
+    const int left = 762, top = 562, right = left + 30, bottom = top + 30;   // the screen's bottom right
+    rect = Rect{left, top, right, bottom};
+    Shade(this, 7.0f, static_cast<float>(left), static_cast<float>(top), static_cast<float>(right), static_cast<float>(bottom));
+    AddSurface(NewSurface(rect))->PaintWith([](UiSurface& out) {
         out.FrameRect(Rect{0, 0, 30, 30}, kButtonFrameColour);
         out.FrameRect(Rect{1, 1, 29, 29}, kButtonFrameColour);
         PaintLabels(out, {{"+", Rect{0, 2, 30, 30}, {2, kTitleColour, render::text::Format::Center}}});
     });
-    button = AddRect(this, left, 562, right, 592);
+    button = AddRect(this, left, top, right, bottom);
     button->SetTipString(Shown(kButtonTip));
 }
 
-void HudCompanionButton::OnEvent(UiEvent& event) {
+void CompanionButton::OnEvent(UiEvent& event) {
     if (!button) return;
     DispatchMouse(event, [&] { PressRegion(event); },
                   [&] {
-                      if (PressedRegion(event) != button || !CompanionsOffered()) return;
+                      if (PressedRegion(event) != button) return;
                       g_interface.PlayInterfaceSound(kMessageBoxOkSound);
                       g_interface.PushWindow(std::make_unique<CompanionWindow>(), WindowBackdrop::FirstWindow);
                   },

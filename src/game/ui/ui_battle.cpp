@@ -32,7 +32,6 @@
 #include "game/ui/ui.h"
 #include "game/ui/ui_camera_input.h"
 #include "game/ui/ui_camp.h"
-#include "game/ui/ui_companions.h"
 #include "game/ui/ui_cursor.h"
 #include "game/ui/ui_hud.h"
 #include "game/ui/ui_mesh.h"
@@ -341,9 +340,6 @@ void BattleScreen::BuildPanels(float mapZoom) {
     topPanel = AddChild(std::make_unique<HudTopPanel>(this));
     topPanel->AddObject(objects[2]);
     topPanel->Setup(g_interface.hudTopPage, g_interface.hudPanelsIn[1] != 0);
-
-    // Ours: shown while the zone's host takes companions.
-    AddChild(std::make_unique<HudCompanionButton>(this));
 }
 
 void BattleScreen::LayoutChanged() {
@@ -896,13 +892,6 @@ void BattleScreen::KeyDown(UiEvent& event) {
             return;
         }
         g_interface.PushWindow(std::make_unique<EscMenu>(), WindowBackdrop::FirstWindow);
-        event.handled = true;
-        return;
-    }
-
-    // F3: the companions window where the companions can be changed (CompanionsOffered).
-    if (event.key == platform::KeyAfter(platform::Key::F1, 2) && CompanionsOffered()) {
-        g_interface.PushWindow(std::make_unique<CompanionWindow>(), WindowBackdrop::FirstWindow);
         event.handled = true;
         return;
     }
