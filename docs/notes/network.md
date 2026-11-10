@@ -21,7 +21,8 @@ Files: `net/net_session.h` (sessions, lobby, message base), `net_session*.cpp`, 
   its awards, a fake master), `net_pair_master` (the master's server list, a bad update), `net_second_master`, `net_pair_lobby` (direct queries, the address book), `net_pair_password` (a refused and an admitted join)
 and `net_pair_party` (an exchange offered, withdrawn, answered, left);
   `net_host_death` (one hosted game: its hero killed in the game zone, the zone saved and entered again);
-  `net_zone_vars` (one hosted game: z6q3's script raises server variables) and `net_zone_leader` (z7q3's script asks for the leader).
+  `net_zone_vars` (one hosted game: z6q3's script raises server variables), `net_zone_leader` (z7q3's script asks for the leader)
+  and `net_pair_companion` (ours: a companion added, fighting, dying and written back, "Companions" below).
 
 ## The multiplayer game
 
@@ -59,11 +60,52 @@ and `net_pair_party` (an exchange offered, withdrawn, answered, left);
 - **A lost client**: the server drops it after the session timeout (60 s; text 4 to both); its own game shows the
   lost server box and returns to the main menu.
 - The console's "@" commands do nothing in a network game (the harness's `hit` step acts on the world instead).
-- **A hero's death** (PlayerServer::LeaderDied, the multiplayer branch: a party of one hero): StopSpeech to its
-  client, the money times `lostMoney` and all the player's items left in a shared object (WorldServer::AddSharedObject,
-  saved with the zone and read back by SharedObject::Load when the zone is entered again), the party collected,
-  experience times `lostXp` taken, and the hero redeployed under a new id (below 1001000000 moved up). The host's own
-  hero dies the same way: the host is a network client too.
+- **A hero's death** (PlayerServer::LeaderDied, the multiplayer branch; the hero is the party's first record): StopSpeech
+  to its client, the money times `lostMoney` and all the player's items left in a shared object
+  (WorldServer::AddSharedObject, saved with the zone and read back by SharedObject::Load when the zone is entered again),
+  the party collected, experience times `lostXp` (of what is above the class's floor) taken, and the hero redeployed
+  under a new id (below 1001000000 moved up). The host's own hero dies the same way: the host is a network client too.
+
+## Companions (ours, an experiment)
+
+A player may take its other saved heroes (the .mp files of the hero list) into a network zone as companions: one hero
+to start, F3 on the battle screen adds more. Scenario `net_pair_companion`.
+- **The host's option**: the create-server screen's region 30 ("Companions: off / two", `net::kMostCompanions`) into
+  `ServerSession::companions`. Off is the default and changes nothing: no message below is sent.
+- **Who knows it**: our client writes `kCompanionLoginMark` into its world login's password field past the
+  terminating zero (`kCompanionMarkAt`), where an original server reads nothing. Our server answers a marked login in a
+  network zone with `ServerMessage::Companions` (0x84, the limit) when the option is on; the client keeps it in
+  `PlayerClient::companionLimit` (zeroed with each new connection) and only then offers F3 and sends
+  `ClientMessage::AddCompanion` (0x51). An original server never sends 0x84, so our client never sends 0x51 to it; an
+  original client never marks its login, so it never gets 0x84. **A mixed game**: original clients play one hero as
+  before and see the others' companions as units of those players (the party state's other units); our clients add
+  companions.
+- **The join** (`PlayerServer::OnAddCompanion`): a sized block, the hero's party saved without variables. Taken when the
+  option is on, the player is joined in a network zone, its hero lives, the party has room (1 + companions) and the
+  block is one record of known items and spells; else read and dropped (logged). The record is appended
+  (`PartyUnitRecord::CopyFrom`: every field, the items copied into the player's party), gets the next free object id
+  (as OnNewParty's), follows the hero (`leaderId`), and its unit is made beside the hero (`WorldServer::CreateUnits`,
+  a Player mode, the Heroes group); the party is sent. Orders need nothing new: the walk / attack / cast / use handlers
+  take any unit id with a Player mode (they never checked the owner; nor do they now).
+- **Death**: a companion's death (`PlayerServer::CompanionDied`, from the unit's death report when it is not the
+  leader) takes the hero's experience penalty at once, on the unit and on its record; it lies dead, nothing dropped
+  (money and backpack are the hero's). The hero's death keeps the rule above for the hero; the living companions are
+  synced (`WorldServer::SyncCompanions`: records from the units, then whole) and the whole party comes back together at
+  the zone's entrance, a dead companion standing again with the penalty it already paid.
+- **Back to the files**: at the zone's end (`LeaveToZone`, `Leave`) the living companions are synced and the party is
+  sent; the client's `GameFlow::ReturnLocalParty` hands each record after the first to its hero's file
+  (`SavedParties::ReturnCompanions`: the first companion file asked for whose hero has the record's name and
+  prototype; the entry's record becomes a copy, the file written) and keeps the hero alone in its own file and in the
+  party records. Every party message does this (the add's answer, a death's resend), so a lost game keeps the last one.
+  `SavedParties::companions` (the files asked for) empties at ZoneChange and when a multiplayer game begins: companions
+  last one zone visit; F3 adds them again in the next. The leave box waits for every living unit of the party in the
+  exit, the companions too (`WorldClient::PartyInExit`, unchanged); the exits stay closed while another player is in
+  the game, as before (`GameFlow::UpdateMultiplayerVariable`: "z.MPGame1" at 1 while the server counts more than one). A hero cannot be two at once: the window lists only heroes that
+  are neither the played one nor already asked for.
+- **Experience and awards**: a kill's experience (`ShareAmongSoloPlayers`, the multiplayer share) goes to every hero of
+  every player in proportion to the square root of its experience, companions counted as heroes (the original's rule,
+  which counted only players of one hero). Quest experience, gold and items come through the Award message 60 s after
+  the zone, when the companions are back in their files: they go to the hero and the party as before.
 - Original bug: a guest joining while the host's briefing dialogue runs crashes the host in TextManager::PeekWord
   (NextPhrase -> FindLine).
 

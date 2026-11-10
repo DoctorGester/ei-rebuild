@@ -75,6 +75,9 @@ enum class ServerMessage : std::uint8_t {
     SetVariable = 0x81,
     DeleteVariable = 0x82,
     PartyUpdate = 0x83,
+    // Ours: the most companions the host takes (a dword), sent after the login only to a client whose login
+    // carries kCompanionLoginMark and only when the host allows companions; an original client never gets it.
+    Companions = 0x84,
 };
 
 // The messages a PlayerClient sends its server (PlayerServer::Receive switches on them). The numbers are
@@ -104,7 +107,15 @@ enum class ClientMessage : std::uint8_t {
     FightAtWill = 0x3B,
     LastPosition = 0x40,
     PartyUpdate = 0x50,
+    // Ours: a saved hero to walk with the player's hero, a sized block (Party::SaveParty without variables);
+    // sent only to a server that sent ServerMessage::Companions.
+    AddCompanion = 0x51,
 };
+
+// Our client's mark in its login: written past the password's terminating zero at kCompanionMarkAt, where an
+// original server reads nothing (IsPrintableText stops at the zero), so the password stays "Very top secret".
+inline constexpr char kCompanionLoginMark[] = "ei-rebuild companions";
+inline constexpr int kCompanionMarkAt = 0x18;
 
 // Starts a message in `out`: its type byte.
 template <typename Message>
@@ -172,10 +183,15 @@ public:
     void ItemsTaken() override;                       // message 0x17
     void ItemTaken(EngineObject* item) override;     // message 0x0A: the item's id
     // The player's leader died. Outside a network game: messages 0x09 and 0x0B (the hero's id, 0xFF). In one,
-    // a party of one hero is revived: it loses a share of its money (into a shared object with the given
-    // items) and of its experience, gets a new record id, and is collected, sent and redeployed; its new
-    // brain knows the units the old one knew and the old hero.
+    // the hero is revived: it loses a share of its money (into a shared object with the given items) and of its
+    // experience, gets a new record id, and the party is collected, sent and redeployed; its new brain knows the
+    // units the old one knew and the old hero. Companions are synced first and come back with it at the
+    // zone's entrance, a dead one whole.
     void LeaderDied() override;
+    // Ours: a unit of the player that is not its leader died. A companion (a record of the party) takes the
+    // hero's experience penalty (lostXp of what it has above its class's floor) on the unit and on the record; it
+    // lies dead until the party is redeployed or the zone ends, when its record comes back whole.
+    void CompanionDied(Unit* unit);
     void TickDone() override;                         // possessedGroup emptied
     void ItemUsed(Item* item) override;               // message 0x14: the item's id and charge
     // Every packet waiting on the link is decompressed into `in` and its messages run through the handlers;
@@ -275,6 +291,11 @@ public:
     // Message 0x50: a sized block loaded into the party (no variables); one naming items or spells this game's
     // databases lack empties the party, and the player leaves as for OnNewParty.
     bool OnPartyUpdate();
+    // Ours. Message 0x51: a saved hero joins the party as a companion when the host allows companions
+    // (ServerSession::companions) and the player is joined in a network zone with a living leader and room for one
+    // more: its record (items copied into the party, a fresh object id, following the leader) is appended, its unit
+    // made beside the leader and the party sent. Anything else is read and dropped. Returns true.
+    bool OnAddCompanion();
     // "Able" units below: present, not blocked (flag 0x800000) and not dead.
     bool OnLeave();             // Message 0x01: the connection's Leave
     // Message 0x04 (joined players, else false): the game state into sessionKind, the party collected

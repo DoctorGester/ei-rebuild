@@ -369,7 +369,7 @@ void HudPortraits::AddPortrait(const std::string& model, std::string_view pictur
     int width;
     if (IsMultiplayerClient()) {
         width = crowded ? pitch : wide ? 0x38 : 0x28;
-        const int present = static_cast<int>(net::g_gameClient->players.size());
+        const int present = static_cast<int>(net::g_gameClient->players.size()) + owner->companionPortraits;
         x = 400 - static_cast<int>(static_cast<unsigned>(width + present * pitch - pitch) >> 1);
         if (column > 0) {
             x += width + column * pitch - pitch;

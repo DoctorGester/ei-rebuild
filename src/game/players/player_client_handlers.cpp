@@ -296,7 +296,7 @@ void PlayerClient::UnitChanged(Unit* unit) {
     else g_interface.OnUnitLeft(unit);
     if (!IsMultiplayerClient()) return;
     Party* party = player->GetParty();
-    if (std::ssize(party->members) != 1 || static_cast<int>(party->members[0].unitId) != unit->id) return;
+    if (party->members.empty() || static_cast<int>(party->members[0].unitId) != unit->id) return;
     auto* login = net::g_gameClient->player.Get();
     login->id = unit->player ? unit->id : -1;
     ++login->version;

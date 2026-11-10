@@ -32,6 +32,7 @@
 #include "game/ui/ui.h"
 #include "game/ui/ui_camera_input.h"
 #include "game/ui/ui_camp.h"
+#include "game/ui/ui_companions.h"
 #include "game/ui/ui_cursor.h"
 #include "game/ui/ui_hud.h"
 #include "game/ui/ui_mesh.h"
@@ -90,12 +91,26 @@ void ShowPanelView(HudUnitPanel* panel, Unit* first) {
     panel->strings[0] = panel->owner->UnitName(panel->shownUnit);
 }
 
-// A multiplayer client: the party is the session's players' units, the camera's player first.
+// The local hero's companions: the units of its party's records after the first.
+std::vector<int> CompanionIds() {
+    std::vector<int> ids;
+    const Party* party = LocalPlayerData();
+    for (int i = 1; i < std::ssize(party->members); ++i) {
+        const int id = static_cast<int>(party->members[i].unitId);
+        if (g_clientWorld.FindUnit(id)) ids.push_back(id);
+    }
+    return ids;
+}
+
+// A multiplayer client: the party is the session's players' units, the camera's player first and its companions
+// next.
 void RebuildClientParty(BattleScreen* screen) {
     net::ClientSession* session = net::g_gameClient;
     const auto& players = session->players;
     BattleScreen::PartyIds ids;
     ids.camera = -1;
+    const std::vector<int> companions = CompanionIds();
+    ids.withUnit = companions;
     for (auto& node : players) {
         net::PlayerMessage* player = node.Get();
         const int unitId = player->id;
@@ -122,7 +137,7 @@ void RebuildClientParty(BattleScreen* screen) {
         for (auto& id : ids.withUnit) {
             int unitId = id;
             Unit* unit = g_clientWorld.FindUnit(unitId);
-            if (!unit) continue;
+            if (!unit || lib::Contains(companions, unitId)) continue;
             if (unitId == ids.camera) {
                 g_clientWorld.Select(unit);
                 party->insert(party->begin(), unit);
@@ -131,6 +146,9 @@ void RebuildClientParty(BattleScreen* screen) {
                 party->push_back(unit);
             }
         }
+        for (int i = 0; i < std::ssize(companions); ++i)
+            party->insert(party->begin() + (cameraFirst ? 1 : 0) + i, g_clientWorld.FindUnit(companions[i]));
+        screen->companionPortraits = lib::Count(companions);
         screen->portraits->Rebuild(cameraFirst);
         if (screen->clientParty.camera != ids.camera) {
             g_camera.SetTargetId(ids.camera);
@@ -879,6 +897,16 @@ void BattleScreen::KeyDown(UiEvent& event) {
         return;
     }
 
+    // F3: the companions window while the zone's host takes companions.
+    if (event.key == platform::KeyAfter(platform::Key::F1, 2) && IsMultiplayerClient()) {
+        PlayerClient* client = g_clientWorld.LocalView();
+        if (client && client->companionLimit > 0) {
+            g_interface.PushWindow(std::make_unique<CompanionWindow>(), WindowBackdrop::FirstWindow);
+            event.handled = true;
+            return;
+        }
+    }
+
     const int action = g_keyActions[event.scan];
     Camera* camera = &g_camera;
     switch (action) {
@@ -1262,8 +1290,9 @@ void BattleScreen::HoverUnit(Unit* unit, Point mouse) {
 void BattleScreen::ToggleMember(int index) {
     auto* currentParty = &party;
     auto unitAt = [currentParty](int i) { return (*currentParty)[i]; };
-    if (IsMultiplayerClient()) return;
     if (index >= std::ssize(*currentParty)) return;
+    // A multiplayer client toggles only its hero and its companions, the first 1 + companionPortraits.
+    if (IsMultiplayerClient() && (companionPortraits == 0 || index > companionPortraits)) return;
 
     std::vector<std::uint32_t> chosen{};
     for (int i = 0; i < std::ssize(*currentParty); ++i) {

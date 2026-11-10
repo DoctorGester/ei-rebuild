@@ -114,10 +114,11 @@ void GiveBriefingRewards(WorldServer* world, Player* player, QuestBriefingRecord
 
 constexpr float kMinimumWeight = 0.01f;
 
-// An element of the list of shares: the unit's controller and its experience (nodes of 0x10 bytes).
+// An element of the list of shares: the hero's controller, its experience and its record.
 struct Share {
     UnitServer* controller = nullptr;
     float share = 0.0f;
+    PartyUnitRecord* record = nullptr;   // the hero's party record
 };
 
 // The weight of a unit in the shared experience: sqrt(pending + gained experience) of its controller's statistics.
@@ -125,24 +126,24 @@ float Weight(UnitServer* controller) {
     return std::sqrt(controller->stats.pendingExperience + controller->stats.experience);
 }
 
-// Without a player: the single heroes of every player share `amount` in proportion to their weights.
+// Without a player: the heroes of every player (the hero, and its companions in a game that has them) share
+// `amount` in proportion to their weights.
 void ShareAmongSoloPlayers(WorldServer* world, float amount) {
     if (world->PlayerList()->objects.size() == 0) return;
     std::vector<Share> list{};
-    auto soloUnit = [&](Player* p) -> Unit* {
-        if (!p->Server() || std::ssize(p->GetParty()->members) != 1) return nullptr;
-        return world->FindUnit(static_cast<int>(MercRecord(p, 0).unitId));
-    };
 
     float total = 0.0f;
     PlayerIterator it;
     for (Player* p = it.First(world->PlayerList()); p; p = it.Next()) {
-        Unit* unit = soloUnit(p);
-        if (!unit) continue;
-        UnitServer* controller = unit->ServerController();
-        if (!controller) continue;
-        list.push_back({controller, 0.0f});
-        total = Weight(controller) + total;
+        if (!p->Server()) continue;
+        for (int i = 0; i < std::ssize(p->GetParty()->members); ++i) {
+            Unit* unit = world->FindUnit(static_cast<int>(MercRecord(p, i).unitId));
+            if (!unit) continue;
+            UnitServer* controller = unit->ServerController();
+            if (!controller) continue;
+            list.push_back({controller, 0.0f, &MercRecord(p, i)});
+            total = Weight(controller) + total;
+        }
     }
     float minimum;
     minimum = kMinimumWeight;
@@ -153,12 +154,7 @@ void ShareAmongSoloPlayers(WorldServer* world, float amount) {
         entry.share = share;
         entry.controller->AddExperience(share);
     }
-    auto cursor = list.begin();
-    for (Player* p = it.First(world->PlayerList()); p; p = it.Next()) {
-        Unit* unit = soloUnit(p);
-        if (!unit || !unit->ServerController()) continue;
-        MercRecord(p, 0).stats.AddScaledExperience((cursor++)->share);
-    }
+    for (Share& entry : list) entry.record->stats.AddScaledExperience(entry.share);
     for (Player* p = it.First(world->PlayerList()); p; p = it.Next()) {
         PlayerServer* state = p->Server();
         if (!state) continue;
@@ -447,6 +443,17 @@ void WorldServer::SyncPartyRecords(Player* player) {
         Unit* unit = FindUnit(static_cast<int>(record->unitId));
         if (!unit || unit->IsDead() != 0) continue;
         SyncRecord(party, record, unit);
+    }
+}
+
+void WorldServer::SyncCompanions(Player* player) {
+    Party* party = PartyOf(player);
+    for (int i = 1; i < lib::Count(party->members); ++i) {
+        PartyUnitRecord* record = &MercRecord(player, i);
+        Unit* unit = FindUnit(static_cast<int>(record->unitId));
+        if (!unit || unit->IsDead() != 0) continue;
+        SyncRecord(party, record, unit);
+        record->stats.RestoreSlots();
     }
 }
 

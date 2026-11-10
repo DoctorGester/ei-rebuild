@@ -23,6 +23,7 @@
 #include "game/units/unit_db.h"
 #include "game/world/world.h"
 #include "game/map/map_database.h"
+#include "game/net/net_session.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -99,6 +100,23 @@ void MoveUnits(MemoryStream& in, MoveCommand command) {
     }
 }
 
+// The companions the host lets each player add (ServerSession::companions), 0 without a game server.
+int HostCompanions() {
+    net::ServerSession* server = net::g_gameServer;
+    return IsLive(server) ? static_cast<int>(server->companions) : 0;
+}
+
+// A dead hero's experience penalty: lostXp of its experience above its class's floor (a NaN kept), taken from the
+// pending experience.
+void TakeDeathPenalty(UnitStats* stats, std::string_view prototype) {
+    float experience = stats->pendingExperience + stats->experience;
+    if (auto* npc = g_unitDatabase.npcs.FindByName(prototype)) {
+        float above = experience - npc->experienceFloor;
+        experience = MaxKeepB(0.0f, above);   // a NaN is kept
+    }
+    stats->TakePendingExperience(g_logicSettings.lostXp * experience);
+}
+
 constexpr int kClientVersion = 0x64;
 constexpr int kLoginTextLength = 0x3F;
 const char* const kResendingParty = "Resending party of player ";
@@ -117,10 +135,12 @@ void PlayerServer::LeaderDied() {
         return;
     }
 
-    // Both ids are -1 (which no object has) when the party is not a single hero; the original left them unset.
+    // Both ids are -1 (which no object has) without a hero; the original left them unset.
     int oldId = kNoId;
     int newId = kNoId;
-    if (std::ssize(party->members) == 1) {
+    // Companions keep what they did in the zone; the redeploy below brings them back with the hero.
+    if (std::ssize(party->members) > 1) g_serverWorld.SyncCompanions(currentPlayer);
+    if (!party->members.empty()) {
         int lost = lib::RoundEven(static_cast<float>(party->money) * g_logicSettings.lostMoney);
         party->money -= lost;
         oldId = static_cast<int>(party->members[0].unitId);
@@ -136,18 +156,11 @@ void PlayerServer::LeaderDied() {
         g_serverWorld.CollectParty(currentPlayer, nullptr);
         partyDeployed = 0;
     }
-    if (std::ssize(party->members) == 1) {
+    if (!party->members.empty()) {
         PartyUnitRecord& record = party->members[0];
         record.unitId = static_cast<std::uint32_t>(newId);
-        auto* stats = &record.stats;
-        stats->RestoreSlots();
-        float experience = stats->pendingExperience + stats->experience;
-        auto* npc = g_unitDatabase.npcs.FindByName(record.prototype);
-        if (npc) {
-            float above = experience - npc->experienceFloor;
-            experience = MaxKeepB(0.0f, above);   // a NaN is kept
-        }
-        stats->TakePendingExperience(g_logicSettings.lostXp * experience);
+        record.stats.RestoreSlots();
+        TakeDeathPenalty(&record.stats, record.prototype);
     }
     SendParty();
     lastPosition.z = kUnknownZ;
@@ -165,6 +178,15 @@ void PlayerServer::LeaderDied() {
         if (object && object->GetClassId() == ClassId::Unit && !lib::Contains(known, object)) known.push_back(object);
     }
     if (!lib::Contains(known, dead)) known.push_back(dead);
+}
+
+void PlayerServer::CompanionDied(Unit* unit) {
+    if (!IsMultiplayerClient()) return;
+    PartyUnitRecord* record = player->GetParty()->Find(unit->id);
+    if (!record) return;
+    TakeDeathPenalty(&unit->ServerController()->stats, record->prototype);
+    TakeDeathPenalty(&record->stats, record->prototype);
+    console::EndLine(console::g_netLogOut << "player " << player->playerId << ": companion " << unit->id << " died");
 }
 
 // --- Message 0x36, a use order --------------------------------------------------------
@@ -267,6 +289,7 @@ void PlayerServer::LeaveToZone(std::string_view zone, int entrance) {
     if (state != State::Joined) return;
     Player* currentPlayer = player;
     Party* party = currentPlayer->GetParty();
+    const GameState gameState = g_serverWorld.gameState;
     if (IsSinglePlayerMode(g_serverWorld.zoneMode)) {
         Unit* leader = g_serverWorld.FindUnit(static_cast<int>(party->members[0].unitId));
         if (leader == nullptr || leader->IsDead() != 0) {
@@ -274,6 +297,8 @@ void PlayerServer::LeaveToZone(std::string_view zone, int entrance) {
             if (!IsMultiplayerClient()) return;
         }
     }
+    // Companions take what they did in the zone home: the client writes them back into their own files.
+    if (gameState == GameState::Network && std::ssize(party->members) > 1) g_serverWorld.SyncCompanions(currentPlayer);
     if (partyDeployed) {
         g_serverWorld.CollectParty(currentPlayer, nullptr);
         partyDeployed = 0;
@@ -281,11 +306,10 @@ void PlayerServer::LeaveToZone(std::string_view zone, int entrance) {
     state = State::Leaving;
     party->entrance = static_cast<std::uint32_t>(entrance);
     party->zone = zone;
-    GameState gameState = g_serverWorld.gameState;
     if (gameState == GameState::Playing) {
         g_partyManager.records.BeginRedeploy(party);
     } else if (gameState == GameState::Network) {
-        if (std::ssize(party->members) == 1) party->members[0].unitId = kLoneHeroRecordId;
+        if (!party->members.empty()) party->members[0].unitId = kLoneHeroRecordId;
         SendParty();
     }
     WriteType(&out, ServerMessage::ZoneChange);
@@ -296,6 +320,8 @@ void PlayerServer::LeaveToZone(std::string_view zone, int entrance) {
 
 void PlayerServer::Leave() {
     if (state == State::Joined) {
+        if (g_serverWorld.gameState == GameState::Network && std::ssize(player->GetParty()->members) > 1)
+            g_serverWorld.SyncCompanions(player);
         if (partyDeployed) {
             g_serverWorld.CollectParty(player, nullptr);
             partyDeployed = 0;
@@ -414,6 +440,36 @@ bool PlayerServer::OnPartyUpdate() {
     return DropForOtherDatabase(this);
 }
 
+bool PlayerServer::OnAddCompanion() {
+    MemoryStream block;
+    in.ReadSized(&block);
+    block.MemoryStream::Seek(0);
+    if (!in.ok) return true;
+    Party companion;
+    companion.LoadParty(&block, false);
+    Party* party = player->GetParty();
+    Unit* leader = party->members.empty() ? nullptr : g_serverWorld.FindUnit(static_cast<int>(party->members[0].unitId));
+    const bool room = std::ssize(party->members) <= HostCompanions();
+    if (state != State::Joined || g_serverWorld.gameState != GameState::Network || !room || !leader || leader->IsDead() ||
+        std::ssize(companion.members) != 1 || !HasEveryRecord(&companion)) {
+        console::EndLine(console::g_netLogOut << "player " << player->playerId << ": companion refused");
+        return true;
+    }
+    int& next = g_nextRecordObjectId;
+    while (g_serverWorld.FindObject(static_cast<unsigned>(next)) != nullptr) ++next;
+    PartyUnitRecord& record = party->members.emplace_back();
+    record.CopyFrom(companion.members[0], party);
+    record.unitId = static_cast<std::uint32_t>(next);
+    ++next;
+    record.leaderId = leader->id;
+    std::vector<PartyUnitRecord*> records{&record};
+    g_serverWorld.CreateUnits(player, &records, leader->localPosition, leader->localRotation, nullptr);
+    console::EndLine(console::g_netLogOut << "player " << player->playerId << ": companion " << record.scriptName
+                                          << " joined as " << record.unitId);
+    SendParty();
+    return true;
+}
+
 // --- The login -----------------------------------------------------------------------------
 
 bool IsPrintableText(const char* text) {
@@ -472,6 +528,13 @@ bool PlayerServer::OnLogin() {
     out.WriteValue(playerId);
     SendParty();
     state = State::Joined;
+    // Our clients mark their login; in a network zone they learn the host's companions.
+    const bool marked =
+        std::memcmp(login.password + kCompanionMarkAt, kCompanionLoginMark, sizeof(kCompanionLoginMark)) == 0;
+    if (marked && HostCompanions() > 0 && g_serverWorld.gameState == GameState::Network) {
+        WriteType(&out, ServerMessage::Companions);
+        out.WriteValue(static_cast<std::uint32_t>(HostCompanions()));
+    }
     return true;
 }
 

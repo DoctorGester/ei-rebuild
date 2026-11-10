@@ -443,6 +443,7 @@ public:
     UiRegion* sortColumns[kSortColumns] = {};
     UiRegion* tabAreas[kTabs] = {};          // the new game's type tabs
     UiRegion* pauseSwitch = nullptr;         // the new game's pause mode: a click steps to the next
+    UiRegion* companionSwitch = nullptr;     // ours: the new game's companions, a click turns them on or off
     UiRegion* rows[kRows] = {};              // the visible rows, from scrollTop
     UiMesh* selectionMarker = nullptr;
     UiMesh* sortArrow = nullptr;
@@ -460,6 +461,7 @@ public:
     int maxPlayers = 0;            // the slider's position + 1 (6 from Create)
     int gameType = 0;              // the new game's type tab 0..3
     net::PauseMode pauseMode{};    // the new game's pause mode (the original's from Create)
+    int companions = 0;            // ours: the companions a player may add in the new game, 0 none (Create)
     char boxText[0x80] = {};       // the edit boxes' text (an address, a password)
     bool unlisted = false;         // the new game is not announced (1 from Create)
     std::string hostPassword;     // the new game's password

@@ -2,6 +2,7 @@
 // running the server's messages) and its login. See player_client.h and docs/notes/objects.md.
 
 #include "game/players/player_client.h"
+#include "game/players/saved_parties.h"
 
 #include "game/ai/ai_map.h"
 #include "game/core/base_manager.h"
@@ -135,6 +136,7 @@ bool PlayerClient::RunTick() {
         login.version = kLoginVersion;
         std::memcpy(login.name, kLoginName, std::strlen(kLoginName) + 1);
         std::memcpy(login.password, kLoginPassword, std::strlen(kLoginPassword) + 1);
+        std::memcpy(login.password + kCompanionMarkAt, kCompanionLoginMark, sizeof(kCompanionLoginMark));
         login.partyId = player->partyId;
         WriteType(&out, ClientMessage::Login);
         out.WriteValue(login);
@@ -226,6 +228,7 @@ int PlayerClient::DispatchMessages() {
         case ServerMessage::SetVariable: handled = OnSetVariable(); break;
         case ServerMessage::DeleteVariable: handled = OnDeleteVariable(); break;
         case ServerMessage::PartyUpdate: handled = OnPartyUpdate(); break;
+        case ServerMessage::Companions: handled = OnCompanions(); break;
         default: return PlayerMessageError("Packet has no handler prevID=%x curID=%x\n", previous, messageType);
         }
         if (!handled) return PlayerMessageError("Error during parsing update prevID=%x curID=%x\n", previous, messageType);
@@ -271,6 +274,7 @@ bool PlayerClient::OnZoneChange() {
     int entrance;   // the server's entrance number: the zone start takes none
     in.ReadValue(entrance);
     g_gameFlow.RequestZoneChange(zone);
+    g_savedParties.companions.clear();   // the party's message before this one took them home
     return true;
 }
 
@@ -400,6 +404,12 @@ bool PlayerClient::OnPartyUpdate() {
         player->GetParty()->LoadParty(&block, false);
         KeepParty(player->GetParty());
     }
+    return true;
+}
+
+bool PlayerClient::OnCompanions() {
+    in.ReadValue(companionLimit);
+    console::EndLine(console::g_netLogOut << "client: the host takes " << companionLimit << " companions");
     return true;
 }
 
@@ -595,6 +605,7 @@ void PlayerClient::ResetState() {
     out.Resize(0);
     localSession = 0;
     sendParty = 0;
+    companionLimit = 0;
     compressor.Reset();
     decompressor.Reset();
 }
