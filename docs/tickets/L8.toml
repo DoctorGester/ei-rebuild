@@ -4,5 +4,6 @@ group = "lua"
 depends = ["L7"]
 note = "User 2026-11-10: revised with the current knowledge; readable Lua files (mods and converted missions), Lua 5.3 + Eris (docs/notes/lua-scripting.md). A mod's .lua files loaded beside or instead of the mission's (loose-file lookup, replace as MF3); the built-ins under their Lua names, waits as yields; a sandbox without io / os / debug; errors reported like the console's. Documented in mods.md and MF10's guide."
 order = 644
-status = "review"
+status = "done"
 started = "2026-11-10"
+done = "2026-11-10"
