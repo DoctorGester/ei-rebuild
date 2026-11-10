@@ -282,12 +282,12 @@ bool MappedFile::Open(std::string_view path) {
         return false;
     }
     size = static_cast<std::uint32_t>(s.st_size);
-    void* mapped = mmap(nullptr, size, PROT_READ, MAP_PRIVATE, fd, 0);
-    if (mapped == MAP_FAILED) {
+    void* bytes = mmap(nullptr, size, PROT_READ, MAP_PRIVATE, fd, 0);
+    if (bytes == MAP_FAILED) {
         Close();
         return false;
     }
-    view = mapped;
+    view = bytes;
     return true;
 }
 
