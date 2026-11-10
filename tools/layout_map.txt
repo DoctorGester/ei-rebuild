@@ -210,6 +210,8 @@ object_tables.cpp           data/text_manager.cpp       split # text keys -> dat
 map_file.h                  map/map_file.h                    # kept whole: map/file.h would not say which file
 map_folder.h                map/map_folder.h
 map_folder.cpp              map/map_folder.cpp
+mob_toml.h                  map/mob_toml.h
+mob_toml.cpp                map/mob_toml.cpp
 world_map_files.h           map/folder.h                      # the maps folder and its files
 
 # ---- ai: the AI map, searches, paths and motion; the brain and its modes ------------------------------------------

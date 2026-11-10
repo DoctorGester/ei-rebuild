@@ -331,31 +331,31 @@ Risks:
 | Folder | Files | Lines today | Move batch |
 |---|---|---|---|
 | `ai/` | 28 | 12553 | C168f |
-| `app/` | 23 | 6934 | C168e |
+| `app/` | 23 | 6933 | C168e |
 | `combat/` | 13 | 6395 | C168f |
 | `console/` | 5 | 2038 | C168e |
 | `core/` | 27 | 3875 | C168d |
-| `data/` | 15 | 5126 | C168d |
+| `data/` | 15 | 5128 | C168d |
 | `effects/` | 23 | 10833 | C168g |
 | `items/` | 10 | 2855 | C168g |
-| `map/` | 13 | 3086 | C168e |
+| `map/` | 15 | 3942 | C168e |
 | `models/` | 23 | 7580 | C168g |
 | `mods/` | 6 | 603 | C168d |
 | `net/` | 21 | 7991 | C168h |
 | `objects/` | 23 | 8021 | C168f |
-| `players/` | 24 | 5493 | C168e |
+| `players/` | 24 | 5473 | C168e |
 | `saves/` | 7 | 828 | C168d |
 | `scene/` | 30 | 4414 | C168g |
-| `script/` | 27 | 8792 | C168h |
+| `script/` | 29 | 9151 | C168h |
 | `sound/` | 3 | 1679 | C168e |
 | `spells/` | 8 | 2560 | C168g |
 | `terrain/` | 12 | 3554 | C168g |
-| `ui/` | 97 | 33141 | C168h |
+| `ui/` | 97 | 33107 | C168h |
 | `units/` | 27 | 9739 | C168f |
-| `world/` | 35 | 10253 | C168e |
-| all | 500 | 158343 | |
+| `world/` | 35 | 10256 | C168e |
+| all | 504 | 159508 | |
 
-547 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
+551 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
 
 ### Every file
 
@@ -591,6 +591,8 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | map_spec_unit.cpp | map/map_spec_unit.cpp |  |  |
 | mob_reader.cpp | map/mob_reader.cpp |  |  |
 | mob_script_decoder.h | map/mob_script_decoder.h |  |  |
+| mob_toml.cpp | map/mob_toml.cpp |  |  |
+| mob_toml.h | map/mob_toml.h |  |  |
 
 #### `models/` (C168g)
 
@@ -802,6 +804,8 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | script_lua.cpp | script/script_lua.cpp |  |  |
 | script_lua.h | script/script_lua.h |  |  |
 | script_lua_number.h | script/script_lua_number.h |  |  |
+| script_lua_scheduler.cpp | script/script_lua_scheduler.cpp |  |  |
+| script_lua_scheduler.h | script/script_lua_scheduler.h |  |  |
 | script_lua_writer.cpp | script/script_lua_writer.cpp |  |  |
 | script_lua_writer.h | script/script_lua_writer.h |  |  |
 | script_parse.cpp | script/script_parse.cpp |  |  |
