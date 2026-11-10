@@ -12,6 +12,11 @@
 #include <unordered_map>
 #include <vector>
 
+struct RecordFile;
+namespace toml {
+class Value;
+}
+
 // A model's record in the lever table, read from Levers.ldb by field id. The spot offsets are in the
 // lever's own frame (along its facing's X and Y axes).
 struct LeverRecord {
@@ -30,9 +35,15 @@ struct LeverRecord {
 
 struct LeverRecordTable {
 
-    // Reads Levers.ldb of <folder>database.res into the records (chunk 1 of a chunk archive) and files
-    // every record in the index under its name. Returns 1; an archive or file that does not open ends the game.
+    // Reads Levers.ldb of <folder>database.res (its TOML too, docs/notes/mods.md "Databases as TOML"): Read.
+    // Returns 1; an archive that does not open, or one without the file, ends the game.
     int Load(const std::string& folder);
+    // The original's records (chunk 1 of a chunk archive), the TOML files' [[lever]] records merged over them by
+    // name, then every record filed in the index under its name (a record of a name seen before replaces the
+    // earlier one).
+    void Read(const RecordFile& file);
+    void MergeToml(const toml::Value& root, const std::string& path);
+    std::string ToToml() const;
     // The record filed under `name`, or null.
     LeverRecord* Named(std::string_view name) {
         auto found = byName.find(std::string(name));

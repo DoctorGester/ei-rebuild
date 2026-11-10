@@ -5,7 +5,8 @@ usage: python tools/make_extra_item_db.py <saves dir> [--source <databaselmp.res
                folder of loose files over the install's databaselmp.res (docs/notes/mods.md, "Loose files"), so this
                game alone has the extra item
   --source     default the vanilla install's Res\databaselmp.res (EI_GAME_VANILLA; read only; Rebirth's is the same file),
-               or on an unpacked install its folder
+               or on an unpacked install its folder; on a converted one (only items.idb.toml there) the tool writes
+               <saves dir>\Res\databaselmp\items.idb.toml instead, the record added as TOML
 
 The file is the source's items.idb grown by one quest item, EXTRA_ITEM: a copy of the quest table's last
 record (goldnuggets) under that name, so its index (the table's old count) is one the other game's database lacks. A
@@ -77,6 +78,20 @@ def with_extra_item(idb):
     return rebuild(idb, children(idb, 0, len(idb)), top)
 
 
+def write_toml_item(toml, saves):
+    """A converted install's items.idb.toml (docs/notes/mods.md, "Databases as TOML"): the overlay's items.idb.toml
+    holds the last [[quest_item]] record again under EXTRA_ITEM, merged over the game's file as a new record at the
+    table's end (the same index as the binary file's)."""
+    blocks = toml.split('\n[[')
+    last = '[[' + [b for b in blocks if b.startswith('quest_item]]')][-1]
+    lines = [f'name = "{EXTRA_ITEM}"' if line.startswith('name = ') else line for line in last.splitlines()]
+    folder = os.path.join(saves, 'Res', 'databaselmp')
+    os.makedirs(folder, exist_ok=True)
+    out = os.path.join(folder, 'items.idb.toml')
+    open(out, 'w', encoding='utf-8', newline='\n').write('\n'.join(lines).rstrip() + '\n')
+    print(f'{out}: quest item {EXTRA_ITEM} added')
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('saves')
@@ -90,7 +105,12 @@ def main():
     else:
         # An unpacked install (tools/unpack_install.py): the archive's folder.
         folder = os.path.splitext(source)[0]
-        idb = open(os.path.join(folder, next(n for n in os.listdir(folder) if n.lower() == 'items.idb')), 'rb').read()
+        names = {n.lower(): n for n in os.listdir(folder)}
+        if 'items.idb' not in names:
+            # A converted one (tools/convert_install.py): the TOML alone.
+            write_toml_item(open(os.path.join(folder, names['items.idb.toml']), encoding='utf-8').read(), args.saves)
+            return
+        idb = open(os.path.join(folder, names['items.idb']), 'rb').read()
     idb = with_extra_item(bytes(idb))
     folder = os.path.join(args.saves, 'Res', 'databaselmp')
     os.makedirs(folder, exist_ok=True)

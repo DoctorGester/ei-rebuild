@@ -1,0 +1,13 @@
+{
+  "scenario": "mod_toml_databases",
+  "install": "vanilla",
+  "recorded": "2026-11-10",
+  "commit": "48151e384",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "MF5: new scenario, a mod's items.idb.toml changes one weapon and adds one, both given in a new game",
+  "source": "image",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+}

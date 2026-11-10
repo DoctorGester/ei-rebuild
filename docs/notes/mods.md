@@ -32,6 +32,9 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `tools/convert/convert.cpp` | ei-convert: an install's records as TOML, each round trip checked |
 | `tools/convert_install.py` | an unpacked copy converted; run_all.py `--converted` |
 | `tests/scenarios/mod_toml_records.txt` | a mod's TOML text and record seen by the game |
+| `src/game/data/database_toml.h`, `.cpp` | the game databases as TOML ("Databases as TOML"): field lists, `WriteRecords`, `MergeRecords` |
+| `tools/convert/convert_databases.h`, `.cpp` | ei-convert's databases: each round trip, compared by the records' own serialisers |
+| `tests/scenarios/mod_toml_databases.txt` | a mod's items.idb.toml: a weapon changed and one added, given in a new game |
 
 ## Choosing a mod
 
@@ -242,8 +245,8 @@ original hides the game's file. ei-convert writes it in every record file it con
 the original: Lost in Astral's own `.adb`, `ai.reg` and the like hide the game's rather than merging over them (without
 it mod_lost_in_astral_start's units differed). A mod's file of only the records it changes leaves it out.
 
-What stays binary: the quest zones' `quest.reg` (a `.mq`'s, read as bytes for the briefings: MF9), the other databases
-(`.idb`, `.sdb`, `.udb`, ...: MF4-), the maps.
+The game databases (units.udb, items.idb, ...) can be TOML too: "Databases as TOML". What stays binary: the quest
+zones' `quest.reg` (a `.mq`'s, read as bytes for the briefings: MF9), the maps.
 
 ### ei-convert
 
@@ -276,6 +279,66 @@ its TOML when the install has that alone (make_test_mod.py).
   database the units speak from have the mod's (`modtext`, `modack`).
 - `ei-convert --check` on both installs (all round trips hold), and on the stub data in the Linux suites' workflow.
 - `work.py test <ID> --converted --golden --rebirth`: every golden the same.
+
+## Databases as TOML
+
+The six game databases of database.res and databaselmp.res (MF5, user 2026-11-09) are record files as above: the same
+places, the same `<name>.toml`, the same merge order and `replace = true`, read by each database's `Read(RecordFile)`
+(its Load finds the file with `MappedResource::FindRecord`). Each record kind is an array of tables; each field has a
+name; numbers, strings (UTF-8; the asset code page in memory), arrays (damage per type, a model's speeds) and name
+lists are TOML's own, a model's body slots and a prototype's gold rolls inline tables.
+
+| Original | Tables, each merged by |
+|---|---|
+| `units.udb` | `[[level]]`, `[[model]]`, `[[unit]]` (the prototypes), `[[npc]]`: name |
+| `perks.pdb` | `[[skill]]`, `[[perk]]` (the skill level records): name |
+| `spells.sdb` | `[[spell]]`, `[[modifier]]`: code; `[[scroll_recipe]]`, `[[armor_recipe]]`, `[[weapon_recipe]]`: spell |
+| `items.idb` | `[[material]]`: key; `[[weapon]]`, `[[armor]]`, `[[quick_item]]`, `[[quest_item]]`, `[[loot]]`: name |
+| `quests.qdb` | `[[quest]]`, `[[briefing]]`: name |
+| `Levers.ldb` | `[[lever]]`: name |
+
+- A record's fields are listed once (`Fields(record, visit)` beside its Serialize, in each database's file), and the
+  writer (`dbtoml::WriteRecords`) and the merge (`dbtoml::MergeRecords`) both walk that list, so a key is spelt the
+  same way in both. A prototype's model index and a model slot's level index are not fields: the load resolves them
+  by name after the merge, as before.
+- Merging: a TOML record is matched to the first record of its key (compared exactly, as the tables' indexes compare)
+  that this file has not merged yet, and takes the fields it gives; the others keep what the original (or a TOML file
+  below) had. So a mod's file holds only the records it changes or adds, and of each only the fields it changes
+  (`[[weapon]] name = "stone axe"`, `damage = 9.5`). A key no record has is a new record (the type's defaults and the
+  fields given) at the end of its table. A merge never removes a record or moves one: every record keeps its index,
+  which is what the indexed references hold (an item's packed id: prototype and material index; a loot record's
+  index; the skill levels and model levels by index; saves and network messages carry those numbers), and new
+  records come after the game's. A record without its key is logged and left out; an unknown key, or a value of a
+  type its field does not take, is logged ("warning: items.idb: <file> line n: ...") and the field kept.
+- Names that repeat in the original: the n-th record of a key in a TOML file merges into the n-th record of that key
+  in the table (the "not merged yet" rule), so the converted files read back record for record. The data has them:
+  quests.qdb's 17 quests "dummy" (the index by name files the last, as the original's load does), and the recipe lists,
+  where a spell has a recipe per class (vanilla's 60 scroll recipes name 30 spells). A mod that changes one of a
+  repeated key's records lists the ones before it too, in order.
+- Fields no code uses (the original's unread bytes: `unread...` keys) are written only when not zero, so a converted
+  file reads back exactly. A lever's `spots` lists only its spot_count spots (Lever::UseSpots reads no more; the count
+  is the list's length read back): the bytes of the unused ones (the original data holds garbage there, NaNs among it)
+  are not kept, and ei-convert's comparison clears them on both sides.
+- Unsigned flags and masks are written in hexadecimal (`class_mask = 0x1`); a perk's required stats are floats
+  (`required_strength`, held as their bits), its worth exponent signed.
+
+Counts (2026-11-10, ei-convert, every round trip holding): vanilla 2 each of units.udb, perks.pdb, spells.sdb, items.idb,
+Levers.ldb and 1 quests.qdb (database.res: 389 units, 51 models, 14 NPCs, 5 levels; 78 perks, 7 skills; 42 spells, 38
+modifiers, 102 recipes; 192 armours, 37 weapons, 33 materials, 22 quick items, 71 quest items, 95 loot; 109 quests,
+141 briefings; 37 levers); Rebirth with its mods 6 each and 4 quests.qdb (Lost in Astral's database.res 716 units, 215
+armours, 63 weapons, 126 quests).
+
+### Checks
+
+- `ei-convert --check` on both installs (all round trips hold), and on the stub data in the Linux suites' workflow:
+  each record compared by the bytes its own serialiser writes (every field the format holds, floats by their bits),
+  the indexes by name and the resolved indexes too.
+- `mod_toml_databases` (both installs; tools/make_mod_s19d.py databases): a mod's items.idb.toml changes the weapon
+  "stone axe"'s damage and spread and adds the weapon "mf5 axe"; in a new game the party is given both (GiveItem) and
+  their damage is the mod's (`modweapon`, WeaponMinDamage / WeaponMaxDamage of the given items' packed ids).
+- `net_pair_database` on a converted install: tools/make_extra_item_db.py adds its quest item as an overlay
+  `items.idb.toml` merged over the game's TOML (the same index as its binary file's).
+- `work.py test <ID> --converted --golden --rebirth`: every golden the same with every database as TOML.
 
 ## A mod's config.reg
 

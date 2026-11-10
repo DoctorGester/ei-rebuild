@@ -16,7 +16,11 @@
 #include <vector>
 
 class ChunkArchive;
+struct RecordFile;
 struct SoundManager;
+namespace toml {
+class Value;
+}
 
 // A vector<std::string> as chunk `id` holding one field 1 per string, the way the NPC
 // and quest briefing serialisers inline it: loading empties the vector (the other serialiser erases the range
@@ -194,11 +198,17 @@ struct UnitDatabase {
     // Gives each model's sound names (lower-cased in place) the number of "*.wav" files of the sound system `sounds`
     // whose name starts with it (soundCounts).
     void CountSoundFiles(SoundManager* sounds);
-    // Rebirth-patched: the vanilla behaviour. Reads "units.udb" of the archive `folder` + `archive`: the level
-    // records (chunk 1), models (2), prototypes (3) and NPCs (4), each from its own pass with every record entered
-    // into its table's name index; then every prototype's modelIndex and every model slot's levelIndex are resolved
-    // by name (-1 when there is none). Returns 1; an archive or file that cannot be opened ends the game.
+    // Rebirth-patched: the vanilla behaviour. Reads "units.udb" of the archive `folder` + `archive` (its TOML too,
+    // docs/notes/mods.md "Databases as TOML"): Read. Returns 1; an archive that cannot be opened, or one without the
+    // file, ends the game.
     int Load(const std::string& folder, const std::string& archive);
+    // The original's level records (chunk 1), models (2), prototypes (3) and NPCs (4), each from its own pass; the
+    // TOML files merged over them; every record entered into its table's name index; then every prototype's
+    // modelIndex and every model slot's levelIndex resolved by name (-1 when there is none).
+    void Read(const RecordFile& file);
+    // A TOML file's [[level]], [[model]], [[unit]] (the prototypes) and [[npc]] records merged by name.
+    void MergeToml(const toml::Value& root, const std::string& path);
+    std::string ToToml() const;
 
     UnitPrototypeTable prototypes;
     NpcPrototypeTable npcs;
@@ -266,10 +276,14 @@ struct SkillDatabase {
     SkillLevelRecord* FindLevel(std::string_view levelName);
     int IndexOf(std::string_view levelName) const;
     int IndexOfLevel(const SkillLevelRecord* record);
-    // Rebirth-patched: the vanilla behaviour. Reads "perks.pdb" of the archive `folder` +
-    // `archive`: the skills (chunk 1) and the level records (chunk 2, one chunk 1 each). Returns 1; an archive or
-    // file that cannot be opened ends the game.
+    // Rebirth-patched: the vanilla behaviour. Reads "perks.pdb" of the archive `folder` + `archive` (its TOML too):
+    // Read. Returns 1; an archive that cannot be opened, or one without the file, ends the game.
     int Load(const std::string& folder, const std::string& archive);
+    // The original's skills (chunk 1) and level records (chunk 2, one chunk 1 each), then the TOML files merged.
+    void Read(const RecordFile& file);
+    // A TOML file's [[skill]] and [[perk]] (the level records) merged by name.
+    void MergeToml(const toml::Value& root, const std::string& path);
+    std::string ToToml() const;
 
     std::vector<SkillRecord> skills;
     std::vector<SkillLevelRecord> levels;

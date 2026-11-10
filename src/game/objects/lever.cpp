@@ -11,6 +11,7 @@
 #include "game/core/core_streams.h"
 #include "game/data/chunk_archive.h"
 #include "game/data/database_file.h"
+#include "game/data/database_toml.h"
 #include "game/data/resource.h"
 #include "game/net/net_delta.h"
 #include "game/objects/map_object.h"
@@ -337,28 +338,77 @@ void ChunkArchive::SerializeLevers(int id, std::vector<LeverRecord>* list) {
 // The lever table's load from its archive at start-up (the application's start-up calls it). Main thread. See docs/notes/units.md ("Levers").
 
 int LeverRecordTable::Load(const std::string& folder) {
-    std::string dir = folder;
     MappedResource resource;
-    dbfile::OpenDatabase(resource, dir);
-    std::uint32_t size;
-    void* data = resource.GetFile("Levers.ldb", &size);
-    if (!data) game::FatalExit("Can't open Levers database\n");
-
-    MemoryStream local;
-    local.Fill(data, size);
-
-    // The records as chunk 1 of an archive opened for loading, then every record entered under its model's name: a record of a name
-    // seen before replaces the earlier one.
-    ChunkArchive archive;
-    archive.Open(&local, 1, 1);
-    archive.SerializeLevers(1, &records);
-    archive.Close(&local);
-    for (LeverRecord& record : records) {
-        std::string key(record.name);
-        byName[key] = &record;
-    }
-
-    resource.CloseFile(data);
+    dbfile::OpenDatabase(resource, folder);
+    const RecordFile file = resource.FindRecord("Levers.ldb");
+    if (!file.Any()) game::FatalExit("Can't open Levers database\n");
     resource.CloseResource();
+    Read(file);
     return 1;
+}
+
+void LeverRecordTable::Read(const RecordFile& file) {
+    if (file.found) {
+        MemoryStream local;
+        local.Fill(file.original.data(), static_cast<std::uint32_t>(file.original.size()));
+        ChunkArchive archive;
+        archive.Open(&local, 1, 1);
+        archive.SerializeLevers(1, &records);
+        archive.Close(&local);
+    }
+    MergeTomls(file, [this](const toml::Value& root, const std::string& path) { MergeToml(root, path); });
+    for (LeverRecord& record : records) byName[record.name] = &record;
+}
+
+// --- As TOML ---------------------------------------------------------------------------------------
+
+// A record's spots as TOML: the list of its spotCount spots, each [along, across] (the bytes of the others are not
+// written: Lever::UseSpots reads only the first spotCount); read back, the count is the list's length.
+struct LeverSpots {
+    float (&spots)[2][2];
+    std::uint32_t& count;
+};
+
+std::string ValueText(LeverSpots field) {
+    std::vector<std::string> spots;
+    for (std::uint32_t i = 0; i < std::min<std::uint32_t>(field.count, std::size(field.spots)); ++i)
+        spots.push_back(dbtoml::ValueText(field.spots[i]));
+    return toml::Array(spots);
+}
+
+bool ReadValue(const toml::Value& value, LeverSpots field) {
+    float spots[2][2] = {};
+    if (!dbtoml::ReadValue(value, spots)) return false;
+    std::copy(&spots[0][0], &spots[0][0] + 4, &field.spots[0][0]);
+    field.count = static_cast<std::uint32_t>(value.Size());
+    return true;
+}
+
+template <class Visit>
+void Fields(LeverRecord& r, Visit& v) {
+    v("name", r.name);
+    v("spots", LeverSpots{r.spots, r.spotCount});
+    v("far_scale", r.farScale);
+    v("duration", r.duration);
+    v("sound", r.sound);
+    v.Unread("unread_text_first", r.unreadTextFirst);
+    v.Unread("unread_text_last", r.unreadTextLast);
+}
+
+namespace {
+
+constexpr const char* kLevers = "Levers.ldb";
+
+} // namespace
+
+void LeverRecordTable::MergeToml(const toml::Value& root, const std::string& path) {
+    dbtoml::MergeRecords(root["lever"], records, "name", [](const LeverRecord& record) { return record.name; }, kLevers,
+                         path);
+    dbtoml::CheckTables(root, {"lever"}, kLevers, path);
+}
+
+std::string LeverRecordTable::ToToml() const {
+    toml::Writer writer;
+    dbtoml::WriteRecords(writer, "lever", records);
+    return writer.text;
 }

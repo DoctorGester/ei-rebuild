@@ -23,6 +23,7 @@
 #include "game/map/map_database.h"
 #include "game/data/text_manager.h"
 #include "game/app/options.h"
+#include "game/players/party.h"
 #include "game/players/party_manager.h"
 #include "game/players/player_client.h"
 #include "game/players/player_messages.h"
@@ -460,6 +461,23 @@ long AckSound(const char* unit, const char* speech, std::string* sound) {
     for (const SpeechRecord& s : record->namedSpeeches.records) {
         if (s.name != speech) continue;
         *sound = s.sound;
+        return 1;
+    }
+    return 0;
+}
+
+long LocalWeaponDamage(const char* weapon, float* minimum, float* maximum) {
+    if (!g_serverWorld.players) return -3;
+    Player* player = g_serverWorld.GetPlayer(0);
+    if (!player) return -3;
+    std::vector<Item*> items = player->items;
+    if (Party* party = player->GetParty()) items.insert(items.end(), party->items.begin(), party->items.end());
+    for (Item* item : items) {
+        if (item->Kind() != ItemKind::Weapon) continue;
+        const itemdb::WeaponRecord* record = itemdb::WeaponAt(PrototypeIndex(item->prototypeId));
+        if (!record || record->name != weapon) continue;
+        *minimum = WeaponMinDamage(item->prototypeId);
+        *maximum = WeaponMaxDamage(item->prototypeId);
         return 1;
     }
     return 0;

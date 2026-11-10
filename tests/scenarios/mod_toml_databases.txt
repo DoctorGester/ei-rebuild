@@ -1,0 +1,25 @@
+# Databases as TOML (docs/notes/mods.md, "Databases as TOML"): a mod of our own, tools/make_mod_s19d.py databases,
+# written into the run's harness_saves\s19d_mod, which "mod" makes the settings' Mod (either install). Its
+# Res\database\items.idb.toml changes two fields of the game's weapon "stone axe" and adds the weapon "mf5 axe". In a
+# new game the party is given both, made from the merged table as any script's GiveItem makes them:
+# - the stone axe's damage is the mod's: 9.5 to 9.5 + 1.25, times malachite's damage factor 4.2 (the game's own 2.4
+#   and 2 would give 10.08 to 18.48); its other fields stay the game's;
+# - the new axe is made at all (a name the game's table lacks) with the mod's damage, 7 to 7.5 times 4.2.
+# prepare: make_mod_s19d.py databases
+mod harness_saves\s19d_mod
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+modweapon stone axe -
+console @GiveItem(0,"stone axe.malachite")
+frames 5
+console @GiveItem(0,"mf5 axe.malachite")
+frames 5
+modweapon stone axe 39.9 45.15
+modweapon mf5 axe 29.4 31.5
+check IsAlive(GetLeader())
+report
+quit

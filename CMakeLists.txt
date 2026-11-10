@@ -323,7 +323,7 @@ target_include_directories(ei-rebuild PRIVATE src)
 target_link_libraries(ei-rebuild PRIVATE ei_game)
 # ei-convert (tools/convert; docs/notes/mods.md, "Records as TOML"): an install's record files written as TOML by the
 # game's own loaders, each one's round trip checked. Its own ei::Log (the output's lines).
-add_executable(ei-convert tools/convert/convert.cpp ${EI_GAME_CALLS} ${EI_SDL_CALLS})
+add_executable(ei-convert tools/convert/convert.cpp tools/convert/convert_databases.cpp ${EI_GAME_CALLS} ${EI_SDL_CALLS})
 target_include_directories(ei-convert PRIVATE src third_party)
 target_link_libraries(ei-convert PRIVATE ei_game SDL3::SDL3-static)
 # The product's notices (third_party_notices.txt beside the executables): the licences of the

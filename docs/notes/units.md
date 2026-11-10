@@ -68,9 +68,10 @@ and every scenario that starts the game.
   lower by the model's offset, take the prototype's scale and second prototype. `ResetToBase` refreshes current values
   from bases. `GiveStartingEquipment` (below).
 - **Database records**: `units.udb` is loaded once at startup (and again when the resource database switches) through
-  the chunk archive, four passes over one memory stream: level records (chunk 1), models (2), prototypes (3), NPCs (4),
-  each entered into its table's name index; then each prototype's `modelIndex` is the place of the model it names and
-  each model slot's `levelIndex` the place of the level record it names (-1: none). The skill load reads `perks.pdb`:
+  the chunk archive, four passes over one memory stream: level records (chunk 1), models (2), prototypes (3), NPCs (4)
+  (a TOML file's records merged over them: mods.md, "Databases as TOML"), each entered into its table's name index;
+  then each prototype's `modelIndex` is the place of the model it names and each model slot's `levelIndex` the place
+  of the level record it names (-1: none). The skill load reads `perks.pdb`:
   chunk 1 the skills, chunk 2 the level records. Both return 1, or the fatal error report's result when the archive or
   the file is missing (the archive is then not closed). Some bytes of a prototype and a model are not serialised.
   `CountSoundFiles`: model sound names lower-cased, "*.wav" files counted by prefix.
