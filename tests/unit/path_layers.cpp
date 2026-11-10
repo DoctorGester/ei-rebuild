@@ -194,6 +194,20 @@ int RunPathLayersChecks() {
         Expect("a save", platform::SystemPath(".\\saves\\current\\info.sav", platform::PathUse::Write),
                g + "\\saves\\Astral\\current\\info.sav");
         Expect("the saves' folder made", fs::is_directory(game / "saves" / "Astral") ? "yes" : "no", "yes");
+        // The multiplayer heroes (MOD13) are the mod's own, beside its saves.
+        Expect("a hero's file", platform::SystemPath(".\\mp\\1.mp", platform::PathUse::Write), g + "\\saves\\Astral\\mp\\1.mp");
+        Expect("the heroes' folder", platform::SystemPath(".\\mp\\", platform::PathUse::Read), g + "\\saves\\Astral\\mp");
+        Expect("a hero's temporary file", platform::SystemPath(g + "\\MP\\temp.mp", platform::PathUse::Update),
+               g + "\\saves\\Astral\\mp\\temp.mp");
+        Expect("a path beside mp", platform::SystemPath(".\\mp2\\1.mp", platform::PathUse::Read), ".\\mp2\\1.mp");
+        {
+            fs::create_directories(game / "saves" / "Astral" / "mp");
+            std::ofstream(game / "saves" / "Astral" / "mp" / "7.mp") << "x";
+            std::string heroes;
+            for (const platform::FolderEntry& entry : platform::FolderEntries(".\\mp\\*.mp"))
+                if (!entry.IsDots()) heroes += entry.name + " ";
+            Expect("the mod's heroes", heroes, "7.mp ");
+        }
         std::string mapped = platform::SystemPath(m + "\\Maps\\zone2.mob", platform::PathUse::Read);
         Expect("a path in the mod", mapped, m + "\\Maps\\zone2.mob");
         std::string names;
@@ -210,6 +224,7 @@ int RunPathLayersChecks() {
         // A switch to the game's own files, then back to the mod.
         Expect("a switch to no mod", platform::SwitchMod(g, "") ? "yes" : "no", "yes");
         Expect("no mod's folder", platform::ModFolder(), "");
+        Expect("the game's heroes", platform::SystemPath(".\\mp\\1.mp", platform::PathUse::Write), ".\\mp\\1.mp");
         Expect("the game's file again", platform::SystemPath(".\\config\\ai.reg", platform::PathUse::Read),
                ".\\config\\ai.reg");
         Expect("a missing mod refused", platform::SwitchMod(g, g + "\\starter\\Mods\\None") ? "yes" : "no", "no");

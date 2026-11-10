@@ -4,6 +4,8 @@ usage: python tools/make_mp_hero.py <saves dir> [--name NAME] [--file N.mp] [--s
   <saves dir>  the run's harness_saves folder: the game's mp\ folder is read from <saves dir>\mp only (harness.cpp
                OverlayOnly), so the hero screen lists exactly the heroes written there.
   --name       the hero's name (default "host")
+  --mod        the mod the run plays (its folder's name): the mod's heroes are in <saves dir>\<mod>\mp, apart from
+               the game's (MOD13; docs/notes/mods.md, "The layered path map")
   --file       the file name (default 1.mp: the game numbers its heroes 1.mp, 2.mp, ...)
   --stats      strength, dexterity and intelligence (default 25 25 25, a new hero's)
   --skills     every skill byte (default 0, a new hero's)
@@ -228,6 +230,7 @@ def main():
     parser = argparse.ArgumentParser(usage=__doc__)
     parser.add_argument('saves')
     parser.add_argument('--name', default='host')
+    parser.add_argument('--mod', default='', help="the mod's folder name: its heroes are in <saves dir>/<mod>/mp")
     parser.add_argument('--file', default='1.mp')
     parser.add_argument('--stats', nargs=3, type=float, default=(25.0, 25.0, 25.0))
     parser.add_argument('--skills', type=int, default=0)
@@ -236,7 +239,7 @@ def main():
     parser.add_argument('--variables', nargs='*', default=[], metavar='NAME=VALUE')
     a = parser.parse_args()
     variables = [(v.split('=')[0], float(v.split('=')[1])) for v in a.variables]
-    folder = os.path.join(a.saves, 'mp')
+    folder = os.path.join(a.saves, a.mod, 'mp')
     os.makedirs(folder, exist_ok=True)
     with open(os.path.join(folder, a.file), 'wb') as f:
         f.write(hero_file(a.name, *a.stats, skills=a.skills, damage=a.damage, absorb=a.absorb, variables=variables))

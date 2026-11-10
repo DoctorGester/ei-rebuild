@@ -1,0 +1,30 @@
+# A mod's multiplayer heroes are its own (MOD13; docs/notes/mods.md, "The layered path map"): the game's mp\ folder is
+# saves\<mod>\mp\ under a mod, so a hero given a mod's item never reaches the game's own hero list (it failed there on an
+# item the vanilla database lacks). A mod of our own (tools/make_mod_s19d.py loose, in the run's harness_saves\s19d_mod)
+# with one prepared hero (5.mp, harness_saves\s19d_mod\mp\), and one for no mod (6.mp, harness_saves\mp\). The hero
+# screen logs the files it lists ("heroes: <n> listed <files>"): with the mod only 5.mp; after a switch to no mod, in the
+# main menu, only 6.mp.
+# prepare: make_mod_s19d.py loose
+# prepare: make_mp_hero.py --mod s19d_mod --file 5.mp --name modhero
+# prepare: make_mp_hero.py --file 6.mp --name plainhero
+mod harness_saves\s19d_mod
+timeout 120
+music 0
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+frames 5
+expectlog heroes: 1 listed 5.mp
+key esc
+waitmenu
+mod none
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+frames 5
+expectlog heroes: 1 listed 6.mp
+key esc
+waitmenu
+report
+quit
