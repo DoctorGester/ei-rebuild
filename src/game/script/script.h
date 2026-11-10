@@ -188,6 +188,14 @@ struct ScriptToken {
     int line = -1;
 };
 
+// One comment of a script text (`//` to the end of the line, `/* */`), kept for the Lua writer (script_ir.h, the parse
+// tree's `comments`); the loader skips them. `text` is the comment's bytes between its marks, its lines as written.
+struct ScriptComment {
+    int line = 0;             // the line it starts on
+    bool trailing = false;    // a token of the text came before it on that line
+    std::string text;
+};
+
 // What Script::Error records as the error code.
 enum class ScriptParseError : int {
     None = 0,
@@ -670,8 +678,8 @@ public:
     static int Error(Script* script, int line, ScriptParseError code, const char* format, Args&&... args) {
         return Error(script, line, code, format, libprintf::Arg(libprintf::Owned(std::forward<Args>(args)))...);
     }
-    // See script.md, "Lexer".
-    bool Tokenize(const std::string& text, std::vector<ScriptToken>* tokens);
+    // See script.md, "Lexer". `comments`, when given, gets each comment the lexer skips, in the text's order.
+    bool Tokenize(const std::string& text, std::vector<ScriptToken>* tokens, std::vector<ScriptComment>* comments = nullptr);
     // `name`, or "!<file>!<name>" when this is not the first file loaded.
     std::string QualifyName(const std::string& name);
     // Retries without each "!<n>!" prefix.

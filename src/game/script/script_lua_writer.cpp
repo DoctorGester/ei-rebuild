@@ -1,6 +1,7 @@
 // The readable Lua of a script text. See script_lua_writer.h and docs/notes/lua-scripting.md, "Converted scripts".
 #include "game/script/script_lua_writer.h"
 
+#include "game/core/asset_text.h"
 #include "game/script/script_lua.h"
 
 #include <algorithm>
@@ -10,6 +11,8 @@
 #include <cstdint>
 #include <cstdio>
 #include <format>
+#include <iterator>
+#include <utility>
 #include <vector>
 
 namespace scriptlua {
@@ -148,6 +151,37 @@ private:
     std::vector<std::string> open;   // the counters of the loops around
 };
 
+bool IsUtf8(std::string_view bytes) {
+    for (std::size_t i = 0; i < bytes.size();) {
+        const auto lead = static_cast<unsigned char>(bytes[i]);
+        const std::size_t length = lead < 0x80 ? 1 : (lead >> 5) == 0x6 ? 2 : (lead >> 4) == 0xE ? 3 : (lead >> 3) == 0x1E ? 4 : 0;
+        if (length == 0 || i + length > bytes.size()) return false;
+        for (std::size_t k = 1; k < length; ++k)
+            if ((static_cast<unsigned char>(bytes[i + k]) & 0xC0) != 0x80) return false;
+        i += length;
+    }
+    return true;
+}
+
+// A comment's lines as Lua comment text: UTF-8 (a script's bytes are the asset code page's unless they are UTF-8 already),
+// each line trimmed, blank lines at the ends dropped.
+std::vector<std::string> CommentLines(const std::string& bytes) {
+    const std::string text = IsUtf8(bytes) ? bytes : text::FromAssetText(bytes);
+    std::vector<std::string> lines;
+    for (std::size_t at = 0; at <= text.size();) {
+        std::size_t end = text.find('\n', at);
+        if (end == std::string::npos) end = text.size();
+        std::string_view line = std::string_view(text).substr(at, end - at);
+        while (!line.empty() && (line.front() == ' ' || line.front() == '\t' || line.front() == '\r')) line.remove_prefix(1);
+        while (!line.empty() && (line.back() == ' ' || line.back() == '\t' || line.back() == '\r')) line.remove_suffix(1);
+        lines.emplace_back(line);
+        at = end + 1;
+    }
+    while (!lines.empty() && lines.back().empty()) lines.pop_back();
+    lines.erase(lines.begin(), std::find_if(lines.begin(), lines.end(), [](const std::string& line) { return !line.empty(); }));
+    return lines;
+}
+
 class Writer {
 public:
     Writer(const scriptir::File& file, LuaNames& names, LuaText& out) : file(file), names(names), out(out) {}
@@ -155,6 +189,7 @@ public:
     void Write(std::string_view source) {
         FindReads();
         NameDeclarations();
+        PlaceComments();
         Line(std::format(
             "-- {}: converted by ei-convert from the game's script (docs/notes/lua-scripting.md, \"Converted "
             "scripts\").",
@@ -168,6 +203,7 @@ public:
         Globals();
         for (const scriptir::Definition& definition : file.definitions) Definition(definition);
         for (std::size_t i = 0; i < file.worldScripts.size(); ++i) World(file.worldScripts[i], i);
+        Leftover();
     }
 
 private:
@@ -261,6 +297,99 @@ private:
         });
     }
 
+    // ---- Comments -----------------------------------------------------------------------------------------------
+
+    // The comments of the text beside the tree's items (a global, a definition, a rule, a call, a WorldScript), kept
+    // by line: a comment on a line of its own goes before the next item at or after its line; one after a token goes at
+    // the end of the line of the last item that starts at or before its line (the item it follows); none such: before the
+    // next item. What follows the last item goes at the end of the Lua.
+    struct Notes {
+        std::vector<std::string> before;   // lines
+        std::string after;                 // one line
+        bool written = false;              // the lines before were written
+        bool afterWritten = false;
+    };
+
+    struct Item {
+        int line = 0;
+        const void* key = nullptr;
+    };
+
+    static void CollectCalls(const scriptir::Block& block, std::vector<Item>& items) {
+        for (const scriptir::Call& call : block.calls) {
+            items.push_back({call.line, &call});
+            if (call.body) CollectCalls(*call.body, items);
+        }
+    }
+
+    void PlaceComments() {
+        if (file.comments.empty()) return;
+        std::vector<Item> items;
+        for (const scriptir::Variable& global : file.globals) items.push_back({global.line, &global});
+        for (const scriptir::Definition& definition : file.definitions) {
+            items.push_back({definition.bodyLine != 0 ? definition.bodyLine : definition.line, &definition});
+            for (const scriptir::Rule& rule : definition.rules) {
+                items.push_back({rule.line, &rule});
+                CollectCalls(rule.conditions, items);
+                CollectCalls(rule.commands, items);
+            }
+        }
+        for (std::size_t i = 0; i < file.worldScripts.size(); ++i) {
+            const scriptir::Block& world = file.worldScripts[i];
+            items.push_back({world.line, &world});
+            if (i == 0) CollectCalls(world, items);
+        }
+        std::ranges::stable_sort(items, {}, &Item::line);
+        for (const ScriptComment& comment : file.comments) {
+            const std::vector<std::string> lines = CommentLines(comment.text);
+            // The last item at or before the line, for a comment after a token; else the first at or after it.
+            const auto following = std::ranges::upper_bound(items, comment.line, {}, &Item::line);
+            if (comment.trailing && following != items.begin()) {
+                std::string& note = notes[std::prev(following)->key].after;
+                for (const std::string& line : lines) {
+                    if (line.empty()) continue;
+                    note += note.empty() ? line : " " + line;
+                }
+                continue;
+            }
+            const auto next = std::ranges::lower_bound(items, comment.line, {}, &Item::line);
+            // After a failed parse, what lies past the error was not converted.
+            if (next == items.end() && !file.ok && comment.line > file.error.line) continue;
+            std::vector<std::string>& target = next == items.end() ? tail : notes[next->key].before;
+            if (lines.empty()) target.push_back("");
+            for (const std::string& line : lines) target.push_back(line);
+        }
+    }
+
+    // The comments before an item, written where it starts.
+    void Before(const void* key) {
+        const auto note = notes.find(key);
+        if (note == notes.end()) return;
+        note->second.written = true;
+        for (const std::string& line : note->second.before) Line(line.empty() ? "--" : "-- " + line);
+    }
+    // The comment after an item, at the end of its first line, which starts at `from` in the text (or a line of its own
+    // when the item wrote none).
+    void After(const void* key, std::size_t from) {
+        const auto note = notes.find(key);
+        if (note == notes.end() || note->second.after.empty()) return;
+        note->second.afterWritten = true;
+        const std::size_t end = out.text.find('\n', from);
+        if (end == std::string::npos) Line("-- " + note->second.after);
+        else out.text.insert(end, " -- " + note->second.after);
+    }
+    // Comments beside items the Lua leaves out, and those after the last item, at the end.
+    void Leftover() {
+        std::vector<std::string> lines = tail;
+        for (const auto& [key, note] : notes) {
+            if (!note.written) lines.insert(lines.end(), note.before.begin(), note.before.end());
+            if (!note.afterWritten && !note.after.empty()) lines.push_back(note.after);
+        }
+        if (lines.empty()) return;
+        Line("");
+        for (const std::string& line : lines) Line(line.empty() ? "--" : "-- " + line);
+    }
+
     // ---- Output -------------------------------------------------------------------------------------------------
 
     void Line(const std::string& text) {
@@ -276,14 +405,17 @@ private:
         ++depth;
         for (const scriptir::Variable& global : file.globals) {
             const std::string plain = StripQualifier(global.name);
+            Before(&global);
+            const std::size_t at = out.text.size();
             if (hidden.contains(global.name)) {
                 Line(std::format("-- {}: {}, declared again (every use finds the earlier script's)", plain,
                                  ScriptTypeName(global.type)));
-                continue;
+            } else {
+                const std::string& name = names.globals.at(global.name);
+                Line(std::format("{} = \"{}\",{}", name, ScriptTypeName(global.type),
+                                 name == plain ? "" : "   -- " + plain));
             }
-            const std::string& name = names.globals.at(global.name);
-            Line(std::format("{} = \"{}\",{}", name, ScriptTypeName(global.type),
-                             name == plain ? "" : "   -- " + plain));
+            After(&global, at);
         }
         --depth;
         Line("}");
@@ -312,23 +444,36 @@ private:
             list += name;
         }
         Line("");
+        Before(&definition);
         Line(std::format("-- {}({})", StripQualifier(definition.name), ParamsComment(definition.params)));
         const std::string name = ScriptName(definition.name);
+        const std::size_t headAt = out.text.size();
         if (definition.rules.empty()) {
             Line(name + " = Script {}");
+            After(&definition, headAt);
             return;
         }
         Line(name + " = Script {");
+        After(&definition, headAt);
         ++depth;
         for (const scriptir::Rule& rule : definition.rules) {
+            Before(&rule);
+            const std::size_t ruleAt = out.text.size();
             Line("{");
+            After(&rule, ruleAt);
             ++depth;
             if (!rule.conditions.calls.empty()) {
                 Line(std::format("condition = function({})", list));
                 ++depth;
-                for (std::size_t i = 0; i < rule.conditions.calls.size(); ++i)
-                    Line(std::format("{}{} ~= 0", i == 0 ? "return " : "    and ",
-                                     Expression(rule.conditions.calls[i])));
+                for (std::size_t i = 0; i < rule.conditions.calls.size(); ++i) {
+                    const scriptir::Call& condition = rule.conditions.calls[i];
+                    depth += i == 0 ? 0 : 1;   // a comment before a later condition lines up with its `and`
+                    Before(&condition);
+                    depth -= i == 0 ? 0 : 1;
+                    const std::size_t at = out.text.size();
+                    Line(std::format("{}{} ~= 0", i == 0 ? "return " : "    and ", Expression(condition)));
+                    After(&condition, at);
+                }
                 --depth;
                 Line("end,");
             }
@@ -349,6 +494,7 @@ private:
         params.clear();
         locals.clear();
         Line("");
+        Before(&block);
         if (index > 0) {
             Line("-- A second WorldScript, which the game's parser refuses.");
             return;
@@ -360,14 +506,21 @@ private:
         }
         if (!file.ok)
             Line("-- The game does not run it at load (the text failed), only when the zone is entered again.");
+        const std::size_t at = out.text.size();
         Line("function WorldScript()");
+        After(&block, at);
         Commands(block);
         Line("end");
     }
 
     void Commands(const scriptir::Block& block) {
         ++depth;
-        for (const scriptir::Call& call : block.calls) Command(call);
+        for (const scriptir::Call& call : block.calls) {
+            Before(&call);
+            const std::size_t at = out.text.size();
+            Command(call);
+            After(&call, at);
+        }
         --depth;
     }
 
@@ -523,6 +676,8 @@ private:
     LuaText& out;
     ReadFinder found;
     std::set<std::string> hidden;   // the declared globals the Lua leaves out (Hidden)
+    std::map<const void*, Notes> notes;   // the comments beside each item (PlaceComments)
+    std::vector<std::string> tail;        // those after the last item
     int depth = 0;
     std::map<std::string, std::string> params;   // the definition's, by the tree's name
     std::vector<std::string> locals;             // the Lua names in scope

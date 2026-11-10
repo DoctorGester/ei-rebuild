@@ -1,6 +1,6 @@
 """Writes a Rebirth mod for the S19d scenarios (the mod-folder patches the S19b scenario leaves unchecked).
 
-usage: python tools/make_mod_s19d.py <saves dir> stream|archives|maps|loose|toml|databases|png|heights|gltf|anim
+usage: python tools/make_mod_s19d.py <saves dir> stream|archives|maps|loose|toml|databases|png|heights|gltf|anim|mobs
                                     [--zip <name> [--top]]
   <saves dir>   the run's harness_saves folder; the mod goes to <saves dir>\\s19d_mod, which the scenario selects with
                 the harness step "mod harness_saves\\s19d_mod" (the settings' Mod)
@@ -61,10 +61,15 @@ nothing is committed. Kinds (docs/notes/rebirth.md, "Resources and paths"):
                                         slow: its keys' times doubled and its `extras` dropped (so the loader samples
                                         the glTF's rotations at every tick: 211 keys for 106)
               Res\\database\\unhuma.adb.toml  "cidle18" with twice its frames (210), alone
+  mobs      a map's objects as TOML (tests/scenarios/mod_map_objects.txt; docs/notes/mods.md, "Map objects as TOML"):
+              Maps\\zone1.mob.toml   the game's zone1.mob as ei-convert writes it (a converted install's own, else made by
+                                    the run's build's ei-convert, EI_BUILD_DIR, else build\\verify) with the pig PigF0-1947
+                                    moved to MOVED_PIG and a pig MF9aPig added at ADDED_PIG; no .mob (the game's gives
+                                    the scripts)
 Rebirth.txt and a config.reg with [MOD] Title are written in every kind (as the shipped mods have them; toml: its
 TOML).
 """
-import argparse, json, os, shutil, struct, subprocess, sys, tempfile, zipfile, zlib
+import argparse, json, os, re, shutil, struct, subprocess, sys, tempfile, zipfile, zlib
 
 import exe_path
 import make_test_mod as mod
@@ -458,8 +463,52 @@ def anim(root):
           f'[[animation]]\nname = "cidle18"\nframes = {105 * ANIM_SLOWER}\n'.encode())
 
 
+# mobs: where the pig PigF0-1947 (id 1947, placed at 190.79, 78.52) is moved and the pig MF9aPig is added: map units
+# near the party's start of the new game.
+MOVED_PIG = (50.0, 138.0)
+ADDED_PIG = (50.0, 142.0)
+PIG_ID = 1947
+PIG_POSITION = '[190.78964, 78.51906, 0.0]'
+
+
+def zone1_toml():
+    """The game's zone1.mob as TOML (ei-convert's): a converted install's own Maps\\zone1.mob.toml, else written by the
+    run's build's ei-convert from a copy of the install's zone1.mob."""
+    converted = vanilla('Maps', 'zone1.mob.toml')
+    if os.path.exists(converted):
+        with open(converted, 'r', encoding='utf-8', newline='') as f:
+            return f.read()
+    build = os.environ.get('EI_BUILD_DIR') or os.path.join(exe_path.ROOT, 'build', 'verify')
+    convert = os.path.join(build, 'ei-convert.exe' if os.name == 'nt' else 'ei-convert')
+    with tempfile.TemporaryDirectory() as scratch:
+        copy(vanilla('Maps', 'zone1.mob'), os.path.join(scratch, 'in', 'Maps', 'zone1.mob'))
+        subprocess.run([convert, os.path.join(scratch, 'in'), os.path.join(scratch, 'out')], check=True, capture_output=True)
+        with open(os.path.join(scratch, 'out', 'Maps', 'zone1.mob.toml'), 'r', encoding='utf-8', newline='') as f:
+            return f.read()
+
+
+def mobs(root):
+    config(root)
+    text = zone1_toml().replace('\r\n', '\n')
+    records = text.split('[[object]]\n')   # the header, then each record with its blank line after it
+    start = next(i for i, r in enumerate(records) if r.startswith(f'kind = "unit"\nid = {PIG_ID}\n'))
+    pig = records[start]
+    if PIG_POSITION not in pig:
+        sys.exit(f'make_mod_s19d: the pig {PIG_ID} of zone1.mob.toml is not where it was placed')
+    at = lambda xy: f'[{xy[0]}, {xy[1]}, 0.0]'
+    # The new pig is a copy of the moved one's record under a new id and name; its position and its guard behaviour's
+    # place (the same point) are the new place.
+    top = max(int(m) for m in re.findall(r'^id = (\d+)$', text, re.M))
+    added = pig.replace(f'id = {PIG_ID}\n', f'id = {top + 1}\n', 1)
+    added = added.replace(f'name = "PigF0-{PIG_ID}"', 'name = "MF9aPig"', 1).replace(PIG_POSITION, at(ADDED_PIG))
+    records[start] = pig.replace(PIG_POSITION, at(MOVED_PIG))
+    records[-1] = records[-1].rstrip('\n') + '\n\n'
+    records.append(added.rstrip('\n') + '\n')
+    write(os.path.join(root, 'Maps', 'zone1.mob.toml'), '[[object]]\n'.join(records).encode('utf-8'))
+
+
 KINDS = {'stream': stream, 'archives': archives, 'maps': maps, 'loose': loose, 'toml': toml, 'databases': databases, 'png': png,
-         'heights': heights, 'gltf': gltf, 'anim': anim}
+         'heights': heights, 'gltf': gltf, 'anim': anim, 'mobs': mobs}
 
 
 def zip_folder(root, target, top):

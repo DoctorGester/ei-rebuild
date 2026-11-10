@@ -45,6 +45,7 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `tools/convert/convert_maps.h`, `.cpp` | ei-convert's maps: each as its folder, the round trip byte for byte |
 | `tests/unit/map_folder.cpp` | the unit check (ei_unit_check, the POSIX port check) |
 | `tests/scenarios/mod_map_heights.txt` | a mod's heights.png seen as the ground's height (`ground`) |
+| `tests/scenarios/mod_map_objects.txt` | a mod's zone1.mob.toml (a pig moved, one added) with no .mob, seen in a new game |
 | `src/game/map/mob_toml.h`, `.cpp` | a .mob's objects as TOML and back ("Map objects as TOML"): `Write`, `Read`, `Find`, `FieldImages` |
 | `src/game/map/mob_reader.cpp`, `map_spec.h` | `MobContents` (what a .mob holds), `MobFile::ReadChunks`, `LoadMob` (applied to the server) |
 | `tools/convert/convert_mobs.h`, `.cpp` | ei-convert's map objects: each .mob's TOML, its round trip compared field by field |
@@ -661,6 +662,17 @@ Zone 1's TOML (777 records, 12,824 lines, 0.3 MB) reads in about 10 ms.
 - `ei-convert --check` on both installs (every `.mob`'s round trip holding), and on the stub data in the Linux suites'
   workflow.
 - `work.py test <ID> --converted --golden` (and `--rebirth-only`): every zone's objects come from its TOML.
+- `mod_map_objects` (both installs; tools/make_mod_s19d.py mobs): a mod whose only file but its config is
+  `Maps\zone1.mob.toml`, the game's zone1.mob as ei-convert writes it (a converted install's own file, else made at
+  run time by the build's ei-convert from a copy of the install's .mob; nothing is committed) with the pig 1947 moved to
+  (50, 138) and a pig `MF9aPig` (id 2009) added at (50, 142), beside the party's start. The mod has no `.mob`, so the
+  scripts come from the game's: in a new game both pigs stand near their places (`GetObject(id)`, `GetX`, `GetY`; the
+  capture shows them by the hero), another pig and the script's units keep theirs, and the trace has the mod's TOML
+  and the game's `.mob` read. A map unit is found by its id (`GetObject`): `GetObjectByName` found none of the
+  pigs by the names the TOML gives.
+- Still binary in a mod: the `.mob`'s AI graph chunk (0x31415926, `ReadAIGraph`) comes from the game's `.mob` (or none
+  when no layer has one), as do its scripts until L5; a mod that moves objects keeps the game's graph, which the TOML
+  does not carry.
 
 ## Models as glTF
 

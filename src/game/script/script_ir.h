@@ -55,6 +55,7 @@ struct Call {
 // A command block: a then-section, a For body, conditions or a WorldScript, with the block id the loader gave it.
 struct Block {
     int id = 0;
+    int line = 0;                   // a WorldScript: the line of its keyword
     std::vector<Call> calls;
 };
 
@@ -95,6 +96,7 @@ struct File {
     std::vector<Variable> globals;  // GlobalVars, qualified
     std::vector<Definition> definitions;
     std::vector<Block> worldScripts;   // at most one unless the load failed on the second
+    std::vector<ScriptComment> comments;   // the lexer's, in the text's order (Dump leaves them out)
     int lines = 0;                  // of the preprocessed text
     int tokens = 0;
     bool ok = false;
