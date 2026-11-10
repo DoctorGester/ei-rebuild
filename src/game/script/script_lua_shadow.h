@@ -89,6 +89,9 @@ public:
     // The script is about to be saved (Script::SaveState): the Lua state goes through an Eris round trip
     // (ScriptLuaScheduler::Save, Restore into a new scheduler) and is compared. So it does at the shadow's ticks 200, 400, 800 ...
     void Saving(Script* script);
+    // The script runs on Lua itself now (a mod's .lua, Script::LoadLua; a save's Lua state): nothing to compare until
+    // its next reset or old-format load.
+    void RunsOnLua(Script* script);
 
     ~ScriptShadow();
 

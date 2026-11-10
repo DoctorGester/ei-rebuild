@@ -2,8 +2,9 @@
 
 // The scheduler of converted Lua scripts (docs/notes/lua-scripting.md, "Scheduler"): Script::Tick's order on a
 // ScriptLua state. The waiting runs (coroutines) continue, then every instance checks its rules, then the deleted
-// objects are dropped, the script's timed effects run and the temporaries are freed. The game runs it only as the
-// lockstep shadow (script_lua_shadow.h). Every text Script::Load loads into its script comes to it (LoadText: the
+// objects are dropped, the script's timed effects run and the temporaries are freed. The game runs a mission script on
+// it when a .lua stands for the .mob's script (Script::LoadLua, script_lua_mission.cpp) and as the lockstep shadow
+// (script_lua_shadow.h). Every text Script::Load loads into its script comes to it (LoadText: the
 // mission, AddMob'd mobs, QFinish's quest scripts, console lines, execs files), converted at once in the names of
 // the texts before it. Its whole state persists with Eris (Save, Restore), and an old-format save's script state
 // (Script::LoadState) resumes in it through the old-save shim (Resume, script_lua_resume.cpp).
@@ -61,6 +62,17 @@ public:
     // ... }` table, as lua_topointer gives it) and each waiting run's position (ticks and sleep start).
     std::vector<const void*> InstanceDefinitions() const;
     std::vector<ScriptRunPosition> RunPositions() const;
+    // For the harness's digest of a script on Lua (script_lua_mission.cpp), in list order: each instance's definition
+    // by the tree's name (else the name of a global holding it, else empty), its kill flag and its values as variables
+    // of their types (a number a float, nil an object); each waiting run's instance (the index its kill flag names,
+    // -1 for none).
+    struct InstanceView {
+        std::string name;
+        bool killed = false;
+        ScriptVars vars;
+    };
+    std::vector<InstanceView> Instances();
+    std::vector<int> RunInstances() const;
 
     // The whole state persisted with Eris into *data: the scripts' own globals and the GlobalVars types
     // (ScriptLua::PushGlobals), the names and the count of texts converted, every instance (its definition and

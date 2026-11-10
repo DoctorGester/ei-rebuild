@@ -4,11 +4,13 @@
 // every command and function of the keyword table bound under a readable Lua name, each calling the same CalcFloat /
 // CalcObject / CalcGroup / RunCommand code by id; objects and groups as userdata over ScriptObjectRef / ScriptGroup;
 // the state persisted with Eris. The scheduler of Script::Tick's order runs converted scripts on it
-// (script_lua_scheduler.h); the game runs it only as the lockstep shadow (EI_LUA_BOTH), and no save holds it yet.
+// (script_lua_scheduler.h); the game runs a mission script on it when a .lua stands for the .mob's script
+// (Script::LoadLua) and as the lockstep shadow (EI_LUA_BOTH).
 
 #include <functional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include "game/script/script.h"
@@ -74,6 +76,8 @@ public:
     std::string GlobalType(std::string_view name);
     // Every global a GlobalVars table declared back to its type's zero value (0, "", nil, a new empty group).
     void ResetGlobals();
+    // Every global a GlobalVars table declared, with its type (in no order).
+    std::vector<std::pair<std::string, ScriptType>> GlobalTypes();
 
     // Every object and group value Lua holds drops deleted objects (what Script::PurgeDeletedObjects and the tick do
     // to the script's variables).

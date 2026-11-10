@@ -2,6 +2,7 @@
 // block, the area lookups and the temporary object references of the
 // evaluator. See script.h and docs/notes/script.md.
 #include "game/script/script.h"
+#include "game/script/script_lua_scheduler.h"
 #include "game/script/script_lua_shadow.h"
 #include "game/objects/map_object.h"
 
@@ -74,6 +75,7 @@ ScriptErrorInfo* Script::GetError(ScriptErrorInfo* out) {
 
 void Script::Reset() {
     if (shadow) shadow->Reset(this);
+    DropRunner();
     loaded = 0;
     fileCount = 0;
     errorText = "Unknown error";

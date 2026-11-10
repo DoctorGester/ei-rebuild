@@ -3,7 +3,9 @@
 // Every piece goes through the stream's Write in the save's order and in its pieces.
 #include "game/core/core_streams.h"
 #include "game/script/script.h"
+#include "game/script/script_lua_scheduler.h"
 #include "game/script/script_lua_shadow.h"
+#include "game/console/console.h"
 
 #include <cstdint>
 
@@ -101,7 +103,7 @@ void Script::SaveState(ByteStream* stream) {
     stream->WriteCount(runs.size());
     for (const ScriptRun& run : runs) run.Save(stream, this);
 
-    stream->WriteValue(loaded);
+    stream->WriteValue(runner ? kScriptLoadedOnLua : loaded);
     stream->WriteValue(fileCount);
 
     // The areas: count, then per area its id, part count and parts.
@@ -110,5 +112,17 @@ void Script::SaveState(ByteStream* stream) {
         stream->WriteValue(area.id);
         stream->WriteCount(area.parts.size());
         for (const ScriptAreaPart& part : area.parts) stream->WriteValue(part);
+    }
+
+    // On Lua: the scheduler's whole state (Eris; docs/notes/lua-scripting.md, "Saves"). One that does not persist (a
+    // value Eris cannot write) saves as none, and the loaded game's script runs nothing.
+    if (runner) {
+        std::string data, error;
+        if (!runner->Save(&data, &error)) {
+            console::EndLine(console::g_consoleOut << "Script error: the Lua state did not save: " << error);
+            data.clear();
+        }
+        stream->WriteCount(data.size());
+        stream->Write(data.data(), static_cast<std::uint32_t>(data.size()));
     }
 }

@@ -309,6 +309,12 @@ struct MobContents {
     std::vector<MobWeather> weather;   // each applied, in order
     bool appliesRelations = true;      // the last of chunks 0xC000 (true) / 0xD000 (false); true without either
     std::string scripts;
+    // The .lua that stands for the scripts (docs/notes/mods.md, "Scripts in Lua"; WorldServer::LoadMapObjects finds
+    // it): its text and its name in Lua's messages; `luaName` empty when there is none. A TOML's `script` key names
+    // its file (`scriptFile`, empty when the TOML has none).
+    std::string scriptFile;
+    std::string lua;
+    std::string luaName;
 };
 
 // A .mob file's root chunk (WorldServer::LoadMapObjects opens it).

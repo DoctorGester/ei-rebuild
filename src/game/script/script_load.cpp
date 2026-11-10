@@ -5,7 +5,9 @@
 #include "game/core/base_manager.h"
 #include "game/core/core_streams.h"
 #include "game/script/script.h"
+#include "game/script/script_lua_scheduler.h"
 #include "game/script/script_lua_shadow.h"
+#include "game/console/console.h"
 #include "game/effects/world_effect.h"
 
 #include "game/saves/save_versions.h"
@@ -179,6 +181,7 @@ ScriptBlock* Script::FindBlock(int id) const {
 // Reads what SaveState wrote, in the same order; every block id resolves in this script. Areas are read only
 // from stream version 0x57 on.
 void Script::LoadState(ByteStream* stream) {
+    DropRunner();
     pointLights.resize(stream->ReadCount());
     for (ScriptPointLight& light : pointLights) light.Load(stream);
 
@@ -207,6 +210,8 @@ void Script::LoadState(ByteStream* stream) {
     LoadList(&runs, stream, [this, stream](ScriptRun& run) { run.Load(stream, this); });
     std::erase_if(runs, [](const ScriptRun& run) { return !run.position.block; });
     stream->ReadValue(loaded);
+    const bool onLua = loaded == kScriptLoadedOnLua;
+    if (onLua) loaded = 1;
     stream->ReadValue(fileCount);
 
     if (stream->version >= kVersionScriptAreas) {
@@ -216,6 +221,20 @@ void Script::LoadState(ByteStream* stream) {
             area.parts.resize(stream->ReadCount());
             for (ScriptAreaPart& part : area.parts) stream->ReadValue(part);
         }
+    }
+    // A script saved on Lua goes on there with its saved state, whatever the zone's files say now (a save keeps
+    // running the code it was saved with).
+    if (onLua) {
+        std::string data(static_cast<std::size_t>(stream->ReadCount()), '\0');
+        stream->Read(data.data(), static_cast<std::uint32_t>(data.size()));
+        runner = std::make_unique<ScriptLuaScheduler>(this);
+        std::string error;
+        if (!data.empty() && !runner->Restore(data, &error)) {
+            console::EndLine(console::g_consoleOut << "Script error: the save's Lua state did not load: " << error);
+            runner = std::make_unique<ScriptLuaScheduler>(this);
+        }
+        if (shadow) shadow->RunsOnLua(this);
+        return;
     }
     if (shadow) shadow->StateLoaded(this);
 }

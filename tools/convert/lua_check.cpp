@@ -4,9 +4,11 @@
 #include "lua_both.h"
 
 #include "game/app/singletons.h"
+#include "game/core/core_streams.h"
 #include "game/objects/map_object.h"
 #include "game/script/script.h"
 #include "game/script/script_lua.h"
+#include "game/script/script_lua_scheduler.h"
 #include "game/script/script_lua_number.h"
 #include "game/script/script_lua_writer.h"
 #include "game/world/world.h"
@@ -251,6 +253,70 @@ void CheckWaits(ScriptLua& lua, Script& script) {
     Run(lua, R"lua(check(afterKill == 1, "the function goes on after KillScript"))lua");
 }
 
+// The sandbox (docs/notes/lua-scripting.md, "Bindings"): no file, system or debug access, no generator of Lua's own,
+// load for text alone, pairs in an order of the keys.
+constexpr const char* kSandbox = R"lua(
+check(io == nil and os == nil and debug == nil and package == nil and require == nil, "no io, os, debug, package, require")
+check(dofile == nil and loadfile == nil, "no dofile, loadfile")
+check(math.random == nil and math.randomseed == nil, "no math.random: scripts draw through the game's Random")
+check(type(print) == "function", "print")
+check(load("return 6 * 7")() == 42, "load takes text")
+check(load(string.dump(function() return 1 end)) == nil, "load refuses bytecode")
+local keys = {}
+for key in pairs({ zulu = 1, [3] = 1, alpha = 1, [true] = 1, [1.5] = 1, mike = 1, [false] = 1 }) do
+    keys[#keys + 1] = tostring(key)
+end
+check(table.concat(keys, " ") == "1.5 3 alpha mike zulu false true", "pairs in key order")
+local walked = 0
+for _ in pairs(setmetatable({ 1 }, { __pairs = function(t) return function() return nil end, t, nil end })) do
+    walked = walked + 1
+end
+check(walked == 0, "pairs keeps __pairs")
+)lua";
+
+// A mission script on Lua (Script::LoadLua; docs/notes/mods.md, "Scripts in Lua"): its WorldScript's coroutine counts
+// in a local; saved by SaveState at tick 5 and loaded by LoadState into another script, both go on the same; a .lua
+// that does not load is error 18.
+void CheckMission() {
+    constexpr const char* kLua = R"lua(
+GlobalVars { n = "float" }
+function WorldScript()
+    local k = 0
+    while true do
+        Sleep(1)
+        k = k + 1
+        n = k
+    end
+end
+)lua";
+    auto count = [](Script& script) {
+        const ScriptVars values = script.GlobalValues();
+        const int index = values.FindOfType(ScriptType::Float, "n");
+        return index < 0 ? -1.0f : values.floats.values[static_cast<std::size_t>(index)];
+    };
+    Script script;
+    std::string text;
+    Expect(script.LoadLua(&text, kLua, "check.lua") && script.runner, "a .lua loads, the script on Lua");
+    for (int i = 0; i < 5; ++i) script.Tick();
+    MemoryStream stream;
+    script.SaveState(&stream);
+    Script loaded;
+    stream.Seek(0);
+    loaded.LoadState(&stream);
+    Expect(loaded.runner && loaded.loaded == 1, "a save on Lua loads on Lua");
+    Expect(count(loaded) == count(script) && count(script) > 0, "the saved global back");
+    for (int i = 0; i < 5; ++i) {
+        script.Tick();
+        loaded.Tick();
+    }
+    Expect(count(loaded) == count(script) && count(script) > 5, "the loaded coroutine goes on counting");
+    Script failing;
+    std::string none;
+    Expect(!failing.LoadLua(&none, "this is not Lua", "bad.lua") && failing.errorCode == ScriptParseError::Lua &&
+               failing.errorText.starts_with("bad.lua:1:"),
+           "a .lua that does not load: error 18 with Lua's message");
+}
+
 // A coroutine waiting in Sleep with an object, a group and a NaN in its locals: persisted, unpersisted into another
 // state (the first one closed), resumed to its end there.
 void CheckPersistence(Script& script, TestWorld& world) {
@@ -316,11 +382,13 @@ int Main() {
             ScriptLua lua(&script);
             CheckNames(lua);
             lua_register(lua.State(), "check", LuaCheck);
+            Run(lua, kSandbox);
             CheckChunk(lua, world);
             CheckWaits(lua, script);
         }
         CheckPersistence(script, world);
     }
+    CheckMission();
     g_failures += lua_both::Check(&g_checks);
     Expect(world.OnlyWorldReferences(), "every reference released at the end");
     std::printf("lua_check: %d checks, %d failed\n", g_checks, g_failures);
