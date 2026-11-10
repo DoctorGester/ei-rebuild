@@ -45,6 +45,7 @@ constexpr const char* kBindingMeta = "ei.binding";
 constexpr const char* kPersistKey = "ei.persist";        // the registry's permanents for persisting: value -> name
 constexpr const char* kUnpersistKey = "ei.unpersist";    // and for unpersisting: name -> value
 constexpr const char* kGlobalsKey = "ei.globals";        // the registry's types of the GlobalVars: name -> type
+constexpr const char* kResetKey = "ei.resetGlobals";     // the registry's prelude function that zeroes them
 
 // The keywords whose Lua name is not their own (docs/notes/lua-scripting.md, "Bindings": the naming rule).
 struct Rename {
@@ -571,7 +572,13 @@ groupMeta.__persist = function(group)
     return function() return groupWithIds(ids) end
 end
 
-local zeros = { float = 0, string = "" }
+-- A global's zero value by its type (nil for an object); an error for another type.
+local function zero(name, kind)
+    if kind == "group" then return newGroup()
+    elseif kind == "float" then return 0.0
+    elseif kind == "string" then return ""
+    elseif kind ~= "object" then error("GlobalVars: " .. tostring(name) .. " is no float, string, object or group", 3) end
+end
 local scriptMeta = { __call = hidden.StartScript }
 
 return {
@@ -585,19 +592,22 @@ return {
     -- nil, an empty group), each one's type kept (ScriptLua::GlobalType).
     GlobalVars = function(declarations)
         for name, kind in pairs(declarations) do
-            if kind == "group" then globals[name] = newGroup()
-            elseif kind == "object" then globals[name] = nil
-            elseif zeros[kind] then globals[name] = zeros[kind]
-            else error("GlobalVars: " .. tostring(name) .. " is no float, string, object or group", 2) end
+            globals[name] = zero(name, kind)
             globalTypes[name] = kind
         end
     end,
 
-    -- Script { rules }: a definition, each rule an action function and an optional condition function, both of the
-    -- instance's parameters. Calling it starts an instance (ScriptLua::startScript).
+    -- Every declared global back to its zero value (the zone reset, ScriptLua::ResetGlobals).
+    ResetGlobals = function()
+        for name, kind in pairs(globalTypes) do globals[name] = zero(name, kind) end
+    end,
+
+    -- Script { rules }: a definition, each rule an optional condition function and an optional action function (none:
+    -- an empty then-section, which starts no run), both of the instance's parameters. Calling it starts an instance
+    -- (ScriptLua::startScript).
     Script = function(rules)
         for i, rule in ipairs(rules) do
-            if type(rule) ~= "table" or type(rule.action) ~= "function" or
+            if type(rule) ~= "table" or (rule.action ~= nil and type(rule.action) ~= "function") or
                     (rule.condition ~= nil and type(rule.condition) ~= "function") then
                 error("Script: rule " .. i .. " is no { condition = function, action = function }", 2)
             end
@@ -798,13 +808,19 @@ ScriptLua::ScriptLua(Script* script) : script(script), state(luaL_newstate()) {
         lua_getfield(L, -1, helper);
         lua_setglobal(L, helper);
     }
+    lua_getfield(L, -1, "ResetGlobals");
+    lua_setfield(L, LUA_REGISTRYINDEX, kResetKey);
     lua_pop(L, 1);
 
     BuildPermanents(L, hidden);
     lua_settop(L, 0);
+    script->lua = this;
 }
 
-ScriptLua::~ScriptLua() { lua_close(state); }
+ScriptLua::~ScriptLua() {
+    if (script->lua == this) script->lua = nullptr;
+    lua_close(state);
+}
 
 ScriptLua* ScriptLua::Of(lua_State* L) { return *static_cast<ScriptLua**>(lua_getextraspace(L)); }
 
@@ -843,6 +859,11 @@ std::string ScriptLua::GlobalType(std::string_view name) {
     std::string type = lua_type(L, -1) == LUA_TSTRING ? lua_tostring(L, -1) : "";
     lua_pop(L, 2);
     return type;
+}
+
+void ScriptLua::ResetGlobals() {
+    lua_getfield(state, LUA_REGISTRYINDEX, kResetKey);
+    lua_call(state, 0, 0);
 }
 
 void ScriptLua::RemoveDeletedObjects() {

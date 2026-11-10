@@ -1,5 +1,6 @@
 // ei-convert --scripts: the script survey and the parse tree check (convert_scripts.h).
-// usage: ei-convert --scripts [<install>...] [--scenarios <folder>] [--dump <folder>] [--lua <folder>] [--quiet]
+// usage: ei-convert --scripts [<install>...] [--scenarios <folder>] [--dump <folder>] [--lua <folder>] [--lockstep <ticks>]
+//                              [--quiet]
 //   <install>     an unpacked install (tools/unpack_install.py): every .mob under it, a mod's (starter\Mods\<mod>\...)
 //                 counted as the mod's; a mob that another's AddMob names, or a network quest's (its archive's
 //                 map.txt names its base), is loaded after that one into the same script
@@ -7,6 +8,9 @@
 //                 scenario's lines loaded one after another as the console does
 //   --dump        each text and its tree's dump (with lines) written there, as <group>\<name>.txt and .ir
 //   --lua         each text's Lua (script_lua_writer.h) written there, as <group>\<name>.lua
+//   --lockstep    every script (a mission with the texts it loads after and its quest texts, an engine text after its
+//                 mission, the samples, a scenario's console lines one per tick) run both ways for that many ticks
+//                 (lua_both.h), the scripts that differ listed
 //   --quiet       only the tree check's line (the build check: the samples and the scenarios, no game data)
 // The texts: each zone's script chunk (encoded or plain, read as WorldServer::LoadZoneScripts does), the quest texts
 // QFinish would build from each mission's QStart / QObj* commands (loaded after the mission, into its script), the
@@ -15,6 +19,7 @@
 // loaded into a Lua state after the earlier texts of its script, each global it reads or writes checked (CheckLua).
 #include "convert_scripts.h"
 
+#include "lua_both.h"
 #include "lua_globals.h"
 
 #include "game/console/console.h"
@@ -31,6 +36,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -638,7 +644,7 @@ LuaResult LoadLua(LuaSide& side, const Source& source, const scriptir::File& fil
         for (const std::string& name : writes)
             if (side.lua.GlobalType(name).empty() && name != "WorldScript" && global(name) != LUA_TTABLE)
                 failures.push_back("writes " + name + ", which is no declared global or script");
-        if (!file.worldScripts.empty() && global("WorldScript") != LUA_TFUNCTION)
+        if (!file.worldScripts.empty() && !file.worldScripts[0].calls.empty() && global("WorldScript") != LUA_TFUNCTION)
             failures.push_back("no WorldScript function");
     }
     lua_pushnil(L);
@@ -974,6 +980,60 @@ void PrintKeywords(const std::vector<std::string>& groups) {
     std::printf("\n");
 }
 
+// ---- Both ways (--lockstep) ---------------------------------------------------------------------------------------
+
+struct LockstepStats {
+    int scripts = 0;
+    int same = 0;
+    int differ = 0;
+    int questLoaded = 0;   // of the same, compared up to a quest text the game loaded (QFinish; L7)
+    std::map<std::string, int> leftOut;   // not run, by the keyword the test world cannot run
+    long long ticks = 0;
+    std::size_t mostInstances = 0;
+    std::size_t mostRuns = 0;
+    Listing differences;
+};
+
+int g_lockstepTicks = 0;
+std::map<std::string, LockstepStats> g_lockstep;   // by group
+LockstepStats g_lockstepAll;
+
+// One script's texts, loaded in the order given (the tick of each: 0, or its index with `oneATick`), run both ways.
+void Lockstep(const std::string& group, const std::string& name, const std::vector<Source>& sources, bool oneATick) {
+    if (g_lockstepTicks <= 0) return;
+    std::vector<lua_both::Text> texts;
+    for (std::size_t i = 0; i < sources.size(); ++i)
+        texts.push_back({oneATick ? static_cast<int>(i) : 0, sources[i].name, sources[i].text});
+    const lua_both::Outcome outcome = lua_both::Compare(texts, g_lockstepTicks);
+    for (LockstepStats* s : {&g_lockstep[group], &g_lockstepAll}) {
+        ++s->scripts;
+        s->ticks += outcome.ticks;
+        s->mostInstances = std::max(s->mostInstances, outcome.mostInstances);
+        s->mostRuns = std::max(s->mostRuns, outcome.mostRuns);
+        if (!outcome.leftOut.empty()) {
+            ++s->leftOut[outcome.leftOut];
+            continue;
+        }
+        if (outcome.difference.empty()) ++s->same;
+        else {
+            ++s->differ;
+            s->differences.Add(name + ": " + outcome.difference);
+        }
+        if (outcome.questLoaded && outcome.difference.empty()) ++s->questLoaded;
+    }
+}
+
+void PrintLockstep(const std::string& title, const LockstepStats& s) {
+    std::printf("== %s both ways, %d ticks: %d scripts, %d the same, %d differ (%d of the same compared up to a quest"
+                " text the game loaded); %lld ticks compared, at most %zu instances and %zu waiting runs; left out:",
+                title.c_str(), g_lockstepTicks, s.scripts, s.same, s.differ, s.questLoaded, s.ticks, s.mostInstances,
+                s.mostRuns);
+    if (s.leftOut.empty()) std::printf(" none");
+    for (const auto& [keyword, count] : s.leftOut) std::printf(" %d (%s)", count, keyword.c_str());
+    std::printf("\n");
+    PrintListing("differences", s.differences);
+}
+
 void PrintLuaStats(const std::string& title, const LuaStats& s) {
     const scriptlua::LuaText& w = s.writer;
     std::printf("== %s: %d texts written as %d lines of Lua, %d fail to load or check\n", title.c_str(), s.texts,
@@ -989,7 +1049,7 @@ void PrintLuaStats(const std::string& title, const LuaStats& s) {
 
 int Usage() {
     std::printf("usage: ei-convert --scripts [<install>...] [--scenarios <folder>] [--dump <folder>] [--lua <folder>] "
-                "[--quiet]\n");
+                "[--lockstep <ticks>] [--quiet]\n");
     return 2;
 }
 
@@ -1028,6 +1088,7 @@ int Main(const std::vector<std::string>& args) {
         if (args[i] == "--scenarios" && i + 1 < args.size()) scenarios = fs::absolute(args[++i]);
         else if (args[i] == "--dump" && i + 1 < args.size()) g_dumpFolder = fs::absolute(args[++i]);
         else if (args[i] == "--lua" && i + 1 < args.size()) g_luaFolder = fs::absolute(args[++i]);
+        else if (args[i] == "--lockstep" && i + 1 < args.size()) g_lockstepTicks = std::atoi(args[++i].c_str());
         else if (args[i] == "--quiet") quiet = true;
         else if (args[i].starts_with("--")) return Usage();
         else installs.push_back(fs::absolute(args[i]));
@@ -1046,7 +1107,12 @@ int Main(const std::vector<std::string>& args) {
             // zone loader, AddMob and QFinish do.
             Script script;
             auto side = std::make_unique<LuaSide>();
-            for (const Mission* parent : Chain(missions, mission)) LoadEarlier(script, *side, parent->source);
+            std::vector<Source> loaded;
+            for (const Mission* parent : Chain(missions, mission)) {
+                LoadEarlier(script, *side, parent->source);
+                loaded.push_back(parent->source);
+            }
+            loaded.push_back(mission.source);
             if (mission.parent >= 0) {
                 ++g_stats[mission.source.group].loadedAfter;
                 ++g_all.loadedAfter;
@@ -1056,18 +1122,21 @@ int Main(const std::vector<std::string>& args) {
                 noteGroup("quests");
                 const Source quest{"quests", std::format("{}.{}.{}", mission.source.group, mission.source.name, q), quests[q]};
                 LoadAndSurvey(script, *side, quest);
+                loaded.push_back(quest);
                 ++g_stats["quests"].questTexts;
                 ++g_all.questTexts;
             }
+            Lockstep(mission.source.group, mission.source.name, loaded, false);
             // The engine's texts, after the missions that have what they name.
             const auto engine = [&](const char* name, const char* text) {
                 noteGroup("engine");
                 Script withMission;
                 auto withMissionLua = std::make_unique<LuaSide>();
                 LoadEarlier(withMission, *withMissionLua, mission.source);
-                LoadAndSurvey(
-                    withMission, *withMissionLua,
-                    {"engine", std::format("{}.{}.{}", name, mission.source.group, mission.source.name), text});
+                const Source source{"engine", std::format("{}.{}.{}", name, mission.source.group, mission.source.name),
+                                    text};
+                LoadAndSurvey(withMission, *withMissionLua, source);
+                Lockstep("engine", source.name, {mission.source, source}, false);
             };
             if (mission.source.name == "zone1" && mission.source.group == Utf8(install.filename())) {
                 engine("trap", kTrapText);
@@ -1082,23 +1151,32 @@ int Main(const std::vector<std::string>& args) {
         noteGroup("engine");
         Script second;
         auto secondLua = std::make_unique<LuaSide>();
-        LoadAndSurvey(second, *secondLua, {"engine", "thunder", kThunderText});
-        LoadAndSurvey(second, *secondLua, {"engine", "bolt", kBoltText});
+        const std::vector<Source> sources{{"engine", "thunder", kThunderText}, {"engine", "bolt", kBoltText}};
+        for (const Source& source : sources) LoadAndSurvey(second, *secondLua, source);
+        Lockstep("engine", "thunder and bolt", sources, true);
     }
     {
         noteGroup("samples");
         Script samples;
         auto samplesLua = std::make_unique<LuaSide>();
-        for (std::size_t i = 0; i < std::size(kSamples); ++i)
-            LoadAndSurvey(samples, *samplesLua, {"samples", std::format("sample{}", i), kSamples[i]});
+        std::vector<Source> sources;
+        for (std::size_t i = 0; i < std::size(kSamples); ++i) {
+            sources.push_back({"samples", std::format("sample{}", i), kSamples[i]});
+            LoadAndSurvey(samples, *samplesLua, sources.back());
+        }
+        Lockstep("samples", "samples", sources, true);
     }
     if (!scenarios.empty()) {
         for (const auto& [scenario, lines] : ConsoleLines(scenarios)) {
             noteGroup("console");
             Script second;
             auto secondLua = std::make_unique<LuaSide>();
-            for (std::size_t i = 0; i < lines.size(); ++i)
-                LoadAndSurvey(second, *secondLua, {"console", std::format("{}.{}", scenario, i), lines[i]});
+            std::vector<Source> sources;
+            for (std::size_t i = 0; i < lines.size(); ++i) {
+                sources.push_back({"console", std::format("{}.{}", scenario, i), lines[i]});
+                LoadAndSurvey(second, *secondLua, sources.back());
+            }
+            Lockstep("console", scenario, sources, true);
         }
     }
 
@@ -1112,7 +1190,14 @@ int Main(const std::vector<std::string>& args) {
     if (!quiet)
         for (const std::string& group : groups) PrintLuaStats(group, g_lua[group]);
     PrintLuaStats("lua check", g_luaAll);
-    return g_mismatches == 0 && g_luaAll.failed == 0 ? 0 : 1;
+    if (g_lockstepTicks > 0) {
+        if (!quiet)
+            for (const std::string& group : groups)
+                if (g_lockstep.contains(group)) PrintLockstep(group, g_lockstep[group]);
+        PrintLockstep("all", g_lockstepAll);
+    }
+    const bool lockstepSame = g_lockstepAll.differ == 0;
+    return g_mismatches == 0 && g_luaAll.failed == 0 && lockstepSame ? 0 : 1;
 }
 
 }   // namespace convert_scripts

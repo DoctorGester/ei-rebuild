@@ -167,7 +167,8 @@ quest and engine texts (401 texts, 183,486 lines), without the harness lines.
 ## Bindings
 
 What exists (L2): `src/game/script/script_lua.h` (`ScriptLua`), Lua 5.3.5 with Eris in `third_party/eris`
-(README.txt there: Eris's master-lua5.3 tree, unmodified, built as C++). Nothing in the game creates a `ScriptLua` yet.
+(README.txt there: Eris's master-lua5.3 tree, unmodified, built as C++). Nothing in the game creates a `ScriptLua` yet
+(L5); the scheduler (below) owns one.
 Checked by `ei-convert --lua-check` (build checks; ctest `port_lua`) and the unit check `lua_number.cpp`.
 
 - **The state.** Libraries base (without `dofile` / `loadfile`), coroutine, table, string, math, utf8; no io, os,
@@ -201,7 +202,8 @@ Checked by `ei-convert --lua-check` (build checks; ctest `port_lua`) and the uni
   `#g`, `g[i]` from 1; two values of one object are `==`, though each read is a new value, so not one table key). A
   function result of no object is `nil`, and `nil` passes a null object. Every live value is linked into its runtime's
   list: `ScriptLua::RemoveDeletedObjects` drops deleted objects from all of them, as the tick and
-  `Script::PurgeDeletedObjects` do to the variables (L4 calls it there). `NewGroup()` and `CopyGroup(g)` are the two
+  `Script::PurgeDeletedObjects` do to the variables (it calls it there: `Script::lua`, the last runtime made on that
+  script, set by ScriptLua's constructor). `NewGroup()` and `CopyGroup(g)` are the two
   helpers: a group value is shared by reference, the game's assignment copied.
 - **Persistence.** `ScriptLua::Persist` / `Unpersist` (Eris) with permanents built at start: the globals table itself
   and every function in it and in the libraries' tables by name (`_G.GetObject`, `coroutine.yield`), and the hidden
@@ -225,8 +227,9 @@ Rebirth's `GSSetPlayerVar` → `SetPlayerGameVar`, `GSListPlayerVars` → `ListP
 `Ex` and the rest stay. `scriptlua::LuaName` / `BindingNames` give the names (the writer's table).
 
 The converted scripts' helpers (the prelude, for L3): `GlobalVars { name = "type", ... }` sets each global to its
-type's zero value and keeps the type (`ScriptLua::GlobalType`); `Script { rules }` checks each rule (an action function,
-an optional condition function) and gives the table a metatable whose `__call` starts an instance through
+type's zero value (`0.0`, `""`, nil, a new empty group) and keeps the type (`ScriptLua::GlobalType`;
+`ScriptLua::ResetGlobals` zeroes them all again); `Script { rules }` checks each rule (an optional condition function, an
+optional action function) and gives the table a metatable whose `__call` starts an instance through
 `ScriptLua::startScript` (the scheduler's; without one a call is a Lua error). Lua arithmetic is in doubles: one
 `+ - * /` of two floats rounded to a float equals the float operation, a chain does not, and `Add(a, b)` is `b + a` in
 floats; converted scripts keep the bindings (`Add`, `IsEqual`, whose NaN rules differ from Lua's `==`).
@@ -249,12 +252,15 @@ Script (AddMob'd mobs, network quests, quest texts, console lines). Nothing in t
     (the plain name is looked up first). 159 AddMob'd and quest mobs re-declare NULL, i and VSS#i#val so.
   - Each definition `Name = Script { rules }` after a comment with its original name and typed parameters
     (`-- VCheck#0#1(this: object)`); a rule is `{ condition = function(params) ... end, action = function(params) ...
-    end }`, the condition left out for an empty if-section; a definition without a body is `Name = Script {}`. A
+    end }`, the condition left out for an empty if-section, the action for an empty then-section (the game's run of an
+    empty block ends at its first Execute and never enters the list; a Lua run that returns stays a tick, see
+    "Scheduler"); a definition without a body is `Name = Script {}`. A
     condition is `return c1 ~= 0 and c2 ~= 0 ...`: the first zero ends the rule and the later ones are not evaluated
     (their draws not made), a NaN holds, as ScriptIfThen::Run's `== 0.0f`. A declared-script call is a call of the
     definition (`VTriger_0_15(this)`).
   - `function WorldScript() ... end`, the start function: the loader takes it after the chunk and clears the global
-    (each text has its own; the zone reset runs every text's again).
+    (each text has its own; the zone reset runs every text's again). An empty WorldScript is a comment only, for the
+    same reason (its run is gone after the first tick, so nothing sees the difference).
   - Commands are the bindings under their Lua names with the arguments in the written order; `KillScript()` sets the
     run's flag and the function goes on. Assign is `global = value`, a group from a variable `CopyGroup(x)` (the game
     copied; none in the corpus). For / ForIf are `ForEach(group, function(i) ... end)` / `ForEachIf(group, condition,
@@ -288,13 +294,11 @@ Script (AddMob'd mobs, network quests, quest texts, console lines). Nothing in t
     defined there or a declared global, every global it writes a declared global, a script or WorldScript. It fails on
     those, on a name the writer did not know, on a text reading a counter an earlier text's loop left unwritten and on
     a text assigning a global an earlier text's wait read once.
-  - `ei-convert --lua-check` (the build checks, ctest `port_lua`): `tools/convert/lua_both.cpp` runs five short texts
-    both ways on its three stones, by the game's executor (Script::Load, Script::Tick) and as their Lua under a
-    scheduler of Script::Tick's order, and compares every global (floats by their bits), the instance and waiting-run
-    counts after each of 24 ticks and the random generator at the end: rules whose conditions draw, KillScript going
-    on, starts from an instance (next tick) and from a waiting run (same tick), waits on nested calls and on settled
-    and changing globals, group copies, loops and Every / Any / Sum, a NaN condition, renamed names, a second text
-    loaded later, number literals.
+  - `ei-convert --lua-check` (the build checks, ctest `port_lua`): six short texts run both ways ("Lockstep") on
+    its three stones for 24 ticks: rules whose conditions draw, KillScript going on, starts from an instance (next
+    tick) and from a waiting run (same tick), waits on nested calls and on settled and changing globals, group copies,
+    loops and Every / Any / Sum, a NaN condition, renamed names, a second text loaded later, number literals, the zone
+    reset with an empty WorldScript and an empty then-section.
 - **Corpus** (`--scripts build\unpacked\vanilla build\unpacked\rebirth --scenarios tests\scenarios`, 13 s): every text
   loads and checks.
 
@@ -307,15 +311,6 @@ Script (AddMob'd mobs, network quests, quest texts, console lines). Nothing in t
   | quest texts | 52 | 3,240 (1,952) |
   | engine texts, samples | 13 | 146 |
   | harness console lines | 1,615 | 8,317 |
-
-- **For L4** (what the check's scheduler had to do to match):
-  - A run that ends stays in the run list until its next Execute finds the block ended (Execute returns true after
-    running the last command): a rule's action that does not wait still goes to the head of the list and leaves on the
-    next tick, and so does the WorldScript's run.
-  - A started instance copies its arguments, a group as a new one; each action's run gets copies again (the game's run
-    copies the instance's variables), the condition the instance's own values.
-  - The zone reset zeroes every global (GlobalType gives the types) and runs every text's WorldScript again, so the
-    loader keeps each text's start function.
 
 Examples (vanilla zone1.mob and basecam.mob, a network quest's QFinish text):
 
@@ -395,6 +390,65 @@ Su1 = Script {
 }
 ```
 
+## Scheduler
+
+What exists (L4): `src/game/script/script_lua_scheduler.h` (`ScriptLuaScheduler`), owning a `ScriptLua` on a
+`Script` (whose effects, temporaries and quest builder the bindings use) and filling its `startScript`. Nothing in the
+game makes one yet (L5 switches the zones' scripts; L6 saves its runs). Checked both ways ("Lockstep").
+
+- **Load(text, name, runWorldScript).** The chunk runs; its `WorldScript` is taken out of the globals and kept (load
+  order) for the zone reset, and with `runWorldScript` started as a run at the head of the list, first resumed by the
+  next tick (Script::Load / RunWorldScript). A text the game's parser stopped in (the tree's `ok`) is loaded with
+  `runWorldScript` false: the game runs its WorldScript only at the zone reset.
+- **Tick()**, Script::Tick's order:
+  1. every waiting run continues (`ScriptLua::Continue`: the tick counted, the run current while it runs); a run whose
+     function returned on its last resume is dropped now. A run that ends stays in the list until its next Execute
+     finds the block ended (Execute returns true after running the last command): a rule's action that does not wait
+     still goes to the head of the list and leaves on the next tick, and so does the WorldScript's run;
+  2. every instance checks its rules in order until one kills it: the condition with the instance's own values (a
+     number holds unless it is zero, a NaN holds; a boolean as it is; a failed condition does not hold), the action at
+     once on a new thread with copies (a group as a new one) and the instance's kill flag, then at the head of the run
+     list without it; a rule without an action starts no run. A killed instance is dropped;
+  3. `ScriptLua::RemoveDeletedObjects` (the game drops the instances' variables before their rules and the globals
+     after; every world object removal already purged them through `Script::PurgeDeletedObjects`, which calls the
+     runtime's, so the one drop here is the same);
+  4. `Script::TickEffects` (the FX sources, point lights and particle sources, then the temporaries freed).
+- **Starts.** A call of a definition puts an instance at the head of the instance list, its arguments copied: one a
+  waiting run starts checks its rules in the same tick (the instance walk comes after), one an action starts from the
+  next tick (the walk has passed the head).
+- **ResetZone()**: instances and runs dropped, `Script::ResetEffects` (the For depth, temporaries and every effect),
+  `ScriptLua::ResetGlobals` (every declared global zeroed), every text's WorldScript started again in load order, each
+  at the head (the last loaded runs first).
+- **Errors.** A Lua error ends its run (a failed condition does not hold); the messages go to `errors` (the caller
+  empties it; L5: the console's "Script error").
+
+## Lockstep
+
+`tools/convert/lua_both.h` (`lua_both::Compare`) runs the texts of one script both ways, by the game's executor
+(Script::Load, Script::Tick) and as their Lua (each text written from its tree, `WriteLua`) under the scheduler, and
+after every tick compares the instance and waiting-run counts, the random generator's draws so far and every global
+(floats by their bits; a declaration never found and the loop counters the Lua does not write left out). The random
+generator starts the same on both sides and is back as it was at the end.
+
+- **The test world.** No objects but lua_check's stones; the server world gets its effect manager, player manager (no
+  players), a map object manager (not created: its Create opens the archives) and spells (no database: a spell
+  warns and none is made), and the client world the camera; the tool's log is muted meanwhile (no unit prototypes,
+  no spells). A file an AddMob names is marked loaded (the script's texts are loaded already). A script that uses
+  PlayMovie, PlayCamera, Rebirth's AddMobEx (it loads the file again), GSListPlayerVars (it needs its player) or an
+  AddMob of a computed name is left out.
+- **A quest text.** When the game loads a text of its own (QFinish's quest script: the Lua side does not run it yet,
+  L7), the compare stops at the tick before.
+- **The corpus**: `ei-convert --scripts <installs> --scenarios tests\scenarios --lockstep <ticks>` runs every script
+  of the survey (a mission with the missions it loads after and its quest texts at tick 0, an engine text after its
+  mission, the samples, a scenario's console lines one per tick) and lists the ones that differ; the build check runs
+  it with `--quiet` on the samples and console lines for 100 ticks (under a second). On vanilla, Rebirth, AllHeroes and
+  Lost in Astral with the console lines, 300 ticks (48 s, almost all of it the survey): 520 scripts, 494 the same, 0
+  differ (48 network quests compared up to their QFinish), 26 left out (22 PlayMovie, 2 PlayCamera, 1 AddMobEx, 1
+  GSListPlayerVars). The objects the missions name are not in the test world, so most rules' conditions do not hold
+  there; the scenarios (L5) reach the rest.
+- A scheduler fault shows: dropping an ended run at once makes 6 of 6 short cases and most console scripts differ at
+  their first ticks.
+
 ## Decisions (user 2026-11-10)
 
 - Readable Lua files are the scripts' modding format (MF9 waits only on L3).
@@ -403,9 +457,10 @@ Su1 = Script {
 
 ## Verification
 
-- **Lockstep (`luaboth`).** The old executor and Lua run side by side on the same world. Each tick compares the variables,
-  run positions, instance lists, and a log of every built-in call with its arguments.
-- **Coverage.** Every scenario, plus a corpus that loads each mission's scripts and runs N ticks.
+- **Lockstep.** The old executor and Lua run side by side on the same world. Each tick compares the variables, the
+  instance and run counts and the random draws ("Lockstep" above, on the test world); still to come (L5): run
+  positions, instance lists, and a log of every built-in call with its arguments, on the scenarios' worlds.
+- **Coverage.** Every scenario, plus the corpus run for N ticks (`--scripts ... --lockstep N`, "Lockstep").
 - **Saves.** Round trips: old save loaded into Lua, Lua save loaded into Lua, and old save loaded into the old engine and
   compared.
 - **Determinism.** The `deterministic` step and the harness's virtual clock make the runs repeatable.

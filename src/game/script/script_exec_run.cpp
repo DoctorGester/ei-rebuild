@@ -2,6 +2,7 @@
 // instance's if-then pairs, running a command block, freeing evaluation
 // temporaries and the per-tick driver. See script.h and docs/notes/script.md.
 #include "game/script/script.h"
+#include "game/script/script_lua.h"
 
 #include "game/app/singletons.h"
 #include "game/core/base_manager.h"
@@ -171,6 +172,10 @@ void Script::Tick() {
     // Global variables: drop deleted objects.
     globals.RemoveDeletedObjects();
 
+    TickEffects();
+}
+
+void Script::TickEffects() {
     RespawnFxSources(this);
     UpdatePointLights(this);
     UpdateParticleSources(this);
@@ -189,6 +194,7 @@ void Script::PurgeDeletedObjects() {
     for (ScriptRun& run : runs) run.vars.RemoveDeletedObjects();
     for (ScriptDefinition& instance : instances) instance.vars.RemoveDeletedObjects();
     globals.RemoveDeletedObjects();
+    if (lua) lua->RemoveDeletedObjects();
     FreeTemporaries();
 }
 
@@ -203,14 +209,16 @@ void Script::DropInstancesAndRuns() {
 // lightning lists emptied), the global values reset, and every WorldScript block run again.
 void Script::ResetZone() {
     DropInstancesAndRuns();
+    ResetEffects();
+    globals.ResetValues();
+    for (ScriptBlock& block : worldBlocks) RunWorldScript(&block);
+}
+
+void Script::ResetEffects() {
     forDepth = 0;
     FreeTemporaries();
-
     for (ScriptPointLight& light : pointLights) light = {};
     fxSources.clear();
     particles.clear();
     lightning.clear();
-
-    globals.ResetValues();
-    for (ScriptBlock& block : worldBlocks) RunWorldScript(&block);
 }

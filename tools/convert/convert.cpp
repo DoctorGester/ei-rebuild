@@ -34,6 +34,7 @@
 #include "convert_maps.h"
 #include "convert_models.h"
 #include "convert_scripts.h"
+#include "lua_both.h"
 #include "lua_check.h"
 #include "convert_textures.h"
 
@@ -606,7 +607,8 @@ void ConvertAll(const std::vector<fs::path>& sources) {
 int Usage() {
     std::printf("usage: ei-convert <install or archive> <target folder>\n"
                 "       ei-convert --check <install or archive>...\n"
-                "       ei-convert --scripts <install>... [--scenarios <folder>] [--dump <folder>]\n"
+                "       ei-convert --scripts <install>... [--scenarios <folder>] [--dump <folder>] [--lua <folder>]\n"
+                "                  [--lockstep <ticks>] [--quiet]\n"
                 "       ei-convert --lua-check\n");
     return 2;
 }
@@ -620,6 +622,7 @@ void Log(const char* format, ...) {
     va_start(args, format);
     std::vsnprintf(text, sizeof(text), format, args);
     va_end(args);
+    if (lua_both::g_logMuted) return;
     ++g_logLines;
     std::printf("  log: %s\n", text);
 }
