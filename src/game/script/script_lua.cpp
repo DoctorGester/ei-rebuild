@@ -44,6 +44,7 @@ constexpr const char* kGroupMeta = "ei.group";
 constexpr const char* kBindingMeta = "ei.binding";
 constexpr const char* kPersistKey = "ei.persist";        // the registry's permanents for persisting: value -> name
 constexpr const char* kUnpersistKey = "ei.unpersist";    // and for unpersisting: name -> value
+constexpr const char* kGlobalsKey = "ei.globals";        // the registry's types of the GlobalVars: name -> type
 
 // The keywords whose Lua name is not their own (docs/notes/lua-scripting.md, "Bindings": the naming rule).
 struct Rename {
@@ -533,12 +534,22 @@ lua_CFunction SpecialBinding(ScriptFunction id) {
     }
 }
 
-// ---- The prelude: the waits as yields, the values' persistence ---------------------------------------------------
+// A call of a definition (StartScript is its metatable's __call): the scheduler's.
+int StartScript(lua_State* L) {
+    ScriptLua* lua = ScriptLua::Of(L);
+    if (!lua->startScript) return luaL_error(L, "a script started, but no scheduler runs the scripts");
+    lua->startScript(L);
+    return 0;
+}
 
-// Run with the hidden functions' table and the two metatables; returns the waits' functions by keyword.
+// ---- The prelude: the waits as yields, the values' persistence, the converted scripts' helpers -------------------
+
+// Run with the hidden functions' table, the two metatables and the GlobalVars types' table; returns the waits'
+// functions by keyword and the helpers by name.
 constexpr const char kPrelude[] = R"lua(
-local hidden, objectMeta, groupMeta = ...
-local yield, type = coroutine.yield, type
+local hidden, objectMeta, groupMeta, globalTypes = ...
+local yield, type, pairs, ipairs, error, tostring, setmetatable = coroutine.yield, type, pairs, ipairs, error, tostring, setmetatable
+local globals, newGroup = _G, NewGroup
 local objectIdOf, objectWithId = hidden.ObjectIdOf, hidden.ObjectWithId
 local groupIds, groupWithIds = hidden.GroupIds, hidden.GroupWithIds
 local sleep, waitSegment, sleepUntil, sleepUntilIdle =
@@ -560,12 +571,39 @@ groupMeta.__persist = function(group)
     return function() return groupWithIds(ids) end
 end
 
--- Each wait polls its command once per resume and yields while the command waits.
+local zeros = { float = 0, string = "" }
+local scriptMeta = { __call = hidden.StartScript }
+
 return {
+    -- Each wait polls its command once per resume and yields while the command waits.
     Sleep = function(ticks) while not sleep(current(ticks)) do yield() end end,
     WaitSegment = function(ticks) while not waitSegment(current(ticks)) do yield() end end,
     SleepUntil = function(condition) while not sleepUntil(current(condition)) do yield() end end,
     SleepUntilIdle = function(unit) while not sleepUntilIdle(current(unit)) do yield() end end,
+
+    -- GlobalVars { name = "float" | "string" | "object" | "group", ... }: the globals at their zero values (0, "",
+    -- nil, an empty group), each one's type kept (ScriptLua::GlobalType).
+    GlobalVars = function(declarations)
+        for name, kind in pairs(declarations) do
+            if kind == "group" then globals[name] = newGroup()
+            elseif kind == "object" then globals[name] = nil
+            elseif zeros[kind] then globals[name] = zeros[kind]
+            else error("GlobalVars: " .. tostring(name) .. " is no float, string, object or group", 2) end
+            globalTypes[name] = kind
+        end
+    end,
+
+    -- Script { rules }: a definition, each rule an action function and an optional condition function, both of the
+    -- instance's parameters. Calling it starts an instance (ScriptLua::startScript).
+    Script = function(rules)
+        for i, rule in ipairs(rules) do
+            if type(rule) ~= "table" or type(rule.action) ~= "function" or
+                    (rule.condition ~= nil and type(rule.condition) ~= "function") then
+                error("Script: rule " .. i .. " is no { condition = function, action = function }", 2)
+            end
+        end
+        return setmetatable(rules, scriptMeta)
+    end,
 }
 )lua";
 
@@ -722,6 +760,7 @@ ScriptLua::ScriptLua(Script* script) : script(script), state(luaL_newstate()) {
     SetFunction(L, hidden, "ObjectWithId", ObjectWithId);
     SetFunction(L, hidden, "GroupIds", GroupIds);
     SetFunction(L, hidden, "GroupWithIds", GroupWithIds);
+    SetFunction(L, hidden, "StartScript", StartScript);
     lua_register(L, "NewGroup", NewGroup);
     lua_register(L, "CopyGroup", CopyGroup);
 
@@ -746,11 +785,18 @@ ScriptLua::ScriptLua(Script* script) : script(script), state(luaL_newstate()) {
     lua_pushvalue(L, hidden);
     lua_pushvalue(L, objectMeta);
     lua_pushvalue(L, groupMeta);
-    lua_call(L, 3, 1);
+    lua_newtable(L);
+    lua_pushvalue(L, -1);
+    lua_setfield(L, LUA_REGISTRYINDEX, kGlobalsKey);
+    lua_call(L, 4, 1);
     for (ScriptFunction wait : kWaits) {
         const char* keyword = KeywordName(static_cast<ScriptLexeme>(wait));
         lua_getfield(L, -1, keyword);
         lua_setglobal(L, LuaName(keyword));
+    }
+    for (const char* helper : {"GlobalVars", "Script"}) {
+        lua_getfield(L, -1, helper);
+        lua_setglobal(L, helper);
     }
     lua_pop(L, 1);
 
@@ -787,6 +833,16 @@ bool ScriptLua::Continue(lua_State* thread, ScriptRun* run, int arguments, std::
         lua_pop(thread, 1);
     }
     return false;
+}
+
+std::string ScriptLua::GlobalType(std::string_view name) {
+    lua_State* L = state;
+    lua_getfield(L, LUA_REGISTRYINDEX, kGlobalsKey);
+    lua_pushlstring(L, name.data(), name.size());
+    lua_rawget(L, -2);
+    std::string type = lua_type(L, -1) == LUA_TSTRING ? lua_tostring(L, -1) : "";
+    lua_pop(L, 2);
+    return type;
 }
 
 void ScriptLua::RemoveDeletedObjects() {

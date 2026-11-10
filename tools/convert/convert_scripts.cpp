@@ -1,24 +1,33 @@
 // ei-convert --scripts: the script survey and the parse tree check (convert_scripts.h).
-// usage: ei-convert --scripts [<install>...] [--scenarios <folder>] [--dump <folder>] [--quiet]
+// usage: ei-convert --scripts [<install>...] [--scenarios <folder>] [--dump <folder>] [--lua <folder>] [--quiet]
 //   <install>     an unpacked install (tools/unpack_install.py): every .mob under it, a mod's (starter\Mods\<mod>\...)
 //                 counted as the mod's; a mob that another's AddMob names, or a network quest's (its archive's
 //                 map.txt names its base), is loaded after that one into the same script
 //   --scenarios   the harness scenarios (tests/scenarios): their `console @...`, `#...` and `$...` lines, each
 //                 scenario's lines loaded one after another as the console does
 //   --dump        each text and its tree's dump (with lines) written there, as <group>\<name>.txt and .ir
+//   --lua         each text's Lua (script_lua_writer.h) written there, as <group>\<name>.lua
 //   --quiet       only the tree check's line (the build check: the samples and the scenarios, no game data)
 // The texts: each zone's script chunk (encoded or plain, read as WorldServer::LoadZoneScripts does), the quest texts
 // QFinish would build from each mission's QStart / QObj* commands (loaded after the mission, into its script), the
 // console lines, the texts the engine writes (a trap's mushroom, a lightning bolt, the heroes' group, a briefing's
-// completion) with sample numbers, and samples of the parser's sections (kSamples).
+// completion) with sample numbers, and samples of the parser's sections (kSamples). Every text's Lua is written and
+// loaded into a Lua state after the earlier texts of its script, each global it reads or writes checked (CheckLua).
 #include "convert_scripts.h"
+
+#include "lua_globals.h"
 
 #include "game/console/console.h"
 #include "game/core/core_streams.h"
 #include "game/map/mob_script_decoder.h"
 #include "game/script/script.h"
 #include "game/script/script_ir.h"
+#include "game/script/script_lua.h"
+#include "game/script/script_lua_writer.h"
 #include "lib/text_case.h"
+
+#include "eris/lauxlib.h"
+#include "eris/lua.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -26,6 +35,7 @@
 #include <format>
 #include <fstream>
 #include <map>
+#include <memory>
 #include <optional>
 #include <set>
 #include <sstream>
@@ -555,9 +565,124 @@ void WriteDump(const Source& source, const scriptir::File& file) {
     std::ofstream(folder / (source.name + ".ir"), std::ios::binary) << scriptir::Dump(file, true);
 }
 
-// Loads `source` into `script` with its tree, compares the tree's dump with what the load built, counts it.
-// Returns the survey's quest texts.
-std::vector<std::string> LoadAndSurvey(Script& script, const Source& source) {
+// ---- The Lua of each text -----------------------------------------------------------------------------------------
+
+// The Lua side of one Script: the names its texts' Lua gave out, and a state that ran each text's chunk.
+struct LuaSide {
+    Script script;   // the bindings' (no binding runs: a chunk only declares)
+    ScriptLua lua{&script};
+    scriptlua::LuaNames names;
+};
+
+struct LuaStats {
+    int texts = 0;
+    int lines = 0;
+    int failed = 0;
+    scriptlua::LuaText writer;   // the writer's counts summed (no text)
+    Listing failures;
+};
+std::map<std::string, LuaStats> g_lua;   // by group
+LuaStats g_luaAll;
+fs::path g_luaFolder;
+
+void Sum(scriptlua::LuaText& to, const scriptlua::LuaText& from) {
+    to.loops += from.loops;
+    to.countersWritten += from.countersWritten;
+    to.argumentFunctions += from.argumentFunctions;
+    to.groupCopies += from.groupCopies;
+    to.suffixedNames += from.suffixedNames;
+    to.renamedParams += from.renamedParams;
+    to.lateCounterReads += from.lateCounterReads;
+    to.lateSettledWrites += from.lateSettledWrites;
+    to.unresolvedNames += from.unresolvedNames;
+}
+
+struct LuaResult {
+    scriptlua::LuaText lua;
+    std::vector<std::string> failures;
+};
+
+// `source`'s Lua, from the tree of its load into the side's script: written, compiled and run in the side's state
+// (after the earlier texts of the script), every global it reads defined there (a binding, a library, a helper, a
+// script, a declared global) and every global it writes a declared global or a script; the WorldScript taken out.
+LuaResult LoadLua(LuaSide& side, const Source& source, const scriptir::File& file) {
+    const bool mob =
+        source.group != "quests" && source.group != "engine" && source.group != "samples" && source.group != "console";
+    LuaResult result{
+        scriptlua::WriteLua(file, side.names, mob ? source.name + ".mob" : source.group + "\\" + source.name), {}};
+    const scriptlua::LuaText& lua = result.lua;
+    std::vector<std::string>& failures = result.failures;
+    lua_State* L = side.lua.State();
+    const std::string chunkName = "=" + source.name + ".lua";
+    std::set<std::string> reads, writes;
+    if (luaL_loadbufferx(L, lua.text.data(), lua.text.size(), chunkName.c_str(), "t") != LUA_OK) {
+        failures.push_back(lua_tostring(L, -1));
+        lua_pop(L, 1);
+    } else {
+        lua_globals::Find(L, -1, &reads, &writes);
+        if (lua_pcall(L, 0, 0, 0) != LUA_OK) {
+            failures.push_back(lua_tostring(L, -1));
+            lua_pop(L, 1);
+        }
+    }
+    const auto global = [&](const std::string& name) {
+        lua_getglobal(L, name.c_str());
+        const int type = lua_type(L, -1);
+        lua_pop(L, 1);
+        return type;
+    };
+    if (failures.empty()) {
+        for (const std::string& name : reads)
+            if (side.lua.GlobalType(name).empty() && global(name) == LUA_TNIL)
+                failures.push_back("reads " + name + ", which nothing defines");
+        for (const std::string& name : writes)
+            if (side.lua.GlobalType(name).empty() && name != "WorldScript" && global(name) != LUA_TTABLE)
+                failures.push_back("writes " + name + ", which is no declared global or script");
+        if (!file.worldScripts.empty() && global("WorldScript") != LUA_TFUNCTION)
+            failures.push_back("no WorldScript function");
+    }
+    lua_pushnil(L);
+    lua_setglobal(L, "WorldScript");
+    if (lua.lateCounterReads) failures.push_back("reads a loop counter an earlier text's loop does not write");
+    if (lua.lateSettledWrites) failures.push_back("assigns a global an earlier text's wait read once");
+    if (lua.unresolvedNames) failures.push_back("names the writer did not know");
+    return result;
+}
+
+// LoadLua, counted where `count` (and written to --lua's folder).
+void CheckLua(LuaSide& side, const Source& source, const scriptir::File& file, bool count) {
+    const LuaResult result = LoadLua(side, source, file);
+    if (!count) return;
+    const scriptlua::LuaText& lua = result.lua;
+
+    if (!g_luaFolder.empty()) {
+        const fs::path folder = g_luaFolder / source.group;
+        fs::create_directories(folder);
+        std::ofstream(folder / (source.name + ".lua"), std::ios::binary) << lua.text;
+    }
+    for (LuaStats* s : {&g_lua[source.group], &g_luaAll}) {
+        ++s->texts;
+        s->lines += static_cast<int>(std::ranges::count(lua.text, '\n'));
+        Sum(s->writer, lua);
+        if (result.failures.empty()) continue;
+        ++s->failed;
+        for (const std::string& failure : result.failures)
+            s->failures.Add(std::format("{}\\{}: {}", source.group, source.name, failure), 20);
+    }
+}
+
+// Loads `source` into `script` with its tree and checks its Lua (CheckLua) without counting either: a text the
+// counted one loads after.
+void LoadEarlier(Script& script, LuaSide& side, const Source& source) {
+    std::string text = source.text;
+    scriptir::File file;
+    script.Load(&text, false, &file);
+    CheckLua(side, source, file, false);
+}
+
+// Loads `source` into `script` with its tree, compares the tree's dump with what the load built, checks its Lua,
+// counts it. Returns the survey's quest texts.
+std::vector<std::string> LoadAndSurvey(Script& script, LuaSide& side, const Source& source) {
     const scriptir::LoadMark mark = scriptir::Mark(script);
     std::string text = source.text;
     scriptir::File file;
@@ -575,6 +700,7 @@ std::vector<std::string> LoadAndSurvey(Script& script, const Source& source) {
                                        fromLoad.substr(start, fromLoad.find('\n', start) - start)));
     }
     WriteDump(source, file);
+    CheckLua(side, source, file, true);
 
     std::vector<std::string> quests;
     for (Stats* s : {&g_stats[source.group], &g_all}) {
@@ -697,6 +823,14 @@ std::vector<Mission> FindMissions(const fs::path& install) {
     }
     FindParents(missions);
     return missions;
+}
+
+// The missions `mission` loads after, the first one first.
+std::vector<const Mission*> Chain(const std::vector<Mission>& missions, const Mission& mission) {
+    std::vector<const Mission*> chain;
+    for (int p = mission.parent; p >= 0 && chain.size() < 8; p = missions[static_cast<std::size_t>(p)].parent)
+        chain.insert(chain.begin(), &missions[static_cast<std::size_t>(p)]);
+    return chain;
 }
 
 // The scenarios' console script lines as the console writes them (RunScriptLine): one source per scenario, its lines.
@@ -840,12 +974,51 @@ void PrintKeywords(const std::vector<std::string>& groups) {
     std::printf("\n");
 }
 
+void PrintLuaStats(const std::string& title, const LuaStats& s) {
+    const scriptlua::LuaText& w = s.writer;
+    std::printf("== %s: %d texts written as %d lines of Lua, %d fail to load or check\n", title.c_str(), s.texts,
+                s.lines, s.failed);
+    std::printf(
+        "  loops over a member function %d (writing their counter %d), argument functions %d, group copies %d, names"
+        " suffixed %d, parameters renamed %d, late counter reads %d, late settled writes %d, unresolved names"
+        " %d\n",
+        w.loops, w.countersWritten, w.argumentFunctions, w.groupCopies, w.suffixedNames, w.renamedParams,
+        w.lateCounterReads, w.lateSettledWrites, w.unresolvedNames);
+    PrintListing("failures", s.failures);
+}
+
 int Usage() {
-    std::printf("usage: ei-convert --scripts [<install>...] [--scenarios <folder>] [--dump <folder>] [--quiet]\n");
+    std::printf("usage: ei-convert --scripts [<install>...] [--scenarios <folder>] [--dump <folder>] [--lua <folder>] "
+                "[--quiet]\n");
     return 2;
 }
 
 } // namespace
+
+MissionCounts WriteMissions(const fs::path& install, const fs::path& target) {
+    MissionCounts counts;
+    const std::vector<Mission> missions = FindMissions(install);
+    for (const Mission& mission : missions) {
+        Script script;
+        auto side = std::make_unique<LuaSide>();
+        for (const Mission* parent : Chain(missions, mission)) LoadEarlier(script, *side, parent->source);
+        std::string text = mission.source.text;
+        scriptir::File file;
+        script.Load(&text, false, &file);
+        const LuaResult result = LoadLua(*side, mission.source, file);
+        ++counts.files;
+        if (!result.failures.empty()) {
+            ++counts.failed;
+            for (const std::string& failure : result.failures)
+                std::printf("ei-convert: %s: %s\n", Utf8(fs::relative(mission.path, install)).c_str(), failure.c_str());
+        }
+        if (target.empty()) continue;
+        const fs::path output = target / fs::relative(mission.path, install).replace_extension(".lua");
+        fs::create_directories(output.parent_path());
+        std::ofstream(output, std::ios::binary) << result.lua.text;
+    }
+    return counts;
+}
 
 int Main(const std::vector<std::string>& args) {
     std::vector<fs::path> installs;
@@ -854,6 +1027,7 @@ int Main(const std::vector<std::string>& args) {
     for (std::size_t i = 0; i < args.size(); ++i) {
         if (args[i] == "--scenarios" && i + 1 < args.size()) scenarios = fs::absolute(args[++i]);
         else if (args[i] == "--dump" && i + 1 < args.size()) g_dumpFolder = fs::absolute(args[++i]);
+        else if (args[i] == "--lua" && i + 1 < args.size()) g_luaFolder = fs::absolute(args[++i]);
         else if (args[i] == "--quiet") quiet = true;
         else if (args[i].starts_with("--")) return Usage();
         else installs.push_back(fs::absolute(args[i]));
@@ -871,22 +1045,17 @@ int Main(const std::vector<std::string>& args) {
             // The missions it loads after (not counted again), the mission, then its quests, into one script, as the
             // zone loader, AddMob and QFinish do.
             Script script;
-            std::vector<const Mission*> chain;
-            for (int p = mission.parent; p >= 0 && chain.size() < 8; p = missions[static_cast<std::size_t>(p)].parent)
-                chain.insert(chain.begin(), &missions[static_cast<std::size_t>(p)]);
-            for (const Mission* parent : chain) {
-                std::string text = parent->source.text;
-                script.Load(&text, false);
-            }
-            if (!chain.empty()) {
+            auto side = std::make_unique<LuaSide>();
+            for (const Mission* parent : Chain(missions, mission)) LoadEarlier(script, *side, parent->source);
+            if (mission.parent >= 0) {
                 ++g_stats[mission.source.group].loadedAfter;
                 ++g_all.loadedAfter;
             }
-            const std::vector<std::string> quests = LoadAndSurvey(script, mission.source);
+            const std::vector<std::string> quests = LoadAndSurvey(script, *side, mission.source);
             for (std::size_t q = 0; q < quests.size(); ++q) {
                 noteGroup("quests");
                 const Source quest{"quests", std::format("{}.{}.{}", mission.source.group, mission.source.name, q), quests[q]};
-                LoadAndSurvey(script, quest);
+                LoadAndSurvey(script, *side, quest);
                 ++g_stats["quests"].questTexts;
                 ++g_all.questTexts;
             }
@@ -894,9 +1063,11 @@ int Main(const std::vector<std::string>& args) {
             const auto engine = [&](const char* name, const char* text) {
                 noteGroup("engine");
                 Script withMission;
-                std::string missionText = mission.source.text;
-                withMission.Load(&missionText, false);
-                LoadAndSurvey(withMission, {"engine", std::format("{}.{}.{}", name, mission.source.group, mission.source.name), text});
+                auto withMissionLua = std::make_unique<LuaSide>();
+                LoadEarlier(withMission, *withMissionLua, mission.source);
+                LoadAndSurvey(
+                    withMission, *withMissionLua,
+                    {"engine", std::format("{}.{}.{}", name, mission.source.group, mission.source.name), text});
             };
             if (mission.source.name == "zone1" && mission.source.group == Utf8(install.filename())) {
                 engine("trap", kTrapText);
@@ -910,19 +1081,24 @@ int Main(const std::vector<std::string>& args) {
         // The bolts go to the world's second script (ScriptQueue), the console's.
         noteGroup("engine");
         Script second;
-        LoadAndSurvey(second, {"engine", "thunder", kThunderText});
-        LoadAndSurvey(second, {"engine", "bolt", kBoltText});
+        auto secondLua = std::make_unique<LuaSide>();
+        LoadAndSurvey(second, *secondLua, {"engine", "thunder", kThunderText});
+        LoadAndSurvey(second, *secondLua, {"engine", "bolt", kBoltText});
     }
     {
         noteGroup("samples");
         Script samples;
-        for (std::size_t i = 0; i < std::size(kSamples); ++i) LoadAndSurvey(samples, {"samples", std::format("sample{}", i), kSamples[i]});
+        auto samplesLua = std::make_unique<LuaSide>();
+        for (std::size_t i = 0; i < std::size(kSamples); ++i)
+            LoadAndSurvey(samples, *samplesLua, {"samples", std::format("sample{}", i), kSamples[i]});
     }
     if (!scenarios.empty()) {
         for (const auto& [scenario, lines] : ConsoleLines(scenarios)) {
             noteGroup("console");
             Script second;
-            for (std::size_t i = 0; i < lines.size(); ++i) LoadAndSurvey(second, {"console", std::format("{}.{}", scenario, i), lines[i]});
+            auto secondLua = std::make_unique<LuaSide>();
+            for (std::size_t i = 0; i < lines.size(); ++i)
+                LoadAndSurvey(second, *secondLua, {"console", std::format("{}.{}", scenario, i), lines[i]});
         }
     }
 
@@ -933,7 +1109,10 @@ int Main(const std::vector<std::string>& args) {
     }
     std::printf("== tree check: %d texts, %d trees differ from their loads\n", g_all.files, g_mismatches);
     for (const std::string& line : g_mismatchList.lines) std::printf("    %s\n", line.c_str());
-    return g_mismatches == 0 ? 0 : 1;
+    if (!quiet)
+        for (const std::string& group : groups) PrintLuaStats(group, g_lua[group]);
+    PrintLuaStats("lua check", g_luaAll);
+    return g_mismatches == 0 && g_luaAll.failed == 0 ? 0 : 1;
 }
 
 }   // namespace convert_scripts

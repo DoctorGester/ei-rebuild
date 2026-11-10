@@ -4,7 +4,8 @@ Files (`src/game/`): `script.h` (the records and `Script`), `script_*.cpp` (grou
 exec_run, exec_helpers, save, load, blocks, cleanup, effects, quest, unit_modes, addon* (Rebirth, `rebirth.md`)),
 `quest_database.cpp`, `text_manager.cpp`. Scenarios: `script_parse`, `script_exec`, `script_copy`, `script_fx`,
 `script_quest`, `world_load` (save / load round trip), `console`, `effects`, `particles`, `zone_gz2g_traps`. The plan to
-run the scripts on Lua and its runtime (`script_lua.*`, not run by the game yet): `lua-scripting.md`.
+run the scripts on Lua, its runtime (`script_lua.*`) and the writer of converted scripts (`script_lua_writer.*`), not
+run by the game yet: `lua-scripting.md`.
 
 ## Data structures
 
@@ -93,7 +94,7 @@ locale-aware `_strnicmp` per byte cost ~400 ms of a zone load).
 The world calls `Script::Tick` every world update for its two scripts. A tick, when loaded:
 1. every waiting run continues with `ScriptRun::Execute`; one returning 0 is removed; 2. every instance drops deleted
 objects from its variables and runs its if-then pairs in order (conditions with CalcFloat, temporaries freed after each,
-the first zero or NaN ends it; when all hold the commands block runs once in a new run (index 0, a copy of the
+the first zero ends it, a NaN holds; when all hold the commands block runs once in a new run (index 0, a copy of the
 instance's variables, kill flag = the instance) and, if Execute returns 1, a copy goes to the head of the run list)
 until one kills it; 3. global object variables and groups drop deleted objects; 4. timed effects: FX sources respawn
 their effect when the countdown runs out (`Next() % (max - min + 1) + min`, a class 0x48 object at a random offset within
@@ -104,7 +105,7 @@ and are removed; 5. temporaries freed. The WorldScript and every console `@` lin
 binds variables (`SetParameters`), evaluates nested calls (`CalcParameters`), runs the command (`RunCommand`, which the
 Lua bindings call too, lua-scripting.md), frees temporaries, advances. A waiting command leaves the index on itself and Execute returns 1: Sleep(n) records the tick count and waits
 while `ticks - start < n` (FISTP-rounded n; so n further Execute calls), then resets it to -1; WaitSegment(n) waits while
-the run has been executed fewer than n times in total; SleepUntil(c) while c is 0 or NaN; SleepUntilIdle(unit) while the
+the run has been executed fewer than n times in total; SleepUntil(c) while c is 0 (a NaN goes on); SleepUntilIdle(unit) while the
 unit's brain has an action. For(counter, group)(body) / ForIf(counter, group, condition)(body) walk the group from last
 to first (size read once), store the member in the counter (a global object variable) and run the body block in the
 same run (block, index, ticks and sleep start saved, set to body / 0 / 0 / -1, Execute recursion, restored: a Sleep in

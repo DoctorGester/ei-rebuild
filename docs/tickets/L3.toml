@@ -4,4 +4,5 @@ group = "lua"
 depends = ["L2"]
 note = "User 2026-11-10: revised with the current knowledge; readable Lua files (mods and converted missions), Lua 5.3 + Eris (docs/notes/lua-scripting.md). From L1's IR, one readable Lua file per mission script: rules as condition / action functions, waits as calls that yield (Sleep, WaitSegment, SleepUntil, SleepUntilIdle), For / ForIf as ForEach(group, function(member) ... end) where a wait ends the member's body as the original does, globals and #defines named, WorldScript as the start function. ei-convert writes it beside MF9's .mob TOML; the game loads <zone>.lua through the loose-file lookup. Text a modder can read and edit is the goal: no pc state machines."
 order = 639
-status = "later"
+status = "review"
+started = "2026-11-10"

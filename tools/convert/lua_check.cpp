@@ -1,11 +1,14 @@
 // ei-convert --lua-check: see lua_check.h.
 #include "lua_check.h"
 
+#include "lua_both.h"
+
 #include "game/app/singletons.h"
 #include "game/objects/map_object.h"
 #include "game/script/script.h"
 #include "game/script/script_lua.h"
 #include "game/script/script_lua_number.h"
+#include "game/script/script_lua_writer.h"
 #include "game/world/world.h"
 
 #include "eris/lauxlib.h"
@@ -92,6 +95,15 @@ void CheckNames(ScriptLua& lua) {
     Expect(scriptlua::LuaName("UMGuard") == std::string("UnitModeGuard"), "UMGuard's Lua name");
     Expect(scriptlua::LuaName("GetObject") == std::string("GetObject"), "GetObject keeps its name");
     Expect(scriptlua::LuaName("then") == nullptr, "no binding for a section word");
+    // The writer gives no script name a global of the state already has.
+    lua_pushglobaltable(L);
+    lua_pushnil(L);
+    while (lua_next(L, -2)) {
+        lua_pop(L, 1);
+        if (lua_type(L, -1) == LUA_TSTRING && !scriptlua::ReservedNames().contains(lua_tostring(L, -1)))
+            Expect(false, lua_tostring(L, -1));
+    }
+    lua_pop(L, 1);
 }
 
 constexpr const char* kChunk = R"lua(
@@ -302,13 +314,14 @@ int Main() {
         Script script;
         {
             ScriptLua lua(&script);
-            lua_register(lua.State(), "check", LuaCheck);
             CheckNames(lua);
+            lua_register(lua.State(), "check", LuaCheck);
             CheckChunk(lua, world);
             CheckWaits(lua, script);
         }
         CheckPersistence(script, world);
     }
+    g_failures += lua_both::Check(&g_checks);
     Expect(world.OnlyWorldReferences(), "every reference released at the end");
     std::printf("lua_check: %d checks, %d failed\n", g_checks, g_failures);
     return g_failures ? 1 : 0;

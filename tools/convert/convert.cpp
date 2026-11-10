@@ -12,7 +12,8 @@
 // textures (.mmp) as <archive folder>\<name>.png (convert_textures.cpp, docs/notes/mods.md "Textures as PNG"); its
 // figure models (.mod, .bon, .lnk, .fig) as <archive folder>\<figure>.glb (convert_models.cpp, "Models as glTF"). A
 // map archive (Maps\<zone>.mpr, or the folder of an unpacked one under a Maps folder) as its folder's map.toml and PNG
-// layers (convert_maps.cpp, docs/notes/mods.md "Maps as folders"). A loose file as <name>.toml beside it. A record
+// layers (convert_maps.cpp, docs/notes/mods.md "Maps as folders"). A .mob's script as <zone>.lua beside it
+// (convert_scripts.h, docs/notes/lua-scripting.md "Converted scripts"). A loose file as <name>.toml beside it. A record
 // file's TOML has `replace = true`: it stands for the whole original, nothing below it read (a mod's original hides the
 // game's file too). The target mirrors the source's layout (MF1's loose folders); converted.txt there lists the
 // converted originals (relative to the source), which tools/convert_install.py removes from its copy.
@@ -585,9 +586,16 @@ void ConvertAll(const std::vector<fs::path>& sources) {
         const std::string extension = Extension(Utf8(source.filename()));
         const bool archive = extension == ".res" || extension == ".mpr";
         g_options.source = archive ? source.parent_path() : source;
-        if (extension == ".res") ConvertArchive(source);
-        else if (extension == ".mpr") ConvertMapArchive(source);
-        else ConvertInstall(source);
+        if (extension == ".res") {
+            ConvertArchive(source);
+        } else if (extension == ".mpr") {
+            ConvertMapArchive(source);
+        } else {
+            ConvertInstall(source);
+            const convert_scripts::MissionCounts scripts = convert_scripts::WriteMissions(source, g_options.target);
+            g_counts["mission script"].files += scripts.files;
+            g_counts["mission script"].failed += scripts.failed;
+        }
         if (g_options.target.empty()) continue;
         fs::create_directories(g_options.target);
         std::ofstream list(g_options.target / "converted.txt", std::ios::binary);

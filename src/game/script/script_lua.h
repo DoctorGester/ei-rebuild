@@ -5,6 +5,7 @@
 // CalcObject / CalcGroup / RunCommand code by id; objects and groups as userdata over ScriptObjectRef / ScriptGroup;
 // the state persisted with Eris. Nothing in the game runs it yet (no scheduler, nothing in the saves).
 
+#include <functional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -66,6 +67,10 @@ public:
     // waits (it yielded); false when it returned (its results on its stack) or failed (the message in *error).
     bool Continue(lua_State* thread, ScriptRun* run, int arguments, std::string* error);
 
+    // The type ("float", "string", "object", "group") a GlobalVars table declared the global `name` with; empty when
+    // none did.
+    std::string GlobalType(std::string_view name);
+
     // Every object and group value Lua holds drops deleted objects (what Script::PurgeDeletedObjects and the tick do
     // to the script's variables).
     void RemoveDeletedObjects();
@@ -78,6 +83,9 @@ public:
 
     Script* script = nullptr;
     ScriptRun* currentRun = nullptr;
+    // Starts an instance of a definition (a call of a `Script { ... }` value), the definition and the call's arguments
+    // on the stack; the scheduler's. Without one a call is a Lua error.
+    std::function<void(lua_State* L)> startScript;
     int bindingCount = 0;               // the keywords bound (276)
     ScriptObjectRef noObject;           // the argument a nil object passes; stays null
     // The live object and group values (their userdata link themselves in; RemoveDeletedObjects walks them).

@@ -346,16 +346,16 @@ Risks:
 | `players/` | 24 | 5493 | C168e |
 | `saves/` | 7 | 828 | C168d |
 | `scene/` | 30 | 4414 | C168g |
-| `script/` | 25 | 8173 | C168h |
+| `script/` | 27 | 8792 | C168h |
 | `sound/` | 3 | 1679 | C168e |
 | `spells/` | 8 | 2560 | C168g |
 | `terrain/` | 12 | 3554 | C168g |
 | `ui/` | 97 | 33141 | C168h |
 | `units/` | 27 | 9739 | C168f |
 | `world/` | 35 | 10253 | C168e |
-| all | 498 | 157724 | |
+| all | 500 | 158343 | |
 
-545 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
+547 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
 
 ### Every file
 
@@ -802,6 +802,8 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | script_lua.cpp | script/script_lua.cpp |  |  |
 | script_lua.h | script/script_lua.h |  |  |
 | script_lua_number.h | script/script_lua_number.h |  |  |
+| script_lua_writer.cpp | script/script_lua_writer.cpp |  |  |
+| script_lua_writer.h | script/script_lua_writer.h |  |  |
 | script_parse.cpp | script/script_parse.cpp |  |  |
 | script_parse.h | script/script_parse.h |  |  |
 | script_parse_load.cpp | script/script_parse_load.cpp |  |  |
