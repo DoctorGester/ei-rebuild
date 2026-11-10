@@ -76,6 +76,10 @@ void* KeptFile(MappedResource& archive, std::unique_ptr<LoadedFile> file, std::u
     return data;
 }
 
+// How many bytes of .mmp files made from PNGs an archive keeps after their last close (MappedResource::keptPngs): with
+// 128 MB each texture of mod_lost_in_astral_cz_ingos' seven zones (447 textures, 132 MB) is made once.
+constexpr std::size_t kKeptPngBytes = 128u << 20;
+
 // A map archive's map file's extension (the landscape and the AI map list "*.mp").
 constexpr const char* kMapFileExtension = ".MP";
 
@@ -234,6 +238,8 @@ void MappedResource::ForgetLooseFiles() {
     modelEntries.clear();
     modelEntriesRead = false;
     madeModels.clear();
+    keptPngs.clear();
+    keptPngBytes = 0;
 }
 
 std::vector<MappedResource::Source> MappedResource::Sources() {
@@ -304,11 +310,26 @@ bool MappedResource::ReadSource(const Source& source, std::string_view name, std
     return true;
 }
 
+bool MappedResource::SourceHas(const Source& source, std::string_view name) {
+    return source.loose ? source.loose->byName.contains(LooseKey(name)) : source.entries->FindEntry(name) != -1;
+}
+
+void* MappedResource::KeptPng(std::string_view name, std::uint32_t* size) {
+    const auto kept = std::find_if(keptPngs.begin(), keptPngs.end(), [&](const auto& file) { return file->name == name; });
+    if (kept == keptPngs.end()) return nullptr;
+    std::unique_ptr<LoadedFile> file = std::move(*kept);
+    keptPngs.erase(kept);
+    keptPngBytes -= file->bytes.size();
+    return KeptFile(*this, std::move(file), size);
+}
+
 void* MappedResource::PngTexture(std::string_view name, const std::string& pngName, const std::vector<Source>& sources,
                                  std::size_t at, std::uint32_t* size) {
+    if (!SourceHas(sources[at], pngName)) return nullptr;
+    if (void* data = SharedFile(*this, name, size)) return data;
+    if (void* data = KeptPng(name, size)) return data;
     std::string png, where;
     if (!ReadSource(sources[at], pngName, &png, &where)) return nullptr;
-    if (void* data = SharedFile(*this, name, size)) return data;
     // Without its settings chunk the PNG takes them from the .mmp it stands for: in its place, or the first below.
     std::string original, originalWhere;
     MmpHeader originalHeader;
@@ -331,6 +352,7 @@ void* MappedResource::PngTexture(std::string_view name, const std::string& pngNa
     }
     file->name = name;
     file->size = static_cast<std::uint32_t>(file->bytes.size());
+    file->madeFromPng = true;
     return KeptFile(*this, std::move(file), size);
 }
 
@@ -413,12 +435,9 @@ RecordFile MappedResource::FindRecord(std::string_view name) {
 bool MappedResource::HasFile(std::string_view name) {
     const std::string key = LooseKey(name);
     const std::string pngName = PngNameOf(name);
-    const std::string pngKey = LooseKey(pngName);
     for (const Source& source : Sources()) {
-        if (source.loose ? source.loose->byName.contains(key) : source.entries->FindEntry(name) != -1) return true;
-        if (!pngName.empty() &&
-            (source.loose ? source.loose->byName.contains(pngKey) : source.entries->FindEntry(pngName) != -1))
-            return true;
+        if (SourceHas(source, name)) return true;
+        if (!pngName.empty() && SourceHas(source, pngName)) return true;
         if (IsFigureFile(key) && HasModelFile(name, source)) return true;
     }
     return false;
@@ -552,11 +571,19 @@ bool MappedResource::CloseFile(void* data) {
         game::DebugLog("CMappedResource::CloseFile()\nFile already closed\n");
         return false;
     }
-    LoadedFile* file = byData->second.get();
-    if (--file->refCount != 0) return true;
+    if (--byData->second->refCount != 0) return true;
 
+    std::unique_ptr<LoadedFile> file = std::move(byData->second);
     filesByName.erase(file->name);
     filesByData.erase(byData);
+    if (file->madeFromPng) {
+        keptPngBytes += file->bytes.size();
+        keptPngs.push_back(std::move(file));
+        while (keptPngBytes > kKeptPngBytes) {
+            keptPngBytes -= keptPngs.front()->bytes.size();
+            keptPngs.pop_front();
+        }
+    }
     return true;
 }
 

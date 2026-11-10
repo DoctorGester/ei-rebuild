@@ -35,12 +35,13 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `src/game/data/database_toml.h`, `.cpp` | the game databases as TOML ("Databases as TOML"): field lists, `WriteRecords`, `MergeRecords` |
 | `tools/convert/convert_databases.h`, `.cpp` | ei-convert's databases: each round trip, compared by the records' own serialisers |
 | `tests/scenarios/mod_toml_databases.txt` | a mod's items.idb.toml: a weapon changed and one added, given in a new game |
-| `src/game/models/texture_png.h`, `.cpp`; `third_party/stb/` | textures as PNG and back ("Textures as PNG"): `ToPng`, `FromPng`, `ReadLevel`; stb_image, stb_image_write, stb_dxt |
+| `src/game/models/texture_png.h`, `.cpp`; `third_party/stb/` | textures as PNG and back ("Textures as PNG"): `ToPng`, `FromPng`, `ReadLevel`; stb_dxt |
+| `src/lib/png.h`, `.cpp`; `third_party/wuffs/` | PNG files written (in segments) and read (Wuffs; a segmented one on threads): `png::Write`, `png::ReadRgba` ("Loading cost") |
 | `src/game/data/resource.cpp` | `MappedResource::PngTexture`: an .mmp's PNG made into it where it is found |
 | `tools/convert/convert_textures.h`, `.cpp` | ei-convert's textures: each as PNG, its round trip measured |
 | `tests/unit/texture_png.cpp` | the unit check (ei_unit_check, the POSIX port check) |
 | `tests/scenarios/mod_png_texture.txt` | a mod's PNG terrain pages seen on the ground |
-| `src/game/map/map_folder.h`, `.cpp`; `src/lib/png.h`, `.cpp` | maps as folders ("Maps as folders"): `Decode`, `EncodeMap` / `EncodeSector`, `WriteFolder`, `Assemble`; the PNG writer over miniz |
+| `src/game/map/map_folder.h`, `.cpp` | maps as folders ("Maps as folders"): `Decode`, `EncodeMap` / `EncodeSector`, `WriteFolder`, `Assemble` (PNGs written by `png::Write`, read by stb_image) |
 | `src/game/data/resource.cpp` | `MappedResource::FolderMap` / `FolderMapFile`: an archive's map file and sectors made from its folder |
 | `tools/convert/convert_maps.h`, `.cpp` | ei-convert's maps: each as its folder, the round trip byte for byte |
 | `tests/unit/map_folder.cpp` | the unit check (ei_unit_check, the POSIX port check) |
@@ -393,8 +394,8 @@ PNG is asked before the .mmp, so a mod's PNG hides the game's .mmp and a convert
 (`MappedResource::PngTexture`, resource.cpp). The PNG is made into the .mmp file the game would have read
 (src/game/models/texture_png.h, `FromPng`): its header, its extra block, every level. So every reader of an .mmp sees one
 as before: the texture loads, the item and inventory pictures, the cursors, the composed skins' layers, the terrain's
-`HasFile`. A made file is shared like a loose one (by its name, freed at its last close). A PNG that stb_image cannot
-read, or whose settings name a format it does not make, is logged ("warning: textures: ...") and the .mmp is read.
+`HasFile`. A made file is shared like a loose one, and kept after its last close ("Loading cost"). A PNG that does not
+decode, or whose settings name a format it does not make, is logged ("warning: textures: ...") and the .mmp is read.
 
 - Settings: what is not pixels (the format, the header's channel masks, the level count, the extra block) is in the
   PNG's `tEXt` chunk "ei-texture", TOML: `format = "DXT1"`, `channels = "1555"`, `levels = 5` (not for PNT3),
@@ -402,9 +403,9 @@ read, or whose settings name a format it does not make, is logged ("warning: tex
   the chunk (an image editor drops it) takes them from the .mmp it stands for: in its own place or the first below it.
   A PNG with neither is a new texture: A8R8G8B8, every level down to 1 x 1. A PNG of another size than the .mmp keeps
   the .mmp's settings, its levels at most its own full chain.
-- The PNG: any kind stb_image reads (palette, grey, grey and alpha, RGB, RGBA; 16 bits a channel taken to 8 by the
+- The PNG: any kind (palette, grey, grey and alpha, RGB, RGBA, interlaced or not; 16 bits a channel taken to 8 by the
   high byte; gamma and colour profiles not applied), as 8-bit RGBA with straight alpha. ei-convert writes RGB when
-  every texel is opaque, else RGBA, deflated by miniz.
+  every texel is opaque, else RGBA, deflated by miniz in segments (`png::Write`, "Loading cost").
 - Formats (the texels as the texture holds them; files: ei-convert's counts, vanilla / Rebirth with its mods):
 
 | .mmp format | Files | In the file | The PNG | Back |
@@ -467,11 +468,26 @@ the worst file's mean a channel over the levels below, colour and alpha / second
 The shipped DXT blocks of vanilla nearly all come back exactly (their ends are among their texels). Rebirth's large
 DXT1 and DXT5 textures were compressed by a tool whose ends are not, so most of their blocks are stb_dxt's again: close
 (the worst file's mean 0.28 a channel) but not the same. A large level's blocks are made on several threads (the
-bytes the same). Loading costs: Rebirth's 990 DXT1 PNGs take 27.5 s to make into .mmps, 18.2 s of it stb_image's
-decode (its inflate, one thread), so a converted Rebirth install loads its zones slower: the Lost in Astral runs
-`mod_lost_in_astral_gipat` and `mod_lost_in_astral_cz_ingos` take 41 s and 53 s converted against 19 s and 34 s (before
-the threads they ran out of their 60 s; cz_ingos still can in a whole converted suite, four games at once). The stub
-data (`build\stub`, the Linux workflow's) gives the same kinds of counts, every round trip holding.
+bytes the same). The stub data (`build\stub`, the Linux workflow's) gives the same kinds of counts, every round trip
+holding.
+
+Loading cost. Making a texture is its PNG's decode, the box filter for its levels and the DXT blocks; a converted
+Rebirth zone makes hundreds (cz_ingos 447, 132 MB of .mmps), most of them DXT1 terrain pages. What keeps it near an
+unconverted load:
+- The reader (`png::ReadRgba`, src/lib/png.cpp) decodes with Wuffs (third_party/wuffs, v0.3.6, Apache 2.0), about
+  twice as fast as stb_image's inflate. ei-convert's PNGs are written in segments (`png::Write`): runs of about 256 KB
+  of rows, each deflated on its own (a full flush between them) with its first row filtered None or Sub, and an
+  "eiSG" chunk naming each segment's rows and its start in the zlib stream. Still one valid PNG any reader takes; ours
+  inflates and unfilters the segments on threads and checks the stream's Adler-32 (the segments' combined). A PNG
+  without the chunk, or whose segments fail on their own, is read by Wuffs whole.
+- The levels' box filter and the DXT blocks run on threads in runs of rows (the bytes the same).
+- A made file is kept after its last close, up to 128 MB an archive (least recently used out first; the loose files'
+  reload empties it): a zone's textures are closed and opened again between its loads, and were made two or three
+  times each.
+Timings (release, one game, `--quiet`, Rebirth): `mod_lost_in_astral_cz_ingos` 43 s converted before, 25 s now,
+against 24 s unpacked; `mod_lost_in_astral_gipat` 33 s before, 17 s now, against 12 s. What is left in gipat is the
+DXT encode (about 2 s, ExactColourBlock and stb_dxt) and the decode (about 1.3 s), spread over its terrain pages,
+which are loaded one by one.
 
 ### Checks
 
@@ -555,14 +571,14 @@ Counts (2026-11-10, `ei-convert --check`, every round trip holding):
 | Stub data | 126 | 8,645 (2,696) | 2,115 | 106.3 MB | 62.8 MB | 0.64 s |
 
 Loading: a zone's folder is assembled at its archive's first file read, in about 20 ms (the 16-bit PNGs' decode), so
-maps add little to a converted install's load (its textures cost the time: "Textures as PNG"):
-`mod_lost_in_astral_cz_ingos` and `_gipat` on converted Rebirth took 54 s and 45 s (2026-11-10, four games at once;
-29 s and 15 s unconverted), against 53 s and 41 s with the maps still archives.
+maps add little to a converted install's load (its textures cost the time: "Textures as PNG", "Loading cost").
 
 ### Checks
 
 - `ei_unit_check`'s map checks (tests/unit/map_folder.cpp): the PNG writer's 16-bit grey and 8-bit RGB read back by
-  stb_image; a made-up map with water and seams through its files and back byte for byte; heights.png over the
+  stb_image; `png::ReadRgba` against stb_image for a palette PNG with tRNS, every channel count at 8 and 16 bits, two
+  segmented images (8-bit RGB, 16-bit grey and alpha) and one whose segment offset is wrong (read whole by Wuffs), and
+  a cut PNG refused; a made-up map with water and seams through its files and back byte for byte; heights.png over the
   original (worked-out normals, the rest the original's, its seams' heights and normals left out); flat normals up.
 - `mod_map_heights` (both installs; tools/make_mod_s19d.py heights): a mod with zone 1's archive and a heights.png
   raising a plateau of 60000 (20.1 units) where the ground is at about 1; `ground` reads the landscape's and the AI
@@ -730,9 +746,7 @@ parts (3,583 FIG8 records, 55 older ones), 1 file carried as it is, 217,252 corn
 0.35 s. Rebirth (its mods too): 978 figures (483 sets, 495 loose), 4,639 parts (4,569 FIG8, 55 older), 46 files carried
 as they are (Lost in Astral's stray entries, a .bon that is no archive), 306,364 corners on 223,208 slots, 365,451
 triangles; 34.6 MB as 62.3 MB, 0.42 s. Loading costs little: the read and the files' making take well under a
-millisecond a figure. Timed alone (`--quiet`, 2026-11-10), `mod_lost_in_astral_cz_ingos` and `_gipat` take 44 s and
-34 s converted (textures and models) against 30 s and 13 s unpacked, below "Textures as PNG"'s 53 s and 41 s; in a
-whole converted suite, four games at once, cz_ingos still ran out of its 60 s once (step 46 of 52).
+millisecond a figure (a converted install's load: "Textures as PNG", "Loading cost").
 
 ### Checks
 
@@ -811,10 +825,8 @@ them: 111.3 MB for 65.4 MB of originals vanilla (45.7 MB for 24.2 MB without the
 Rebirth (62.3 MB for 34.6 MB): every rotation is there twice (the node's and the file's) and the times are shared by
 count. Read back and made into files in 0.38 s and 0.46 s (0.35 s and 0.42 s without). In the game the hero's
 files are made from its 21.8 MB .glb (179 animations) in about 66 ms, and every model made in
-`mod_lost_in_astral_cz_ingos` on converted Rebirth took 0.96 s together (625 makes). Timed alone (`--quiet`,
-2026-11-10), cz_ingos and `_gipat` take 45 s and 33 s converted (53 s and 41 s with other workers' games on the
-machine) against 25 s and 13 s unpacked, as "Models as glTF"'s 44 s and 34 s; in a whole converted suite beside
-other workers' (16 games), cz_ingos and `_suslanger` ran out of their 60 s.
+`mod_lost_in_astral_cz_ingos` on converted Rebirth took 0.96 s together (625 makes; the whole load: "Textures as
+PNG", "Loading cost").
 
 ### Checks
 

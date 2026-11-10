@@ -11,6 +11,7 @@
 // and colliding names are chained through ResEntry::next (-1 ends the chain).
 
 #include <cstdint>
+#include <list>
 #include <map>
 #include <memory>
 #include <optional>
@@ -59,6 +60,7 @@ struct LoadedFile {
     std::vector<std::uint8_t> bytes;    // contents (at least one byte, so that an empty file still has an address)
     std::uint32_t size = 0;
     int refCount = 0;                   // GetFile calls not yet matched by CloseFile
+    bool madeFromPng = false;           // an .mmp made from its PNG: kept after its last close (MappedResource::keptPngs)
 };
 
 // The base of the archive readers (ResourceBaseClass in the game's messages): the archive header and tables. (The game's index table from numbers to
@@ -175,6 +177,11 @@ public:
     // The figure files made from each glTF read (by where it was read; none when it fails to parse): docs/notes/mods.md,
     // "Models as glTF".
     std::map<std::string, std::optional<std::map<std::string, std::string>>> madeModels;
+    // The .mmp files made from PNGs that nothing holds any more, the last closed at the back, up to kKeptPngBytes
+    // together (docs/notes/mods.md, "Textures as PNG"): a zone asks again for most of the textures the zone before it
+    // let go, and making one from its PNG costs far more than reading an archive's entry.
+    std::list<std::unique_ptr<LoadedFile>> keptPngs;
+    std::size_t keptPngBytes = 0;
 
 protected:
     // The archive's entry `name` (shared when loaded already), or null.
@@ -196,10 +203,14 @@ private:
     // The bytes of `name` in `source` (a folder's file, `*where` its path, or an archive's entry); false when it has
     // none or reading it fails.
     static bool ReadSource(const Source& source, std::string_view name, std::string* bytes, std::string* where);
+    // Whether `source` has `name` (a folder's file or an archive's entry).
+    static bool SourceHas(const Source& source, std::string_view name);
     // The .mmp `name` made from its PNG `pngName` in sources[at] (shared when made already); null when that source has
     // no such PNG or it makes none (logged). Docs/notes/mods.md, "Textures as PNG".
     void* PngTexture(std::string_view name, const std::string& pngName, const std::vector<Source>& sources, std::size_t at,
                      std::uint32_t* size);
+    // The .mmp `name` made from its PNG and kept since its last close (keptPngs), handed out again; null when none is.
+    void* KeptPng(std::string_view name, std::uint32_t* size);
     // The map made from the folder's files (folderMap), made at the first call; null for another archive or none.
     const map_folder::MapData* FolderMap();
     // The map file or sector `name` of the map made from the folder's files (shared when made already); null when the

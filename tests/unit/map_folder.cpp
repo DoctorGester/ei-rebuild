@@ -1,12 +1,15 @@
 // game/map/map_folder.h: maps as folders and back (docs/notes/mods.md, "Maps as folders"), and lib/png.h's writer. A
 // made-up map of 2 x 2 sectors (one with water, seams on its shared edges) comes back byte for byte through its files
 // and through its folder; a heights.png over the original replaces the heights alone and brings normals worked out
-// from them; every 16-bit sample comes back through a PNG.
+// from them; every 16-bit sample comes back through a PNG; lib/png.h's reader gives what stb_image gives for every kind
+// of PNG the writer makes (in segments too) and for a palette with transparency.
 #include "game/map/map_folder.h"
 
 #include "stb/stb_image.h"
 
 #include "lib/png.h"
+
+#include "miniz/miniz.h"
 
 #include <algorithm>
 #include <array>
@@ -196,10 +199,95 @@ void CheckPng() {
           "a PNG of a kind the writer has not");
 }
 
+// png::ReadRgba's pixels, or empty when it fails.
+std::vector<std::uint8_t> ReadRgba(const std::string& png, int* width, int* height) {
+    std::vector<std::uint8_t> rgba;
+    std::string error;
+    if (!png::ReadRgba(png, width, height, &rgba, &error)) rgba.clear();
+    return rgba;
+}
+
+void PutBigEndian(std::string& out, std::uint32_t v) {
+    for (int shift = 24; shift >= 0; shift -= 8) out.push_back(static_cast<char>(v >> shift));
+}
+
+void PutChunk(std::string& out, const char* type, const std::string& data) {
+    PutBigEndian(out, static_cast<std::uint32_t>(data.size()));
+    const std::string typed = std::string(type) + data;
+    out += typed;
+    PutBigEndian(out, static_cast<std::uint32_t>(mz_crc32(MZ_CRC32_INIT, reinterpret_cast<const unsigned char*>(typed.data()), typed.size())));
+}
+
+// An 8-bit palette PNG of 4 colours, the third half and the fourth fully transparent (tRNS), 5 x 3 pixels.
+std::string PalettePng() {
+    std::string header;
+    PutBigEndian(header, 5);
+    PutBigEndian(header, 3);
+    header += std::string({8, 3, 0, 0, 0});   // 8 bits, a palette, deflate, the usual filters, not interlaced
+    std::string rows;
+    for (int y = 0; y < 3; ++y) {
+        rows.push_back(0);   // no filter
+        for (int x = 0; x < 5; ++x) rows.push_back(static_cast<char>((x + y) % 4));
+    }
+    mz_ulong packedSize = mz_compressBound(static_cast<mz_ulong>(rows.size()));
+    std::vector<unsigned char> packed(packedSize);
+    mz_compress(packed.data(), &packedSize, reinterpret_cast<const unsigned char*>(rows.data()), static_cast<mz_ulong>(rows.size()));
+    std::string png = {static_cast<char>(0x89), 'P', 'N', 'G', '\r', '\n', 26, '\n'};
+    PutChunk(png, "IHDR", header);
+    const unsigned char palette[] = {255, 0, 0, 0, 255, 0, 0, 0, 255, 16, 32, 48};
+    const unsigned char alpha[] = {255, 255, 128, 0};
+    PutChunk(png, "PLTE", std::string(std::begin(palette), std::end(palette)));
+    PutChunk(png, "tRNS", std::string(std::begin(alpha), std::end(alpha)));
+    PutChunk(png, "IDAT", std::string(reinterpret_cast<const char*>(packed.data()), packedSize));
+    PutChunk(png, "IEND", {});
+    return png;
+}
+
+void CheckPngRead() {
+    std::vector<std::uint16_t> samples(19 * 7 * 4);
+    for (std::size_t i = 0; i < samples.size(); ++i) samples[i] = static_cast<std::uint16_t>(i * 2654435761u >> 7);
+    std::vector<std::string> pngs = {PalettePng()};
+    for (int channels = 1; channels <= 4; ++channels)
+        for (int bits : {8, 16}) {
+            std::vector<std::uint16_t> some(samples.begin(), samples.begin() + 19 * 7 * channels);
+            if (bits == 8)
+                for (std::uint16_t& v : some) v &= 0xFF;
+            pngs.push_back(png::Write(19, 7, channels, bits, some));
+        }
+    // Large enough for segments (lib/png.h): 8-bit RGB, 16-bit grey and alpha; and the first with its second
+    // segment's start moved, which the reader then reads as a plain PNG.
+    std::vector<std::uint8_t> rgb(301 * 1500 * 3);
+    for (std::size_t i = 0; i < rgb.size(); ++i) rgb[i] = static_cast<std::uint8_t>((i * 2654435761u >> 13) % 7 + i % 301);
+    pngs.push_back(png::Write(301, 1500, 3, rgb));
+    std::vector<std::uint16_t> greyAlpha(97 * 2100 * 2);
+    for (std::size_t i = 0; i < greyAlpha.size(); ++i) greyAlpha[i] = static_cast<std::uint16_t>(i * 40503u);
+    pngs.push_back(png::Write(97, 2100, 2, 16, greyAlpha));
+    const std::size_t segmentsAt = pngs[pngs.size() - 2].find("eiSG");
+    Check(segmentsAt != std::string::npos && pngs.back().find("eiSG") != std::string::npos, "a large PNG has segments");
+    std::string moved = pngs[pngs.size() - 2];
+    if (segmentsAt != std::string::npos) ++moved[segmentsAt + 4 + 4 + 4 + 3];
+    pngs.push_back(moved);
+    for (std::size_t i = 0; i < pngs.size(); ++i) {
+        int width = 0, height = 0, w = 0, h = 0, components = 0;
+        const std::vector<std::uint8_t> ours = ReadRgba(pngs[i], &width, &height);
+        stbi_uc* theirs = stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(pngs[i].data()), static_cast<int>(pngs[i].size()),
+                                                &w, &h, &components, 4);
+        Check(theirs && !ours.empty() && width == w && height == h && std::equal(ours.begin(), ours.end(), theirs),
+              "png::ReadRgba against stb_image, PNG " + std::to_string(i));
+        stbi_image_free(theirs);
+    }
+    int width = 0, height = 0;
+    std::vector<std::uint8_t> rgba;
+    std::string error;
+    Check(!png::ReadRgba(pngs[1].substr(0, pngs[1].size() / 2), &width, &height, &rgba, &error) && !error.empty(),
+          "a cut PNG reads");
+}
+
 }   // namespace
 
 int RunMapFolderChecks() {
     CheckPng();
+    CheckPngRead();
     CheckRoundTrips();
     return g_failures;
 }
