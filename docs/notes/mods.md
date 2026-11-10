@@ -356,16 +356,19 @@ the worst file's mean a channel over the levels below, colour and alpha / second
 | 1555 | 83 / 0 / 3.95, 0 (9 files with shipped holes) | 57 / 0 / 3.95, 0 (9) |
 | 4444 | 40 / 0 / 2.50, 14.42 (banshee's alpha) | 9 / 0 / 1.47, 1.22 |
 | 8888 | 70 / 0 / one level | 72 / 0 / one level |
-| PNT3 | 2,838 / 0 / one level / 1.3 s | 3,511 / 0, 499 texels in 44 files clamped (colour above alpha) / one level / 2.3 s |
-| DXT1 | 617 / 35,597 of 93.1 M, by 3 / 14.13, 5.75 (13 with shipped holes) / 5.8 s | 990 / 170.6 M of 1,363 M, by 33, worst file's mean 0.28 / 14.11, 18.64 (2) / 50.7 s |
+| PNT3 | 2,838 / 0 / one level / 1.5 s | 3,511 / 0, 499 texels in 44 files clamped (colour above alpha) / one level / 1.1 s |
+| DXT1 | 617 / 35,597 of 93.1 M, by 3 / 14.13, 5.75 (13 with shipped holes) / 3.8 s | 990 / 170.6 M of 1,363 M, by 33, worst file's mean 0.28 / 14.11, 18.64 (2) / 27.5 s |
 | DXT3 | 15 / 3,125 of 0.48 M, by 3 / 17.45 (arrow01), 2.05 | 10 / 17,335 of 1.44 M, by 8 / 3.55, 0.51 |
-| DXT5 | none | 58 / 1.72 M of 40.8 M, by 18, worst mean 0.15 / 10.38, 7.34 / 1.5 s |
+| DXT5 | none | 58 / 1.72 M of 40.8 M, by 18, worst mean 0.15 / 10.38, 7.34 / 0.9 s |
 
 The shipped DXT blocks of vanilla nearly all come back exactly (their ends are among their texels). Rebirth's large
 DXT1 and DXT5 textures were compressed by a tool whose ends are not, so most of their blocks are stb_dxt's again: close
-(the worst file's mean 0.28 a channel) but not the same, and slower to make (50 s for Rebirth's 990 DXT1 files in one
-thread: a converted Rebirth install loads its large textures visibly slower). The stub data (`build\stub`, the Linux
-workflow's) gives the same kinds of counts, every round trip holding.
+(the worst file's mean 0.28 a channel) but not the same. A large level's blocks are made on several threads (the
+bytes the same). Loading costs: Rebirth's 990 DXT1 PNGs take 27.5 s to make into .mmps, 18.2 s of it stb_image's
+decode (its inflate, one thread), so a converted Rebirth install loads its zones slower: the Lost in Astral runs
+`mod_lost_in_astral_gipat` and `mod_lost_in_astral_cz_ingos` take 41 s and 53 s converted against 19 s and 34 s (before
+the threads they ran out of their 60 s). The stub data (`build\stub`, the Linux workflow's) gives the same kinds of
+counts, every round trip holding.
 
 ### Checks
 

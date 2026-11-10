@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <cstring>
 #include <optional>
+#include <thread>
 
 namespace texture_png {
 
@@ -381,8 +382,15 @@ bool ExactColourBlock(const std::uint8_t texels[64], bool fourColours, std::uint
     int ends[16];
     int endCount = 0;
     bool transparent = false;
+    std::uint32_t values[4] = {};   // a block decodes to at most four texel values
+    int valueCount = 0;
     for (int i = 0; i < 16; ++i) {
         const std::uint8_t* t = texels + i * 4;
+        const std::uint32_t value = lib::Load<std::uint32_t>(t) | (fourColours ? 0xFF000000u : 0u);
+        if (std::find(values, values + valueCount, value) == values + valueCount) {
+            if (valueCount == 4) return false;
+            values[valueCount++] = value;
+        }
         if (!fourColours && t[3] != 255) {
             if (t[3] != 0 || t[0] || t[1] || t[2]) return false;
             transparent = true;
@@ -484,20 +492,29 @@ void EncodeBlock(Storage storage, const std::uint8_t texels[64], std::uint8_t* o
     }
 }
 
-// The level's blocks (a partial block's texels from the level's last row and column).
+// The level's blocks (a partial block's texels from the level's last row and column). A large level's rows of blocks
+// are shared out to threads: each block depends on its texels alone, so the bytes are the same.
 std::vector<std::uint8_t> EncodeBlocks(Storage storage, const Image& image) {
     const std::size_t blockBytes = storage == Storage::Dxt1 ? 8 : 16;
     const int across = (image.width + 3) / 4, down = (image.height + 3) / 4;
     std::vector<std::uint8_t> out(static_cast<std::size_t>(across) * down * blockBytes);
-    std::uint8_t texels[64];
-    for (int by = 0; by < down; ++by)
-        for (int bx = 0; bx < across; ++bx) {
-            for (int i = 0; i < 16; ++i) {
-                const int x = std::min(bx * 4 + (i & 3), image.width - 1), y = std::min(by * 4 + i / 4, image.height - 1);
-                std::copy_n(&image.rgba[(static_cast<std::size_t>(y) * image.width + x) * 4], 4, texels + i * 4);
+    const auto rows = [&](int first, int last) {
+        std::uint8_t texels[64];
+        for (int by = first; by < last; ++by)
+            for (int bx = 0; bx < across; ++bx) {
+                for (int i = 0; i < 16; ++i) {
+                    const int x = std::min(bx * 4 + (i & 3), image.width - 1), y = std::min(by * 4 + i / 4, image.height - 1);
+                    std::copy_n(&image.rgba[(static_cast<std::size_t>(y) * image.width + x) * 4], 4, texels + i * 4);
+                }
+                EncodeBlock(storage, texels, out.data() + (static_cast<std::size_t>(by) * across + bx) * blockBytes);
             }
-            EncodeBlock(storage, texels, out.data() + (static_cast<std::size_t>(by) * across + bx) * blockBytes);
-        }
+    };
+    constexpr int kBlocksAThread = 4096;   // 256 x 256 texels: fewer are not worth a thread
+    const int threads = std::clamp(across * down / kBlocksAThread, 1, std::max(1, static_cast<int>(std::thread::hardware_concurrency())));
+    std::vector<std::thread> helpers;
+    for (int t = 1; t < threads; ++t) helpers.emplace_back(rows, down * t / threads, down * (t + 1) / threads);
+    rows(0, down / threads);
+    for (std::thread& helper : helpers) helper.join();
     return out;
 }
 
