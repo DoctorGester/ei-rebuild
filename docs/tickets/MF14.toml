@@ -1,0 +1,9 @@
+id = "MF14"
+title = "Human-authorable record TOML: names, not codes"
+group = "mods"
+size = 3
+model = "opus"
+note = "User 2026-11-11: the showcase mod's TOML has values no one can author (class_mask = 0x1, adb key = 0x2890000 / flags = 0xE, type = 4, object_class = 51, blood_kind = 8, side = 3, natural_weapon = 3, unnamed arrays like combat/perception/mode_speeds, a 32x32 relations matrix and 32 player names spelled out). Make every record format (idb, udb incl. models, adb, sdb, qdb, mob.toml, map.toml, config.reg.toml) readable: enums by name, bit masks as lists of names, adb key/flags split into named parts (action, weapon, mode, ...), arrays as named tables, ids/parents by name where the format allows, defaults left out (writer omits, reader fills). One uniform path: ei-convert writes the readable form, the game reads only that (numbers kept only where the value really is a number). Converted suite and mod goldens the same; showcase/example mods and docs/modding.md rewritten to the new form."
+order = 1333
+status = "running"
+started = "2026-11-11"
