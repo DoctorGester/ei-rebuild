@@ -4,7 +4,9 @@
 
 #include "game/data/resource.h"
 #include "lib/crt.h"
+#include "lib/text_case.h"
 #include "lib/toml.h"
+#include "platform/platform.h"
 
 #include <array>
 #include <bit>
@@ -747,7 +749,12 @@ std::optional<mapspec::MobContents> Read(std::string_view text, const std::strin
     for (int k = 0; k < root.Size(); ++k) {
         const std::string_view key = root.KeyAt(k);
         const toml::Value value = root.ValueAt(k);
-        if (key == "script" || IsReplaceKey(key, value)) continue;
+        if (IsReplaceKey(key, value)) continue;
+        if (key == "script") {
+            if (!value.IsString()) Warn(path, value.Line(), "script is not a file name");
+            contents.scriptFile = value.String();
+            continue;
+        }
         if (key == "applies_relations") {
             if (!value.IsBool()) Warn(path, value.Line(), "applies_relations is not true or false");
             contents.appliesRelations = value.IsBool() ? value.Bool() : contents.appliesRelations;
@@ -774,6 +781,51 @@ std::optional<mapspec::MobContents> Find(const std::string& path) {
     for (const TomlFile& toml : file.tomls)
         if (std::optional<mapspec::MobContents> contents = Read(toml.text, toml.path)) return contents;
     return std::nullopt;
+}
+
+std::string ScriptFile(const std::string& path) {
+    const RecordFile file = FindRecordFile(path, false);
+    for (const TomlFile& toml : file.tomls) {
+        toml::Document document;
+        if (!document.Parse(toml.text, toml.path)) continue;
+        const toml::Value root = document.Root();
+        for (int k = 0; k < root.Size(); ++k)
+            if (root.KeyAt(k) == "script") return std::string(root.ValueAt(k).String());
+        return {};
+    }
+    return {};
+}
+
+std::optional<ScriptLuaFile> FindScriptLua(const std::string& path, std::string_view name) {
+    const std::size_t slash = path.find_last_of("\\/");
+    const std::string folder = slash == std::string::npos ? std::string(".") : path.substr(0, slash);
+    const std::string mob = path.substr(slash + 1);
+    std::string lua(name);
+    if (lua.empty()) {
+        const std::size_t dot = mob.find_last_of('.');
+        lua = mob.substr(0, dot) + ".lua";
+    }
+    for (const platform::FolderLayer& layer : platform::FilesByLayer(folder, {mob, lua})) {
+        bool hasMob = false;
+        for (const platform::LayerFile& file : layer.files) {
+            if (text::CompareIgnoringCase(file.name, lua) != 0) {
+                hasMob = true;
+                continue;
+            }
+            ScriptLuaFile found;
+            found.path = file.path;
+            found.name = lua;
+            if (platform::ReadLayerFile(file.path, &found.text)) return found;
+        }
+        if (hasMob) break;
+    }
+    return std::nullopt;
+}
+
+std::string ScriptLuaName(std::string_view mob, std::string_view lua) {
+    const std::size_t slash = mob.find_last_of("\\/");
+    return "Maps\\" + (slash == std::string_view::npos ? std::string() : std::string(mob.substr(0, slash + 1))) +
+           std::string(lua);
 }
 
 std::vector<std::pair<std::string, std::string>> FieldImages(const Spec& spec) {

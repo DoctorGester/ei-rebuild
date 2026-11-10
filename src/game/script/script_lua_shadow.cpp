@@ -589,6 +589,8 @@ struct Shadow {
     // The shadow's tick of the next Eris round trip: 200, then twice as far each time (a few per run however long;
     // and one at every save of the game).
     int nextRoundTrip = 200;
+    bool onLua = false;   // the real script runs on Lua (RunsOnLua): inactive until its next reset or old load
+    int luaRuns = 0;      // the times it went on Lua
 };
 
 }   // namespace scriptshadow
@@ -630,6 +632,7 @@ std::string ScriptShadow::Summary() {
         if (shadow->resumes || shadow->roundTrips)
             text += std::format("; {} saves resumed, {} Eris round trips (at most {} bytes)", shadow->resumes,
                                 shadow->roundTrips, shadow->savedBytes);
+        if (shadow->luaRuns) text += std::format("; {} times on a mod's Lua (not compared)", shadow->luaRuns);
         if (!shadow->failure.empty()) text += "; differs";
         else if (!shadow->stopped.empty()) text += "; stopped: " + shadow->stopped;
     }
@@ -830,6 +833,10 @@ void ScriptShadow::Loaded(Script* script, const scriptir::File& file, std::strin
 
 void ScriptShadow::Reset(Script* script) {
     Shadow& shadow = *state;
+    if (script == shadow.real && shadow.onLua) {
+        shadow.onLua = false;
+        shadow.active = true;
+    }
     if (script != shadow.real || !shadow.active) return;
     if (shadow.recording) return shadow.Stop("the script was reset inside its tick");
     shadow.queue.clear();
@@ -878,6 +885,10 @@ void ScriptShadow::EndTick(Script* script) {
 
 void ScriptShadow::StateLoaded(Script* script) {
     Shadow& shadow = *state;
+    if (script == shadow.real && shadow.onLua) {
+        shadow.onLua = false;
+        shadow.active = true;
+    }
     if (script != shadow.real || !shadow.active) return;
     shadow.Resume();
 }
@@ -886,4 +897,17 @@ void ScriptShadow::Saving(Script* script) {
     Shadow& shadow = *state;
     if (script != shadow.real) return;
     shadow.RoundTrip();
+}
+
+void ScriptShadow::RunsOnLua(Script* script) {
+    Shadow& shadow = *state;
+    if (script != shadow.real || !shadow.active) return;
+    if (shadow.recording) return shadow.Stop("the script went on Lua inside its tick");
+    shadow.queue.clear();
+    shadow.Clear();
+    shadow.active = false;
+    shadow.onLua = true;
+    ++shadow.luaRuns;
+    ei::Log("lua both: %s script runs on a mod's Lua at its tick %d: not compared until its next reset",
+            shadow.label.c_str(), shadow.ticks);
 }

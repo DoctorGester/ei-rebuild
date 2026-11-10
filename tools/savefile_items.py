@@ -456,7 +456,7 @@ def read_script(r):
         read_named(r, 'groups', read_group)
     read_list(r, 'instances', read_definition)
     read_list(r, 'runs', read_run)
-    r.i32('loaded')
+    on_lua = r.i32('loaded') >= 2   # ours: 2 added for a script on Lua (a mod's .lua), its state after the areas
     r.i32('fileCount')
 
     def area(r):
@@ -472,6 +472,8 @@ def read_script(r):
                 r.f32('y2')
 
     read_list(r, 'areas', area)
+    if on_lua:
+        r.lua('luaState', r.i32('luaBytes'), "the scheduler's state (Script::SaveState, ScriptLuaScheduler::Save)")
 
 
 def read_command_queue(r):

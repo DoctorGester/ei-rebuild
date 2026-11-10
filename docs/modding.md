@@ -379,11 +379,12 @@ A map can be a folder, `Maps\<zone>\`, which stands over `Maps\<zone>.mpr` (ei-c
 
 A zone's objects (`Maps\<zone>.mob`: units, buildings, trees, levers, lights, sounds, traps, effects; the weather and the
 players' relations) can be `Maps\<zone>.mob.toml`. Unlike the other records it is **not merged**: the top file found is
-all of the zone's objects. So a mod's file is the whole of ei-convert's file with its changes. The zone's scripts and its
-AI graph are still read from the `.mob` (the mod's, else the game's), so a mod's `.mob.toml` can stand alone.
+all of the zone's objects. So a mod's file is the whole of ei-convert's file with its changes. The zone's AI graph is
+still read from the `.mob` (the mod's, else the game's), and so is its script unless a `.lua` stands for it
+([Scripts](#scripts)), so a mod's `.mob.toml` can stand alone.
 
 ```toml
-script = "zone1.lua"           # not read yet (see Scripts)
+script = "zone1.lua"           # the zone's script, when that file is there (see Scripts)
 applies_relations = true
 
 [[weather]]
@@ -438,11 +439,69 @@ the AI plans its way across the map).
 
 ## Scripts
 
-The zones' mission scripts are still read from the `.mob` files, in the game's own script language. ei-convert writes
-each one as readable Lua too (`Maps\zone1.lua`, with the original's comments), and the `.mob.toml`'s `script` key names
-that file. **The game does not load these `.lua` files yet**: editing one changes nothing in the game. Running mission
-scripts in Lua, and a mod API, are planned (`docs/notes/lua-scripting.md`). To change a zone's script today a mod ships
-the zone's `.mob` with its script edited by the tools that edit the original format.
+A zone's mission script runs from a Lua file when there is one: `Maps\<zone>.lua` (or the file the `.mob.toml`'s
+`script` key names, in the same folder), in the mod's folder or the game's, down to the folder that holds the zone's
+`.mob`. The `.lua` is then the whole of the zone's script: the `.mob`'s own script does not run (it is still read for
+its names, which the quests and the `.mob`s the zone loads later refer to). A zone without a `.lua` runs its `.mob`'s
+script as the game always has. A mod that ships its own `.mob` takes the `.lua` from its own folder only.
+
+Start from ei-convert's file: `ei-convert <install> <folder>` writes every zone's script as `Maps\<zone>.lua`, with the
+original's comments. Copy the zone's file into the mod's `Maps\` and edit it; unchanged, it plays as the original
+script does.
+
+```lua
+GlobalVars {                   -- the script's globals, each at its type's zero value: 0, "", nil, an empty group
+    Heroes = "group",
+    count = "float",
+}
+
+-- A definition: each instance (a call of it) checks its rules in order on every tick.
+Watch = Script {
+    {
+        condition = function(unit) return IsDead(unit) ~= 0 end,   -- optional: without one the rule always holds
+        action = function(unit)                                     -- runs once the condition holds
+            KillScript()                                            -- this instance checks no more rules
+            print("my mod: " .. GetObjectID(unit) .. " died")
+            Sleep(20)                                               -- waits 20 ticks, then goes on
+            SetGameVar(0, "mymod.deaths", GetGameVar(0, "mymod.deaths") + 1)
+        end,
+    },
+}
+
+-- Runs when the zone loads (and again at the zone's reset).
+function WorldScript()
+    Watch(GetObject(1947))
+    local n = 0
+    while true do              -- a WorldScript or an action can wait anywhere, loops included
+        Sleep(20)
+        n = n + 1
+        count = n
+    end
+end
+```
+
+- **Built-ins.** Every command and function of the game's script language (and Rebirth's additions) under its Lua
+  name: the game's name, except where it abbreviates (`UMGuard` is `UnitModeGuard`, `GSSetVar` / `GSGetVar` are
+  `SetGameVar` / `GetGameVar`, `SetCP` is `SetPosition`, `For` is `ForEach`; the list is in
+  `docs/notes/lua-scripting.md`, "The naming rule"). They take and give what the game's do: numbers (single precision,
+  as in the game; a condition holds unless it is 0), strings, objects (`nil` for none) and groups.
+- **Waits.** `Sleep(ticks)`, `WaitSegment(ticks)`, `SleepUntil(condition)` and `SleepUntilIdle(unit)` pause the
+  running function and go on in a later tick. `ForEach(group, function(member) ... end)` walks a group from its last
+  member to its first; a wait inside its body ends the body for that member, as the game's For does.
+- **Randomness.** `Random(n)` draws from the game's generator, so the game plays the same from a save and in a network
+  game. Lua's `math.random` is not there.
+- **What else Lua gives.** Lua 5.3's base functions, `string`, `table`, `math`, `utf8` and `coroutine`. `print(...)`
+  writes a console line. Not there: `io`, `os`, `debug`, `package` / `require`, `dofile` / `loadfile`; `load` takes
+  text only. `pairs` walks a table's keys in the same order every time: numbers, then strings (by their bytes), then
+  `false` and `true`.
+- **Errors** go to the console (and `ei-rebuild.log`) as `Script error: ...`. A file that does not load: `Script
+  error: zone1.mob line 0: Maps\zone1.lua:<line>: <message>`, and the zone runs without its script. A `.mob` whose own
+  script the game cannot read (`Script error: <zone>.mob line <n>: ...`) keeps the game's handling: the zone's script
+  does not run, `.lua` or not. An error while it runs: `Script error: Maps\zone1.lua:<line>: <message>`; that
+  function stops (an error in a condition: the rule does not hold), and the rest of the script goes on.
+- **Saves.** A game saved in such a zone keeps the script's whole Lua state, every waiting function with its local
+  variables, and goes on from there when it is loaded. A loaded save keeps running the code it was saved with, even
+  when the mod's file has changed since; the new file runs the next time the zone is loaded fresh.
 
 ## What stays in the original formats
 
@@ -451,7 +510,7 @@ is (and can still be replaced by a loose file of the same name in the archive's 
 - sounds and speech: `.wav` (sfx.res) and `.mp3` (speech.res), music `.mp3` (`Stream\`), already common formats;
 - movies: Bink `.bik` (`Movies\`);
 - the quest zones (`Maps\*.mq`): their `quest.reg`, `map.txt` and briefing texts;
-- a `.mob`'s scripts and AI graph;
+- a `.mob`'s AI graph (its script can be a `.lua`: [Scripts](#scripts));
 - a few small files no tool edits: `aiinfo.res`'s `normal.dat`, `gfx.res`'s `lightning.dat`, the credits
   (`outro.res`), the start-up picture archive (`autorun.res`, `.bmp`).
 
@@ -465,7 +524,8 @@ is (and can still be replaced by a loose file of the same name in the archive's 
 - Map changes need the whole map in the mod ([Maps as folders](#maps-as-folders)).
 - glTF: no textures in the file, one mesh per part, node rotation and scale left out, no vertex animation from Blender.
 - Text is shown in code page 1251.
-- The `.lua` scripts are not loaded ([Scripts](#scripts)).
+- A zone's `.lua` stands for its whole script; it cannot add to the `.mob`'s script (copy ei-convert's file and add to
+  it).
 - Rebirth's mod plugins (`.plg` DLLs) are never loaded. Lost in Astral's shop fix is built in; IronMod's plugin is not
   supported.
 - Something does not show up? Read `ei-rebuild.log`: every TOML, PNG, glTF or map file that was not read, and every key

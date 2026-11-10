@@ -1,0 +1,38 @@
+# A mod's zone1.lua: the game's zone1.mob script as ei-convert writes it with the mod's own lines (docs/notes/mods.md,
+# "Scripts in Lua"; tools/make_lua_mod.py changed). The zone's WorldScript prints two console lines (the second the
+# keys `pairs` walks, in the same order in every run), starts a definition of the mod's and then counts in a local
+# variable of its coroutine every 20 ticks into the game variable l8.count. The definition prints a line when the
+# count reaches 3, then fails: its error goes to the console as "Script error: <file>:<line>: <message>". The game is
+# saved and loaded: the count goes on from the saved coroutine (a restarted one would count from 1 again).
+# prepare: make_lua_mod.py changed
+mod harness_saves\lua_mod
+waitmenu
+console thingamabob
+newgame
+waitline 15 Saved savea
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitline 10 L8 mod: zone1.lua runs
+expect L8 mod: pairs 1,2,alpha,bravo,charlie,delta
+waitline 10 L8 mod: the count reached 3
+expect L8 mod: a failing run
+expectlog console: Script error: Maps\zone1.lua:
+waitfor 20 IsGreater(GSGetVar(0,"l8.count"),10)
+
+key esc
+waitwindow 10 escmenu
+click 395 120
+waitwindow 10 saveload
+clickregion 0
+waitline 15 Saved save1
+wait 300
+load save1
+waitwindow 30 battle
+waitfor 20 IsGreater(HP(GetLeader()),0)
+# Fewer than 10 counts' ticks after the load: a count started again would be below 10.
+wait 100
+check IsGreater(GSGetVar(0,"l8.count"),10)
+waitfor 20 IsGreater(GSGetVar(0,"l8.count"),16)
+dump loaded_save1
+check IsAlive(GetLeader())
+report
+quit

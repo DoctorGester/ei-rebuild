@@ -204,7 +204,10 @@ void LoadMob(MobContents& contents, int keepIds, std::string_view name) {
         if (done % step == 0) ShowLoadingMovie(done / step + 1);
     }
 
-    if (!(keepIds & 0xFF) && !TheMissionScript()->Load(&contents.scripts, 1)) {
+    // A .lua runs in place of the scripts (Script::LoadLua; docs/notes/mods.md, "Scripts in Lua").
+    Script* script = TheMissionScript();
+    if (!(keepIds & 0xFF) && !(contents.luaName.empty() ? script->Load(&contents.scripts, 1)
+                                                        : script->LoadLua(&contents.scripts, contents.lua, contents.luaName))) {
         // The game goes on without the file's scripts (the original said nothing); the console names the error.
         ScriptErrorInfo error;
         TheMissionScript()->GetError(&error);

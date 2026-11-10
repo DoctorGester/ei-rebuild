@@ -161,6 +161,8 @@ RULES = {
     'addr': 'a heap, stack or module address copied with a raw block; the loader does not use it as a value',
     'junk': 'bytes the game never sets before writing them (padding, stack leftovers, unused tails)',
     'identity': 'a pointer used as a record identity: numbered by first appearance (p1, p2, ...)',
+    'lua': "a script's Lua state (Eris): its tables are written in the order of Lua's string hashes, whose seed differs "
+           'in every run',
 }
 
 
@@ -324,6 +326,12 @@ class Reader:
         self.excluded(name, 'addr', why)
         self.put(name, '0' if null and v == 0 else '~addr')
         return v
+
+    def lua(self, name, n, why):
+        """n bytes of a Lua state (rule lua): their size kept."""
+        self.take(n)
+        self.excluded(name, 'lua', why)
+        self.put(name, f'~lua {n} bytes')
 
     def junk(self, name, n, why):
         """n bytes the game never set (rule junk)."""

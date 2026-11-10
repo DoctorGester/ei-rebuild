@@ -32,6 +32,7 @@ class EffectParticle;
 class EffectSound;
 class EffectLightning;
 class ScriptLua;
+class ScriptLuaScheduler;
 class ScriptShadow;
 
 enum class ScriptType : int {
@@ -718,6 +719,16 @@ public:
     bool Parse(std::string* text, bool runWorldScript, scriptir::File& out);
     // With the WorldScript started; error 0x11 when the file cannot be read.
     bool LoadFile(const std::string& path);
+    // A .mob's script whose Lua stands for it (a mod's .lua, docs/notes/mods.md "Scripts in Lua"): `text` parsed for
+    // its declarations (the names of the texts after it), `luaText` run in its place on the Lua scheduler (`chunk` its
+    // name in Lua's messages, its WorldScript started), which this script runs on from now on (`runner`; what the old
+    // executor held so far resumed there by the old-save shim). False with Load's error 18 and the Lua's message.
+    bool LoadLua(std::string* text, std::string_view luaText, const std::string& chunk);
+    // The global variables as the old executor keeps them (its names by type, in declaration order); on Lua their
+    // Lua values under those names, then the globals only a Lua GlobalVars declared (their Lua names, sorted).
+    ScriptVars GlobalValues();
+    // The global group `name` (the old executor's name), empty when there is none.
+    ScriptGroup GlobalGroup(std::string_view name);
 
     // The id is the block count after it.
     ScriptBlock* NewCommandList();
@@ -776,7 +787,19 @@ public:
     // The lockstep shadow running this script's converted Lua beside it (script_lua_shadow.h; EI_LUA_BOTH), or the
     // shadow whose Lua runs on this script; null in the game.
     ScriptShadow* shadow = nullptr;
+    // The Lua scheduler this script runs on in place of the old executor (LoadLua, a save's Lua state), or null: Tick,
+    // ResetZone and the saves go to it. Reset drops it (after the tick when the tick runs: `retired`).
+    std::unique_ptr<ScriptLuaScheduler> runner;
+    std::unique_ptr<ScriptLuaScheduler> retired;
+    bool runnerTicking = false;
+
+private:
+    void DropRunner();
 };
+
+// Added to SaveState's `loaded` (0 or 1) for a script on Lua: its Lua state (ScriptLuaScheduler::Save, count and
+// bytes) follows the areas.
+inline constexpr int kScriptLoadedOnLua = 2;
 
 // The id of a command or function (ScriptKeyword::id, ScriptCall::id; the names are the table's). 1..68 are the
 // commands, 69..108 and 124 on the functions; For / ForIf are the loop blocks. The punctuation and section

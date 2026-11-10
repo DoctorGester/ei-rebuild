@@ -1,0 +1,19 @@
+{
+  "scenario": "mod_lua_changed",
+  "install": "vanilla",
+  "recorded": "2026-11-10",
+  "commit": "2de322e7f",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "L8: the save's loaded field adds 2 for a script on Lua (3 for a loaded one)",
+  "source": "image",
+  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "save lua_mod/save1/mission.sav: 1 fields in 1 records differ: commands 1",
+    "  commands: 1 fields in 1 records; first commands loaded: 2 in the old golden, 3 in the new run (d 1)",
+    "save lua_mod/savea/mission.sav: 1 fields in 1 records differ: commands 1",
+    "  commands: 1 fields in 1 records; first commands loaded: 2 in the old golden, 3 in the new run (d 1)"
+  ]
+}

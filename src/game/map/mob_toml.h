@@ -23,6 +23,20 @@ std::optional<mapspec::MobContents> Read(std::string_view text, const std::strin
 // The contents of the TOML of the .mob at `path` (its name and ".toml", looked for as a record file's: the top one of
 // the layers down to the first that has the .mob, the first of those that parses), or none.
 std::optional<mapspec::MobContents> Find(const std::string& path);
+// The `script` key of that TOML (the file of the .mob's script beside it), empty when there is none.
+std::string ScriptFile(const std::string& path);
+
+// The .lua that stands for the script of the .mob at `path` (docs/notes/mods.md, "Scripts in Lua"): `name` (a TOML's
+// `script` key; empty: the .mob's name with .lua for .mob) in the .mob's folder of each layer of the path map, top
+// first, down to the first layer that has the .mob. Its path (a layer's file) and its text, or none.
+struct ScriptLuaFile {
+    std::string path;
+    std::string name;   // the file's name as `name` gave it
+    std::string text;
+};
+std::optional<ScriptLuaFile> FindScriptLua(const std::string& path, std::string_view name);
+// The .lua's name in Lua's messages: "Maps\" and the .mob's path below it (`mob`, "zone1.mob") with the file's name.
+std::string ScriptLuaName(std::string_view mob, std::string_view lua);
 
 // Every field of a record by its key, each as its value's bytes (floats by their bits; a list with its length): what
 // two records are compared by.

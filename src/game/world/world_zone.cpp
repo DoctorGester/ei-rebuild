@@ -96,6 +96,13 @@ void WorldServer::LoadMapObjects(std::string_view fileName, int keepIds) {
     if (!contents) contents = root.ReadChunks();
     else if (opened) contents->scripts = root.ReadChunks(false).scripts;
     root.file.Close();
+    // The scripts' .lua, which runs in their place (docs/notes/mods.md, "Scripts in Lua").
+    if (!(keepIds & 0xFF)) {
+        if (std::optional<mobtoml::ScriptLuaFile> lua = mobtoml::FindScriptLua(path, contents->scriptFile)) {
+            contents->lua = std::move(lua->text);
+            contents->luaName = mobtoml::ScriptLuaName(file, lua->name);
+        }
+    }
     mapspec::LoadMob(*contents, keepIds, fileName);
 }
 

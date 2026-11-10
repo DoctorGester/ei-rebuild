@@ -3,6 +3,7 @@
 #include "game/script/script_lua.h"
 
 #include "game/app/singletons.h"
+#include "game/console/console.h"
 #include "game/objects/map_object.h"
 #include "game/script/script_addon.h"
 #include "game/script/script_lua_number.h"
@@ -136,12 +137,31 @@ constexpr ScriptFunction kWaits[] = {ScriptFunction::Sleep, ScriptFunction::Wait
                                      ScriptFunction::SleepUntilIdle};
 bool IsWait(ScriptFunction id) { return std::ranges::find(kWaits, id) != std::end(kWaits); }
 
-// The libraries the scripts get (no io, os, package or debug), and the globals of base taken out (they read files).
+// The sandbox (docs/notes/lua-scripting.md, "Bindings"): the libraries the scripts get (no io, os, package or debug),
+// the globals of base taken out (they read files: no require either, package is not loaded) and math's generator
+// (its C rand() would be a draw outside the game's: a script draws through the game's Random). print writes to the
+// console, `load` takes text only (bytecode could break the state) and `pairs` walks a table in an order of its
+// keys, the same in every run (the prelude).
 constexpr luaL_Reg kLibraries[] = {
     {"_G", luaopen_base},          {LUA_COLIBNAME, luaopen_coroutine}, {LUA_TABLIBNAME, luaopen_table},
     {LUA_STRLIBNAME, luaopen_string}, {LUA_MATHLIBNAME, luaopen_math}, {LUA_UTF8LIBNAME, luaopen_utf8},
 };
 constexpr const char* kRemovedGlobals[] = {"dofile", "loadfile"};
+constexpr const char* kRemovedMath[] = {"random", "randomseed"};
+
+// print(...): the values as tostring gives them, a tab apart, as one console line.
+int PrintToConsole(lua_State* L) {
+    std::string line;
+    for (int i = 1, count = lua_gettop(L); i <= count; ++i) {
+        std::size_t size = 0;
+        const char* text = luaL_tolstring(L, i, &size);
+        if (i > 1) line += '	';
+        line.append(text, size);
+        lua_pop(L, 1);
+    }
+    console::EndLine(console::g_consoleOut << line);
+    return 0;
+}
 
 template <class T>
 void Link(T*& head, T* node) {
@@ -572,6 +592,7 @@ int StartScript(lua_State* L) {
 constexpr const char kPrelude[] = R"lua(
 local hidden, objectMeta, groupMeta, globalTypes = ...
 local yield, type, pairs, ipairs, error, tostring, setmetatable = coroutine.yield, type, pairs, ipairs, error, tostring, setmetatable
+local next, sort, getmetatable, select, rawLoad = next, table.sort, getmetatable, select, load
 local globals, newGroup = _G, NewGroup
 local objectIdOf, objectWithId = hidden.ObjectIdOf, hidden.ObjectWithId
 local groupIds, groupWithIds = hidden.GroupIds, hidden.GroupWithIds
@@ -603,6 +624,18 @@ local function zero(name, kind)
 end
 local scriptMeta = { __call = hidden.StartScript }
 
+-- The order `pairs` walks keys in: numbers (by value), then strings (by their bytes), then false and true; other keys
+-- (tables, functions, objects) after those in no set order. Lua's own walk follows the string hashes, whose seed
+-- differs in every run.
+local keyRank = { number = 1, string = 2, boolean = 3 }
+local function before(a, b)
+    local ta, tb = type(a), type(b)
+    if ta ~= tb then return (keyRank[ta] or 4) < (keyRank[tb] or 4) end
+    if ta == "number" or ta == "string" then return a < b end
+    if ta == "boolean" then return not a and b end
+    return false
+end
+
 return {
     -- Each wait polls its command once per resume and yields while the command waits.
     Sleep = function(ticks) while not sleep(current(ticks)) do yield() end end,
@@ -622,6 +655,31 @@ return {
     -- Every declared global back to its zero value (the zone reset, ScriptLua::ResetGlobals).
     ResetGlobals = function()
         for name, kind in pairs(globalTypes) do globals[name] = zero(name, kind) end
+    end,
+
+    -- pairs(t): Lua's (a __pairs metamethod first), its keys in the order above.
+    pairs = function(t)
+        local meta = getmetatable(t)
+        if type(meta) == "table" and meta.__pairs then return meta.__pairs(t) end
+        local keys, count = {}, 0
+        for key in next, t do
+            count = count + 1
+            keys[count] = key
+        end
+        sort(keys, before)
+        local i = 0
+        return function(table)
+            i = i + 1
+            local key = keys[i]
+            if key == nil then return nil end
+            return key, table[key]
+        end, t, nil
+    end,
+
+    -- load(chunk, name, mode, env): Lua's for text alone (the mode given is not read).
+    load = function(chunk, name, mode, ...)
+        if select("#", ...) > 0 then return rawLoad(chunk, name, "t", ...) end
+        return rawLoad(chunk, name, "t")
     end,
 
     -- Script { rules }: a definition, each rule an optional condition function and an optional action function (none:
@@ -770,6 +828,13 @@ ScriptLua::ScriptLua(Script* script) : script(script), state(luaL_newstate()) {
         lua_pushnil(L);
         lua_setglobal(L, name);
     }
+    lua_getglobal(L, LUA_MATHLIBNAME);
+    for (const char* name : kRemovedMath) {
+        lua_pushnil(L);
+        lua_setfield(L, -2, name);
+    }
+    lua_pop(L, 1);
+    lua_register(L, "print", PrintToConsole);
 
     luaL_newmetatable(L, kObjectMeta);
     SetFunction(L, -1, "__gc", ObjectGc);
@@ -826,7 +891,7 @@ ScriptLua::ScriptLua(Script* script) : script(script), state(luaL_newstate()) {
         lua_getfield(L, -1, keyword);
         lua_setglobal(L, LuaName(keyword));
     }
-    for (const char* helper : {"GlobalVars", "Script"}) {
+    for (const char* helper : {"GlobalVars", "Script", "pairs", "load"}) {
         lua_getfield(L, -1, helper);
         lua_setglobal(L, helper);
     }
@@ -891,6 +956,23 @@ std::string ScriptLua::GlobalType(std::string_view name) {
     std::string type = lua_type(L, -1) == LUA_TSTRING ? lua_tostring(L, -1) : "";
     lua_pop(L, 2);
     return type;
+}
+
+std::vector<std::pair<std::string, ScriptType>> ScriptLua::GlobalTypes() {
+    lua_State* L = state;
+    std::vector<std::pair<std::string, ScriptType>> types;
+    lua_getfield(L, LUA_REGISTRYINDEX, kGlobalsKey);
+    lua_pushnil(L);
+    while (lua_next(L, -2)) {
+        if (lua_type(L, -2) == LUA_TSTRING && lua_type(L, -1) == LUA_TSTRING) {
+            const std::string_view kind = lua_tostring(L, -1);
+            for (int type = static_cast<int>(ScriptType::Float); type <= static_cast<int>(ScriptType::Group); ++type)
+                if (kind == kScriptTypeNames[type - 1]) types.emplace_back(lua_tostring(L, -2), static_cast<ScriptType>(type));
+        }
+        lua_pop(L, 1);
+    }
+    lua_pop(L, 1);
+    return types;
 }
 
 void ScriptLua::ResetGlobals() {

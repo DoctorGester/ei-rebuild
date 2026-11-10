@@ -11,6 +11,7 @@
 #include "game/players/player.h"
 #include "game/core/random.h"
 #include "game/script/script.h"
+#include "game/script/script_lua_scheduler.h"
 #include "game/spells/spell.h"
 #include "game/terrain/terrain.h"
 #include "game/terrain/terrain_sector.h"
@@ -456,14 +457,8 @@ std::uint32_t HashVars(const ScriptVars& v) {
     return h.h;
 }
 
-// The mission script (Script, script.h): its running instances and waiting runs (the command
-// queues: block, next command, ticks, sleep), the global variables (floats by name, the rest as
-// hashes), and the effects it keeps with their countdowns.
-void ReadScript(Script* s, Builder& b) {
-    b.Int("loaded", s->loaded);
-    b.Int("files", s->fileCount);
-    b.Int("nextParticleId", s->nextParticleId);
-    b.Int("nextFxId", s->nextFxId);
+// The old executor's instances and waiting runs.
+void ReadRuns(Script* s, Builder& b) {
     b.Int("instances", static_cast<int>(s->instances.size()));
     std::vector<const bool*> killFlags;
     int i = 0;
@@ -490,9 +485,49 @@ void ReadScript(Script* s, Builder& b) {
         b.Bits("run#.vars", HashVars(run.vars), i);
         ++i;
     }
+}
+
+// A mission script on Lua (a mod's .lua, Script::LoadLua) in the same fields: its scheduler's instances (by the tree's
+// names), its waiting runs (no block or command: -1; the values not kept: an empty set's hash).
+void ReadLuaRuns(ScriptLuaScheduler& lua, Builder& b) {
+    const std::vector<ScriptLuaScheduler::InstanceView> instances = lua.Instances();
+    b.Int("instances", static_cast<int>(instances.size()));
+    int i = 0;
+    for (const ScriptLuaScheduler::InstanceView& instance : instances) {
+        b.Int("inst#.killed", instance.killed, i);
+        b.Bits("inst#.name", TextHash(Text(instance.name)), i);
+        b.Bits("inst#.vars", HashVars(instance.vars), i);
+        ++i;
+    }
+    const std::vector<ScriptRunPosition> positions = lua.RunPositions();
+    const std::vector<int> owners = lua.RunInstances();
+    b.Int("runs", static_cast<int>(positions.size()));
+    for (std::size_t r = 0; r < positions.size(); ++r) {
+        const int index = static_cast<int>(r);
+        b.Int("run#.block", -1, index);
+        b.Int("run#.index", -1, index);
+        b.Int("run#.ticks", positions[r].ticks, index);
+        b.Int("run#.sleepStart", positions[r].sleepStart, index);
+        b.Int("run#.instance", owners[r], index);
+        b.Bits("run#.vars", HashVars(ScriptVars()), index);
+    }
+}
+
+// The mission script (Script, script.h): its running instances and waiting runs (the command
+// queues: block, next command, ticks, sleep), the global variables (floats by name, the rest as
+// hashes), and the effects it keeps with their countdowns. On Lua the same from its scheduler and its Lua globals.
+void ReadScript(Script* s, Builder& b) {
+    b.Int("loaded", s->loaded);
+    b.Int("files", s->fileCount);
+    b.Int("nextParticleId", s->nextParticleId);
+    b.Int("nextFxId", s->nextFxId);
+    if (s->runner) ReadLuaRuns(*s->runner, b);
+    else ReadRuns(s, b);
     // The global variables by name (by index past the names, "<kind>#"): floats, strings (a hash of the
     // text), objects (the id) and groups (a hash of the sorted ids).
-    const ScriptVars& g = s->globals;
+    ScriptVars luaGlobals;
+    if (s->runner) luaGlobals = s->GlobalValues();
+    const ScriptVars& g = s->runner ? luaGlobals : s->globals;
     auto field = [&b](const char* kind, const auto& names, std::size_t v, Kind type, std::uint32_t value) {
         if (v < names.size()) b.Add(Intern(std::string(kind) + "." + Text(names[v])), -1, type, value);
         else b.Add(Intern(std::string(kind) + "#"), static_cast<int>(v), type, value);
@@ -508,7 +543,7 @@ void ReadScript(Script* s, Builder& b) {
         field("ggroup", g.groups.names, v, Kind::Bits, HashWords(reinterpret_cast<const std::uint32_t*>(ids.data()), int(ids.size())));
     }
     b.Int("globals.names", static_cast<int>(g.floats.names.size() + g.strings.names.size() + g.objects.names.size() + g.groups.names.size()));
-    i = 0;
+    int i = 0;
     for (const ScriptFxSource& fx : s->fxSources) {
         b.Int("fx#.id", fx.id, i);
         b.Int("fx#.sound", IdOf(fx.object), i);

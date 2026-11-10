@@ -14,6 +14,7 @@
 #include "game/players/saved_parties.h"
 #include "game/data/text_manager.h"
 #include "game/map/mob_script_decoder.h"
+#include "game/map/mob_toml.h"
 #include "game/mods/mod_folders.h"
 #include "game/net/net_session.h"
 #include "game/core/coder.h"
@@ -60,6 +61,7 @@
 #include <cstring>
 #include <memory>
 #include <new>
+#include <optional>
 #include <string>
 #include <vector>
 #include "lib/rounding.h"
@@ -691,8 +693,12 @@ void WorldServer::LoadZoneScripts(std::string_view mob) {
         script = reinterpret_cast<const char*>(text.data.data());
     }
     MainScript()->Reset();
-    // The game goes on without the scripts after the error (the original said nothing); the console names it.
-    if (!MainScript()->Load(&script, 1)) {
+    // A .lua runs in place of the scripts (Script::LoadLua; docs/notes/mods.md, "Scripts in Lua"). The game goes on
+    // without the scripts after the error (the original said nothing); the console names it.
+    const std::string path = MapPath(mob);
+    const std::optional<mobtoml::ScriptLuaFile> lua = mobtoml::FindScriptLua(path, mobtoml::ScriptFile(path));
+    if (!(lua ? MainScript()->LoadLua(&script, lua->text, mobtoml::ScriptLuaName(mob, lua->name))
+              : MainScript()->Load(&script, 1))) {
         ScriptErrorInfo error;
         MainScript()->GetError(&error);
         console::EndLine(console::g_consoleOut << "Script error: " << std::string(mob) << " line " << error.line

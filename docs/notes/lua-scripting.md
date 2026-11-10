@@ -158,21 +158,22 @@ quest and engine texts (401 texts, 183,486 lines), without the harness lines.
   - Saves are ours only: game.exe is no longer a target (own goldens), so no old-format writer.
   - Old saves (vanilla, or ours from before Lua) load: each saved run (block, index, ticks, sleep start, locals) resumes
     through a shim that runs the rest of its block from that command.
-- **Mods (L8).**
-  - `.lua` files loaded beside or instead of the mission's (the loose-file lookup; replace as MF3's records).
-  - The same built-ins under Lua names, with waits as yields.
-  - A sandbox without io / os / debug.
-  - Errors reported like "Script error: ...".
+- **Mods (L8, "Mods" below).** A .mob's `.lua` in the loose-file lookup runs in place of its script on the scheduler
+  (the real path); the same built-ins under Lua names, waits as yields, a sandbox, errors as the console's "Script
+  error: ...", the Lua state in the save beside the old format.
 
 ## Bindings
 
 What exists (L2): `src/game/script/script_lua.h` (`ScriptLua`), Lua 5.3.5 with Eris in `third_party/eris`
-(README.txt there: Eris's master-lua5.3 tree, unmodified, built as C++). The game makes one only for the lockstep
-("Lockstep in the game", EI_LUA_BOTH); the scheduler (below) owns one.
+(README.txt there: Eris's master-lua5.3 tree, unmodified, built as C++). The scheduler (below) owns one: a mission
+script on Lua ("Mods") and the lockstep's ("Lockstep in the game", EI_LUA_BOTH).
 Checked by `ei-convert --lua-check` (build checks; ctest `port_lua`) and the unit check `lua_number.cpp`.
 
-- **The state.** Libraries base (without `dofile` / `loadfile`), coroutine, table, string, math, utf8; no io, os,
-  package or debug (L8 decides the rest: `math.random` and `print` are still there). The runtime of a state is in its
+- **The state.** Libraries base (without `dofile` / `loadfile`), coroutine, table, string, math (without `random` /
+  `randomseed`: a draw outside the game's generator; scripts draw through `Random`), utf8; no io, os, package or debug.
+  `print` writes a console line, `load` takes text only (the prelude's; bytecode could break the state), `pairs` walks
+  the keys sorted (the prelude's: numbers, strings by their bytes, false, true, then the rest; a `__pairs` first),
+  since Lua's own walk follows the string hashes, whose seed changes every run (L8). The runtime of a state is in its
   extra space (`ScriptLua::Of`).
 - **Generated from the keyword table.** The constructor walks `KeywordTable()` (the game's table with Rebirth's):
   every entry with a function or command signature gets a binding, 276; the 11 punctuation and section words none.
@@ -238,7 +239,8 @@ floats; converted scripts keep the bindings (`Add`, `IsEqual`, whose NaN rules d
 
 What exists (L3): `src/game/script/script_lua_writer.h` (`scriptlua::WriteLua`) writes the Lua of one script text from
 the tree of its load (`scriptir::File`); `scriptlua::LuaNames` carries the names across the texts loaded into one
-Script (AddMob'd mobs, network quests, quest texts, console lines). Nothing in the game loads the files yet (L4).
+Script (AddMob'd mobs, network quests, quest texts, console lines). The game loads a mod's (or a converted install's)
+`.lua` in place of its .mob's script ("Mods").
 
 - **Where.** `ei-convert <install> <target>` writes each .mob's script as `<target>\<its path>.lua` (`Maps\zone1.lua`),
   converted after the missions it loads after (an AddMob's parent, a network quest's base) as `--scripts` finds them;
@@ -405,9 +407,9 @@ Su1 = Script {
 
 What exists (L4): `src/game/script/script_lua_scheduler.h` (`ScriptLuaScheduler`), owning a `ScriptLua` on a
 `Script` (whose effects, temporaries and quest builder the bindings use) and filling its `startScript` and
-`loadText` (every text the script loads comes to it: "Texts at runtime"). The game makes one only beside each world
-script for the lockstep ("Lockstep in the game"); making it the only path and writing its state into saves come later
-("Saves"). Checked both ways ("Lockstep", "Lockstep in the game").
+`loadText` (every text the script loads comes to it: "Texts at runtime"). The game runs a mission script on one when a
+`.lua` stands for its .mob's script ("Mods"), and makes one beside each world script for the lockstep ("Lockstep in
+the game"). Checked both ways ("Lockstep", "Lockstep in the game").
 
 - **Load(text, name, runWorldScript).** The chunk runs; its `WorldScript` is taken out of the globals and kept (load
   order) for the zone reset, and with `runWorldScript` started as a run at the head of the list, first resumed by the
@@ -438,8 +440,9 @@ script for the lockstep ("Lockstep in the game"); making it the only path and wr
 ## Saves
 
 What exists (L6): the scheduler's whole state saves and restores with Eris, and an old-format save's script state
-resumes in it. No save file holds Lua yet: the game writes and reads only the old format, and with EI_LUA_BOTH off
-nothing here runs (saves byte-identical, every golden the same). Checked by `--lua-check` and the corpus lockstep
+resumes in it. A save file holds Lua only for a mission script on Lua ("Mods", L8: the old format, then this state);
+every other save is the old format alone, and with EI_LUA_BOTH off and no `.lua` nothing here runs (saves
+byte-identical, every golden the same). Checked by `--lua-check` and the corpus lockstep
 with `--saves` ("Lockstep") and in the game by the shadow ("Lockstep in the game").
 
 - **Save / Restore** (`ScriptLuaScheduler`, Eris through `ScriptLua::Persist`): one table persisted:
@@ -486,7 +489,29 @@ with `--saves` ("Lockstep") and in the game by the shadow ("Lockstep in the game
   run waits only at a top-level command, the rest of its block is exactly the statements after it, so a function of
   those statements resumes it; once running it is an ordinary coroutine (Eris persists its closure like any other),
   and it ends with its block, so a later save holds no shim but those still waiting.
-- **Not yet**: Lua in the save files (behind an option, then the only form), mods' coroutines (L8).
+- **In the save files** (L8): only for a mission script on Lua ("Mods"): Script::SaveState's old format with
+  2 added to `loaded`, then this state; every other save is the old format alone, byte for byte as before. All saves in Eris
+  (L9) come with the old executor's removal.
+
+## Mods
+
+What exists (L8): a .mob's `.lua` in the loose-file lookup (`Maps\<zone>.lua`, or the file the .mob.toml's `script`
+key names; each layer down to the one that has the .mob) runs in place of the .mob's script: `Script::LoadLua`
+(script_lua_mission.cpp) puts the mission script on a scheduler of its own (`Script::runner`; what the old executor
+held so far resumed in it by the shim), parses and converts the .mob's text for its names only, and loads the `.lua`
+with its WorldScript started. Tick, ResetZone and the saves then go to the scheduler; every later text is converted
+at its load ("Texts at runtime"). The files, the lookup, the saves and the checks are in mods.md, "Scripts in Lua";
+the modder's guide in docs/modding.md, "Scripts".
+
+- **The plain conversion plays as the original.** mod_lua_plain (zone1.lua as ei-convert writes it) and its twin
+  mod_lua_none (the old executor) have the same digests, dump and console, but for the two loop counters the Lua does
+  not write (the lockstep leaves them out for the same reason) and the script's runs' block and command, which Lua has
+  not (the digest writes -1).
+- **A mod's own code.** Its definitions, coroutines and locals are Lua values like the converted ones: they run in the
+  scheduler's order, and an Eris save keeps them (mod_lua_changed: a WorldScript counting in a local goes on after a
+  load).
+- **Not yet.** The old executor stays beside it (L9 removes it); a mod cannot add to a .mob's script, only stand for
+  all of it.
 
 ## Texts at runtime
 
@@ -495,8 +520,8 @@ that takes them (`ScriptLua::loadText`, which the scheduler sets) the parse tree
 texts: QFinish's quest script (script_exec.cpp: built from the QStart / QObj* calls, loaded into the script that runs
 it), the console's `@` / `#` / `$` lines (`WorldScript(x)`, `WorldScript( ConsoleFloat( x ))`, `WorldScript(
 ConsoleString( x ))` into the world's second script, console.cpp), Rebirth's `execs` files (`LoadFile` into the
-mission script, console_addon.cpp), AddMob'd mobs and the engine's texts. In the game nothing takes them yet (the
-shadow converts through the same `Convert`, "Lockstep in the game"); lua_both's Lua side does ("Lockstep").
+mission script, console_addon.cpp), AddMob'd mobs and the engine's texts. In the game a mission script on Lua takes them ("Mods"), the shadow converts
+through the same `Convert` ("Lockstep in the game"); lua_both's Lua side does too ("Lockstep").
 
 - **Script::Load** parses as before (the parser stays the front end: its declarations resolve the next text's names);
   with `loadText` the executor starts no WorldScript run of its own, and `ScriptLuaScheduler::LoadText` converts the
@@ -597,8 +622,8 @@ Script of its own; after every tick of the real script the scheduler ticks once.
   stopped).
 - **Saves.** A save loaded (Script::LoadState, at its end: `ScriptShadow::StateLoaded`) builds the Lua state again from
   the loaded script by the old-save shim ("Saves"; its Lua beside the log as `luaboth_<script>_save<N>.lua` on a
-  difference), compares it at once and goes on; the save files hold only the old format, so this is how every load in
-  the game resumes. Before a save is made (Script::SaveState: `Saving`) and at the shadow's ticks 200, 400, 800 ...,
+  difference), compares it at once and goes on; the save files hold only the old format (but a mission script on Lua's, where the
+  shadow stands aside: "Mods"), so this is how every load in the game resumes. Before a save is made (Script::SaveState: `Saving`) and at the shadow's ticks 200, 400, 800 ...,
   the Lua state goes through an Eris round trip (Save, Restore into a new scheduler), is compared at once and goes on
   as the restored one. The report adds `N saves resumed, N Eris round trips (at most N bytes)`. A load, tick or reset
   of the script inside its own tick stops the shadow without a difference (none in the scenarios).
@@ -607,8 +632,8 @@ Script of its own; after every tick of the real script the scheduler ticks once.
   globals, on every tick of every scenario. The world changes only through built-ins, and the handlers read only the
   call's argument slots (the loops, CallScript and Assign, which read the call's structure, are the Lua's own), so with
   Lua as the only path the world would take the same course. **What it does not prove:** the handlers run on the Lua's
-  own call (they are the same code, checked by `--lua-check`, not here); timing; Lua state read from a save file (none
-  holds one yet); paths no scenario reaches (the 27 keywords no text uses; quest texts are reached by net_pair_quest,
+  own call (they are the same code, checked by `--lua-check`, not here); timing; Lua state read from a save file (the
+  shadow stands aside for a mission script on Lua: mods.md "Scripts in Lua" checks that); paths no scenario reaches (the 27 keywords no text uses; quest texts are reached by net_pair_quest,
   a network quest to its QFinish, and script_quest_save, two quests in the mission script through a save); and the
   shadow's values hold their objects a little longer (to the end of the tick), so a removed object is freed later
   than without it (the goldens show no effect).

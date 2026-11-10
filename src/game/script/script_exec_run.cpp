@@ -3,6 +3,7 @@
 // temporaries and the per-tick driver. See script.h and docs/notes/script.md.
 #include "game/script/script.h"
 #include "game/script/script_lua.h"
+#include "game/script/script_lua_scheduler.h"
 #include "game/script/script_lua_shadow.h"
 
 #include "game/app/singletons.h"
@@ -144,6 +145,15 @@ void Script::FreeTemporaries() {
 
 void Script::Tick() {
     if (!loaded) return;
+    if (runner) {
+        // On Lua (a mod's .lua): the scheduler's tick in Script::Tick's order. A reset inside it drops the scheduler
+        // after it.
+        runnerTicking = true;
+        runner->Tick();
+        runnerTicking = false;
+        retired.reset();
+        return;
+    }
     if (shadow) shadow->BeginTick(this);
 
     // Waiting runs: continue each; a run that had already ended is removed.
@@ -212,6 +222,7 @@ void Script::DropInstancesAndRuns() {
 // temporaries reset, every effect removed (point light slots zeroed; FX source, particle source and
 // lightning lists emptied), the global values reset, and every WorldScript block run again.
 void Script::ResetZone() {
+    if (runner) return runner->ResetZone();
     DropInstancesAndRuns();
     ResetEffects();
     globals.ResetValues();
