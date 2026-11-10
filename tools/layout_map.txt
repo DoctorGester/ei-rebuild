@@ -576,6 +576,8 @@ camera_trace.h              ui/camera_trace.h
 camera_trace.cpp            ui/camera_trace.cpp
 ui_battle.h                 ui/ui_battle.h
 ui_battle.cpp               ui/ui_battle.cpp
+ui_companions.h             ui/ui_companions.h
+ui_companions.cpp           ui/ui_companions.cpp
 ui_hud.h                    ui/ui_hud.h
 ui_hud_pieces.h             ui/ui_hud_pieces.h
 ui_hud_corner.cpp           ui/ui_hud_corner.cpp

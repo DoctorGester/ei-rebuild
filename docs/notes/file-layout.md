@@ -331,8 +331,8 @@ Risks:
 | Folder | Files | Lines today | Move batch |
 |---|---|---|---|
 | `ai/` | 28 | 12553 | C168f |
-| `app/` | 23 | 6930 | C168e |
-| `combat/` | 13 | 6394 | C168f |
+| `app/` | 23 | 6934 | C168e |
+| `combat/` | 13 | 6395 | C168f |
 | `console/` | 5 | 2038 | C168e |
 | `core/` | 27 | 3875 | C168d |
 | `data/` | 15 | 5126 | C168d |
@@ -341,21 +341,21 @@ Risks:
 | `map/` | 13 | 3077 | C168e |
 | `models/` | 23 | 7580 | C168g |
 | `mods/` | 6 | 603 | C168d |
-| `net/` | 21 | 7981 | C168h |
+| `net/` | 21 | 7991 | C168h |
 | `objects/` | 23 | 8021 | C168f |
-| `players/` | 24 | 5251 | C168e |
+| `players/` | 24 | 5493 | C168e |
 | `saves/` | 7 | 828 | C168d |
 | `scene/` | 30 | 4414 | C168g |
 | `script/` | 22 | 7218 | C168h |
 | `sound/` | 3 | 1679 | C168e |
 | `spells/` | 8 | 2560 | C168g |
 | `terrain/` | 12 | 3554 | C168g |
-| `ui/` | 95 | 32812 | C168h |
-| `units/` | 27 | 9736 | C168f |
-| `world/` | 35 | 10226 | C168e |
-| all | 493 | 156144 | |
+| `ui/` | 97 | 33141 | C168h |
+| `units/` | 27 | 9739 | C168f |
+| `world/` | 35 | 10253 | C168e |
+| all | 495 | 156760 | |
 
-540 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
+542 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
 
 ### Every file
 
@@ -872,6 +872,8 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | ui_chat_overlay.cpp | ui/ui_chat_overlay.cpp |  |  |
 | ui_chat_overlay.h | ui/ui_chat_overlay.h |  |  |
 | ui_chat_window.cpp | ui/ui_chat_window.cpp |  |  |
+| ui_companions.cpp | ui/ui_companions.cpp |  |  |
+| ui_companions.h | ui/ui_companions.h |  |  |
 | ui_connect_list.cpp | ui/ui_connect_list.cpp |  |  |
 | ui_connect_screen.cpp | ui/ui_connect_screen.cpp |  |  |
 | ui_container.cpp | ui/ui_container.cpp |  |  |
