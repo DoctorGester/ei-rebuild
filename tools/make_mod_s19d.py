@@ -48,7 +48,8 @@ nothing is committed. Kinds (docs/notes/rebirth.md, "Resources and paths"):
                                         and the scene's `extras` dropped (the nodes' kept: their bones' versions)
                                         and the figure 1.5 times as large (the positions, the morph targets'
                                         displacements, the nodes' translations and bones scaled); ei-convert is the
-                                        run's build's (EI_BUILD_DIR, else build\\verify)
+                                        run's build's (EI_BUILD_DIR, else build\\verify); a converted install's
+                                        own unhuma.glb when it has one
 Rebirth.txt and a config.reg with [MOD] Title are written in every kind (as the shipped mods have them; toml: its
 TOML).
 """
@@ -282,8 +283,13 @@ def glb_scaled(glb, scale):
     return struct.pack('<III', 0x46546C67, 2, 12 + len(chunks)) + chunks
 
 
-def gltf(root):
-    config(root)
+def unhuma_glb():
+    """The hero's figure as ei-convert writes it: a converted install's own (run_all --converted), else made from the
+    install's unhuma.mod and unhuma.bon by the run's build's ei-convert."""
+    converted = os.path.join(os.path.splitext(vanilla('Res', 'figures.res'))[0], 'unhuma.glb')
+    if os.path.exists(converted):
+        with open(converted, 'rb') as f:
+            return f.read()
     build = os.environ.get('EI_BUILD_DIR') or os.path.join(exe_path.ROOT, 'build', 'verify')
     convert = os.path.join(build, 'ei-convert.exe' if os.name == 'nt' else 'ei-convert')
     files = install_entries(('Res', 'figures.res'), ('unhuma.mod', 'unhuma.bon'))
@@ -292,8 +298,12 @@ def gltf(root):
         write(archive, mod.archive(files))
         subprocess.run([convert, archive, os.path.join(scratch, 'out')], check=True, capture_output=True)
         with open(os.path.join(scratch, 'out', 'figures', 'unhuma.glb'), 'rb') as f:
-            glb = f.read()
-    write(os.path.join(root, 'Res', 'figures', 'unhuma.glb'), glb_scaled(glb, GLTF_SCALE))
+            return f.read()
+
+
+def gltf(root):
+    config(root)
+    write(os.path.join(root, 'Res', 'figures', 'unhuma.glb'), glb_scaled(unhuma_glb(), GLTF_SCALE))
 
 
 KINDS = {'stream': stream, 'archives': archives, 'maps': maps, 'loose': loose, 'toml': toml, 'databases': databases, 'png': png,
