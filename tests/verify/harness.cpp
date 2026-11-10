@@ -54,7 +54,9 @@
 //                             <attacker> (none: no attacker, as a script's InflictDamage): Unit::ReceiveHit, so the
 //                             attacker gives the hit a side (HitDirection) and the game's own rules decide what it
 //                             does, also in a network game where "@" commands do nothing. A unit is "leader" (the
-//                             local player's first party member), "#<id>" or a script name (as GetObjectByName)
+//                             local player's first party member), "companion" (server player 0's first companion),
+//                             "enemy" (as a target: the living unit nearest the attacker, or the leader, that
+//                             is hostile to it), "#<id>" or a script name (as GetObjectByName)
 //   giveitem <player> <item>  the server world's player <player> (its id: 0 the host's own) is given a new item
 //                             <item> (a database name, as the item manager's CreateItem takes it), as a script's
 //                             GiveItem(player, item) does, also in a network game (net_pair_database)
@@ -230,6 +232,9 @@
 //   checktick <ms>            require the world update period to be <ms> now (the speed keys' effect)
 //   checklimit <n>            require the client session's player limit (ClientSession::PlayerLimit) to be <n>
 //   checkpaused 0|1           require the server world's pause flag to be off / on (the host's pause mode)
+//   companions <n>            require server player 0's party to hold <n> records (its hero and companions)
+//   heroxp <name> [more]      log the experience of the saved hero <name>, its file read from the disk; with
+//                             "more" require it above what the previous heroxp of <name> logged
 //   waitfor <seconds> <expression>
 //                             evaluate the expression every 250 ms until it is nonzero; fail if
 //                             that takes longer than <seconds>
@@ -552,6 +557,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <map>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -784,10 +790,13 @@ unsigned g_awardMoney = 0;
 bool g_awardServed = false;      // "waitaward ... served": the server's award queue filled and emptied
 bool g_awardQueueSeen = false;   // the server's award queue was seen with awards
 bool g_awardFromSet = false;   // "awardfrom" took them (the next waitaward compares with those)
+// What each "heroxp" step read, by hero.
+std::map<std::string, float> g_heroExperience;
 // A "hit" step's unit: "leader", "#<id>" or a script name; "none" (0) where `none` allows it; -1 when not found.
 int HitUnitId(const std::string& name, bool none) {
     if (none && name == "none") return 0;
     if (name == "leader") return digest::LocalLeader();
+    if (name == "companion") return image::CompanionUnit(0);
     if (!name.empty() && name[0] == '#') return std::atoi(name.c_str() + 1);
     const int id = image::TextKey(name.c_str());
     return id ? id : -1;
@@ -2835,8 +2844,10 @@ void RunSteps() {
             if (std::sscanf(s.argument.c_str(), "%95s %95s %f", target, attacker, &amount) != 3) {
                 error = "hit needs <target> <attacker> <amount>";
             } else {
-                const int targetId = HitUnitId(target, false);
                 const int attackerId = HitUnitId(attacker, true);
+                const int targetId = std::string(target) == "enemy"
+                                         ? image::NearestEnemy(attackerId > 0 ? attackerId : digest::LocalLeader())
+                                         : HitUnitId(target, false);
                 if (targetId < 0 || attackerId < 0)
                     error = std::string("hit: no unit ") + (targetId < 0 ? target : attacker);
                 else
@@ -3139,6 +3150,27 @@ void RunSteps() {
             if (limit != want)
                 g_failures.push_back("checklimit: the session's player limit is " + std::to_string(limit) + ", not " +
                                      std::to_string(want));
+        } else if (s.verb == "companions") {
+            const int want = std::atoi(s.argument.c_str());
+            const int records = image::ServerPartyRecords(0);
+            Log("harness: companions: server player 0's party has %d records (wanted %d)", records, want);
+            if (records != want)
+                g_failures.push_back("companions: server player 0's party has " + std::to_string(records) +
+                                     " records, not " + std::to_string(want));
+        } else if (s.verb == "heroxp") {
+            char name[64] = {}, more[16] = {};
+            std::sscanf(s.argument.c_str(), "%63s %15s", name, more);
+            std::string file;
+            float experience = 0.0f;
+            if (!image::SavedHero(name, &file, &experience)) {
+                g_failures.push_back(std::string("heroxp: no saved hero ") + name + " reads");
+            } else {
+                Log("harness: heroxp: %s (%s) has %.3f experience", name, file.c_str(), experience);
+                auto previous = g_heroExperience.find(name);
+                if (std::string(more) == "more" && (previous == g_heroExperience.end() || !(experience > previous->second)))
+                    g_failures.push_back(std::string("heroxp: ") + name + " did not gain experience");
+                g_heroExperience[name] = experience;
+            }
         } else if (s.verb == "checkpaused") {
             const bool want = std::atoi(s.argument.c_str()) != 0;
             Log("harness: checkpaused: the server world is %s (wanted %s)", image::ServerPaused() ? "paused" : "running",

@@ -57,6 +57,13 @@ std::vector<std::string> NetState();
 int ServerAwards();
 // The client session's player limit (ClientSession::PlayerLimit), -1 without a client.
 int SessionPlayerLimit();
+// Companions: the server world player's party records (-1 without the player); the unit id of server player 0's
+// companion `index` (from 0, -1 none); the nearest living unit hostile to unit `id` (-1 none); the saved hero of the
+// heroes' list named `name` (its file), read from the disk (false without one or when it does not read).
+int ServerPartyRecords(int player);
+int CompanionUnit(int index);
+int NearestEnemy(int id);
+bool SavedHero(const char* name, std::string* file, float* experience);
 
 // ---- the game's global objects (harness_objects.h; image/harness_objects_image.cpp)
 
