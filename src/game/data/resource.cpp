@@ -4,6 +4,7 @@
 #include "game/data/resource.h"
 #include "game/map/map_folder.h"
 #include "game/mods/mod_folders.h"
+#include "game/models/figure_gltf.h"
 #include "game/models/texture_png.h"
 
 #include "lib/bytes.h"
@@ -80,6 +81,27 @@ constexpr const char* kMapFileExtension = ".MP";
 
 // The name of a folder's texts (docs/notes/mods.md, "Records as TOML"), as LooseKey gives it.
 constexpr std::string_view kTextsToml = "texts.toml";
+
+// Whether `key` (a LooseKey) ends with `extension`.
+bool EndsWith(std::string_view key, std::string_view extension) {
+    return key.size() > extension.size() && key.substr(key.size() - extension.size()) == extension;
+}
+
+// A figure model's glTF (docs/notes/mods.md, "Models as glTF"): `key` (a LooseKey) entered by its name without the
+// extension, a .gltf before a .glb of the same name.
+void AddModel(std::map<std::string, std::string, std::less<>>& models, const std::string& key) {
+    const bool gltf = EndsWith(key, ".gltf");
+    if (!gltf && !EndsWith(key, ".glb")) return;
+    const auto [found, added] = models.try_emplace(key.substr(0, key.size() - (gltf ? 5 : 4)), key);
+    if (!added && gltf) found->second = key;
+}
+
+// Whether `key` (a LooseKey) is a figure file a glTF can stand for: .mod, .bon, .lnk, .fig.
+bool IsFigureFile(std::string_view key) {
+    for (const std::string_view extension : {".mod", ".bon", ".lnk", ".fig"})
+        if (EndsWith(key, extension)) return true;
+    return false;
+}
 
 // The texts of `loose`'s texts.toml read into it; a file that cannot be read or parsed, or a value that is not a
 // string, is logged and left out.
@@ -190,7 +212,10 @@ void MappedResource::FindLooseFiles(const std::string& path) {
                 continue;
             }
             const auto [kept, added] = loose.byName.try_emplace(LooseKey(file.name), file);
-            if (added) continue;
+            if (added) {
+                AddModel(loose.models, kept->first);
+                continue;
+            }
             // Two files of one name in a folder (a system that tells their case apart): the first by name is read.
             platform::LayerFile& first = kept->second;
             if (file.name < first.name) std::swap(file, first);
@@ -206,6 +231,9 @@ void MappedResource::ForgetLooseFiles() {
     mapFolder.clear();
     folderMap.reset();
     folderMapMade = false;
+    modelEntries.clear();
+    modelEntriesRead = false;
+    madeModels.clear();
 }
 
 std::vector<MappedResource::Source> MappedResource::Sources() {
@@ -313,6 +341,8 @@ void* MappedResource::FindFile(std::string_view name, std::uint32_t* size, bool*
         const Source& source = sources[i];
         if (!pngName.empty())
             if (void* data = PngTexture(name, pngName, sources, i, size)) return data;
+        if (IsFigureFile(key))
+            if (void* data = ModelFile(name, source, size)) return data;
         if (!source.loose) {
             if (void* data = source.entries->EntryFile(name, size)) return data;
             continue;
@@ -387,6 +417,93 @@ bool MappedResource::HasFile(std::string_view name) {
         if (!pngName.empty() &&
             (source.loose ? source.loose->byName.contains(pngKey) : source.entries->FindEntry(pngName) != -1))
             return true;
+        if (IsFigureFile(key) && HasModelFile(name, source)) return true;
+    }
+    return false;
+}
+
+// ---- Figure models as glTF (docs/notes/mods.md, "Models as glTF") ----------------------------------------------
+
+namespace {
+
+// The glTF models among an archive's own entries (read at the first use).
+const std::map<std::string, std::string, std::less<>>& ModelEntries(MappedResource& archive) {
+    if (archive.modelEntriesRead) return archive.modelEntries;
+    archive.modelEntriesRead = true;
+    if (!archive.entries || !archive.names) return archive.modelEntries;
+    for (std::uint32_t i = 0; i < archive.header.count; ++i) {
+        const ResEntry& entry = archive.entries[i];
+        if (entry.nameOffset > archive.header.namesSize || entry.nameLength > archive.header.namesSize - entry.nameOffset)
+            continue;
+        AddModel(archive.modelEntries, LooseKey(std::string_view(archive.names + entry.nameOffset, entry.nameLength)));
+    }
+    return archive.modelEntries;
+}
+
+} // namespace
+
+const std::map<std::string, std::string>* MappedResource::MadeModel(const Source& source, const std::string& model) {
+    std::string bytes, where;
+    const std::string place = source.loose ? source.loose->folder : std::to_string(reinterpret_cast<std::uintptr_t>(source.entries));
+    const auto cached = madeModels.find(place + "|" + model);
+    if (cached != madeModels.end()) return cached->second ? &*cached->second : nullptr;
+    auto& made = madeModels[place + "|" + model];
+    if (!ReadSource(source, model, &bytes, &where)) return nullptr;
+    // A .gltf's buffers are files of its place, named relative to it.
+    const std::size_t slash = model.find_last_of('\\');
+    const std::string folder = slash == std::string::npos ? std::string() : model.substr(0, slash + 1);
+    const figure_gltf::ReadUri readUri = [&](const std::string& uri, std::string* out) {
+        std::string name = folder + uri;
+        std::replace(name.begin(), name.end(), '/', '\\');
+        std::string ignored;
+        return ReadSource(source, text::ToAssetText(name), out, &ignored);
+    };
+    figure_gltf::Figure figure;
+    figure_gltf::Notes notes;
+    std::string error;
+    if (!figure_gltf::FromGltf(bytes, readUri, &figure, &error, &notes)) {
+        game::Warning("models: %s: %s; not read", where, error);
+        return nullptr;
+    }
+    for (const std::string& line : notes.lines) game::Warning("models: %s: %s", where, line);
+    const std::size_t dot = model.find_last_of('.');
+    made = figure_gltf::Files(figure, model.substr(0, dot));
+    return &*made;
+}
+
+void* MappedResource::ModelFile(std::string_view name, const Source& source, std::uint32_t* size) {
+    const auto& models = source.loose ? source.loose->models : ModelEntries(*source.entries);
+    if (models.empty()) return nullptr;
+    const std::string key = LooseKey(name);
+    const std::string_view stem = std::string_view(key).substr(0, key.size() - 4);
+    // The longest model name that begins the file's (a loose figure's <name><part>.fig).
+    for (std::size_t length = stem.size(); length > 0; --length) {
+        const auto model = models.find(stem.substr(0, length));
+        if (model == models.end()) continue;
+        const std::map<std::string, std::string>* files = MadeModel(source, model->second);
+        if (!files) continue;
+        const auto file = files->find(key);
+        if (file == files->end()) continue;
+        if (void* data = SharedFile(*this, name, size)) return data;
+        auto made = std::make_unique<LoadedFile>();
+        made->name = name;
+        made->size = static_cast<std::uint32_t>(file->second.size());
+        made->bytes.assign(file->second.begin(), file->second.end());
+        return KeptFile(*this, std::move(made), size);
+    }
+    return nullptr;
+}
+
+bool MappedResource::HasModelFile(std::string_view name, const Source& source) {
+    const auto& models = source.loose ? source.loose->models : ModelEntries(*source.entries);
+    if (models.empty()) return false;
+    const std::string key = LooseKey(name);
+    const std::string_view stem = std::string_view(key).substr(0, key.size() - 4);
+    for (std::size_t length = stem.size(); length > 0; --length) {
+        const auto model = models.find(stem.substr(0, length));
+        if (model == models.end()) continue;
+        const std::map<std::string, std::string>* files = MadeModel(source, model->second);
+        if (files && files->contains(key)) return true;
     }
     return false;
 }

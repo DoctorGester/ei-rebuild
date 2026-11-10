@@ -18,6 +18,7 @@ int RunWeatherFieldChecks();   // weather_field.cpp: the rain's and the snow's p
 int RunTomlChecks();           // toml.cpp: lib/toml.h's writer read back through tomlc17
 int RunTexturePngChecks();     // texture_png.cpp: textures as PNG and back
 int RunMapFolderChecks();      // map_folder.cpp: maps as folders and back, the PNG writer
+int RunFigureGltfChecks();     // figure_gltf.cpp: figure models as glTF and back
 
 int main() {
     std::setvbuf(stdout, nullptr, _IONBF, 0);   // what was printed survives a crashing check
@@ -25,7 +26,8 @@ int main() {
                          RunMathsChecks() + RunSavePictureChecks() + RunAudioMixChecks() + RunDisplaySizesChecks() +
                          RunBoundedTextChecks() + RunTaggedStreamChecks() + RunGameBufferChecks() +
                          RunPlatformTextChecks() + RunPathLayersChecks() + RunWeatherFieldChecks() + RunTomlChecks() +
-                         RunTexturePngChecks() + RunMapFolderChecks();
+                         RunTexturePngChecks() + RunMapFolderChecks() +
+                         RunFigureGltfChecks();
     std::printf("ei_unit_check: %d problems\n", failures);
     return failures ? 1 : 0;
 }

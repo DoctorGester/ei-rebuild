@@ -335,11 +335,11 @@ Risks:
 | `combat/` | 13 | 6394 | C168f |
 | `console/` | 5 | 2038 | C168e |
 | `core/` | 27 | 3875 | C168d |
-| `data/` | 15 | 4856 | C168d |
+| `data/` | 15 | 5126 | C168d |
 | `effects/` | 23 | 10833 | C168g |
 | `items/` | 10 | 2855 | C168g |
 | `map/` | 13 | 3077 | C168e |
-| `models/` | 21 | 6066 | C168g |
+| `models/` | 23 | 7580 | C168g |
 | `mods/` | 6 | 603 | C168d |
 | `net/` | 21 | 7981 | C168h |
 | `objects/` | 23 | 8021 | C168f |
@@ -353,9 +353,9 @@ Risks:
 | `ui/` | 95 | 32812 | C168h |
 | `units/` | 27 | 9736 | C168f |
 | `world/` | 35 | 10226 | C168e |
-| all | 489 | 153892 | |
+| all | 491 | 155676 | |
 
-536 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
+538 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
 
 ### Every file
 
@@ -602,6 +602,8 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | figure_bones.cpp | models/animation_bones.cpp | fold | FigureBone::Place (57 lines): FigureBone's other members are there |
 | dib.cpp | models/dib.cpp |  |  |
 | dib.h | models/dib.h |  |  |
+| figure_gltf.cpp | models/figure_gltf.cpp |  |  |
+| figure_gltf.h | models/figure_gltf.h |  |  |
 | figure_manager.cpp | models/figure_manager.cpp |  |  |
 | menu_rects.cpp | models/figure_manager.cpp | fold | FigureManager::LoadMenuRects (57 lines): a member of the manager |
 | figure_manager.h | models/figure_manager.h |  |  |

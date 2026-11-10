@@ -1,6 +1,6 @@
 """Writes a Rebirth mod for the S19d scenarios (the mod-folder patches the S19b scenario leaves unchecked).
 
-usage: python tools/make_mod_s19d.py <saves dir> stream|archives|maps|loose|toml|databases|png|heights
+usage: python tools/make_mod_s19d.py <saves dir> stream|archives|maps|loose|toml|databases|png|heights|gltf
                                     [--zip <name> [--top]]
   <saves dir>   the run's harness_saves folder; the mod goes to <saves dir>\\s19d_mod, which the scenario selects with
                 the harness step "mod harness_saves\\s19d_mod" (the settings' Mod)
@@ -47,13 +47,22 @@ nothing is committed. Kinds (docs/notes/rebirth.md, "Resources and paths"):
               Maps\\zone1.mpr             a copy of the install's (packed from its folder on an unpacked or converted one)
               Maps\\zone1\\heights.png    its heights (from the sectors, or from the converted folder's heights.png) with
                                         a plateau of 60000 raised around HILL: over the archive's map, the rest its own
+  gltf      models as glTF (tests/scenarios/mod_gltf_model.txt; docs/notes/mods.md, "Models as glTF"):
+              Res\\figures\\unhuma.glb   the hero's figure (unhuma.mod and .bon of the install's figures.res) as
+                                        ei-convert writes it, then as another tool would leave it: the meshes'
+                                        and the scene's `extras` dropped (the nodes' kept: their bones' versions)
+                                        and the figure 1.5 times as large (the positions, the morph targets'
+                                        displacements, the nodes' translations and bones scaled); ei-convert is the
+                                        run's build's (EI_BUILD_DIR, else build\\verify); a converted install's
+                                        own unhuma.glb when it has one
 Rebirth.txt and a config.reg with [MOD] Title are written in every kind (as the shipped mods have them; toml: its
 TOML).
 """
-import argparse, os, shutil, struct, sys, tempfile, zipfile, zlib
+import argparse, json, os, shutil, struct, subprocess, sys, tempfile, zipfile, zlib
 
 import exe_path
 import make_test_mod as mod
+import unpack_install
 
 MOD = 's19d_mod'
 
@@ -303,8 +312,99 @@ def heights(root):
     write(os.path.join(root, 'Maps', 'zone1', 'heights.png'), png_grey16_file(width, height, rows))
 
 
+
+GLTF_SCALE = 1.5
+
+
+def install_entries(archive, names):
+    """The entries `names` of the vanilla install's archive (its path's names; packed, or the folder of an unpacked
+    one) by name."""
+    source = vanilla(*archive)
+    if not os.path.exists(source):
+        folder = os.path.splitext(source)[0]
+        return {name: open(os.path.join(folder, name), 'rb').read() for name in names}
+    with open(source, 'rb') as f:
+        data = f.read()
+    found = {name.lower(): (offset, size) for name, offset, size, _ in unpack_install.entries(data)}
+    return {name: data[found[name][0]:found[name][0] + found[name][1]] for name in names}
+
+
+def single(value):
+    """value rounded to a 32-bit float."""
+    return struct.unpack('<f', struct.pack('<f', value))[0]
+
+
+def glb_scaled(glb, scale):
+    """A .glb with every `extras` but the nodes' dropped, and its positions, morph displacements and node translations
+    and bones scaled."""
+    json_length, = struct.unpack_from('<I', glb, 12)
+    doc = json.loads(glb[20:20 + json_length])
+    bin_length, = struct.unpack_from('<I', glb, 20 + json_length)
+    binary = bytearray(glb[28 + json_length:28 + json_length + bin_length])
+
+    def drop_extras(value):
+        if isinstance(value, dict):
+            value.pop('extras', None)
+            for item in value.values():
+                drop_extras(item)
+        elif isinstance(value, list):
+            for item in value:
+                drop_extras(item)
+    nodes = doc.pop('nodes', [])
+    drop_extras(doc)
+    doc['nodes'] = nodes
+    scaled = set()
+    for mesh in doc.get('meshes', []):
+        for primitive in mesh['primitives']:
+            for attributes in [primitive['attributes']] + primitive.get('targets', []):
+                scaled.add(attributes['POSITION'])
+    for index in sorted(scaled):
+        accessor = doc['accessors'][index]
+        if 'bufferView' in accessor:   # (an accessor without a view is all zero)
+            at = doc['bufferViews'][accessor['bufferView']].get('byteOffset', 0) + accessor.get('byteOffset', 0)
+            count = accessor['count'] * 3
+            values = [v * scale for v in struct.unpack_from(f'<{count}f', binary, at)]
+            struct.pack_into(f'<{count}f', binary, at, *values)
+        for bound in ('min', 'max'):
+            if bound in accessor:
+                accessor[bound] = [single(single(v) * scale) for v in accessor[bound]]   # as the floats are
+    for node in doc.get('nodes', []):
+        if 'translation' in node:
+            node['translation'] = [v * scale for v in node['translation']]
+        ei = node.get('extras', {}).get('ei', {})
+        if 'bone' in ei:
+            ei['bone'] = [[v * scale for v in version] for version in ei['bone']]
+    text = json.dumps(doc, separators=(',', ':')).encode()
+    text += b' ' * (-len(text) % 4)
+    chunks = struct.pack('<II', len(text), 0x4E4F534A) + text + struct.pack('<II', len(binary), 0x4E4942) + bytes(binary)
+    return struct.pack('<III', 0x46546C67, 2, 12 + len(chunks)) + chunks
+
+
+def unhuma_glb():
+    """The hero's figure as ei-convert writes it: a converted install's own (run_all --converted), else made from the
+    install's unhuma.mod and unhuma.bon by the run's build's ei-convert."""
+    converted = os.path.join(os.path.splitext(vanilla('Res', 'figures.res'))[0], 'unhuma.glb')
+    if os.path.exists(converted):
+        with open(converted, 'rb') as f:
+            return f.read()
+    build = os.environ.get('EI_BUILD_DIR') or os.path.join(exe_path.ROOT, 'build', 'verify')
+    convert = os.path.join(build, 'ei-convert.exe' if os.name == 'nt' else 'ei-convert')
+    files = install_entries(('Res', 'figures.res'), ('unhuma.mod', 'unhuma.bon'))
+    with tempfile.TemporaryDirectory() as scratch:
+        archive = os.path.join(scratch, 'figures.res')
+        write(archive, mod.archive(files))
+        subprocess.run([convert, archive, os.path.join(scratch, 'out')], check=True, capture_output=True)
+        with open(os.path.join(scratch, 'out', 'figures', 'unhuma.glb'), 'rb') as f:
+            return f.read()
+
+
+def gltf(root):
+    config(root)
+    write(os.path.join(root, 'Res', 'figures', 'unhuma.glb'), glb_scaled(unhuma_glb(), GLTF_SCALE))
+
+
 KINDS = {'stream': stream, 'archives': archives, 'maps': maps, 'loose': loose, 'toml': toml, 'databases': databases, 'png': png,
-         'heights': heights}
+         'heights': heights, 'gltf': gltf}
 
 
 def zip_folder(root, target, top):
