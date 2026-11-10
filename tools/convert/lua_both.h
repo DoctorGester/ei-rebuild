@@ -30,16 +30,26 @@ struct Outcome {
     std::size_t mostRuns = 0;
 };
 
+// Where the Lua side goes through a save, after the compare of the tick of each number (-1: none): `oldFormat`, the
+// game's script saved there (Script::SaveState) and loaded into a script of its own, and the Lua resumed from it by
+// the old-save shim (ScriptLuaScheduler::Resume); `eris`, the Lua state saved and restored into a new scheduler. The
+// state each gives is compared with the game's of that tick at once, and the ticks after go on with it.
+struct Saves {
+    int oldFormat = -1;
+    int eris = -1;
+};
+
 // The texts loaded into one script, run both ways for `ticks` ticks; with `resetTick` >= 0 the zone reset
 // (Script::ResetZone, ScriptLuaScheduler::ResetZone) before that tick. A text the game's parser stops in is loaded as
 // the game loads it: what came before, its WorldScript not started.
-Outcome Compare(const std::vector<Text>& texts, int ticks, int resetTick = -1);
+Outcome Compare(const std::vector<Text>& texts, int ticks, int resetTick = -1, Saves saves = {});
 
 // True while Compare runs: the tool's log drops the game's warnings of the test world (no unit prototypes, no
 // spells).
 extern bool g_logMuted;
 
-// The short texts: prints each difference; returns the number of failed checks and adds the checks made to *checks.
+// The short texts, each also through a save at every tick (the old format, then Eris a tick later; Eris alone):
+// prints each difference; returns the number of failed checks and adds the checks made to *checks.
 int Check(int* checks);
 
 }   // namespace lua_both

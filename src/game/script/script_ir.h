@@ -125,4 +125,11 @@ std::string Dump(const File& file, bool lines = false);
 // loader built.
 std::string DumpLoaded(const Script& script, const LoadMark& mark);
 
+// The tree of a Script's whole program as a save holds it, for the old-save shim (docs/notes/lua-scripting.md,
+// "Saves"): every global by type, every definition with its rules, every WorldScript block in its order; each call's
+// arguments in the written order, which is the signature's (the loader filled each type's slots in it). It has no
+// lines, tokens or comments. False with the reason in *error for a call the tree cannot hold (a keyword without a
+// signature, slots the signature does not account for).
+bool Loaded(const Script& script, File* file, std::string* error);
+
 } // namespace scriptir

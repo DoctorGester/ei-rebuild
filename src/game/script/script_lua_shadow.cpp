@@ -301,13 +301,50 @@ struct Shadow {
         std::string error;
         if (!Scheduler().Load(entry.lua, entry.chunk.c_str(), entry.run, &error))
             Fail("Lua error loading " + entry.chunk + ": " + error);
+        NameDefinitions();
+    }
+
+    // The definitions' tables by their names (the instance compare's); the globals watched again.
+    void NameDefinitions() {
         watchedDirty = true;
+        definitionNames.clear();
         lua_State* L = scheduler->lua.State();
         for (const auto& [name, lua] : names.scripts) {
             lua_getglobal(L, lua.c_str());
             if (lua_type(L, -1) == LUA_TTABLE) definitionNames[lua_topointer(L, -1)] = name;
             lua_pop(L, 1);
         }
+    }
+
+    // ---- Saves ----
+
+    // The real script's state came from a save (Script::LoadState): the Lua's is built from it by the old-save shim,
+    // and compared at once.
+    void Resume() {
+        if (recording) return Stop("a save was loaded inside the script's tick");
+        queue.clear();
+        Clear();
+        scheduler = MakeScheduler();
+        std::string text, error;
+        const bool ok = scheduler->Resume(*real, names, &text, &error);
+        texts.emplace_back(std::format("save{}", ++resumes), text);
+        if (!ok) return Fail("the save's script state did not resume in Lua: " + error);
+        NameDefinitions();
+        Compare();
+    }
+
+    // The Lua state saved (Eris) and restored into a new scheduler, which goes on in its place; compared at once.
+    void RoundTrip() {
+        if (!active || recording || replaying || !scheduler) return;
+        std::string data, error;
+        if (!scheduler->Save(&data, &error)) return Fail("the Lua state did not save: " + error);
+        std::unique_ptr<ScriptLuaScheduler> restored = MakeScheduler();
+        if (!restored->Restore(data, &error)) return Fail("the Lua state did not restore: " + error);
+        scheduler = std::move(restored);
+        ++roundTrips;
+        savedBytes = std::max(savedBytes, data.size());
+        NameDefinitions();
+        Compare();
     }
 
     // ---- The tick ----
@@ -451,14 +488,19 @@ struct Shadow {
     }
 
     ScriptLuaScheduler& Scheduler() {
-        if (scheduler) return *scheduler;
-        scheduler = std::make_unique<ScriptLuaScheduler>(&own);
-        auto start = std::move(scheduler->lua.startScript);
-        scheduler->lua.startScript = [this, start](lua_State* L) {
+        if (!scheduler) scheduler = MakeScheduler();
+        return *scheduler;
+    }
+
+    // A scheduler on the shadow's own script whose starts are matched first.
+    std::unique_ptr<ScriptLuaScheduler> MakeScheduler() {
+        auto made = std::make_unique<ScriptLuaScheduler>(&own);
+        auto start = std::move(made->lua.startScript);
+        made->lua.startScript = [this, start](lua_State* L) {
             Started(L);
             start(L);
         };
-        return *scheduler;
+        return made;
     }
 
     // A call of a definition on the Lua side (the definition and the arguments on L's stack).
@@ -538,6 +580,12 @@ struct Shadow {
     int ticks = 0;
     long long calls = 0;
     int textCount = 0;
+    int resumes = 0;               // saves loaded and resumed
+    int roundTrips = 0;            // Eris round trips
+    std::size_t savedBytes = 0;    // the largest persisted state
+    // The shadow's tick of the next Eris round trip: 200, then twice as far each time (a few per run however long;
+    // and one at every save of the game).
+    int nextRoundTrip = 200;
 };
 
 }   // namespace scriptshadow
@@ -575,6 +623,9 @@ std::string ScriptShadow::Summary() {
     for (const Shadow* shadow : Shadows()) {
         text += std::format("{}lua both: {} script: {} ticks, {} calls compared, {} texts", text.empty() ? "" : "\n",
                             shadow->label, shadow->ticks, shadow->calls, shadow->textCount);
+        if (shadow->resumes || shadow->roundTrips)
+            text += std::format("; {} saves resumed, {} Eris round trips (at most {} bytes)", shadow->resumes,
+                                shadow->roundTrips, shadow->savedBytes);
         if (!shadow->failure.empty()) text += "; differs";
         else if (!shadow->stopped.empty()) text += "; stopped: " + shadow->stopped;
     }
@@ -809,13 +860,22 @@ void ScriptShadow::EndTick(Script* script) {
     if (shadow.active && ticked) {
         if (!shadow.frames.empty()) shadow.Fail("a handler of the game's was still open at the end of the tick");
         else shadow.Tick();
+        if (shadow.ticks >= shadow.nextRoundTrip) {
+            shadow.nextRoundTrip *= 2;
+            shadow.RoundTrip();
+        }
     }
     shadow.Release();
 }
 
-void ScriptShadow::Stop(Script* script, const char* why) {
+void ScriptShadow::StateLoaded(Script* script) {
+    Shadow& shadow = *state;
+    if (script != shadow.real || !shadow.active) return;
+    shadow.Resume();
+}
+
+void ScriptShadow::Saving(Script* script) {
     Shadow& shadow = *state;
     if (script != shadow.real) return;
-    shadow.Stop(why);
-    shadow.Release();
+    shadow.RoundTrip();
 }

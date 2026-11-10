@@ -50,6 +50,12 @@ struct LuaText {
 // names the text in the header comment.
 LuaText WriteLua(const scriptir::File& file, LuaNames& names, std::string_view source);
 
+// A chunk giving a function that runs `block`'s calls from `from` on, `params` its parameters, in the names of the
+// texts converted so far: `return function(params) ... end`. The old-save shim's (a saved run resumed at its command,
+// a saved program's later WorldScripts); the converted files never hold one.
+std::string WriteFunction(const scriptir::Block& block, std::size_t from, const std::vector<scriptir::Variable>& params,
+                          LuaNames& names);
+
 // A script name as a Lua identifier: the `!n!` qualifier dropped, every character but letters, digits and `_` as `_`
 // (`VTriger#0#312` is `VTriger_0_312`, `#OnBriefingComplete` `_OnBriefingComplete`), `_` before a leading digit.
 std::string LuaIdentifier(std::string_view name);

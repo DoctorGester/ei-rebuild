@@ -485,11 +485,13 @@ script_addon.cpp            script/script_addon.cpp
 script_lua.h                script/script_lua.h
 script_lua.cpp              script/script_lua.cpp
 script_lua_number.h         script/script_lua_number.h
-script_lua_shadow.h         script/script_lua_shadow.hscript_lua_shadow.cpp       script/script_lua_shadow.cpp
+script_lua_shadow.h         script/script_lua_shadow.h
+script_lua_shadow.cpp       script/script_lua_shadow.cpp
 script_lua_writer.h         script/script_lua_writer.h
 script_lua_writer.cpp       script/script_lua_writer.cpp
 script_lua_scheduler.h      script/script_lua_scheduler.h
 script_lua_scheduler.cpp    script/script_lua_scheduler.cpp
+script_lua_resume.cpp       script/script_lua_resume.cpp
 script_addon_handlers.h     script/script_addon_handlers.h
 script_addon_commands.cpp   script/script_addon_commands.cpp
 script_addon_math.cpp       script/script_addon_math.cpp

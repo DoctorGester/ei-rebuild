@@ -3,6 +3,7 @@
 // Every piece goes through the stream's Write in the save's order and in its pieces.
 #include "game/core/core_streams.h"
 #include "game/script/script.h"
+#include "game/script/script_lua_shadow.h"
 
 #include <cstdint>
 
@@ -82,6 +83,7 @@ void ScriptRun::Save(ByteStream* stream, const Script* script) const {
 }
 
 void Script::SaveState(ByteStream* stream) {
+    if (shadow) shadow->Saving(this);
     WriteList(stream, pointLights);
     WriteList(stream, particles);
     WriteList(stream, fxSources);

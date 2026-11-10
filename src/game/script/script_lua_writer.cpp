@@ -206,6 +206,13 @@ public:
         Leftover();
     }
 
+    // `return function(params)` and the block's calls from `from` on.
+    void Function(const scriptir::Block& block, std::size_t from, const std::vector<scriptir::Variable>& list) {
+        Line(std::format("return function({})", OpenParams(list)));
+        Commands(block, from);
+        Line("end");
+    }
+
 private:
     struct Member {
         std::string counter;   // the tree's name of the counter global
@@ -430,11 +437,12 @@ private:
         return text;
     }
 
-    void Definition(const scriptir::Definition& definition) {
+    // A function's parameters named (a parameter's Lua name hides no global or script) and in scope; their list.
+    std::string OpenParams(const std::vector<scriptir::Variable>& variables) {
         params.clear();
         locals.clear();
         std::string list;
-        for (const scriptir::Variable& param : definition.params) {
+        for (const scriptir::Variable& param : variables) {
             const std::string base = LuaIdentifier(param.name);
             const std::string name = LocalName(base);
             if (name != base) ++out.renamedParams;
@@ -443,6 +451,11 @@ private:
             if (!list.empty()) list += ", ";
             list += name;
         }
+        return list;
+    }
+
+    void Definition(const scriptir::Definition& definition) {
+        const std::string list = OpenParams(definition.params);
         Line("");
         Before(&definition);
         Line(std::format("-- {}({})", StripQualifier(definition.name), ParamsComment(definition.params)));
@@ -493,6 +506,9 @@ private:
     void World(const scriptir::Block& block, std::size_t index) {
         params.clear();
         locals.clear();
+        // A saved program's later WorldScripts (scriptir::Loaded) each run through a function of their own
+        // (WriteFunction).
+        if (index > 0 && file.ok) return;
         Line("");
         Before(&block);
         if (index > 0) {
@@ -513,9 +529,10 @@ private:
         Line("end");
     }
 
-    void Commands(const scriptir::Block& block) {
+    void Commands(const scriptir::Block& block, std::size_t from = 0) {
         ++depth;
-        for (const scriptir::Call& call : block.calls) {
+        for (std::size_t i = from; i < block.calls.size(); ++i) {
+            const scriptir::Call& call = block.calls[i];
             Before(&call);
             const std::size_t at = out.text.size();
             Command(call);
@@ -709,6 +726,14 @@ LuaText WriteLua(const scriptir::File& file, LuaNames& names, std::string_view s
     LuaText out;
     Writer(file, names, out).Write(source);
     return out;
+}
+
+std::string WriteFunction(const scriptir::Block& block, std::size_t from, const std::vector<scriptir::Variable>& params,
+                          LuaNames& names) {
+    static const scriptir::File noFile;
+    LuaText out;
+    Writer(noFile, names, out).Function(block, from, params);
+    return out.text;
 }
 
 }   // namespace scriptlua

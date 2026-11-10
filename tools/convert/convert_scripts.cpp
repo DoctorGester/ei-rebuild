@@ -1,6 +1,6 @@
 // ei-convert --scripts: the script survey and the parse tree check (convert_scripts.h).
 // usage: ei-convert --scripts [<install>...] [--scenarios <folder>] [--dump <folder>] [--lua <folder>] [--lockstep <ticks>]
-//                              [--quiet]
+//                              [--saves] [--quiet]
 //   <install>     an unpacked install (tools/unpack_install.py): every .mob under it, a mod's (starter\Mods\<mod>\...)
 //                 counted as the mod's; a mob that another's AddMob names, or a network quest's (its archive's
 //                 map.txt names its base), is loaded after that one into the same script
@@ -11,6 +11,8 @@
 //   --lockstep    every script (a mission with the texts it loads after and its quest texts, an engine text after its
 //                 mission, the samples, a scenario's console lines one per tick) run both ways for that many ticks
 //                 (lua_both.h), the scripts that differ listed
+//   --saves       with --lockstep: the Lua side of each script goes through an old-format save at half the ticks and
+//                 through an Eris save at three quarters (lua_both::Saves)
 //   --quiet       only the tree check's line (the build check: the samples and the scenarios, no game data)
 // The texts: each zone's script chunk (encoded or plain, read as WorldServer::LoadZoneScripts does), the quest texts
 // QFinish would build from each mission's QStart / QObj* commands (loaded after the mission, into its script), the
@@ -1063,6 +1065,7 @@ struct LockstepStats {
 };
 
 int g_lockstepTicks = 0;
+bool g_lockstepSaves = false;
 std::map<std::string, LockstepStats> g_lockstep;   // by group
 LockstepStats g_lockstepAll;
 
@@ -1072,7 +1075,9 @@ void Lockstep(const std::string& group, const std::string& name, const std::vect
     std::vector<lua_both::Text> texts;
     for (std::size_t i = 0; i < sources.size(); ++i)
         texts.push_back({oneATick ? static_cast<int>(i) : 0, sources[i].name, sources[i].text});
-    const lua_both::Outcome outcome = lua_both::Compare(texts, g_lockstepTicks);
+    const lua_both::Saves saves =
+        g_lockstepSaves ? lua_both::Saves{g_lockstepTicks / 2, g_lockstepTicks * 3 / 4} : lua_both::Saves{};
+    const lua_both::Outcome outcome = lua_both::Compare(texts, g_lockstepTicks, -1, saves);
     for (LockstepStats* s : {&g_lockstep[group], &g_lockstepAll}) {
         ++s->scripts;
         s->ticks += outcome.ticks;
@@ -1117,7 +1122,7 @@ void PrintLuaStats(const std::string& title, const LuaStats& s) {
 
 int Usage() {
     std::printf("usage: ei-convert --scripts [<install>...] [--scenarios <folder>] [--dump <folder>] [--lua <folder>] "
-                "[--lockstep <ticks>] [--quiet]\n");
+                "[--lockstep <ticks>] [--saves] [--quiet]\n");
     return 2;
 }
 
@@ -1157,6 +1162,7 @@ int Main(const std::vector<std::string>& args) {
         else if (args[i] == "--dump" && i + 1 < args.size()) g_dumpFolder = fs::absolute(args[++i]);
         else if (args[i] == "--lua" && i + 1 < args.size()) g_luaFolder = fs::absolute(args[++i]);
         else if (args[i] == "--lockstep" && i + 1 < args.size()) g_lockstepTicks = std::atoi(args[++i].c_str());
+        else if (args[i] == "--saves") g_lockstepSaves = true;
         else if (args[i] == "--quiet") quiet = true;
         else if (args[i].starts_with("--")) return Usage();
         else installs.push_back(fs::absolute(args[i]));
