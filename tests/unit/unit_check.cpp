@@ -15,13 +15,14 @@ int RunGameBufferChecks();     // game_buffer.cpp: the byte buffers, their curso
 int RunPlatformTextChecks();   // platform_text.cpp: Cyrillic names through the environment and the current folder
 int RunPathLayersChecks();     // path_layers.cpp: the mod's path map (sets the program's mod: last)
 int RunWeatherFieldChecks();   // weather_field.cpp: the rain's and the snow's particles move smoothly
+int RunTomlChecks();           // toml.cpp: lib/toml.h's writer read back through tomlc17
 
 int main() {
     std::setvbuf(stdout, nullptr, _IONBF, 0);   // what was printed survives a crashing check
     const int failures = RunSettingsFileChecks() + RunHashMapChecks() + RunIniFileChecks() + RunIpv4Checks() +
                          RunMathsChecks() + RunSavePictureChecks() + RunAudioMixChecks() + RunDisplaySizesChecks() +
                          RunBoundedTextChecks() + RunTaggedStreamChecks() + RunGameBufferChecks() +
-                         RunPlatformTextChecks() + RunPathLayersChecks() + RunWeatherFieldChecks();
+                         RunPlatformTextChecks() + RunPathLayersChecks() + RunWeatherFieldChecks() + RunTomlChecks();
     std::printf("ei_unit_check: %d problems\n", failures);
     return failures ? 1 : 0;
 }

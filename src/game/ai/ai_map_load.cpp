@@ -148,10 +148,10 @@ constexpr float kHundredth = 0.01f;
 int ReadTerrainTypes(AIMap& map) {
     MappedResource archive;
     archive.OpenResource(g_textFolder + "aiinfo.res");
-    void* file = archive.GetFile("tileDesc.reg", nullptr);
-    if (!file) game::FatalExit("CAIMap::Load.\n Can't open file \"tileDesc.reg\"");
+    const RecordFile file = archive.FindRecord("tileDesc.reg");
+    if (!file.Any()) game::FatalExit("CAIMap::Load.\n Can't open file \"tileDesc.reg\"");
     FileRegistry registry;
-    if (!registry.Attach(file)) game::FatalExit("CAIMap::Load.\n Can't open aiReg");
+    if (!registry.Load(file)) game::FatalExit("CAIMap::Load.\n Can't open aiReg");
     std::vector<std::string> sections = registry.SectionNames();
 
     map.materials.resize(kTerrainTypes);
@@ -176,7 +176,6 @@ int ReadTerrainTypes(AIMap& map) {
         type.noise = static_cast<float>(registry.GetInt(section, "StepSound", 100)) * kHundredth;
     }
     registry.Close();
-    archive.CloseFile(file);
     archive.CloseResource();
     return 1;
 }

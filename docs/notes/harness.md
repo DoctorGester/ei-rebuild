@@ -27,7 +27,8 @@ Linux runner (linux.md) plays only the marked and stepped part (`rebirth_scenari
 `F:\games\EvilIslands`, `F:\games\Evil Islands (Rebirth)`; run_all.install_dir, also the tools that read
 game.exe, tools/exe_path.py); a `work.py test` batch carries the submitter's two, so a suite on the stub data
 (linux.md, "The stub data") goes through the scheduler too. `--unpacked` sets both to the installs' unpacked copies
-(every archive replaced by its folder of loose files; mods.md, "Unpacked installs"). `EI_BUILD_DIR` points run_all at
+(every archive replaced by its folder of loose files; mods.md, "Unpacked installs"), `--converted` to those copies'
+converted copies (the record files as TOML; mods.md, "Converted installs"). `EI_BUILD_DIR` points run_all at
 another verify build.
 
 How a run starts (run_all.launch, tools/game_process.py): the exe itself, with the working directory and `EI_GAME_ROOT`

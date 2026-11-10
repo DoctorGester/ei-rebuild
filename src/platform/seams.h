@@ -23,6 +23,8 @@ enum class PathUse : std::uint8_t {
     Write,    // creates, empties or removes it (a file opened for writing from nothing, a folder made or removed, the
               // target of a rename or a copy)
     Update,   // changes it keeping its contents (a file opened for writing as it is, the source of a rename)
+    Layer,    // reads one layer's own file as it is (ReadLayerFile: a record's TOML files in each layer): never mapped,
+              // only traced by the harness
 };
 
 // Every file and folder call of platform.h (src/platform/files.cpp and each system's backend) asks for its path here,

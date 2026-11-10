@@ -10,6 +10,8 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <fstream>
+#include <iterator>
 #include <functional>
 #include <set>
 #include <string>
@@ -133,6 +135,29 @@ std::vector<FolderLayer> FilesByLayer(std::string_view folder) {
         AddLayerFiles(layer.folder, "", search.keeps, &layer.files);
     }
     return layers;
+}
+
+std::vector<FolderLayer> FilesByLayer(std::string_view folder, const std::vector<std::string>& names) {
+    std::vector<FolderLayer> layers;
+    for (const FolderSearch& search : SystemSearches(std::string(folder) + "\\*")) {
+        FolderLayer& layer = layers.emplace_back();
+        layer.folder = FullGamePath(std::string_view(search.pattern).substr(0, search.pattern.find_last_of("\\/")));
+        for (const std::string& name : names) {
+            if (search.keeps && !search.keeps(name)) continue;
+            const std::string pattern = layer.folder + "\\" + name;
+            for (FolderEntry& entry : SearchFolder(pattern, pattern))
+                if (!entry.folder) layer.files.push_back({name, std::move(entry.path)});
+        }
+    }
+    return layers;
+}
+
+bool ReadLayerFile(std::string_view path, std::string* bytes) {
+    bytes->clear();
+    std::ifstream file(Native(path, PathUse::Layer), std::ios::binary);
+    if (!file) return false;
+    bytes->assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+    return !file.bad();
 }
 
 } // namespace platform

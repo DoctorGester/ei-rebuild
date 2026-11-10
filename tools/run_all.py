@@ -1,7 +1,7 @@
 """Runs every harness scenario on the vanilla install's data and on Rebirth's and prints a summary.
 
 usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only | --all-rebirth]
-                               [--jobs N] [--retries N] [--clock virtual|real[,...]] [--golden] [--unpacked]
+                               [--jobs N] [--retries N] [--clock virtual|real[,...]] [--golden] [--unpacked | --converted]
                                [--dzn | --lavapipe]
        python tools/run_all.py --widescreen [scenario names...]
   scenario names   e.g. combat items (default: every tests/scenarios/*.txt but the screenshots_* ones, which take
@@ -41,6 +41,9 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
                    (EI_HARNESS_CLOCK; tests/verify/harness_clock.h), with the clock or random trace
   --unpacked       the runs play the installs' unpacked copies (use_unpacked(), tools/unpack_install.py), made when
                    missing; every golden must stay the same
+  --converted      the runs play the unpacked copies' converted copies (use_converted(), tools/convert_install.py:
+                   the record files as TOML, the originals gone), made when missing or made by another ei-convert;
+                   every golden must stay the same
   --golden         runs the games with a state digest (EI_DIGEST, the goldens' period) and afterwards compares
                    every run that has a golden (tests/golden/<scenario>/<install>, tools/golden.py) with it:
                    the console, the digest records, the dumps and the saves. The image's runs on the vanilla data
@@ -61,7 +64,7 @@ A scenario with a line "# expect: TIMEOUT" passes when it times out (tests/scena
 """
 import argparse, atexit, functools, collections, concurrent.futures, contextlib, glob, hashlib, json, os, re, shutil, struct, subprocess, sys, tempfile, threading, time
 
-import frame_store, game_process, install_watch, prepare_scenario, unpack_install
+import convert_install, frame_store, game_process, install_watch, prepare_scenario, unpack_install
 
 if os.name == 'nt':
     import msvcrt
@@ -218,6 +221,19 @@ def use_unpacked(say=print):
     for data, name in INSTALL_ENV.items():
         target = os.path.join(root, data)
         unpack_install.make(install_dir(data), target, say=say)
+        os.environ[name] = target
+
+
+def use_converted(say=print, build=BUILD):
+    """--converted: the runs play each unpacked copy's converted copy (tools/convert_install.py: the record files as
+    TOML, docs/notes/mods.md "Records as TOML") in <checkout>/build/converted/<vanilla|rebirth>, made by the build's
+    ei-convert when it is not there or another ei-convert made it; EI_GAME_VANILLA and EI_GAME_REBIRTH name the copies
+    from then on. The copies are this checkout's: their TOML is its converter's."""
+    use_unpacked(say)
+    root = os.path.join(ROOT, 'build', 'converted')
+    for data, name in INSTALL_ENV.items():
+        target = os.path.join(root, data)
+        convert_install.make(os.environ[name], target, os.path.join(build, convert_install.EXE), say=say)
         os.environ[name] = target
 
 
@@ -1129,7 +1145,9 @@ def parse_args(argv=None):
     ap.add_argument('--standalone', action='store_true')
     ap.add_argument('--widescreen', action='store_true')
     ap.add_argument('--golden', action='store_true')
-    ap.add_argument('--unpacked', action='store_true')
+    copies = ap.add_mutually_exclusive_group()
+    copies.add_argument('--unpacked', action='store_true')
+    copies.add_argument('--converted', action='store_true')
     ap.add_argument('--retries', type=int, default=1)
     ap.add_argument('--clock')
     ap.add_argument('--jobs', type=int)      # default: 16, under WSL on Windows' GPU main()'s (WSL_GPU_SLOTS)
@@ -1578,6 +1596,8 @@ def main():
         return hold_slots(args.hold_slots, args.hold_most)
     if args.unpacked:
         use_unpacked()
+    if args.converted:
+        use_converted()
     if args.golden:
         os.environ['EI_DIGEST'] = str(GOLDEN_PERIOD)
     start_headless_display()

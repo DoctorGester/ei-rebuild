@@ -20,6 +20,7 @@ draw functions run in every scenario; ribbons and sprites in `spells` / `spells_
 
 ## Databases (prints.db, acks.db)
 
+- Either may be TOML instead, or a TOML file may merge records over it by name (mods.md, "Records as TOML").
 - Both are read once at startup from `database.res` (a failure is reported as "databases.res"), the file copied into a
   memory stream and each table read through a `ChunkArchive` of its own. `ChunkArchive`: two memory streams (index and
   data), the open chunk list (the last node is the current chunk; its occurrence index picks which chunk the next

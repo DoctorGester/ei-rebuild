@@ -57,6 +57,14 @@ constexpr bool NoPadding(const CameraKey*) {
     return lib::FieldsFill<&CameraKey::time, &CameraKey::reserved, &CameraKey::position, &CameraKey::rotation>();
 }
 
+struct RecordFile;
+// The keys of a camera path file: the top TOML file's when one stands over the original (docs/notes/mods.md,
+// "Records as TOML": [[key]] tables of time, position = [x, y, z] and rotation = [w, x, y, z]; the file is the
+// whole path, nothing merged), else the original's records (as many as it holds whole). CameraKeysToml: the keys
+// as such a file (without `reserved`, which only a recording's stack bytes fill).
+std::vector<CameraKey> ReadCameraKeys(const RecordFile& file);
+std::string CameraKeysToml(const std::vector<CameraKey>& keys);
+
 // Average, lowest and highest surface height (the water at rest, Terrain::CalmSurfaceHeight: the camera does not bob
 // with the waves) on a grid of `step` spacing over [p.x - halfX, p.x + halfX] x [p.y - halfY, p.y + halfY] (points off
 // the map skipped; the centre counts once more).

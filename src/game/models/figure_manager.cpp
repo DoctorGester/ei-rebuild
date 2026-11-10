@@ -352,10 +352,10 @@ Rect g_menuRects[kMenuRects] = /*007C8048*/ {};
 
 int FigureManager::LoadMenuRects(Rect* rects) {
     FileRegistry reg;
-    // The manager's GetFile: the resource file's data.
-    void* file = GetFile("menus.reg", nullptr);
-    if (!file || !reg.Attach(file)) {
-        game::FatalExit("%s", file ? "Can't open \"menus.reg\" as .reg with the main/esc menu rects\n" : "Can't open file \"menus.reg\" with the main/esc menu rects\n");
+    // The manager's archives' file.
+    const RecordFile file = FindRecord("menus.reg");
+    if (!reg.Load(file)) {
+        game::FatalExit("%s", file.Any() ? "Can't open \"menus.reg\" as .reg with the main/esc menu rects\n" : "Can't open file \"menus.reg\" with the main/esc menu rects\n");
     }
     std::vector<std::int32_t> values;
     for (const MenuRect& entry : kRects) {

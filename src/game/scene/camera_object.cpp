@@ -3,17 +3,20 @@
 #include "game/scene/camera.h"
 
 #include "game/core/core_streams.h"
+#include "game/data/resource.h"
 #include "game/app/singletons.h"
 #include "game/objects/object3d.h"
 #include "game/mods/mod_folders.h"
 #include "game/app/options.h"
 #include "game/saves/save_versions.h"
 #include "game/world/world.h"
+#include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/maths.h"
 #include "lib/str.h"
+#include "lib/toml.h"
 #include "platform/platform.h"
 
 #include <cstdint>
@@ -304,16 +307,12 @@ constexpr float kLeadInGap = 500.0f;
 } // namespace
 
 bool Camera::LoadPath(std::string_view name, int settle) {
-    platform::File file;
     std::string path = g_dataFolder + "camera\\";
     path += name;
     // The mod's Camera\ copy when there is one (Rebirth's CameraPatch).
-    if (!file.Open(modfolders::CameraFile(path), platform::FileMode::Read)) return false;
-
-    // As many keys as the file holds whole; the array is resized as the engine's aligned arrays
-    // are (the old keys kept when it grows) and filled with one read.
-    keys.resize(static_cast<int>(file.Size() / sizeof(CameraKey)));
-    file.Read(keys.data(), static_cast<unsigned>(std::ssize(keys)) * sizeof(CameraKey));
+    const RecordFile file = FindRecordFile(modfolders::CameraFile(path));
+    if (!file.Any()) return false;
+    keys = ReadCameraKeys(file);
 
     if (settle != 0 && std::ssize(keys) > settle && settle > 1) {
         // The first key (of the first `settle`) more than the gap after its predecessor: every key
@@ -327,6 +326,50 @@ bool Camera::LoadPath(std::string_view name, int settle) {
             break;
         }
     }
-    file.Close();
     return true;
+}
+
+std::vector<CameraKey> ReadCameraKeys(const RecordFile& file) {
+    std::vector<CameraKey> keys;
+    if (file.tomls.empty()) {
+        keys.resize(file.original.size() / sizeof(CameraKey));
+        for (std::size_t i = 0; i < keys.size(); ++i)
+            keys[i] = lib::Load<CameraKey>(file.original.data() + i * sizeof(CameraKey));
+        return keys;
+    }
+    toml::Document document;
+    if (!document.Parse(file.tomls.front().text, file.tomls.front().path)) {
+        game::Warning("camera: %s", document.Error());
+        return keys;
+    }
+    const toml::Value list = document.Root()["key"];
+    keys.resize(static_cast<std::size_t>(list.Size()));
+    for (int i = 0; i < list.Size(); ++i) {
+        const toml::Value item = list.At(i);
+        CameraKey& key = keys[i];
+        const toml::Value position = item["position"];
+        const toml::Value rotation = item["rotation"];
+        toml::Read(item["time"], &key.time);
+        toml::Read(position.At(0), &key.position.x);
+        toml::Read(position.At(1), &key.position.y);
+        toml::Read(position.At(2), &key.position.z);
+        toml::Read(rotation.At(0), &key.rotation.w);
+        toml::Read(rotation.At(1), &key.rotation.x);
+        toml::Read(rotation.At(2), &key.rotation.y);
+        toml::Read(rotation.At(3), &key.rotation.z);
+    }
+    return keys;
+}
+
+std::string CameraKeysToml(const std::vector<CameraKey>& keys) {
+    toml::Writer writer;
+    for (const CameraKey& key : keys) {
+        writer.ArrayTable("key");
+        writer.Pair("time", toml::Float(key.time));
+        writer.Pair("position", toml::Array({toml::Float(key.position.x), toml::Float(key.position.y),
+                                             toml::Float(key.position.z)}));
+        writer.Pair("rotation", toml::Array({toml::Float(key.rotation.w), toml::Float(key.rotation.x),
+                                             toml::Float(key.rotation.y), toml::Float(key.rotation.z)}));
+    }
+    return writer.text;
 }

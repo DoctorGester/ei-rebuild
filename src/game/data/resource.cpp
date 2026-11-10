@@ -8,6 +8,7 @@
 #include "lib/crt.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
+#include "lib/toml.h"
 #include "platform/platform.h"
 
 #include <algorithm>
@@ -70,6 +71,38 @@ void* KeptFile(MappedResource& archive, std::unique_ptr<LoadedFile> file, std::u
     archive.filesByName[file->name] = file.get();
     archive.filesByData[data] = std::move(file);
     return data;
+}
+
+// The name of a folder's texts (docs/notes/mods.md, "Records as TOML"), as LooseKey gives it.
+constexpr std::string_view kTextsToml = "texts.toml";
+
+// The texts of `loose`'s texts.toml read into it; a file that cannot be read or parsed, or a value that is not a
+// string, is logged and left out.
+void ReadLooseTexts(LooseFiles& loose) {
+    std::string bytes;
+    toml::Document document;
+    if (!platform::ReadLayerFile(loose.textsPath, &bytes) || !document.Parse(bytes, loose.textsPath)) {
+        game::Warning("texts: %s does not read: %s", loose.textsPath, document.Error());
+        return;
+    }
+    const toml::Value root = document.Root();
+    for (int i = 0; i < root.Size(); ++i) {
+        const toml::Value value = root.ValueAt(i);
+        if (!value.IsString()) {
+            game::Warning("texts: %s line %d: not a string", loose.textsPath, value.Line());
+            continue;
+        }
+        std::string name = text::ToAssetText(root.KeyAt(i));
+        const auto [index, added] = loose.textIndex.try_emplace(LooseKey(name), loose.texts.size());
+        if (added) loose.texts.emplace_back(std::move(name), value.String());
+        else loose.texts[index->second].second = value.String();
+    }
+}
+
+// The UTF-8 text of `key` (a LooseKey) in `loose`'s texts.toml, or null.
+const std::string* LooseText(const LooseFiles& loose, std::string_view key) {
+    const auto found = loose.textIndex.find(key);
+    return found == loose.textIndex.end() ? nullptr : &loose.texts[found->second].second;
 }
 
 } // namespace
@@ -146,6 +179,10 @@ void MappedResource::FindLooseFiles(const std::string& path) {
         loose.folder = std::move(layers[i].folder);
         for (platform::LayerFile& file : layers[i].files) {
             file.name = text::ToAssetText(file.name);
+            if (LooseKey(file.name) == kTextsToml) {
+                loose.textsPath = file.path;
+                continue;
+            }
             const auto [kept, added] = loose.byName.try_emplace(LooseKey(file.name), file);
             if (added) continue;
             // Two files of one name in a folder (a system that tells their case apart): the first by name is read.
@@ -153,6 +190,7 @@ void MappedResource::FindLooseFiles(const std::string& path) {
             if (file.name < first.name) std::swap(file, first);
             game::Warning("loose files: %s and %s have one name; the first is read", first.path, file.path);
         }
+        if (!loose.textsPath.empty()) ReadLooseTexts(loose);
     }
 }
 
@@ -165,7 +203,7 @@ std::vector<MappedResource::Source> MappedResource::Sources() {
     std::vector<Source> sources;
     std::vector<const std::string*> met;
     auto addFolder = [&](const LooseFiles& loose) {
-        if (loose.byName.empty()) return;
+        if (loose.byName.empty() && loose.texts.empty()) return;
         for (const std::string* folder : met)
             if (text::CompareIgnoringCase(*folder, loose.folder) == 0) return;
         met.push_back(&loose.folder);
@@ -182,25 +220,88 @@ std::vector<MappedResource::Source> MappedResource::Sources() {
     return sources;
 }
 
-void* MappedResource::GetFile(std::string_view name, std::uint32_t* size) {
-    void* data = FindFile(name, size);
+void* MappedResource::GetFile(std::string_view name, std::uint32_t* size) { return Find(name, size, nullptr); }
+
+void* MappedResource::FindText(std::string_view name, std::uint32_t* size, bool* utf8) {
+    *utf8 = false;
+    return Find(name, size, utf8);
+}
+
+void* MappedResource::Find(std::string_view name, std::uint32_t* size, bool* utf8) {
+    void* data = FindFile(name, size, utf8);
     // Rebirth's ResOverride: with a mod a "t\" or "s\" name not found is looked for once more without the
     // prefix.
     if (!data && modfolders::Active() && name.size() >= 2 && (name[0] == 't' || name[0] == 's') && name[1] == '\\')
-        data = FindFile(name.substr(2), size);
+        data = FindFile(name.substr(2), size, utf8);
     return data;
 }
 
-void* MappedResource::FindFile(std::string_view name, std::uint32_t* size) {
+void* MappedResource::FindFile(std::string_view name, std::uint32_t* size, bool* utf8) {
     const std::string key = LooseKey(name);
     for (const Source& source : Sources()) {
         if (!source.loose) {
             if (void* data = source.entries->EntryFile(name, size)) return data;
-        } else if (const auto file = source.loose->byName.find(key); file != source.loose->byName.end()) {
-            if (void* data = LoadLooseFile(name, file->second.path, size)) return data;
+            continue;
         }
+        if (const auto file = source.loose->byName.find(key); file != source.loose->byName.end())
+            if (void* data = LoadLooseFile(name, file->second.path, size)) return data;
+        if (utf8)
+            if (const std::string* text = LooseText(*source.loose, key)) {
+                *utf8 = true;
+                if (size) *size = static_cast<std::uint32_t>(text->size());
+                return const_cast<char*>(text->data());
+            }
     }
     return nullptr;
+}
+
+namespace {
+
+// `file` read (its text) and whether it replaces what lies below it (`replace = true`).
+bool ReplacesBelow(const TomlFile& file) {
+    toml::Document document;
+    return document.Parse(file.text, file.path) && document.Root()["replace"].IsBool() &&
+           document.Root()["replace"].Bool();
+}
+
+} // namespace
+
+bool IsReplaceKey(std::string_view key, const toml::Value& value) { return key == "replace" && value.IsBool(); }
+
+RecordFile MappedResource::FindRecord(std::string_view name) {
+    RecordFile record;
+    const std::string key = LooseKey(name);
+    const std::string tomlName = std::string(name) + ".toml";
+    const std::string tomlKey = LooseKey(tomlName);
+    for (const Source& source : Sources()) {
+        bool original = false;
+        if (source.loose) {
+            if (const auto toml = source.loose->byName.find(tomlKey); toml != source.loose->byName.end()) {
+                TomlFile& file = record.tomls.emplace_back();
+                file.path = toml->second.path;
+                platform::ReadLayerFile(file.path, &file.text);
+                record.replaced = ReplacesBelow(file);
+            }
+            original = source.loose->byName.contains(key);
+        } else {
+            std::uint32_t size = 0;
+            if (void* data = source.entries->EntryFile(tomlName, &size)) {
+                record.tomls.push_back({tomlName, std::string(static_cast<const char*>(data), size)});
+                source.entries->CloseFile(data);
+                record.replaced = ReplacesBelow(record.tomls.back());
+            }
+            original = source.entries->FindEntry(name) != -1;
+        }
+        if (original || record.replaced) break;
+    }
+    std::uint32_t size = 0;
+    if (record.replaced) return record;
+    if (void* data = GetFile(name, &size)) {
+        record.found = true;
+        record.original.assign(static_cast<const char*>(data), size);
+        CloseFile(data);
+    }
+    return record;
 }
 
 bool MappedResource::HasFile(std::string_view name) {
@@ -309,6 +410,41 @@ bool MMIOResource::CloseFile(void*) { return true; }
 
 void MMIOResource::FreeAllFiles() {}
 
+RecordFile FindRecordFile(const std::string& path) {
+    RecordFile record;
+    const std::size_t slash = path.find_last_of("\\/");
+    const std::string folder = slash == std::string::npos ? std::string(".") : path.substr(0, slash);
+    const std::string name = path.substr(slash + 1);
+    const std::string tomlName = name + ".toml";
+    for (const platform::FolderLayer& layer : platform::FilesByLayer(folder, {name, tomlName})) {
+        bool original = false;
+        for (const platform::LayerFile& file : layer.files) {
+            if (file.name != tomlName) {
+                original = true;
+                continue;
+            }
+            TomlFile& toml = record.tomls.emplace_back();
+            toml.path = file.path;
+            platform::ReadLayerFile(file.path, &toml.text);
+            record.replaced = ReplacesBelow(toml);
+        }
+        if (original || record.replaced) break;
+    }
+    if (!record.replaced) record.found = platform::ReadWholeFile(path, &record.original);
+    return record;
+}
+
+void MergeTomls(const RecordFile& file, const std::function<void(const toml::Value& root, const std::string& path)>& merge) {
+    for (auto toml = file.tomls.rbegin(); toml != file.tomls.rend(); ++toml) {
+        toml::Document document;
+        if (!document.Parse(toml->text, toml->path)) {
+            game::Warning("records: %s", document.Error());
+            continue;
+        }
+        merge(document.Root(), toml->path);
+    }
+}
+
 std::string LooseFolderOf(std::string_view path) {
     const std::size_t dot = path.find_last_of('.');
     const std::size_t slash = path.find_last_of("\\/");
@@ -399,14 +535,20 @@ void MappedResource::ListFiles(std::vector<std::string>* fileNames, const char* 
     const PathParts* parts = pattern ? &patternParts : nullptr;
     for (const Source& source : Sources()) {
         if (source.loose) {
-            for (const auto& [key, file] : source.loose->byName)
+            const LooseFiles& loose = *source.loose;
+            for (const auto& [key, file] : loose.byName)
                 if (NameMatches(file.name, parts)) fileNames->push_back(file.name);
+            // The texts.toml's names the folder has no file of.
+            for (const auto& [name, text] : loose.texts)
+                if (NameMatches(name, parts) && !loose.byName.contains(LooseKey(name))) fileNames->push_back(name);
             continue;
         }
         const MappedResource& owner = *source.entries;
         for (std::uint32_t i = 0; i < owner.header.count; ++i) {
             std::string name = EntryName(owner, i);
-            if (NameMatches(name, parts) && !owner.looseOwn.byName.contains(LooseKey(name)))
+            const std::string key = LooseKey(name);
+            if (NameMatches(name, parts) && !owner.looseOwn.byName.contains(key) &&
+                !owner.looseOwn.textIndex.contains(key))
                 fileNames->push_back(std::move(name));
         }
     }

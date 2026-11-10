@@ -9,6 +9,7 @@ namespace platform {
 
 std::string SystemPath(std::string_view path, PathUse use) {
     const Mod* mod = CurrentMod();
+    if (use == PathUse::Layer) return std::string(path);
     return mod ? mod->map.Map(path, use) : std::string(path);
 }
 

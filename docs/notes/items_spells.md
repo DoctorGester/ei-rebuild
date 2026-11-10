@@ -229,6 +229,8 @@ Types: 0 int, 1 float, 2 string (u16 length + characters), 0x80 / 0x81 / 0x82 ar
 home slot is (sum of tolower(c) over its signed characters) % table size; names compare case-insensitively over their
 stored length. The server world's message texts are a FileRegistry (`WorldServer::Messages()`). `IniFile` reads .ini
 files (integer lists too); the game's own options are in the settings file (settings.h, `docs/settings.md`).
+Since MF3 `FileRegistry` holds the parsed sections (not the image), so a registry's TOML (`<name>.reg.toml`) merges
+over it by section and key (mods.md, "Records as TOML"); the getters answer as before.
 
 ## Trader stock
 

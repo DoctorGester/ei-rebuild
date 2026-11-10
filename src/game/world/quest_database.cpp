@@ -64,9 +64,9 @@ void ReadBriefing(FileRegistry& reg, QuestBriefingRecord* briefing, const char* 
 
 } // namespace
 
-bool QuestDatabase::LoadRegistry(const void* image) {
+bool QuestDatabase::LoadRegistry(const void* image, std::size_t size) {
     FileRegistry reg;
-    if (!reg.Attach(image)) return false;
+    if (!reg.Attach(image, size)) return false;
 
     QuestRecord quest{};
     std::vector<std::string> places;

@@ -57,6 +57,21 @@ bool ResourceManager::HasFile(std::string_view name) {
     return false;
 }
 
+RecordFile ResourceManager::FindRecord(std::string_view name) {
+    RecordFile record;
+    for (ArchiveEntry& e : archives) {
+        RecordFile found = e.resource->FindRecord(name);
+        for (TomlFile& toml : found.tomls) record.tomls.push_back(std::move(toml));
+        record.replaced = found.replaced;
+        if (found.replaced) break;
+        if (!found.found) continue;
+        record.found = true;
+        record.original = std::move(found.original);
+        break;
+    }
+    return record;
+}
+
 void ResourceManager::FreeAllFiles() {
     for (ArchiveEntry& e : archives) e.resource->FreeAllFiles();
 }

@@ -43,7 +43,7 @@ struct TextSources {
     void Clear();
     // The data of file `key` from the first archive that has it (GetFile: its size written to `size`, which
     // must not be null), or null: the file's bytes as they are. FindKeyText (ours): the same, as text: its
-    // UTF-8 copy, the size that copy's. ListKeys: `out` emptied, then the names matching `pattern`
+    // UTF-8 copy, the size that copy's; a folder's texts.toml is asked too (MappedResource::FindText). ListKeys: `out` emptied, then the names matching `pattern`
     // of every archive appended in list order (a name in two archives is listed twice); Rebirth patches it
     // (ResOverride redirects the call).
     void* Find(std::string_view key, std::uint32_t* size);

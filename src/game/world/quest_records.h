@@ -72,9 +72,9 @@ struct QuestDatabase {
     // (chunk 1) and the briefings (chunk 2), each read through an archive of its own and filed under its
     // records' names. 1; an archive or file that cannot be opened ends the game.
     int Load(const std::string& folder);
-    // The quests of a registry file in memory (`image`) filed into the database; false when it is not a
-    // registry.
-    bool LoadRegistry(const void* image);
+    // The quests of a registry file in memory (`image`, `size` bytes) filed into the database; false when it is not
+    // a registry.
+    bool LoadRegistry(const void* image, std::size_t size);
     // Adds a copy of `quest` unless a record of its name is there.
     void AddQuest(const QuestRecord& quest);
     // quest_database.cpp (and a copy of it; the script commands' quest lookup, QuestComplete awards the

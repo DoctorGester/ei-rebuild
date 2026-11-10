@@ -802,6 +802,10 @@ def cmd_test(db, args):
         # The installs' unpacked copies: their folders go with the batch's environment below.
         run_all.use_unpacked()
         argv = [a for a in argv if a != '--unpacked']
+    if ra.converted:
+        # Their converted copies (the record files as TOML), made by this checkout's ei-convert.
+        run_all.use_converted()
+        argv = [a for a in argv if a != '--converted']
     jobs = run_all.plan(ra)
     root, build = work.norm(run_all.ROOT), work.norm(run_all.BUILD)
     if not os.path.exists(os.path.join(build, run_all.EXE)):

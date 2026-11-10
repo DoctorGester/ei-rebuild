@@ -212,6 +212,8 @@
 //   modfile <archive> <file> <bytes>, modlist <archive> <pattern> <count>, modarchive figures|links|textures <file> <bytes>,
 //   mapfile exists <name> yes|no, playstream <name>.mp3
 //                             Rebirth's mod-folder patches asked directly (harness_starter.h; S19d)
+//   modtext <name> <text>, modack <unit> <speech> <sound>
+//                             a mod's records as TOML seen by the game (harness_starter.h; MF3)
 //   waitline <seconds> <text> wait until the console has printed <text> (at any time in the run)
 //   read mod|game <path> yes|no, wrote mod|game <path> yes|no, waitread <seconds> mod|game <path>
 //                             whether the game touched (read, listed, asked about) or wrote the file below the mod
@@ -2914,8 +2916,11 @@ void RunSteps() {
                 g_failures.push_back(error);
             }
         } else if (s.verb == "hudstate" || s.verb == "campputon" || s.verb == "modfile" || s.verb == "modlist" ||
-                   s.verb == "modarchive" || s.verb == "mapfile" || s.verb == "playstream" || s.verb == "folderprofile") {
+                   s.verb == "modarchive" || s.verb == "mapfile" || s.verb == "playstream" || s.verb == "folderprofile" ||
+                   s.verb == "modtext" || s.verb == "modack") {
             std::string error = s.verb == "hudstate" ? HudState(s.argument)
+                                : s.verb == "modtext" ? starter::ModTextStep(s.argument)
+                                : s.verb == "modack" ? starter::ModAckStep(s.argument)
                                 : s.verb == "campputon" ? CampPutOn(s.argument)
                                 : s.verb == "folderprofile" ? folder_profile::Step()
                                 : s.verb == "modlist" ? starter::ModListStep(s.argument)
@@ -4022,6 +4027,12 @@ bool PlayedMovie(const std::string& path) {
 std::string MapPath(std::string_view path, platform::PathUse use) {
     const std::string name(path);
     const std::string tutorial = std::string(g_savesDir) + "\\tutorial.ini";
+    if (use == platform::PathUse::Layer) {
+        // One layer's own file (a record's TOML in each layer, ReadLayerFile): traced, never mapped.
+        if (g_readTrace) TraceRead(name);
+        modtrace::NoteRead(name);
+        return name;
+    }
     if (use == platform::PathUse::Read) {
         if (name.size() >= 9 && text::CompareIgnoringCase(name.c_str() + name.size() - 9, "movie.ini") == 0) return {};
         if (PlayedMovie(name)) return {};

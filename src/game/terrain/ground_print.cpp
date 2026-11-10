@@ -23,7 +23,10 @@
 #include "lib/vecmath.h"
 #include "game/data/chunk_archive.h"
 #include "game/data/database_file.h"
+#include "game/core/asset_text.h"
 #include "lib/crt.h"
+#include "game/data/resource.h"
+#include "lib/toml.h"
 
 #include <algorithm>
 #include <cmath>
@@ -429,22 +432,109 @@ int PrintsDatabase::Load(const std::string& folder) {
     std::string base = folder;
     MappedResource resource;
     OpenDatabase(resource, base);
-    std::uint32_t size;
-    void* data = resource.GetFile("prints.db", &size);
-    if (!data) game::FatalExit("Can't open terrain prints database\n");
-
-    MemoryStream stream;
-    stream.Fill(data, size);
-
-    const auto name = [](auto& record) -> const std::string& { return record.name; };
-    LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializePrints(kBloodChunk, &blood); });
-    FileRecords(blood, bloodByName, name);
-    LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializeFootprints(kFootprintsChunk, &footprints); });
-    FileRecords(footprints, footprintsByName, name);
-    LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializePrints(kScorchChunk, &scorch); });
-    FileRecords(scorch, scorchByName, name);
-
-    resource.CloseFile(data);
+    const RecordFile file = resource.FindRecord("prints.db");
+    if (!file.Any()) game::FatalExit("Can't open terrain prints database\n");
     resource.CloseResource();
+    Read(file);
     return 1;
+}
+
+void PrintsDatabase::Read(const RecordFile& file) {
+    if (file.found) {
+        MemoryStream stream;
+        stream.Fill(file.original.data(), static_cast<std::uint32_t>(file.original.size()));
+        LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializePrints(kBloodChunk, &blood); });
+        LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializeFootprints(kFootprintsChunk, &footprints); });
+        LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializePrints(kScorchChunk, &scorch); });
+    }
+    MergeTomls(file, [this](const toml::Value& root, const std::string& path) { MergeToml(root, path); });
+    const auto name = [](auto& record) -> const std::string& { return record.name; };
+    FileRecords(blood, bloodByName, name);
+    FileRecords(footprints, footprintsByName, name);
+    FileRecords(scorch, scorchByName, name);
+}
+
+// ---- prints.db as TOML ---------------------------------------------------------------------------
+
+namespace {
+
+std::string LookToml(const PrintLook& look) {
+    return toml::InlineTable({{"alpha", toml::Float(look.alpha)}, {"life", toml::Int(look.life)},
+                              {"lifetime", toml::Int(look.lifetime)}});
+}
+
+void ReadLook(const toml::Value& value, PrintLook* look) {
+    toml::Read(value["alpha"], &look->alpha);
+    toml::Read(value["life"], &look->life);
+    toml::Read(value["lifetime"], &look->lifetime);
+}
+
+template <class Record>
+void WriteRecord(toml::Writer& writer, const char* table, const Record& record) {
+    writer.ArrayTable(table);
+    writer.Pair("name", toml::String(text::FromAssetText(record.name)));
+    writer.Pair("dry", LookToml(record.dryLook));
+    writer.Pair("wet", LookToml(record.wetLook));
+}
+
+// Each record of the TOML array of tables `table` merged into `records` by name (the first of the name that this
+// merge has not replaced, else appended); `read(key, value, record)` reads a key a record type has of its own.
+template <class Record, class ReadKey>
+void MergeRecords(const toml::Value& table, std::vector<Record>& records, const std::string& path, ReadKey read) {
+    std::vector<bool> replaced;
+    for (int i = 0; i < table.Size(); ++i) {
+        const toml::Value item = table.At(i);
+        std::string name;
+        if (toml::Read(item["name"], &name)) name = text::ToAssetText(name);
+        std::size_t index = 0;
+        while (index < records.size() && ((index < replaced.size() && replaced[index]) || records[index].name != name))
+            ++index;
+        if (index == records.size()) records.emplace_back();
+        replaced.resize(records.size());
+        replaced[index] = true;
+        Record& record = records[index];
+        record.name = name;
+        record.dryLook = {};
+        record.wetLook = {};
+        if constexpr (std::is_same_v<Record, PrintRecord2>) std::fill(std::begin(record.unreadChunk), std::end(record.unreadChunk), 0u);
+        for (int k = 0; k < item.Size(); ++k) {
+            const std::string_view key = item.KeyAt(k);
+            const toml::Value value = item.ValueAt(k);
+            if (key == "dry") ReadLook(value, &record.dryLook);
+            else if (key == "wet") ReadLook(value, &record.wetLook);
+            else if (key != "name" && !read(key, value, record))
+                game::Warning("prints: %s line %d: unknown key %s", path, value.Line(), std::string(key));
+        }
+    }
+}
+
+} // namespace
+
+void PrintsDatabase::MergeToml(const toml::Value& root, const std::string& path) {
+    const auto none = [](std::string_view, const toml::Value&, PrintRecord&) { return false; };
+    MergeRecords(root["blood"], blood, path, none);
+    MergeRecords(root["footprint"], footprints, path, [](std::string_view key, const toml::Value& value, PrintRecord2& record) {
+        if (key != "unread") return false;
+        toml::ReadArray(value, record.unreadChunk, 3);
+        return true;
+    });
+    MergeRecords(root["scorch"], scorch, path, none);
+    for (int i = 0; i < root.Size(); ++i) {
+        const std::string_view key = root.KeyAt(i);
+        if (key != "blood" && key != "footprint" && key != "scorch" && !IsReplaceKey(key, root.ValueAt(i)))
+            game::Warning("prints: %s line %d: unknown table %s", path, root.ValueAt(i).Line(), std::string(key));
+    }
+}
+
+std::string PrintsDatabase::ToToml() const {
+    toml::Writer writer;
+    for (const PrintRecord& record : blood) WriteRecord(writer, "blood", record);
+    for (const PrintRecord2& record : footprints) {
+        WriteRecord(writer, "footprint", record);
+        if (record.unreadChunk[0] != 0 || record.unreadChunk[1] != 0 || record.unreadChunk[2] != 0)
+            writer.Pair("unread", toml::Array({toml::Int(record.unreadChunk[0]), toml::Int(record.unreadChunk[1]),
+                                               toml::Int(record.unreadChunk[2])}));
+    }
+    for (const PrintRecord& record : scorch) WriteRecord(writer, "scorch", record);
+    return writer.text;
 }

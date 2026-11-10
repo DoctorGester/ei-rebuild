@@ -143,8 +143,12 @@ def main():
     if args.maps_source:
         trap += ['--source', args.maps_source]
     subprocess.run(trap, check=True, capture_output=True)
-    shutil.copyfile(args.camera_source or exe_path.install_file('vanilla', 'camera', 'bz3g.cam'),
-                    os.path.join(mod, 'Camera', 's19b.cam'))
+    camera = args.camera_source or exe_path.install_file('vanilla', 'camera', 'bz3g.cam')
+    if not os.path.exists(camera) and os.path.exists(camera + '.toml'):
+        # A converted install (tools/convert_install.py): the path's TOML, which stands for it alike.
+        shutil.copyfile(camera + '.toml', os.path.join(mod, 'Camera', 's19b.cam.toml'))
+    else:
+        shutil.copyfile(camera, os.path.join(mod, 'Camera', 's19b.cam'))
     print(f'{mod}: config.reg {len(config)} bytes, Res\\s19b_gfx.res, Maps\\traps.mob, Camera\\s19b.cam')
 
 

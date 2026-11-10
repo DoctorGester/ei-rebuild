@@ -15,6 +15,11 @@
 #include "game/units/ack_kind.h"
 #include "game/units/unit_client_models.h"
 
+struct RecordFile;
+namespace toml {
+class Value;
+}
+
 namespace acks {
 
 struct Speeches {
@@ -97,6 +102,16 @@ struct AckDatabase {
     // (units: kinds 0..0x15, 0x1C..0x24, 0x27, 0x28 and the named speeches as 0x2A, with 0x16..0x1B entered as
     // null; models: 0x2E..0x32; extras: 0x2C, 0x2D). 1; an archive or file that cannot be opened ends the game.
     int Load(const std::string& folder);
+    // Load's work on the file found: the tables of the original, then of each TOML file over it (MergeToml), filed
+    // and their maps filled.
+    void Read(const RecordFile& file);
+
+    // TOML (docs/notes/mods.md, "Records as TOML"): [[unit]], [[model]] and [[extra]] tables, each a record: its
+    // name and its speech lists by ack kind (AckKind's names in snake case: selected = [{ sound = "...", chance = 100,
+    // text = "...", name = "...", environment = 0x1 }, ...]). Merge: a record replaces the first of its name in its
+    // table (not one this file replaced already), or is appended; an unknown key is logged (with `path`).
+    void MergeToml(const toml::Value& root, const std::string& path);
+    std::string ToToml() const;
 
     AckTable<UnitAcks> units;
     AckTable<ModelAcks> models;

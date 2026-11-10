@@ -17,4 +17,5 @@ render_shore_seams,1,the user's Rebirth save on zone 1's beach: the shore's seam
 dropin_profile,1,the Rebirth folder's own start-up: DisableExitOnCrashReport on
 mod_switch_plain,1,mod_switch's twin without the switches: the two new games' dumps compared (MOD3a)
 mod_loose_files,1,loose files over the mod's and Rebirth's archives (MF1)
+mod_toml_records,1,a mod's TOML text and record over Rebirth's (MF3)
 render_menu_shadow,1,Rebirth's main menu: the signpost's shadow on the first frame (R58)

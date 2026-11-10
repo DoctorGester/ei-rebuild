@@ -5,10 +5,14 @@
 #include "game/app/singletons.h"
 #include "game/mods/mod_folders.h"
 
+#include "game/core/asset_text.h"
 #include "lib/bytes.h"
 #include "lib/crt.h"
 #include "lib/rounding.h"
+#include "game/data/resource.h"
+#include "lib/toml.h"
 
+#include <algorithm>
 #include <bit>
 #include <cstring>
 #include <new>
@@ -73,18 +77,14 @@ void MaterialManager::Create() {
     AddArchive((folder + "materials.res"));
 
     for (const MaterialKindFile& kind : kMaterialKindFiles) {
-        MaterialColors lit;
-        std::memset(&lit, 0, sizeof(lit));
-        void* data = GetFile(kind.file, nullptr);
-        if (!data) {
+        MaterialFile file;
+        MaterialColors& lit = file.colors;
+        if (!file.Read(FindRecord(kind.file))) {
             lit.diffuse = {0.3f, 0.3f, 0.3f, 1.0f};
             lit.ambient = {0.7f, 0.7f, 0.7f, lit.ambient.w};
             lit.specular = {0.2f, 0.2f, 0.2f, lit.specular.w};
             lit.power = 5.0f;
-        } else {
-            lit = lib::Load<MaterialColors>(MaterialFileColors(data));
         }
-        CloseFile(data);
         if (kind.kind == kMagicMaterialKind) lit.emissive = {1.0f, 1.0f, 1.0f, lit.emissive.w};
         colors[static_cast<unsigned>(kind.kind)] = lit;
     }
@@ -113,6 +113,66 @@ int MaterialManager::FillMaterial(Material* material, unsigned key) {
 
 const char* MaterialManager::ClassName() { return kManagerClassName; }
 ClassId MaterialManager::GetClassId() { return ClassId::MaterialManager; }
+
+bool MaterialFile::Read(const RecordFile& file) {
+    if (!file.Any()) return false;
+    if (file.found) {
+        // The name's length and text, then the colours.
+        std::string bytes = file.original;
+        bytes.resize(std::max<std::size_t>(bytes.size(), 2));
+        const std::size_t nameLength = lib::Load<std::uint16_t>(bytes.data());
+        bytes.resize(std::max(bytes.size(), 2 + nameLength + sizeof(MaterialColors)));
+        unreadName = text::FromAssetText(std::string_view(bytes).substr(2, nameLength));
+        colors = lib::Load<MaterialColors>(bytes.data() + 2 + nameLength);
+    }
+    MergeTomls(file, [this](const toml::Value& root, const std::string& path) { MergeToml(root, path); });
+    return true;
+}
+
+namespace {
+
+constexpr const char* kColorKeys[4] = {"diffuse", "ambient", "specular", "emissive"};
+
+Vector4& ColorOf(MaterialColors& colors, int i) {
+    Vector4* all[4] = {&colors.diffuse, &colors.ambient, &colors.specular, &colors.emissive};
+    return *all[i];
+}
+
+} // namespace
+
+void MaterialFile::MergeToml(const toml::Value& root, const std::string& path) {
+    for (int i = 0; i < root.Size(); ++i) {
+        const std::string_view key = root.KeyAt(i);
+        const toml::Value value = root.ValueAt(i);
+        bool known = key == "name" || key == "power" || IsReplaceKey(key, value);
+        if (key == "name" && toml::Read(value, &unreadName)) unreadName = text::ToAssetText(unreadName);
+        if (key == "power") toml::Read(value, &colors.power);
+        for (int c = 0; c < 4; ++c) {
+            if (key != kColorKeys[c]) continue;
+            Vector4& color = ColorOf(colors, c);
+            color = {};
+            toml::Read(value.At(0), &color.x);
+            toml::Read(value.At(1), &color.y);
+            toml::Read(value.At(2), &color.z);
+            toml::Read(value.At(3), &color.w);
+            known = true;
+        }
+        if (!known) game::Warning("materials: %s line %d: unknown key %s", path, value.Line(), std::string(key));
+    }
+}
+
+std::string MaterialFile::ToToml() const {
+    toml::Writer writer;
+    writer.Pair("name", toml::String(text::FromAssetText(unreadName)));
+    MaterialColors copy = colors;
+    for (int c = 0; c < 4; ++c) {
+        const Vector4& color = ColorOf(copy, c);
+        writer.Pair(kColorKeys[c], toml::Array({toml::Float(color.x), toml::Float(color.y), toml::Float(color.z),
+                                                toml::Float(color.w)}));
+    }
+    writer.Pair("power", toml::Float(colors.power));
+    return writer.text;
+}
 
 std::uint32_t Material::GpuLitColour() const {
     const float alpha = colors.diffuse.w * 255.0f;

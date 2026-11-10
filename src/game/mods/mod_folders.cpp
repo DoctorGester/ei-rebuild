@@ -336,7 +336,8 @@ std::string CameraFile(std::string_view path) {
     const std::size_t last = path.rfind('\\');
     if (last == std::string_view::npos || ModPath().empty()) return std::string(path);
     std::string mod = ModPath() + "Camera" + std::string(path.substr(last));
-    return platform::IsFile(mod) ? mod : std::string(path);
+    // Ours: or its TOML (docs/notes/mods.md, "Records as TOML").
+    return platform::IsFile(mod) || platform::IsFile(mod + ".toml") ? mod : std::string(path);
 }
 
 bool StreamInMod(std::string_view name) {
