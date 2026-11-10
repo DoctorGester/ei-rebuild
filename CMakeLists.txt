@@ -65,24 +65,22 @@ target_include_directories(miniz SYSTEM INTERFACE third_party)
 target_compile_definitions(miniz PUBLIC MINIZ_NO_STDIO MINIZ_NO_TIME)
 target_compile_options(miniz PRIVATE $<IF:$<C_COMPILER_ID:MSVC>,/W0,-w>)
 set_target_properties(miniz PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
-# stb_image, stb_image_write and stb_dxt (third_party/stb, unmodified; built by our stb_image_impl.c): the maps' PNGs
-# read, the PNG textures' DXT blocks (src/game/models/texture_png.cpp; docs/notes/mods.md, "Textures as PNG"). Without
-# their warnings, as miniz.
-add_library(stb_image STATIC third_party/stb/stb_image_impl.c)
-target_include_directories(stb_image PRIVATE third_party)
-target_include_directories(stb_image SYSTEM INTERFACE third_party)
-target_link_libraries(stb_image PRIVATE miniz)
-target_compile_options(stb_image PRIVATE $<IF:$<C_COMPILER_ID:MSVC>,/W0,-w>)
-set_target_properties(stb_image PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
+# stb_dxt (third_party/stb, unmodified; built by our stb_dxt_impl.c): the PNG textures' DXT blocks (src/game/models/
+# texture_png.cpp; docs/notes/mods.md, "Textures as PNG"). Without its warnings, as miniz.
+add_library(stb_dxt STATIC third_party/stb/stb_dxt_impl.c)
+target_include_directories(stb_dxt PRIVATE third_party)
+target_include_directories(stb_dxt SYSTEM INTERFACE third_party)
+target_compile_options(stb_dxt PRIVATE $<IF:$<C_COMPILER_ID:MSVC>,/W0,-w>)
+set_target_properties(stb_dxt PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
 # Wuffs (third_party/wuffs, unmodified; built by our wuffs_png.c, its PNG modules only): the textures' PNG reader
-# (src/lib/png.h; docs/notes/mods.md, "Textures as PNG"). Without its warnings, as stb_image.
+# (src/lib/png.h; docs/notes/mods.md, "Textures as PNG"). Without its warnings, as miniz.
 add_library(wuffs STATIC third_party/wuffs/wuffs_png.c)
 target_include_directories(wuffs PRIVATE third_party)
 target_include_directories(wuffs SYSTEM INTERFACE third_party)
 target_compile_options(wuffs PRIVATE $<IF:$<C_COMPILER_ID:MSVC>,/W0,-w>)
 set_target_properties(wuffs PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
 # cgltf (third_party/cgltf, unmodified; built by our cgltf_impl.c): the figure models read as glTF
-# (src/game/models/figure_gltf.cpp; docs/notes/mods.md, "Models as glTF"). Without its warnings, as stb_image.
+# (src/game/models/figure_gltf.cpp; docs/notes/mods.md, "Models as glTF"). Without its warnings, as miniz.
 add_library(cgltf STATIC third_party/cgltf/cgltf_impl.c)
 target_include_directories(cgltf PRIVATE third_party)
 target_include_directories(cgltf SYSTEM INTERFACE third_party)
@@ -174,7 +172,7 @@ file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*/*.cpp src/lib/*.cpp src/a
      src/video/*.cpp)
 add_library(ei_game OBJECT ${EI_GAME_SOURCES})
 target_include_directories(ei_game PRIVATE src third_party)
-target_link_libraries(ei_game PUBLIC ei_render ei_platform tomlc17 stb_image wuffs cgltf eris PRIVATE SDL3::SDL3-static)
+target_link_libraries(ei_game PUBLIC ei_render ei_platform tomlc17 stb_dxt wuffs cgltf eris PRIVATE SDL3::SDL3-static)
 
 # The new renderer (docs/notes/renderer.md) on SDL3's GPU API (src/render/gpu.h: Direct3D 12 on Windows, Vulkan
 # elsewhere). Not part of ei_platform: the offline checks link the renderer without the game.
@@ -435,7 +433,7 @@ if(WIN32)
                    src/game/saves/save_picture.cpp src/lib/qoi.cpp src/game/core/asset_text.cpp src/lib/hash_map.cpp src/lib/ipv4.cpp
                    src/lib/text_case.cpp src/lib/calendar.cpp src/lib/str.cpp src/lib/crt_format.cpp ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS} ${EI_SDL_CALLS})
     target_include_directories(ei_unit_check PRIVATE src third_party)
-    target_link_libraries(ei_unit_check PRIVATE ei_platform tomlc17 stb_image wuffs cgltf eris SDL3::SDL3-static miniz)
+    target_link_libraries(ei_unit_check PRIVATE ei_platform tomlc17 stb_dxt wuffs cgltf eris SDL3::SDL3-static miniz)
 
     # Offline check of the interface text layout (render_text): DrawText rules on synthetic cases, and a
     # report against GDI on the game's strings (tools/text_check; GDI only there).
@@ -472,7 +470,7 @@ else()
                    tests/unit/figure_gltf.cpp src/game/models/figure_gltf.cpp src/game/models/figure_gltf_animation.cpp src/lib/json.cpp src/lib/vecmath.cpp tests/unit/lua_number.cpp
                    ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS} ${EI_SDL_CALLS})
     target_include_directories(ei_port_check PRIVATE src third_party)
-    target_link_libraries(ei_port_check PRIVATE ei_platform tomlc17 stb_image wuffs cgltf eris SDL3::SDL3-static miniz)
+    target_link_libraries(ei_port_check PRIVATE ei_platform tomlc17 stb_dxt wuffs cgltf eris SDL3::SDL3-static miniz)
     add_test(NAME port_platform COMMAND ei_port_check)
     # The mission scripts' Lua bindings on a small world of their own (tools/convert/lua_check.cpp).
     add_test(NAME port_lua COMMAND ei-convert --lua-check)

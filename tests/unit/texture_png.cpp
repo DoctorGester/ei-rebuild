@@ -4,7 +4,7 @@
 // new texture's; the box filter's levels.
 #include "game/models/texture_png.h"
 
-#include "stb/stb_image_write.h"
+#include "lib/png.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -86,13 +86,9 @@ bool RoundTrip(const File& file, File* back, const std::string& what) {
     return made;
 }
 
-void AppendBytes(void* context, void* data, int size) { static_cast<std::string*>(context)->append(static_cast<const char*>(data), static_cast<std::size_t>(size)); }
-
 // A PNG without the settings chunk (as an image editor writes one).
 std::string PlainPng(const texture_png::Image& image) {
-    std::string png;
-    stbi_write_png_to_func(AppendBytes, &png, image.width, image.height, 4, image.rgba.data(), image.width * 4);
-    return png;
+    return png::Write(image.width, image.height, 4, image.rgba);
 }
 
 std::uint32_t g_seed = 12345;

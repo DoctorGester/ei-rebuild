@@ -30,5 +30,7 @@ std::string Write(int width, int height, int channels, std::span<const std::uint
 // 16-bit sample's high byte, a palette's or tRNS's alpha, no gamma or colour profile applied. False with `*error`
 // set when it does not decode.
 bool ReadRgba(std::string_view png, int* width, int* height, std::vector<std::uint8_t>* rgba, std::string* error);
+// The same as 16-bit RGBA (native order): an 8-bit sample v is v * 257, a 16-bit one comes whole.
+bool ReadRgba16(std::string_view png, int* width, int* height, std::vector<std::uint16_t>* rgba, std::string* error);
 
 }   // namespace png
