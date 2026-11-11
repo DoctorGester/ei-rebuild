@@ -44,7 +44,7 @@ the address of the text, not the text: read the cell's pointer first.
 - **A crash** in a harness run is reported by the harness: its crash log, tools/resolve_crash.py. run_all reports a
   game that ended by itself while its report still says RUNNING (`FAILED: the game ended ...`).
 - **Suite.** `run_all` / `work.py test` run two installs: `standalone` (the vanilla data) and `standalone-rebirth` (the
-  Rebirth data; the same code, DisableExitOnCrashReport on). run_all starts the exe with EI_GAME_ROOT the install whose
+  Rebirth data; the same code). run_all starts the exe with EI_GAME_ROOT the install whose
   data a run plays (EI_GAME_VANILLA, EI_GAME_REBIRTH).
 - **Rebirth:** what addon.dll and EI_Plugin patch is the code's own, with no flag (docs/notes/rebirth.md). EI_Plugin.asi
   never loads: the image loads no Miles, which is what loaded `*.asi`. The harness's `starter::RebirthData()` is true
