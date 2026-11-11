@@ -4,5 +4,6 @@ group = "mods"
 depends = ["MF13d"]
 note = "MF13d builds a zone's region graph at load (AIMap::BuildRegionGraph: RegionMap::UpdateBlocks over every block) when a mod's map folder stands over the game's .mob or no graph fits; it costs zone 19 (128 x 128 blocks) 2.55 s, zone 11 2.0 s, zone 1 0.4 s (docs/notes/ai.md, 'Built graphs'). Nearly all of it is MeasureBlockEdges' local searches, one per block and size class, each independent of the others (PickRepresentatives first, then edges). Wanted: the rows split over threads, each with its own LocalSearch attached to the map, the result byte for byte the same (check: the built graph's SaveBlocks bytes equal the one-thread build on every vanilla map, e.g. a unit check over a converted map or a harness dump); then the load cost again."
 order = 1407
-status = "running"
+status = "done"
 started = "2026-11-11"
+done = "2026-11-11"
