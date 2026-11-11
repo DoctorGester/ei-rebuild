@@ -249,6 +249,21 @@ void Viewer::Restart(int target) {
     source->localPosition = carrier ? Vector3{} : freeAt;
     source->ScaleSize(size / source->baseSize);
     source->Attach(nullptr);
+    // The point picked: the game's way for the game's points (OnPart and the AttachPoint, as SetUp sets them from a
+    // file's `part`), the host's named point for a bone or part.
+    g_scene.host.namedPoint.clear();
+    switch (point.kind) {
+    case FigurePoint::Kind::File: break;
+    case FigurePoint::Kind::Origin: source->flags &= ~ParticleSourceFlag::OnPart; break;
+    case FigurePoint::Kind::Game:
+        source->flags |= ParticleSourceFlag::OnPart;
+        source->attachPoint = point.game;
+        break;
+    case FigurePoint::Kind::Named:
+        source->flags |= ParticleSourceFlag::OnPart;
+        g_scene.host.namedPoint = point.bone;
+        break;
+    }
     if (carrier) source->Attach(carrier);
     while (tick < target && !ended) Step();
     if (!playing) Freeze();
@@ -339,6 +354,11 @@ FigureInstance* Viewer::Carrier() const { return onFigure ? g_scene.figure : nul
 void Viewer::PlaceOnFigure() {
     onFigure = true;
     Restart(tick);
+}
+
+void Viewer::PlaceAt(const FigurePoint& at) {
+    point = at;
+    PlaceOnFigure();
 }
 
 void Viewer::PlaceFree(const Vector3& at) {
@@ -484,6 +504,25 @@ std::string ExpectStep(const Viewer& v, const std::vector<std::string>& w) {
         const auto have = static_cast<int>(v.document.problems.size());
         return have == static_cast<int>(wanted) ? "" : "effectviewer: " + std::to_string(have) + " problems, wanted " + w[2];
     }
+    if (w[1] == "at" && w.size() > 2) {
+        // The source sits at the figure's bone or part w[2] now (raised by w[3]): its carrier point, its origin less its
+        // local position, within a twentieth of the bone's point (the source reads it at the tick; an animation's
+        // blend moves the drawn pose between ticks by a few hundredths).
+        if (!v.source || !v.source->attachedTo) return "effectviewer: no source on the figure";
+        const std::optional<Vector3> bone = particlehost::FigureHost::NamedPointOf(*v.source->attachedTo, w[2]);
+        if (!bone) return "effectviewer: the figure has no bone or part " + w[2];
+        Vector3 point = *bone;
+        if (w.size() > 3 && Number(w[3], &wanted)) point.z += wanted;
+        const Vector3 at = v.source->origin - v.source->localPosition;
+        if (LengthSquared(at - point) <= 0.05f * 0.05f) return "";
+        return std::format("effectviewer: the source at ({:.3f} {:.3f} {:.3f}), {} at ({:.3f} {:.3f} {:.3f})", at.x, at.y, at.z,
+                           w[2], point.x, point.y, point.z);
+    }
+    if (w[1] == "moved" && Number(w[2], &wanted)) {
+        if (!v.source) return "effectviewer: no source";
+        const float moved = Length(v.source->origin - v.marked);
+        return moved >= wanted ? "" : "effectviewer: the source moved " + std::to_string(moved) + " since the mark, wanted " + w[2];
+    }
     if (w[1] == "status") {
         std::string rest;
         for (std::size_t i = 2; i < w.size(); ++i) rest += (i > 2 ? " " : "") + w[i];
@@ -528,6 +567,12 @@ std::string Command(std::string_view line) {
         if (w[1] == "figure") {
             if (!g_scene.figure) return "effectviewer: no figure";
             v.PlaceOnFigure();
+        } else if (w[1] == "point" && w.size() > 2) {
+            // A point of the figure by its key (ViewerScene::Points: file, origin, a file's `part` name, a bone).
+            if (!g_scene.figure) return "effectviewer: no figure";
+            const std::optional<FigurePoint> at = g_scene.FindPoint(w[2]);
+            if (!at) return "effectviewer: the figure has no point " + w[2];
+            v.PlaceAt(*at);
         } else if (w[1] == "focus") {
             Vector3 at = g_scene.camera.focus;
             if (w.size() > 4 && Number(w[2], &a) && Number(w[3], &b) && Number(w[4], &c)) at += Vector3{a, b, c};
@@ -535,7 +580,7 @@ std::string Command(std::string_view line) {
         } else if (w[1] == "free" && w.size() > 4 && Number(w[2], &a) && Number(w[3], &b) && Number(w[4], &c)) {
             v.PlaceFree({a, b, c});
         } else {
-            return "effectviewer place: figure | focus [dx dy dz] | free <x> <y> <z>";
+            return "effectviewer place: figure | point <name> | focus [dx dy dz] | free <x> <y> <z>";
         }
         return "";
     }
@@ -645,6 +690,22 @@ std::string Command(std::string_view line) {
         } else {
             return "effectviewer figure: walk on|off | run on|off | animation <name>";
         }
+        return "";
+    }
+    if (verb == "camera" && w.size() > 1 && Number(w[1], &a)) {
+        // The camera `a` away, on the figure's place (for a capture of what sits on it).
+        g_scene.camera.distance = a;
+        g_scene.camera.focus = g_scene.standAt;
+        return "";
+    }
+    if (verb == "mark") {
+        if (!v.source) return "effectviewer: no source";
+        v.marked = v.source->origin;
+        return "";
+    }
+    if (verb == "points") {
+        // The figure's points into the log, for a scenario's author.
+        for (const FigurePoint& at : g_scene.Points()) ei::Log("effect viewer: point %s", at.label);
         return "";
     }
     if (verb == "expect") return ExpectStep(v, w);

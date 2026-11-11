@@ -76,8 +76,9 @@ Kept:
   - `particlehost::FigureHost` (particle_figure_host.h), a world of its own for a program without the game's (the
     effect viewer's exe, MF15k4): the ground flat at `groundHeight`, no platforms, its own `wind` and
     `tickFraction`, no scorch marks or shakes; its own list of carried figures and their sources (a reference each);
-    a figure's parts by name (FigureInstance::PartPoint, unscaled; the effect point its "rh3"), its measure the box
-    of its parts' points; `unit`, `running`, `dead`, `unitRadius` say what every figure is. `Remove` / `Restore` take
+    a figure's parts by name (FigureInstance::PartPoint, unscaled; the effect point its "rh3"), or with `namedPoint`
+    set a bone (else a part) by name for every source on a part (`NamedPointOf`: the bone's figure-space position
+    turned and moved; the viewer's pick of a point no AttachPoint names), its measure the box of its parts' points; `unit`, `running`, `dead`, `unitRadius` say what every figure is. `Remove` / `Restore` take
     a figure out and back as a map object's Removed flag does; `LetGoAll` before a figure is destroyed.
 - Check: `ei-convert --effect-check`'s world-less case (RunWithoutWorld: Stun on a figure's hand, walking, running,
   moved, taken away; ZoneExit on a ground at 2) with its own particle manager, the host not the client world. The
@@ -561,6 +562,14 @@ over a scene of its own. The game's exe has none of it: no src/tools, no imgui (
     database (database.res, `<model>.adb`); the first idle animation plays, `figure animation <name>` picks another.
     It can walk a circle (radius 2.5, `figure walk on`) and run (`figure run on`: twice as fast, the host's `running`);
     each gait plays its first walk / run / idle animation (SetGait).
+  - The points of the figure (`ViewerScene::Points`, the Place window's Point and Other bone lists; `Viewer::point`):
+    the file's `part` (SetUp's flags as they are), the origin (OnPart cleared), the game's points (OnPart and the
+    AttachPoint, the way a file's `part` and the game's code put a source on a unit: `effect_point` is a hero's
+    Unit::EffectPoint, its "rh3"; body00-04 only when the figure has such parts), the feet the effects read ("ll3",
+    "rl3") and a creature's weapon point without a weapon ("baserh3", UnitClientSpecific::WeaponPoint's hand node),
+    then the bones that carry a part and the other bones (a hero's skeleton has about 350: every armour's and weapon's
+    node). A bone goes through the host's `namedPoint` (OnPart set). The pick holds across effects; a sub-effect is
+    free (StartEffects), so it never sits on the point.
   - The host is `particlehost::FigureHost` ("The host"); the free camera turns on the right mouse button, pans on the
     middle one, zooms on the wheel and moves on WASD / the arrows, built as the game's camera is (Camera::ApplyView).
   - The clock is the game's: a tick every 55 ms, at most five caught up in a frame; the frame's fraction goes to the
@@ -571,7 +580,9 @@ over a scene of its own. The game's exe has none of it: no src/tools, no imgui (
   DockBuilder); dear imgui saves the layout as it changes and at the exit.
 - **The harness** (tests/verify/effects/effects_harness.cpp, the verify build only; tools/effects_app.h's hooks):
   run_all plays a scenario with ei-effects when it has the line `# exe: ei-effects`. Its steps are `mod`, `effectviewer
-  <command>`, `wait`, `frames`, `capture`, `timeout`, `report` and `quit`; it writes harness_report.txt and
+  <command>` (among them `place point <key>`, `points` into the log, `camera <distance>` on the figure, `mark` and
+  `expect at <bone> [dz]` / `expect moved <min>`: the source's carrier point within 0.05 of a bone's, since a blend
+  moves the drawn pose between ticks), `wait`, `frames`, `capture`, `timeout`, `report` and `quit`; it writes harness_report.txt and
   harness_quit as the game's harness does, and no digest (run_all asks none of such a run). A save outside the run's
   output folder fails the run.
   - tests/scenarios/effect_viewer_standalone.txt starts the exe with `Portal` (run_all's `# arguments:` line).
@@ -635,6 +646,9 @@ over a scene of its own. The game's exe has none of it: no src/tools, no imgui (
     paused and are the same after a scrub to the same tick.
   - Captures `viewer_portal`, `viewer_portal_edited`, `viewer_aura`, `viewer_tornado`, `viewer_new`.
   - `effect_viewer_standalone`: the exe started on Portal (on the figure), scrubbed and stepped, an animation picked.
+  - `effect_viewer_points`: CastingFire's own `effect_point` at the hand (rh3), the game's points (head, above_head,
+    left_foot) and a bone (lh3) followed standing, walking and running; captures `viewer_points_hand`,
+    `viewer_points_walk`.
 
 ## Missiles and visibility
 

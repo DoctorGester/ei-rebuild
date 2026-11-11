@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <initializer_list>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -35,6 +36,25 @@ struct Event;
 }
 
 namespace tools::effect_viewer {
+
+// A point of the figure the viewer's effect sits at (the Place window's list, ViewerScene::Points; Viewer::point).
+struct FigurePoint {
+    enum class Kind : std::uint8_t {
+        File,     // as the effect's file says: its `part`, else the figure's origin
+        Origin,   // the figure's position (not on a part)
+        Game,     // a point the game's sources sit at (an AttachPoint with ParticleSourceFlag::OnPart, the game's way)
+        Named,    // a bone of the skeleton, else a part, by name (the host's namedPoint)
+    };
+    // Where the list shows it: the effect's own two, the game's points, the bones carrying a part (the figure's
+    // visible parts), the other bones (the armour's and weapons' nodes, a few hundred on a hero) and parts.
+    enum class Group : std::uint8_t { Effect, Game, Parts, Bones };
+    Kind kind = Kind::File;
+    Group group = Group::Effect;
+    AttachPoint game{};   // Game's
+    std::string bone;     // Named's bone or part
+    std::string name;     // the harness's key: "file", "origin", an effect file's `part` name, else the bone's
+    std::string label;    // what the list shows
+};
 
 // The free camera: it looks at `focus` from `distance` away, turned by `heading` about the up axis and tilted down by
 // `pitch` (radians), as the game's camera is built (Camera::ApplyView).
@@ -78,6 +98,13 @@ public:
     void PlayAnimation(int index);
     // The animations of the figure's database by name.
     std::vector<std::string> AnimationNames() const;
+    // The points an effect can sit at on the figure: as the file says, the origin, the game's points (the parts an
+    // effect file's `part` names, those the figure has; the feet the effects read; a creature's weapon point when the
+    // skeleton has its bone), the bones carrying a part, then the other bones and the parts no bone carries.
+    std::vector<FigurePoint> Points() const;
+    // The point keyed `name` (FigurePoint::name, any case), or nothing.
+    std::optional<FigurePoint> FindPoint(std::string_view name) const;
+
     // The figure walks its circle or stands (`walk`) and runs or not (`run`: the host's `running`, faster, what the
     // effects take it for), playing the first animation of its gait ("run", "walk", else "idle" / "stand").
     void SetGait(bool walk, bool run);

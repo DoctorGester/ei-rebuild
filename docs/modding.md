@@ -1385,7 +1385,14 @@ Pick one and it plays. Its textures and figures are your install's, as the game 
   - The Tick slider scrubs back and forth: the effect is played again from its start to that tick, and every replay
     draws the same particles.
   - Size is the effect's size, as a script's `CreateParticleSource` gives it.
-- **Place**: on the figure or free at a point. "At the camera's focus" puts it where you look.
+- **Place**: on the figure or free at a point. "At the camera's focus" puts it where you look. On the figure, Point
+  picks where it sits, and it follows that point through every animation, the walk and the run:
+  - the file's `part` (the effect as the game shows it), or the figure's origin;
+  - the game's points by the names `part` takes (`effect_point` is a hero's casting hand, `head`, `above_head`,
+    `left_hand` ...), placed as the game places them; and the feet the effects read (`left_foot`, `right_foot`) and a
+    creature's weapon point (`weapon`);
+  - a bone that carries one of the figure's parts (`hd`, `lh3` ...). Other bone lists the rest of the skeleton (the
+    armour's and the weapons' nodes), with a filter.
 - **Drive**:
   - Start emitting, Stop emitting and Stop, as the game calls them.
   - The source's alpha, param and extent.

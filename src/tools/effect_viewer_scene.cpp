@@ -14,6 +14,7 @@
 #include "engine/models/link_loader.h"
 #include "engine/models/material.h"
 #include "engine/models/texture.h"
+#include "engine/particles/particle_record.h"
 #include "engine/particles/particle_source.h"
 #include "engine/scene/device.h"
 #include "engine/scene/light.h"
@@ -56,6 +57,26 @@ constexpr unsigned kSkinMips = 3;
 // The heroes' figure parts in the game's order (game/objects/object3d.h, kHeroFigureParts), the hair the first one.
 constexpr std::array<const char*, 16> kHeroParts = {"hd",  "bd",  "hp",  "hr.01", "lh1", "lh2", "lh3", "rh1",
                                                      "rh2", "rh3", "ll1", "ll2", "ll3", "rl1", "rl2", "rl3"};
+
+// The game's points (FigurePoint::Kind::Game) by AttachPoint, what each is to the game.
+constexpr std::array<const char*, 13> kGamePoints = {
+    "the casting hand (rh3: a hero's effect point)", "head (hd)", "above the head (hd, 1 higher)", "left hand (lh2)",
+    "right hand (rh2)", "left leg (ll2)", "right leg (rl2)", "body (bd)", "body00", "body01", "body02", "body03",
+    "body04"};
+constexpr int kFirstBodyPoint = 8;   // body00 ... body04: listed only when the figure has such a part
+
+// The points the game reads by bone that no AttachPoint names: a unit's feet (CarrierState's) and a creature's
+// weapon point without a weapon (UnitClientSpecific::WeaponPoint's hand node).
+struct NamedGamePoint {
+    const char* name = nullptr;
+    const char* bone = nullptr;
+    const char* label = nullptr;
+};
+constexpr std::array<NamedGamePoint, 3> kNamedGamePoints = {{
+    {"left_foot", "ll3", "the left foot the effects read (ll3)"},
+    {"right_foot", "rl3", "the right foot the effects read (rl3)"},
+    {"weapon", "baserh3", "a creature's weapon point (baserh3)"},
+}};
 
 // The ground: tiles of kTile units over a square of kTiles a side round the origin, in two greys.
 constexpr int kTiles = 48;
@@ -260,6 +281,41 @@ std::vector<std::string> ViewerScene::AnimationNames() const {
     if (animations)
         for (const FigureAnimation& entry : animations->animations) names.emplace_back(EntryName(entry));
     return names;
+}
+
+std::vector<FigurePoint> ViewerScene::Points() const {
+    using Kind = FigurePoint::Kind;
+    using Group = FigurePoint::Group;
+    std::vector<FigurePoint> points;
+    points.push_back({Kind::File, Group::Effect, {}, {}, "file", "the file's part"});
+    points.push_back({Kind::Origin, Group::Effect, {}, {}, "origin", "the figure's origin"});
+    if (!figure) return points;
+    for (int i = 0; i < static_cast<int>(kGamePoints.size()); ++i) {
+        const auto point = static_cast<AttachPoint>(i);
+        if (i >= kFirstBodyPoint && !figure->FindPartByPrefix(AttachPointPart(point))) continue;
+        const std::string name(effectdata::PartName(i));
+        points.push_back({Kind::Game, Group::Game, point, {}, name, name + ": " + kGamePoints[static_cast<std::size_t>(i)]});
+    }
+    FigureAnimationState* skeleton = figure->animation.Get();
+    for (const NamedGamePoint& named : kNamedGamePoints)
+        if (skeleton && skeleton->FindBone(named.bone))
+            points.push_back({Kind::Named, Group::Game, {}, named.bone, named.name, std::string(named.name) + ": " + named.label});
+    if (skeleton) {
+        for (const FigureBone* bone : skeleton->bones)
+            if (bone->mesh) points.push_back({Kind::Named, Group::Parts, {}, bone->name, bone->name, bone->name});
+        for (const FigureBone* bone : skeleton->bones)
+            if (!bone->mesh) points.push_back({Kind::Named, Group::Bones, {}, bone->name, bone->name, bone->name});
+    }
+    for (const FigureMesh* part : figure->parts)
+        if (!skeleton || !skeleton->FindBone(part->name))
+            points.push_back({Kind::Named, Group::Bones, {}, part->name, part->name, part->name + " (a part, no bone)"});
+    return points;
+}
+
+std::optional<FigurePoint> ViewerScene::FindPoint(std::string_view name) const {
+    for (FigurePoint& point : Points())
+        if (text::CompareIgnoringCase(point.name, name) == 0) return std::move(point);
+    return std::nullopt;
 }
 
 void ViewerScene::PlaceFigure() {

@@ -1,6 +1,7 @@
 // The particle host without the game's world (particle_figure_host.h).
 #include "engine/particles/particle_figure_host.h"
 
+#include "engine/models/animation.h"
 #include "engine/models/figure_instance.h"
 #include "engine/particles/particle_source.h"
 
@@ -99,6 +100,10 @@ bool FigureHost::Removed(const FigureInstance& carrier) {
 bool FigureHost::Hidden(FigureInstance&) { return false; }
 
 Vector3 FigureHost::PartPoint(FigureInstance& carrier, AttachPoint part) {
+    if (!namedPoint.empty()) {
+        if (const std::optional<Vector3> at = NamedPointOf(carrier, namedPoint)) return *at;
+        return PartPointOf(carrier, "bd");
+    }
     if (part == AttachPoint::EffectPoint) return PartPointOf(carrier, "rh3");
     Vector3 at = PartPointOf(carrier, AttachPointPart(part));
     if (part == AttachPoint::AboveHead) at.z = at.z + 1.0f;
@@ -139,6 +144,14 @@ void FigureHost::LetGoAll(FigureInstance& figure) {
         }
         LetGo(figure, entry->sources.front().Get());
     }
+}
+
+std::optional<Vector3> FigureHost::NamedPointOf(FigureInstance& figure, std::string_view name) {
+    if (figure.animation)
+        if (const FigureBone* bone = figure.animation->FindBone(name))
+            return figure.localRotation.Rotate(bone->position) + figure.localPosition;
+    if (const FigureMesh* part = figure.FindPart(name)) return figure.PartPoint(part, kUnscaled);
+    return std::nullopt;
 }
 
 std::vector<ParticleSource*> FigureHost::SourcesOn(const FigureInstance& figure) const {

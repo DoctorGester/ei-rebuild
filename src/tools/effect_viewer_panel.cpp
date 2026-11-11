@@ -120,6 +120,43 @@ void DrawPlace(Viewer& v) {
     ImGui::SameLine();
     if (ImGui::RadioButton("Free", !v.onFigure) && v.onFigure)
         v.PlaceFree(LengthSquared(v.freeAt) == 0.0f ? scene.camera.focus : v.freeAt);
+    if (v.onFigure && scene.figure) {
+        // The figure's points: the file's way and the origin, the game's points and the parts' bones in one list, the
+        // other bones (a few hundred) in a second one with a filter.
+        using Group = FigurePoint::Group;
+        const std::vector<FigurePoint> points = scene.Points();
+        const bool onBone = v.point.group == Group::Bones;
+        std::string shown = onBone ? "(another bone)" : v.point.label.empty() ? points.front().label : v.point.label;
+        if (!onBone && v.point.kind == FigurePoint::Kind::File && v.source && v.source->data) {
+            const std::string_view part = effectdata::PartName(v.source->data->record->part);
+            shown += part.empty() ? std::string(": none, the origin") : ": " + std::string(part);
+        }
+        const auto listed = [&v](const FigurePoint& at, const FigurePoint* before) {
+            if (before && before->group != at.group) ImGui::Separator();
+            // The file's way and the origin by their kind alone (the viewer's start point has no name).
+            const bool named = at.kind == FigurePoint::Kind::Game || at.kind == FigurePoint::Kind::Named;
+            const bool selected = at.kind == v.point.kind && (!named || at.name == v.point.name);
+            if (ImGui::Selectable(at.label.c_str(), selected)) v.PlaceAt(at);
+            if (selected && ImGui::IsWindowAppearing()) ImGui::SetScrollHereY();
+        };
+        if (ImGui::BeginCombo("Point", shown.c_str(), ImGuiComboFlags_HeightLarge)) {
+            const FigurePoint* before = nullptr;
+            for (const FigurePoint& at : points)
+                if (at.group != Group::Bones) {
+                    listed(at, before);
+                    before = &at;
+                }
+            ImGui::EndCombo();
+        }
+        static ImGuiTextFilter filter;
+        if (ImGui::BeginCombo("Other bone", onBone ? v.point.label.c_str() : "-", ImGuiComboFlags_HeightLarge)) {
+            if (ImGui::IsWindowAppearing()) ImGui::SetKeyboardFocusHere();
+            filter.Draw("Filter");
+            for (const FigurePoint& at : points)
+                if (at.group == Group::Bones && filter.PassFilter(at.label.c_str())) listed(at, nullptr);
+            ImGui::EndCombo();
+        }
+    }
     if (!v.onFigure) {
         Vector3 at = v.freeAt;
         if (ImGui::DragFloat3("At", &at.x, 0.05f)) v.PlaceFree(at);
