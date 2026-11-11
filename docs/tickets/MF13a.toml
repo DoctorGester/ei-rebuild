@@ -4,4 +4,5 @@ group = "mods"
 size = 2
 note = "MF13 found: the map database (map.txt, map-LMP.txt) is a texts entry, read whole, so a mod that adds a zone must ship the whole map.txt (game data). The showcase mod therefore replaces zone 1 (gz1g's #res zone1 zone1) instead of adding a zone. Wanted: a mod's map entries merged over the game's by zone name (e.g. Res\\texts\\map.toml or map.txt entries of the mod's own read after the game's: records, exits, deploy/remove rectangles, #maps pictures), docs/modding.md and a scenario; then the showcase mod can move to its own zone reached by an exit."
 order = 1328
-status = "queued"
+status = "running"
+started = "2026-11-11"
