@@ -6,5 +6,6 @@ model = "opus"
 depends = ["MF17b"]
 note = "From build/mf17_spells.md (the MF17 design), sections 2.6 and 2.7. AIAttention::Build takes a scripted spell kind from ai (none by default; ai_effect for curse/protect/enhance); HUD UseAtOnce and IsFighting read offensive; spell%04d / prototype%04d icons from a mod checked; GiveUnitSpell, trader (sold_by, scroll_recipe) and camp give it; modhash::Counted counts Res/spells/ (mod_hash unit check). Checks: an enemy mage casting a scripted spell; net_pair cast of a mod spell (client sees bolts and damage)."
 order = 1357
-status = "review"
+status = "done"
 started = "2026-11-11"
+done = "2026-11-11"
