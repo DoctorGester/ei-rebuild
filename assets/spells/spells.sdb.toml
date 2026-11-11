@@ -66,3 +66,39 @@ offensive = true
 turns_victim = false
 fighting = false
 cast_school = "lightning"
+
+# The fireball: a ball at each target point it picks, bursting where it lands.
+[[spell]]
+code = "fireball"
+script = "Fireball.lua"
+per_target = true
+ends_with_target = true
+ai = "area_attack"
+damage_type = "fire"
+offensive = true
+turns_victim = false
+fighting = true
+
+# The light strike: bolts out of the sky at the point, striking the area at once.
+[[spell]]
+code = "inv_lit"
+script = "Strike.lua"
+per_target = true
+ends_with_target = true
+ai = "area_attack"
+damage_type = "lightning"
+offensive = true
+turns_victim = false
+fighting = true
+
+# The acid column: it rises at the point and strikes the area halfway.
+[[spell]]
+code = "acid_column"
+script = "Strike.lua"
+per_target = true
+ends_with_target = true
+ai = "area_attack"
+damage_type = "acid"
+offensive = true
+turns_victim = false
+fighting = true

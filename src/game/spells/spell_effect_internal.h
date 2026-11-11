@@ -34,22 +34,14 @@ constexpr float kVolume = 10.0f;
 constexpr float kHearing = 50.0f;
 constexpr float kLoud = 1000.0f;
 
-constexpr float kDefaultSpeed = 5.0f;           // the fireball's speed when the spell has none
-constexpr float kFireballScale = 0.3f;          // the fireball's particle size per power
-constexpr float kFireballNear = 1.25f;          // a fireball within speed x this plays one sound, not the sequence
-constexpr float kStrikeDepth = 3.0f;            // the light strike's point below the surface
-constexpr float kStrikeHeight = 30.0f;          // its bolts start this far above the point
-constexpr float kStrikeWidth = -7.0f;           // its bolts' width (per power for the first)
-constexpr float kLightAbove = 5.0f;             // its light above the point
+constexpr float kDefaultSpeed = 5.0f;           // a flight's speed (a second) when the spell has none
 constexpr float kBoltWidthScale = 5.0f;         // a lightning's width per power
 constexpr float kTargetHeight = 1.2f;           // a lightning ends at the target's top x this above the ground
 constexpr float kTeleportDepth = 0.2f;          // the teleport's arrival particle below the ground
 constexpr float kBuffScale = 16.0f;             // a buff's strength per power
-constexpr float kRiseScale = 1.5f;              // the fireball's impact light rises faster and reaches further
 constexpr float kImpactWakeMargin = 5.0f;       // fireworks and clairvoyance wake the units this far past the radius
 constexpr float kPossessWake = 2.0f;            // possession wakes the units within reach x this + kPossessWakeBase
 constexpr float kPossessWakeBase = 20.0f;
-constexpr int kExplosionNoiseDelay = 4;         // the AI call delay of the fireball's noise
 
 // Footprints of the walls and clouds, along a direction or a disc, then stamped into / cleared from the AI
 // map.
@@ -71,7 +63,7 @@ inline float PowerFactor(float damage, float effect) {
     return ClampPow(damage / effect);
 }
 
-// The fireball explosion's size curve: pow(clamp((r * r * pi) / area, 1, 8), 0.33) - 0.2.
+// The area power (the fireball blast's size): pow(clamp((r * r * pi) / area, 1, 8), 0.33) - 0.2.
 inline float AreaCurve(float radius, float area) { return ClampPow(radius * radius * 3.1415927f / area); }
 
 // The fireworks' fright level: _ftol(((float)timer / duration) * 250 + 50); a duration of 0 gives _ftol's 0 for a
@@ -81,7 +73,7 @@ inline int FrightLevel(int timer, int duration) {
     return static_cast<int>(static_cast<std::int64_t>(level));
 }
 
-// The fireball's velocity: v * ((speed * 1/15) / sqrt((y*y + x*x) + z*z)).
+// A flight's velocity a tick at `speed` a second: v * ((speed * 1/15) / sqrt((y*y + x*x) + z*z)).
 inline Vector3 ScaledToSpeed(Vector3 v, float speed) {
     const float length = std::sqrt(LengthSquared(v));
     const float k = speed * 0.06666667f / length;
@@ -142,7 +134,7 @@ inline void PrototypeLight(SpellEffect* e, const Vector3& at, float range, const
 
 // SpellEffect::state.
 constexpr int kStateCasting = 0;    // Start runs
-constexpr int kStateMissile = 1;    // the missile flies
+constexpr int kStateMissile = 1;    // the missile flies (a save's from before its spell moved onto a script)
 constexpr int kStateLasting = 2;    // the effect lasts, `timer` ticks
 constexpr int kStateEnded = 3;      // the effects' objects go and the spell effect is removed
 constexpr int kStateScripted = 4;   // a scripted spell's cast lives (ScriptSpellHost)

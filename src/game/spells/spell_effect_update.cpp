@@ -1,5 +1,4 @@
-// A spell effect's later states: the per-tick dispatch, the fireball's flight and blast (state 1) and the
-// lasting effects (state 2), plus the release helpers. See docs/notes/items_spells.md.
+// A spell effect's later states: the per-tick dispatch and the lasting effects (state 2), plus the release helpers. See docs/notes/items_spells.md.
 #include "game/ai/ai_map.h"
 #include "game/objects/map_object.h"
 #include "game/script/script.h"
@@ -18,7 +17,6 @@ using namespace spellfx;
 
 namespace {
 
-constexpr float kExplosionLoudness = 5.0f;             // the fireball's noise
 constexpr int kEndedTimer = -80;                       // the effects linger this long after ending
 
 // The timer counts one tick down; the value it had.
@@ -26,42 +24,6 @@ int Tick(SpellEffect* e) {
     int ticks = e->timer;
     e->timer = ticks - 1;
     return ticks;
-}
-
-// --- State 1 -------------------------------------------------------------------------------------
-
-// Fireball: the ball explodes when its timer runs out: everything in the radius is hit, a blast
-// (the larger of the area curve and the power), an end sound, a rising light and, with a unit
-// caster, a noise the AI hears. The missile's particle goes once the timer is below zero.
-void FireballFlight(SpellEffect* e) {
-    if (Tick(e) < 0) {
-        e->position = e->targetPoint;
-        e->HitUnitsInRadius();
-        e->ReleaseVisual();
-        e->ReleaseSound();
-        e->ReleaseLight();
-        Vector3 at = e->targetPoint;
-        float power = Power(e);
-        float curve = AreaCurve(e->HeldSpell()->radius, Prototype(e)->area);
-        float size = MaxKeepB(curve, power);
-        EffectParticle* blast =
-            e->CreateParticle(0, ParticleType::FireBlast, at, size, 1.0f, kZeroVector, nullptr);
-        float radius = e->HeldSpell()->radius;
-        float alpha = Power(e);
-        blast->SetColors(alpha, radius);
-        e->CreateSound("magic\\fireball\\end.wav", at, kZeroVector, kVolume, kHearing);
-        Vector3 velocity{0.0f, 0.0f, LightRise(e) * kRiseScale};
-        float range = Prototype(e)->lightRange;
-        Vector3 color = Prototype(e)->lightColor;
-        e->CreatePointLight(at, color, range * kRiseScale, velocity);
-        if (IsUnit(e->caster)) {
-            e->world->aiMap.events.Noise(ControllerOf(e->caster), kExplosionLoudness, kExplosionNoiseDelay,
-                                         e->targetPoint);
-        }
-        e->timer = 35;
-        e->state = kStateLasting;
-    }
-    if (e->timer < 0) e->ReleaseVisual();
 }
 
 // --- State 2 -------------------------------------------------------------------------------------
@@ -80,25 +42,6 @@ void Linger(SpellEffect* e) {
 void RiseLight(SpellEffect* e) {
     Vector3 rise{0.0f, 0.0f, LightRise(e)};
     if (e->light) e->light->SetVelocity(rise);
-}
-
-// InvokeLightning: the light strike's bolt is dropped every tick; at timer 5 a second bolt strikes from 30 above.
-void LightStrikeEcho(SpellEffect* e) {
-    e->ReleaseVisual();
-    if (e->timer == 5) {
-        Vector3 top = e->position;
-        top.z += kStrikeHeight;
-        auto* bolt = CreateObject<EffectLightning>(e, ClassId::EffectLightning);
-        bolt->SetEnds(top, e->position, kStrikeWidth);
-        e->SetVisual(bolt);
-    }
-    CountDown(e);
-}
-
-// AcidColumn: the column hits once, at timer 15.
-void AcidColumn(SpellEffect* e) {
-    CountDown(e);
-    if (e->timer == 15) e->HitUnitsInRadius();
 }
 
 // The walls' and clouds' lasting tick: every 4th tick while the timer is not below zero `pulse` hits, then the
@@ -308,7 +251,7 @@ int SpellEffect::Update() {
     SpellType type = HeldSpell()->Behaviour();
     switch (state) {
     case kStateCasting: Start(type); return 1;
-    case kStateMissile: UpdateMissile(type); return 1;
+    case kStateMissile: state = kStateEnded; return 1;   // a save's cast of a spell that runs on its script now
     case kStateLasting: UpdateLasting(type); return 1;
     case kStateScripted:
         if (!host || !host->Tick(*this)) state = kStateEnded;
@@ -323,19 +266,9 @@ int SpellEffect::Update() {
     }
 }
 
-void SpellEffect::UpdateMissile(SpellType type) {
-    switch (type) {
-    case SpellType::Fireball: FireballFlight(this); break;
-    default: state = kStateEnded; break;   // a save's cast of a spell that runs on its script now
-    }
-}
-
 void SpellEffect::UpdateLasting(SpellType type) {
     switch (type) {
-    case SpellType::Fireball:
     case SpellType::Healing: CountDown(this); break;
-    case SpellType::InvokeLightning: LightStrikeEcho(this); break;
-    case SpellType::AcidColumn: AcidColumn(this); break;
     case SpellType::FireWall: FireWall(this); break;
     case SpellType::LightningWall: LightWall(this); break;
     case SpellType::AcidFog: PoisonCloud(this); break;

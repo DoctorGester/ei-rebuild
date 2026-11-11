@@ -41,8 +41,9 @@ public:
     // A loaded effect of a scripted spell in the C++'s missile or lasting state (a save from before its spell moved
     // onto a script), after the scheduler's Restore. When the module has OnResume the cast goes on as a scripted one:
     // an entry under a new key, the effect's visual, sound and light moved into its owned objects (a missile with a
-    // payload key, so OnHit runs when it lands), OnResume(cast, old) with the world's bindings off, then the end
-    // test; the effect's state says how it went. False, the effect left as it was, without the hook.
+    // payload key, so OnHit runs when it lands; their handles in `old`), OnResume(cast, old) with the world's
+    // bindings off, then the end test; the effect's state says how it went. False, the effect left as it was,
+    // without the hook.
     bool Resume(SpellEffect& effect);
 
     // The `casts` table (by key: data, timers, tick, finished) and the key after the live casts' into the scheduler's
@@ -74,6 +75,11 @@ public:
     static int Eye(lua_State* L);
     static int HitPoint(lua_State* L);
     static int IsUnit(lua_State* L);
+    static int Ground(lua_State* L);
+    static int Flight(lua_State* L);
+    static int SoundLoop(lua_State* L);
+    static int Release(lua_State* L);
+    static int Noise(lua_State* L);
 
 private:
     // The effect of the cast value `self` (argument 1) of a world method; a Lua error when the cast has ended or the
