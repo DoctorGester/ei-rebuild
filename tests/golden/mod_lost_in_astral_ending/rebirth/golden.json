@@ -1,28 +1,16 @@
 {
   "scenario": "mod_lost_in_astral_ending",
   "install": "rebirth",
-  "recorded": "2026-11-10",
-  "commit": "91b031ae6",
+  "recorded": "2026-11-11",
+  "commit": "8a7ae7cf0",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "L8c: the loop bindings set the counter global a converted loop names, as the game's loops do, so the digest's script record and the decoded saves compare the loops' counters again (L8a had left them out): the counters' values now recorded (script gobject, saves commands globals).",
+  "reason": "P12 merged onto L11/MF14b/H70 main: no far clip draws more visuals, the village camera distance, on main's save format",
   "source": "image",
+  "saves": "14 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 2 of 4 records differ, first at record 1 (world update 250, tick 250, frame 50, zone gz36j); outcomes CHANGED: script; no unit position differs",
-    "  first difference at record 1 (world update 250, tick 250, frame 50, zone gz36j): 1 fields",
-    "    script (script) #gobject: 6F802791 in the old golden, 99476658 in the new run",
-    "  outcomes: CHANGED script; same: zone, deaths, spawns, money, quest variables, party and items, game result",
-    "    script: script #gobject differs (hashes only), from record 1 (+1 more)",
-    "  script: 1 of 1 differ",
-    "    gobject: 1 script, 2 records, from 1; hash only (no numbers kept)",
-    "save LostInAstral/current/gz1g.sav: 1 fields in 1 records differ: commands 1",
-    "  commands: 1 fields in 1 records; first commands globals.objects.2.value: ~loop in the old golden, -1 in the new run",
-    "save LostInAstral/current/gz36j.sav: 2 fields in 1 records differ: commands 2",
-    "  commands: 2 fields in 1 records; first commands globals.objects.1.value: ~loop in the old golden, -1 in the new run",
-    "save LostInAstral/savea/gz1g.sav: 1 fields in 1 records differ: commands 1",
-    "... 3 more lines"
-  ],
-  "saves": "14 decoded saves (tools/savefile.py), the same in 2 runs"
+    "save LostInAstral/savea/scenario.sav: differs (decoded b6a446f2c437d739 in the old golden, 29b360c268338c7f in the new run; the store has no copy of b6a446f2c437d739)"
+  ]
 }

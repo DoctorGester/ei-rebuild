@@ -1,24 +1,19 @@
 {
   "scenario": "rec_cut_auto_2",
   "install": "vanilla",
-  "recorded": "2026-11-10",
-  "commit": "91b031ae6",
+  "recorded": "2026-11-11",
+  "commit": "8a7ae7cf0",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "L8c: the loop bindings set the counter global a converted loop names, as the game's loops do, so the digest's script record and the decoded saves compare the loops' counters again (L8a had left them out): the counters' values now recorded (script gobject, saves commands globals).",
+  "reason": "P12 merged onto L11/MF14b/H70 main: the village camera distance and no far clip, on main's save format",
   "source": "image",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 42 of 43 records differ, first at record 1 (world update 40, tick 610, frame 7, zone gz1g); outcomes CHANGED: script; no unit position differs",
-    "  first difference at record 1 (world update 40, tick 610, frame 7, zone gz1g): 1 fields",
-    "    script (script) #gobject: 890B9E0B in the old golden, 3656F9F8 in the new run",
-    "  outcomes: CHANGED script; same: zone, deaths, spawns, money, quest variables, party and items, game result",
-    "    script: script #gobject differs (hashes only), from record 1 (+41 more)",
-    "  script: 1 of 1 differ",
-    "    gobject: 1 script, 42 records, from 1; hash only (no numbers kept)",
-    "save saveq/mission.sav: 2 fields in 1 records differ: commands 2",
-    "  commands: 2 fields in 1 records; first commands globals.objects.1.value: ~loop in the old golden, 699 in the new run"
-  ],
-  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+    "save saveq/mission.sav: 153 fields in 1 records differ: obj 153",
+    "  obj: 153 fields in 1 records; first obj1000011214 controller.motion.cells: 100 in the old golden, 136 in the new run; largest numeric d 7.28e+04 at obj1000011214 controller.motion.smoothing: 367624 -> 440439",
+    "save saveq/scenario.sav: differs (decoded 04456cb19e17522d in the old golden, cace910450d36c19 in the new run; the store has no copy of 04456cb19e17522d)",
+    "save saveq/visuals.sav: differs (decoded 730dce0caf7fd6a9 in the old golden, 2adb29d6cd379ddd in the new run; the store has no copy of 730dce0caf7fd6a9)"
+  ]
 }

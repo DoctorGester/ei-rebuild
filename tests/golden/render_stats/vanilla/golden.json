@@ -1,28 +1,17 @@
 {
   "scenario": "render_stats",
   "install": "vanilla",
-  "recorded": "2026-11-10",
-  "commit": "91b031ae6",
+  "recorded": "2026-11-11",
+  "commit": "8a7ae7cf0",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "L8c: the loop bindings set the counter global a converted loop names, as the game's loops do, so the digest's script record and the decoded saves compare the loops' counters again (L8a had left them out): the counters' values now recorded (script gobject, saves commands globals).",
+  "reason": "P12 merged onto L11/MF14b/H70 main: the village camera distance and no far clip, on main's save format",
   "source": "image",
+  "saves": "12 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 98 of 192 records differ, first at record 16 (world update 340, tick 340, frame 67, zone gz1g); outcomes CHANGED: script; no unit position differs",
-    "  first difference at record 16 (world update 340, tick 340, frame 67, zone gz1g): 1 fields",
-    "    script (script) #gobject: 890B9E0B in the old golden, 3656F9F8 in the new run",
-    "  outcomes: CHANGED script; same: zone, deaths, spawns, money, quest variables, party and items, game result",
-    "    script: script #gobject differs (hashes only), from record 16 (+97 more)",
-    "  script: 1 of 1 differ",
-    "    gobject: 1 script, 98 records, from 16; hash only (no numbers kept)",
-    "save current/gz1g.sav: 2 fields in 1 records differ: commands 2",
-    "  commands: 2 fields in 1 records; first commands globals.objects.1.value: ~loop in the old golden, -1 in the new run",
-    "save savea/mission.sav: 2 fields in 1 records differ: commands 2",
-    "  commands: 2 fields in 1 records; first commands globals.objects.1.value: ~loop in the old golden, -1 in the new run",
-    "save saveb/gz1g.sav: 2 fields in 1 records differ: commands 2",
-    "... 1 more lines"
-  ],
-  "saves": "12 decoded saves (tools/savefile.py), the same in 2 runs"
+    "save saveb/scenario.sav: differs (decoded b8265ca653c4be9c in the old golden, 9c38bc09ba7c1e8c in the new run; the store has no copy of b8265ca653c4be9c)",
+    "save saveb/visuals.sav: differs (decoded fbc5c279995fde3e in the old golden, f4b140dad2c9df9c in the new run; the store has no copy of fbc5c279995fde3e)"
+  ]
 }
