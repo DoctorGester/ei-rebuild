@@ -30,8 +30,9 @@ on:
         required: false
         default: ""
 
+# Every push to main gets its own run; on other branches a newer push cancels the older run.
 concurrency:
-  group: macos-${{ github.ref }}
+  group: macos-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
   cancel-in-progress: true
 
 permissions:

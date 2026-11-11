@@ -36,8 +36,9 @@ on:
         type: boolean
         default: false
 
+# Every push to main gets its own run; on other branches a newer push cancels the older run.
 concurrency:
-  group: windows-${{ github.ref }}
+  group: windows-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
   cancel-in-progress: true
 
 permissions:
