@@ -74,9 +74,6 @@ constexpr ParticleSpec kShower = {.texture = "RainSnow", .flags = kOnPart, .atta
 constexpr ParticleSpec kFalling = {.texture = "RainSnow", .flags = kOnPart, .attachPoint = AttachPoint::Body,
                                    .emitCount = 45, .maxParticles = 300, .lifetime = 6, .frameDelay = 15,
                                    .spreadMin = {-0.2f, -0.2f, -0.2f}, .spreadMax = {0.2f, 0.2f, 0.2f}};
-constexpr ParticleSpec kArrowSmoke = {.texture = "FireArrowSmoke", .emitCount = 1, .lifetime = 15, .frameCount = 15,
-                                      .frameDelay = 1, .emitSpacing = 0.06f, .size = 0.3f, .growth = 1.03f,
-                                      .spreadMin = {-0.2f, -0.2f, -0.2f}, .spreadMax = {0.2f, 0.2f, 0.2f}};
 constexpr ParticleSpec kSphere = {.texture = "ProtectionA", .flags = ParticleSourceFlag::AttachedOnly,
                                   .additiveBlend = true, .emitChance = 90, .emitCount = 1, .lifetime = 15,
                                   .frameCount = 15, .frameDelay = 1, .spreadMin = {-0.2f, -0.2f, -1.0f},
@@ -115,9 +112,6 @@ constexpr ParticleSpec Like(const ParticleSpec& base, ParticleType type) {
 // One entry per type still in code, in the order of ParticleType; the others are data (assets/effects,
 // ParticleSource::Create).
 constexpr ParticleSpec kSpecs[] = {
-    {.type = FireBall, .texture = "FireSmoke", .emitChance = 88, .emitCount = 1, .lifetime = 15, .frameCount = 15,
-     .frameDelay = 1, .emitSpacing = 0.09f, .size = 0.8f, .growth = 0.94f, .spreadMin = {-0.2f, -0.2f, -1.0f},
-     .spreadMax = {0.2f, 0.2f, 0.0f}},
     Like(kSmoke, CampFire),
     {.type = FireBlast, .texture = "Explosion", .emitCount = 60, .maxParticles = 600, .lifetime = 15,
      .frameDelay = 1, .size = 0.6f, .height = 1.0f, .growth = 0.8f, .elementCount = 15,
@@ -148,9 +142,6 @@ constexpr ParticleSpec kSpecs[] = {
         spec.maxParticles = 1500;
         spec.elementCount = 1;
     }),
-    Like(kArrowSmoke, FireArrow),
-    {.type = AcidRay, .texture = "AcidRay", .emitCount = 1, .lifetime = 15, .frameCount = 15, .frameDelay = 1,
-     .emitSpacing = 0.06f, .size = 0.3f, .spreadMin = {-1.0f, -1.0f, -1.0f}, .spreadMax = {1.0f, 1.0f, 1.0f}},
     {.type = BlueGas, .texture = "Stench", .flags = ParticleSourceFlag::AttachedOnly, .emitChance = 80,
      .emitCount = 5, .lifetime = 45, .frameCount = 15, .frameDelay = 3, .spreadMin = {-1.0f, -1.0f, -1.0f},
      .spreadMax = {1.0f, 1.0f, 1.0f}},
@@ -215,8 +206,6 @@ constexpr ParticleSpec kSpecs[] = {
     Like(kFalling, Falling2),
     Like(kFalling, Falling3),
     Like(kFalling, Falling4),
-    {.type = ZoneExit, .texture = "ZoneExit",
-     .flags = ParticleSourceFlag::Emitting | ParticleSourceFlag::IdlesOffScreen, .emitCount = 10, .maxParticles = 600, .alpha = 5.0f, .typeParam = 5.0f},
     {.type = ShapeChange, .texture = "ShapeChange", .flags = kPausedToo, .emitCount = 2500, .maxParticles = 2500},
     Like(kGroundDust, GroundDust1),
     Like(kGroundDust, GroundDust2, [](ParticleSpec& spec) {
@@ -229,10 +218,6 @@ constexpr ParticleSpec kSpecs[] = {
      .lifetime = 10, .frameDelay = 3, .elementCount = 1},
     Like(kCylinder, Cylinder1),
     Like(kCylinder, Cylinder2, [](ParticleSpec& spec) { spec.texture = "Casting1"; }),
-    Like(kMark, Sparks, [](ParticleSpec& spec) {
-        spec.texture = "Casting6";
-        spec.emitCount = 10;
-    }),
     Like(kVisionStar, VisionStar1),
     Like(kVisionStar, VisionStar2, [](ParticleSpec& spec) { spec.lifetime = 1; }),
     Like(kVisionStar, VisionStar3, [](ParticleSpec& spec) { spec.lifetime = 2; }),
@@ -241,16 +226,10 @@ constexpr ParticleSpec kSpecs[] = {
         spec.maxParticles = 500;
     }),
     Like(kMark, Silence, [](ParticleSpec& spec) { spec.emitCount = 4; }),
-    Like(kMark, FeebleMind, [](ParticleSpec& spec) {
-        spec.texture = "Link";
-        spec.attachPoint = AttachPoint::Head;
-        spec.emitCount = 5;
-    }),
     Like(kFeetCloud, FeetCloud1),
     Like(kFeetCloud, FeetCloud2, [](ParticleSpec& spec) { spec.tint = 0xFF0000; }),
     Like(kVisionStar, VisionStar4, [](ParticleSpec& spec) { spec.lifetime = 3; }),
     Like(kMark, Stun, [](ParticleSpec& spec) { spec.attachPoint = AttachPoint::EffectPoint; }),
-    Like(kArrowSmoke, RikArrowSmoke, [](ParticleSpec& spec) { spec.texture = "RikArrowSmoke"; }),
     {.type = CurseHolder, .texture = "Tornado", .flags = kOnPart, .attachPoint = AttachPoint::Body, .emitCount = 4,
      .maxParticles = 800, .height = 0.2f, .tint = 0x19000000, .elementCount = 6},
     {.type = StartTrans, .texture = "ZoneExit", .flags = kOnPart, .attachPoint = AttachPoint::Body, .emitCount = 1,

@@ -1,0 +1,33 @@
+# AcidRay (0x2012): the acid ray's trail of drops. Each starts at a random point of the last step and flies out across
+# it (a random direction of the motion's side and up axes, the source's size long) by a spread table, sized by its own
+# table, through the frames for 15 ticks.
+# The original types on data: docs/notes/effects.md, "The original effects on data".
+
+texture = "AcidRay"
+frames = 15
+
+[source]
+size = 0.3
+spread_min = [-1, -1, -1]
+spread_max = [1, 1, 1]
+
+[emit]
+rate = 1
+spacing = 0.06
+
+[vars]
+moving = { start = "!(distance <= 0.00001)", tick = "!(distance <= 0.00001)" }   # a trail has a length
+
+[[particle]]
+name = "drop"
+lifetime = 15
+# Its start (on the last step) and its direction (the velocity, which stays) place it each tick.
+vars = { along = "range(-1, 0)", cell = "pick(2)", across = "moving ? range(-1, 1) : 0", lift = "moving ? range(-1, 1) : 0", from_x = "moving ? origin.x + p.along * motion.x : origin.x", from_y = "moving ? origin.y + p.along * motion.y : origin.y", from_z = "moving ? origin.z + p.along * motion.z : origin.z" }
+position = { start = ["size * (moving ? p.across * side.x + p.lift * up.x : 0) * spread[0] + p.from_x", "size * (moving ? p.across * side.y + p.lift * up.y : 0) * spread[0] + p.from_y", "size * (moving ? p.across * side.z + p.lift * up.z : 0) * spread[0] + p.from_z"], tick = ["size * p.vx * spread[p.age] + p.from_x", "size * p.vy * spread[p.age] + p.from_y", "size * p.vz * spread[p.age] + p.from_z"] }
+velocity = ["moving ? p.across * side.x + p.lift * up.x : 0", "moving ? p.across * side.y + p.lift * up.y : 0", "moving ? p.across * side.z + p.lift * up.z : 0"]
+size = { start = "drop[0] * size", tick = "drop[p.age] * size" }
+frame = { start = "p.cell", delay = 1, mode = "die" }
+
+[tables]
+spread = [0.0, 0.85, 0.93, 1.0, 0.97, 0.93, 0.87, 0.8, 0.73, 0.65, 0.55, 0.43, 0.3, 0.2, 0.0, 0.0, 0.0]
+drop = [1.1, 0.85, 0.93, 1.0, 0.97, 0.93, 0.87, 0.8, 0.73, 0.65, 0.55, 0.43, 0.3, 0.2, 0.0, 0.0, 0.0]

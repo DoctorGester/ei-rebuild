@@ -73,6 +73,10 @@ enum class SourceValue : std::uint16_t {
     ExtentX, ExtentY, ExtentZ,
     TurnCos, TurnSin,
     Emitting,       // the source's emission flag (the game's StopEmitting and Stop, an effect's `once` clear it)
+    SpreadMinX, SpreadMinY, SpreadMinZ,     // the spread box (ScaleSize scales it)
+    SpreadMaxX, SpreadMaxY, SpreadMaxZ,
+    SideX, SideY, SideZ,    // the motion's side and up axes this tick (zero while the source barely moves)
+    UpX, UpY, UpZ,
     Values
 };
 inline constexpr int kSourceValues = static_cast<int>(SourceValue::Values);
@@ -83,11 +87,13 @@ inline constexpr int kAnchorValues = static_cast<int>(AnchorValue::Values);
 
 // A particle's own values (Scope::Particle, `p.<name>`); the values before this tick's update.
 enum class ParticleValue : std::uint16_t {
-    Age, Life, T, X, Y, Z, VX, VY, VZ, Size, Alpha, Frame, Anchor, Index, Values
+    Age, Life, T, X, Y, Z, VX, VY, VZ, Size, Alpha, Frame, Anchor, Index,
+    SpawnX, SpawnY, SpawnZ,     // the spawn shape's point, at the emission (0 in the update)
+    Values
 };
 inline constexpr int kParticleValues = static_cast<int>(ParticleValue::Values);
 // The vars a particle kind may declare.
-inline constexpr int kParticleVars = 6;
+inline constexpr int kParticleVars = 8;
 
 // The kinds of input an effect declares: what game code (and later Lua) drives it with.
 enum class InputType : std::uint8_t {
@@ -111,6 +117,7 @@ struct Var {
     std::string name;
     Expr start;
     Expr tick;
+    bool afterSpawn = false;    // a particle's: its start runs after the spawn shape draws (it reads p.spawn.*)
 };
 
 // What a stage's entry or a reaction does.
@@ -194,6 +201,8 @@ struct ParticleKind {
     Expr radius;
     Expr boxMin[3], boxMax[3];   // the box's (empty: the source's spread)
     Expr offset[3];
+    Expr position[3];       // given: the start's position, instead of the spawn's point plus offset and centre
+    Expr positionTick[3];   // given: the position each tick (world space; the offset in source and anchor space)
     Expr onGround;          // given: the spawn's z is the ground's height plus it
     Expr velocity[3];
     Expr speed;             // outward from the spawn's centre

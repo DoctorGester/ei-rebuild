@@ -221,6 +221,18 @@ void WriteSource(ParticleSource& s, State& state) {
     Value(v, SourceValue::TurnCos) = s.turnCos;
     Value(v, SourceValue::TurnSin) = s.turnSin;
     Value(v, SourceValue::Emitting) = lib::Has(s.flags, ParticleSourceFlag::Emitting) ? 1.0f : 0.0f;
+    Value(v, SourceValue::SpreadMinX) = s.spreadMin.x;
+    Value(v, SourceValue::SpreadMinY) = s.spreadMin.y;
+    Value(v, SourceValue::SpreadMinZ) = s.spreadMin.z;
+    Value(v, SourceValue::SpreadMaxX) = s.spreadMax.x;
+    Value(v, SourceValue::SpreadMaxY) = s.spreadMax.y;
+    Value(v, SourceValue::SpreadMaxZ) = s.spreadMax.z;
+    Value(v, SourceValue::SideX) = s.side.x;
+    Value(v, SourceValue::SideY) = s.side.y;
+    Value(v, SourceValue::SideZ) = s.side.z;
+    Value(v, SourceValue::UpX) = s.up.x;
+    Value(v, SourceValue::UpY) = s.up.y;
+    Value(v, SourceValue::UpZ) = s.up.z;
 }
 
 // A particle's own values (`p.*`) as its update or emission reads them.
@@ -321,7 +333,8 @@ std::uint32_t Rgb(const ParticleKind& kind, const Env& env, std::uint32_t curren
 }
 
 // A particle of kind `kindIndex` (-1: the regular choice) at anchor `anchor` (-1: chosen by the kind) into `p`; the
-// order of its parts is the order of its draws: lifetime, vars, position, velocity, size, colour, frame.
+// order of its parts is the order of its draws: lifetime, vars, the spawn shape, the vars after it, position,
+// velocity, size, colour, frame.
 int EmitKind(ParticleSource& s, Particle& p, int kindIndex, int anchor, int index) {
     State& state = *s.data;
     if (kindIndex < 0) kindIndex = ChooseKind(state);
@@ -350,15 +363,27 @@ int EmitKind(ParticleSource& s, Particle& p, int kindIndex, int anchor, int inde
     const Env env = ParticleEnv(state, p, values);
     p.life = Truncated(kind.lifetime.Run(env, 1.0f), 1, std::numeric_limits<int>::max());
     values[ParticleValue::Life] = static_cast<float>(p.life);
-    for (std::size_t i = 0; i < kind.vars.size(); ++i) p.vars[i] = kind.vars[i].start.Run(env);
+    for (std::size_t i = 0; i < kind.vars.size(); ++i)
+        if (!kind.vars[i].afterSpawn) p.vars[i] = kind.vars[i].start.Run(env);
 
     const Vector3 centre = anchor >= 0 ? s.origin + AnchorPosition(state, anchor) : s.origin;
     Vector3 offset = SpawnOffset(s, kind, env);
+    values[ParticleValue::SpawnX] = offset.x;
+    values[ParticleValue::SpawnY] = offset.y;
+    values[ParticleValue::SpawnZ] = offset.z;
+    for (std::size_t i = 0; i < kind.vars.size(); ++i)
+        if (kind.vars[i].afterSpawn) p.vars[i] = kind.vars[i].start.Run(env);
     if (!kind.offset[0].Empty() || !kind.offset[1].Empty() || !kind.offset[2].Empty())
         offset = offset + Vector3{kind.offset[0].Run(env), kind.offset[1].Run(env), kind.offset[2].Run(env)};
     const bool placed = kind.shape != SpawnShape::Point || !kind.offset[0].Empty() || !kind.offset[1].Empty() ||
                         !kind.offset[2].Empty();
-    p.pos = placed ? offset + centre : centre;
+    if (!kind.position[0].Empty()) {
+        const float x = kind.position[0].Run(env);
+        const float y = kind.position[1].Run(env);
+        p.pos = {x, y, kind.position[2].Run(env)};
+    } else {
+        p.pos = placed ? offset + centre : centre;
+    }
     if (!kind.onGround.Empty())
         p.pos.z = g_clientWorld.RawSurfaceHeightAt(p.pos.x, p.pos.y) + kind.onGround.Run(env);
     if (kind.space == Space::Source) p.drift = p.pos - s.origin;
@@ -488,18 +513,42 @@ int UpdateData(ParticleSource& s, Particle& p) {
     ParticleValues values;
     WriteParticle(p, values);
     const Env env = ParticleEnv(state, p, values);
+    // The frame first: a particle past its last frame in `die` mode ends before it moves, as the originals' (its timer
+    // then stays run out, so the update a dead particle still gets steps no frame).
+    if (!kind.frameTick.Empty()) {
+        p.frame = Truncated(kind.frameTick.Run(env), 0, std::numeric_limits<int>::max());
+    } else if (p.frameTimer > 0 && --p.frameTimer == 0) {
+        if (++p.frame >= s.frameCount && kind.frameMode == FrameMode::Die) return 0;
+        p.frameTimer = Truncated(kind.frameDelay.Run(env, 0.0f), 0, std::numeric_limits<int>::max());
+    }
+    if (p.frame >= s.frameCount) {
+        switch (kind.frameMode) {
+        case FrameMode::Loop: p.frame %= s.frameCount; break;
+        case FrameMode::Hold: p.frame = s.frameCount - 1; break;
+        case FrameMode::Die: return 0;
+        }
+    }
     for (std::size_t i = 0; i < kind.vars.size(); ++i) p.vars[i] = kind.vars[i].tick.Run(env, p.vars[i]);
 
+    // The move: by the position's tick when given (all three from this tick's values), else by the velocity.
+    const bool ticked = !kind.positionTick[0].Empty();
+    Vector3 next;
+    if (ticked) {
+        next.x = kind.positionTick[0].Run(env);
+        next.y = kind.positionTick[1].Run(env);
+        next.z = kind.positionTick[2].Run(env);
+    }
     switch (kind.space) {
     case Space::World:
-        if (kind.moves) p.pos = p.pos + p.velocity;
+        if (ticked) p.pos = next;
+        else if (kind.moves) p.pos = p.pos + p.velocity;
         break;
     case Space::Source:
-        p.drift = p.drift + p.velocity;
+        p.drift = ticked ? next : p.drift + p.velocity;
         p.pos = s.origin + p.drift;
         break;
     case Space::Anchor:
-        p.drift = p.drift + p.velocity;
+        p.drift = ticked ? next : p.drift + p.velocity;
         p.pos = s.origin + AnchorPosition(state, p.state) + p.drift;
         break;
     }
@@ -513,19 +562,6 @@ int UpdateData(ParticleSource& s, Particle& p) {
     const std::uint32_t alpha = kind.alphaTick.Empty() ? p.color >> 24 : Channel(kind.alphaTick.Run(env));
     p.color = alpha << 24 | Rgb(kind, env, p.color);
 
-    if (!kind.frameTick.Empty()) {
-        p.frame = Truncated(kind.frameTick.Run(env), 0, std::numeric_limits<int>::max());
-    } else if (p.frameTimer > 0 && --p.frameTimer == 0) {
-        p.frameTimer = Truncated(kind.frameDelay.Run(env, 0.0f), 0, std::numeric_limits<int>::max());
-        ++p.frame;
-    }
-    if (p.frame >= s.frameCount) {
-        switch (kind.frameMode) {
-        case FrameMode::Loop: p.frame %= s.frameCount; break;
-        case FrameMode::Hold: p.frame = s.frameCount - 1; break;
-        case FrameMode::Die: return 0;
-        }
-    }
     if (!kind.kill.Empty() && kind.kill.Run(env) != 0.0f) return 0;
     return 1;
 }

@@ -1,0 +1,37 @@
+# ZoneExit (0x2038): the glow over a zone exit. Sparks at random points of the exit's ellipse on the ground (the
+# source's alpha and param are its half extents, turned by turn_cos / turn_sin), rising 0.05 a tick for 15 ticks,
+# larger near the middle, cycling within their group of four frames and fading in and out by the life left; red when
+# extent.x is set. The half extents' product of sparks a tick, at most 40 (10 before the first): the count of the last
+# tick that emitted.
+# The original types on data: docs/notes/effects.md, "The original effects on data".
+
+texture = "ZoneExit"
+flags = ["idles_off_screen"]
+
+[source]
+alpha = 5
+param = 5
+
+[emit]
+rate = "tries"
+max = 600
+
+[vars]
+tries = { start = 10, tick = "total > seen ? min(round(seen_alpha * seen_param), 40) : tries" }
+seen = { start = 0, tick = "total" }                    # the particles emitted before this tick
+seen_alpha = { start = "alpha", tick = "alpha" }        # the half extents those were emitted at
+seen_param = { start = "param", tick = "param" }
+
+[[particle]]
+name = "spark"
+lifetime = 16                                   # 15 shown, as the original counts down past 0
+vars = { cell = "pick(16)", a = "range(-1, 1)", b = "range(-1, 1)", grown = "(below(0.6) + 0.7) * (1.9 - p.a * p.a - p.b * p.b) * 0.05", red = "extent.x != 0" }
+position = { start = ["p.a * alpha * turn_cos + origin.x - p.b * turn_sin * param", "turn_sin * alpha * p.a + p.b * turn_cos * param + origin.y", 0], tick = ["p.x", "p.y", "p.z + 0.05"] }
+spawn = { on_ground = 0.1 }
+size = { start = 0, tick = "p.grown" }
+color = [255, "p.red ? 96 : 255", "p.red ? 96 : 255"]
+alpha = { start = 0, tick = "fade[p.life]" }
+frame = { start = "p.cell", tick = "p.frame - p.frame % 4 + (p.frame + 1) % 4" }
+
+[tables]
+fade = [0, 80, 176, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 128, 64]

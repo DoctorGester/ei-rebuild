@@ -1,7 +1,8 @@
 // The data effects' records without the game (src/game/effects/particle_expr.h, particle_record.h): expressions
 // compiled and run, a record read from TOML and merged over a lower layer's, its problems reported, the state machine
 // driven by its typed inputs: stages by ticks, by a condition on an input and by an event, enter and event actions,
-// anchors, conditional tick reactions and the stop action; and every whole effect the notes and the modding guide
+// anchors, conditional tick reactions and the stop action; a particle's position written out and its vars after the
+// spawn; and every whole effect the notes and the modding guide
 // write out read without a problem. ei_unit_check (unit_check.cpp) runs it.
 #include "../../src/game/effects/particle_record.h"
 #include "../../src/game/core/random.h"
@@ -307,6 +308,39 @@ void CheckReactions() {
            state.stopRequested && !state.ended && state.emitting);
 }
 
+constexpr const char* kPlaced = R"toml(
+texture = "Stun"
+[[particle]]
+name = "spark"
+lifetime = 7
+vars = { a = 1, b = 2, c = 3, d = 4, e = 5, f = 6, speed = "below(0.6)", dx = { start = "p.spawn.x * p.speed", after_spawn = true } }
+spawn = { shape = "ball" }
+position = { start = ["origin.x + p.dx", "origin.y", "origin.z"], tick = ["p.x + side.x * spread_min.x", "p.y + up.y", "p.z + spread_max.z"] }
+)toml";
+
+constexpr const char* kEarly = R"toml(
+texture = "Stun"
+[[particle]]
+name = "spark"
+lifetime = 2
+vars = { dx = "p.spawn.x" }
+)toml";
+
+void CheckPlacement() {
+    std::vector<std::string> errors;
+    const std::shared_ptr<const Record> record = Read(Parse(kPlaced, "placed.effect.toml"), "Placed", &errors);
+    for (const std::string& error : errors) std::printf("ei_unit_check: particle record: unexpected: %s\n", error.c_str());
+    if (!record) return Expect("the placed record reads", false);
+    const ParticleKind& kind = record->particles[0];
+    Expect("eight vars, the last after the spawn", kind.vars.size() == 8 && !kind.vars[6].afterSpawn && kind.vars[7].afterSpawn);
+    Expect("the position's start and tick", kind.position[0].text == "origin.x + p.dx" && !kind.position[2].Empty() &&
+                                                kind.positionTick[1].text == "p.y + up.y" && !kind.positionTick[2].Empty());
+    errors.clear();
+    Expect("a var that reads the spawn before it draws refuses the effect",
+           Read(Parse(kEarly, "early.effect.toml"), "Early", &errors) == nullptr && errors.size() == 1 &&
+               errors[0].find("after_spawn") != std::string::npos);
+}
+
 // The ```toml blocks of `file` (relative to the source tree) that are whole effects (a [[particle]]).
 std::vector<std::string> EffectBlocks(const char* file) {
     std::ifstream in(std::string(EI_SOURCE_DIR) + "/" + file, std::ios::binary);
@@ -350,6 +384,7 @@ int RunParticleRecordChecks() {
     CheckRecord();
     CheckState();
     CheckReactions();
+    CheckPlacement();
     CheckWrittenEffects();
     return failures;
 }

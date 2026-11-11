@@ -379,7 +379,7 @@ struct ScriptParticleType {
     int type = 0;           // EffectParticle::type (0x2000..)
     int lifetime = 0;       // ticks, -1 forever
 };
-constexpr int kScriptParticleTypeCount = 60;
+constexpr int kScriptParticleTypeCount = 54;
 
 namespace scriptir {
 struct Block;
