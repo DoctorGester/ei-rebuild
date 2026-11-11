@@ -336,26 +336,26 @@ Risks:
 | `console/` | 5 | 2038 | C168e |
 | `core/` | 27 | 3881 | C168d |
 | `data/` | 16 | 5803 | C168d |
-| `effects/` | 30 | 12026 | C168g |
+| `effects/` | 28 | 10386 | C168g |
 | `items/` | 10 | 2958 | C168g |
 | `map/` | 15 | 4292 | C168e |
 | `models/` | 25 | 8219 | C168g |
 | `mods/` | 10 | 971 | C168d |
 | `net/` | 21 | 8194 | C168h |
-| `objects/` | 23 | 8214 | C168f |
+| `objects/` | 23 | 8216 | C168f |
 | `players/` | 24 | 5473 | C168e |
 | `saves/` | 7 | 848 | C168d |
 | `scene/` | 30 | 4397 | C168g |
-| `script/` | 33 | 11379 | C168h |
+| `script/` | 33 | 11501 | C168h |
 | `sound/` | 3 | 1679 | C168e |
-| `spells/` | 9 | 2576 | C168g |
+| `spells/` | 9 | 2423 | C168g |
 | `terrain/` | 12 | 3560 | C168g |
 | `ui/` | 97 | 33143 | C168h |
 | `units/` | 27 | 9839 | C168f |
 | `world/` | 35 | 10290 | C168e |
-| all | 524 | 165702 | |
+| all | 522 | 164033 | |
 
-571 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
+569 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
 
 ### Every file
 
@@ -540,7 +540,6 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | lightning.cpp | effects/lightning.cpp |  |  |
 | lightning.h | effects/lightning.h |  |  |
 | particle_blasts.cpp | effects/particle_blasts.cpp |  |  |
-| particle_casting.cpp | effects/particle_casting.cpp |  |  |
 | particle_common.h | effects/particle_common.h |  |  |
 | particle_create.cpp | effects/particle_create.cpp |  |  |
 | particle_data.cpp | effects/particle_data.cpp |  |  |
@@ -548,7 +547,6 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | particle_expr.cpp | effects/particle_expr.cpp |  |  |
 | particle_expr.h | effects/particle_expr.h |  |  |
 | particle_manager.cpp | effects/particle_manager.cpp |  |  |
-| particle_marks.cpp | effects/particle_marks.cpp |  |  |
 | particle_record.cpp | effects/particle_record.cpp |  |  |
 | particle_record.h | effects/particle_record.h |  |  |
 | particle_world.cpp | effects/particle_world.cpp |  |  |
