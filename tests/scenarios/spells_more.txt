@@ -85,14 +85,18 @@ check IsEnemy(GetObjectByName("MagicWolf0"),0)
 check IsEnemy(GetObjectByName("MagicWolf1"),0)
 
 # Teleport (the last button), then a click on the ground: the hero arrives there a moment after the cast.
+# Rebirth's camera is closer, so the 800x600 point the vanilla run clicks lies within 5 units of the hero (or
+# the pick fails above it); its click is on the hero's left, 8 units away (H73).
 console @GSSetVar(0,"hx",GetX(GetLeader()))
 console @GSSetVar(0,"hy",GetY(GetLeader()))
 console @GSSetVar(0,"m0",Mana(GetLeader()))
 click 780 490
 wait 200
-move 560 260
+vanilla move 560 260
+rebirth move 300 260
 frames 3
-click 560 260
+vanilla click 560 260
+rebirth click 300 260
 waitfor 25 IsLess(Mana(GetLeader()),GSGetVar(0,"m0"))
 waitfor 20 IsGreater(DistanceUnitPoint(GetLeader(),GSGetVar(0,"hx"),GSGetVar(0,"hy")),5)
 check IsAlive(GetLeader())
