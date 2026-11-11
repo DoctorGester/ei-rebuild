@@ -67,6 +67,7 @@ int RunModHashChecks() {
     Expect("the databases and texts count", modhash::Counted("res\\database.res") &&
                                                 modhash::Counted("res\\databaselmp\\items.idb.toml") &&
                                                 modhash::Counted("res\\textslmp.res") && modhash::Counted("res\\texts\\texts.toml"));
+    Expect("the data effects count", modhash::Counted("res\\effects\\showcase_aura.effect.toml"));
     Expect("looks and notes do not count", !modhash::Counted("res\\textures.res") &&
                                                !modhash::Counted("res\\figures\\a.glb") && !modhash::Counted("readme.txt") &&
                                                !modhash::Counted("movies\\intro.bik"));

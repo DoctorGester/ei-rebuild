@@ -21,6 +21,7 @@ int RunTexturePngChecks();     // texture_png.cpp: textures as PNG and back
 int RunMapFolderChecks();      // map_folder.cpp: maps as folders and back, the PNG writer
 int RunFigureGltfChecks();     // figure_gltf.cpp: figure models as glTF and back
 int RunLuaNumberChecks();      // lua_number.cpp: script floats across the Lua boundary, NaN payloads kept
+int RunParticleRecordChecks(); // particle_record.cpp: the data effects' expressions, records and state machine
 
 int main() {
     std::setvbuf(stdout, nullptr, _IONBF, 0);   // what was printed survives a crashing check
@@ -29,7 +30,7 @@ int main() {
                          RunBoundedTextChecks() + RunTaggedStreamChecks() + RunGameBufferChecks() +
                          RunPlatformTextChecks() + RunModHashChecks() + RunPathLayersChecks() + RunWeatherFieldChecks() + RunTomlChecks() +
                          RunTexturePngChecks() + RunMapFolderChecks() +
-                         RunFigureGltfChecks() + RunLuaNumberChecks();
+                         RunFigureGltfChecks() + RunLuaNumberChecks() + RunParticleRecordChecks();
     std::printf("ei_unit_check: %d problems\n", failures);
     return failures ? 1 : 0;
 }

@@ -5,10 +5,12 @@
 #include "game/app/singletons.h"
 #include "game/objects/object3d.h"
 #include "game/effects/particle_common.h"
+#include "game/effects/particle_data.h"
 #include "game/models/texture.h"
 #include "game/world/world.h"
 
 #include "lib/containers.h"
+#include "lib/text_case.h"
 #include "platform/log.h"
 
 #include <cstdint>
@@ -271,6 +273,22 @@ constexpr bool SpecsInTypeOrder() {
 }
 static_assert(SpecsInTypeOrder() && std::ssize(kSpecs) == static_cast<int>(Transform) - static_cast<int>(FireBall) + 1);
 
+// The types' names, in the order of ParticleType from FireBall.
+constexpr std::string_view kTypeNames[] = {
+    "FireBall", "CampFire", "FireBlast", "Fire", "Smoke", "VulcanSmoke", "Healing", "PoisonFog", "PoisonCloud",
+    "Geyser", "Tornado", "Casting", "Nuke", "Banshee", "Mushroom", "Shower1", "Tendril", "FireArrow", "AcidRay",
+    "BlueGas", "Link", "SphereAcid", "SphereElectricity", "SphereFire", "ClayRing", "Teleport", "Antimagic",
+    "Modifier1", "Modifier2", "Modifier3", "Modifier4", "Modifier5", "Modifier6", "Modifier7", "Modifier8",
+    "Modifier9", "Modifier10", "Modifier11", "Modifier12", "CastingFire", "CastingElectricity", "CastingAcid",
+    "CastingDivination", "CastingIllusion", "CastingDomination", "CastingEnchantment", "CastingHealing",
+    "TeleportRing", "LightningBlast", "Shower2", "Shower3", "Shower4", "Falling1", "Falling2", "Falling3", "Falling4",
+    "ZoneExit", "ShapeChange", "GroundDust1", "GroundDust2", "Bag", "PortalStar", "Portal", "Cylinder1", "Cylinder2",
+    "FireStar", "AcidStar", "Sparks", "VisionStar1", "VisionStar2", "VisionStar3", "Regeneration", "Silence",
+    "FeebleMind", "FeetCloud1", "FeetCloud2", "VisionStar4", "Stun", "RikArrowSmoke", "CurseStars", "CurseHolder",
+    "StartTrans", "Transform",
+};
+static_assert(std::size(kTypeNames) == std::size(kSpecs));
+
 // The spec of `type`, or null for an unknown type.
 const ParticleSpec* FindSpec(int type) {
     const int index = type - static_cast<int>(FireBall);
@@ -316,10 +334,16 @@ std::set<int> g_unknownTypes;
 } // namespace
 
 int ShownParticleType(int type) {
-    if (FindSpec(type)) return type;
+    if (FindSpec(type) || effectdata::g_effects.FindById(type)) return type;
     // TODO: a mod effect known by name shows its declared fallback type.
     if (g_unknownTypes.insert(type).second)
         ei::Log("particles: unknown particle type 0x%X, no effect shown (once per type)", static_cast<unsigned>(type));
+    return kNoParticleType;
+}
+
+int ParticleTypeByName(std::string_view name) {
+    for (std::size_t i = 0; i < std::size(kTypeNames); ++i)
+        if (text::CompareIgnoringCase(kTypeNames[i], name) == 0) return static_cast<int>(FireBall) + static_cast<int>(i);
     return kNoParticleType;
 }
 
@@ -344,6 +368,7 @@ void ParticleSource::Reset() {
     rayCount = 0;
     glowKind = GlowKind::Green;
     lib::FreeStorage(elements);
+    data.reset();
     alpha = 1.0f;
     typeParam = 1.0f;
     size = 1.0f;
@@ -370,12 +395,21 @@ void ParticleSource::Clear() {
     Reset();
 }
 
-// Create. Sets the source up for its type from its spec (CreateSource makes known types only).
+// Create. Sets the source up for its type from its spec, or from its data effect's record (CreateSource makes known
+// types only).
 void ParticleSource::Create() {
     Reset();
     boundsMin = {kBoundsFar, kBoundsFar, kBoundsFar};
     boundsMax = {-kBoundsFar, -kBoundsFar, -kBoundsFar};
     const ParticleSpec* spec = FindSpec(type);
+    if (!spec) {
+        std::shared_ptr<const effectdata::Record> record = effectdata::g_effects.FindById(type);
+        const std::string textureName = record->texture;
+        effectdata::SetUp(*this, std::move(record));
+        LoadNamedTexture(texture, static_cast<int>(TextureKind::Effects), textureName.c_str());
+        BuildFrames(this);
+        return;
+    }
     flags = (flags & ~(ParticleSourceFlag::TicksWhilePaused | ParticleSourceFlag::OnPart)) |
             ParticleSourceFlag::Emitting | spec->flags;
     attachPoint = spec->attachPoint;

@@ -375,6 +375,12 @@ particle_blasts.cpp         effects/particle_blasts.cpp
 particle_casting.cpp        effects/particle_casting.cpp
 particle_marks.cpp          effects/particle_marks.cpp
 particle_world.cpp          effects/particle_world.cpp
+particle_expr.h             effects/particle_expr.h
+particle_expr.cpp           effects/particle_expr.cpp
+particle_record.h           effects/particle_record.h
+particle_record.cpp         effects/particle_record.cpp
+particle_data.h             effects/particle_data.h
+particle_data.cpp           effects/particle_data.cpp
 lightning.h                 effects/lightning.h
 lightning.cpp               effects/lightning.cpp
 world_effect.h              effects/world_effect.h

@@ -49,6 +49,7 @@
 #include "game/units/unit.h"
 #include "game/units/unit_client_models.h"
 #include "game/world/world.h"
+#include "game/effects/particle_data.h"
 #include "game/effects/world_effect.h"
 #include "game/core/coder.h"
 #include "game/sound/sound.h"
@@ -63,6 +64,7 @@
 #include <cstring>
 #include <list>
 #include <new>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -553,6 +555,71 @@ long LocalWeaponDamage(const char* weapon, float* minimum, float* maximum) {
         return 1;
     }
     return 0;
+}
+
+std::string DataEffectStep(const std::string& argument) {
+    std::istringstream words(argument);
+    std::string name, verb;
+    words >> name >> verb;
+    if (name.empty() || (verb != "set" && verb != "fire" && verb != "check" && verb != "value"))
+        return "effect " + argument +
+               ": not <name> set <input> <value> | fire <event> | value <input> <value> | check <particles> [<stage>]";
+    if (!g_clientWorld.particleManager) return "effect " + name + ": no client world";
+    const std::int32_t id = effectdata::IdOf(name);
+    std::vector<ParticleSource*> sources;
+    ObjectListIterator it;
+    for (EngineObject* object = it.First(g_clientWorld.particleManager.get()); object; object = it.Next()) {
+        auto* source = static_cast<ParticleSource*>(object);
+        if (source->type == id && source->data) sources.push_back(source);
+    }
+    if (sources.empty()) return "effect " + name + ": no source of it";
+    if (verb == "set" || verb == "fire") {
+        std::string input;
+        words >> input;
+        std::vector<std::string> values;
+        for (std::string value; words >> value;) values.push_back(value);
+        for (ParticleSource* source : sources) {
+            bool done = false;
+            char* end = nullptr;
+            if (verb == "fire") done = effectdata::Fire(*source, input);
+            else if (values.size() == 3)
+                done = effectdata::SetInput(*source, input,
+                                            Vector3{std::strtof(values[0].c_str(), nullptr),
+                                                    std::strtof(values[1].c_str(), nullptr),
+                                                    std::strtof(values[2].c_str(), nullptr)});
+            else if (values.size() == 1 && (std::strtof(values[0].c_str(), &end), *end == '\0'))
+                done = effectdata::SetInput(*source, input, std::strtof(values[0].c_str(), nullptr));
+            else if (values.size() == 1) done = effectdata::SetInput(*source, input, std::string_view(values[0]));
+            if (!done) return "effect " + name + ": no input " + input + " that takes " + verb + " " + argument;
+        }
+        Log("harness: effect %s %s %s on %zu sources", name.c_str(), verb.c_str(), input.c_str(), sources.size());
+        return {};
+    }
+    if (verb == "value") {
+        std::string input;
+        float expected = 0.0f;
+        words >> input >> expected;
+        const effectdata::State& state = *sources.front()->data;
+        const effectdata::Input* found = state.record->FindInput(input);
+        if (!found) return "effect " + name + ": no input " + input;
+        const float got = state.inputs[found->slot];
+        Log("harness: effect %s: input %s is %g (expected %g)", name.c_str(), input.c_str(), got, expected);
+        if (got != expected) return "effect " + name + ": input " + input + " is " + std::to_string(got);
+        return {};
+    }
+    int least = 0;
+    std::string stage;
+    words >> least >> stage;
+    std::size_t particles = 0;
+    for (ParticleSource* source : sources) particles += source->particles.size();
+    const effectdata::State& state = *sources.front()->data;
+    const std::string now = state.stage >= 0 ? state.record->stages[state.stage].name : std::string("-");
+    Log("harness: effect %s: %zu sources, %zu particles, stage %s, age %d (expected %d particles or more%s%s)",
+        name.c_str(), sources.size(), particles, now.c_str(), state.age, least, stage.empty() ? "" : ", stage ",
+        stage.c_str());
+    if (static_cast<int>(particles) < least) return "effect " + name + ": " + std::to_string(particles) + " particles";
+    if (!stage.empty() && stage != now) return "effect " + name + ": stage " + now + ", expected " + stage;
+    return {};
 }
 
 long ModManagerFile(const char* which, const char* name) {

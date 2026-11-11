@@ -33,8 +33,11 @@ bool EndsWith(std::string_view text, std::string_view end) {
     return text.size() >= end.size() && text.substr(text.size() - end.size()) == end;
 }
 
-// Whether Res\'s entry `name` (an archive or its folder) is a counted one.
-bool CountedResource(std::string_view name) { return StartsWith(name, "database") || StartsWith(name, "texts"); }
+// Whether Res\'s entry `name` (an archive or its folder) is a counted one: the databases, the texts and the data
+// effects (their [server] blocks decide the effects' world objects).
+bool CountedResource(std::string_view name) {
+    return StartsWith(name, "database") || StartsWith(name, "texts") || StartsWith(name, "effects");
+}
 
 // Whether the folder at `relative` (lower case) may hold a counted file: the walk goes into no other.
 bool MayHold(std::string_view relative) {

@@ -2,6 +2,7 @@
 // letting go of the held ones. See effects.h (ParticleManager) and docs/notes/effects.md, "Particle sources".
 #include "game/effects/effects.h"
 #include "game/effects/particle_common.h"
+#include "game/effects/particle_data.h"
 
 #include "game/scene/camera.h"
 #include "game/core/engine_object.h"
@@ -431,6 +432,7 @@ void BuildBasis(ParticleSource& s) {
 
 // Emits one particle of the source's type into `p` (0: the pool takes it back).
 int EmitParticle(ParticleSource& s, Particle& p, int index) {
+    if (s.data) return effectdata::EmitData(s, p, index);
     switch (ParticleTypeOf(s.type)) {
     case ParticleType::FireBall: return EmitFireBall(s, p, index);
     case ParticleType::CampFire: case ParticleType::Fire: case ParticleType::Smoke: return EmitSmoke(s, p, index);
@@ -497,6 +499,7 @@ int EmitParticle(ParticleSource& s, Particle& p, int index) {
 
 // Moves one particle of the source's type (0 drops it).
 int UpdateParticle(ParticleSource& s, Particle& p) {
+    if (s.data) return effectdata::UpdateData(s, p);
     switch (ParticleTypeOf(s.type)) {
     case ParticleType::FireBall: return UpdateFireBall(s, p);
     case ParticleType::CampFire: case ParticleType::Fire: case ParticleType::Smoke: case ParticleType::Tendril:
@@ -568,6 +571,7 @@ void EachElement(ParticleSource& s, void (*tick)(ParticleSource&, ParticleElemen
 
 // The type's work on its elements before the particles move; the other types have none.
 void TickSource(ParticleSource& s) {
+    if (s.data) return effectdata::TickData(s);
     switch (ParticleTypeOf(s.type)) {
     case ParticleType::Tendril: TickTendril(s); break;
     case ParticleType::FireBlast: EachElement(s, TickBlast); break;
@@ -648,8 +652,10 @@ void EmitOne(ParticleSource& s, int index) {
 }
 
 // max(emitCount, distance / emitSpacing) tries, each emitting with emitChance percent; a
-// source above 50% that emitted nothing gets one particle anyway.
+// source above 50% that emitted nothing gets one particle anyway. A data effect's queued particles come first, emitting
+// or not.
 void Emit(ParticleSource& s) {
+    if (s.data) effectdata::EmitQueued(s);
     if (!(s.flags & ParticleSourceFlag::Emitting)) return;
     if ((s.flags & ParticleSourceFlag::AttachedOnly) && !s.attachedTo) return;
     int tries = std::lround(s.distance / s.emitSpacing);

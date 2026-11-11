@@ -1,0 +1,90 @@
+# The showcase mod's data effect (docs/modding.md, "Effects"; docs/notes/effects.md, "Data effects"): three orbs circle
+# the source trailing light, motes rise from the ground around it. Its inputs drive it: `charge` (0 to 1) speeds the
+# orbs and, once full, bursts sparks from them; `mode` "storm" doubles the motes; the event `pulse` throws sparks at once.
+# A script starts it by its file's name: CreateParticleSource(id, x, y, z, size, "showcase_aura").
+
+texture = "Teleport"
+blend = "additive"
+
+[inputs]
+charge = { type = "float", default = 0.0 }
+mode = { type = "enum", values = ["calm", "storm"], default = "calm" }
+pulse = { type = "event" }
+
+[vars]
+spin = { start = 0, tick = "spin + 0.06 + charge * 0.12" }
+
+[emit]
+rate = "mode == mode.storm ? 10 : 5"
+max = 600
+
+# The effect rises for a second, then glows until it is charged, bursts, and glows again.
+[[stage]]
+name = "rise"
+ticks = 18
+next = "glow"
+rate = "1 + stage_age * 0.25"
+
+[[stage]]
+name = "glow"
+until = "charge >= 1"
+next = "burst"
+
+[[stage]]
+name = "burst"
+ticks = 1
+next = "glow"
+enter = [{ emit = 12, kind = "spark", at = "orb" }, { set = "charge", value = 0 }]
+
+[[on]]
+event = "pulse"
+do = [{ emit = 8, kind = "spark", at = "orb" }]
+
+[[anchor]]
+name = "orb"
+count = 3
+radius = "size * (age < 18 ? age / 18 : 1)"
+angle = "spin + a.index * 2.0944"
+z = "1.0 + sin(age * 0.15 + a.index * 2) * 0.25"
+
+[[particle]]
+name = "mote"
+when = "chance(40)"
+lifetime = 30
+spawn = { shape = "disc", radius = "size * 1.4", on_ground = 0.05 }
+velocity = [0, 0, "range(0.02, 0.05)"]
+size = { start = "range(0.08, 0.16) * size", growth = 0.98 }
+color = "80C0FF"
+alpha = { start = 0, tick = "glow(p.t)" }
+frame = { start = "pick(16)", delay = 2 }
+
+[[particle]]
+name = "trail"
+at = "orb"
+lifetime = 14
+spawn = { shape = "ball", radius = 0.06 }
+velocity = [0, 0, "range(0.005, 0.02)"]
+size = { start = "range(0.14, 0.22) * size", growth = 0.92 }
+color = "FFD890"
+alpha = { start = 0, tick = "fade[p.age]" }
+frame = { start = "pick(16)", delay = 1 }
+
+[[particle]]
+name = "spark"
+when = false
+at = "orb"
+lifetime = "range(10, 16)"
+spawn = { shape = "shell", radius = 0.05 }
+speed = "range(0.06, 0.14)"
+drag = 0.88
+gravity = [0, 0, -0.004]
+size = { start = "0.2 * size", growth = 0.93 }
+color = "FFF0C0"
+alpha = { tick = "255 * (1 - p.t)" }
+frame = { start = "pick(16)", delay = 1 }
+
+[tables]
+fade = [0, 140, 230, 255, 255, 235, 210, 180, 150, 120, 90, 60, 35, 15]
+
+[curves]
+glow = [[0.0, 0], [0.15, 255], [0.7, 190], [1.0, 0]]

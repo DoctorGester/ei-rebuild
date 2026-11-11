@@ -172,6 +172,11 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   directly; `playstream <file>.mp3` asks the music stream for a track. The stream's steps run on the virtual clock (a
   harness run opens no sound device), so the wait takes the same world updates every run and the digest records them
   (S19d1: four runs agreed record for record); with `music <volume>` and a device the halves free in real time and would not.
+- Data effects (effects.md, "Data effects"): `effect <name> set <input> <value | x y z | enum value>`, `effect <name>
+  fire <event>` drive the client's running sources of that effect through the inputs game code uses
+  (`effectdata::SetInput` / `Fire`); `effect <name> value <input> <expected>` requires an input's value (an enum's as its
+  index), `effect <name> check <least particles> [<stage>]` requires a source with that many particles, in that stage
+  (`harness_objects_image.cpp`'s `DataEffectStep`; `mod_effect`).
 - `resolution <WxH|desktop>` and `widescreen 0|1` (or `EI_RESOLUTION` / `EI_WIDESCREEN`) set the run's window; without
   them runs play in a window of 960x720 on the vanilla data and 1280x720 on Rebirth's (each takes its goldens' shape;
   FullScreen 0 unless the scenario says `fullscreen 1`).

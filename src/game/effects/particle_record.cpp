@@ -1,0 +1,1020 @@
+// A data effect's record: the layers' TOML merged, the schema read and its expressions compiled, and the effect's
+// state machine. More: docs/notes/effects.md, "Data effects".
+#include "game/effects/particle_record.h"
+
+#include "game/core/random.h"
+
+#include "lib/maths.h"
+#include "lib/toml.h"
+
+#include <algorithm>
+#include <charconv>
+#include <cmath>
+#include <initializer_list>
+
+namespace effectdata {
+
+// ---- The layers' files merged ---------------------------------------------------------------------------------------
+
+namespace {
+
+const RawNode kMissing;
+
+// The key an array of tables merges its elements by.
+std::string_view MergeKey(const RawNode& element) {
+    for (const char* key : {"name", "event"}) {
+        const RawNode& value = element[key];
+        if (value.kind == RawNode::Kind::String) return value.text;
+    }
+    return {};
+}
+
+bool IsTableArray(const RawNode& node) {
+    return node.kind == RawNode::Kind::Array && !node.items.empty() &&
+           std::all_of(node.items.begin(), node.items.end(),
+                       [](const RawNode& item) { return item.kind == RawNode::Kind::Table; });
+}
+
+} // namespace
+
+const RawNode& RawNode::operator[](std::string_view key) const {
+    for (const auto& [name, value] : keys)
+        if (name == key) return value;
+    return kMissing;
+}
+
+std::string RawNode::Where() const { return line > 0 ? file + ":" + std::to_string(line) : file; }
+
+RawNode Copy(const toml::Value& value, const std::string& file) {
+    RawNode node;
+    node.file = file;
+    node.line = value.Line();
+    if (value.IsTable()) {
+        node.kind = RawNode::Kind::Table;
+        for (int i = 0; i < value.Size(); ++i)
+            node.keys.emplace_back(std::string(value.KeyAt(i)), Copy(value.ValueAt(i), file));
+    } else if (value.IsArray()) {
+        node.kind = RawNode::Kind::Array;
+        for (int i = 0; i < value.Size(); ++i) node.items.push_back(Copy(value.At(i), file));
+    } else if (value.IsString()) {
+        node.kind = RawNode::Kind::String;
+        node.text = std::string(value.String());
+    } else if (value.IsInt()) {
+        node.kind = RawNode::Kind::Integer;
+        node.number = static_cast<double>(value.Int());
+    } else if (value.IsFloat()) {
+        node.kind = RawNode::Kind::Float;
+        node.number = value.Float();
+    } else if (value.IsBool()) {
+        node.kind = RawNode::Kind::Bool;
+        node.flag = value.Bool();
+    }
+    return node;
+}
+
+void MergeOver(RawNode& below, const RawNode& above) {
+    if (below.kind == RawNode::Kind::Table && above.kind == RawNode::Kind::Table) {
+        for (const auto& [key, value] : above.keys) {
+            auto found = std::find_if(below.keys.begin(), below.keys.end(),
+                                      [&key](const auto& entry) { return entry.first == key; });
+            if (found == below.keys.end()) below.keys.emplace_back(key, value);
+            else MergeOver(found->second, value);
+        }
+        return;
+    }
+    if (IsTableArray(below) && IsTableArray(above)) {
+        std::vector<bool> merged(below.items.size(), false);
+        for (const RawNode& element : above.items) {
+            const std::string_view key = MergeKey(element);
+            bool matched = false;
+            for (std::size_t i = 0; !key.empty() && i < below.items.size(); ++i) {
+                if (merged[i] || MergeKey(below.items[i]) != key) continue;
+                MergeOver(below.items[i], element);
+                merged[i] = true;
+                matched = true;
+                break;
+            }
+            if (!matched) below.items.push_back(element);
+        }
+        return;
+    }
+    below = above;
+}
+
+// ---- Ids ------------------------------------------------------------------------------------------------------------
+
+std::int32_t IdOf(std::string_view name) {
+    std::uint32_t hash = 0x811C9DC5u;
+    for (const char c : name) {
+        const char lower = c >= 'A' && c <= 'Z' ? static_cast<char>(c + ('a' - 'A')) : c;
+        hash ^= static_cast<std::uint8_t>(lower);
+        hash *= 0x01000193u;
+    }
+    return kDataIdRange | static_cast<std::int32_t>(hash & 0x3FFFFFFFu);
+}
+
+const Input* Record::FindInput(std::string_view input) const {
+    for (const Input& i : inputs)
+        if (i.name == input) return &i;
+    return nullptr;
+}
+
+// ---- Reading the record ---------------------------------------------------------------------------------------------
+
+namespace {
+
+constexpr int kMaxAnchors = 4096;   // per group
+
+constexpr std::string_view kSourceNames[kSourceValues] = {
+    "size", "height", "growth", "alpha", "param", "base_size", "age", "stage_age", "stage", "carrier_radius",
+    "carrier_z", "attached", "distance", "motion.x", "motion.y", "motion.z", "origin.x", "origin.y", "origin.z",
+    "count", "index", "total", "wind.x", "wind.y", "wind_strength", "extent.x", "extent.y", "extent.z", "turn_cos",
+    "turn_sin",
+};
+constexpr std::string_view kAnchorNames[kAnchorValues] = {"index", "count", "age", "ticks", "x", "y", "z"};
+constexpr std::string_view kParticleNames[kParticleValues] = {
+    "age", "life", "t", "x", "y", "z", "vx", "vy", "vz", "size", "alpha", "frame", "anchor", "index",
+};
+constexpr std::string_view kParts[] = {
+    "effect_point", "head", "above_head", "left_hand", "right_hand", "left_leg", "right_leg", "body",
+    "body00", "body01", "body02", "body03", "body04",
+};
+
+template <std::size_t N>
+int IndexIn(const std::string_view (&names)[N], std::string_view name) {
+    for (std::size_t i = 0; i < N; ++i)
+        if (names[i] == name) return static_cast<int>(i);
+    return -1;
+}
+
+int IndexIn(const std::vector<std::string>& names, std::string_view name) {
+    for (std::size_t i = 0; i < names.size(); ++i)
+        if (names[i] == name) return static_cast<int>(i);
+    return -1;
+}
+
+std::string Joined(std::initializer_list<std::string_view> names) {
+    std::string text;
+    for (const std::string_view name : names) {
+        if (!text.empty()) text += ", ";
+        text += name;
+    }
+    return text;
+}
+
+// Where an expression is compiled: the source alone, an anchor group, or a particle kind (with its anchor group).
+struct Context {
+    int anchor = -1;
+    int particle = -1;
+};
+
+class Reader {
+public:
+    Reader(const RawNode& root, std::string_view name, std::vector<std::string>* errors)
+        : root(root), errors(errors) {
+        record = std::make_shared<Record>();
+        record->name = std::string(name);
+        record->id = IdOf(name);
+        record->file = root.file;
+    }
+
+    std::shared_ptr<const Record> Run() {
+        Known(root, {"replace", "texture", "frames", "columns", "blend", "attach", "part", "flags", "fallback",
+                     "server", "source", "emit", "inputs", "vars", "stage", "on", "anchor", "particle", "tables",
+                     "curves"});
+        ReadLook();
+        ReadServer();
+        ReadSource();
+        ReadTables();
+        ReadInputs();
+        Declare();
+        ReadVars(root["vars"], {}, &record->vars);
+        ReadEmit();
+        for (std::size_t i = 0; i < record->stages.size(); ++i) ReadStage(Element("stage", i), record->stages[i]);
+        ReadReactions();
+        for (std::size_t i = 0; i < record->anchors.size(); ++i) ReadAnchor(Element("anchor", i), static_cast<int>(i));
+        for (std::size_t i = 0; i < record->particles.size(); ++i)
+            ReadParticle(Element("particle", i), static_cast<int>(i));
+        if (record->particles.empty()) Error(root, "no [[particle]]: the effect emits nothing");
+        return fatal ? nullptr : record;
+    }
+
+private:
+    void Error(const RawNode& at, const std::string& what) {
+        errors->push_back(at.Where() + ": " + what);
+        fatal = true;
+    }
+    void Note(const RawNode& at, const std::string& what) { errors->push_back(at.Where() + ": " + what); }
+
+    // An unknown key of `table` is logged (and the effect still loads).
+    void Known(const RawNode& table, std::initializer_list<std::string_view> names) {
+        for (const auto& [key, value] : table.keys) {
+            if (std::find(names.begin(), names.end(), key) == names.end())
+                Note(value, "unknown key '" + key + "' (known: " + Joined(names) + ")");
+        }
+    }
+
+    const RawNode& Element(std::string_view array, std::size_t i) {
+        const RawNode& list = root[array];
+        return list.kind == RawNode::Kind::Array ? list.items[i] : list;
+    }
+    // The tables of an array of tables (one table alone counts as one).
+    std::vector<const RawNode*> Tables(std::string_view key) {
+        std::vector<const RawNode*> out;
+        const RawNode& node = root[key];
+        if (node.kind == RawNode::Kind::Table) out.push_back(&node);
+        else if (node.kind == RawNode::Kind::Array)
+            for (const RawNode& item : node.items) {
+                if (item.kind == RawNode::Kind::Table) out.push_back(&item);
+                else Error(item, "[[" + std::string(key) + "]] holds tables");
+            }
+        else if (node.Exists()) Error(node, "[[" + std::string(key) + "]] holds tables");
+        return out;
+    }
+
+    bool Number(const RawNode& node, float* out) {
+        if (!node.Exists()) return false;
+        if (!node.IsNumber()) {
+            Error(node, "a number expected");
+            return false;
+        }
+        *out = static_cast<float>(node.number);
+        return true;
+    }
+    bool Integer(const RawNode& node, int* out) {
+        float value = 0.0f;
+        if (!Number(node, &value)) return false;
+        *out = static_cast<int>(std::lround(value));
+        return true;
+    }
+    bool Flag(const RawNode& node, bool* out) {
+        if (!node.Exists()) return false;
+        if (node.kind != RawNode::Kind::Bool) {
+            Error(node, "true or false expected");
+            return false;
+        }
+        *out = node.flag;
+        return true;
+    }
+    bool Text(const RawNode& node, std::string* out) {
+        if (!node.Exists()) return false;
+        if (node.kind != RawNode::Kind::String) {
+            Error(node, "a string expected");
+            return false;
+        }
+        *out = node.text;
+        return true;
+    }
+    void Vector3Of(const RawNode& node, Vector3* out) {
+        if (!node.Exists()) return;
+        if (node.kind != RawNode::Kind::Array || node.items.size() != 3) return Error(node, "[x, y, z] expected");
+        Number(node.items[0], &out->x);
+        Number(node.items[1], &out->y);
+        Number(node.items[2], &out->z);
+    }
+    // One name of `names` (the enum's values), or an error that lists them.
+    template <std::size_t N>
+    int Choice(const RawNode& node, const std::string_view (&names)[N], int fallback) {
+        std::string text;
+        if (!Text(node, &text)) return fallback;
+        const int index = IndexIn(names, text);
+        if (index >= 0) return index;
+        std::string known;
+        for (const std::string_view name : names) known += (known.empty() ? "" : ", ") + std::string(name);
+        Error(node, "unknown '" + text + "' (known: " + known + ")");
+        return fallback;
+    }
+
+    // ---- top-level, [server], [source], [tables], [curves] ----
+
+    void ReadLook() {
+        Text(root["texture"], &record->texture);
+        if (record->texture.empty()) Error(root, "no texture");
+        Integer(root["frames"], &record->frames);
+        Integer(root["columns"], &record->columns);
+        if (record->frames < 1) record->frames = 1;
+        if (record->columns < 1) record->columns = 1;
+        static constexpr std::string_view kBlends[] = {"alpha", "additive"};
+        record->additive = Choice(root["blend"], kBlends, 0) == 1;
+        static constexpr std::string_view kAttach[] = {"free", "attached_only"};
+        record->attach = static_cast<Attach>(Choice(root["attach"], kAttach, 0));
+        if (root["part"].Exists()) record->part = Choice(root["part"], kParts, -1);
+        const RawNode& flags = root["flags"];
+        if (flags.Exists() && flags.kind != RawNode::Kind::Array) Error(flags, "a list of flags expected");
+        static constexpr std::string_view kFlags[] = {"ticks_while_paused", "idles_off_screen"};
+        for (const RawNode& flag : flags.items) {
+            switch (Choice(flag, kFlags, -1)) {
+            case 0: record->ticksWhilePaused = true; break;
+            case 1: record->idlesOffScreen = true; break;
+            default: break;
+            }
+        }
+        Text(root["fallback"], &record->fallback);
+    }
+    void ReadServer() {
+        const RawNode& server = root["server"];
+        Known(server, {"one_shot", "script_lifetime"});
+        Integer(server["one_shot"], &record->oneShot);
+        Integer(server["script_lifetime"], &record->scriptLifetime);
+    }
+    void ReadSource() {
+        const RawNode& source = root["source"];
+        Known(source, {"size", "height", "growth", "alpha", "param", "spread_min", "spread_max", "extent"});
+        Number(source["size"], &record->size);
+        Number(source["height"], &record->height);
+        Number(source["growth"], &record->growth);
+        Number(source["alpha"], &record->alpha);
+        Number(source["param"], &record->param);
+        Vector3Of(source["spread_min"], &record->spreadMin);
+        Vector3Of(source["spread_max"], &record->spreadMax);
+        Vector3Of(source["extent"], &record->extent);
+    }
+    void ReadTables() {
+        for (const auto& [name, values] : root["tables"].keys) {
+            if (values.kind != RawNode::Kind::Array) {
+                Error(values, "table '" + name + "': a list of numbers expected");
+                continue;
+            }
+            std::vector<float> table;
+            for (const RawNode& value : values.items) {
+                float number = 0.0f;
+                Number(value, &number);
+                table.push_back(number);
+            }
+            record->tableNames.push_back(name);
+            record->tables.push_back(std::move(table));
+        }
+        for (const auto& [name, points] : root["curves"].keys) {
+            Curve curve;
+            for (const RawNode& point : points.items) {
+                float xy[2] = {};
+                if (point.kind != RawNode::Kind::Array || point.items.size() != 2) {
+                    Error(point, "curve '" + name + "': [t, value] points expected");
+                    continue;
+                }
+                Number(point.items[0], &xy[0]);
+                Number(point.items[1], &xy[1]);
+                if (!curve.x.empty() && !(xy[0] >= curve.x.back()))
+                    Error(point, "curve '" + name + "': the points go up in t");
+                curve.x.push_back(xy[0]);
+                curve.y.push_back(xy[1]);
+            }
+            if (points.kind != RawNode::Kind::Array || curve.x.empty())
+                Error(points, "curve '" + name + "': a list of [t, value] points expected");
+            record->curveNames.push_back(name);
+            record->curves.push_back(std::move(curve));
+        }
+    }
+
+    // ---- inputs ----
+
+    void ReadInputs() {
+        static constexpr std::string_view kTypes[] = {"float", "vector", "bool", "event", "enum"};
+        for (const auto& [name, spec] : root["inputs"].keys) {
+            Input input;
+            input.name = name;
+            if (spec.kind != RawNode::Kind::Table) {
+                Error(spec, "input '" + name + "': { type = ... } expected");
+                continue;
+            }
+            Known(spec, {"type", "default", "values"});
+            input.type = static_cast<InputType>(Choice(spec["type"], kTypes, 0));
+            if (!spec["type"].Exists()) Error(spec, "input '" + name + "': no type (" + Joined({"float", "vector", "bool", "event", "enum"}) + ")");
+            const RawNode& start = spec["default"];
+            switch (input.type) {
+            case InputType::Float: Number(start, &input.start.x); break;
+            case InputType::Vector: Vector3Of(start, &input.start); break;
+            case InputType::Bool: {
+                bool on = false;
+                Flag(start, &on);
+                input.start.x = on ? 1.0f : 0.0f;
+                break;
+            }
+            case InputType::Event:
+                if (start.Exists()) Error(start, "input '" + name + "': an event has no default");
+                break;
+            case InputType::Enum: {
+                for (const RawNode& value : spec["values"].items) {
+                    std::string text;
+                    if (Text(value, &text)) input.values.push_back(text);
+                }
+                if (input.values.empty()) Error(spec, "input '" + name + "': an enum lists its values");
+                std::string chosen;
+                if (Text(start, &chosen)) {
+                    const int index = IndexIn(input.values, chosen);
+                    if (index < 0) Error(start, "input '" + name + "': '" + chosen + "' is none of its values");
+                    else input.start.x = static_cast<float>(index);
+                }
+                break;
+            }
+            }
+            if (input.type != InputType::Enum && spec["values"].Exists())
+                Error(spec["values"], "input '" + name + "': only an enum has values");
+            input.slot = record->inputValues;
+            record->inputValues += input.type == InputType::Vector ? 3 : 1;
+            record->inputs.push_back(std::move(input));
+        }
+    }
+
+    // The names of the stages, groups, kinds and vars, before any expression is compiled (they name each other).
+    void Declare() {
+        for (const RawNode* stage : Tables("stage")) {
+            Stage& s = record->stages.emplace_back();
+            if (!Text((*stage)["name"], &s.name)) Error(*stage, "a [[stage]] without its name");
+        }
+        for (const RawNode* anchor : Tables("anchor")) {
+            Anchor& a = record->anchors.emplace_back();
+            if (!Text((*anchor)["name"], &a.name)) Error(*anchor, "an [[anchor]] without its name");
+            DeclareVars((*anchor)["vars"], &a.vars, false);
+        }
+        for (const RawNode* particle : Tables("particle")) {
+            ParticleKind& kind = record->particles.emplace_back();
+            if (!Text((*particle)["name"], &kind.name)) Error(*particle, "a [[particle]] without its name");
+            DeclareVars((*particle)["vars"], &kind.vars, true);
+        }
+        DeclareVars(root["vars"], &record->vars, false);
+    }
+    void DeclareVars(const RawNode& table, std::vector<Var>* vars, bool particle) {
+        for (const auto& [name, value] : table.keys) vars->push_back({name, {}, {}});
+        if (particle && vars->size() > static_cast<std::size_t>(kParticleVars))
+            Error(table, "a particle has at most " + std::to_string(kParticleVars) + " vars");
+    }
+
+    // ---- expressions ----
+
+    Resolved Resolve(std::string_view name, Context context) const {
+        auto value = [](Scope scope, int index) {
+            return Resolved{Resolved::Kind::Value, scope, static_cast<std::uint16_t>(index), 0.0f};
+        };
+        auto constant = [](float v) { return Resolved{Resolved::Kind::Constant, Scope::Source, 0, v}; };
+        if (name.starts_with("p.")) {
+            if (context.particle < 0) return {};
+            const std::string_view field = name.substr(2);
+            if (const int i = IndexIn(kParticleNames, field); i >= 0) return value(Scope::Particle, i);
+            const auto& vars = record->particles[context.particle].vars;
+            for (std::size_t i = 0; i < vars.size(); ++i)
+                if (vars[i].name == field) return value(Scope::ParticleVar, static_cast<int>(i));
+            return {};
+        }
+        if (name.starts_with("a.")) {
+            if (context.anchor < 0) return {};
+            const std::string_view field = name.substr(2);
+            if (const int i = IndexIn(kAnchorNames, field); i >= 0) return value(Scope::Anchor, i);
+            const auto& vars = record->anchors[context.anchor].vars;
+            for (std::size_t i = 0; i < vars.size(); ++i)
+                if (vars[i].name == field) return value(Scope::AnchorVar, static_cast<int>(i));
+            return {};
+        }
+        if (name.starts_with("anchors.")) {
+            for (std::size_t i = 0; i < record->anchors.size(); ++i)
+                if (record->anchors[i].name == name.substr(8)) return value(Scope::Source, kSourceValues + static_cast<int>(i));
+            return {};
+        }
+        if (name.starts_with("stage.")) {
+            for (std::size_t i = 0; i < record->stages.size(); ++i)
+                if (record->stages[i].name == name.substr(6)) return constant(static_cast<float>(i));
+            return {};
+        }
+        if (const std::size_t dot = name.find('.'); dot != std::string_view::npos) {
+            if (const Input* input = record->FindInput(name.substr(0, dot))) {
+                const std::string_view field = name.substr(dot + 1);
+                if (input->type == InputType::Vector) {
+                    const int axis = field == "x" ? 0 : field == "y" ? 1 : field == "z" ? 2 : -1;
+                    return axis < 0 ? Resolved{} : value(Scope::Input, input->slot + axis);
+                }
+                if (input->type == InputType::Enum) {
+                    const int index = IndexIn(input->values, field);
+                    return index < 0 ? Resolved{} : constant(static_cast<float>(index));
+                }
+                return {};
+            }
+        }
+        if (const Input* input = record->FindInput(name))
+            return input->type == InputType::Vector ? Resolved{} : value(Scope::Input, input->slot);
+        for (std::size_t i = 0; i < record->vars.size(); ++i)
+            if (record->vars[i].name == name) return value(Scope::SourceVar, static_cast<int>(i));
+        if (const int i = IndexIn(kSourceNames, name); i >= 0) return value(Scope::Source, i);
+        if (const int i = IndexIn(record->tableNames, name); i >= 0)
+            return {Resolved::Kind::Table, Scope::Source, static_cast<std::uint16_t>(i), 0.0f};
+        if (const int i = IndexIn(record->curveNames, name); i >= 0)
+            return {Resolved::Kind::Curve, Scope::Source, static_cast<std::uint16_t>(i), 0.0f};
+        return {};
+    }
+
+    // A number, true / false or an expression's text, compiled in `context`; an empty Expr when not given.
+    Expr Field(const RawNode& node, Context context) {
+        switch (node.kind) {
+        case RawNode::Kind::Missing: return {};
+        case RawNode::Kind::Integer:
+        case RawNode::Kind::Float: return ConstantExpr(static_cast<float>(node.number));
+        case RawNode::Kind::Bool: return ConstantExpr(node.flag ? 1.0f : 0.0f);
+        case RawNode::Kind::String: {
+            std::string error;
+            Expr expr = Compile(node.text, [this, context](std::string_view name) { return Resolve(name, context); },
+                                &error);
+            if (expr.Empty()) Error(node, "\"" + node.text + "\": " + error);
+            return expr;
+        }
+        default: Error(node, "a number or an expression expected"); return {};
+        }
+    }
+    void Fields3(const RawNode& node, Context context, Expr* out) {
+        if (!node.Exists()) return;
+        if (node.kind != RawNode::Kind::Array || node.items.size() != 3) return Error(node, "[x, y, z] expected");
+        for (int i = 0; i < 3; ++i) out[i] = Field(node.items[i], context);
+    }
+
+    void ReadVars(const RawNode& table, Context context, std::vector<Var>* vars) {
+        for (std::size_t i = 0; i < table.keys.size() && i < vars->size(); ++i) {
+            const RawNode& spec = table.keys[i].second;
+            Var& var = (*vars)[i];
+            if (spec.kind == RawNode::Kind::Table) {
+                Known(spec, {"start", "tick"});
+                var.start = Field(spec["start"], context);
+                var.tick = Field(spec["tick"], context);
+            } else {
+                var.start = Field(spec, context);
+            }
+        }
+    }
+
+    // ---- [emit], stages, reactions ----
+
+    void ReadEmit() {
+        const RawNode& emit = root["emit"];
+        Known(emit, {"rate", "chance", "emitting", "spacing", "max", "once"});
+        record->rate = Field(emit["rate"], {});
+        record->chance = Field(emit["chance"], {});
+        record->emitting = Field(emit["emitting"], {});
+        Number(emit["spacing"], &record->spacing);
+        Integer(emit["max"], &record->maxParticles);
+        Flag(emit["once"], &record->once);
+    }
+    int StageIndex(const RawNode& node) {
+        std::string name;
+        if (!Text(node, &name)) return -1;
+        if (name == "end") return kEndStage;
+        for (std::size_t i = 0; i < record->stages.size(); ++i)
+            if (record->stages[i].name == name) return static_cast<int>(i);
+        Error(node, "no stage '" + name + "'");
+        return -1;
+    }
+    int EventSlot(const RawNode& at, const std::string& name) {
+        const Input* input = record->FindInput(name);
+        if (input && input->type == InputType::Event) return input->slot;
+        Error(at, "'" + name + "' is no event input");
+        return -1;
+    }
+    void ReadStage(const RawNode& node, Stage& stage) {
+        Known(node, {"name", "ticks", "next", "until", "on", "rate", "chance", "emitting", "enter"});
+        stage.ticks = Field(node["ticks"], {});
+        stage.next = StageIndex(node["next"]);
+        stage.until = Field(node["until"], {});
+        stage.untilNext = stage.next;
+        if (!stage.until.Empty() && stage.next == -1) Error(node, "stage '" + stage.name + "': until needs a next");
+        if (!stage.ticks.Empty() && stage.next == -1) Error(node, "stage '" + stage.name + "': ticks needs a next");
+        for (const auto& [event, target] : node["on"].keys) {
+            const int slot = EventSlot(target, event);
+            const int to = StageIndex(target);
+            if (slot >= 0 && to != -1) stage.onEvent.emplace_back(slot, to);
+        }
+        stage.rate = Field(node["rate"], {});
+        stage.chance = Field(node["chance"], {});
+        stage.emitting = Field(node["emitting"], {});
+        stage.enter = Actions(node["enter"]);
+    }
+    void ReadReactions() {
+        for (const RawNode* node : Tables("on")) {
+            Known(*node, {"event", "do"});
+            Reaction& reaction = record->reactions.emplace_back();
+            if (!Text((*node)["event"], &reaction.event)) Error(*node, "an [[on]] without its event");
+            if (reaction.event == "start") reaction.on = Reaction::On::Start;
+            else if (reaction.event == "stop") reaction.on = Reaction::On::Stop;
+            else if (!reaction.event.empty()) {
+                reaction.on = Reaction::On::Event;
+                reaction.slot = EventSlot((*node)["event"], reaction.event);
+            }
+            reaction.actions = Actions((*node)["do"]);
+        }
+    }
+    std::vector<Action> Actions(const RawNode& list) {
+        std::vector<Action> actions;
+        if (!list.Exists()) return actions;
+        if (list.kind != RawNode::Kind::Array) {
+            Error(list, "a list of actions expected");
+            return actions;
+        }
+        for (const RawNode& node : list.items) {
+            Known(node, {"emit", "kind", "at", "set", "value", "stage", "effect", "end"});
+            Action action;
+            std::string name;
+            if (node["emit"].Exists()) {
+                action.kind = Action::Kind::Emit;
+                action.count = Field(node["emit"], {});
+                if (Text(node["kind"], &name)) action.particleKind = KindIndex(node["kind"], name);
+                if (Text(node["at"], &name)) action.anchor = GroupIndex(node["at"], name);
+            } else if (Text(node["set"], &name)) {
+                action.kind = Action::Kind::Set;
+                const Input* input = record->FindInput(name);
+                if (!input || input->type == InputType::Vector || input->type == InputType::Event)
+                    Error(node, "'" + name + "' is no float, bool or enum input");
+                else action.target = input->slot;
+                action.value = Field(node["value"], {});
+                if (action.value.Empty()) Error(node, "set needs a value");
+            } else if (node["stage"].Exists()) {
+                action.kind = Action::Kind::Stage;
+                action.target = StageIndex(node["stage"]);
+            } else if (Text(node["effect"], &action.effect)) {
+                action.kind = Action::Kind::Effect;
+            } else if (node["end"].Exists()) {
+                action.kind = Action::Kind::End;
+            } else {
+                Error(node, "an action is emit, set, stage, effect or end");
+                continue;
+            }
+            actions.push_back(std::move(action));
+        }
+        return actions;
+    }
+    int KindIndex(const RawNode& at, const std::string& name) {
+        for (std::size_t i = 0; i < record->particles.size(); ++i)
+            if (record->particles[i].name == name) return static_cast<int>(i);
+        Error(at, "no [[particle]] '" + name + "'");
+        return -1;
+    }
+    int GroupIndex(const RawNode& at, const std::string& name) {
+        for (std::size_t i = 0; i < record->anchors.size(); ++i)
+            if (record->anchors[i].name == name) return static_cast<int>(i);
+        Error(at, "no [[anchor]] '" + name + "'");
+        return -1;
+    }
+
+    // ---- anchors and particles ----
+
+    void ReadAnchor(const RawNode& node, int group) {
+        Known(node, {"name", "count", "ticks", "vars", "x", "y", "z", "radius", "angle"});
+        Anchor& anchor = record->anchors[group];
+        const Context context{group, -1};
+        anchor.count = Field(node["count"], {});
+        if (anchor.count.Empty()) Error(node, "anchor '" + anchor.name + "': no count");
+        anchor.ticks = Field(node["ticks"], context);
+        ReadVars(node["vars"], context, &anchor.vars);
+        anchor.cylindrical = node["radius"].Exists() || node["angle"].Exists();
+        if (anchor.cylindrical && (node["x"].Exists() || node["y"].Exists()))
+            Error(node, "anchor '" + anchor.name + "': x / y or radius / angle, not both");
+        anchor.x = Field(node["x"], context);
+        anchor.y = Field(node["y"], context);
+        anchor.z = Field(node["z"], context);
+        anchor.radius = Field(node["radius"], context);
+        anchor.angle = Field(node["angle"], context);
+    }
+
+    void ReadParticle(const RawNode& node, int index) {
+        Known(node, {"name", "when", "lifetime", "vars", "at", "pick", "space", "spawn", "velocity", "speed", "drag",
+                     "gravity", "wind", "size", "color", "alpha", "frame", "kill"});
+        ParticleKind& kind = record->particles[index];
+        std::string group;
+        if (Text(node["at"], &group)) kind.anchor = GroupIndex(node["at"], group);
+        const Context context{kind.anchor, index};
+        kind.when = Field(node["when"], {});   // before the particle and its anchor are chosen
+        kind.lifetime = Field(node["lifetime"], context);
+        if (kind.lifetime.Empty()) Error(node, "particle '" + kind.name + "': no lifetime");
+        ReadVars(node["vars"], context, &kind.vars);
+        static constexpr std::string_view kPicks[] = {"cycle", "random"};
+        kind.pick = static_cast<AnchorPick>(Choice(node["pick"], kPicks, 0));
+        static constexpr std::string_view kSpaces[] = {"world", "source", "anchor"};
+        kind.space = static_cast<Space>(Choice(node["space"], kSpaces, 0));
+        if (kind.space == Space::Anchor && kind.anchor < 0) Error(node, "particle '" + kind.name + "': space anchor needs at");
+
+        const RawNode& spawn = node["spawn"];
+        Known(spawn, {"shape", "radius", "min", "max", "offset", "on_ground"});
+        static constexpr std::string_view kShapes[] = {"point", "box", "ball", "shell", "disc", "ring"};
+        kind.shape = static_cast<SpawnShape>(Choice(spawn["shape"], kShapes, 0));
+        kind.radius = Field(spawn["radius"], context);
+        Fields3(spawn["min"], context, kind.boxMin);
+        Fields3(spawn["max"], context, kind.boxMax);
+        Fields3(spawn["offset"], context, kind.offset);
+        kind.onGround = Field(spawn["on_ground"], context);
+
+        Fields3(node["velocity"], context, kind.velocity);
+        kind.speed = Field(node["speed"], context);
+        kind.drag = Field(node["drag"], context);
+        Fields3(node["gravity"], context, kind.gravity);
+        kind.wind = Field(node["wind"], context);
+
+        const RawNode& size = node["size"];
+        if (size.kind == RawNode::Kind::Table) {
+            Known(size, {"start", "tick", "growth"});
+            kind.sizeStart = Field(size["start"], context);
+            kind.sizeTick = Field(size["tick"], context);
+            kind.growth = Field(size["growth"], context);
+            if (!kind.sizeTick.Empty() && !kind.growth.Empty())
+                Error(size, "particle '" + kind.name + "': size tick or growth, not both");
+        } else {
+            kind.sizeStart = Field(size, context);
+        }
+
+        const RawNode& color = node["color"];
+        if (color.kind == RawNode::Kind::String) {
+            std::uint32_t rgb = 0;
+            const char* first = color.text.data();
+            const auto [end, failed] = std::from_chars(first, first + color.text.size(), rgb, 16);
+            if (color.text.size() != 6 || failed != std::errc() || end != first + color.text.size())
+                Error(color, "particle '" + kind.name + "': color is \"RRGGBB\" or [r, g, b]");
+            kind.rgb = rgb;
+        } else if (color.Exists()) {
+            Fields3(color, context, kind.rgbTick);
+        }
+        const RawNode& alpha = node["alpha"];
+        if (alpha.kind == RawNode::Kind::Table) {
+            Known(alpha, {"start", "tick"});
+            kind.alphaStart = Field(alpha["start"], context);
+            kind.alphaTick = Field(alpha["tick"], context);
+        } else {
+            kind.alphaStart = Field(alpha, context);
+        }
+        const RawNode& frame = node["frame"];
+        if (frame.kind == RawNode::Kind::Table) {
+            Known(frame, {"start", "delay", "mode", "tick"});
+            kind.frameStart = Field(frame["start"], context);
+            kind.frameDelay = Field(frame["delay"], context);
+            kind.frameTick = Field(frame["tick"], context);
+            static constexpr std::string_view kModes[] = {"loop", "hold", "die"};
+            kind.frameMode = static_cast<FrameMode>(Choice(frame["mode"], kModes, 0));
+        } else {
+            kind.frameStart = Field(frame, context);
+        }
+        kind.kill = Field(node["kill"], context);
+    }
+
+    const RawNode& root;
+    std::vector<std::string>* errors = nullptr;
+    std::shared_ptr<Record> record;
+    bool fatal = false;
+};
+
+} // namespace
+
+std::shared_ptr<const Record> Read(const RawNode& root, std::string_view name, std::vector<std::string>* errors) {
+    if (root.kind != RawNode::Kind::Table) {
+        errors->push_back(root.Where() + ": no effect");
+        return nullptr;
+    }
+    return Reader(root, name, errors).Run();
+}
+
+// ---- The state machine ---------------------------------------------------------------------------------------------
+
+namespace {
+
+int Count(float value) {
+    if (!(value > 0.0f)) return 0;
+    if (value > static_cast<float>(kMaxAnchors)) return kMaxAnchors;
+    return static_cast<int>(std::lround(value));
+}
+
+} // namespace
+
+State::State(std::shared_ptr<const Record> effect) : record(std::move(effect)) {
+    source.assign(kSourceValues + record->anchors.size(), 0.0f);
+    inputs.assign(record->inputValues, 0.0f);
+    for (const Input& input : record->inputs) {
+        inputs[input.slot] = input.start.x;
+        if (input.type == InputType::Vector) {
+            inputs[input.slot + 1] = input.start.y;
+            inputs[input.slot + 2] = input.start.z;
+        }
+    }
+    pendingEvents.assign(record->inputValues, 0);
+    vars.assign(record->vars.size(), 0.0f);
+}
+
+bool State::SetValue(std::string_view input, float value) {
+    const Input* found = record->FindInput(input);
+    if (!found || found->type == InputType::Vector || found->type == InputType::Event) return false;
+    if (found->type == InputType::Bool) value = value != 0.0f ? 1.0f : 0.0f;
+    if (found->type == InputType::Enum) {
+        if (!(value >= 0.0f) || value >= static_cast<float>(found->values.size())) return false;
+        value = std::floor(value);
+    }
+    inputs[found->slot] = value;
+    return true;
+}
+
+bool State::SetVector(std::string_view input, float x, float y, float z) {
+    const Input* found = record->FindInput(input);
+    if (!found || found->type != InputType::Vector) return false;
+    inputs[found->slot] = x;
+    inputs[found->slot + 1] = y;
+    inputs[found->slot + 2] = z;
+    return true;
+}
+
+bool State::SetEnum(std::string_view input, std::string_view value) {
+    const Input* found = record->FindInput(input);
+    if (!found || found->type != InputType::Enum) return false;
+    const int index = IndexIn(found->values, value);
+    if (index < 0) return false;
+    inputs[found->slot] = static_cast<float>(index);
+    return true;
+}
+
+bool State::Fire(std::string_view event) {
+    const Input* found = record->FindInput(event);
+    if (!found || found->type != InputType::Event) return false;
+    ++pendingEvents[found->slot];
+    return true;
+}
+
+Env State::SourceEnv(IsaacRandom* random) const {
+    Env env;
+    env.scopes[static_cast<int>(Scope::Source)] = source.data();
+    env.scopes[static_cast<int>(Scope::Input)] = inputs.data();
+    env.scopes[static_cast<int>(Scope::SourceVar)] = vars.data();
+    env.tables = &record->tables;
+    env.curves = &record->curves;
+    env.random = random;
+    return env;
+}
+
+Env State::AnchorEnv(int index, IsaacRandom* random) const {
+    Env env = SourceEnv(random);
+    const AnchorState& anchor = anchors[index];
+    env.scopes[static_cast<int>(Scope::Anchor)] = anchor.values;
+    env.scopes[static_cast<int>(Scope::AnchorVar)] = anchor.vars.data();
+    return env;
+}
+
+void State::Step(IsaacRandom& random) {
+    burst = 0;
+    queue.clear();
+    effects.clear();
+    source[static_cast<int>(SourceValue::Age)] = static_cast<float>(age);
+
+    // The events fired since the last step are this tick's values.
+    for (const Input& input : record->inputs) {
+        if (input.type != InputType::Event) continue;
+        inputs[input.slot] = static_cast<float>(pendingEvents[input.slot]);
+        pendingEvents[input.slot] = 0;
+    }
+
+    const bool first = !started;
+    if (first) {
+        Start(random);
+    } else {
+        const Env env = SourceEnv(&random);
+        for (std::size_t i = 0; i < record->vars.size(); ++i) vars[i] = record->vars[i].tick.Run(env, vars[i]);
+        StepAnchors(random);
+    }
+    if (stopPending) {
+        stopPending = false;
+        for (const Reaction& reaction : record->reactions)
+            if (reaction.on == Reaction::On::Stop) Run(reaction.actions, random);
+    }
+    const int stageBefore = stage;
+    for (const Reaction& reaction : record->reactions) {
+        if (reaction.on == Reaction::On::Event && reaction.slot >= 0 && inputs[reaction.slot] > 0.0f)
+            Run(reaction.actions, random);
+    }
+    if (stage >= 0 && stage == stageBefore && !first) {
+        const Stage& current = record->stages[stage];
+        int to = -1;
+        for (const auto& [slot, target] : current.onEvent)
+            if (to == -1 && inputs[slot] > 0.0f) to = target;
+        if (to == -1 && !current.until.Empty() && current.until.Run(SourceEnv(&random)) != 0.0f) to = current.untilNext;
+        if (to == -1 && stageTicks >= 0 && stageAge >= stageTicks) to = current.next;
+        if (to != -1) Enter(to, random);
+    }
+
+    // This tick's emission: the stage's over [emit]'s.
+    const Env env = SourceEnv(&random);
+    const Stage* current = stage >= 0 ? &record->stages[stage] : nullptr;
+    const Expr& rateExpr = current && !current->rate.Empty() ? current->rate : record->rate;
+    const Expr& chanceExpr = current && !current->chance.Empty() ? current->chance : record->chance;
+    const Expr& emittingExpr = current && !current->emitting.Empty() ? current->emitting : record->emitting;
+    if (record->once && total > 0) onceDone = true;
+    rate = rateExpr.Run(env, 0.0f);
+    chance = chanceExpr.Run(env, 100.0f);
+    emitting = !ended && !onceDone && emittingExpr.Run(env, 1.0f) != 0.0f;
+
+    source[static_cast<int>(SourceValue::Stage)] = static_cast<float>(stage);
+    source[static_cast<int>(SourceValue::StageAge)] = static_cast<float>(stageAge);
+    ++age;
+    ++stageAge;
+}
+
+void State::Start(IsaacRandom& random) {
+    started = true;
+    const Env env = SourceEnv(&random);
+    for (std::size_t i = 0; i < record->vars.size(); ++i) vars[i] = record->vars[i].start.Run(env);
+    MakeAnchors(random);
+    for (const Reaction& reaction : record->reactions)
+        if (reaction.on == Reaction::On::Start) Run(reaction.actions, random);
+    if (!record->stages.empty() && stage == -1) Enter(0, random);
+}
+
+void State::Enter(int index, IsaacRandom& random, int depth) {
+    if (index == kEndStage) {
+        ended = true;
+        return;
+    }
+    if (index < 0 || depth > 8) return;
+    stage = index;
+    stageAge = 0;
+    source[static_cast<int>(SourceValue::Stage)] = static_cast<float>(stage);
+    source[static_cast<int>(SourceValue::StageAge)] = 0.0f;
+    const Stage& entered = record->stages[index];
+    stageTicks = entered.ticks.Empty() ? -1 : Count(entered.ticks.Run(SourceEnv(&random)));
+    Run(entered.enter, random, depth + 1);
+}
+
+void State::Run(const std::vector<Action>& actions, IsaacRandom& random, int depth) {
+    for (const Action& action : actions) {
+        switch (action.kind) {
+        case Action::Kind::Emit: {
+            const int count = Count(action.count.Run(SourceEnv(&random)));
+            if (action.anchor >= 0) {
+                for (std::size_t i = 0; i < anchors.size(); ++i) {
+                    if (anchors[i].group != action.anchor || !anchors[i].live) continue;
+                    for (int n = 0; n < count; ++n) queue.push_back({action.particleKind, static_cast<int>(i)});
+                }
+            } else if (action.particleKind >= 0) {
+                for (int n = 0; n < count; ++n) queue.push_back({action.particleKind, -1});
+            } else {
+                burst += count;
+            }
+            break;
+        }
+        case Action::Kind::Set:
+            if (action.target >= 0) inputs[action.target] = action.value.Run(SourceEnv(&random));
+            break;
+        case Action::Kind::Stage: Enter(action.target, random, depth); break;
+        case Action::Kind::Effect: effects.push_back(action.effect); break;
+        case Action::Kind::End: ended = true; break;
+        }
+    }
+}
+
+namespace {
+
+void Place(const Anchor& group, const Env& env, AnchorState& anchor) {
+    float* values = anchor.values;
+    float x, y;
+    if (group.cylindrical) {
+        const float radius = group.radius.Run(env);
+        const float angle = group.angle.Run(env);
+        x = lib::Cos(angle) * radius;
+        y = lib::Sin(angle) * radius;
+    } else {
+        x = group.x.Run(env);
+        y = group.y.Run(env);
+    }
+    const float z = group.z.Run(env);
+    values[static_cast<int>(AnchorValue::X)] = x;
+    values[static_cast<int>(AnchorValue::Y)] = y;
+    values[static_cast<int>(AnchorValue::Z)] = z;
+}
+
+} // namespace
+
+void State::MakeAnchors(IsaacRandom& random) {
+    for (std::size_t g = 0; g < record->anchors.size(); ++g) {
+        const Anchor& group = record->anchors[g];
+        const int count = Count(group.count.Run(SourceEnv(&random)));
+        for (int i = 0; i < count; ++i) {
+            const int index = static_cast<int>(anchors.size());
+            AnchorState& anchor = anchors.emplace_back();
+            anchor.group = static_cast<int>(g);
+            anchor.values[static_cast<int>(AnchorValue::Index)] = static_cast<float>(i);
+            anchor.values[static_cast<int>(AnchorValue::GroupSize)] = static_cast<float>(count);
+            anchor.vars.assign(group.vars.size(), 0.0f);
+            const Env env = AnchorEnv(index, &random);
+            anchor.values[static_cast<int>(AnchorValue::Ticks)] =
+                group.ticks.Empty() ? -1.0f : static_cast<float>(Count(group.ticks.Run(env)));
+            for (std::size_t v = 0; v < group.vars.size(); ++v) anchor.vars[v] = group.vars[v].start.Run(env);
+            Place(group, env, anchor);
+        }
+        source[kSourceValues + g] = static_cast<float>(count);
+    }
+}
+
+void State::StepAnchors(IsaacRandom& random) {
+    std::vector<int> live(record->anchors.size(), 0);
+    for (std::size_t i = 0; i < anchors.size(); ++i) {
+        AnchorState& anchor = anchors[i];
+        if (!anchor.live) continue;
+        const Anchor& group = record->anchors[anchor.group];
+        float* values = anchor.values;
+        values[static_cast<int>(AnchorValue::Age)] += 1.0f;
+        float& ticks = values[static_cast<int>(AnchorValue::Ticks)];
+        if (ticks > 0.0f) ticks -= 1.0f;
+        const Env env = AnchorEnv(static_cast<int>(i), &random);
+        for (std::size_t v = 0; v < group.vars.size(); ++v) anchor.vars[v] = group.vars[v].tick.Run(env, anchor.vars[v]);
+        Place(group, env, anchor);
+        if (ticks == 0.0f) anchor.live = false;
+        else ++live[anchor.group];
+    }
+    for (std::size_t g = 0; g < live.size(); ++g) source[kSourceValues + g] = static_cast<float>(live[g]);
+}
+
+} // namespace effectdata

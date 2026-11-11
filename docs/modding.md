@@ -12,7 +12,7 @@ Contents: [Quick start](#quick-start) · [A mod's folder](#a-mods-folder) · [In
 · [How the game finds a file](#how-the-game-finds-a-file) · [ei-convert: the game's data as editable files](#ei-convert-the-games-data-as-editable-files)
 · [Records as TOML](#records-as-toml) · [Texts](#texts) · [Databases](#databases) · [Textures as PNG](#textures-as-png)
 · [Models as glTF](#models-as-gltf) · [Animations as glTF](#animations-as-gltf) · [Maps as folders](#maps-as-folders)
-· [Map objects](#map-objects) · [Scripts](#scripts) · [What stays in the original formats](#what-stays-in-the-original-formats)
+· [Map objects](#map-objects) · [Scripts](#scripts) · [Effects](#effects) · [What stays in the original formats](#what-stays-in-the-original-formats)
 · [Limits and troubleshooting](#limits-and-troubleshooting) · [The example mod](#the-example-mod) · [The showcase mod](#the-showcase-mod)
 
 ## Quick start
@@ -568,6 +568,51 @@ end
   variables, and goes on from there when it is loaded. A loaded save keeps running the code it was saved with, even
   when the mod's file has changed since; the new file runs the next time the zone is loaded fresh.
 
+## Effects
+
+A particle effect of your own is one file, `Res\effects\<name>.effect.toml`; a script starts it by that name:
+```
+CreateParticleSource(1, x, y, z, 1, "my_aura")
+```
+(the numbers: an id of your choice, the position, the size). The effect says what particles it throws, how they move,
+grow, fade and animate, and how that changes over time and with the values the game gives it. The full schema is in
+docs/notes/effects.md, "Data effects"; the showcase mod's `Res\effects\showcase_aura.effect.toml` uses most of it.
+
+```toml
+texture = "Teleport"          # an effects texture (Res\textures), 16 frames in 4 columns
+blend = "additive"
+
+[inputs]                      # the values the game (or a script) sets
+charge = { type = "float", default = 0.0 }
+
+[emit]
+rate = "2 + charge * 6"       # particles per tick: any value can be an expression
+
+[[particle]]
+name = "spark"
+lifetime = "range(10, 20)"    # ticks; range() draws a random number
+spawn = { shape = "disc", radius = "size", on_ground = 0.05 }
+velocity = [0, 0, 0.03]
+size = { start = 0.2, growth = 0.95 }
+color = "FFD890"
+alpha = { tick = "255 * (1 - p.t)" }   # p.t: the particle's age, 0 to 1
+frame = { start = "pick(16)", delay = 1 }
+```
+
+- **Stages** (`[[stage]]`) make it change over time: each lasts `ticks` or `until` a condition holds, then goes to its
+  `next` (`"end"` ends the effect), with its own `rate`, and `enter` actions (a burst of particles, an input set,
+  another effect started).
+- **Anchors** (`[[anchor]]`) are moving points it owns (orbs, rings); a particle kind with `at = "<anchor>"` starts at
+  them, and with `space = "anchor"` rides them.
+- **Inputs**: `float`, `vector`, `bool`, `enum` (named values) and `event` (fired; `[[on]] event = "..."` reacts).
+- **Expressions**: arithmetic, comparisons, `? :`, `sin`, `cos`, `min`, `max`, `clamp`, `lerp`, random `range`,
+  `chance`, `pick`; tables (`fade[p.age]`) and curves (`glow(p.t)`) from `[tables]` and `[curves]`.
+- **Layers**: a mod's file of the name merges over a lower one field by field, a particle kind or stage by its `name`;
+  `replace = true` replaces it whole.
+- **Problems** are `warning: effects: <file>:<line>: ...` lines in `ei-rebuild.log`; an effect with an error shows
+  nothing. An unknown key is only noted.
+- In a network game every player needs the same effect files: they count in the mod's content hash.
+
 ## What stays in the original formats
 
 ei-convert converts every record, text, texture, model, animation, map and map object of the game. What stays as it
@@ -639,6 +684,7 @@ for the quest, and its hammer and boots are yours. Read its files as a recipe fo
 | A weapon, boots | `items.idb.toml`, `Res\figures\initwehm9.glb`, `initarbt20.glb` (inventory models: a loose figure named `initwe<type code><number>` / `initar...`, one part `weapon` / `armor`), `Res\redress\unhumahm_09.gr.0.png`, `unhumabt_20.le.0.png` (their textures; the boots' is a layer over the hero's skin) |
 | A quest | `Maps\zone1.lua` (the quest's variable `q.<zone>.<quest>`, its reward), `quests.qdb.toml` (its experience), `Res\texts\texts.toml` (`quest <name>`: the title, the description, `#subobj` lines) |
 | A spell | `spells.sdb.toml`: a record and its text only |
+| An effect | `Res\effects\showcase_aura.effect.toml` (orbs trailing light and rising motes, driven by its inputs; `tests/scenarios/mod_effect.txt` starts it from the console) |
 
 What it cannot do yet: add a zone beside the game's (it replaces zone 1: the zone list is one text read whole), show
 a new weapon in the hero's hand or a new helmet or body armour on him (those are parts of the hero's figure), give a

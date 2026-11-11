@@ -6,6 +6,7 @@
 #include "game/app/singletons.h"
 #include "game/scene/light.h"
 #include "game/effects/lightning.h"
+#include "game/effects/particle_data.h"
 #include "game/net/net_delta.h"
 #include "game/core/random.h"
 #include "game/saves/save_versions.h"
@@ -58,17 +59,21 @@ int StepFraction(const Vector3& velocity, const Vector3& dxdy, float* t) {
     return 1;
 }
 
-// Particle types that play once (no warm-up limit, a lifetime of 60 ticks; 0x2019: 120).
-bool IsOneShotType(int type) {
+// The ticks a particle type plays for: 60 for the original's one-shot types (Teleport 120), a data effect's
+// [server] one_shot; 0 for a type that lasts until its object is removed (or an unknown type).
+int OneShotTicks(int type) {
     switch (ParticleTypeOf(type)) {
+    case ParticleType::Teleport: return 0x78;
     case ParticleType::FireBlast: case ParticleType::Healing: case ParticleType::Casting: case ParticleType::Nuke: case ParticleType::Banshee: case ParticleType::Mushroom: case ParticleType::Shower1:
-    case ParticleType::ClayRing: case ParticleType::Teleport: case ParticleType::Modifier1: case ParticleType::Modifier2: case ParticleType::Modifier3: case ParticleType::Modifier4: case ParticleType::Modifier5:
+    case ParticleType::ClayRing: case ParticleType::Modifier1: case ParticleType::Modifier2: case ParticleType::Modifier3: case ParticleType::Modifier4: case ParticleType::Modifier5:
     case ParticleType::Modifier6: case ParticleType::Modifier7: case ParticleType::Modifier8: case ParticleType::Modifier9: case ParticleType::Modifier10: case ParticleType::Modifier11: case ParticleType::Modifier12:
     case ParticleType::LightningBlast: case ParticleType::Shower2: case ParticleType::Shower3: case ParticleType::Shower4: case ParticleType::Cylinder1: case ParticleType::Cylinder2: case ParticleType::FireStar:
     case ParticleType::AcidStar: case ParticleType::Sparks:
-        return true;
-    default:
-        return false;
+        return 0x3C;
+    default: {
+        const std::shared_ptr<const effectdata::Record> record = effectdata::g_effects.FindById(type);
+        return record ? record->oneShot : 0;
+    }
     }
 }
 
@@ -263,7 +268,7 @@ void EffectParticle::Spawn() {
 
     // Catch up with the ticks since the effect began (at most 30 for lasting types).
     int age = g_clientWorld.tick - startTick;
-    if (!IsOneShotType(type) && age >= 30) age = 30;
+    if (OneShotTicks(type) == 0 && age >= 30) age = 30;
     if (age > 1) {
         for (int left = age - 1; left != 0; --left) source->RunTick();
     }
@@ -383,8 +388,8 @@ bool EffectParticle::RunTick() {
             if (source != nullptr) source->localPosition = localPosition;
         }
     }
-    if (!IsOneShotType(type)) return true;
-    int lifetime = ParticleTypeOf(type) == ParticleType::Teleport ? 0x78 : 0x3C;
+    const int lifetime = OneShotTicks(type);
+    if (lifetime == 0) return true;
     int now = OwningWorld()->tick;
     return now <= startTick + lifetime;
 }

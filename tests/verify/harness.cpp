@@ -2951,8 +2951,9 @@ void RunSteps() {
         } else if (s.verb == "hudstate" || s.verb == "campputon" || s.verb == "modfile" || s.verb == "modlist" ||
                    s.verb == "modarchive" || s.verb == "mapfile" || s.verb == "playstream" ||
                    s.verb == "folderprofile" || s.verb == "modtext" || s.verb == "modack" || s.verb == "modweapon" ||
-                   s.verb == "modrecord" || s.verb == "ground") {
+                   s.verb == "modrecord" || s.verb == "ground" || s.verb == "effect") {
             std::string error = s.verb == "hudstate"        ? HudState(s.argument)
+                                : s.verb == "effect"        ? image::DataEffectStep(s.argument)
                                 : s.verb == "modtext"       ? starter::ModTextStep(s.argument)
                                 : s.verb == "modack"        ? starter::ModAckStep(s.argument)
                                 : s.verb == "modweapon"     ? starter::ModWeaponStep(s.argument)

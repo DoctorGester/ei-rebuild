@@ -273,6 +273,11 @@ long RecordText(const char* kind, const char* name, std::string* text);
 // damage as the game reckons it (WeaponMinDamage, WeaponMaxDamage of its packed id). 1 found, 0 none, -3 without the
 // server world's players.
 long LocalWeaponDamage(const char* weapon, float* minimum, float* maximum);
+// The harness's `effect <name> set <input> <value> | fire <event> | check <particles> [<stage>]` on every client source
+// of the data effect `name` (docs/notes/effects.md, "Data effects"): an input set (a number, three for a vector, an
+// enum's value by name) or an event fired, or the sources' particles counted and the first one's stage named. The
+// problem, or empty.
+std::string DataEffectStep(const std::string& argument);
 // The size of `name` in a manager's archives ("figures": the figure manager's, "links": the link figure loader's,
 // "textures": the texture manager's), in their order: 0 without it, -3 when the client world has no such manager.
 long ModManagerFile(const char* which, const char* name);
