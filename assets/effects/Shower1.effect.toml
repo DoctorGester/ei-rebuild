@@ -42,33 +42,16 @@ do = [{ stop_emitting = true }, { let_go = true }]
 [[anchor]]
 name = "ray"
 count = 0                                       # made at the first particle
-spawn = { shape = "ball" }
-x = "a.spawn.x / sqrt(a.spawn.x * a.spawn.x + a.spawn.y * a.spawn.y + a.spawn.z * a.spawn.z)"
-y = "a.spawn.y / sqrt(a.spawn.x * a.spawn.x + a.spawn.y * a.spawn.y + a.spawn.z * a.spawn.z)"
-z = "a.spawn.z / sqrt(a.spawn.x * a.spawn.x + a.spawn.y * a.spawn.y + a.spawn.z * a.spawn.z)"
+spawn = "shell()"                               # its direction
 
-# The spark dies at its sixth update, before moving; the update after its death still moves it (docs/notes/effects.md,
-# "Kept"), so its life is longer, it ends by `kill` and its velocity is left alone at that update.
 [[particle]]
 name = "spark"
 at = "ray"
-anchor_index = "pick(anchors.ray)"
-lifetime = 8
+pick = "random"
+lifetime = 6
+vars = { step = "normalize(range(vec3(-0.03), vec3(0.03)) + a.spawn) * (size * 0.16666667 * (pick(8) == 0 ? 1.5 : 1))" }
+position = "origin + p.step * range(0, 1)"
+velocity = { start = "p.step", tick = "p.velocity * 0.9 - vec3(0, 0, size * 0.05)" }
+size = { start = "param", tick = "p.size * 0.8" }
+alpha = { tick = "fade[p.life]" }
 frame = 12
-size = { start = "param", growth = 0.8 }
-alpha = { tick = "fade[p.life - 2]" }
-position = ["origin.x + p.part * (p.speed * p.dx)", "origin.y + p.part * (p.speed * p.dy)", "origin.z + p.part * (p.speed * p.dz)"]
-velocity = ["p.speed * p.dx", "p.speed * p.dy", "p.speed * p.dz"]
-drag = "p.age == 6 ? 1 : 0.9"
-gravity = [0, 0, "p.age == 6 ? 0 : -size * 0.05"]
-kill = "p.age == 6"
-
-[particle.vars]
-jx = "range(-0.03, 0.03)"
-jy = "range(-0.03, 0.03)"
-jz = "range(-0.03, 0.03)"
-dx = { start = "size * (p.jx + a.x)", after_spawn = true }
-dy = { start = "size * (p.jy + a.y)", after_spawn = true }
-dz = { start = "size * (p.jz + a.z)", after_spawn = true }
-speed = { start = "pick(8) == 0 ? 1 / sqrt(p.dx * p.dx + p.dy * p.dy + p.dz * p.dz) * size * 0.16666667 * 1.5 : 1 / sqrt(p.dx * p.dx + p.dy * p.dy + p.dz * p.dz) * size * 0.16666667", after_spawn = true }
-part = { start = "range(0, 1)", after_spawn = true }

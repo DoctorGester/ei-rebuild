@@ -17,16 +17,14 @@ rate = 3
 name = "star"
 when = "count == 0"
 lifetime = 1000000000                           # it lasts until it fades
+position = { tick = "origin" }
 alpha = { start = 0, tick = 255 }
 frame = 0
 size = { start = 0, tick = "p.eased" }
 kill = "!(emitting && attached) && p.eased < 0.03"
 
 [particle.vars]
-eased = { start = 0, tick = "emitting && attached ? range(0.1, 1.9) * size * 0.3 * 0.05 + p.size * 0.95 : (range(0.1, 1.9) * size * 0.3 * 0.05 + p.size * 0.95) * 0.95" }
-
-[particle.position]
-tick = ["origin.x", "origin.y", "origin.z"]
+eased = { start = 0, tick = "(range(0.1, 1.9) * size * 0.3 * 0.05 + p.size * 0.95) * (emitting && attached ? 1 : 0.95)" }
 
 [particle.source]
 size = "emitting && attached ? size : 0"

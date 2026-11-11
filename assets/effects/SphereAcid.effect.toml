@@ -7,4 +7,4 @@ texture = "ProtectionA"
 
 [[particle]]
 name = "spark"
-size = { start = "by_life[15] * p.big * sphere_radius * 1.6", tick = "(p.l < 0 ? 1 : by_life[p.l]) * p.big * last_radius * 1.6" }
+size = { start = "by_life[p.life] * p.big * sphere_radius * 1.6", tick = "by_life[p.life] * p.big * last_radius * 1.6" }

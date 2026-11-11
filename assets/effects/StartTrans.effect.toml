@@ -19,8 +19,8 @@ rate = "min(round(pace), 8)"
 max = 300
 
 [vars]
-glow = { start = "size * 0.02 + 0", tick = "size * 0.02 + glow" }   # the glow's size
-pace = { start = "1 + 0.4", tick = "pace + 0.4" }
+glow = { tick = "glow + size * 0.02" }          # the glow's size
+pace = { start = 1.4, tick = "pace + 0.4" }
 
 [[on]]
 event = "tick"
@@ -39,25 +39,14 @@ vars = { l = { start = 4, tick = "attached ? p.l : p.l - 1" } }
 
 [[particle]]
 name = "spark"
-lifetime = 1000000000                           # its own life below
-spawn = { shape = "ball" }
-velocity = ["-p.off_x / 18", "-p.off_y / 18", "-p.off_z / 18"]
-size = { start = 0, tick = "p.spark" }
+lifetime = 16                                   # or 4 more once the carrier is gone (kill)
+spawn = "shell() * size"
+velocity = "p.spawn / -18"
+size = { start = 0, tick = "size * 0.05" }
 alpha = { start = 0, tick = "fade[p.l]" }
-frame = { start = "p.cell", tick = "p.frame - p.frame % 4 + (p.frame + 1) % 4" }
+frame = { start = "pick(12)", tick = "p.frame - p.frame % 4 + (p.frame + 1) % 4" }
 kill = "p.l < 0"
-
-[particle.vars]
-cell = "pick(12)"
-spark = "size * 0.05"
-l = { start = 15, tick = "attached ? p.l - 1 : min(p.l - 1, 4)" }
-length2 = { start = "p.spawn.x * p.spawn.x + p.spawn.y * p.spawn.y + p.spawn.z * p.spawn.z", after_spawn = true }
-off_x = { start = "p.spawn.x / sqrt(p.length2) * size", after_spawn = true }
-off_y = { start = "p.spawn.y / sqrt(p.length2) * size", after_spawn = true }
-off_z = { start = "p.spawn.z / sqrt(p.length2) * size", after_spawn = true }
-
-[particle.position]
-start = ["p.off_x + origin.x", "p.off_y + origin.y", "p.off_z + origin.z"]
+vars = { l = { start = 15, tick = "attached ? p.l - 1 : min(p.l - 1, 4)" } }   # the life left
 
 [tables]
 fade = [0, 80, 176, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 128, 64]

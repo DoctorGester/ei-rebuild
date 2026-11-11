@@ -9,5 +9,5 @@ name = "star"
 frame = 3
 
 [particle.position]
-start = ["origin.x", "origin.y", "origin.z"]          # placed at the origin, raised from the first tick
-tick = ["origin.x", "origin.y", "origin.z + 0.7"]
+start = "origin"                                # placed at the origin, raised from the first tick
+tick = "origin + vec3(0, 0, 0.7)"

@@ -675,9 +675,14 @@ void Classify(Expr& expr) {
     expr.scalarParts = 0;
     if (expr.code.empty()) return;
     const Instruction& last = expr.code.back();
-    const bool joined = last.op == Op::Construct && last.count == last.width;   // its parts one lane each
-    for (std::size_t k = 0; k + 1 < expr.code.size(); ++k)
-        if (!ScalarOnly(expr.code[k])) return;
+    // Its parts one lane each, and no branch that ends past the join (`c ? 1 : vec3(...)` leaves one value).
+    bool joined = last.op == Op::Construct && last.count == last.width;
+    for (std::size_t k = 0; k + 1 < expr.code.size(); ++k) {
+        const Instruction& i = expr.code[k];
+        if (!ScalarOnly(i)) return;
+        const bool jump = i.op == Op::Jump || i.op == Op::JumpIfFalse || i.op == Op::AndJump || i.op == Op::OrJump;
+        if (jump && i.index >= expr.code.size()) joined = false;
+    }
     if (ScalarOnly(last)) expr.scalar = true;
     else if (joined) expr.scalarParts = last.count;
 }

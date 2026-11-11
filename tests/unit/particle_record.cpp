@@ -111,6 +111,16 @@ void CheckExpressions() {
                (fast.scalar || fast.scalarParts == 3) && x.v[0] == y.v[0] && x.v[1] == y.v[1] && x.v[2] == y.v[2] &&
                    x.v[3] == y.v[3] && r1.Next() == r2.Next());
     }
+    // A branch past a join of scalars leaves one value (splat), not three: no fast form.
+    for (const char* text : {"x ? 255 : vec3(0, 0, 255)", "x ? vec3(0, 0, 255) : 255"}) {
+        std::string problem;
+        const Expr expr = Compile(text, [&names](std::string_view name) { return names.Resolve(name); }, &problem);
+        const Lanes v = expr.RunLanes(names.MakeEnv(nullptr));
+        const bool first = text[4] == '2';
+        Expect(std::string("a branch past a join: ") + text,
+               expr.scalarParts == 0 && v.v[0] == (first ? 255.0f : 0.0f) && v.v[1] == (first ? 255.0f : 0.0f) &&
+                   v.v[2] == 255.0f);
+    }
 
     std::string error;
     Run("x + nothing", names, nullptr, &error);

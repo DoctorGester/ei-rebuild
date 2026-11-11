@@ -5,4 +5,4 @@ like = "FeetCloud1"
 
 [[particle]]
 name = "puff"
-color = [255, "p.age == 0 ? 255 : 0", "p.age == 0 ? 255 : 0"]
+color = "p.age == 0 ? 255 : vec3(255, 0, 0)"
