@@ -6,3 +6,5 @@ depends = ["MF15l2"]
 files = ["src/engine/particles", "docs/modding.md", "examples/showcase_mod"]
 note = "After MF15l2: delete the old forms from the reader and engine (after_spawn, tries, shift, offset, on_ground, the spawn table's shapes, speed, drag, gravity, wind, growth, anchor x/y/z/radius/angle, ball_x/y/z, platform_normal_x/y/z, the scalar p.x/p.vx/a.x names and list path.x[i]) and their comments; the showcase mod's effects and docs/modding.md 'Effects' rewritten to the new form; src/tools/effect_document.cpp kTemplate (modding.md's first example) to match; docs/notes/effects.md schema to current facts. User 2026-11-11: nothing is released yet, so no migration notes, mentions of old forms, or compatibility code: delete the old forms outright and leave no trace in docs or notes."
 order = 1404
+status = "review"
+started = "2026-11-11"
