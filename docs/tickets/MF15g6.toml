@@ -7,5 +7,6 @@ depends = ["MF15g4"]
 files = ["assets/effects", "src/game/effects/particle_blasts.cpp", "src/game/effects/particle_world.cpp", "src/game/effects/world_effect_visual.cpp", "tools/convert/effect_check.cpp"]
 note = "From MF15g4. Left after MF15g5: FireBlast (15 fragments, flames, smoke), LightningBlast (a bolt of ten points, bursts, sparks; its shake now the data shake action), Geyser (vents with eruption / pause vars), Tornado / CurseHolder (6 funnel rings leaning with motion; CurseHolder's tint), ShapeChange (one glow per path point: the list input). Takes MF15j1's rest: a scorch action and a 'spawn' reaction event EffectParticle::Spawn fires for a data source after the catch-up (g_clientRandom drawn where it is today), then Spawn's two type checks go. MF15j2 (server-set inputs) only if a type cannot work without it. End state: kSpecs, ParticleSpec, SetupElements, the Emit / Update / Tick dispatch in particle_manager.cpp and ParticleElement's views deleted; every original effect on data. Same workflow and rules as MF15g4. From MF15g5 (merged 2026-11-11): 77 of 83 on data; the effect_viewer scenario converts Tornado as its code type, so when Tornado moves to data pick another code type or drop the convert check (Convert to data has nothing left to convert once kSpecs is gone: remove it then)."
 order = 1379
-status = "running"
+status = "done"
 started = "2026-11-11"
+done = "2026-11-11"
