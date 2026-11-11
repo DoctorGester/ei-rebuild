@@ -41,7 +41,8 @@ enum class Event : std::uint8_t {
     Alpha,          // the source's alpha and typeParam, as game code sets them (a zone exit's half extents)
     Param,
     Turn,           // turnCos and turnSin of the angle `value` (a zone exit's)
-    Extent,         // the source's extent (a zone exit's red: x not 0)
+    Extent,         // the source's extent (a zone exit's red: x not 0; a wall's length)
+    Wind,           // the world's wind: its direction `vector` and strength `value`
 };
 
 struct Step {
@@ -112,6 +113,39 @@ const std::vector<Case>& Cases() {
         {"AcidRay flying", AcidRay, false, 1.0f, 30,
          {{1, Velocity, 0.0f, {0.25f, 0.3f, 0.0f}}, {12, Scale, 1.5f}, {22, Velocity, 0.0f, kStill}}},
         {"AcidRay on a rising unit", AcidRay, true, 0.6f, 20, {{1, Velocity, 0.0f, {0.0f, 0.0f, 0.2f}}}},
+        {"CampFire in the wind", CampFire, false, 1.0f, 45, {{1, Wind, 0.6f, {0.6f, 0.8f, 0.0f}}}},
+        {"CampFire rescaled, stopped", CampFire, false, 1.5f, 60,
+         {{1, Wind, 0.3f, {-0.5f, 0.7f, 0.1f}}, {10, Scale, 0.5f}, {20, StopEmitting}, {25, StartEmitting}, {40, Stop}}},
+        {"CampFire on a moving carrier", CampFire, true, 0.8f, 40, {{1, Velocity, 0.0f, {0.1f, 0.05f, 0.0f}}, {20, Remove}}},
+        {"Fire in the wind", Fire, false, 1.0f, 30, {{1, Wind, 0.8f, {0.0f, 1.0f, 0.0f}}, {12, Scale, 2.0f}}},
+        {"Fire on a moving carrier", Fire, true, 1.2f, 25,
+         {{1, Velocity, 0.0f, {-0.2f, 0.1f, 0.02f}}, {10, StopEmitting}, {15, Remove}}},
+        {"Smoke in the wind", Smoke, false, 1.0f, 50, {{1, Wind, 0.5f, {0.7f, -0.7f, 0.0f}}, {30, Stop}}},
+        {"Tendril along a wall", Tendril, false, 1.0f, 40,
+         {{1, Extent, 0.0f, {3.0f, 1.0f, 0.0f}}, {1, Wind, 0.4f, {1.0f, 0.0f, 0.0f}}}},
+        {"Tendril lengthened", Tendril, false, 0.7f, 30,
+         {{1, Extent, 0.0f, {0.2f, 0.1f, 0.0f}}, {8, Extent, 0.0f, {9.0f, -4.0f, 0.5f}}, {15, Scale, 1.5f}}},
+        {"Tendril as made", Tendril, false, 1.0f, 12, {}},
+        {"VulcanSmoke", VulcanSmoke, false, 1.0f, 140, {{100, Stop}}},
+        {"VulcanSmoke rescaled", VulcanSmoke, false, 0.6f, 40, {{10, Scale, 2.0f}, {20, StopEmitting}, {30, StartEmitting}}},
+        {"Portal", Portal, false, 1.0f, 60, {}},
+        {"Portal small, stopped, moving", Portal, false, 0.6f, 50,
+         {{1, Velocity, 0.0f, {0.05f, 0.0f, 0.02f}}, {15, StopEmitting}, {22, StartEmitting}, {30, Scale, 2.5f}, {45, Stop}}},
+        {"TeleportRing on a unit", TeleportRing, true, 1.0f, 20, {}},
+        {"TeleportRing carried late, let go", TeleportRing, false, 1.3f, 30,
+         {{3, Attach}, {5, Velocity, 0.0f, {0.0f, 0.1f, 0.05f}}, {10, Scale, 0.5f}, {15, Remove}, {20, Attach}, {22, Stop}}},
+        {"Teleport out", Teleport, false, 1.0f, 45, {}},
+        {"Teleport in, started again", Teleport, false, -1.0f, 45, {{38, StartEmitting}}},
+        {"Teleport moving, rescaled", Teleport, false, 0.8f, 30,
+         {{1, Velocity, 0.0f, {0.1f, 0.0f, 0.0f}}, {10, Scale, 1.5f}, {20, Stop}}},
+        {"Banshee on a unit", Banshee, true, 1.0f, 16, {}},
+        {"Banshee carried late, rescaled", Banshee, false, 1.4f, 16,
+         {{3, Attach}, {6, Scale, 0.5f}, {9, Velocity, 0.0f, {0.1f, 0.0f, 0.0f}}}},
+        {"BlueGas on a unit", BlueGas, true, 1.0f, 60, {}},
+        {"BlueGas on a walking unit, let go", BlueGas, true, 2.0f, 70,
+         {{1, Velocity, 0.0f, {0.05f, 0.03f, 0.0f}}, {10, Scale, 0.5f}, {30, Remove}, {35, Attach}, {50, StopEmitting}}},
+        {"Nuke", Nuke, false, 1.0f, 60, {}},
+        {"Nuke rescaled, started again", Nuke, false, 2.5f, 50, {{5, Scale, 0.8f}, {20, StartEmitting}, {28, StopEmitting}}},
     };
     return cases;
 }
@@ -146,9 +180,15 @@ constexpr std::uint32_t kSourceFlags = lib::Bits(ParticleSourceFlag::Emitting) |
 std::string Hex(float f) { return std::format("{:08X}", std::bit_cast<std::uint32_t>(f)); }
 std::string Hex(const Vector3& v) { return Hex(v.x) + " " + Hex(v.y) + " " + Hex(v.z); }
 
+// The world's wind before the first case (each case starts with it).
+Vector3 g_calmDirection;
+float g_calmStrength = 0.0f;
+
 // One case run: its header line and one line per tick; `dump` (when not null) gets every particle.
 std::vector<std::string> Run(const Case& c, int index, std::ofstream* dump) {
     std::vector<std::string> lines;
+    g_clientWorld.windDirection = g_calmDirection;
+    g_clientWorld.windStrength = g_calmStrength;
     IsaacRandom seed;
     for (int i = 0; i < 256; ++i) seed.memory[i] = static_cast<std::uint32_t>(i) * 0x9E3779B9u + static_cast<std::uint32_t>(index);
     g_particleRandom = IsaacRandom();
@@ -197,6 +237,10 @@ std::vector<std::string> Run(const Case& c, int index, std::ofstream* dump) {
                     s->turnSin = lib::Sin(step.value);
                     break;
                 case Event::Extent: s->extent = step.vector; break;
+                case Event::Wind:
+                    g_clientWorld.windDirection = step.vector;
+                    g_clientWorld.windStrength = step.value;
+                    break;
                 }
             }
             carrier->localPosition += velocity;
@@ -264,6 +308,8 @@ int Main(const std::string& record, const std::string& dump) {
     g_clientWorld.textureManager->SetContext(&g_clientWorld);
     // A terrain without sectors: the ground is 0 everywhere (the effects that spawn on the ground).
     g_clientWorld.terrain = std::make_unique<terrain::Terrain>();
+    g_calmDirection = g_clientWorld.windDirection;
+    g_calmStrength = g_clientWorld.windStrength;
     IsaacRandom::SetDrawObserver(CountDraw);
     std::ofstream dumpFile;
     if (!dump.empty()) dumpFile.open(dump, std::ios::binary);
@@ -277,6 +323,8 @@ int Main(const std::string& record, const std::string& dump) {
     IsaacRandom::SetDrawObserver(nullptr);
     g_clientWorld.textureManager.reset();
     g_clientWorld.terrain.reset();
+    g_clientWorld.windDirection = g_calmDirection;
+    g_clientWorld.windStrength = g_calmStrength;
 
     if (!record.empty()) {
         std::ofstream file(record, std::ios::binary);
