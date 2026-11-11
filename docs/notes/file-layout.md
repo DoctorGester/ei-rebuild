@@ -354,7 +354,7 @@ Risks:
 |---|---|---|---|
 | `ai/` | 28 | 12564 | C168f |
 | `app/` | 18 | 5308 | C168e |
-| `combat/` | 13 | 6383 | C168f |
+| `combat/` | 13 | 6384 | C168f |
 | `console/` | 5 | 2038 | C168e |
 | `core/` | 27 | 3783 | C168d |
 | `data/` | 25 | 8597 | C168d |
@@ -364,20 +364,20 @@ Risks:
 | `models/` | 25 | 8220 | C168g |
 | `mods/` | 9 | 802 | C168d |
 | `net/` | 23 | 8423 | C168h |
-| `objects/` | 23 | 8233 | C168f |
+| `objects/` | 23 | 8245 | C168f |
 | `players/` | 24 | 5486 | C168e |
 | `saves/` | 7 | 848 | C168d |
 | `scene/` | 30 | 4393 | C168g |
-| `script/` | 33 | 11590 | C168h |
+| `script/` | 33 | 11752 | C168h |
 | `sound/` | 3 | 1679 | C168e |
-| `spells/` | 9 | 2214 | C168g |
+| `spells/` | 11 | 2157 | C168g |
 | `terrain/` | 12 | 3560 | C168g |
 | `ui/` | 97 | 33145 | C168h |
-| `units/` | 27 | 9843 | C168f |
-| `world/` | 36 | 10306 | C168e |
-| all | 523 | 163042 | |
+| `units/` | 27 | 9835 | C168f |
+| `world/` | 36 | 10307 | C168e |
+| all | 525 | 163153 | |
 
-570 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
+570 files today; 55 fold into an owner, 10 split by meaning, 14 new files come out of the splits, 36 moves rename for meaning.
 
 ### Every file
 
@@ -865,6 +865,8 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 
 | Today | After | Op | Why |
 |---|---|---|---|
+| effect_stats.cpp | spells/effect_stats.cpp | new |  |
+| effect_stats.h | spells/effect_stats.h | new | active effects' named totals (MF17h1) |
 | spell.cpp | spells/spell.cpp |  |  |
 | spell.h | spells/spell.h |  | Light and LightFactory leave for scene/light.h (C168b) |
 | spell_behaviour.cpp | spells/spell_behaviour.cpp |  |  |

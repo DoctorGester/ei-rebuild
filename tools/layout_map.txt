@@ -357,6 +357,8 @@ spell.cpp                   spells/spell.cpp
 spell_db.h                  spells/spell_db.h           new   # the spell records, tables and database, out of item_db.h (C168i)
 spell_db.cpp                spells/spell_db.cpp
 spell_behaviour.cpp         spells/spell_behaviour.cpp
+effect_stats.h              spells/effect_stats.h       new   # active effects' named totals (MF17h1)
+effect_stats.cpp            spells/effect_stats.cpp     new
 spell_manager.cpp           spells/spell_manager.cpp
 spell_effect.cpp            spells/spell_effect.cpp
 spell_effect_update.cpp     spells/spell_effect_update.cpp
