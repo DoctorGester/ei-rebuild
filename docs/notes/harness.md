@@ -281,7 +281,9 @@ client code makes).
 script's) times its frames by the wall clock in a loop where the steps do not run, so the player's Esc would reach
 nothing and the replay would wait for the whole movie: their files read as missing there (harness.cpp PlayedMovie);
 the loading screen's movie (app::g_loadingMovieName) is drawn by the load's progress and stays. Other runs play them
-(render_movie_present).
+(render_movie_present); on the virtual clock each frame as soon as the one before it (`SetPlayedMoviesPaced(false)`,
+H70: Lost in Astral's teleport movie in cz4k's briefing held mod_lost_in_astral_cz_ingos 9 s of wall time). The movie's
+loop moves no game clock either way, so the frames shown and the game after them are the same.
 
 The recordings in the suite and their sources (`python tools\recorded.py take <run folder> <name>` turns a run's
 recording into `rec_<name>.txt`): `rec_menu_newgame` (the main menu's clicks into a new game, a walk, camera keys and
@@ -427,6 +429,17 @@ program reads the registry; the settings are a file, harness_settings.h). The ha
 - A game that hangs on exit is ended 3 s after the scenario quits (where its threads were: `exit_hang.txt` in the run
   folder). Exit hangs come and go with the machine's load and are only a note. An empty `exit_hang.txt`, or one that
   lists only threads at `ntdll!RtlUserThreadStart` with no frames, means the process was still ending in the kernel.
+- A run that does not pass (a TIMEOUT above all) still has its digest and saves compared with its golden, and they
+  differ where it stopped; `golden.py compare` and run_all's golden check put "the run did not pass (<its failures>)"
+  first. H70: twice main's `--rebirth-only --golden` said "145 the same, 1 differ" with
+  `LostInAstral/savea/visuals.sav` first (the clouds' drift 166.48 against 0.0675, the client generator, the
+  template's moneyKey, a party record missing): mod_lost_in_astral_cz_ingos had timed out twice, and its savea was
+  still the new game's autosave instead of gz31j's at the end. Nothing in the save depends on load or timing; the game
+  did: six cut-scene bases (ten zone loads and a movie) took 24 s alone and 40 to 62 s with the Lost in Astral runs,
+  the suite's longest, started together on the 16 slots (main-thread CPU 22 s alone, 26 to 31 s there, plus GPU waits:
+  submissions 0.7 ms each alone, 7 to 10 ms there). It is two games now (`_cz_ingos`, `_cz_ingos_end`), and the
+  harness's movies do not wait for real time ("Recorded play", Movies). A scenario should take under about a third of
+  its limit alone.
 - The quit is checked for a game that ended by itself after its scenario wrote `harness_quit` (PL22, run_all.exit_failures): an exit code other than 0 fails the run (`exit code C0000409` was an abort at exit, a joinable thread destroyed), and so do the game's own exit stages over `EXIT_SLOW_S` (2 s: the log's `exit: the quit request` to `exit: the exit functions done`; the stamps between them are the game stopped, the renderer destroyed and the settings saved). Those stages take about 30 to 100 ms, mostly the audio device's close. The time from the quit to the process's end is only a note (`game ended N s after the scenario quit`): a real quit ends the process 0.1 to 0.3 s after the request, but 16 games at once take 2 to 3 s and more in the system's teardown of the GPU memory (the 3 s hang note above).
 - The game's output and run_all's lines for the run go to its `launch.txt`; a game that ends while its report still
   says `RESULT: RUNNING` gets a failure with its exit code (an INT3's named as such), and a harness that has not written

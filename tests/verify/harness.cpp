@@ -4002,6 +4002,7 @@ struct Harness {
         if (g_deterministic) {
             clock::InstallVirtual(&TickLength());
             image::SetWaitForVsync(false);   // frames need not wait for the display
+            image::SetPlayedMoviesPaced(false);   // nor a script's movie for its real length (H70)
             clock::FixDate();
             image::SetFixedSeed(&FillFixedSeed);
             Log("harness: deterministic mode (virtual clock)");

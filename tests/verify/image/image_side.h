@@ -231,6 +231,7 @@ Point FrameToWindow(Point p);
 Point WindowToFrame(Point p);
 void ConfigureRenderer(const char* spec);
 void SetWaitForVsync(bool on);
+void SetPlayedMoviesPaced(bool on);   // SetPlayedMoviesPaced (game/app/movies.h)
 void EndFrame();
 // The last frame as 24-bit BGR pixels, top-down rows of width * 3 bytes (render::ReadFrame); none without a frame.
 struct FrameImage {

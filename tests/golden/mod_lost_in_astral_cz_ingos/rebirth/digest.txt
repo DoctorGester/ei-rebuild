@@ -1765,10 +1765,10 @@ cunit1000205 #vitals 42557372
 cunit1000206 #place 0581AB39
 cunit1000206 #unit 39D43514
 cunit1000206 #vitals 75BE0BF3
-@ 1 update 1415 frame 283 tick 884 zone bz21k hash 86F5AA29 n 2382
-world tick 884
-world updates 1415
-world timeBase 6.50000095
+@ 1 update 825 frame 165 tick 682 zone cz2k hash B13E6B35 n 2707
+world tick 682
+world updates 825
+world timeBase 6.09222221
 world wind.x -0.89442718
 world wind.y 0.44721359
 world windStrength 0x3D8F5C29
@@ -1777,47 +1777,30 @@ world climate 2
 world exits 1
 world gameResult 1
 world sessionKind 3
-world objects 2287
-world mapObjects 84
-world sentObjects 2203
-world timedObjects 31
-world updateMap 71
+world objects 2463
+world mapObjects 238
+world sentObjects 2225
+world timedObjects 33
+world updateMap 39
 world projectiles 5
-world allied0 0x000005A7
-world allied1 0x0000002F
-world allied2 0x0000003F
-world allied3 0x0000002E
-world allied4 0x00000034
-world allied5 0x0000003F
-world allied7 0x00000081
-world allied8 0x00000101
-world allied10 0x00000401
-random isaac.count 110
-random isaac.a 0x54D4658F
-random isaac.b 0xBEA036DB
-random isaac.c 0x000003A7
-random isaac.results 0x497E3FEB
-random isaac.memory 0x7E7E73B0
-random crt.rand 0x807DC901
+random isaac.count 168
+random isaac.a 0x52C7D82C
+random isaac.b 0xC278FC8C
+random isaac.c 0x00000254
+random isaac.results 0x524C4ACC
+random isaac.memory 0x7B6D713C
+random crt.rand 0xF3AF162D
 player0 sessionKind 3
-player0 lastTick 835
-player0 items 1
+player0 lastTick 643
 player0 units 2
-player0 objects 83
-player0 money 200000
+player0 objects 238
 player0 members 2
 player0 member0.unit 1000011214
 player0 member1.unit 1000059185
-player0 var.b.Gerald.brief_251a 1.0
-player0 var.b.Grey.brief_207 2.0
+player0 var.b.Grey.brief_207 1.0
 player0 var.b.His.brief_204 2.0
-player0 var.b.His.brief_210 1.0
-player0 var.b.KMage.brief_251 1.0
 player0 var.b.Trader.brief_205 1.0
 player0 var.b.Trapper.brief_206 1.0
-player0 var.b.Trapper.brief_207a 1.0
-player0 var.b.Vor.brief_250 2.0
-player0 var.b.bz21k.brief_250a 2.0
 player0 var.b.merc1.n11_1 1.0
 player0 var.b.merc10.n11_10 1.0
 player0 var.b.merc2.brief_200 2.0
@@ -1828,9 +1811,8 @@ player0 var.b.merc6.n11_6 1.0
 player0 var.b.merc7.n11_7 1.0
 player0 var.b.merc8.n11_8 1.0
 player0 var.b.merc9.n11_9 1.0
-player0 var.gtime 7.42555666
+player0 var.gtime 6.80444479
 player0 var.q.gz21k.q1k 1.0
-player0 var.q.gz23k.q6k 1.0
 player0 var.start_zone21 1.0
 player0 var.z.bz21k 2.0
 player0 var.z.bz22k 1.0
@@ -1851,46 +1833,53 @@ player0 var.z.gz25k_gz26k 1.0
 player0 var.z.gz26k 1.0
 player0 var.zs.cz0k 1.0
 player0 var.zs.cz1k 1.0
-player0 var.zs.cz2k 1.0
-player0 var.zs.cz3k 1.0
 player0 var.zs.gz1g 1.0
 player0 var.zs.gz21k 1.0
 player0 var.zt.cz0k 6.29000044
 player0 var.zt.cz1k 6.46888924
-player0 var.zt.cz2k 6.95333385
-player0 var.zt.cz3k 7.30444527
 player0 var.zt.gz1g 6.04777813
-player0 var.zt.gz21k 6.96222258
+player0 var.zt.gz21k 6.47777796
 - obj2
-+ obj34 80 unhuma ""
-obj34 dead 0
-obj34 hp 25.0
-obj34 mana 11.0
-obj34 pos.x 274.988007
-obj34 pos.y 319.799011
-obj34 pos.z 0.0
-obj34 #ai 8B352029
-obj34 #place 8709FC23
-obj34 #unit BBA7A289
-obj34 #vitals 28ACAB1D
-+ obj35 80 unhufe ""
-obj35 dead 0
-obj35 hp 13.0
-obj35 mana 22.0
-obj35 pos.x 274.161987
-obj35 pos.y 320.243988
-obj35 pos.z 0.0
-obj35 #ai 85D74312
-obj35 #place 1F793AA9
-obj35 #unit 42E55624
-obj35 #vitals 0BDA5EB8
++ obj47 80 unhufe ""
+obj47 dead 0
+obj47 hp 117.0
+obj47 mana 291.0
+obj47 pos.x 215.75
+obj47 pos.y 122.75
+obj47 pos.z 0.0
+obj47 #ai 6220F525
+obj47 #place 574727DE
+obj47 #unit 5167379A
+obj47 #vitals 60EBE575
++ obj51 80 unhufe ""
+obj51 dead 0
+obj51 hp 92.0
+obj51 mana 185.0
+obj51 pos.x 67.75
+obj51 pos.y 138.25
+obj51 pos.z 0.0
+obj51 #ai D83DF6DC
+obj51 #place 68FA7DB2
+obj51 #unit 30BA5BBC
+obj51 #vitals 262E7208
++ obj53 80 unanhodo ""
+obj53 dead 0
+obj53 hp 157.0
+obj53 mana 91.0
+obj53 pos.x 80.5047836
+obj53 pos.y 148.987427
+obj53 pos.z 0.0
+obj53 #ai 3FFAB8EA
+obj53 #place 582210DA
+obj53 #unit 9834A4CD
+obj53 #vitals E4916DF4
 + obj83 84 stst99
 obj83 hp 1000.0
 obj83 mana 1000.0
-obj83 pos.x 294.17038
-obj83 pos.y 320.295715
+obj83 pos.x 293.937103
+obj83 pos.y 320.378174
 obj83 pos.z 0.0
-obj83 # D0048D71
+obj83 # 1A66F8D2
 - obj172
 - obj212
 - obj213
@@ -1938,10 +1927,10 @@ obj1655 # 898DB899
 + obj1656 84 stst70
 obj1656 hp 1000.0
 obj1656 mana 1000.0
-obj1656 pos.x 149.259995
-obj1656 pos.y 265.535004
+obj1656 pos.x 149.368042
+obj1656 pos.y 265.349823
 obj1656 pos.z -0.550000012
-obj1656 # AB3FAAD8
+obj1656 # 4D34DD04
 + obj1657 82 nafltr69
 obj1657 hp 1000.0
 obj1657 mana 1000.0
@@ -3038,8 +3027,8 @@ obj1847 # 945132AB
 + obj1849 82 nafltr22
 obj1849 hp 1000.0
 obj1849 mana 1000.0
-obj1849 pos.x 467.772858
-obj1849 pos.y 237.425995
+obj1849 pos.x 467.79361
+obj1849 pos.y 237.455307
 obj1849 pos.z -0.200000003
 obj1849 # 4D28A463
 + obj1851 82 nafltr22
@@ -3934,10 +3923,10 @@ obj1981 # AFEA505E
 + obj1982 82 nafltr59
 obj1982 hp 1000.0
 obj1982 mana 1000.0
-obj1982 pos.x 208.2995
-obj1982 pos.y 154.88768
+obj1982 pos.x 208.242386
+obj1982 pos.y 155.160583
 obj1982 pos.z -0.249999791
-obj1982 # DB3BEE94
+obj1982 # C42B06E4
 + obj1983 82 nafltr59
 obj1983 hp 1000.0
 obj1983 mana 1000.0
@@ -6006,10 +5995,10 @@ obj2277 # 14F4C04A
 + obj2278 82 nafltr59
 obj2278 hp 1000.0
 obj2278 mana 1000.0
-obj2278 pos.x 205.081375
-obj2278 pos.y 152.606812
+obj2278 pos.x 205.778198
+obj2278 pos.y 153.132874
 obj2278 pos.z -0.549999833
-obj2278 # C29991A7
+obj2278 # 0FA2DBC2
 + obj2279 82 nafltr59
 obj2279 hp 1000.0
 obj2279 mana 1000.0
@@ -8211,10 +8200,10 @@ obj2592 # FA5CCC0A
 + obj2593 82 nafltr59
 obj2593 hp 1000.0
 obj2593 mana 1000.0
-obj2593 pos.x 474.504852
-obj2593 pos.y 66.9238739
+obj2593 pos.x 474.771149
+obj2593 pos.y 67.5424423
 obj2593 pos.z -0.599999964
-obj2593 # C6AC90D6
+obj2593 # 5CDE32FF
 + obj2594 82 nafltr59
 obj2594 hp 1000.0
 obj2594 mana 1000.0
@@ -11207,10 +11196,10 @@ obj3020 # 572D4AA6
 + obj3021 82 nafltr56
 obj3021 hp 1000.0
 obj3021 mana 1000.0
-obj3021 pos.x 181.800446
-obj3021 pos.y 25.2901173
+obj3021 pos.x 181.576767
+obj3021 pos.y 27.0224438
 obj3021 pos.z -0.249999911
-obj3021 # 8258227B
+obj3021 # B07DC26A
 + obj3022 82 nafltr56
 obj3022 hp 1000.0
 obj3022 mana 1000.0
@@ -12019,10 +12008,10 @@ obj3136 # 59F20442
 + obj3137 82 nafltr57
 obj3137 hp 1000.0
 obj3137 mana 1000.0
-obj3137 pos.x 178.565094
-obj3137 pos.y 22.9121571
+obj3137 pos.x 178.31958
+obj3137 pos.y 22.6614761
 obj3137 pos.z -0.25
-obj3137 # 64173AB5
+obj3137 # 6259F208
 + obj3138 82 nafltr57
 obj3138 hp 1000.0
 obj3138 mana 1000.0
@@ -13846,10 +13835,10 @@ obj3417 # 4D994361
 + obj3418 82 nafltr59
 obj3418 hp 1000.0
 obj3418 mana 1000.0
-obj3418 pos.x 229.628265
-obj3418 pos.y 105.528748
+obj3418 pos.x 225.44136
+obj3418 pos.y 101.008232
 obj3418 pos.z -0.599999964
-obj3418 # 66224DA9
+obj3418 # 91205E56
 + obj3419 82 nafltr59
 obj3419 hp 1000.0
 obj3419 mana 1000.0
@@ -13874,10 +13863,10 @@ obj3421 # 8C1C6027
 + obj3422 82 nafltr59
 obj3422 hp 1000.0
 obj3422 mana 1000.0
-obj3422 pos.x 229.807266
-obj3422 pos.y 108.843933
+obj3422 pos.x 225.91153
+obj3422 pos.y 104.398743
 obj3422 pos.z -0.599999964
-obj3422 # 37B5652D
+obj3422 # FEC2E405
 + obj3423 84 stbuho25
 obj3423 hp 1000.0
 obj3423 mana 1000.0
@@ -15191,10 +15180,10 @@ obj3666 # 911F525A
 + obj3667 82 nafltr22
 obj3667 hp 1000.0
 obj3667 mana 1000.0
-obj3667 pos.x 460.938995
-obj3667 pos.y 308.345062
+obj3667 pos.x 460.16333
+obj3667 pos.y 305.635529
 obj3667 pos.z -0.200000003
-obj3667 # 58F1EF6C
+obj3667 # 77A6B560
 + obj3668 82 nafltr22
 obj3668 hp 1000.0
 obj3668 mana 1000.0
@@ -15387,17 +15376,10 @@ obj3702 # A5D83B94
 + obj3705 93 stst57
 obj3705 hp 0.0
 obj3705 mana 0.0
-obj3705 pos.x 384.483673
-obj3705 pos.y 44.0827866
+obj3705 pos.x 384.484009
+obj3705 pos.y 44.0830002
 obj3705 pos.z -0.349999994
 obj3705 # E5448391
-+ obj3706 93 stst57
-obj3706 hp 0.0
-obj3706 mana 0.0
-obj3706 pos.x 501.075989
-obj3706 pos.y 78.6402969
-obj3706 pos.z -0.550000012
-obj3706 # 85684C90
 + obj3711 93 stwa7
 obj3711 hp 0.0
 obj3711 mana 0.0
@@ -15468,6 +15450,17 @@ obj3723 pos.x 475.174469
 obj3723 pos.y 233.603973
 obj3723 pos.z -0.600000024
 obj3723 # 825CB0BC
++ obj3784 80 unmotr ""
+obj3784 dead 0
+obj3784 hp 700.0
+obj3784 mana 36.0
+obj3784 pos.x 311.442383
+obj3784 pos.y 145.384766
+obj3784 pos.z 0.0
+obj3784 #ai 0A1CA271
+obj3784 #place F3CDB1C1
+obj3784 #unit D9C51C1F
+obj3784 #vitals 32915EAB
 + obj3796 82 nafltr59
 obj3796 hp 1000.0
 obj3796 mana 1000.0
@@ -15664,20 +15657,13 @@ obj3893 pos.x 442.094757
 obj3893 pos.y 258.460571
 obj3893 pos.z -0.25
 obj3893 # 27BA9A61
-+ obj3928 97 
-obj3928 hp 0.0
-obj3928 mana 0.0
-obj3928 pos.x 170.955994
-obj3928 pos.y 319.091003
-obj3928 pos.z 11.7617998
-obj3928 # 1765C6CC
-+ obj3929 84 stst151
-obj3929 hp 1000.0
-obj3929 mana 1000.0
-obj3929 pos.x 294.631989
-obj3929 pos.y 83.6011963
-obj3929 pos.z -3.0
-obj3929 # 39F5774A
++ obj3931 84 stst151
+obj3931 hp 1000.0
+obj3931 mana 1000.0
+obj3931 pos.x 335.048126
+obj3931 pos.y 269.031281
+obj3931 pos.z 0.0
+obj3931 # AF186C62
 + obj3932 84 stst151
 obj3932 hp 1000.0
 obj3932 mana 1000.0
@@ -15762,6 +15748,28 @@ obj3952 pos.x 274.968262
 obj3952 pos.y 248.013184
 obj3952 pos.z 0.0
 obj3952 # 5416124F
++ obj3971 80 unanhoha ""
+obj3971 dead 0
+obj3971 hp 5.0
+obj3971 mana 5.0
+obj3971 pos.x 59.6871948
+obj3971 pos.y 184.452316
+obj3971 pos.z 0.0
+obj3971 #ai 3FAC945E
+obj3971 #place CD6281CD
+obj3971 #unit 6D00DCD8
+obj3971 #vitals 5DB56DED
++ obj3999 80 unmoel2 ""
+obj3999 dead 0
+obj3999 hp 343.0
+obj3999 mana 77.0
+obj3999 pos.x 396.392914
+obj3999 pos.y 63.6832428
+obj3999 pos.z 0.0
+obj3999 #ai 91BEF482
+obj3999 #place 5489CDE3
+obj3999 #unit 102719A8
+obj3999 #vitals 80E5ACFD
 + obj4013 82 nafltr59
 obj4013 hp 1000.0
 obj4013 mana 1000.0
@@ -16046,13 +16054,13 @@ obj4129 # 66CFDDBC
 obj4133 dead 0
 obj4133 hp 5.0
 obj4133 mana 3.0
-obj4133 pos.x 320.505005
-obj4133 pos.y 242.494995
+obj4133 pos.x 318.876007
+obj4133 pos.y 232.395508
 obj4133 pos.z 0.0
-obj4133 #ai A76C1B41
-obj4133 #place 06BCE1E6
-obj4133 #unit BED402F7
-obj4133 #vitals E9658685
+obj4133 #ai 1A5A38D9
+obj4133 #place 19791269
+obj4133 #unit A81D6E84
+obj4133 #vitals 0E240409
 + obj4134 93 stga5
 obj4134 hp 0.0
 obj4134 mana 0.0
@@ -16162,13 +16170,24 @@ obj4149 # F36ECB3B
 obj4153 dead 0
 obj4153 hp 185.0
 obj4153 mana 89.0
-obj4153 pos.x 314.831696
-obj4153 pos.y 344.915863
+obj4153 pos.x 272.790192
+obj4153 pos.y 174.58197
 obj4153 pos.z 0.0
-obj4153 #ai 860F8510
-obj4153 #place 01F6D7A5
-obj4153 #unit ACD97C8B
-obj4153 #vitals 19478F3F
+obj4153 #ai E03B8A4A
+obj4153 #place ECF12EF6
+obj4153 #unit C4D8C35E
+obj4153 #vitals 23BEFA99
++ obj4161 80 unmoun ""
+obj4161 dead 0
+obj4161 hp 124.0
+obj4161 mana 310.0
+obj4161 pos.x 113.681412
+obj4161 pos.y 281.909302
+obj4161 pos.z 0.0
+obj4161 #ai 762C7A41
+obj4161 #place 9E1414EE
+obj4161 #unit 1904F251
+obj4161 #vitals 904891F0
 + obj4165 82 nafltr70
 obj4165 hp 1000.0
 obj4165 mana 1000.0
@@ -16316,13 +16335,6 @@ obj4185 pos.x 299.434814
 obj4185 pos.y 240.429855
 obj4185 pos.z 0.550000489
 obj4185 # EF5195CA
-+ obj4186 84 stst151
-obj4186 hp 1000.0
-obj4186 mana 1000.0
-obj4186 pos.x 294.631989
-obj4186 pos.y 83.1192017
-obj4186 pos.z -5.0
-obj4186 # 6099FACB
 - obj4475
 - obj4481
 - obj4804
@@ -16767,13 +16779,13 @@ obj989044 # 46C202BE
 obj997307 dead 0
 obj997307 hp 15.0
 obj997307 mana 15.0
-obj997307 pos.x 270.505005
-obj997307 pos.y 322.505005
+obj997307 pos.x 270.207794
+obj997307 pos.y 321.401428
 obj997307 pos.z 0.0
-obj997307 #ai DCC6D169
-obj997307 #place 0F61760D
-obj997307 #unit BDCCAD04
-obj997307 #vitals 488CB5A1
+obj997307 #ai 1455C237
+obj997307 #place D1B3470A
+obj997307 #unit E3604CCB
+obj997307 #vitals 36845EA8
 - obj1000061
 - obj1000062
 - obj1000063
@@ -16889,50 +16901,183 @@ obj997307 #vitals 488CB5A1
 - obj1000207
 - obj1000208
 - obj1000211
-+ obj1010850 80 unhuma ""
-obj1010850 dead 0
-obj1010850 hp 25.0
-obj1010850 mana 11.0
-obj1010850 pos.x 292.30426
-obj1010850 pos.y 317.310028
-obj1010850 pos.z 0.0
-obj1010850 #ai E35F7F36
-obj1010850 #place B5AA4575
-obj1010850 #unit 6C8E9089
-obj1010850 #vitals 28ACAB1D
-+ obj1010858 80 unhufe ""
-obj1010858 dead 0
-obj1010858 hp 13.0
-obj1010858 mana 22.0
-obj1010858 pos.x 288.021545
-obj1010858 pos.y 323.39328
-obj1010858 pos.z 0.0
-obj1010858 #ai 8B352029
-obj1010858 #place 0B13FC72
-obj1010858 #unit 5B4BB07B
-obj1010858 #vitals 0BDA5EB8
++ obj1002001 93 stst58
+obj1002001 hp 0.0
+obj1002001 mana 0.0
+obj1002001 pos.x 451.597992
+obj1002001 pos.y 291.097992
+obj1002001 pos.z 0.0
+obj1002001 # DE1D7FC9
++ obj1002002 80 unanwiti ""
+obj1002002 dead 0
+obj1002002 hp 191.0
+obj1002002 mana 75.0
+obj1002002 pos.x 443.604156
+obj1002002 pos.y 270.159088
+obj1002002 pos.z 0.0
+obj1002002 #ai D92DA049
+obj1002002 #place 7BF7B0EF
+obj1002002 #unit 4D2C2AAC
+obj1002002 #vitals 29109B5D
++ obj1002003 80 unanwiti ""
+obj1002003 dead 0
+obj1002003 hp 191.0
+obj1002003 mana 75.0
+obj1002003 pos.x 444.101318
+obj1002003 pos.y 262.205933
+obj1002003 pos.z 0.0
+obj1002003 #ai 8238F87D
+obj1002003 #place 8E6CAFAE
+obj1002003 #unit 77BC209D
+obj1002003 #vitals 29109B5D
++ obj1002004 80 unanwiti ""
+obj1002004 dead 0
+obj1002004 hp 191.0
+obj1002004 mana 75.0
+obj1002004 pos.x 449.590454
+obj1002004 pos.y 269.603058
+obj1002004 pos.z 0.0
+obj1002004 #ai 694FA7B7
+obj1002004 #place 32AEA047
+obj1002004 #unit 5863E2AD
+obj1002004 #vitals 29109B5D
++ obj1003001 93 nafltr22
+obj1003001 hp 0.0
+obj1003001 mana 0.0
+obj1003001 pos.x 120.894997
+obj1003001 pos.y 347.548004
+obj1003001 pos.z 0.0
+obj1003001 # 71E4FAC8
++ obj1003003 93 stst31
+obj1003003 hp 0.0
+obj1003003 mana 0.0
+obj1003003 pos.x 120.926003
+obj1003003 pos.y 347.506012
+obj1003003 pos.z 0.800000012
+obj1003003 # A411051A
++ obj1005001 93 nafltr22
+obj1005001 hp 0.0
+obj1005001 mana 0.0
+obj1005001 pos.x 293.542999
+obj1005001 pos.y 85.3949966
+obj1005001 pos.z 0.0
+obj1005001 # ADC6153F
++ obj1005002 93 stst31
+obj1005002 hp 0.0
+obj1005002 mana 0.0
+obj1005002 pos.x 293.553009
+obj1005002 pos.y 85.3600006
+obj1005002 pos.z 0.800000012
+obj1005002 # 4FA40161
++ obj1009001 93 stst43
+obj1009001 hp 0.0
+obj1009001 mana 0.0
+obj1009001 pos.x 452.332001
+obj1009001 pos.y 251.339005
+obj1009001 pos.z 0.0
+obj1009001 # 603D3B44
++ obj1016001 93 nafltr22
+obj1016001 hp 0.0
+obj1016001 mana 0.0
+obj1016001 pos.x 176.111267
+obj1016001 pos.y 20.5117702
+obj1016001 pos.z 0.0
+obj1016001 # 3FB7B007
++ obj1016480 80 unmodr ""
+obj1016480 dead 0
+obj1016480 hp 91.0
+obj1016480 mana 160.0
+obj1016480 pos.x 128.834213
+obj1016480 pos.y 280.665802
+obj1016480 pos.z 0.0
+obj1016480 #ai 037DA4FC
+obj1016480 #place 982DE097
+obj1016480 #unit 981664B7
+obj1016480 #vitals 59F27290
++ obj1016529 80 unmodr ""
+obj1016529 dead 0
+obj1016529 hp 89.0
+obj1016529 mana 219.0
+obj1016529 pos.x 142.284271
+obj1016529 pos.y 272.313507
+obj1016529 pos.z 0.0
+obj1016529 #ai 2E312B97
+obj1016529 #place A0E743CA
+obj1016529 #unit 018EFF46
+obj1016529 #vitals 780C2BB7
++ obj1016597 80 unmodr ""
+obj1016597 dead 0
+obj1016597 hp 91.0
+obj1016597 mana 160.0
+obj1016597 pos.x 148.511353
+obj1016597 pos.y 323.627808
+obj1016597 pos.z 0.0
+obj1016597 #ai B684E8F2
+obj1016597 #place 46953517
+obj1016597 #unit C501C74F
+obj1016597 #vitals 59F27290
++ obj1016613 80 unmodr ""
+obj1016613 dead 0
+obj1016613 hp 89.0
+obj1016613 mana 219.0
+obj1016613 pos.x 119.373283
+obj1016613 pos.y 284.536041
+obj1016613 pos.z 0.0
+obj1016613 #ai 6041A5A7
+obj1016613 #place 735F1EB7
+obj1016613 #unit 5945B950
+obj1016613 #vitals 780C2BB7
++ obj1016654 80 unhufe ""
+obj1016654 dead 0
+obj1016654 hp 116.0
+obj1016654 mana 165.0
+obj1016654 pos.x 214.25
+obj1016654 pos.y 124.75
+obj1016654 pos.z 0.0
+obj1016654 #ai 7F758C13
+obj1016654 #place 9793FB50
+obj1016654 #unit FD6C77C8
+obj1016654 #vitals A4BEA44D
++ obj1016665 80 unhuma ""
+obj1016665 dead 0
+obj1016665 hp 264.0
+obj1016665 mana 110.0
+obj1016665 pos.x 225.340805
+obj1016665 pos.y 126.085785
+obj1016665 pos.z 0.0
+obj1016665 #ai B749AA4E
+obj1016665 #place 9A500FC8
+obj1016665 #unit AE294E78
+obj1016665 #vitals 671C5188
 + obj1016679 80 unhuma ""
 obj1016679 dead 0
 obj1016679 hp 89.0
 obj1016679 mana 59.0
-obj1016679 pos.x 330.877594
-obj1016679 pos.y 327.248413
+obj1016679 pos.x 107.613335
+obj1016679 pos.y 119.497231
 obj1016679 pos.z 0.0
-obj1016679 #ai D6413F16
-obj1016679 #place 95987E4E
-obj1016679 #unit C26DDA68
-obj1016679 #vitals 6611368E
+obj1016679 #ai 8BA2CCEC
+obj1016679 #place BE2C275E
+obj1016679 #unit 10FF33C5
+obj1016679 #vitals 1F0AF0D5
 + obj1016700 80 unhufe ""
 obj1016700 dead 0
 obj1016700 hp 89.0
 obj1016700 mana 59.0
-obj1016700 pos.x 321.716492
-obj1016700 pos.y 354.445892
+obj1016700 pos.x 102.813324
+obj1016700 pos.y 123.186539
 obj1016700 pos.z 0.0
-obj1016700 #ai 78816B8F
-obj1016700 #place C7FDCFD2
-obj1016700 #unit 095B669A
-obj1016700 #vitals 6611368E
+obj1016700 #ai C7D54BDD
+obj1016700 #place ABFC8F7D
+obj1016700 #unit F9CE88CA
+obj1016700 #vitals 1F0AF0D5
++ obj1019001 93 stst30
+obj1019001 hp 0.0
+obj1019001 mana 0.0
+obj1019001 pos.x 494.028992
+obj1019001 pos.y 78.4169998
+obj1019001 pos.z 0.0
+obj1019001 # C37CA781
 + obj1021783 83 nast12
 obj1021783 hp 1000.0
 obj1021783 mana 1000.0
@@ -16954,72 +17099,17 @@ obj1021864 pos.x 466.911865
 obj1021864 pos.y 251.252914
 obj1021864 pos.z -0.75
 obj1021864 # BE99C967
-+ obj1031761 80 unhuma ""
-obj1031761 dead 0
-obj1031761 hp 25.0
-obj1031761 mana 11.0
-obj1031761 pos.x 298.903992
-obj1031761 pos.y 304.660004
-obj1031761 pos.z 0.0
-obj1031761 #ai 94584FA0
-obj1031761 #place 4DD3C8C1
-obj1031761 #unit 2A37AC64
-obj1031761 #vitals 28ACAB1D
-+ obj1031801 80 unhufe ""
-obj1031801 dead 0
-obj1031801 hp 13.0
-obj1031801 mana 22.0
-obj1031801 pos.x 299.800995
-obj1031801 pos.y 321.661011
-obj1031801 pos.z 0.0
-obj1031801 #ai 8B352029
-obj1031801 #place 7BE37DAD
-obj1031801 #unit 651CAEA2
-obj1031801 #vitals 0BDA5EB8
-+ obj1052604 80 unhuma ""
-obj1052604 dead 0
-obj1052604 hp 25.0
-obj1052604 mana 11.0
-obj1052604 pos.x 290.948883
-obj1052604 pos.y 317.263519
-obj1052604 pos.z 0.0
-obj1052604 #ai E35F7F36
-obj1052604 #place 37102A93
-obj1052604 #unit 07969844
-obj1052604 #vitals 28ACAB1D
-+ obj1073590 80 unhufe ""
-obj1073590 dead 0
-obj1073590 hp 13.0
-obj1073590 mana 22.0
-obj1073590 pos.x 300.829987
-obj1073590 pos.y 320.05899
-obj1073590 pos.z 0.0
-obj1073590 #ai 8B352029
-obj1073590 #place 96010C7E
-obj1073590 #unit 9EF15E97
-obj1073590 #vitals 0BDA5EB8
-+ obj1073596 80 unhuma ""
-obj1073596 dead 0
-obj1073596 hp 25.0
-obj1073596 mana 11.0
-obj1073596 pos.x 299.644989
-obj1073596 pos.y 305.174988
-obj1073596 pos.z 0.0
-obj1073596 #ai E35F7F36
-obj1073596 #place CE6DB432
-obj1073596 #unit 9474038B
-obj1073596 #vitals 28ACAB1D
-+ obj1094445 80 unhuma ""
-obj1094445 dead 0
-obj1094445 hp 25.0
-obj1094445 mana 11.0
-obj1094445 pos.x 291.445007
-obj1094445 pos.y 323.200012
-obj1094445 pos.z 0.0
-obj1094445 #ai 8B352029
-obj1094445 #place A092C7F4
-obj1094445 #unit F6F56D71
-obj1094445 #vitals 28ACAB1D
++ obj1027091 80 unhuma ""
+obj1027091 dead 0
+obj1027091 hp 185.0
+obj1027091 mana 89.0
+obj1027091 pos.x 133.505005
+obj1027091 pos.y 210.994995
+obj1027091 pos.z 0.0
+obj1027091 #ai 3567032B
+obj1027091 #place 65FB355E
+obj1027091 #unit 12276AF0
+obj1027091 #vitals 23BEFA99
 - obj1095233
 - obj1095234
 - obj1095235
@@ -17089,28 +17179,6 @@ obj1094445 #vitals 28ACAB1D
 - obj1095818
 - obj1095819
 - obj1095820
-+ obj1115382 80 unhufe ""
-obj1115382 dead 0
-obj1115382 hp 13.0
-obj1115382 mana 22.0
-obj1115382 pos.x 287.847992
-obj1115382 pos.y 319.88501
-obj1115382 pos.z 0.0
-obj1115382 #ai 8B352029
-obj1115382 #place 46FC2A95
-obj1115382 #unit 00335619
-obj1115382 #vitals 0BDA5EB8
-+ obj1115434 80 unhuma ""
-obj1115434 dead 0
-obj1115434 hp 25.0
-obj1115434 mana 11.0
-obj1115434 pos.x 292.807007
-obj1115434 pos.y 321.309998
-obj1115434 pos.z 0.0
-obj1115434 #ai 8B352029
-obj1115434 #place 3BC682AB
-obj1115434 #unit 37A621FE
-obj1115434 #vitals 28ACAB1D
 + obj1318930 84 stst116
 obj1318930 hp 1000.0
 obj1318930 mana 1000.0
@@ -17146,6 +17214,61 @@ obj1318934 pos.x 145.80191
 obj1318934 pos.y 330.079193
 obj1318934 pos.z -0.699999988
 obj1318934 # 89F90030
++ obj1394306 80 unanwiti ""
+obj1394306 dead 0
+obj1394306 hp 191.0
+obj1394306 mana 75.0
+obj1394306 pos.x 98.2140961
+obj1394306 pos.y 94.2953644
+obj1394306 pos.z 0.0
+obj1394306 #ai 1862D70D
+obj1394306 #place CB2169FB
+obj1394306 #unit C16BA6F5
+obj1394306 #vitals 29109B5D
++ obj1394307 80 unanwiti ""
+obj1394307 dead 0
+obj1394307 hp 138.0
+obj1394307 mana 62.0
+obj1394307 pos.x 101.111717
+obj1394307 pos.y 83.8553848
+obj1394307 pos.z 0.0
+obj1394307 #ai 504BAE06
+obj1394307 #place D2DE51DC
+obj1394307 #unit 364843B9
+obj1394307 #vitals DE236CFC
++ obj1394308 80 unanwiti ""
+obj1394308 dead 0
+obj1394308 hp 191.0
+obj1394308 mana 75.0
+obj1394308 pos.x 99.3083496
+obj1394308 pos.y 75.8832932
+obj1394308 pos.z 0.0
+obj1394308 #ai B89A8148
+obj1394308 #place 4B41C891
+obj1394308 #unit D50A90B3
+obj1394308 #vitals 29109B5D
++ obj1394309 80 unanwiti ""
+obj1394309 dead 0
+obj1394309 hp 191.0
+obj1394309 mana 75.0
+obj1394309 pos.x 129.505005
+obj1394309 pos.y 69.0049973
+obj1394309 pos.z 0.0
+obj1394309 #ai 939CEB7D
+obj1394309 #place 5E963367
+obj1394309 #unit D1ACEEC3
+obj1394309 #vitals 29109B5D
++ obj1394310 80 unanwiti ""
+obj1394310 dead 0
+obj1394310 hp 138.0
+obj1394310 mana 62.0
+obj1394310 pos.x 115.451935
+obj1394310 pos.y 62.0913429
+obj1394310 pos.z 0.0
+obj1394310 #ai 49378D17
+obj1394310 #place 1FE90BE9
+obj1394310 #unit 3B42DDD6
+obj1394310 #vitals DE236CFC
 + obj1394311 84 stst70
 obj1394311 hp 1000.0
 obj1394311 mana 1000.0
@@ -17156,10 +17279,10 @@ obj1394311 # 9324915A
 + obj1394312 84 stst70
 obj1394312 hp 1000.0
 obj1394312 mana 1000.0
-obj1394312 pos.x 82.2350006
-obj1394312 pos.y 263.132996
+obj1394312 pos.x 79.8046494
+obj1394312 pos.y 263.552307
 obj1394312 pos.z -0.550000012
-obj1394312 # 00CD91FC
+obj1394312 # 98350974
 + obj1394590 84 stto2
 obj1394590 hp 1000.0
 obj1394590 mana 1000.0
@@ -17314,39 +17437,6 @@ obj2259629 pos.x 446.455536
 obj2259629 pos.y 308.946594
 obj2259629 pos.z 0.0
 obj2259629 # 49AC01D0
-+ obj2394643 80 unhuma ""
-obj2394643 dead 0
-obj2394643 hp 25.0
-obj2394643 mana 11.0
-obj2394643 pos.x 286.178009
-obj2394643 pos.y 324.273987
-obj2394643 pos.z 0.0
-obj2394643 #ai 85D74312
-obj2394643 #place 873FF7A1
-obj2394643 #unit D320A6CF
-obj2394643 #vitals 28ACAB1D
-+ obj2394644 80 unhuma ""
-obj2394644 dead 0
-obj2394644 hp 25.0
-obj2394644 mana 11.0
-obj2394644 pos.x 304.817993
-obj2394644 pos.y 337.325989
-obj2394644 pos.z 0.0
-obj2394644 #ai 0996CD8B
-obj2394644 #place 0CE3A97A
-obj2394644 #unit C343FF43
-obj2394644 #vitals 28ACAB1D
-+ obj2394646 80 unhuma ""
-obj2394646 dead 0
-obj2394646 hp 25.0
-obj2394646 mana 11.0
-obj2394646 pos.x 304.324005
-obj2394646 pos.y 333.785004
-obj2394646 pos.z 0.0
-obj2394646 #ai 85D74312
-obj2394646 #place 9C2E95C8
-obj2394646 #unit 8BAA7817
-obj2394646 #vitals 28ACAB1D
 - obj5321031
 - obj5321032
 - obj5321033
@@ -17359,10 +17449,10 @@ obj2394646 #vitals 28ACAB1D
 + obj33318903 84 stst79
 obj33318903 hp 1000.0
 obj33318903 mana 1000.0
-obj33318903 pos.x 291.568298
-obj33318903 pos.y 316.637512
+obj33318903 pos.x 289.854248
+obj33318903 pos.y 314.825836
 obj33318903 pos.z -0.200000003
-obj33318903 # 4BAE046F
+obj33318903 # 81C0DF29
 + obj33318909 84 stst30
 obj33318909 hp 1000.0
 obj33318909 mana 1000.0
@@ -17391,6 +17481,17 @@ obj33318917 pos.x 271.216827
 obj33318917 pos.y 319.361023
 obj33318917 pos.z 0.899999976
 obj33318917 # DD451F34
++ obj33318997 80 unanwide ""
+obj33318997 dead 0
+obj33318997 hp 15.0
+obj33318997 mana 15.0
+obj33318997 pos.x 68.4135742
+obj33318997 pos.y 185.966309
+obj33318997 pos.z 0.0
+obj33318997 #ai F57E502D
+obj33318997 #place 404F7818
+obj33318997 #unit BBE873C2
+obj33318997 #vitals 36845EA8
 + obj33319085 84 stst157
 obj33319085 hp 1000.0
 obj33319085 mana 1000.0
@@ -17513,10 +17614,10 @@ obj44357418 # 1BD3ADF9
 + obj44394373 84 stst83
 obj44394373 hp 1000.0
 obj44394373 mana 1000.0
-obj44394373 pos.x 291.872162
-obj44394373 pos.y 322.735443
+obj44394373 pos.x 291.785126
+obj44394373 pos.y 323.174408
 obj44394373 pos.z 0.0
-obj44394373 # 36650872
+obj44394373 # DDB5478A
 + obj44394374 84 stst99
 obj44394374 hp 1000.0
 obj44394374 mana 1000.0
@@ -17594,17 +17695,380 @@ obj44394384 pos.x 285.908722
 obj44394384 pos.y 324.992615
 obj44394384 pos.z 0.899999976
 obj44394384 # 059847C6
++ obj44394385 80 unmoun ""
+obj44394385 dead 0
+obj44394385 hp 124.0
+obj44394385 mana 310.0
+obj44394385 pos.x 83.6023331
+obj44394385 pos.y 277.93985
+obj44394385 pos.z 0.0
+obj44394385 #ai 20E25714
+obj44394385 #place 0799588A
+obj44394385 #unit 2B94F915
+obj44394385 #vitals 904891F0
++ obj44394386 80 unmoun ""
+obj44394386 dead 0
+obj44394386 hp 124.0
+obj44394386 mana 310.0
+obj44394386 pos.x 63.8067093
+obj44394386 pos.y 293.77002
+obj44394386 pos.z 0.0
+obj44394386 #ai A4D45D51
+obj44394386 #place E7849210
+obj44394386 #unit 658332E1
+obj44394386 #vitals 904891F0
++ obj44394387 80 unmoun ""
+obj44394387 dead 0
+obj44394387 hp 124.0
+obj44394387 mana 310.0
+obj44394387 pos.x 61.1942215
+obj44394387 pos.y 317.934204
+obj44394387 pos.z 0.0
+obj44394387 #ai 571447E7
+obj44394387 #place 2CEF901F
+obj44394387 #unit 59217FC2
+obj44394387 #vitals 904891F0
++ obj44394388 80 unmoun ""
+obj44394388 dead 0
+obj44394388 hp 124.0
+obj44394388 mana 310.0
+obj44394388 pos.x 89.5396881
+obj44394388 pos.y 332.230164
+obj44394388 pos.z 0.0
+obj44394388 #ai 361FBD53
+obj44394388 #place 1DDD9352
+obj44394388 #unit 72F943B0
+obj44394388 #vitals 904891F0
++ obj44394390 80 unmodr ""
+obj44394390 dead 0
+obj44394390 hp 89.0
+obj44394390 mana 219.0
+obj44394390 pos.x 110.643852
+obj44394390 pos.y 270.92157
+obj44394390 pos.z 0.0
+obj44394390 #ai 9B4C42CD
+obj44394390 #place 99690F8F
+obj44394390 #unit 5B4F6174
+obj44394390 #vitals 780C2BB7
++ obj44394391 80 unmodr ""
+obj44394391 dead 0
+obj44394391 hp 89.0
+obj44394391 mana 219.0
+obj44394391 pos.x 68.6971207
+obj44394391 pos.y 280.06778
+obj44394391 pos.z 0.0
+obj44394391 #ai 4FE850B5
+obj44394391 #place 675D5ECD
+obj44394391 #unit D699DDDB
+obj44394391 #vitals 780C2BB7
++ obj44394392 80 unmodr ""
+obj44394392 dead 0
+obj44394392 hp 89.0
+obj44394392 mana 219.0
+obj44394392 pos.x 113.386429
+obj44394392 pos.y 340.204041
+obj44394392 pos.z 0.0
+obj44394392 #ai 2F769029
+obj44394392 #place B2A03029
+obj44394392 #unit 9B931E6B
+obj44394392 #vitals 780C2BB7
++ obj44394393 80 unmodr ""
+obj44394393 dead 0
+obj44394393 hp 89.0
+obj44394393 mana 219.0
+obj44394393 pos.x 128.070648
+obj44394393 pos.y 340.237244
+obj44394393 pos.z 0.0
+obj44394393 #ai 8493216C
+obj44394393 #place 540F1714
+obj44394393 #unit 1645A2C4
+obj44394393 #vitals 780C2BB7
++ obj44394394 80 unmodr ""
+obj44394394 dead 0
+obj44394394 hp 89.0
+obj44394394 mana 219.0
+obj44394394 pos.x 136.390091
+obj44394394 pos.y 283.348969
+obj44394394 pos.z 0.0
+obj44394394 #ai 3473AA1C
+obj44394394 #place 05FF5FEA
+obj44394394 #unit 0186990B
+obj44394394 #vitals 780C2BB7
++ obj44394395 80 unmodr ""
+obj44394395 dead 0
+obj44394395 hp 91.0
+obj44394395 mana 160.0
+obj44394395 pos.x 129.545837
+obj44394395 pos.y 281.454163
+obj44394395 pos.z 0.0
+obj44394395 #ai 9E957C9E
+obj44394395 #place 356B6866
+obj44394395 #unit 981664B7
+obj44394395 #vitals 59F27290
++ obj44394396 80 unmodr ""
+obj44394396 dead 0
+obj44394396 hp 91.0
+obj44394396 mana 160.0
+obj44394396 pos.x 91.0023193
+obj44394396 pos.y 289.495361
+obj44394396 pos.z 0.0
+obj44394396 #ai E7C5F22D
+obj44394396 #place E584566A
+obj44394396 #unit F5A72AF6
+obj44394396 #vitals 59F27290
++ obj44394397 80 unmodr ""
+obj44394397 dead 0
+obj44394397 hp 91.0
+obj44394397 mana 160.0
+obj44394397 pos.x 90.021843
+obj44394397 pos.y 289.978149
+obj44394397 pos.z 0.0
+obj44394397 #ai C037CC7D
+obj44394397 #place 9D428894
+obj44394397 #unit 981664B7
+obj44394397 #vitals 59F27290
++ obj44394398 80 unmodr ""
+obj44394398 dead 0
+obj44394398 hp 91.0
+obj44394398 mana 160.0
+obj44394398 pos.x 150.767365
+obj44394398 pos.y 322.001617
+obj44394398 pos.z 0.0
+obj44394398 #ai F1F14A44
+obj44394398 #place 46CE9E77
+obj44394398 #unit 981664B7
+obj44394398 #vitals 59F27290
++ obj44394399 80 unmodr ""
+obj44394399 dead 0
+obj44394399 hp 91.0
+obj44394399 mana 160.0
+obj44394399 pos.x 153.521088
+obj44394399 pos.y 322.471222
+obj44394399 pos.z 0.0
+obj44394399 #ai C1020E2E
+obj44394399 #place 1B5B71FA
+obj44394399 #unit 981664B7
+obj44394399 #vitals 59F27290
++ obj44394400 80 unmodr ""
+obj44394400 dead 0
+obj44394400 hp 91.0
+obj44394400 mana 160.0
+obj44394400 pos.x 169.014252
+obj44394400 pos.y 306.234406
+obj44394400 pos.z 0.0
+obj44394400 #ai B61138CB
+obj44394400 #place 76BAAAB6
+obj44394400 #unit 981664B7
+obj44394400 #vitals 59F27290
++ obj44394401 80 unmodr ""
+obj44394401 dead 0
+obj44394401 hp 91.0
+obj44394401 mana 160.0
+obj44394401 pos.x 120.787148
+obj44394401 pos.y 340.0
+obj44394401 pos.z 0.0
+obj44394401 #ai B2EDBC1E
+obj44394401 #place 3C82916F
+obj44394401 #unit 981664B7
+obj44394401 #vitals 59F27290
++ obj44394402 80 unmodr ""
+obj44394402 dead 0
+obj44394402 hp 91.0
+obj44394402 mana 160.0
+obj44394402 pos.x 118.906914
+obj44394402 pos.y 340.504333
+obj44394402 pos.z 0.0
+obj44394402 #ai E5DEBB62
+obj44394402 #place 19DDBCE2
+obj44394402 #unit 981664B7
+obj44394402 #vitals 59F27290
++ obj44394403 80 unmodr ""
+obj44394403 dead 0
+obj44394403 hp 91.0
+obj44394403 mana 160.0
+obj44394403 pos.x 155.214966
+obj44394403 pos.y 330.057007
+obj44394403 pos.z 0.0
+obj44394403 #ai 50D2DD94
+obj44394403 #place 84CD7A7C
+obj44394403 #unit 9E447D46
+obj44394403 #vitals 59F27290
++ obj44394404 80 unmodr ""
+obj44394404 dead 0
+obj44394404 hp 91.0
+obj44394404 mana 160.0
+obj44394404 pos.x 108.460434
+obj44394404 pos.y 332.122253
+obj44394404 pos.z 0.0
+obj44394404 #ai 85FFAC20
+obj44394404 #place C1BAE0A2
+obj44394404 #unit AD170F4D
+obj44394404 #vitals 59F27290
++ obj44394405 80 unmodr ""
+obj44394405 dead 0
+obj44394405 hp 91.0
+obj44394405 mana 160.0
+obj44394405 pos.x 100.426208
+obj44394405 pos.y 322.620575
+obj44394405 pos.z 0.0
+obj44394405 #ai 649FB04D
+obj44394405 #place 6BE8B30F
+obj44394405 #unit F82590C8
+obj44394405 #vitals 59F27290
++ obj44394406 80 unmodr ""
+obj44394406 dead 0
+obj44394406 hp 91.0
+obj44394406 mana 160.0
+obj44394406 pos.x 82.4729919
+obj44394406 pos.y 321.78009
+obj44394406 pos.z 0.0
+obj44394406 #ai 0A951D30
+obj44394406 #place A5FF5962
+obj44394406 #unit BDF0E21E
+obj44394406 #vitals 59F27290
++ obj44394407 80 unmodr ""
+obj44394407 dead 0
+obj44394407 hp 91.0
+obj44394407 mana 160.0
+obj44394407 pos.x 71.3166656
+obj44394407 pos.y 304.37561
+obj44394407 pos.z 0.0
+obj44394407 #ai EDC83F3A
+obj44394407 #place 495A5A80
+obj44394407 #unit 49A6B823
+obj44394407 #vitals 59F27290
++ obj44394408 80 unmodr ""
+obj44394408 dead 0
+obj44394408 hp 91.0
+obj44394408 mana 160.0
+obj44394408 pos.x 74.5470657
+obj44394408 pos.y 306.945709
+obj44394408 pos.z 0.0
+obj44394408 #ai AB15B7E4
+obj44394408 #place C9FAAF99
+obj44394408 #unit 4A0EC537
+obj44394408 #vitals 59F27290
++ obj44394409 80 unmodr ""
+obj44394409 dead 0
+obj44394409 hp 91.0
+obj44394409 mana 160.0
+obj44394409 pos.x 54.0329361
+obj44394409 pos.y 293.131226
+obj44394409 pos.z 0.0
+obj44394409 #ai 49874D4B
+obj44394409 #place B31452E0
+obj44394409 #unit 4EBE0FE2
+obj44394409 #vitals 59F27290
++ obj44394410 80 unmodr ""
+obj44394410 dead 0
+obj44394410 hp 91.0
+obj44394410 mana 160.0
+obj44394410 pos.x 101.431267
+obj44394410 pos.y 279.762268
+obj44394410 pos.z 0.0
+obj44394410 #ai 6ED42EE3
+obj44394410 #place D155AC97
+obj44394410 #unit AA279FFB
+obj44394410 #vitals 59F27290
++ obj44394411 80 unmodr ""
+obj44394411 dead 0
+obj44394411 hp 91.0
+obj44394411 mana 160.0
+obj44394411 pos.x 101.06987
+obj44394411 pos.y 269.625336
+obj44394411 pos.z 0.0
+obj44394411 #ai F3965A58
+obj44394411 #place 4979C915
+obj44394411 #unit A25F4120
+obj44394411 #vitals 59F27290
++ obj44394412 80 unmodr ""
+obj44394412 dead 0
+obj44394412 hp 91.0
+obj44394412 mana 160.0
+obj44394412 pos.x 133.051666
+obj44394412 pos.y 284.050598
+obj44394412 pos.z 0.0
+obj44394412 #ai 03351A61
+obj44394412 #place FF75F23A
+obj44394412 #unit 2B65D9E0
+obj44394412 #vitals 59F27290
++ obj44394413 80 unmodr ""
+obj44394413 dead 0
+obj44394413 hp 91.0
+obj44394413 mana 160.0
+obj44394413 pos.x 134.438797
+obj44394413 pos.y 291.835754
+obj44394413 pos.z 0.0
+obj44394413 #ai 525F1476
+obj44394413 #place F661D425
+obj44394413 #unit 62B80B72
+obj44394413 #vitals 59F27290
++ obj44394414 80 unmodr ""
+obj44394414 dead 0
+obj44394414 hp 91.0
+obj44394414 mana 160.0
+obj44394414 pos.x 62.9679909
+obj44394414 pos.y 279.032013
+obj44394414 pos.z 0.0
+obj44394414 #ai ADF6A5BF
+obj44394414 #place 375323A2
+obj44394414 #unit 981664B7
+obj44394414 #vitals 59F27290
++ obj44394415 80 unmodr ""
+obj44394415 dead 0
+obj44394415 hp 91.0
+obj44394415 mana 160.0
+obj44394415 pos.x 60.9829941
+obj44394415 pos.y 277.516998
+obj44394415 pos.z 0.0
+obj44394415 #ai 7D58CA74
+obj44394415 #place 73C56761
+obj44394415 #unit 981664B7
+obj44394415 #vitals 59F27290
++ obj44394416 80 unmodr ""
+obj44394416 dead 0
+obj44394416 hp 91.0
+obj44394416 mana 160.0
+obj44394416 pos.x 81.5049973
+obj44394416 pos.y 306.005005
+obj44394416 pos.z 0.0
+obj44394416 #ai 8A19C10A
+obj44394416 #place 9AF4AB11
+obj44394416 #unit AE97552E
+obj44394416 #vitals 59F27290
++ obj44394417 80 unmodr ""
+obj44394417 dead 0
+obj44394417 hp 91.0
+obj44394417 mana 160.0
+obj44394417 pos.x 112.083687
+obj44394417 pos.y 365.307373
+obj44394417 pos.z 0.0
+obj44394417 #ai 48EBB5E9
+obj44394417 #place 5F35A764
+obj44394417 #unit D5411D1F
+obj44394417 #vitals 59F27290
++ obj44394418 80 unhuma ""
+obj44394418 dead 0
+obj44394418 hp 185.0
+obj44394418 mana 89.0
+obj44394418 pos.x 142.005005
+obj44394418 pos.y 205.505005
+obj44394418 pos.z 0.0
+obj44394418 #ai 4D9E9E08
+obj44394418 #place 7C145544
+obj44394418 #unit 93652CEB
+obj44394418 #vitals 23BEFA99
 + obj44394419 80 unhuma ""
 obj44394419 dead 0
 obj44394419 hp 185.0
 obj44394419 mana 89.0
-obj44394419 pos.x 333.092377
-obj44394419 pos.y 336.566742
+obj44394419 pos.x 158.772797
+obj44394419 pos.y 186.55423
 obj44394419 pos.z 0.0
-obj44394419 #ai 8DDE8E76
-obj44394419 #place 82411717
-obj44394419 #unit 6B173429
-obj44394419 #vitals 19478F3F
+obj44394419 #ai C5D58FD5
+obj44394419 #place D75C7ABB
+obj44394419 #unit 95060CF8
+obj44394419 #vitals 23BEFA99
 + obj44394420 84 stst83
 obj44394420 hp 1000.0
 obj44394420 mana 1000.0
@@ -17612,6 +18076,61 @@ obj44394420 pos.x 158.47023
 obj44394420 pos.y 178.910339
 obj44394420 pos.z 0.0
 obj44394420 # 76D22D68
++ obj44394421 80 unhuma ""
+obj44394421 dead 0
+obj44394421 hp 185.0
+obj44394421 mana 89.0
+obj44394421 pos.x 270.566559
+obj44394421 pos.y 186.388809
+obj44394421 pos.z 0.0
+obj44394421 #ai 6E1B74FA
+obj44394421 #place 6D47BE50
+obj44394421 #unit F7B1D0BA
+obj44394421 #vitals 23BEFA99
++ obj44394422 80 unhuma ""
+obj44394422 dead 0
+obj44394422 hp 185.0
+obj44394422 mana 89.0
+obj44394422 pos.x 249.005005
+obj44394422 pos.y 181.494995
+obj44394422 pos.z 0.0
+obj44394422 #ai B9B6FB5C
+obj44394422 #place 8EE1A597
+obj44394422 #unit D730641A
+obj44394422 #vitals 23BEFA99
++ obj44394423 80 unhuma ""
+obj44394423 dead 0
+obj44394423 hp 185.0
+obj44394423 mana 89.0
+obj44394423 pos.x 70.2953033
+obj44394423 pos.y 160.882553
+obj44394423 pos.z 0.0
+obj44394423 #ai 2DECD418
+obj44394423 #place 03988121
+obj44394423 #unit FB2E4553
+obj44394423 #vitals 23BEFA99
++ obj44394424 80 unhuma ""
+obj44394424 dead 0
+obj44394424 hp 185.0
+obj44394424 mana 89.0
+obj44394424 pos.x 79.6675644
+obj44394424 pos.y 163.353165
+obj44394424 pos.z 0.0
+obj44394424 #ai EF8E88B3
+obj44394424 #place 8EC12972
+obj44394424 #unit EFDF6E9A
+obj44394424 #vitals 23BEFA99
++ obj44394425 80 unhuma ""
+obj44394425 dead 0
+obj44394425 hp 185.0
+obj44394425 mana 89.0
+obj44394425 pos.x 90.424469
+obj44394425 pos.y 169.84079
+obj44394425 pos.z 0.0
+obj44394425 #ai 4175160B
+obj44394425 #place F4A04100
+obj44394425 #unit 079D9759
+obj44394425 #vitals 23BEFA99
 + obj44394426 87 stto8
 obj44394426 hp 1000.0
 obj44394426 mana 1000.0
@@ -17619,123 +18138,1289 @@ obj44394426 pos.x 215.924911
 obj44394426 pos.y 124.046852
 obj44394426 pos.z 0.0
 obj44394426 # 49FA4CF5
++ obj44394427 80 unanhodo ""
+obj44394427 dead 0
+obj44394427 hp 157.0
+obj44394427 mana 91.0
+obj44394427 pos.x 108.853134
+obj44394427 pos.y 110.603851
+obj44394427 pos.z 0.0
+obj44394427 #ai 841E5ED6
+obj44394427 #place A67E5F3A
+obj44394427 #unit C165D2C7
+obj44394427 #vitals E4916DF4
++ obj44394428 80 unanhodo ""
+obj44394428 dead 0
+obj44394428 hp 157.0
+obj44394428 mana 91.0
+obj44394428 pos.x 265.942627
+obj44394428 pos.y 191.23024
+obj44394428 pos.z 0.0
+obj44394428 #ai D956CB24
+obj44394428 #place 18D388CA
+obj44394428 #unit 0FFE2DE1
+obj44394428 #vitals E4916DF4
++ obj44394429 80 unanhodo ""
+obj44394429 dead 0
+obj44394429 hp 157.0
+obj44394429 mana 91.0
+obj44394429 pos.x 135.102814
+obj44394429 pos.y 222.49704
+obj44394429 pos.z 0.0
+obj44394429 #ai EBFA4369
+obj44394429 #place 4B90C1FB
+obj44394429 #unit 3AD31FC2
+obj44394429 #vitals E4916DF4
++ obj44394430 80 unanhodo ""
+obj44394430 dead 0
+obj44394430 hp 157.0
+obj44394430 mana 91.0
+obj44394430 pos.x 166.613342
+obj44394430 pos.y 209.94725
+obj44394430 pos.z 0.0
+obj44394430 #ai EB8D2943
+obj44394430 #place 150DBC32
+obj44394430 #unit AA1148C6
+obj44394430 #vitals E4916DF4
++ obj44394431 80 unhufe ""
+obj44394431 dead 0
+obj44394431 hp 89.0
+obj44394431 mana 59.0
+obj44394431 pos.x 82.3834534
+obj44394431 pos.y 147.077393
+obj44394431 pos.z 0.0
+obj44394431 #ai C4C3D8FA
+obj44394431 #place 5F3F4D84
+obj44394431 #unit D2A5FE4A
+obj44394431 #vitals 1F0AF0D5
++ obj44394432 80 unhuma ""
+obj44394432 dead 0
+obj44394432 hp 89.0
+obj44394432 mana 59.0
+obj44394432 pos.x 91.0039749
+obj44394432 pos.y 133.713715
+obj44394432 pos.z 0.0
+obj44394432 #ai E9C96AD1
+obj44394432 #place 195DD766
+obj44394432 #unit FCDA9B06
+obj44394432 #vitals 1F0AF0D5
++ obj44394433 80 unhuma ""
+obj44394433 dead 0
+obj44394433 hp 89.0
+obj44394433 mana 59.0
+obj44394433 pos.x 64.4950027
+obj44394433 pos.y 116.004997
+obj44394433 pos.z 0.0
+obj44394433 #ai 9700A706
+obj44394433 #place B68ABE9A
+obj44394433 #unit 3F0CA8E7
+obj44394433 #vitals 1F0AF0D5
++ obj44394434 80 unhuma ""
+obj44394434 dead 0
+obj44394434 hp 89.0
+obj44394434 mana 59.0
+obj44394434 pos.x 70.4906693
+obj44394434 pos.y 135.474518
+obj44394434 pos.z 0.0
+obj44394434 #ai 009DA2B5
+obj44394434 #place 807A1A61
+obj44394434 #unit F641D4C0
+obj44394434 #vitals 1F0AF0D5
++ obj44394435 80 unhufe ""
+obj44394435 dead 0
+obj44394435 hp 89.0
+obj44394435 mana 59.0
+obj44394435 pos.x 54.2467499
+obj44394435 pos.y 120.100861
+obj44394435 pos.z 0.0
+obj44394435 #ai E06D8659
+obj44394435 #place 7DA9FCA2
+obj44394435 #unit 105FA2EB
+obj44394435 #vitals 1F0AF0D5
++ obj44394436 80 unhufe ""
+obj44394436 dead 0
+obj44394436 hp 92.0
+obj44394436 mana 185.0
+obj44394436 pos.x 118.25
+obj44394436 pos.y 116.75
+obj44394436 pos.z 0.0
+obj44394436 #ai AFBD2CE6
+obj44394436 #place 017DA338
+obj44394436 #unit DE19CE78
+obj44394436 #vitals 262E7208
++ obj44394437 80 unanhodo ""
+obj44394437 dead 0
+obj44394437 hp 157.0
+obj44394437 mana 91.0
+obj44394437 pos.x 130.805878
+obj44394437 pos.y 116.411369
+obj44394437 pos.z 0.0
+obj44394437 #ai 0AF12799
+obj44394437 #place 81E4EFAC
+obj44394437 #unit CECC8DA8
+obj44394437 #vitals E4916DF4
++ obj44394438 80 unhuma ""
+obj44394438 dead 0
+obj44394438 hp 264.0
+obj44394438 mana 110.0
+obj44394438 pos.x 102.952629
+obj44394438 pos.y 119.067772
+obj44394438 pos.z 0.0
+obj44394438 #ai CFE401CF
+obj44394438 #place CBBAE62B
+obj44394438 #unit 309E76DA
+obj44394438 #vitals 671C5188
++ obj44394439 80 unhufe ""
+obj44394439 dead 0
+obj44394439 hp 116.0
+obj44394439 mana 165.0
+obj44394439 pos.x 116.75
+obj44394439 pos.y 100.75
+obj44394439 pos.z 0.0
+obj44394439 #ai 3A3D5B3E
+obj44394439 #place 410E707D
+obj44394439 #unit F1002C5A
+obj44394439 #vitals A4BEA44D
++ obj44394440 80 unhufe ""
+obj44394440 dead 0
+obj44394440 hp 116.0
+obj44394440 mana 165.0
+obj44394440 pos.x 82.25
+obj44394440 pos.y 133.25
+obj44394440 pos.z 0.0
+obj44394440 #ai 3AB25334
+obj44394440 #place D13B993E
+obj44394440 #unit 169639BA
+obj44394440 #vitals A4BEA44D
++ obj44394441 80 unhuma ""
+obj44394441 dead 0
+obj44394441 hp 264.0
+obj44394441 mana 110.0
+obj44394441 pos.x 92.054863
+obj44394441 pos.y 126.972565
+obj44394441 pos.z 0.0
+obj44394441 #ai 156BA3BA
+obj44394441 #place C2EF5664
+obj44394441 #unit 8291AC90
+obj44394441 #vitals 671C5188
++ obj44394442 80 unhuma ""
+obj44394442 dead 0
+obj44394442 hp 264.0
+obj44394442 mana 110.0
+obj44394442 pos.x 80.75
+obj44394442 pos.y 146.25
+obj44394442 pos.z 0.0
+obj44394442 #ai 7EA4756B
+obj44394442 #place 67D01548
+obj44394442 #unit DC28B9FF
+obj44394442 #vitals 671C5188
++ obj44394443 80 unhufe ""
+obj44394443 dead 0
+obj44394443 hp 116.0
+obj44394443 mana 165.0
+obj44394443 pos.x 77.9950027
+obj44394443 pos.y 145.494995
+obj44394443 pos.z 0.0
+obj44394443 #ai 5EA12AF0
+obj44394443 #place C8401C44
+obj44394443 #unit 1F15B09A
+obj44394443 #vitals A4BEA44D
 + obj44394444 80 unanhoco ""
 obj44394444 dead 0
 obj44394444 hp 5.0
 obj44394444 mana 3.0
-obj44394444 pos.x 317.505005
-obj44394444 pos.y 227.005005
+obj44394444 pos.x 328.816254
+obj44394444 pos.y 226.587555
 obj44394444 pos.z 0.0
-obj44394444 #ai C1064DF1
-obj44394444 #place C5D9B07B
-obj44394444 #unit 456F8B52
-obj44394444 #vitals E9658685
+obj44394444 #ai 3C810A9B
+obj44394444 #place D02165CC
+obj44394444 #unit 3B014F93
+obj44394444 #vitals 0E240409
 + obj44394445 80 unanhoco ""
 obj44394445 dead 0
 obj44394445 hp 5.0
 obj44394445 mana 3.0
-obj44394445 pos.x 322.005005
-obj44394445 pos.y 219.505005
+obj44394445 pos.x 319.874329
+obj44394445 pos.y 227.880875
 obj44394445 pos.z 0.0
-obj44394445 #ai 4D2D5685
-obj44394445 #place F1D03383
-obj44394445 #unit FDA9BC75
-obj44394445 #vitals E9658685
+obj44394445 #ai 829F994A
+obj44394445 #place 021510DF
+obj44394445 #unit A37E070D
+obj44394445 #vitals 0E240409
++ obj44394446 80 unanhoco ""
+obj44394446 dead 0
+obj44394446 hp 5.0
+obj44394446 mana 3.0
+obj44394446 pos.x 69.0049973
+obj44394446 pos.y 113.995003
+obj44394446 pos.z 0.0
+obj44394446 #ai E5872CB8
+obj44394446 #place EC47C43B
+obj44394446 #unit 2FD97861
+obj44394446 #vitals 0E240409
++ obj44394447 80 unanhoco ""
+obj44394447 dead 0
+obj44394447 hp 5.0
+obj44394447 mana 3.0
+obj44394447 pos.x 75.1098633
+obj44394447 pos.y 123.719734
+obj44394447 pos.z 0.0
+obj44394447 #ai 4C247575
+obj44394447 #place DC1975FA
+obj44394447 #unit 0C63495E
+obj44394447 #vitals 0E240409
++ obj44394452 80 unhuma ""
+obj44394452 dead 0
+obj44394452 hp 89.0
+obj44394452 mana 59.0
+obj44394452 pos.x 43.6261482
+obj44394452 pos.y 130.755051
+obj44394452 pos.z 0.0
+obj44394452 #ai E85427A5
+obj44394452 #place D7F5EE31
+obj44394452 #unit 571A60E5
+obj44394452 #vitals 1F0AF0D5
++ obj44394453 80 unhufe ""
+obj44394453 dead 0
+obj44394453 hp 89.0
+obj44394453 mana 59.0
+obj44394453 pos.x 39.1609421
+obj44394453 pos.y 129.924393
+obj44394453 pos.z 0.0
+obj44394453 #ai FD0A548E
+obj44394453 #place BC7A56D1
+obj44394453 #unit 70DF9CD2
+obj44394453 #vitals 1F0AF0D5
++ obj44394454 80 unanhodo ""
+obj44394454 dead 0
+obj44394454 hp 157.0
+obj44394454 mana 91.0
+obj44394454 pos.x 47.4757996
+obj44394454 pos.y 130.467087
+obj44394454 pos.z 0.0
+obj44394454 #ai B6C765D4
+obj44394454 #place 87CE8DD6
+obj44394454 #unit A5B817A9
+obj44394454 #vitals E4916DF4
++ obj44394455 80 unanhodo ""
+obj44394455 dead 0
+obj44394455 hp 157.0
+obj44394455 mana 91.0
+obj44394455 pos.x 45.158905
+obj44394455 pos.y 133.233932
+obj44394455 pos.z 0.0
+obj44394455 #ai FC7CC9D2
+obj44394455 #place 6E809ACD
+obj44394455 #unit FD7278AB
+obj44394455 #vitals E4916DF4
++ obj44394456 80 unhuma ""
+obj44394456 dead 0
+obj44394456 hp 185.0
+obj44394456 mana 89.0
+obj44394456 pos.x 87.9950027
+obj44394456 pos.y 156.494995
+obj44394456 pos.z 0.0
+obj44394456 #ai 17E85752
+obj44394456 #place 247EA842
+obj44394456 #unit EBB9DECD
+obj44394456 #vitals 23BEFA99
++ obj44394457 80 unhuma ""
+obj44394457 dead 0
+obj44394457 hp 185.0
+obj44394457 mana 89.0
+obj44394457 pos.x 100.013992
+obj44394457 pos.y 156.439484
+obj44394457 pos.z 0.0
+obj44394457 #ai 11C4B655
+obj44394457 #place 63F49287
+obj44394457 #unit 95E037C8
+obj44394457 #vitals 23BEFA99
++ obj44394458 80 unhufe ""
+obj44394458 dead 0
+obj44394458 hp 116.0
+obj44394458 mana 165.0
+obj44394458 pos.x 108.75
+obj44394458 pos.y 159.25
+obj44394458 pos.z 0.0
+obj44394458 #ai 1FAD0BD3
+obj44394458 #place 6A44D35E
+obj44394458 #unit 417BE43B
+obj44394458 #vitals A4BEA44D
++ obj44394459 80 unhuma ""
+obj44394459 dead 0
+obj44394459 hp 264.0
+obj44394459 mana 110.0
+obj44394459 pos.x 108.75
+obj44394459 pos.y 157.75
+obj44394459 pos.z 0.0
+obj44394459 #ai 4A6E7342
+obj44394459 #place 600AE19B
+obj44394459 #unit 90B5AE4E
+obj44394459 #vitals 671C5188
++ obj44394460 80 unhufe ""
+obj44394460 dead 0
+obj44394460 hp 92.0
+obj44394460 mana 185.0
+obj44394460 pos.x 124.495003
+obj44394460 pos.y 159.005005
+obj44394460 pos.z 0.0
+obj44394460 #ai C73A3A91
+obj44394460 #place A5B9F539
+obj44394460 #unit 00AF3ABD
+obj44394460 #vitals 262E7208
++ obj44394461 80 unanhodo ""
+obj44394461 dead 0
+obj44394461 hp 157.0
+obj44394461 mana 91.0
+obj44394461 pos.x 130.717819
+obj44394461 pos.y 147.743011
+obj44394461 pos.z 0.0
+obj44394461 #ai 45D999D4
+obj44394461 #place 274E9304
+obj44394461 #unit 8E5CE774
+obj44394461 #vitals E4916DF4
++ obj44394462 80 unanhodo ""
+obj44394462 dead 0
+obj44394462 hp 157.0
+obj44394462 mana 91.0
+obj44394462 pos.x 104.317047
+obj44394462 pos.y 153.293381
+obj44394462 pos.z 0.0
+obj44394462 #ai 7848FF9C
+obj44394462 #place 891F3A63
+obj44394462 #unit 5EB06C06
+obj44394462 #vitals E4916DF4
++ obj44394463 80 unanwide ""
+obj44394463 dead 0
+obj44394463 hp 15.0
+obj44394463 mana 15.0
+obj44394463 pos.x 46.7736969
+obj44394463 pos.y 198.388138
+obj44394463 pos.z 0.0
+obj44394463 #ai 6F93CA9C
+obj44394463 #place 410FA567
+obj44394463 #unit 98304EC5
+obj44394463 #vitals 36845EA8
++ obj44394464 80 unanhoha ""
+obj44394464 dead 0
+obj44394464 hp 5.0
+obj44394464 mana 5.0
+obj44394464 pos.x 46.7650223
+obj44394464 pos.y 186.053268
+obj44394464 pos.z 0.0
+obj44394464 #ai 39D58201
+obj44394464 #place 25B648B6
+obj44394464 #unit 6A34AB77
+obj44394464 #vitals 5DB56DED
++ obj44394465 80 unanhoha ""
+obj44394465 dead 0
+obj44394465 hp 5.0
+obj44394465 mana 5.0
+obj44394465 pos.x 38.2709885
+obj44394465 pos.y 200.156555
+obj44394465 pos.z 0.0
+obj44394465 #ai 78B016EC
+obj44394465 #place 3674942C
+obj44394465 #unit 5E0BCE94
+obj44394465 #vitals 5DB56DED
++ obj44394466 80 unanhoha ""
+obj44394466 dead 0
+obj44394466 hp 5.0
+obj44394466 mana 5.0
+obj44394466 pos.x 38.4247513
+obj44394466 pos.y 192.878937
+obj44394466 pos.z 0.0
+obj44394466 #ai 2689F161
+obj44394466 #place 87C56B8F
+obj44394466 #unit 17BE6FB7
+obj44394466 #vitals 5DB56DED
++ obj44394467 80 unanhoha ""
+obj44394467 dead 0
+obj44394467 hp 5.0
+obj44394467 mana 5.0
+obj44394467 pos.x 138.352722
+obj44394467 pos.y 67.4047394
+obj44394467 pos.z 0.0
+obj44394467 #ai 14AA7917
+obj44394467 #place 17D40B55
+obj44394467 #unit 23956D29
+obj44394467 #vitals 5DB56DED
++ obj44394468 80 unanhoha ""
+obj44394468 dead 0
+obj44394468 hp 5.0
+obj44394468 mana 5.0
+obj44394468 pos.x 156.94783
+obj44394468 pos.y 59.8863144
+obj44394468 pos.z 0.0
+obj44394468 #ai 0E465810
+obj44394468 #place EC141376
+obj44394468 #unit 62033748
+obj44394468 #vitals 5DB56DED
++ obj44394469 80 unmotr ""
+obj44394469 dead 0
+obj44394469 hp 700.0
+obj44394469 mana 36.0
+obj44394469 pos.x 186.569244
+obj44394469 pos.y 39.9816093
+obj44394469 pos.z 0.0
+obj44394469 #ai E5897C65
+obj44394469 #place 54399828
+obj44394469 #unit D6E56890
+obj44394469 #vitals 32915EAB
++ obj44394470 80 unanwiti ""
+obj44394470 dead 0
+obj44394470 hp 191.0
+obj44394470 mana 75.0
+obj44394470 pos.x 60.6539726
+obj44394470 pos.y 252.987091
+obj44394470 pos.z 0.0
+obj44394470 #ai 9043790B
+obj44394470 #place 7451A509
+obj44394470 #unit 189E4FFF
+obj44394470 #vitals 29109B5D
++ obj44394472 80 unanwiti ""
+obj44394472 dead 0
+obj44394472 hp 191.0
+obj44394472 mana 75.0
+obj44394472 pos.x 90.1441345
+obj44394472 pos.y 207.147995
+obj44394472 pos.z 0.0
+obj44394472 #ai AEA3746C
+obj44394472 #place 6FC6C697
+obj44394472 #unit C0CC7352
+obj44394472 #vitals 29109B5D
++ obj44394473 80 unanwiti ""
+obj44394473 dead 0
+obj44394473 hp 191.0
+obj44394473 mana 75.0
+obj44394473 pos.x 70.5105209
+obj44394473 pos.y 228.986679
+obj44394473 pos.z 0.0
+obj44394473 #ai 4CF0D75C
+obj44394473 #place 486EDFF7
+obj44394473 #unit CCB7E3EA
+obj44394473 #vitals 29109B5D
++ obj44394474 80 unanwiti ""
+obj44394474 dead 0
+obj44394474 hp 191.0
+obj44394474 mana 75.0
+obj44394474 pos.x 40.0099411
+obj44394474 pos.y 223.245026
+obj44394474 pos.z 0.0
+obj44394474 #ai A6137C8E
+obj44394474 #place 68EAA1A2
+obj44394474 #unit D50A90B3
+obj44394474 #vitals 29109B5D
++ obj44394475 80 unanwiti ""
+obj44394475 dead 0
+obj44394475 hp 138.0
+obj44394475 mana 62.0
+obj44394475 pos.x 85.4645081
+obj44394475 pos.y 224.039856
+obj44394475 pos.z 0.0
+obj44394475 #ai 242D790C
+obj44394475 #place 92BF0646
+obj44394475 #unit BE8ED1D1
+obj44394475 #vitals DE236CFC
++ obj44394476 80 unanwiti ""
+obj44394476 dead 0
+obj44394476 hp 138.0
+obj44394476 mana 62.0
+obj44394476 pos.x 77.8900681
+obj44394476 pos.y 242.846619
+obj44394476 pos.z 0.0
+obj44394476 #ai 9B9754E3
+obj44394476 #place FD0130F6
+obj44394476 #unit D28FCA55
+obj44394476 #vitals DE236CFC
++ obj44394477 80 unanwiti ""
+obj44394477 dead 0
+obj44394477 hp 138.0
+obj44394477 mana 62.0
+obj44394477 pos.x 44.4091415
+obj44394477 pos.y 224.765121
+obj44394477 pos.z 0.0
+obj44394477 #ai 0B0AA309
+obj44394477 #place DC468F35
+obj44394477 #unit 83F616F8
+obj44394477 #vitals DE236CFC
++ obj44394478 80 unhufe ""
+obj44394478 dead 0
+obj44394478 hp 116.0
+obj44394478 mana 165.0
+obj44394478 pos.x 145.75
+obj44394478 pos.y 218.75
+obj44394478 pos.z 0.0
+obj44394478 #ai 0B9A9B5A
+obj44394478 #place 12714B0A
+obj44394478 #unit 8F9E4E34
+obj44394478 #vitals A4BEA44D
++ obj44394479 80 unhuma ""
+obj44394479 dead 0
+obj44394479 hp 264.0
+obj44394479 mana 110.0
+obj44394479 pos.x 145.25
+obj44394479 pos.y 216.75
+obj44394479 pos.z 0.0
+obj44394479 #ai 4490C1A8
+obj44394479 #place 4CBEBC8E
+obj44394479 #unit 540A721A
+obj44394479 #vitals 671C5188
++ obj44394480 80 unhufe ""
+obj44394480 dead 0
+obj44394480 hp 92.0
+obj44394480 mana 185.0
+obj44394480 pos.x 141.25
+obj44394480 pos.y 212.75
+obj44394480 pos.z 0.0
+obj44394480 #ai 4FB9BD66
+obj44394480 #place 4F8E36FB
+obj44394480 #unit AA1A5126
+obj44394480 #vitals 262E7208
++ obj44394481 80 unhufe ""
+obj44394481 dead 0
+obj44394481 hp 116.0
+obj44394481 mana 165.0
+obj44394481 pos.x 142.75
+obj44394481 pos.y 211.75
+obj44394481 pos.z 0.0
+obj44394481 #ai A349C915
+obj44394481 #place CA505D17
+obj44394481 #unit 15F9CFC5
+obj44394481 #vitals A4BEA44D
++ obj44394482 80 unanwiti ""
+obj44394482 dead 0
+obj44394482 hp 191.0
+obj44394482 mana 75.0
+obj44394482 pos.x 157.444077
+obj44394482 pos.y 111.862076
+obj44394482 pos.z 0.0
+obj44394482 #ai 830A9F9D
+obj44394482 #place FD3055F6
+obj44394482 #unit 959AFA6F
+obj44394482 #vitals 29109B5D
++ obj44394483 80 unanwiti ""
+obj44394483 dead 0
+obj44394483 hp 191.0
+obj44394483 mana 75.0
+obj44394483 pos.x 190.820679
+obj44394483 pos.y 120.979576
+obj44394483 pos.z 0.0
+obj44394483 #ai 179DD816
+obj44394483 #place D18D8965
+obj44394483 #unit EE11D687
+obj44394483 #vitals 29109B5D
++ obj44394484 80 unanwiti ""
+obj44394484 dead 0
+obj44394484 hp 191.0
+obj44394484 mana 75.0
+obj44394484 pos.x 148.573593
+obj44394484 pos.y 139.718323
+obj44394484 pos.z 0.0
+obj44394484 #ai EB8AD9E5
+obj44394484 #place 9052970E
+obj44394484 #unit E41C907D
+obj44394484 #vitals 29109B5D
++ obj44394485 80 unanwiti ""
+obj44394485 dead 0
+obj44394485 hp 138.0
+obj44394485 mana 62.0
+obj44394485 pos.x 182.771362
+obj44394485 pos.y 135.662384
+obj44394485 pos.z 0.0
+obj44394485 #ai 7B5DC99A
+obj44394485 #place B28D9172
+obj44394485 #unit EBD968CE
+obj44394485 #vitals DE236CFC
++ obj44394486 80 unanwiti ""
+obj44394486 dead 0
+obj44394486 hp 138.0
+obj44394486 mana 62.0
+obj44394486 pos.x 182.486191
+obj44394486 pos.y 113.562531
+obj44394486 pos.z 0.0
+obj44394486 #ai 6EA3983C
+obj44394486 #place E6A974D0
+obj44394486 #unit C14C96C4
+obj44394486 #vitals DE236CFC
++ obj44394487 80 unanwiti ""
+obj44394487 dead 0
+obj44394487 hp 191.0
+obj44394487 mana 75.0
+obj44394487 pos.x 108.516975
+obj44394487 pos.y 238.815018
+obj44394487 pos.z 0.0
+obj44394487 #ai FA61C226
+obj44394487 #place 727902F2
+obj44394487 #unit 580E2523
+obj44394487 #vitals 29109B5D
++ obj44394488 80 unhuma ""
+obj44394488 dead 0
+obj44394488 hp 264.0
+obj44394488 mana 110.0
+obj44394488 pos.x 272.25
+obj44394488 pos.y 195.25
+obj44394488 pos.z 0.0
+obj44394488 #ai 67E5245E
+obj44394488 #place 1B7F2D70
+obj44394488 #unit DA8C1287
+obj44394488 #vitals 671C5188
++ obj44394489 80 unhufe ""
+obj44394489 dead 0
+obj44394489 hp 116.0
+obj44394489 mana 165.0
+obj44394489 pos.x 270.75
+obj44394489 pos.y 196.75
+obj44394489 pos.z 0.0
+obj44394489 #ai C0E4F1CE
+obj44394489 #place D7F6F3B7
+obj44394489 #unit DD9C4107
+obj44394489 #vitals A4BEA44D
++ obj44394490 80 unhufe ""
+obj44394490 dead 0
+obj44394490 hp 116.0
+obj44394490 mana 165.0
+obj44394490 pos.x 247.25
+obj44394490 pos.y 195.25
+obj44394490 pos.z 0.0
+obj44394490 #ai 466757CD
+obj44394490 #place 8F5881EB
+obj44394490 #unit E5E1CD36
+obj44394490 #vitals A4BEA44D
++ obj44394491 80 unhuma ""
+obj44394491 dead 0
+obj44394491 hp 264.0
+obj44394491 mana 110.0
+obj44394491 pos.x 247.25
+obj44394491 pos.y 193.25
+obj44394491 pos.z 0.0
+obj44394491 #ai A7B75197
+obj44394491 #place BB1FCAEE
+obj44394491 #unit 209B6BF5
+obj44394491 #vitals 671C5188
++ obj44394492 80 unanhodo ""
+obj44394492 dead 0
+obj44394492 hp 157.0
+obj44394492 mana 91.0
+obj44394492 pos.x 206.566681
+obj44394492 pos.y 194.556732
+obj44394492 pos.z 0.0
+obj44394492 #ai A4BDBF0E
+obj44394492 #place D5C86BE5
+obj44394492 #unit 63966B9D
+obj44394492 #vitals E4916DF4
 + obj44394493 80 unanhodo ""
 obj44394493 dead 0
 obj44394493 hp 157.0
 obj44394493 mana 91.0
-obj44394493 pos.x 263.096558
-obj44394493 pos.y 272.112671
+obj44394493 pos.x 92.8997192
+obj44394493 pos.y 130.618942
 obj44394493 pos.z 0.0
-obj44394493 #ai 063D42FB
-obj44394493 #place 766DBDB7
-obj44394493 #unit C5A4C24F
-obj44394493 #vitals 2A83BD4D
+obj44394493 #ai 5A313E89
+obj44394493 #place D27FB165
+obj44394493 #unit 2B8F4EFC
+obj44394493 #vitals E4916DF4
++ obj44394494 80 unhuma ""
+obj44394494 dead 0
+obj44394494 hp 185.0
+obj44394494 mana 89.0
+obj44394494 pos.x 205.383743
+obj44394494 pos.y 191.633148
+obj44394494 pos.z 0.0
+obj44394494 #ai 8CE34241
+obj44394494 #place CB94C2A9
+obj44394494 #unit B049DAB1
+obj44394494 #vitals 23BEFA99
++ obj44394495 80 unhuma ""
+obj44394495 dead 0
+obj44394495 hp 185.0
+obj44394495 mana 89.0
+obj44394495 pos.x 213.635025
+obj44394495 pos.y 202.124405
+obj44394495 pos.z 0.0
+obj44394495 #ai 0FC64195
+obj44394495 #place 7DB35D87
+obj44394495 #unit 40E7D146
+obj44394495 #vitals 23BEFA99
++ obj44394496 80 unhuma ""
+obj44394496 dead 0
+obj44394496 hp 185.0
+obj44394496 mana 89.0
+obj44394496 pos.x 201.845337
+obj44394496 pos.y 194.154449
+obj44394496 pos.z 0.0
+obj44394496 #ai 32A978CC
+obj44394496 #place D3F9F03A
+obj44394496 #unit A41E32D9
+obj44394496 #vitals 23BEFA99
 + obj44394497 80 unhuma ""
 obj44394497 dead 0
-obj44394497 hp 90.0
-obj44394497 mana 21.0
-obj44394497 pos.x 344.75
-obj44394497 pos.y 266.75
+obj44394497 hp 264.0
+obj44394497 mana 110.0
+obj44394497 pos.x 221.913803
+obj44394497 pos.y 143.104172
 obj44394497 pos.z 0.0
-obj44394497 #ai 8795F5FA
-obj44394497 #place B9074E8B
-obj44394497 #unit 1A1A0909
-obj44394497 #vitals 6BDE66AC
+obj44394497 #ai EE419DB9
+obj44394497 #place 30569F42
+obj44394497 #unit B0E35B20
+obj44394497 #vitals 671C5188
++ obj44394498 80 unhufe ""
+obj44394498 dead 0
+obj44394498 hp 116.0
+obj44394498 mana 165.0
+obj44394498 pos.x 223.25
+obj44394498 pos.y 142.878632
+obj44394498 pos.z 0.0
+obj44394498 #ai B5D3FC36
+obj44394498 #place EEA5422C
+obj44394498 #unit 4AE87AE5
+obj44394498 #vitals A4BEA44D
 + obj44394499 80 unhufe ""
 obj44394499 dead 0
 obj44394499 hp 116.0
 obj44394499 mana 165.0
-obj44394499 pos.x 291.25
-obj44394499 pos.y 296.75
+obj44394499 pos.x 231.75
+obj44394499 pos.y 167.75
 obj44394499 pos.z 0.0
-obj44394499 #ai 4EFC6AEB
-obj44394499 #place 6195831B
-obj44394499 #unit B5331063
-obj44394499 #vitals 987E99AC
+obj44394499 #ai 4D48A026
+obj44394499 #place 6058C2DF
+obj44394499 #unit 014D2373
+obj44394499 #vitals A4BEA44D
++ obj44394500 80 unmotr ""
+obj44394500 dead 0
+obj44394500 hp 700.0
+obj44394500 mana 36.0
+obj44394500 pos.x 464.274139
+obj44394500 pos.y 203.25
+obj44394500 pos.z 0.0
+obj44394500 #ai 86592C75
+obj44394500 #place 6EDDE9E7
+obj44394500 #unit 41B2C809
+obj44394500 #vitals 32915EAB
 + obj44394501 80 unanhoco ""
 obj44394501 dead 0
 obj44394501 hp 5.0
 obj44394501 mana 3.0
-obj44394501 pos.x 355.684296
-obj44394501 pos.y 221.547272
+obj44394501 pos.x 356.895782
+obj44394501 pos.y 226.079376
 obj44394501 pos.z 0.0
-obj44394501 #ai DF80C57E
-obj44394501 #place F44DCBE8
-obj44394501 #unit E00C5F52
-obj44394501 #vitals E9658685
+obj44394501 #ai 36D8DADD
+obj44394501 #place 23CFF362
+obj44394501 #unit B33EDD5D
+obj44394501 #vitals 0E240409
 + obj44394502 80 unanhoco ""
 obj44394502 dead 0
 obj44394502 hp 5.0
 obj44394502 mana 3.0
-obj44394502 pos.x 367.095337
-obj44394502 pos.y 218.626953
+obj44394502 pos.x 362.597595
+obj44394502 pos.y 219.940872
 obj44394502 pos.z 0.0
-obj44394502 #ai 118D6E13
-obj44394502 #place 361AAC34
-obj44394502 #unit BFEB6916
-obj44394502 #vitals E9658685
+obj44394502 #ai 2CA03449
+obj44394502 #place 1C265AA7
+obj44394502 #unit 022E0D3D
+obj44394502 #vitals 0E240409
 + obj44394503 80 unanhoco ""
 obj44394503 dead 0
 obj44394503 hp 5.0
 obj44394503 mana 3.0
-obj44394503 pos.x 360.505005
-obj44394503 pos.y 232.005005
+obj44394503 pos.x 360.060089
+obj44394503 pos.y 236.86824
 obj44394503 pos.z 0.0
-obj44394503 #ai 8B4D979E
-obj44394503 #place A990ABFB
-obj44394503 #unit CEC0AF91
-obj44394503 #vitals E9658685
+obj44394503 #ai AEC6820B
+obj44394503 #place AA80546F
+obj44394503 #unit E5A43FCC
+obj44394503 #vitals 0E240409
++ obj44394505 80 unanwiti ""
+obj44394505 dead 0
+obj44394505 hp 191.0
+obj44394505 mana 75.0
+obj44394505 pos.x 345.47226
+obj44394505 pos.y 23.2411957
+obj44394505 pos.z 0.0
+obj44394505 #ai 3538733F
+obj44394505 #place 511F66BD
+obj44394505 #unit ABB8E953
+obj44394505 #vitals 29109B5D
++ obj44394506 80 unanwiti ""
+obj44394506 dead 0
+obj44394506 hp 191.0
+obj44394506 mana 75.0
+obj44394506 pos.x 321.611755
+obj44394506 pos.y 33.1556244
+obj44394506 pos.z 0.0
+obj44394506 #ai 4075CA70
+obj44394506 #place 934D3606
+obj44394506 #unit 496EB8B2
+obj44394506 #vitals 29109B5D
++ obj44394507 80 unanwiti ""
+obj44394507 dead 0
+obj44394507 hp 138.0
+obj44394507 mana 62.0
+obj44394507 pos.x 341.38678
+obj44394507 pos.y 23.5935249
+obj44394507 pos.z 0.0
+obj44394507 #ai 3F11BB96
+obj44394507 #place 3FA0AE57
+obj44394507 #unit 0574A997
+obj44394507 #vitals DE236CFC
++ obj44394508 80 unanwide ""
+obj44394508 dead 0
+obj44394508 hp 15.0
+obj44394508 mana 15.0
+obj44394508 pos.x 309.014465
+obj44394508 pos.y 48.8471489
+obj44394508 pos.z 0.0
+obj44394508 #ai 1DA1E581
+obj44394508 #place 65B04FDC
+obj44394508 #unit EBE357DA
+obj44394508 #vitals 36845EA8
++ obj44394509 80 unanhoha ""
+obj44394509 dead 0
+obj44394509 hp 5.0
+obj44394509 mana 5.0
+obj44394509 pos.x 351.062073
+obj44394509 pos.y 78.0199661
+obj44394509 pos.z 0.0
+obj44394509 #ai 87217BE5
+obj44394509 #place E7B216EC
+obj44394509 #unit DD8D5972
+obj44394509 #vitals 5DB56DED
++ obj44394510 80 unanhoha ""
+obj44394510 dead 0
+obj44394510 hp 5.0
+obj44394510 mana 5.0
+obj44394510 pos.x 356.466248
+obj44394510 pos.y 71.0034409
+obj44394510 pos.z 0.0
+obj44394510 #ai BD79343C
+obj44394510 #place 710932E2
+obj44394510 #unit 86ADF7A9
+obj44394510 #vitals 5DB56DED
++ obj44394511 80 unanwide ""
+obj44394511 dead 0
+obj44394511 hp 15.0
+obj44394511 mana 15.0
+obj44394511 pos.x 289.821503
+obj44394511 pos.y 60.3392487
+obj44394511 pos.z 0.0
+obj44394511 #ai 5F145794
+obj44394511 #place E75494F3
+obj44394511 #unit D36A77F6
+obj44394511 #vitals 36845EA8
 + obj44394512 80 unanwide ""
 obj44394512 dead 0
 obj44394512 hp 15.0
 obj44394512 mana 15.0
-obj44394512 pos.x 304.447784
-obj44394512 pos.y 61.1700363
+obj44394512 pos.x 300.692627
+obj44394512 pos.y 55.9839821
 obj44394512 pos.z 0.0
-obj44394512 #ai 25864AB0
-obj44394512 #place F8294F5B
-obj44394512 #unit 69A22D35
-obj44394512 #vitals 488CB5A1
+obj44394512 #ai 00EAE85F
+obj44394512 #place E9ACBD8B
+obj44394512 #unit 9E152ABB
+obj44394512 #vitals 36845EA8
++ obj44394515 80 unanwiti ""
+obj44394515 dead 0
+obj44394515 hp 191.0
+obj44394515 mana 75.0
+obj44394515 pos.x 355.23233
+obj44394515 pos.y 107.879349
+obj44394515 pos.z 0.0
+obj44394515 #ai FB67FC06
+obj44394515 #place F61633A8
+obj44394515 #unit B5712BAD
+obj44394515 #vitals 29109B5D
++ obj44394516 80 unanwiti ""
+obj44394516 dead 0
+obj44394516 hp 191.0
+obj44394516 mana 75.0
+obj44394516 pos.x 358.994995
+obj44394516 pos.y 111.504997
+obj44394516 pos.z 0.0
+obj44394516 #ai AD947C3D
+obj44394516 #place 99DF6A81
+obj44394516 #unit 9FAF424A
+obj44394516 #vitals 29109B5D
++ obj44394517 80 unanwiti ""
+obj44394517 dead 0
+obj44394517 hp 191.0
+obj44394517 mana 75.0
+obj44394517 pos.x 346.651978
+obj44394517 pos.y 122.802055
+obj44394517 pos.z 0.0
+obj44394517 #ai 754DF869
+obj44394517 #place 43A1F9D5
+obj44394517 #unit 75FB0DF3
+obj44394517 #vitals 29109B5D
++ obj44394518 80 unanwiti ""
+obj44394518 dead 0
+obj44394518 hp 191.0
+obj44394518 mana 75.0
+obj44394518 pos.x 358.494995
+obj44394518 pos.y 136.505005
+obj44394518 pos.z 0.0
+obj44394518 #ai 80359512
+obj44394518 #place 487A9B67
+obj44394518 #unit CEC2F99A
+obj44394518 #vitals 29109B5D
++ obj44394519 80 unanwiti ""
+obj44394519 dead 0
+obj44394519 hp 138.0
+obj44394519 mana 62.0
+obj44394519 pos.x 361.503113
+obj44394519 pos.y 112.877258
+obj44394519 pos.z 0.0
+obj44394519 #ai 2142DE94
+obj44394519 #place 1F4C05DF
+obj44394519 #unit 01D2D7E7
+obj44394519 #vitals DE236CFC
++ obj44394520 80 unanwiti ""
+obj44394520 dead 0
+obj44394520 hp 138.0
+obj44394520 mana 62.0
+obj44394520 pos.x 355.557343
+obj44394520 pos.y 132.963577
+obj44394520 pos.z 0.0
+obj44394520 #ai 90964882
+obj44394520 #place A7A904F0
+obj44394520 #unit F9E21168
+obj44394520 #vitals DE236CFC
++ obj44394521 80 unanwiti ""
+obj44394521 dead 0
+obj44394521 hp 138.0
+obj44394521 mana 62.0
+obj44394521 pos.x 360.274506
+obj44394521 pos.y 140.688309
+obj44394521 pos.z 0.0
+obj44394521 #ai 4AB2EC3A
+obj44394521 #place 46851990
+obj44394521 #unit 5BB04D28
+obj44394521 #vitals DE236CFC
++ obj44394523 80 unanwiti ""
+obj44394523 dead 0
+obj44394523 hp 191.0
+obj44394523 mana 75.0
+obj44394523 pos.x 341.052704
+obj44394523 pos.y 176.941986
+obj44394523 pos.z 0.0
+obj44394523 #ai A1F68E63
+obj44394523 #place BDEFFBA0
+obj44394523 #unit 2D2E3141
+obj44394523 #vitals 29109B5D
++ obj44394524 80 unanwiti ""
+obj44394524 dead 0
+obj44394524 hp 191.0
+obj44394524 mana 75.0
+obj44394524 pos.x 373.010132
+obj44394524 pos.y 194.849396
+obj44394524 pos.z 0.0
+obj44394524 #ai 49294E70
+obj44394524 #place DE7716F0
+obj44394524 #unit BB7FA165
+obj44394524 #vitals 29109B5D
++ obj44394525 80 unanwiti ""
+obj44394525 dead 0
+obj44394525 hp 191.0
+obj44394525 mana 75.0
+obj44394525 pos.x 367.774445
+obj44394525 pos.y 178.048874
+obj44394525 pos.z 0.0
+obj44394525 #ai 9B9AF4D4
+obj44394525 #place 8A6C78E3
+obj44394525 #unit 42E8B24D
+obj44394525 #vitals 29109B5D
++ obj44394526 80 unanwiti ""
+obj44394526 dead 0
+obj44394526 hp 138.0
+obj44394526 mana 62.0
+obj44394526 pos.x 372.17926
+obj44394526 pos.y 165.968567
+obj44394526 pos.z 0.0
+obj44394526 #ai 83EE5644
+obj44394526 #place 0823FAB8
+obj44394526 #unit 2E843E37
+obj44394526 #vitals DE236CFC
++ obj44394527 80 unanwiti ""
+obj44394527 dead 0
+obj44394527 hp 138.0
+obj44394527 mana 62.0
+obj44394527 pos.x 361.901001
+obj44394527 pos.y 186.080795
+obj44394527 pos.z 0.0
+obj44394527 #ai 2B275464
+obj44394527 #place 98405530
+obj44394527 #unit D91DA7D7
+obj44394527 #vitals DE236CFC
++ obj44394528 80 unanwiti ""
+obj44394528 dead 0
+obj44394528 hp 138.0
+obj44394528 mana 62.0
+obj44394528 pos.x 387.90097
+obj44394528 pos.y 194.646057
+obj44394528 pos.z 0.0
+obj44394528 #ai 6EA8E03A
+obj44394528 #place 85AF0F59
+obj44394528 #unit 7DC36F07
+obj44394528 #vitals DE236CFC
++ obj44394529 80 unhufe ""
+obj44394529 dead 0
+obj44394529 hp 89.0
+obj44394529 mana 59.0
+obj44394529 pos.x 151.898422
+obj44394529 pos.y 197.13858
+obj44394529 pos.z 0.0
+obj44394529 #ai 1092DF51
+obj44394529 #place 26979BA2
+obj44394529 #unit 301BB273
+obj44394529 #vitals 1F0AF0D5
++ obj44394530 80 unhufe ""
+obj44394530 dead 0
+obj44394530 hp 89.0
+obj44394530 mana 59.0
+obj44394530 pos.x 265.909515
+obj44394530 pos.y 182.407959
+obj44394530 pos.z 0.0
+obj44394530 #ai 28264474
+obj44394530 #place 74171C5F
+obj44394530 #unit 108BEBE4
+obj44394530 #vitals 1F0AF0D5
++ obj44394531 80 unhufe ""
+obj44394531 dead 0
+obj44394531 hp 89.0
+obj44394531 mana 59.0
+obj44394531 pos.x 251.854843
+obj44394531 pos.y 181.335724
+obj44394531 pos.z 0.0
+obj44394531 #ai 4113A6F2
+obj44394531 #place BD5A8C20
+obj44394531 #unit 3E56F610
+obj44394531 #vitals 1F0AF0D5
++ obj44394532 80 unanwiti ""
+obj44394532 dead 0
+obj44394532 hp 191.0
+obj44394532 mana 75.0
+obj44394532 pos.x 326.414734
+obj44394532 pos.y 197.829437
+obj44394532 pos.z 0.0
+obj44394532 #ai 58667517
+obj44394532 #place 82C664A5
+obj44394532 #unit B14A1940
+obj44394532 #vitals 29109B5D
++ obj44394533 80 unanwiti ""
+obj44394533 dead 0
+obj44394533 hp 191.0
+obj44394533 mana 75.0
+obj44394533 pos.x 389.688232
+obj44394533 pos.y 274.661224
+obj44394533 pos.z 0.0
+obj44394533 #ai B7F650DF
+obj44394533 #place B281B6AC
+obj44394533 #unit B13676CF
+obj44394533 #vitals 29109B5D
++ obj44394534 80 unanwiti ""
+obj44394534 dead 0
+obj44394534 hp 191.0
+obj44394534 mana 75.0
+obj44394534 pos.x 314.056244
+obj44394534 pos.y 202.411377
+obj44394534 pos.z 0.0
+obj44394534 #ai 07E73F94
+obj44394534 #place 7220D557
+obj44394534 #unit E481DCE0
+obj44394534 #vitals 29109B5D
++ obj44394535 80 unanwiti ""
+obj44394535 dead 0
+obj44394535 hp 138.0
+obj44394535 mana 62.0
+obj44394535 pos.x 316.112335
+obj44394535 pos.y 193.078201
+obj44394535 pos.z 0.0
+obj44394535 #ai 43BDE092
+obj44394535 #place F6D7D216
+obj44394535 #unit 17A2D4BA
+obj44394535 #vitals DE236CFC
++ obj44394536 80 unanhoha ""
+obj44394536 dead 0
+obj44394536 hp 5.0
+obj44394536 mana 5.0
+obj44394536 pos.x 265.383514
+obj44394536 pos.y 216.094238
+obj44394536 pos.z 0.0
+obj44394536 #ai C5E64F67
+obj44394536 #place 8766B463
+obj44394536 #unit 2C28553B
+obj44394536 #vitals 5DB56DED
++ obj44394537 80 unanhoha ""
+obj44394537 dead 0
+obj44394537 hp 5.0
+obj44394537 mana 5.0
+obj44394537 pos.x 434.156311
+obj44394537 pos.y 197.299362
+obj44394537 pos.z 0.0
+obj44394537 #ai 6785F19D
+obj44394537 #place AC1488DD
+obj44394537 #unit 22935D94
+obj44394537 #vitals 5DB56DED
++ obj44394538 80 unanhoha ""
+obj44394538 dead 0
+obj44394538 hp 5.0
+obj44394538 mana 5.0
+obj44394538 pos.x 476.597809
+obj44394538 pos.y 201.31575
+obj44394538 pos.z 0.0
+obj44394538 #ai D9795344
+obj44394538 #place B8066929
+obj44394538 #unit 23348833
+obj44394538 #vitals 5DB56DED
++ obj44394539 80 unanhoha ""
+obj44394539 dead 0
+obj44394539 hp 5.0
+obj44394539 mana 5.0
+obj44394539 pos.x 399.287842
+obj44394539 pos.y 218.944733
+obj44394539 pos.z 0.0
+obj44394539 #ai 32351855
+obj44394539 #place A79FC201
+obj44394539 #unit 7DF06C8C
+obj44394539 #vitals 5DB56DED
 + obj44394540 80 unanhoha ""
 obj44394540 dead 0
 obj44394540 hp 5.0
 obj44394540 mana 5.0
-obj44394540 pos.x 394.010376
-obj44394540 pos.y 226.557556
+obj44394540 pos.x 399.205078
+obj44394540 pos.y 229.650467
 obj44394540 pos.z 0.0
-obj44394540 #ai F77FA494
-obj44394540 #place E1A1D56A
-obj44394540 #unit 6157D7E0
-obj44394540 #vitals 4E51318D
+obj44394540 #ai 6DBB4B89
+obj44394540 #place 83DB72B3
+obj44394540 #unit C6F53162
+obj44394540 #vitals 5DB56DED
++ obj44394541 80 unanwiti ""
+obj44394541 dead 0
+obj44394541 hp 138.0
+obj44394541 mana 62.0
+obj44394541 pos.x 407.535248
+obj44394541 pos.y 282.216339
+obj44394541 pos.z 0.0
+obj44394541 #ai 100EF8BF
+obj44394541 #place C48D7EAE
+obj44394541 #unit 64358BB3
+obj44394541 #vitals DE236CFC
++ obj44394542 80 unanwiti ""
+obj44394542 dead 0
+obj44394542 hp 138.0
+obj44394542 mana 62.0
+obj44394542 pos.x 423.618256
+obj44394542 pos.y 314.031647
+obj44394542 pos.z 0.0
+obj44394542 #ai 67D8A586
+obj44394542 #place CFF1F834
+obj44394542 #unit 70DD9615
+obj44394542 #vitals DE236CFC
++ obj44394543 80 unanwiti ""
+obj44394543 dead 0
+obj44394543 hp 138.0
+obj44394543 mana 62.0
+obj44394543 pos.x 440.124023
+obj44394543 pos.y 358.942596
+obj44394543 pos.z 0.0
+obj44394543 #ai C2CE87EF
+obj44394543 #place C8FBF752
+obj44394543 #unit 67B8B4F4
+obj44394543 #vitals DE236CFC
++ obj44394544 80 unanwiti ""
+obj44394544 dead 0
+obj44394544 hp 191.0
+obj44394544 mana 75.0
+obj44394544 pos.x 410.005646
+obj44394544 pos.y 294.370697
+obj44394544 pos.z 0.0
+obj44394544 #ai F16B60A8
+obj44394544 #place 28E096CE
+obj44394544 #unit FC4DA16E
+obj44394544 #vitals 29109B5D
++ obj44394545 80 unanwiti ""
+obj44394545 dead 0
+obj44394545 hp 191.0
+obj44394545 mana 75.0
+obj44394545 pos.x 430.647156
+obj44394545 pos.y 319.739929
+obj44394545 pos.z 0.0
+obj44394545 #ai 68298253
+obj44394545 #place C8DC76F2
+obj44394545 #unit 188A2882
+obj44394545 #vitals 29109B5D
++ obj44394546 80 unanwiti ""
+obj44394546 dead 0
+obj44394546 hp 191.0
+obj44394546 mana 75.0
+obj44394546 pos.x 439.917145
+obj44394546 pos.y 374.716705
+obj44394546 pos.z 0.0
+obj44394546 #ai 57E639D8
+obj44394546 #place 5FCD2566
+obj44394546 #unit C3668452
+obj44394546 #vitals 29109B5D
++ obj44394547 80 unanwiti ""
+obj44394547 dead 0
+obj44394547 hp 191.0
+obj44394547 mana 75.0
+obj44394547 pos.x 443.450958
+obj44394547 pos.y 356.453125
+obj44394547 pos.z 0.0
+obj44394547 #ai 1F02DDE3
+obj44394547 #place DD79333F
+obj44394547 #unit 2BB6C2AC
+obj44394547 #vitals 29109B5D
++ obj44394548 80 unhuma ""
+obj44394548 dead 0
+obj44394548 hp 185.0
+obj44394548 mana 89.0
+obj44394548 pos.x 484.504974
+obj44394548 pos.y 339.002502
+obj44394548 pos.z 0.0
+obj44394548 #ai 3BAC92A4
+obj44394548 #place 5DCC6CF0
+obj44394548 #unit 156ED449
+obj44394548 #vitals 23BEFA99
++ obj44394549 80 unhuma ""
+obj44394549 dead 0
+obj44394549 hp 185.0
+obj44394549 mana 89.0
+obj44394549 pos.x 495.700073
+obj44394549 pos.y 334.242035
+obj44394549 pos.z 0.0
+obj44394549 #ai 7ECDDC22
+obj44394549 #place BD58F090
+obj44394549 #unit AE35C6ED
+obj44394549 #vitals 23BEFA99
++ obj44394550 80 unhuma ""
+obj44394550 dead 0
+obj44394550 hp 185.0
+obj44394550 mana 89.0
+obj44394550 pos.x 479.701904
+obj44394550 pos.y 343.695892
+obj44394550 pos.z 0.0
+obj44394550 #ai ED5CBA87
+obj44394550 #place 705EA04A
+obj44394550 #unit CD0E47A4
+obj44394550 #vitals 23BEFA99
++ obj44394551 80 unhuma ""
+obj44394551 dead 0
+obj44394551 hp 185.0
+obj44394551 mana 89.0
+obj44394551 pos.x 467.26944
+obj44394551 pos.y 351.561249
+obj44394551 pos.z 0.0
+obj44394551 #ai 143C8D5E
+obj44394551 #place 2F19D97B
+obj44394551 #unit EBC85CA2
+obj44394551 #vitals 23BEFA99
 + obj44394552 84 stbuho27
 obj44394552 hp 1000.0
 obj44394552 mana 1000.0
-obj44394552 pos.x 449.299072
-obj44394552 pos.y 252.803055
+obj44394552 pos.x 449.299011
+obj44394552 pos.y 252.802994
 obj44394552 pos.z 0.0
-obj44394552 # 65943B87
+obj44394552 # F112DF4E
 + obj44394553 84 stbuho13
 obj44394553 hp 1000.0
 obj44394553 mana 1000.0
@@ -17865,16 +19550,16 @@ obj44394570 # C12B1A26
 + obj44394571 84 stst63
 obj44394571 hp 1000.0
 obj44394571 mana 1000.0
-obj44394571 pos.x 439.670807
-obj44394571 pos.y 292.868347
-obj44394571 pos.z -0.449999988
+obj44394571 pos.x 439.67099
+obj44394571 pos.y 292.855011
+obj44394571 pos.z -0.649999976
 obj44394571 # 402619FC
 + obj44394572 84 stst63
 obj44394572 hp 1000.0
 obj44394572 mana 1000.0
-obj44394572 pos.x 452.216309
-obj44394572 pos.y 292.855255
-obj44394572 pos.z -0.449999988
+obj44394572 pos.x 452.216003
+obj44394572 pos.y 292.855011
+obj44394572 pos.z -0.349999994
 obj44394572 # B84829AC
 + obj44394573 82 naflbu18
 obj44394573 hp 1000.0
@@ -17890,6 +19575,116 @@ obj44394574 pos.x 451.397675
 obj44394574 pos.y 294.507385
 obj44394574 pos.z 0.0
 obj44394574 # 0DDCFE51
++ obj44394575 80 unmoel2 ""
+obj44394575 dead 0
+obj44394575 hp 343.0
+obj44394575 mana 77.0
+obj44394575 pos.x 443.03476
+obj44394575 pos.y 74.569519
+obj44394575 pos.z 0.0
+obj44394575 #ai 0BADE8EA
+obj44394575 #place F5BFD4FF
+obj44394575 #unit B27545E8
+obj44394575 #vitals 80E5ACFD
++ obj44394576 80 unmoel2 ""
+obj44394576 dead 0
+obj44394576 hp 343.0
+obj44394576 mana 77.0
+obj44394576 pos.x 400.519958
+obj44394576 pos.y 119.960098
+obj44394576 pos.z 0.0
+obj44394576 #ai 3AF30EAE
+obj44394576 #place FEC22966
+obj44394576 #unit 973EDAE7
+obj44394576 #vitals 80E5ACFD
++ obj44394577 80 unanwiti ""
+obj44394577 dead 0
+obj44394577 hp 191.0
+obj44394577 mana 75.0
+obj44394577 pos.x 441.469421
+obj44394577 pos.y 161.859741
+obj44394577 pos.z 0.0
+obj44394577 #ai 9AA08042
+obj44394577 #place 3A2C753B
+obj44394577 #unit D1ACEEC3
+obj44394577 #vitals 29109B5D
++ obj44394578 80 unanwiti ""
+obj44394578 dead 0
+obj44394578 hp 191.0
+obj44394578 mana 75.0
+obj44394578 pos.x 440.928162
+obj44394578 pos.y 129.822235
+obj44394578 pos.z 0.0
+obj44394578 #ai 014A0CD2
+obj44394578 #place 71719BE5
+obj44394578 #unit 192DFD25
+obj44394578 #vitals 29109B5D
++ obj44394579 80 unanwiti ""
+obj44394579 dead 0
+obj44394579 hp 191.0
+obj44394579 mana 75.0
+obj44394579 pos.x 455.471008
+obj44394579 pos.y 139.396149
+obj44394579 pos.z 0.0
+obj44394579 #ai 9C74ED0D
+obj44394579 #place AC445270
+obj44394579 #unit 7363FE1E
+obj44394579 #vitals 29109B5D
++ obj44394580 80 unanwiti ""
+obj44394580 dead 0
+obj44394580 hp 138.0
+obj44394580 mana 62.0
+obj44394580 pos.x 430.583618
+obj44394580 pos.y 147.291809
+obj44394580 pos.z 0.0
+obj44394580 #ai C9764CB6
+obj44394580 #place D91472A0
+obj44394580 #unit E38DADE6
+obj44394580 #vitals DE236CFC
++ obj44394581 80 unanwiti ""
+obj44394581 dead 0
+obj44394581 hp 138.0
+obj44394581 mana 62.0
+obj44394581 pos.x 456.89502
+obj44394581 pos.y 150.975494
+obj44394581 pos.z 0.0
+obj44394581 #ai 2B05B0B9
+obj44394581 #place 20054108
+obj44394581 #unit 5B0E9EAA
+obj44394581 #vitals DE236CFC
++ obj44394582 80 unmoel2 ""
+obj44394582 dead 0
+obj44394582 hp 343.0
+obj44394582 mana 77.0
+obj44394582 pos.x 464.145325
+obj44394582 pos.y 115.790634
+obj44394582 pos.z 0.0
+obj44394582 #ai 5AB57F60
+obj44394582 #place 7FC11C16
+obj44394582 #unit 973EDAE7
+obj44394582 #vitals 80E5ACFD
++ obj44394583 80 unanwiti ""
+obj44394583 dead 0
+obj44394583 hp 191.0
+obj44394583 mana 75.0
+obj44394583 pos.x 489.579254
+obj44394583 pos.y 74.587059
+obj44394583 pos.z 0.0
+obj44394583 #ai 42E2078C
+obj44394583 #place AE1F91CB
+obj44394583 #unit 0BC05FF3
+obj44394583 #vitals 29109B5D
++ obj44394584 80 unanwiti ""
+obj44394584 dead 0
+obj44394584 hp 191.0
+obj44394584 mana 75.0
+obj44394584 pos.x 475.135376
+obj44394584 pos.y 79.8671799
+obj44394584 pos.z 0.0
+obj44394584 #ai A70F0193
+obj44394584 #place BDF1D659
+obj44394584 #unit 3CC78730
+obj44394584 #vitals 29109B5D
 + obj44394585 84 stst69
 obj44394585 hp 1000.0
 obj44394585 mana 1000.0
@@ -18051,248 +19846,251 @@ obj44394637 pos.x 58.4736061
 obj44394637 pos.y 131.633133
 obj44394637 pos.z 0.0
 obj44394637 # 0D252CAE
-+ obj44394638 80 unanhodo ""
-obj44394638 dead 0
-obj44394638 hp 157.0
-obj44394638 mana 91.0
-obj44394638 pos.x 317.505005
-obj44394638 pos.y 297.005005
-obj44394638 pos.z 0.0
-obj44394638 #ai 138B27BD
-obj44394638 #place 112AB2C9
-obj44394638 #unit E8EA0672
-obj44394638 #vitals 2A83BD4D
-+ obj44394639 80 unhuma ""
-obj44394639 dead 0
-obj44394639 hp 120.0
-obj44394639 mana 26.0
-obj44394639 pos.x 274.75
-obj44394639 pos.y 331.25
-obj44394639 pos.z 0.0
-obj44394639 #ai E91F7EF8
-obj44394639 #place 7825B77E
-obj44394639 #unit 7358A2B3
-obj44394639 #vitals 6A538167
-+ obj44394640 80 unhuma ""
-obj44394640 dead 0
-obj44394640 hp 120.0
-obj44394640 mana 26.0
-obj44394640 pos.x 277.75
-obj44394640 pos.y 333.75
-obj44394640 pos.z 0.0
-obj44394640 #ai BBDE329C
-obj44394640 #place 4B3B5F31
-obj44394640 #unit B2D0DCBD
-obj44394640 #vitals 6A538167
-+ obj44394641 80 unhuma ""
-obj44394641 dead 0
-obj44394641 hp 90.0
-obj44394641 mana 21.0
-obj44394641 pos.x 283.25
-obj44394641 pos.y 305.75
-obj44394641 pos.z 0.0
-obj44394641 #ai 89A3FA6C
-obj44394641 #place 34587861
-obj44394641 #unit CC3A24BE
-obj44394641 #vitals 6BDE66AC
-+ obj44394642 80 unhufe ""
-obj44394642 dead 0
-obj44394642 hp 120.0
-obj44394642 mana 26.0
-obj44394642 pos.x 289.25
-obj44394642 pos.y 298.75
-obj44394642 pos.z 0.0
-obj44394642 #ai 28A304E8
-obj44394642 #place F4B651F5
-obj44394642 #unit 0BD04FCA
-obj44394642 #vitals 6A538167
-+ obj44394643 80 unhuma ""
-obj44394643 dead 0
-obj44394643 hp 185.0
-obj44394643 mana 89.0
-obj44394643 pos.x 255.005005
-obj44394643 pos.y 298.005005
-obj44394643 pos.z 0.0
-obj44394643 #ai 9CBBEDC4
-obj44394643 #place 47E88F74
-obj44394643 #unit C0C807DD
-obj44394643 #vitals 19478F3F
-+ obj44394644 80 unhufe ""
-obj44394644 dead 0
-obj44394644 hp 89.0
-obj44394644 mana 59.0
-obj44394644 pos.x 277.162842
-obj44394644 pos.y 343.61087
-obj44394644 pos.z 0.0
-obj44394644 #ai 9E8DE5A4
-obj44394644 #place CCB8BCCC
-obj44394644 #unit AA06243A
-obj44394644 #vitals 6611368E
-+ obj44394645 80 unhufe ""
-obj44394645 dead 0
-obj44394645 hp 89.0
-obj44394645 mana 59.0
-obj44394645 pos.x 267.585693
-obj44394645 pos.y 300.347656
-obj44394645 pos.z 0.0
-obj44394645 #ai 9258B5EF
-obj44394645 #place 4F201D1B
-obj44394645 #unit 19A343A6
-obj44394645 #vitals 6611368E
-+ obj44394646 80 unhuma ""
-obj44394646 dead 0
-obj44394646 hp 89.0
-obj44394646 mana 59.0
-obj44394646 pos.x 291.346832
-obj44394646 pos.y 347.327881
-obj44394646 pos.z 0.0
-obj44394646 #ai DAB4E5F8
-obj44394646 #place 0DAC94B5
-obj44394646 #unit 8899DE1D
-obj44394646 #vitals 6611368E
-+ obj44394647 80 unhuma ""
-obj44394647 dead 0
-obj44394647 hp 89.0
-obj44394647 mana 59.0
-obj44394647 pos.x 264.494995
-obj44394647 pos.y 336.494995
-obj44394647 pos.z 0.0
-obj44394647 #ai E8358B71
-obj44394647 #place F34EBBBB
-obj44394647 #unit A42B7788
-obj44394647 #vitals 6611368E
-+ obj44394648 80 unhuma ""
-obj44394648 dead 0
-obj44394648 hp 89.0
-obj44394648 mana 59.0
-obj44394648 pos.x 275.494995
-obj44394648 pos.y 297.994995
-obj44394648 pos.z 0.0
-obj44394648 #ai 0A8AE30A
-obj44394648 #place CB4D28BC
-obj44394648 #unit C2366FF1
-obj44394648 #vitals 6611368E
-+ obj44394649 80 unhuma ""
-obj44394649 dead 0
-obj44394649 hp 89.0
-obj44394649 mana 59.0
-obj44394649 pos.x 259.708282
-obj44394649 pos.y 278.950378
-obj44394649 pos.z 0.0
-obj44394649 #ai 3E4A7152
-obj44394649 #place 97D51A22
-obj44394649 #unit 1398E390
-obj44394649 #vitals 6611368E
-+ obj44394650 80 unhuma ""
-obj44394650 dead 0
-obj44394650 hp 120.0
-obj44394650 mana 26.0
-obj44394650 pos.x 281.25
-obj44394650 pos.y 340.75
++ obj44394638 83 nast11
+obj44394638 hp 1000.0
+obj44394638 mana 1000.0
+obj44394638 pos.x 503.225159
+obj44394638 pos.y 76.8499832
+obj44394638 pos.z -0.75
+obj44394638 # 62851D67
++ obj44394639 83 nast12
+obj44394639 hp 1000.0
+obj44394639 mana 1000.0
+obj44394639 pos.x 500.342987
+obj44394639 pos.y 80.197998
+obj44394639 pos.z -0.5
+obj44394639 # 462B6FC1
++ obj44394640 83 nast12
+obj44394640 hp 1000.0
+obj44394640 mana 1000.0
+obj44394640 pos.x 496.293488
+obj44394640 pos.y 77.8087616
+obj44394640 pos.z -1.20000005
+obj44394640 # ED2E9D58
++ obj44394641 82 nafltr59
+obj44394641 hp 1000.0
+obj44394641 mana 1000.0
+obj44394641 pos.x 495.369324
+obj44394641 pos.y 80.826767
+obj44394641 pos.z -0.599999964
+obj44394641 # 9159EC74
++ obj44394642 82 nafltr59
+obj44394642 hp 1000.0
+obj44394642 mana 1000.0
+obj44394642 pos.x 233.144135
+obj44394642 pos.y 151.884995
+obj44394642 pos.z -0.249999791
+obj44394642 # EA730D72
++ obj44394643 82 nafltr59
+obj44394643 hp 1000.0
+obj44394643 mana 1000.0
+obj44394643 pos.x 224.570999
+obj44394643 pos.y 150.9608
+obj44394643 pos.z -0.249999791
+obj44394643 # 2363CA79
++ obj44394645 82 nafltr59
+obj44394645 hp 1000.0
+obj44394645 mana 1000.0
+obj44394645 pos.x 226.095169
+obj44394645 pos.y 149.848541
+obj44394645 pos.z -0.25
+obj44394645 # AFAE7A87
++ obj44394646 82 nafltr59
+obj44394646 hp 1000.0
+obj44394646 mana 1000.0
+obj44394646 pos.x 235.783127
+obj44394646 pos.y 151.909058
+obj44394646 pos.z -0.25
+obj44394646 # BC156855
++ obj44394647 82 nafltr59
+obj44394647 hp 1000.0
+obj44394647 mana 1000.0
+obj44394647 pos.x 235.566345
+obj44394647 pos.y 165.647095
+obj44394647 pos.z -1.1500001
+obj44394647 # 36CA6422
++ obj44394648 82 nafltr59
+obj44394648 hp 1000.0
+obj44394648 mana 1000.0
+obj44394648 pos.x 237.711929
+obj44394648 pos.y 168.701111
+obj44394648 pos.z -0.599999964
+obj44394648 # AADD1B79
++ obj44394649 82 nafltr59
+obj44394649 hp 1000.0
+obj44394649 mana 1000.0
+obj44394649 pos.x 228.752686
+obj44394649 pos.y 173.999649
+obj44394649 pos.z -0.600000024
+obj44394649 # C16F2AE6
++ obj44394650 82 naflbu6
+obj44394650 hp 1000.0
+obj44394650 mana 1000.0
+obj44394650 pos.x 220.2164
+obj44394650 pos.y 142.043427
 obj44394650 pos.z 0.0
-obj44394650 #ai DC9A5D0D
-obj44394650 #place 2ADC5DEF
-obj44394650 #unit 5177C4A1
-obj44394650 #vitals 6A538167
-+ obj1000002248 80 unhuma ""
-obj1000002248 dead 0
-obj1000002248 hp 1.0
-obj1000002248 mana 0.0
-obj1000002248 pos.x 304.321991
-obj1000002248 pos.y 329.912994
-obj1000002248 pos.z 0.0
-obj1000002248 #ai 85D74312
-obj1000002248 #place 7132D370
-obj1000002248 #unit 3B103B17
-obj1000002248 #vitals ED91BFD0
-+ obj1000002627 80 unhuma ""
-obj1000002627 dead 0
-obj1000002627 hp 1.0
-obj1000002627 mana 0.0
-obj1000002627 pos.x 279.307831
-obj1000002627 pos.y 333.115631
-obj1000002627 pos.z 0.0
-obj1000002627 #ai CBEA1E88
-obj1000002627 #place 79C2CB6C
-obj1000002627 #unit D5C21B51
-obj1000002627 #vitals ED91BFD0
+obj44394650 # 8EE15487
++ obj44394651 82 naflbu6
+obj44394651 hp 1000.0
+obj44394651 mana 1000.0
+obj44394651 pos.x 228.220276
+obj44394651 pos.y 134.938477
+obj44394651 pos.z 0.0
+obj44394651 # D777F108
++ obj44394652 82 naflbu6
+obj44394652 hp 1000.0
+obj44394652 mana 1000.0
+obj44394652 pos.x 227.562576
+obj44394652 pos.y 136.525482
+obj44394652 pos.z 0.0
+obj44394652 # A8696011
++ obj44394653 82 naflbu6
+obj44394653 hp 1000.0
+obj44394653 mana 1000.0
+obj44394653 pos.x 231.562012
+obj44394653 pos.y 146.953445
+obj44394653 pos.z 0.0
+obj44394653 # C32DA363
++ obj44394654 80 unanwiti ""
+obj44394654 dead 0
+obj44394654 hp 138.0
+obj44394654 mana 62.0
+obj44394654 pos.x 247.45343
+obj44394654 pos.y 140.1642
+obj44394654 pos.z 0.0
+obj44394654 #ai 4F70A92D
+obj44394654 #place CEBAB467
+obj44394654 #unit E80BA719
+obj44394654 #vitals DE236CFC
++ obj44394655 80 unanwiti ""
+obj44394655 dead 0
+obj44394655 hp 138.0
+obj44394655 mana 62.0
+obj44394655 pos.x 265.051849
+obj44394655 pos.y 148.953751
+obj44394655 pos.z 0.0
+obj44394655 #ai BB502B89
+obj44394655 #place 64CCF73D
+obj44394655 #unit 8348C57A
+obj44394655 #vitals DE236CFC
++ obj44394656 84 stst63
+obj44394656 hp 1000.0
+obj44394656 mana 1000.0
+obj44394656 pos.x 446.329803
+obj44394656 pos.y 280.12326
+obj44394656 pos.z -0.449999988
+obj44394656 # 61592585
++ obj44394657 82 naflbu18
+obj44394657 hp 1000.0
+obj44394657 mana 1000.0
+obj44394657 pos.x 444.984253
+obj44394657 pos.y 279.806915
+obj44394657 pos.z 0.0
+obj44394657 # 2339DA07
++ obj44394658 82 naflbu6
+obj44394658 hp 1000.0
+obj44394658 mana 1000.0
+obj44394658 pos.x 452.742371
+obj44394658 pos.y 276.688416
+obj44394658 pos.z 0.0
+obj44394658 # 9D5CD773
++ obj44394659 82 naflbu6
+obj44394659 hp 1000.0
+obj44394659 mana 1000.0
+obj44394659 pos.x 439.862305
+obj44394659 pos.y 266.168518
+obj44394659 pos.z 0.0
+obj44394659 # 0F34A2D7
++ obj44394660 80 unanwiti ""
+obj44394660 dead 0
+obj44394660 hp 138.0
+obj44394660 mana 62.0
+obj44394660 pos.x 437.679535
+obj44394660 pos.y 258.222351
+obj44394660 pos.z 0.0
+obj44394660 #ai 3D71BBCE
+obj44394660 #place 29586523
+obj44394660 #unit 5A2B3108
+obj44394660 #vitals DE236CFC
++ obj44394661 80 unanwiti ""
+obj44394661 dead 0
+obj44394661 hp 138.0
+obj44394661 mana 62.0
+obj44394661 pos.x 439.367554
+obj44394661 pos.y 258.038483
+obj44394661 pos.z 0.0
+obj44394661 #ai DD2052D0
+obj44394661 #place 1B5DB7D7
+obj44394661 #unit 60BB3B39
+obj44394661 #vitals DE236CFC
++ obj44394662 82 nafltr59
+obj44394662 hp 1000.0
+obj44394662 mana 1000.0
+obj44394662 pos.x 234.343948
+obj44394662 pos.y 111.222237
+obj44394662 pos.z -0.249999911
+obj44394662 # F6F33ABE
++ obj44394663 82 nafltr59
+obj44394663 hp 1000.0
+obj44394663 mana 1000.0
+obj44394663 pos.x 235.679565
+obj44394663 pos.y 113.217438
+obj44394663 pos.z -0.25
+obj44394663 # 8B209D5E
++ obj44394664 82 naflbu6
+obj44394664 hp 1000.0
+obj44394664 mana 1000.0
+obj44394664 pos.x 247.406708
+obj44394664 pos.y 113.500465
+obj44394664 pos.z 0.0
+obj44394664 # D67D6BE6
++ obj44394665 82 naflbu6
+obj44394665 hp 1000.0
+obj44394665 mana 1000.0
+obj44394665 pos.x 234.498688
+obj44394665 pos.y 102.8853
+obj44394665 pos.z 0.0
+obj44394665 # F1E457C6
++ obj44394666 82 naflbu6
+obj44394666 hp 1000.0
+obj44394666 mana 1000.0
+obj44394666 pos.x 175.259415
+obj44394666 pos.y 23.455822
+obj44394666 pos.z 0.0
+obj44394666 # 7DE8C2C0
 + obj1000011214 80 unhuma ""
 obj1000011214 dead 0
 obj1000011214 hp 13.7120132
 obj1000011214 mana 13.7120132
-obj1000011214 pos.x 278.833679
-obj1000011214 pos.y 329.738464
+obj1000011214 pos.x 293.5
+obj1000011214 pos.y 83.1999969
 obj1000011214 pos.z 0.0
-obj1000011214 #ai 7235DC70
-obj1000011214 #place 66DA57E1
-obj1000011214 #unit AADC8429
-obj1000011214 #vitals D97AAA69
-+ obj1000057103 80 unhuma ""
-obj1000057103 dead 0
-obj1000057103 hp 1.0
-obj1000057103 mana 0.0
-obj1000057103 pos.x 295.87674
-obj1000057103 pos.y 331.644226
-obj1000057103 pos.z 0.0
-obj1000057103 #ai 8B352029
-obj1000057103 #place E4DDCA6A
-obj1000057103 #unit 909DFDEB
-obj1000057103 #vitals ED91BFD0
-+ obj1000057702 80 unhuma ""
-obj1000057702 dead 0
-obj1000057702 hp 1.0
-obj1000057702 mana 0.0
-obj1000057702 pos.x 276.92981
-obj1000057702 pos.y 331.356445
-obj1000057702 pos.z 0.0
-obj1000057702 #ai F2D07384
-obj1000057702 #place 6E856C08
-obj1000057702 #unit 6EE9A0DE
-obj1000057702 #vitals ED91BFD0
-+ obj1000058549 80 unhuma ""
-obj1000058549 dead 0
-obj1000058549 hp 1.0
-obj1000058549 mana 0.0
-obj1000058549 pos.x 281.166992
-obj1000058549 pos.y 338.997986
-obj1000058549 pos.z 0.0
-obj1000058549 #ai C486B5C3
-obj1000058549 #place 9C0AE4F4
-obj1000058549 #unit B0CE2511
-obj1000058549 #vitals ED91BFD0
+obj1000011214 #ai 30103981
+obj1000011214 #place 7A14135E
+obj1000011214 #unit 1A8D77CB
+obj1000011214 #vitals 4EA873E1
++ obj1000011359 80 unmodr ""
+obj1000011359 dead 0
+obj1000011359 hp 1.0
+obj1000011359 mana 0.0
+obj1000011359 pos.x 295.76474
+obj1000011359 pos.y 82.138443
+obj1000011359 pos.z 0.0
+obj1000011359 #ai B0D80611
+obj1000011359 #place F4165815
+obj1000011359 #unit 82899C1D
+obj1000011359 #vitals 213B448F
 + obj1000059185 80 unhufe ""
 obj1000059185 dead 0
 obj1000059185 hp 13.7120132
 obj1000059185 mana 13.7120132
-obj1000059185 pos.x 302.391602
-obj1000059185 pos.y 306.959808
+obj1000059185 pos.x 294.103333
+obj1000059185 pos.y 81.5344543
 obj1000059185 pos.z 0.0
-obj1000059185 #ai FDDE4561
-obj1000059185 #place 35BEC855
-obj1000059185 #unit C0787418
-obj1000059185 #vitals D97AAA69
-+ obj1000324002 80 unhuma ""
-obj1000324002 dead 0
-obj1000324002 hp 1.0
-obj1000324002 mana 0.0
-obj1000324002 pos.x 293.354004
-obj1000324002 pos.y 338.734009
-obj1000324002 pos.z 0.0
-obj1000324002 #ai 2E4F077E
-obj1000324002 #place 7F5AECEF
-obj1000324002 #unit 821861E2
-obj1000324002 #vitals ED91BFD0
-+ obj1001621802 80 unhuma ""
-obj1001621802 dead 0
-obj1001621802 hp 1.0
-obj1001621802 mana 0.0
-obj1001621802 pos.x 288.365051
-obj1001621802 pos.y 327.130981
-obj1001621802 pos.z 0.0
-obj1001621802 #ai 8B352029
-obj1001621802 #place DC9F4A34
-obj1001621802 #unit E0B05A35
-obj1001621802 #vitals ED91BFD0
+obj1000059185 #ai 30103981
+obj1000059185 #place EC072236
+obj1000059185 #unit C939CB7D
+obj1000059185 #vitals 4EA873E1
 - timed156
 - timed157
 - timed251
@@ -18300,307 +20098,897 @@ obj1001621802 #vitals ED91BFD0
 - timed259
 - timed260
 + timed778676 75 CEffectPointLight
-timed778676 # 9881CC5B
+timed778676 # 427BEE81
 + timed823817 75 CEffectPointLight
-timed823817 # 4174F21A
+timed823817 # 9B8ED0C0
 + timed825903 75 CEffectPointLight
-timed825903 # 05B4371B
+timed825903 # DF4E15C1
 + timed903695 74 CEffectParticle
-timed903695 # E7AD7F41
+timed903695 # D4EA0106
 - timed5321030
 + timed44357379 74 CEffectParticle
-timed44357379 # 3320A8F3
+timed44357379 # 0067D6B4
 + timed44357380 74 CEffectParticle
-timed44357380 # A82B8536
+timed44357380 # 9B6CFB71
 + timed44357381 74 CEffectParticle
-timed44357381 # 3E9CB65D
+timed44357381 # 0DDBC81A
 + timed44357382 74 CEffectParticle
-timed44357382 # D7BF8B2B
+timed44357382 # E4F8F56C
 + timed44357383 74 CEffectParticle
-timed44357383 # DFAF6DBE
+timed44357383 # ECE813F9
 + timed44357384 74 CEffectParticle
-timed44357384 # C606104B
+timed44357384 # F5416E0C
 + timed44357385 74 CEffectParticle
-timed44357385 # 62341BC7
+timed44357385 # 51736580
 + timed44357386 74 CEffectParticle
-timed44357386 # A3E75C31
+timed44357386 # 90A02276
 + timed44357387 74 CEffectParticle
-timed44357387 # 8C82A9EF
+timed44357387 # BFC5D7A8
 + timed44357388 74 CEffectParticle
-timed44357388 # 3DC619C4
+timed44357388 # 0E816783
 + timed44357389 74 CEffectParticle
-timed44357389 # 1FD99599
+timed44357389 # 2C9EEBDE
 + timed44357390 74 CEffectParticle
-timed44357390 # 296E0C6D
+timed44357390 # 1A29722A
 + timed44357391 74 CEffectParticle
-timed44357391 # D5FAB867
+timed44357391 # E6BDC620
 + timed44357392 74 CEffectParticle
-timed44357392 # A9C09DCF
+timed44357392 # 9A87E388
 + timed44357393 74 CEffectParticle
-timed44357393 # 6F4E7B1B
+timed44357393 # 5C09055C
 + timed44357394 74 CEffectParticle
-timed44357394 # 49B52172
+timed44357394 # 7AF25F35
 + timed44357395 74 CEffectParticle
-timed44357395 # 7C30E031
+timed44357395 # 4F779E76
 + timed44357396 74 CEffectParticle
-timed44357396 # A9D988B4
+timed44357396 # 9A9EF6F3
 + timed44357397 74 CEffectParticle
-timed44357397 # EFAE37B3
+timed44357397 # DCE949F4
 + timed44357398 74 CEffectParticle
-timed44357398 # 366788AC
+timed44357398 # 0520F6EB
 + timed44357399 74 CEffectParticle
-timed44357399 # 65D9FD15
+timed44357399 # 569E8352
 + timed44357400 74 CEffectParticle
-timed44357400 # B927ADF3
+timed44357400 # 8A60D3B4
 + timed44357401 74 CEffectParticle
-timed44357401 # DF96C577
+timed44357401 # ECD1BB30
 + timed44357402 74 CEffectParticle
-timed44357402 # 852200E1
+timed44357402 # B6657EA6
 + timed44357403 74 CEffectParticle
-timed44357403 # FE7EFB71
+timed44357403 # CD398536
 + timed44357404 74 CEffectParticle
-timed44357404 # 135A1BC5
+timed44357404 # 201D6582
 + timed44357419 74 CEffectParticle
-timed44357419 # 6CB28FC5
-missile0 # CC493572
-missile1 # 46C3BF8E
-missile2 # 2B6F4500
+timed44357419 # 5FF5F182
++ timed44357466 74 CEffectParticle
+timed44357466 # 78265964
++ timed44357467 72 CEffectSound
+timed44357467 # 07176E57
+missile0 # 5DC4A5F9
+missile1 # D74E2F05
+missile2 # BAE2D58B
 + missile3 spell 39
-missile3 # B9C17933
+missile3 # 284CE9B8
 + missile4 spell 39
-missile4 # BE0F87FE
-aievents tick 884
+missile4 # 2F821775
+aievents tick 682
 aievents width 65
 aievents height 49
-script #files 7628F6F3
-script #ggroup C5947C1F
-script #global 3C6D8DFD
-script #globals F0DD1211
-script #gobject 3EC969D0
-script #inst FF92BE46
-script #instances 5C8DBCE8
-script #run 82256680
-script #runs A451A00D
-client tick 885
-client ticksRun 158
-client objects 2286
-client units 53
-client synchronised 58
+script #files 012FC665
+script #fx 980E8A95
+script #globals 348880BA
+script #gobject D58C3D48
+script #inst 5C11F247
+script #instances A8B5CD14
+script #part 0ACDDABC
+client tick 683
+client ticksRun 333
+client objects 2463
+client units 200
+client synchronised 205
 - cunit2
-+ cunit34 80 unhuma ""
-cunit34 #place 05B06881
-cunit34 #unit 8193D8E6
-cunit34 #vitals B073BCC9
-+ cunit35 80 unhufe ""
-cunit35 #place 14436F57
-cunit35 #unit 4BB18DF2
-cunit35 #vitals C706ADBC
++ cunit47 80 unhufe ""
+cunit47 #place FCC5A0B4
+cunit47 #unit 2B143875
+cunit47 #vitals 72229362
++ cunit51 80 unhufe ""
+cunit51 #place AE09FBB6
+cunit51 #unit E20B30CA
+cunit51 #vitals 9A6E7668
++ cunit53 80 unanhodo ""
+cunit53 #place 8CD07EE0
+cunit53 #unit 936EE877
+cunit53 #vitals E7B4E41F
 - cunit1493
++ cunit3784 80 unmotr ""
+cunit3784 #place 1EFF3C78
+cunit3784 #unit 380FE816
+cunit3784 #vitals 53A9D301
++ cunit3971 80 unanhoha ""
+cunit3971 #place DC852C15
+cunit3971 #unit 2A6DCD09
+cunit3971 #vitals 5B64A690
++ cunit3999 80 unmoel2 ""
+cunit3999 #place 7179D981
+cunit3999 #unit 36F05F1F
+cunit3999 #vitals F78948CB
 + cunit4133 80 unanhoco ""
-cunit4133 #place D05958E5
-cunit4133 #unit 0F53CBAD
+cunit4133 #place EF25D85C
+cunit4133 #unit 0E516C04
 cunit4133 #vitals 2FDB08B6
 + cunit4153 80 unhuma ""
-cunit4153 #place 0DDDF890
-cunit4153 #unit FA89DF15
+cunit4153 #place 39DBD449
+cunit4153 #unit B752497A
 cunit4153 #vitals 43D5A454
++ cunit4161 80 unmoun ""
+cunit4161 #place ECB930F7
+cunit4161 #unit 016FFC72
+cunit4161 #vitals 7368F510
 - cunit30907
 - cunit30908
 + cunit997307 80 unanhoho ""
-cunit997307 #place 95D53A36
-cunit997307 #unit 2D81DA71
+cunit997307 #place 05FB50E8
+cunit997307 #unit 37F6EEE0
 cunit997307 #vitals 5C8C35BD
 - cunit1000205
 - cunit1000206
-+ cunit1010850 80 unhuma ""
-cunit1010850 #place 1FB4BD20
-cunit1010850 #unit EF4FEF82
-cunit1010850 #vitals B073BCC9
-+ cunit1010858 80 unhufe ""
-cunit1010858 #place 86F895F9
-cunit1010858 #unit BF8963DB
-cunit1010858 #vitals C706ADBC
++ cunit1002002 80 unanwiti ""
+cunit1002002 #place F16E45E4
+cunit1002002 #unit 7E906342
+cunit1002002 #vitals 7FED1C33
++ cunit1002003 80 unanwiti ""
+cunit1002003 #place 02C834C1
+cunit1002003 #unit 1D42DF42
+cunit1002003 #vitals 7FED1C33
++ cunit1002004 80 unanwiti ""
+cunit1002004 #place 2C7083AF
+cunit1002004 #unit 94540E0D
+cunit1002004 #vitals 7FED1C33
++ cunit1016480 80 unmodr ""
+cunit1016480 #place D6B33E10
+cunit1016480 #unit D0A61EFC
+cunit1016480 #vitals 7C9F3C48
++ cunit1016529 80 unmodr ""
+cunit1016529 #place A7CC6587
+cunit1016529 #unit 875142C3
+cunit1016529 #vitals 8961AE0D
++ cunit1016597 80 unmodr ""
+cunit1016597 #place D12FDE5C
+cunit1016597 #unit 1D210DFE
+cunit1016597 #vitals 7C9F3C48
++ cunit1016613 80 unmodr ""
+cunit1016613 #place 326C8868
+cunit1016613 #unit 875142C3
+cunit1016613 #vitals 8961AE0D
++ cunit1016654 80 unhufe ""
+cunit1016654 #place F0E755D7
+cunit1016654 #unit C8969BF5
+cunit1016654 #vitals 0A7935CB
++ cunit1016665 80 unhuma ""
+cunit1016665 #place 8D606143
+cunit1016665 #unit 8F973DDC
+cunit1016665 #vitals 5E1752D7
 + cunit1016679 80 unhuma ""
-cunit1016679 #place 3492A7D2
-cunit1016679 #unit F96C5EA8
+cunit1016679 #place 731C973E
+cunit1016679 #unit B9F34348
 cunit1016679 #vitals 25C73F4C
 + cunit1016700 80 unhufe ""
-cunit1016700 #place A3A8EC8E
-cunit1016700 #unit 371B2BE1
+cunit1016700 #place 0E780846
+cunit1016700 #unit 54E3F798
 cunit1016700 #vitals 25C73F4C
-+ cunit1031761 80 unhuma ""
-cunit1031761 #place C9DC2E11
-cunit1031761 #unit 86EDC02C
-cunit1031761 #vitals B073BCC9
-+ cunit1031801 80 unhufe ""
-cunit1031801 #place 432DF85C
-cunit1031801 #unit 5C3AF4BC
-cunit1031801 #vitals C706ADBC
-+ cunit1052604 80 unhuma ""
-cunit1052604 #place 076EEF9B
-cunit1052604 #unit 014B0ED3
-cunit1052604 #vitals B073BCC9
-+ cunit1073590 80 unhufe ""
-cunit1073590 #place 3411C049
-cunit1073590 #unit 5C3AF4BC
-cunit1073590 #vitals C706ADBC
-+ cunit1073596 80 unhuma ""
-cunit1073596 #place FA8A9568
-cunit1073596 #unit D3329AF0
-cunit1073596 #vitals B073BCC9
-+ cunit1094445 80 unhuma ""
-cunit1094445 #place 451EFFBA
-cunit1094445 #unit 73E88970
-cunit1094445 #vitals B073BCC9
-+ cunit1115382 80 unhufe ""
-cunit1115382 #place A70ABB2D
-cunit1115382 #unit 78A1F682
-cunit1115382 #vitals C706ADBC
-+ cunit1115434 80 unhuma ""
-cunit1115434 #place CFF66600
-cunit1115434 #unit 73E88970
-cunit1115434 #vitals B073BCC9
-+ cunit2394643 80 unhuma ""
-cunit2394643 #place 1D251FCF
-cunit2394643 #unit 071C714E
-cunit2394643 #vitals B073BCC9
-+ cunit2394644 80 unhuma ""
-cunit2394644 #place 5F55DF29
-cunit2394644 #unit 59315387
-cunit2394644 #vitals B073BCC9
-+ cunit2394646 80 unhuma ""
-cunit2394646 #place E2540373
-cunit2394646 #unit 30FEBB4E
-cunit2394646 #vitals B073BCC9
++ cunit1027091 80 unhuma ""
+cunit1027091 #place E722E32E
+cunit1027091 #unit ED455850
+cunit1027091 #vitals 43D5A454
++ cunit1394306 80 unanwiti ""
+cunit1394306 #place E69437F5
+cunit1394306 #unit E2D7EF3F
+cunit1394306 #vitals 7FED1C33
++ cunit1394307 80 unanwiti ""
+cunit1394307 #place 3F05BCCD
+cunit1394307 #unit 92462FA7
+cunit1394307 #vitals CF285AD1
++ cunit1394308 80 unanwiti ""
+cunit1394308 #place D0893B61
+cunit1394308 #unit 77D6AD8D
+cunit1394308 #vitals 7FED1C33
++ cunit1394309 80 unanwiti ""
+cunit1394309 #place 6F25A3B2
+cunit1394309 #unit B956C9FE
+cunit1394309 #vitals 7FED1C33
++ cunit1394310 80 unanwiti ""
+cunit1394310 #place C55DEDF2
+cunit1394310 #unit F4CF92EA
+cunit1394310 #vitals CF285AD1
++ cunit33318997 80 unanwide ""
+cunit33318997 #place 1FB03931
+cunit33318997 #unit 8F4A66E8
+cunit33318997 #vitals 5C8C35BD
++ cunit44394385 80 unmoun ""
+cunit44394385 #place A9F9236C
+cunit44394385 #unit 7E906342
+cunit44394385 #vitals 7368F510
++ cunit44394386 80 unmoun ""
+cunit44394386 #place 55EF7F22
+cunit44394386 #unit FE56EB16
+cunit44394386 #vitals 7368F510
++ cunit44394387 80 unmoun ""
+cunit44394387 #place 5E4065FF
+cunit44394387 #unit 81364E5D
+cunit44394387 #vitals 7368F510
++ cunit44394388 80 unmoun ""
+cunit44394388 #place D351AABF
+cunit44394388 #unit FA008DC0
+cunit44394388 #vitals 7368F510
++ cunit44394390 80 unmodr ""
+cunit44394390 #place F0843D6A
+cunit44394390 #unit 875142C3
+cunit44394390 #vitals 8961AE0D
++ cunit44394391 80 unmodr ""
+cunit44394391 #place E6A75315
+cunit44394391 #unit 875142C3
+cunit44394391 #vitals 8961AE0D
++ cunit44394392 80 unmodr ""
+cunit44394392 #place 97D4E35C
+cunit44394392 #unit 875142C3
+cunit44394392 #vitals 8961AE0D
++ cunit44394393 80 unmodr ""
+cunit44394393 #place B82F2A6E
+cunit44394393 #unit 875142C3
+cunit44394393 #vitals 8961AE0D
++ cunit44394394 80 unmodr ""
+cunit44394394 #place 578ED3FE
+cunit44394394 #unit 875142C3
+cunit44394394 #vitals 8961AE0D
++ cunit44394395 80 unmodr ""
+cunit44394395 #place 8ABD2CED
+cunit44394395 #unit D0A61EFC
+cunit44394395 #vitals 7C9F3C48
++ cunit44394396 80 unmodr ""
+cunit44394396 #place 42DE0EC5
+cunit44394396 #unit 3729663D
+cunit44394396 #vitals 7C9F3C48
++ cunit44394397 80 unmodr ""
+cunit44394397 #place 9BD7DB05
+cunit44394397 #unit 338EF256
+cunit44394397 #vitals 7C9F3C48
++ cunit44394398 80 unmodr ""
+cunit44394398 #place DBAA2887
+cunit44394398 #unit 9EA03398
+cunit44394398 #vitals 7C9F3C48
++ cunit44394399 80 unmodr ""
+cunit44394399 #place 0385A300
+cunit44394399 #unit B809952A
+cunit44394399 #vitals 7C9F3C48
++ cunit44394400 80 unmodr ""
+cunit44394400 #place 55828472
+cunit44394400 #unit 64FF469B
+cunit44394400 #vitals 7C9F3C48
++ cunit44394401 80 unmodr ""
+cunit44394401 #place 77DB0DB0
+cunit44394401 #unit 9C26A7B0
+cunit44394401 #vitals 7C9F3C48
++ cunit44394402 80 unmodr ""
+cunit44394402 #place 6F671D6D
+cunit44394402 #unit 9EA03398
+cunit44394402 #vitals 7C9F3C48
++ cunit44394403 80 unmodr ""
+cunit44394403 #place 69A2D2FF
+cunit44394403 #unit F11DD9DD
+cunit44394403 #vitals 7C9F3C48
++ cunit44394404 80 unmodr ""
+cunit44394404 #place 50C5060E
+cunit44394404 #unit 6C83703B
+cunit44394404 #vitals 7C9F3C48
++ cunit44394405 80 unmodr ""
+cunit44394405 #place 737EAED2
+cunit44394405 #unit 46BB51B2
+cunit44394405 #vitals 7C9F3C48
++ cunit44394406 80 unmodr ""
+cunit44394406 #place 32D3F022
+cunit44394406 #unit AB9FF04E
+cunit44394406 #vitals 7C9F3C48
++ cunit44394407 80 unmodr ""
+cunit44394407 #place B40378E3
+cunit44394407 #unit 0F79ABD4
+cunit44394407 #vitals 7C9F3C48
++ cunit44394408 80 unmodr ""
+cunit44394408 #place 05112E06
+cunit44394408 #unit 391DACF3
+cunit44394408 #vitals 7C9F3C48
++ cunit44394409 80 unmodr ""
+cunit44394409 #place 97BB1C13
+cunit44394409 #unit B71EF467
+cunit44394409 #vitals 7C9F3C48
++ cunit44394410 80 unmodr ""
+cunit44394410 #place 26F4EEE2
+cunit44394410 #unit 8F32CED9
+cunit44394410 #vitals 7C9F3C48
++ cunit44394411 80 unmodr ""
+cunit44394411 #place 39F1B59E
+cunit44394411 #unit 7ACFDD87
+cunit44394411 #vitals 7C9F3C48
++ cunit44394412 80 unmodr ""
+cunit44394412 #place AEA0D1E0
+cunit44394412 #unit 3906D67E
+cunit44394412 #vitals 7C9F3C48
++ cunit44394413 80 unmodr ""
+cunit44394413 #place E62224EE
+cunit44394413 #unit D441A53E
+cunit44394413 #vitals 7C9F3C48
++ cunit44394414 80 unmodr ""
+cunit44394414 #place AE16E578
+cunit44394414 #unit 2F7CC238
+cunit44394414 #vitals 7C9F3C48
++ cunit44394415 80 unmodr ""
+cunit44394415 #place 698490CA
+cunit44394415 #unit 2BD0CA25
+cunit44394415 #vitals 7C9F3C48
++ cunit44394416 80 unmodr ""
+cunit44394416 #place 28D993C0
+cunit44394416 #unit FE51E358
+cunit44394416 #vitals 7C9F3C48
++ cunit44394417 80 unmodr ""
+cunit44394417 #place 7B7F02AF
+cunit44394417 #unit FEA3AE7E
+cunit44394417 #vitals 7C9F3C48
++ cunit44394418 80 unhuma ""
+cunit44394418 #place E0FF81E7
+cunit44394418 #unit A5415A03
+cunit44394418 #vitals 43D5A454
 + cunit44394419 80 unhuma ""
-cunit44394419 #place 238CE200
-cunit44394419 #unit 1A19BFD6
+cunit44394419 #place 068FF5A8
+cunit44394419 #unit 6C6CB2AC
 cunit44394419 #vitals 43D5A454
++ cunit44394421 80 unhuma ""
+cunit44394421 #place 76AF3A46
+cunit44394421 #unit FEF29CD2
+cunit44394421 #vitals 43D5A454
++ cunit44394422 80 unhuma ""
+cunit44394422 #place 02675EE3
+cunit44394422 #unit FF359995
+cunit44394422 #vitals 43D5A454
++ cunit44394423 80 unhuma ""
+cunit44394423 #place 32301DFF
+cunit44394423 #unit C788D794
+cunit44394423 #vitals 43D5A454
++ cunit44394424 80 unhuma ""
+cunit44394424 #place DFEB86C3
+cunit44394424 #unit EC1537B1
+cunit44394424 #vitals 43D5A454
++ cunit44394425 80 unhuma ""
+cunit44394425 #place 6A0DFB0D
+cunit44394425 #unit A1CCA648
+cunit44394425 #vitals 43D5A454
++ cunit44394427 80 unanhodo ""
+cunit44394427 #place B6509BF1
+cunit44394427 #unit 37314B98
+cunit44394427 #vitals E7B4E41F
++ cunit44394428 80 unanhodo ""
+cunit44394428 #place 9FCD4CCC
+cunit44394428 #unit 6AE5578F
+cunit44394428 #vitals E7B4E41F
++ cunit44394429 80 unanhodo ""
+cunit44394429 #place BFD3278F
+cunit44394429 #unit 8967F40F
+cunit44394429 #vitals E7B4E41F
++ cunit44394430 80 unanhodo ""
+cunit44394430 #place 302A2973
+cunit44394430 #unit 54802524
+cunit44394430 #vitals E7B4E41F
++ cunit44394431 80 unhufe ""
+cunit44394431 #place 0AD17365
+cunit44394431 #unit B7C4DEAE
+cunit44394431 #vitals 25C73F4C
++ cunit44394432 80 unhuma ""
+cunit44394432 #place 053C8BA0
+cunit44394432 #unit 1EA55FDD
+cunit44394432 #vitals 25C73F4C
++ cunit44394433 80 unhuma ""
+cunit44394433 #place 24E1D1B4
+cunit44394433 #unit 8F01D3BB
+cunit44394433 #vitals 25C73F4C
++ cunit44394434 80 unhuma ""
+cunit44394434 #place 1A86CF0C
+cunit44394434 #unit EC3CAD2C
+cunit44394434 #vitals 25C73F4C
++ cunit44394435 80 unhufe ""
+cunit44394435 #place 01593495
+cunit44394435 #unit 39E8E99B
+cunit44394435 #vitals 25C73F4C
++ cunit44394436 80 unhufe ""
+cunit44394436 #place D13B965E
+cunit44394436 #unit 13D13560
+cunit44394436 #vitals 9A6E7668
++ cunit44394437 80 unanhodo ""
+cunit44394437 #place D1D55596
+cunit44394437 #unit F07A0C7D
+cunit44394437 #vitals E7B4E41F
++ cunit44394438 80 unhuma ""
+cunit44394438 #place A8737656
+cunit44394438 #unit AA84AF4B
+cunit44394438 #vitals 5E1752D7
++ cunit44394439 80 unhufe ""
+cunit44394439 #place A114D2AD
+cunit44394439 #unit B91C81DF
+cunit44394439 #vitals 0A7935CB
++ cunit44394440 80 unhufe ""
+cunit44394440 #place A05B0518
+cunit44394440 #unit B8F3E377
+cunit44394440 #vitals 0A7935CB
++ cunit44394441 80 unhuma ""
+cunit44394441 #place 7C89B698
+cunit44394441 #unit AEAF86CA
+cunit44394441 #vitals 5E1752D7
++ cunit44394442 80 unhuma ""
+cunit44394442 #place 07D8061C
+cunit44394442 #unit 8F511C65
+cunit44394442 #vitals 5E1752D7
++ cunit44394443 80 unhufe ""
+cunit44394443 #place CF941E7D
+cunit44394443 #unit B9351B42
+cunit44394443 #vitals 0A7935CB
 + cunit44394444 80 unanhoco ""
-cunit44394444 #place 45254D24
-cunit44394444 #unit C64CC312
+cunit44394444 #place DC09977F
+cunit44394444 #unit 7EF3B1FE
 cunit44394444 #vitals 2FDB08B6
 + cunit44394445 80 unanhoco ""
-cunit44394445 #place 69F1FD3D
-cunit44394445 #unit 9DD69F5E
+cunit44394445 #place 8F33D82F
+cunit44394445 #unit 5AFC0D91
 cunit44394445 #vitals 2FDB08B6
++ cunit44394446 80 unanhoco ""
+cunit44394446 #place 565CF89F
+cunit44394446 #unit 48A4ABBB
+cunit44394446 #vitals 2FDB08B6
++ cunit44394447 80 unanhoco ""
+cunit44394447 #place 3DCD3F7E
+cunit44394447 #unit DE4FDF64
+cunit44394447 #vitals 2FDB08B6
++ cunit44394452 80 unhuma ""
+cunit44394452 #place 04A72893
+cunit44394452 #unit FEA3AE7E
+cunit44394452 #vitals 25C73F4C
++ cunit44394453 80 unhufe ""
+cunit44394453 #place 1EBF7E9C
+cunit44394453 #unit 38C1D339
+cunit44394453 #vitals 25C73F4C
++ cunit44394454 80 unanhodo ""
+cunit44394454 #place A047CBAB
+cunit44394454 #unit 93CB62C1
+cunit44394454 #vitals E7B4E41F
++ cunit44394455 80 unanhodo ""
+cunit44394455 #place DA42CE1D
+cunit44394455 #unit B92F218A
+cunit44394455 #vitals E7B4E41F
++ cunit44394456 80 unhuma ""
+cunit44394456 #place 4855957B
+cunit44394456 #unit 7E7E5CA7
+cunit44394456 #vitals 43D5A454
++ cunit44394457 80 unhuma ""
+cunit44394457 #place 531DA635
+cunit44394457 #unit 2569EDB2
+cunit44394457 #vitals 43D5A454
++ cunit44394458 80 unhufe ""
+cunit44394458 #place C7C2E255
+cunit44394458 #unit 12163027
+cunit44394458 #vitals 0A7935CB
++ cunit44394459 80 unhuma ""
+cunit44394459 #place 5C7A5A78
+cunit44394459 #unit 639C2A0D
+cunit44394459 #vitals 5E1752D7
++ cunit44394460 80 unhufe ""
+cunit44394460 #place EE895D7A
+cunit44394460 #unit C8000C21
+cunit44394460 #vitals 9A6E7668
++ cunit44394461 80 unanhodo ""
+cunit44394461 #place C114D731
+cunit44394461 #unit C832EC31
+cunit44394461 #vitals E7B4E41F
++ cunit44394462 80 unanhodo ""
+cunit44394462 #place E0A528FE
+cunit44394462 #unit 36F64EDF
+cunit44394462 #vitals E7B4E41F
++ cunit44394463 80 unanwide ""
+cunit44394463 #place 9B1E72F3
+cunit44394463 #unit 2BFBFAE2
+cunit44394463 #vitals 5C8C35BD
++ cunit44394464 80 unanhoha ""
+cunit44394464 #place DAD77F71
+cunit44394464 #unit C72C4B75
+cunit44394464 #vitals 5B64A690
++ cunit44394465 80 unanhoha ""
+cunit44394465 #place F42962DF
+cunit44394465 #unit 92462FA7
+cunit44394465 #vitals 5B64A690
++ cunit44394466 80 unanhoha ""
+cunit44394466 #place EB60EDCD
+cunit44394466 #unit 0F979431
+cunit44394466 #vitals 5B64A690
++ cunit44394467 80 unanhoha ""
+cunit44394467 #place 5FEFF407
+cunit44394467 #unit 1DE6A886
+cunit44394467 #vitals 5B64A690
++ cunit44394468 80 unanhoha ""
+cunit44394468 #place 9662F7F7
+cunit44394468 #unit D45DD7FD
+cunit44394468 #vitals 5B64A690
++ cunit44394469 80 unmotr ""
+cunit44394469 #place 78230498
+cunit44394469 #unit F91CED19
+cunit44394469 #vitals 53A9D301
++ cunit44394470 80 unanwiti ""
+cunit44394470 #place 84F12254
+cunit44394470 #unit 70A7FEA4
+cunit44394470 #vitals 7FED1C33
++ cunit44394472 80 unanwiti ""
+cunit44394472 #place D47E843F
+cunit44394472 #unit C666A36B
+cunit44394472 #vitals 7FED1C33
++ cunit44394473 80 unanwiti ""
+cunit44394473 #place D4EF9118
+cunit44394473 #unit B29B4B85
+cunit44394473 #vitals 7FED1C33
++ cunit44394474 80 unanwiti ""
+cunit44394474 #place D4F59B1E
+cunit44394474 #unit EEBBD1C8
+cunit44394474 #vitals 7FED1C33
++ cunit44394475 80 unanwiti ""
+cunit44394475 #place BE21C6EA
+cunit44394475 #unit 40EBEB95
+cunit44394475 #vitals CF285AD1
++ cunit44394476 80 unanwiti ""
+cunit44394476 #place 36BFCC62
+cunit44394476 #unit 7EF3B1FE
+cunit44394476 #vitals CF285AD1
++ cunit44394477 80 unanwiti ""
+cunit44394477 #place B329E314
+cunit44394477 #unit 62FF588E
+cunit44394477 #vitals CF285AD1
++ cunit44394478 80 unhufe ""
+cunit44394478 #place FD38D7B1
+cunit44394478 #unit FE4D919B
+cunit44394478 #vitals 0A7935CB
++ cunit44394479 80 unhuma ""
+cunit44394479 #place 582813CD
+cunit44394479 #unit C6889C8E
+cunit44394479 #vitals 5E1752D7
++ cunit44394480 80 unhufe ""
+cunit44394480 #place 04C2C912
+cunit44394480 #unit 0189934A
+cunit44394480 #vitals 9A6E7668
++ cunit44394481 80 unhufe ""
+cunit44394481 #place 276DD8A9
+cunit44394481 #unit 0189934A
+cunit44394481 #vitals 0A7935CB
++ cunit44394482 80 unanwiti ""
+cunit44394482 #place 58C9781E
+cunit44394482 #unit 7B453606
+cunit44394482 #vitals 7FED1C33
++ cunit44394483 80 unanwiti ""
+cunit44394483 #place D85A61EA
+cunit44394483 #unit 7BCD6D71
+cunit44394483 #vitals 7FED1C33
++ cunit44394484 80 unanwiti ""
+cunit44394484 #place 696D9057
+cunit44394484 #unit 46BB51B2
+cunit44394484 #vitals 7FED1C33
++ cunit44394485 80 unanwiti ""
+cunit44394485 #place D82032B0
+cunit44394485 #unit 7B84433A
+cunit44394485 #vitals CF285AD1
++ cunit44394486 80 unanwiti ""
+cunit44394486 #place 3D6BD6CE
+cunit44394486 #unit 790E0101
+cunit44394486 #vitals CF285AD1
++ cunit44394487 80 unanwiti ""
+cunit44394487 #place 5882A41A
+cunit44394487 #unit 48EF1EE8
+cunit44394487 #vitals 7FED1C33
++ cunit44394488 80 unhuma ""
+cunit44394488 #place E8546D68
+cunit44394488 #unit 5A3A559B
+cunit44394488 #vitals 5E1752D7
++ cunit44394489 80 unhufe ""
+cunit44394489 #place 358310FA
+cunit44394489 #unit 24E4A0D4
+cunit44394489 #vitals 0A7935CB
++ cunit44394490 80 unhufe ""
+cunit44394490 #place 2A9095EB
+cunit44394490 #unit DA6A4A1B
+cunit44394490 #vitals 0A7935CB
++ cunit44394491 80 unhuma ""
+cunit44394491 #place 85403563
+cunit44394491 #unit 397E7E4F
+cunit44394491 #vitals 5E1752D7
++ cunit44394492 80 unanhodo ""
+cunit44394492 #place 809CF183
+cunit44394492 #unit 0F289978
+cunit44394492 #vitals E7B4E41F
 + cunit44394493 80 unanhodo ""
-cunit44394493 #place 1C7E7A1C
-cunit44394493 #unit 39A15B5E
+cunit44394493 #place AD814D56
+cunit44394493 #unit 5A71E0C8
 cunit44394493 #vitals E7B4E41F
++ cunit44394494 80 unhuma ""
+cunit44394494 #place 002B97AF
+cunit44394494 #unit 48A4ABBB
+cunit44394494 #vitals 43D5A454
++ cunit44394495 80 unhuma ""
+cunit44394495 #place 3C9A8440
+cunit44394495 #unit 62B4EDDD
+cunit44394495 #vitals 43D5A454
++ cunit44394496 80 unhuma ""
+cunit44394496 #place 904B1725
+cunit44394496 #unit DA21FF48
+cunit44394496 #vitals 43D5A454
 + cunit44394497 80 unhuma ""
-cunit44394497 #place 1C07580F
-cunit44394497 #unit DDA7BD5B
-cunit44394497 #vitals 95F20A15
+cunit44394497 #place CE611504
+cunit44394497 #unit D4FBE813
+cunit44394497 #vitals 5E1752D7
++ cunit44394498 80 unhufe ""
+cunit44394498 #place 756BC944
+cunit44394498 #unit 2142C1E9
+cunit44394498 #vitals 0A7935CB
 + cunit44394499 80 unhufe ""
-cunit44394499 #place 16798DCA
-cunit44394499 #unit 81C30B35
+cunit44394499 #place 6FE370D9
+cunit44394499 #unit 9317BD34
 cunit44394499 #vitals 0A7935CB
++ cunit44394500 80 unmotr ""
+cunit44394500 #place 0323BB72
+cunit44394500 #unit 225CF484
+cunit44394500 #vitals 53A9D301
 + cunit44394501 80 unanhoco ""
-cunit44394501 #place D542B5DD
-cunit44394501 #unit DA388253
+cunit44394501 #place 55F285FC
+cunit44394501 #unit B97EAE11
 cunit44394501 #vitals 2FDB08B6
 + cunit44394502 80 unanhoco ""
-cunit44394502 #place 9876BEDB
-cunit44394502 #unit B7DDA3B5
+cunit44394502 #place CE6B5A47
+cunit44394502 #unit 3DD99921
 cunit44394502 #vitals 2FDB08B6
 + cunit44394503 80 unanhoco ""
-cunit44394503 #place 08A25510
-cunit44394503 #unit 54447AB8
+cunit44394503 #place BDBD6260
+cunit44394503 #unit A52288BF
 cunit44394503 #vitals 2FDB08B6
++ cunit44394505 80 unanwiti ""
+cunit44394505 #place 793C32CD
+cunit44394505 #unit 5C23A7B4
+cunit44394505 #vitals 7FED1C33
++ cunit44394506 80 unanwiti ""
+cunit44394506 #place 49FB6BD1
+cunit44394506 #unit CE2B1E1E
+cunit44394506 #vitals 7FED1C33
++ cunit44394507 80 unanwiti ""
+cunit44394507 #place AAC7C7CB
+cunit44394507 #unit F68DC1B7
+cunit44394507 #vitals CF285AD1
++ cunit44394508 80 unanwide ""
+cunit44394508 #place A1F54F55
+cunit44394508 #unit 76BE0C8B
+cunit44394508 #vitals 5C8C35BD
++ cunit44394509 80 unanhoha ""
+cunit44394509 #place F53D221A
+cunit44394509 #unit 38C1D339
+cunit44394509 #vitals 5B64A690
++ cunit44394510 80 unanhoha ""
+cunit44394510 #place 5A328EBA
+cunit44394510 #unit 008D2770
+cunit44394510 #vitals 5B64A690
++ cunit44394511 80 unanwide ""
+cunit44394511 #place D8801AC2
+cunit44394511 #unit 065FE3C7
+cunit44394511 #vitals 5C8C35BD
 + cunit44394512 80 unanwide ""
-cunit44394512 #place 3D1BEBA3
-cunit44394512 #unit 7063A138
+cunit44394512 #place A76287D9
+cunit44394512 #unit F9C9D41E
 cunit44394512 #vitals 5C8C35BD
++ cunit44394515 80 unanwiti ""
+cunit44394515 #place 35718B08
+cunit44394515 #unit 1DACE0A7
+cunit44394515 #vitals 7FED1C33
++ cunit44394516 80 unanwiti ""
+cunit44394516 #place 0F30BD67
+cunit44394516 #unit 7E8B19CF
+cunit44394516 #vitals 7FED1C33
++ cunit44394517 80 unanwiti ""
+cunit44394517 #place 17B9F17B
+cunit44394517 #unit 6DABB7EB
+cunit44394517 #vitals 7FED1C33
++ cunit44394518 80 unanwiti ""
+cunit44394518 #place 64AB6624
+cunit44394518 #unit 259CA8DA
+cunit44394518 #vitals 7FED1C33
++ cunit44394519 80 unanwiti ""
+cunit44394519 #place 87D4A30B
+cunit44394519 #unit C3927E87
+cunit44394519 #vitals CF285AD1
++ cunit44394520 80 unanwiti ""
+cunit44394520 #place 55772FBC
+cunit44394520 #unit 7E7E5CA7
+cunit44394520 #vitals CF285AD1
++ cunit44394521 80 unanwiti ""
+cunit44394521 #place 8B615CF7
+cunit44394521 #unit 93255D24
+cunit44394521 #vitals CF285AD1
++ cunit44394523 80 unanwiti ""
+cunit44394523 #place 98481AD8
+cunit44394523 #unit 8F4A66E8
+cunit44394523 #vitals 7FED1C33
++ cunit44394524 80 unanwiti ""
+cunit44394524 #place 80E24725
+cunit44394524 #unit FE56EB16
+cunit44394524 #vitals 7FED1C33
++ cunit44394525 80 unanwiti ""
+cunit44394525 #place A989C81F
+cunit44394525 #unit FC0D4807
+cunit44394525 #vitals 7FED1C33
++ cunit44394526 80 unanwiti ""
+cunit44394526 #place E4F27402
+cunit44394526 #unit 139B7D41
+cunit44394526 #vitals CF285AD1
++ cunit44394527 80 unanwiti ""
+cunit44394527 #place 7CC4B2C8
+cunit44394527 #unit 3DB348E9
+cunit44394527 #vitals CF285AD1
++ cunit44394528 80 unanwiti ""
+cunit44394528 #place 7F070EC4
+cunit44394528 #unit B23A5555
+cunit44394528 #vitals CF285AD1
++ cunit44394529 80 unhufe ""
+cunit44394529 #place 2B41139E
+cunit44394529 #unit 8F01D3BB
+cunit44394529 #vitals 25C73F4C
++ cunit44394530 80 unhufe ""
+cunit44394530 #place 1F02DAAB
+cunit44394530 #unit 8054C1AC
+cunit44394530 #vitals 25C73F4C
++ cunit44394531 80 unhufe ""
+cunit44394531 #place 927AE80C
+cunit44394531 #unit 1D096A11
+cunit44394531 #vitals 25C73F4C
++ cunit44394532 80 unanwiti ""
+cunit44394532 #place F5265802
+cunit44394532 #unit 562EC35D
+cunit44394532 #vitals 7FED1C33
++ cunit44394533 80 unanwiti ""
+cunit44394533 #place 9A893CA7
+cunit44394533 #unit 8469DB76
+cunit44394533 #vitals 7FED1C33
++ cunit44394534 80 unanwiti ""
+cunit44394534 #place 7FA2A666
+cunit44394534 #unit 5AD46A7E
+cunit44394534 #vitals 7FED1C33
++ cunit44394535 80 unanwiti ""
+cunit44394535 #place 857FA1BB
+cunit44394535 #unit FBD45CBA
+cunit44394535 #vitals CF285AD1
++ cunit44394536 80 unanhoha ""
+cunit44394536 #place D9D86FE1
+cunit44394536 #unit 9DB6B706
+cunit44394536 #vitals 5B64A690
++ cunit44394537 80 unanhoha ""
+cunit44394537 #place 66CBAB9C
+cunit44394537 #unit EC1537B1
+cunit44394537 #vitals 5B64A690
++ cunit44394538 80 unanhoha ""
+cunit44394538 #place 80AC2DD2
+cunit44394538 #unit C8A47BE5
+cunit44394538 #vitals 5B64A690
++ cunit44394539 80 unanhoha ""
+cunit44394539 #place CAE4093B
+cunit44394539 #unit 54F88D15
+cunit44394539 #vitals 5B64A690
 + cunit44394540 80 unanhoha ""
-cunit44394540 #place B595775A
-cunit44394540 #unit 54BBCB4D
+cunit44394540 #place AC60C605
+cunit44394540 #unit D5E27A8B
 cunit44394540 #vitals 5B64A690
-+ cunit44394638 80 unanhodo ""
-cunit44394638 #place E202FF41
-cunit44394638 #unit F75BC34E
-cunit44394638 #vitals E7B4E41F
-+ cunit44394639 80 unhuma ""
-cunit44394639 #place 36680D84
-cunit44394639 #unit D554B3B3
-cunit44394639 #vitals 1DDF30F4
-+ cunit44394640 80 unhuma ""
-cunit44394640 #place 1E4A5149
-cunit44394640 #unit D554B3B3
-cunit44394640 #vitals 1DDF30F4
-+ cunit44394641 80 unhuma ""
-cunit44394641 #place C4DDAFDD
-cunit44394641 #unit 81C30B35
-cunit44394641 #vitals 95F20A15
-+ cunit44394642 80 unhufe ""
-cunit44394642 #place 3287776D
-cunit44394642 #unit 81C30B35
-cunit44394642 #vitals 1DDF30F4
-+ cunit44394643 80 unhuma ""
-cunit44394643 #place 015309D8
-cunit44394643 #unit 9C3A0712
-cunit44394643 #vitals 43D5A454
-+ cunit44394644 80 unhufe ""
-cunit44394644 #place 3A123768
-cunit44394644 #unit 65CE6D71
-cunit44394644 #vitals 25C73F4C
-+ cunit44394645 80 unhufe ""
-cunit44394645 #place 4E309AA7
-cunit44394645 #unit D4146538
-cunit44394645 #vitals 25C73F4C
-+ cunit44394646 80 unhuma ""
-cunit44394646 #place F2C7C26F
-cunit44394646 #unit 22B6E7A8
-cunit44394646 #vitals 25C73F4C
-+ cunit44394647 80 unhuma ""
-cunit44394647 #place AF89FBF7
-cunit44394647 #unit 7937C169
-cunit44394647 #vitals 25C73F4C
-+ cunit44394648 80 unhuma ""
-cunit44394648 #place B3C62713
-cunit44394648 #unit 125D8574
-cunit44394648 #vitals 25C73F4C
-+ cunit44394649 80 unhuma ""
-cunit44394649 #place 248C9D04
-cunit44394649 #unit 4607A61F
-cunit44394649 #vitals 25C73F4C
-+ cunit44394650 80 unhuma ""
-cunit44394650 #place D50FC419
-cunit44394650 #unit 89ED64FC
-cunit44394650 #vitals 1DDF30F4
-+ cunit1000002248 80 unhuma ""
-cunit1000002248 #place D77ACF3C
-cunit1000002248 #unit 06E6865A
-cunit1000002248 #vitals 8FC93AF9
-+ cunit1000002627 80 unhuma ""
-cunit1000002627 #place 247EFBAF
-cunit1000002627 #unit 5F7B6864
-cunit1000002627 #vitals 8FC93AF9
++ cunit44394541 80 unanwiti ""
+cunit44394541 #place 4BA28604
+cunit44394541 #unit 6C87645E
+cunit44394541 #vitals CF285AD1
++ cunit44394542 80 unanwiti ""
+cunit44394542 #place 9B6A7B1B
+cunit44394542 #unit 93A8B07D
+cunit44394542 #vitals CF285AD1
++ cunit44394543 80 unanwiti ""
+cunit44394543 #place 19EA457D
+cunit44394543 #unit D53EA57E
+cunit44394543 #vitals CF285AD1
++ cunit44394544 80 unanwiti ""
+cunit44394544 #place B9922FFA
+cunit44394544 #unit DB093898
+cunit44394544 #vitals 7FED1C33
++ cunit44394545 80 unanwiti ""
+cunit44394545 #place 511F1996
+cunit44394545 #unit 37BCA6C1
+cunit44394545 #vitals 7FED1C33
++ cunit44394546 80 unanwiti ""
+cunit44394546 #place C317BC94
+cunit44394546 #unit A0072EBD
+cunit44394546 #vitals 7FED1C33
++ cunit44394547 80 unanwiti ""
+cunit44394547 #place 376BF68F
+cunit44394547 #unit AA8322B2
+cunit44394547 #vitals 7FED1C33
++ cunit44394548 80 unhuma ""
+cunit44394548 #place 31C9DD24
+cunit44394548 #unit 90C3E3D8
+cunit44394548 #vitals 43D5A454
++ cunit44394549 80 unhuma ""
+cunit44394549 #place 880FF81F
+cunit44394549 #unit 7EDBD611
+cunit44394549 #vitals 43D5A454
++ cunit44394550 80 unhuma ""
+cunit44394550 #place C2623847
+cunit44394550 #unit 477C54F5
+cunit44394550 #vitals 43D5A454
++ cunit44394551 80 unhuma ""
+cunit44394551 #place EF159C3C
+cunit44394551 #unit 93CB62C1
+cunit44394551 #vitals 43D5A454
++ cunit44394575 80 unmoel2 ""
+cunit44394575 #place 6AF2E73B
+cunit44394575 #unit 4D5B7690
+cunit44394575 #vitals F78948CB
++ cunit44394576 80 unmoel2 ""
+cunit44394576 #place 32581013
+cunit44394576 #unit 1B02E713
+cunit44394576 #vitals F78948CB
++ cunit44394577 80 unanwiti ""
+cunit44394577 #place F2651034
+cunit44394577 #unit B956C9FE
+cunit44394577 #vitals 7FED1C33
++ cunit44394578 80 unanwiti ""
+cunit44394578 #place 25356C98
+cunit44394578 #unit 130DEA95
+cunit44394578 #vitals 7FED1C33
++ cunit44394579 80 unanwiti ""
+cunit44394579 #place 999B6464
+cunit44394579 #unit 4862F3B1
+cunit44394579 #vitals 7FED1C33
++ cunit44394580 80 unanwiti ""
+cunit44394580 #place 851419C5
+cunit44394580 #unit 5E61F4E9
+cunit44394580 #vitals CF285AD1
++ cunit44394581 80 unanwiti ""
+cunit44394581 #place C4431C8E
+cunit44394581 #unit ED455850
+cunit44394581 #vitals CF285AD1
++ cunit44394582 80 unmoel2 ""
+cunit44394582 #place CD7AA925
+cunit44394582 #unit 4F1E62DD
+cunit44394582 #vitals F78948CB
++ cunit44394583 80 unanwiti ""
+cunit44394583 #place 2694D909
+cunit44394583 #unit 5A1B09BE
+cunit44394583 #vitals 7FED1C33
++ cunit44394584 80 unanwiti ""
+cunit44394584 #place A3F4723A
+cunit44394584 #unit AB0E6FD4
+cunit44394584 #vitals 7FED1C33
++ cunit44394654 80 unanwiti ""
+cunit44394654 #place 286764FD
+cunit44394654 #unit 5A3A559B
+cunit44394654 #vitals CF285AD1
++ cunit44394655 80 unanwiti ""
+cunit44394655 #place AAD2C7A7
+cunit44394655 #unit 1C9F5DFA
+cunit44394655 #vitals CF285AD1
++ cunit44394660 80 unanwiti ""
+cunit44394660 #place 6317FA28
+cunit44394660 #unit 7EB9F9DF
+cunit44394660 #vitals CF285AD1
++ cunit44394661 80 unanwiti ""
+cunit44394661 #place 0ED37EEB
+cunit44394661 #unit 1D6B45DF
+cunit44394661 #vitals CF285AD1
 + cunit1000011214 80 unhuma ""
-cunit1000011214 #place EA31458F
-cunit1000011214 #unit C64BAF9B
+cunit1000011214 #place E493ACE6
+cunit1000011214 #unit A988C017
 cunit1000011214 #vitals 4CF313FE
-+ cunit1000057103 80 unhuma ""
-cunit1000057103 #place AE535084
-cunit1000057103 #unit F9D92ED2
-cunit1000057103 #vitals 8FC93AF9
-+ cunit1000057702 80 unhuma ""
-cunit1000057702 #place 0BCD6BE8
-cunit1000057702 #unit ED66FC58
-cunit1000057702 #vitals 8FC93AF9
-+ cunit1000058549 80 unhuma ""
-cunit1000058549 #place 9013C15F
-cunit1000058549 #unit 08E9869F
-cunit1000058549 #vitals 8FC93AF9
++ cunit1000011359 80 unmodr ""
+cunit1000011359 #place A2403A95
+cunit1000011359 #unit FBBAD875
+cunit1000011359 #vitals 8FC93AF9
 + cunit1000059185 80 unhufe ""
-cunit1000059185 #place 910DC11B
-cunit1000059185 #unit 9D9D69AB
+cunit1000059185 #place B6557166
+cunit1000059185 #unit F4F3A43B
 cunit1000059185 #vitals 4CF313FE
-+ cunit1000324002 80 unhuma ""
-cunit1000324002 #place 06133004
-cunit1000324002 #unit BE4B09EC
-cunit1000324002 #vitals 8FC93AF9
-+ cunit1001621802 80 unhuma ""
-cunit1001621802 #place A16B9815
-cunit1001621802 #unit 767CC683
-cunit1001621802 #vitals 8FC93AF9

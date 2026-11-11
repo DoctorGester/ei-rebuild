@@ -1,23 +1,28 @@
 {
   "scenario": "mod_lost_in_astral_cz_ingos",
   "install": "rebirth",
-  "recorded": "2026-11-10",
-  "commit": "91b031ae6",
+  "recorded": "2026-11-11",
+  "commit": "97c938a04",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "L8c: the loop bindings set the counter global a converted loop names, as the game's loops do, so the digest's script record and the decoded saves compare the loops' counters again (L8a had left them out): the counters' values now recorded (script gobject, saves commands globals).",
+  "reason": "H70: mod_lost_in_astral_cz_ingos split in two games (cz0k-cz2k, and cz3k, cz4k, cz1j as mod_lost_in_astral_cz_ingos_end): the six bases in one game passed the 60 s limit on a full machine; the first part's digest record moves to cz2k and its savea is the gz21k arrival's autosave",
   "source": "image",
+  "saves": "20 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save LostInAstral/current/gz1g.sav: 1 fields in 1 records differ: commands 1",
-    "  commands: 1 fields in 1 records; first commands globals.objects.2.value: ~loop in the old golden, -1 in the new run",
-    "save LostInAstral/current/gz21k.sav: 1 fields in 1 records differ: commands 1",
-    "  commands: 1 fields in 1 records; first commands globals.objects.2.value: ~loop in the old golden, -1 in the new run",
-    "save LostInAstral/savea/gz1g.sav: 1 fields in 1 records differ: commands 1",
-    "  commands: 1 fields in 1 records; first commands globals.objects.2.value: ~loop in the old golden, -1 in the new run",
-    "save LostInAstral/savea/mission.sav: 1 fields in 1 records differ: commands 1",
-    "  commands: 1 fields in 1 records; first commands globals.objects.2.value: ~loop in the old golden, 1000059185 in the new run"
-  ],
-  "saves": "26 decoded saves (tools/savefile.py), the same in 2 runs"
+    "console: differs from line 17: the old golden '1', the new run 'Saved savea'",
+    "digest: 1 of 2 records differ, first at record 1 (world update 1415, tick 884, frame 283, zone bz21k); outcomes CHANGED: zone, deaths, spawns, money, quest variables, party and items, script; max unit move 338 (obj44394639, record 1)",
+    "  digest: the records no longer line up at record 1: the old golden world update 1415 tick 884, the new run world update 825 tick 682",
+    "  first difference at record 1 (world update 1415, tick 884, frame 283; the new run: frame 165, zone bz21k): 886 fields",
+    "    world (world) tick: 884 in the old golden, 682 in the new run (d 202)",
+    "    world (world) updates: 1415 in the old golden, 825 in the new run (d 590)",
+    "    world (world) timeBase: 6.50000095 in the old golden, 6.09222221 in the new run (d 0.408)",
+    "    ... 883 more",
+    "  outcomes: CHANGED zone, deaths, spawns, money, quest variables, party and items, script; same: game result",
+    "    zone: record 1: bz21k in the old golden, cz2k in the new run",
+    "    deaths: obj44394638 dead: 0 in the old golden, (none) in the new run, from record 1 (+11 more)",
+    "    spawns: obj34 (80 unhuma \"\") only in the old golden, from record 1 (+229 more)",
+    "... 55 more lines"
+  ]
 }

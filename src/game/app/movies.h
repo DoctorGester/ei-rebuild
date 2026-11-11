@@ -19,6 +19,9 @@ bool ShowLoadingMovie(int progress);
 // Plays a movie at its own rate in a message loop of its own (name, Esc / Space end it, the screen cleared first, a
 // loading screen step first). Returns false when Esc ended it.
 bool PlayMovie(const std::string& name, bool keysEnd, bool clearScreen, bool loadingStep);
+// Whether PlayMovie waits for each frame's time (on, the default). Off, each frame shows as soon as the one before
+// it: the harness's virtual clock, whose games need not wait out a movie's real length.
+void SetPlayedMoviesPaced(bool on);
 // Closes the loading screen's movie once loading is over (game start and zone load): the handle closed, the cursor
 // shown again.
 void CloseLoadingMovie();

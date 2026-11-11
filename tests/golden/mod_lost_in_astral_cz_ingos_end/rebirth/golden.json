@@ -1,0 +1,13 @@
+{
+  "scenario": "mod_lost_in_astral_cz_ingos_end",
+  "install": "rebirth",
+  "recorded": "2026-11-11",
+  "commit": "97c938a04",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "H70: mod_lost_in_astral_cz_ingos split in two games (cz0k-cz2k, and cz3k, cz4k, cz1j as mod_lost_in_astral_cz_ingos_end): the six bases in one game passed the 60 s limit on a full machine; the first part's digest record moves to cz2k and its savea is the gz21k arrival's autosave",
+  "source": "image",
+  "saves": "18 decoded saves (tools/savefile.py), the same in 2 runs"
+}
