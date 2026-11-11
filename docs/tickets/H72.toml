@@ -4,3 +4,5 @@ group = "harness"
 size = 1
 note = "Seen 2026-11-11 on main after MF16 and on MF15a's branch: the --converted --rebirth run of mod_menu_list fails at settings line 130 (AddonPath = F:\\games\\Evil Islands (Rebirth)\\starter\\MODS\\Standard where build\\converted\\rebirth\\starter\\MODS\\Standard is expected). Goldens all the same. Find whether the scenario's expectation or the converted run's settings is wrong; fix one."
 order = 1360
+status = "review"
+started = "2026-11-11"

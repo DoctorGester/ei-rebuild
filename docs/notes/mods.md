@@ -188,8 +188,9 @@ asked. With a mod a `t\` or `s\` name not found is looked for once more without 
 files), with every golden the same. A prepare tool that copies an install's archive packs its folder when the install is
 unpacked (make_mod_s19d.py `copy_archive`); one that changes an archive's file writes it loose into the overlay
 (make_extra_item_db.py: `harness_saves\Res\databaselmp\items.idb`), which stands over the archive and over its unpacked
-folder alike. `mod_menu_list`'s expected settings file names the registry snapshot's `AddonPath` as it is (not the
-run's install folder: the snapshot pins it).
+folder alike. `mod_menu_list`'s expected settings file names the registry snapshot's `AddonPath` as it is, not as `{install}`: the
+snapshot pins it, so the converted and unpacked runs keep the Rebirth install's path there (only `Mod`, which the game
+writes, follows the run's install folder).
 
 ### Checks
 
