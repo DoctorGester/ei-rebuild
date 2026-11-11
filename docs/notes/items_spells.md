@@ -319,11 +319,13 @@ cast of one starts them).
   `Damage` fire, area, split by the duration, the credit every pulse (no caster; the C++ never set flags bit 0).
   OnResume: the point is `cast.from` (the C++'s position), the schedule from `old.ticks` (the C++'s count at the
   next update). Its use row is its record's fields (none, not offensive or fighting, no damage type: the C++ row's).
-  Cost: a timer call every 4 ticks; the ticks between touch no Lua ("Scripted spells", the idle ticks). Before that
-  (MF17g4a), the host walked the entry on every tick (entry, module, OnTick looked up, the end test). Measured (2026-11-11, `--quiet`, `EI_PROFILE=1`, a scratch scenario standing 1000 frames in
-  Lost in Astral's gz10g, 31 campfires): `SpellEffect::Update` took 3.3-4.0% of the main thread on the script against
-  0.1% on the C++, about 0.1 ms a world update, some 3 us per campfire a tick, mostly the walk on the ticks without a
-  timer (MF17g4b would skip those).
+  Cost: a timer call every 4 ticks; the ticks between touch no Lua ("Scripted spells", the idle ticks). Measured
+  (2026-11-11, `--quiet`, `EI_PROFILE=1`, a scratch scenario standing 1000 frames in Lost in Astral's gz10g, 31
+  campfires; the C++ campfire took 0.1%): `SpellEffect::Update` took 3.6-3.9% of the main thread while the host walked
+  the entry on every tick (MF17g4a), 2.9-3.3% with the idle ticks skipped (MF17g4b). Timed per tick in the same run
+  (a scratch build): a pulse 4.3-4.8 us, a tick between 0.48-0.52 us walked and 0.08 us skipped, so the pulses are
+  now nearly all of it: the hook's plumbing (the timer walk, the cast value's 24 fields, the module found by its
+  file name, OnTick looked up) and FindUnits / Damage / After (MF17g4c).
 - The rest: `spells`, `combat`, `units`, `world`, `particles` and the other healing casts, `unit_ai_heal` (the AI's),
   `spells_more` (fireworks by script, the hero's teleport), `spells_cast` (clairvoyance and vision fog without a
   caster), `spells_hero` (the hero's vision fog), and `spells_old_rest` (tests/saves/rest_old, made by the C++ build:
