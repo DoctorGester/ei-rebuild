@@ -8,7 +8,8 @@ Windows Registry Editor Version 5.00
 ; set it 0: no streamed music, and the world's random draws differ), AudioSFX 0x1c and AudioSpeech 0x19 (as
 ; Rebirth's), Game Specific Settings\ShowTutorial 0 (docs/notes/standalone-verification.md, "Install files and
 ; registry"). A value or key a run reads that is not here fails the run; "name"=- and [-key] mark ones that are
-; read but absent on purpose (the game takes its default). Work path is replaced by the run's game
+; read but absent on purpose (the game takes its default; the camera's pitch and distance limits, CameraMinHeight and
+; NearClipDistance since P12, so runs have the camera players get). Work path is replaced by the run's game
 ; folder (EI_GAME_ROOT, src/main.cpp); a scenario's resolution / widescreen / fullscreen / fpscursor /
 ; mod lines and CtfMon (always 0) are answered before this file (harness_starter.h). EI_Starter's AddonPath is
 ; Rebirth's own (its starter's mod); the game reads [game] Mod only.
@@ -20,26 +21,26 @@ Windows Registry Editor Version 5.00
 [HKEY_CURRENT_USER\Software\Nival Interactive\EvilIslands\Camera Settings]
 "CameraFlipXAxis"=dword:00000000
 "CameraFlipYAxis"=dword:00000000
-"CameraMinHeight"=hex:00,00,40,40
+"CameraMinHeight"=-
 "CameraMaxHeight"=hex:00,00,8c,42
 "CameraDefaultHeight"=hex:00,00,00,40
 "CameraDefaultXDeploy"=hex:00,00,f0,41
 "CameraDefaultYDeploy"=hex:00,00,f0,41
-"CameraMinDistanceToCarrier"=hex:00,00,20,41
+"CameraMinDistanceToCarrier"=-
 "CameraMaxDistanceToCarrier"=hex:00,00,48,42
-"CameraMinLimitDistanceToCarrier"=hex:00,00,40,40
+"CameraMinLimitDistanceToCarrier"=-
 "CameraMaxLimitDistanceToCarrier"=hex:00,00,8c,42
 "CameraDefaultDistanceToCarrier"=hex:00,00,f0,41
-"NearClipDistance"=hex:00,00,00,40
+"NearClipDistance"=-
 "FarClipDistance"=hex:00,00,c8,42
-"CameraDefaultMinPitch"=hex:00,00,f0,41
-"CameraDefaultMaxPitch"=hex:00,00,70,42
-"CameraBriefingMinDistanceToCarrier"=hex:00,00,c0,40
-"CameraBriefingMaxDistanceToCarrier"=hex:00,00,d8,41
-"CameraBriefingMinLimitDistanceToCarrier"=hex:00,00,40,40
-"CameraBriefingMaxLimitDistanceToCarrier"=hex:00,00,f0,41
-"CameraBriefingMinPitch"=hex:00,00,20,42
-"CameraBriefingMaxPitch"=hex:00,00,70,42
+"CameraDefaultMinPitch"=-
+"CameraDefaultMaxPitch"=-
+"CameraBriefingMinDistanceToCarrier"=-
+"CameraBriefingMaxDistanceToCarrier"=-
+"CameraBriefingMinLimitDistanceToCarrier"=-
+"CameraBriefingMaxLimitDistanceToCarrier"=-
+"CameraBriefingMinPitch"=-
+"CameraBriefingMaxPitch"=-
 "CameraBorderScrollArea"=dword:00000001
 "CameraFrameSelectionSensetiveArea"=dword:0000001e
 "CameraTerrainSensetiveArea"=hex:00,00,20,41
@@ -80,7 +81,6 @@ Windows Registry Editor Version 5.00
 "CameraShortcut 3 Distance"=hex:00,00,f0,41
 "CameraShortcut 3 Pitch"=hex:00,00,34,42
 "CAMERALIMITDISTANCETOCARRIER"=hex:00,00,40,40
-"ChaseCamera"=-
 
 [HKEY_CURRENT_USER\Software\Nival Interactive\EvilIslands\Game Specific Settings]
 "UseSWCursors"=dword:00000000
@@ -158,20 +158,20 @@ Windows Registry Editor Version 5.00
 [HKEY_CURRENT_USER\Software\Gipat.Ru\EI_Starter\EvilIslands\Camera Settings]
 "CAMERADEFAULTZOOMPOWERMOUSE"=hex:00,00,80,3f
 "CAMERABORDERSCROLLAREA"=dword:00000001
-"CAMERABRIEFINGMAXDISTANCETOCARRIER"=hex:00,00,d8,41
+"CAMERABRIEFINGMAXDISTANCETOCARRIER"=-
 "CameraShortcut 1 AxisY"=hex:00,00,00,00
-"CAMERABRIEFINGMAXPITCH"=hex:00,00,70,42
+"CAMERABRIEFINGMAXPITCH"=-
 "CameraFlipYAxis"=dword:00000000
 "CameraShortcut 0 AxisZ"=hex:00,00,80,3f
-"CAMERABRIEFINGMINDISTANCETOCARRIER"=hex:00,00,c0,40
-"CAMERABRIEFINGMINPITCH"=hex:00,00,20,42
+"CAMERABRIEFINGMINDISTANCETOCARRIER"=-
+"CAMERABRIEFINGMINPITCH"=-
 "CAMERADEFAULTDISTANCETOCARRIER"=hex:00,00,f0,41
 "CAMERADEFAULTHEIGHT"=hex:00,00,00,40
 "CameraShortcut 0 AxisX"=hex:00,00,00,00
-"CAMERAMINDISTANCETOCARRIER"=hex:00,00,20,41
-"CAMERADEFAULTMAXPITCH"=hex:00,00,70,42
+"CAMERAMINDISTANCETOCARRIER"=-
+"CAMERADEFAULTMAXPITCH"=-
 "CameraShortcut 0 Pitch"=hex:00,00,34,42
-"CAMERADEFAULTMINPITCH"=hex:00,00,f0,41
+"CAMERADEFAULTMINPITCH"=-
 "CAMERADEFAULTPITCHPOWERKEYBOARD"=hex:ae,47,e1,3e
 "CAMERADEFAULTZOOMPOWERKEYBOARD"=hex:ae,47,e1,3e
 "CAMERADEFAULTPITCHPOWERMOUSE"=hex:00,00,80,3f
@@ -189,13 +189,12 @@ Windows Registry Editor Version 5.00
 "CAMERADEFAULTYDEPLOY"=hex:00,00,f0,41
 "CAMERAFRAMESELECTIONSENSETIVEAREA"=dword:0000001e
 "CAMERALIMITDISTANCETOCARRIER"=hex:00,00,40,40
-"ChaseCamera"=-
 "CameraShortcut 1 Distance"=hex:00,00,f0,41
 "CAMERAMAXDISTANCETOCARRIER"=hex:00,00,48,42
 "CAMERAMAXHEIGHT"=hex:00,00,8c,42
 "CAMERAMAXLIMITDISTANCETOCARRIER"=hex:00,00,8c,42
-"CAMERAMINHEIGHT"=hex:00,00,40,40
-"CAMERAMINLIMITDISTANCETOCARRIER"=hex:00,00,40,40
+"CAMERAMINHEIGHT"=-
+"CAMERAMINLIMITDISTANCETOCARRIER"=-
 "CAMERATERRAINSENSETIVEAREA"=hex:00,00,20,41
 "CameraShortcut 0 Angle"=hex:00,00,00,00
 "CameraShortcut 0 Distance"=hex:00,00,f0,41
@@ -216,9 +215,9 @@ Windows Registry Editor Version 5.00
 "CameraShortcut 3 Distance"=hex:00,00,f0,41
 "CameraShortcut 3 Pitch"=hex:00,00,34,42
 "FARCLIPDISTANCE"=hex:00,00,c8,42
-"NEARCLIPDISTANCE"=hex:00,00,00,40
-"CAMERABRIEFINGMAXLIMITDISTANCETOCARRIER"=hex:00,00,f0,41
-"CAMERABRIEFINGMINLIMITDISTANCETOCARRIER"=hex:00,00,40,40
+"NEARCLIPDISTANCE"=-
+"CAMERABRIEFINGMAXLIMITDISTANCETOCARRIER"=-
+"CAMERABRIEFINGMINLIMITDISTANCETOCARRIER"=-
 
 [HKEY_CURRENT_USER\Software\Gipat.Ru\EI_Starter\EvilIslands\Game Specific Settings]
 "Autosave"=dword:00000001

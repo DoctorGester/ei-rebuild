@@ -58,22 +58,16 @@ EI_SETTING(kTerrain, "BorderFogDistance", Float(16), kLeftOut, "map units",
            "briefing maps use their own.")
 
 // [camera]
-EI_SETTING(kCamera, "ChaseCamera", Bool(false), kWritten, "true / false",
-           "A freer camera (Rebirth's starter's \"Камера Чейза\"), on the maps and the village screens alike: it "
-           "tilts from 45 degrees above level to straight down, zooms from right at the point it looks at out to 50, "
-           "may come down to the ground, and draws units and effects at any distance. While on, it stands in for "
-           "the pitch, distance and height limits, NearClipDistance (1), FarClipDistance and "
-           "CameraTerrainSensetiveArea (0.1); their lines keep your own values for when it is off. The speeds, "
-           "flips and camera views stay yours. The options screen's chase camera row sets it.")
 EI_SETTING(kCamera, "CameraFlipXAxis", Bool(false), kWritten, "true / false",
            "Reverses which way the camera turns when you drag sideways with the right mouse button. The keys are "
            "not affected.")
 EI_SETTING(kCamera, "CameraFlipYAxis", Bool(false), kWritten, "true / false",
            "Reverses which way the camera tilts when you drag up or down with the right mouse button. The keys "
            "are not affected.")
-EI_SETTING(kCamera, "CameraMinHeight", Float(3), kWritten, "world units",
+EI_SETTING(kCamera, "CameraMinHeight", Float(0), kWritten, "world units",
            "The lowest the camera may sit above the ground under it or the tops of nearby trees and buildings; "
-           "it is pushed up to keep this clearance.")
+           "it is pushed up to keep this clearance. However low this is, the camera stays high enough that what it "
+           "cuts away up close (NearClipDistance) never reaches under the ground.")
 EI_SETTING(kCamera, "CameraMaxHeight", Float(70), kWritten, "world units",
            "The most a tall object next to the camera (a tree, a building) can lift it above the ground. It does "
            "not limit zooming out.")
@@ -86,48 +80,46 @@ EI_SETTING(kCamera, "CameraDefaultXDeploy", Float(30), kWritten, "map X, world u
 EI_SETTING(kCamera, "CameraDefaultYDeploy", Float(30), kWritten, "map Y, world units",
            "The camera's map Y position when the game launches. The menu scene and every map place the camera "
            "themselves right away, so it has no visible effect.")
-EI_SETTING(kCamera, "CameraMinDistanceToCarrier", Float(10), kWritten, "world units",
-           "The closest you normally zoom in during play: the wheel stops here and a key zoom past it drifts "
-           "back. Panning speeds up as you zoom out from here.")
+EI_SETTING(kCamera, "CameraMinDistanceToCarrier", Float(3), kWritten, "world units",
+           "The closest you normally zoom in during play: the wheel stops here and a key zoom past it (down to "
+           "CameraMinLimitDistanceToCarrier) drifts back. Panning speeds up as you zoom out from here. At 3 the "
+           "camera, at any tilt, cuts nothing off the hero it looks at.")
 EI_SETTING(kCamera, "CameraMaxDistanceToCarrier", Float(50), kWritten, "world units",
            "The farthest you normally zoom out during play: the wheel stops here and a key zoom past it drifts "
            "back. Panning speeds up as you zoom out toward it.")
 EI_SETTING(kCamera, "CameraMinLimitDistanceToCarrier", Float(3), kWritten, "world units",
            "The hard limit on zooming in during play: a key zoom can pass the normal closest distance and drift "
-           "back, but never gets nearer than this.")
+           "back, but never gets nearer than this. By default the same as the normal closest distance.")
 EI_SETTING(kCamera, "CameraMaxLimitDistanceToCarrier", Float(70), kWritten, "world units",
            "The hard limit on zooming out during play: a key zoom can pass the normal farthest distance and "
            "drift back, but never goes beyond this.")
 EI_SETTING(kCamera, "CameraDefaultDistanceToCarrier", Float(30), kWritten, "world units",
            "How far the camera starts from the point it looks at when you first enter a map after launching; "
            "later map changes keep your own zoom.")
-EI_SETTING(kCamera, "NearClipDistance", Float(2), kWritten, "world units",
+EI_SETTING(kCamera, "NearClipDistance", Float(1), kWritten, "world units",
            "Anything closer to the camera than this is cut away and not drawn. Read when the game starts.")
-EI_SETTING(kCamera, "FarClipDistance", Float(100), kWritten, "world units",
-           "How far along the view units, levers, particles and lightning are shown. The ground, trees and buildings are "
-           "drawn to the map's edge whatever this is, under a haze that thickens with distance.")
-EI_SETTING(kCamera, "CameraDefaultMinPitch", Float(30), kWritten, "degrees (0 level, 90 straight down)",
-           "The flattest you can tilt the camera during play, in degrees down from level.")
-EI_SETTING(kCamera, "CameraDefaultMaxPitch", Float(60), kWritten, "degrees (0 level, 90 straight down)",
-           "The steepest you can tilt the camera during play; 90 would look straight down.")
-EI_SETTING(kCamera, "CameraBriefingMinDistanceToCarrier", Float(6), kWritten, "world units",
+EI_SETTING(kCamera, "CameraDefaultMinPitch", Float(-45), kWritten, "degrees (0 level, 90 straight down, below 0 up)",
+           "The flattest you can tilt the camera during play, in degrees down from level; below 0 it looks up (the "
+           "camera stays above the ground, aimed back up at the point it looks at).")
+EI_SETTING(kCamera, "CameraDefaultMaxPitch", Float(90), kWritten, "degrees (0 level, 90 straight down, below 0 up)",
+           "The steepest you can tilt the camera during play; 90 looks straight down.")
+EI_SETTING(kCamera, "CameraBriefingMinDistanceToCarrier", Float(3), kWritten, "world units",
            "The closest you normally zoom in on the village screens between missions: the wheel stops here and a "
            "key zoom past it drifts back.")
-EI_SETTING(kCamera, "CameraBriefingMaxDistanceToCarrier", Float(27), kWritten, "world units",
+EI_SETTING(kCamera, "CameraBriefingMaxDistanceToCarrier", Float(50), kWritten, "world units",
            "The farthest you normally zoom out on the village screens between missions: the wheel stops here and "
            "a key zoom past it drifts back.")
 EI_SETTING(kCamera, "CameraBriefingMinLimitDistanceToCarrier", Float(3), kWritten, "world units",
            "The hard limit on zooming in on the village screens between missions: the camera never gets nearer "
            "than this.")
-EI_SETTING(kCamera, "CameraBriefingMaxLimitDistanceToCarrier", Float(30), kWritten, "world units",
+EI_SETTING(kCamera, "CameraBriefingMaxLimitDistanceToCarrier", Float(70), kWritten, "world units",
            "The hard limit on zooming out on the village screens between missions: the camera never goes beyond "
            "this.")
-EI_SETTING(kCamera, "CameraBriefingMinPitch", Float(40), kWritten, "degrees (0 level, 90 straight down)",
+EI_SETTING(kCamera, "CameraBriefingMinPitch", Float(-45), kWritten, "degrees (0 level, 90 straight down, below 0 up)",
            "The flattest you can tilt the camera on the village screens between missions, in degrees down from "
-           "level.")
-EI_SETTING(kCamera, "CameraBriefingMaxPitch", Float(60), kWritten, "degrees (0 level, 90 straight down)",
-           "The steepest you can tilt the camera on the village screens between missions; 90 would look straight "
-           "down.")
+           "level; below 0 it looks up.")
+EI_SETTING(kCamera, "CameraBriefingMaxPitch", Float(90), kWritten, "degrees (0 level, 90 straight down, below 0 up)",
+           "The steepest you can tilt the camera on the village screens between missions; 90 looks straight down.")
 EI_SETTING(kCamera, "CameraTerrainSensetiveArea", Float(10), kWritten, "world units, above 0",
            "The camera's look-at point rides on the average ground height this far around it; larger smooths out "
            "bumps. Keep it above 0 (0 hangs the game).")

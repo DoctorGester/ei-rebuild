@@ -1,28 +1,17 @@
 {
   "scenario": "zone_visuals",
   "install": "vanilla",
-  "recorded": "2026-11-10",
-  "commit": "91b031ae6",
+  "recorded": "2026-11-11",
+  "commit": "02c6c90b3",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "L8c: the loop bindings set the counter global a converted loop names, as the game's loops do, so the digest's script record and the decoded saves compare the loops' counters again (L8a had left them out): the counters' values now recorded (script gobject, saves commands globals).",
+  "reason": "P12's camera defaults (pitch -45..90, distance 3..50, briefing distance up to 50, min height 0, near 1) and no far clip: saved camera distance 30 instead of the briefing's 27, more visuals and client units drawn, recorded and scripted ground clicks landing through another camera (net games then play on differently), camera_spin tilting back up before its fast turn.",
   "source": "image",
   "saves": "10 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 19 of 23 records differ, first at record 1 (world update 40, tick 40, frame 7, zone gz1g); outcomes CHANGED: script; no unit position differs",
-    "  first difference at record 1 (world update 40, tick 40, frame 7, zone gz1g): 1 fields",
-    "    script (script) #gobject: 890B9E0B in the old golden, 3656F9F8 in the new run",
-    "  outcomes: CHANGED script; same: zone, deaths, spawns, money, quest variables, party and items, game result",
-    "    script: script #gobject differs (hashes only), from record 1 (+18 more)",
-    "  script: 1 of 1 differ",
-    "    gobject: 1 script, 19 records, from 1; hash only (no numbers kept)",
-    "save current/gz1g.sav: 2 fields in 1 records differ: commands 2",
-    "  commands: 2 fields in 1 records; first commands globals.objects.1.value: ~loop in the old golden, -1 in the new run",
-    "save savea/gz1g.sav: 2 fields in 1 records differ: commands 2",
-    "  commands: 2 fields in 1 records; first commands globals.objects.1.value: ~loop in the old golden, -1 in the new run",
-    "save savea/mission.sav: 2 fields in 1 records differ: commands 2",
-    "... 1 more lines"
+    "save savea/scenario.sav: 1 fields in 1 records differ: camera 1",
+    "  camera: 1 fields in 1 records; first camera view6.distance: 27.0000019 in the old golden, 30.0 in the new run (d 3)"
   ]
 }

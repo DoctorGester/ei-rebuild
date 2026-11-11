@@ -25,7 +25,7 @@ DOC = os.path.join(ROOT, 'docs', 'settings.md')
 EXPECTED_DEFAULTS = os.path.join(ROOT, 'tests', 'scenarios', 'settings', 'settings_defaults.ini')
 COMMENT_WIDTH = 108   # settings_document.cpp kCommentWidth
 # The original's settings this build does not read (dropped in C69: nothing used them; in C81: the modern renderer
-# always draws one way, or the value is a constant). A file that holds them keeps the lines; the game ignores them.
+# always draws one way, or the value is a constant; in P12: the far clip, as everything in view is drawn). A file that holds them keeps the lines; the game ignores them.
 DROPPED = ['[video] VideoZBufferDepthInBits', 'VideoRefreshRate', 'Antialiasing', 'Dithering', 'PerspectiveCorrection',
            'ShowParticles', 'FPSIndependentCursor', 'AutomaticQuantization', 'MovieCapturingFPS', 'DrawingTarget',
            'VideoColorDepthInBits', 'Specular', 'TextureQuality', 'Mipmapping', 'Filtering', 'Contrast',
@@ -36,7 +36,7 @@ DROPPED = ['[video] VideoZBufferDepthInBits', 'VideoRefreshRate', 'Antialiasing'
            'UseSWCursors', 'CornerSize', 'CD1 Label', 'CD3 Label', 'Font CharSet', 'DrawVisibleOnly', 'Keyboard Layout',
            'ObjectsLightingCoeff', 'Hero Light R/G/B/Radius', 'Quest Light R/G/B/Radius', 'DefaultWindForce',
            'DefaultTimeScale', 'DefaultMapName', 'DefaultStreamingSound', 'FogNightStartDistance', 'FogDayStartDistance',
-           '[statistics] CreateOutputInfo', 'NumberOfFrames']
+           '[camera] FarClipDistance', '[statistics] CreateOutputInfo', 'NumberOfFrames']
 
 STRING = r'"((?:[^"\\]|\\.)*)"'
 

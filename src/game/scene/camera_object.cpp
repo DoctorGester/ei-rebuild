@@ -9,6 +9,7 @@
 #include "game/mods/mod_folders.h"
 #include "game/app/options.h"
 #include "game/saves/save_versions.h"
+#include "game/ui/screen_layout.h"
 #include "game/world/world.h"
 #include "lib/bytes.h"
 #include "lib/containers.h"
@@ -19,6 +20,8 @@
 #include "lib/toml.h"
 #include "platform/platform.h"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <iterator>
@@ -258,7 +261,10 @@ void Camera::AlignToTarget() {
 // Keeps the camera above the terrain and the objects within 16 of it: an object (all
 // extents up to 100) counts with its top height, fully when the camera is inside its footprint
 // radius and fading out over the next 10; the camera height becomes at least the highest of these
-// (raised over the highest terrain by at most settings->cameraMaxHeight) plus settings->cameraMinHeight.
+// (raised over the highest terrain by at most settings->cameraMaxHeight) plus a clearance: settings->cameraMinHeight,
+// but never less than the near plane's reach (NearPlaneReach). The original kept only the camera's point above them
+// (CameraMinHeight 3 with a near plane 2 away): with a clearance below the reach the near plane's lower edge cut
+// into the ground in front of a low camera, and the view showed the ground's underside.
 void Camera::ClampAboveObjects() {
     const Vector3& p = localPosition;
     const float highest = SampleTerrain(p, 1.0f, 2.0f, 2.0f).maximum;
@@ -284,19 +290,27 @@ void Camera::ClampAboveObjects() {
         best = MaxKeepB(best, height);
     }
     const options::GameOptions* s = settings;
+    const float clearance = std::max(s->cameraMinHeight, NearPlaneReach());
     float raised;
     if (best > highest) {
         float over = best - highest;
         float limit = s->cameraMaxHeight;
         float used = MinKeepA(over, limit);
-        float wanted = (used + highest) + s->cameraMinHeight;
+        float wanted = (used + highest) + clearance;
         raised = MaxKeepB(p.z, wanted);
     } else {
         float top = MaxKeepB(best, highest);
-        float wanted = top + s->cameraMinHeight;
+        float wanted = top + clearance;
         raised = MaxKeepB(p.z, wanted);
     }
     localPosition.z = raised;
+}
+
+float Camera::NearPlaneReach() const {
+    const float slope = lib::Tan(fieldOfView * 0.5f);
+    const float across = slope / screen_layout::AxisScale();
+    const float up = slope / (camera::kAspect * screen_layout::AxisScaleY());
+    return nearDistance * std::sqrt(1.0f + across * across + up * up);
 }
 
 // --- Camera path load --------------------------------------------------------------------------------

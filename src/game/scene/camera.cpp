@@ -28,10 +28,6 @@ constexpr float kShakeFull = 8.0f;
 constexpr float kShakeTicks = 30.0f;
 constexpr float kAxisTiny = 1e-8f;
 constexpr float kZoomStep = 1.05f;
-// The wheel's zoom multiplies the distance, from kZoomFloor when nearer, and a zoom in below kZoomFloor goes to the
-// least distance: with a least distance of 0 (the chase camera) a multiple of 0 stayed 0 and one of a tiny distance
-// took endless notches to come back. The game's own least distances are above it.
-constexpr float kZoomFloor = 1.0f;
 
 // Branch-free clamp of a map coordinate to [0, last - 1]: NaN becomes 0, and a NaN limit wins.
 float ClampToMap(float v, float last) {
@@ -271,9 +267,8 @@ void Camera::PlaybackStep(float time) {
 }
 
 // x along the camera's X axis on the ground, y along that axis turned a quarter back about Z (towards the screen's
-// bottom). Not along the camera's own Y axis: its ground part points the other way when the camera looks up (the
-// chase camera's pitch below 0, or a camera lifted over the ground and aimed back up at its focus) and has no length
-// when it looks level.
+// bottom). Not along the camera's own Y axis: its ground part points the other way when the camera looks up (a pitch
+// below 0, or a camera lifted over the ground and aimed back up at its focus) and has no length when it looks level.
 void Camera::Pan(const Vector3& direction) {
     const Vector3 right = localRotation.AxisX();
     const Vector2 across = XY(right) * (1.0f / std::sqrt(LengthSquared2D(right.y, right.x)));
@@ -466,14 +461,15 @@ void Camera::Update(float dt) {
     }
     std::erase_if(shakes, [](const CameraShake& s) { return s.elapsed >= s.duration; });   // a NaN stays
     localPosition.z = offset + localPosition.z;
+    ClampAboveObjects();   // a shake down stops where the near plane would reach under the ground
 }
 
 void Camera::ZoomBy(float steps) {
-    float d = lib::Pow(kZoomStep, steps) * (distance < kZoomFloor ? kZoomFloor : distance);
+    float d = lib::Pow(kZoomStep, steps) * distance;
     distance = d;
     if (!settings) return;
     const CameraLimits limits = Limits();
-    if (d < limits.min || d < kZoomFloor) {
+    if (d < limits.min) {
         distance = limits.min;
         return;
     }

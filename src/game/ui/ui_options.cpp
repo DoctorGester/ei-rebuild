@@ -95,7 +95,6 @@ constexpr OptionDefinition kOptionDefinitions[kOptionDefinitionCount] = {
     {"msaa", 3, 0, 0, 11},
     {"anisotropy", 3, 0, 0, 12},
     {"perf_overlay", 1, 2, 0, 13},
-    {"chase_camera", 1, 2, 2, 8},   // GameOptions::SetChaseCamera
 };
 
 // A choice row's steps (kind 3): each one's text key (else the text itself) and the value it stands for, ascending.
@@ -150,11 +149,6 @@ constexpr AddedText kAddedTexts[] = {
     {"option_perf_overlay", "Счётчик производительности", "Performance overlay"},
     {"tip option_perf_overlay", "Кадры в секунду, время кадра и число отрисовок поверх игры",
      "Frames per second, frame times and draw counts over the game"},
-    {"option_chase_camera", "Камера Чейза", "Chase camera"},
-    {"tip option_chase_camera", "Более свободная камера: наклон от взгляда вверх до взгляда прямо вниз, приближение "
-     "вплотную, юниты и эффекты видны на любом расстоянии",
-     "A freer camera: tilts from looking up to looking straight down, zooms right in, units and effects shown at any "
-     "distance"},
 };
 
 std::optional<std::string> FindAddedText(std::string_view key) {
@@ -479,7 +473,6 @@ void OptionsWindow::LoadSettings() {
     s[OptionId::Msaa].value = ChoiceIndex(kMsaaLevels, render::Msaa());
     s[OptionId::Anisotropy].value = ChoiceIndex(kAnisotropyLevels, render::Anisotropy());
     s[OptionId::PerfOverlay].value = render::PerfOverlay() ? 1 : 0;
-    s[OptionId::ChaseCamera].value = o.chaseCamera ? 1 : 0;
 
     for (OptionSetting& setting : settings) {
         if (setting.bar)
@@ -512,10 +505,6 @@ void OptionsWindow::Apply() {
     options::g_options.cameraFlipY = s[OptionId::CameraReverseY].value == 1 ? -1.0f : 1.0f;
     options::g_options.cameraBorderScrollArea = s[OptionId::ScrollBorder].value;
     options::g_options.cameraFrameSelectionArea = s[OptionId::RubberSelect].value * 10;
-    if (const bool chase = s[OptionId::ChaseCamera].value == 1; chase != options::g_options.chaseCamera) {
-        options::g_options.SetChaseCamera(chase);
-        g_sceneRenderer.ApplyClipDistances(&options::g_options);
-    }
     options::g_options.toolTipTime = s[OptionId::TooltipTime].value * kScrollTo;
     options::g_options.shadows = s[OptionId::Shadows].value;
     options::g_options.selectionType = s[OptionId::SelectType].value;

@@ -75,7 +75,7 @@ and passes the `std::string` by value to "%s".
 `SceneRenderer` (the global renderer) holds the transform pipeline (matrix stacks; projection.cpp, renderer.md) and the
 device holder. Its draws hand their triangles to src/render.
 - **Renderer creation**: the projection takes the camera's near distance and field of view and has no far plane
-  (renderer.md, "The view's depth"; the options' far clip distance is the game's reach, `BeyondReach`); the sun and
+  (renderer.md, "The view's depth"); the sun and
   ambient go to the GPU lighting only.
 - **Mesh draws**: `TextureDevice::DrawMesh` hands a `render::MeshDraw` over whole (the GPU clips it) with the device's
   fog, in one pass of the current material; `DrawFlatBlocks` the same for the selection marker and the ground prints.

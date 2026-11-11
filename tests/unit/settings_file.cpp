@@ -208,7 +208,10 @@ void Defaults() {
     CHECK(!document.Find("game", "UseSWCursors") && !document.Find("game", "Hero Light B") && !document.Find("game", "ObjectsLightingCoeff") &&
           !document.Find("game", "DefaultMapName") && !document.Find("game", "Keyboard Layout"));
     is("camera", "CameraFlipXAxis", "false");
-    is("camera", "CameraMinHeight", "3");
+    is("camera", "CameraMinHeight", "0");
+    is("camera", "CameraDefaultMinPitch", "-45");
+    is("camera", "NearClipDistance", "1");
+    CHECK(!document.Find("camera", "FarClipDistance"));
     is("camera", "CameraDefaultRotateSpeed", "0.15");
     is("camera", "CameraDefaultPitchSpeed", "0.0015");
     is("camera", "CameraDefaultZoomPowerKeyboard", "0.46");

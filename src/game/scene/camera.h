@@ -83,6 +83,9 @@ inline constexpr Quaternion kIdentityRotation = /*0079B5B8*/ {1.0f, 0.0f, 0.0f, 
 inline constexpr float kRightAngle = ei::kRadiansPerDegree * 90.0f;
 inline constexpr float kDefaultNear = 1.0f;
 inline constexpr float kDefaultFieldOfView = kPi * (2.0f / 7.0f);
+// The projection's shape (renderer_init.cpp): the field of view spans the window's 4:3 part across, the axis swap
+// widens it to the window (screen_layout.h).
+inline constexpr float kAspect = 4.0f / 3.0f;
 }   // namespace camera
 
 // The camera ("Camera"). flags: 0x8 following the target, 0x10 a camera file is open, 0x20 playing a
@@ -153,8 +156,12 @@ public:
     // nearDistance and fieldOfView.
     void Init(options::GameOptions* settings, float nearClip, float fov);
 
-    // Lifts the camera over the terrain and the objects within 16 of it.
+    // Lifts the camera over the terrain and the objects within 16 of it, its near plane included.
     void ClampAboveObjects();
+    // How far the near plane's corners lie from the camera's point: the projection's near distance and field of view
+    // (nearDistance, fieldOfView, camera::kAspect) on the window's shape now (screen_layout's axis scales). No part of
+    // the near plane is lower under the camera's point than this, whichever way the camera looks.
+    float NearPlaneReach() const;
     // Turns the camera a tenth of the way upright, then ClampAboveObjects.
     void AlignToTarget();
     // Aims along the direction; false (nothing done) for a zero-length one.

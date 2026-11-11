@@ -45,8 +45,6 @@ inline constexpr float kDefaultWindForce = 0.4f;     // the strongest wind a map
 inline constexpr int kDefaultTimeScale = 60;         // the day and night clock: bigger is slower
 inline constexpr const char* kDefaultMapName = "Zone1.mpr";
 inline constexpr const char* kDefaultStreamingSound = "melody.mp3";
-// How many camera settings the chase camera's preset covers (options.cpp's kChasePreset).
-inline constexpr int kChaseCameraValues = 17;
 
 // The whole object; the settings file's value names in comments (a member named after its value is not commented).
 // The sections: options.cpp's tables.
@@ -58,12 +56,6 @@ public:
     // Writes the same values back and saves the file (WinMain calls it once, on exit). The camera flips are written
     // as booleans and "Difficulty Level" from difficultyStored.
     void Save();
-    // Turns the chase camera on or off ([camera] ChaseCamera, Rebirth's starter's "Камера Чейза"). On, the preset's
-    // values (options.cpp's kChasePreset: the pitch, distance and height limits, the clip distances, the terrain
-    // area) stand in for the settings it covers, and their own values wait in ownCamera; off puts them back. Save
-    // writes the own values. Nothing else changes: the camera reads its limits each update, and the clip distances
-    // reach the projection through SceneRenderer::ApplyClipDistances.
-    void SetChaseCamera(bool on);
 
     std::string workPath;           // Work path
     std::string resourcesPath;      // Resources path
@@ -109,9 +101,6 @@ public:
     float cameraDefaultMinPitch = 0.0f;
     float cameraDefaultMaxPitch = 0.0f;
     float nearClipDistance = 0.0f;
-    float farClipDistance = 0.0f;  // FarClipDistance: the game's reach (TransformPipeline::BeyondReach)
-    bool chaseCamera = false;      // ChaseCamera (SetChaseCamera)
-    float ownCamera[kChaseCameraValues] = {};   // the settings' own values of what the chase camera covers, while on
     int selectionType = 0;
     int drawVisibleOnly = 1;         // not a setting: 1 draws only the units the party sees (the spectator switch turns it off)
     int drawPath = 0;

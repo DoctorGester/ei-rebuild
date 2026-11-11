@@ -1,21 +1,21 @@
 {
   "scenario": "mod_lost_in_astral_cz_jigran",
   "install": "rebirth",
-  "recorded": "2026-11-10",
-  "commit": "91b031ae6",
+  "recorded": "2026-11-11",
+  "commit": "02c6c90b3",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "L8c: the loop bindings set the counter global a converted loop names, as the game's loops do, so the digest's script record and the decoded saves compare the loops' counters again (L8a had left them out): the counters' values now recorded (script gobject, saves commands globals).",
+  "reason": "P12's camera defaults (pitch -45..90, distance 3..50, briefing distance up to 50, min height 0, near 1) and no far clip: saved camera distance 30 instead of the briefing's 27, more visuals and client units drawn, recorded and scripted ground clicks landing through another camera (net games then play on differently), camera_spin tilting back up before its fast turn.",
   "source": "image",
   "saves": "12 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save LostInAstral/current/cz3j.sav: 2 fields in 1 records differ: commands 2",
-    "  commands: 2 fields in 1 records; first commands globals.objects.1.value: ~loop in the old golden, -1 in the new run",
-    "save LostInAstral/current/gz1g.sav: 1 fields in 1 records differ: commands 1",
-    "  commands: 1 fields in 1 records; first commands globals.objects.2.value: ~loop in the old golden, -1 in the new run",
-    "save LostInAstral/savea/mission.sav: 1 fields in 1 records differ: commands 1",
-    "  commands: 1 fields in 1 records; first commands globals.objects.2.value: ~loop in the old golden, -1 in the new run"
+    "save LostInAstral/current/bz31j.visuals.sav: 20 fields in 1 records differ: visuals 20",
+    "  visuals: 20 fields in 1 records; first visuals.units count: 25 in the old golden, 26 in the new run; largest numeric d 9.56e+08 at visuals.units unit19.id: 1000010720 -> 44397063",
+    "save LostInAstral/current/cz2j.visuals.sav: 17 fields in 1 records differ: visuals 17",
+    "  visuals: 17 fields in 1 records; first visuals.units count: 4 in the old golden, 8 in the new run; largest numeric d 9.99e+08 at visuals.units unit3.id: 1000010798 -> 1396179",
+    "save LostInAstral/current/cz3j.visuals.sav: 37 fields in 1 records differ: visuals 37",
+    "  visuals: 37 fields in 1 records; first visuals.prints blood.print0.position.x: 39.8372841 in the old golden, 38.8879128 in the new run; largest numeric d 300 at visuals.prints blood.print0.life: 725 -> 1025"
   ]
 }

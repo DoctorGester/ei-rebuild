@@ -1,24 +1,21 @@
 {
   "scenario": "rec_cut_auto_3",
   "install": "vanilla",
-  "recorded": "2026-11-10",
-  "commit": "91b031ae6",
+  "recorded": "2026-11-11",
+  "commit": "02c6c90b3",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "L8c: the loop bindings set the counter global a converted loop names, as the game's loops do, so the digest's script record and the decoded saves compare the loops' counters again (L8a had left them out): the counters' values now recorded (script gobject, saves commands globals).",
+  "reason": "P12's camera defaults (pitch -45..90, distance 3..50, briefing distance up to 50, min height 0, near 1) and no far clip: saved camera distance 30 instead of the briefing's 27, more visuals and client units drawn, recorded and scripted ground clicks landing through another camera (net games then play on differently), camera_spin tilting back up before its fast turn.",
   "source": "image",
   "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 10 of 11 records differ, first at record 1 (world update 40, tick 1450, frame 7, zone gz1g); outcomes CHANGED: script; no unit position differs",
-    "  first difference at record 1 (world update 40, tick 1450, frame 7, zone gz1g): 1 fields",
-    "    script (script) #gobject: 890B9E0B in the old golden, 28C96CEB in the new run",
-    "  outcomes: CHANGED script; same: zone, deaths, spawns, money, quest variables, party and items, game result",
-    "    script: script #gobject differs (hashes only), from record 1 (+9 more)",
-    "  script: 1 of 1 differ",
-    "    gobject: 1 script, 10 records, from 1; hash only (no numbers kept)",
-    "save saveq/mission.sav: 2 fields in 1 records differ: commands 2",
-    "  commands: 2 fields in 1 records; first commands globals.objects.1.value: ~loop in the old golden, 699 in the new run"
+    "save saveq/mission.sav: 153 fields in 1 records differ: obj 153",
+    "  obj: 153 fields in 1 records; first obj1000011214 controller.motion.cells: 100 in the old golden, 136 in the new run; largest numeric d 7.28e+04 at obj1000011214 controller.motion.smoothing: 367624 -> 440439",
+    "save saveq/scenario.sav: 2 fields in 1 records differ: camera 2",
+    "  camera: 2 fields in 1 records; first camera focus.y: 71.7176132 in the old golden, 64.9112778 in the new run (d 6.81)",
+    "save saveq/visuals.sav: 6 fields in 1 records differ: visuals 6",
+    "  visuals: 6 fields in 1 records; first visuals.generator count: 192 in the old golden, 130 in the new run; largest numeric d 2.58e+09 at visuals.generator aa: 1363894551 -> 3939006011"
   ]
 }

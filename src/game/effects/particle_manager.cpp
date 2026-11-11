@@ -318,12 +318,10 @@ int MixChannel(std::uint32_t current, std::uint32_t previous, int shift, float t
 
 } // namespace
 
-// Off screen (the renderer's clip test on the bounds says outside, or beyond the game's reach) only counts the hidden
-// ticks. Otherwise the arrays are reserved for 4096 particles, sized to this source's, filled, and drawn.
+// Off screen (the renderer's clip test on the bounds says outside) only counts the hidden ticks. Otherwise the arrays are reserved for 4096 particles, sized to this source's, filled, and drawn.
 int ParticleSource::Draw(SceneRenderer* renderer) {
     if (particles.empty()) return 1;
-    if (renderer->pipeline->ClipTest(&clip) == TransformPipeline::ClipResult::Outside ||
-        renderer->pipeline->BeyondReach(&clip)) {
+    if (renderer->pipeline->ClipTest(&clip) == TransformPipeline::ClipResult::Outside) {
         ++hiddenTicks;
         return 1;
     }

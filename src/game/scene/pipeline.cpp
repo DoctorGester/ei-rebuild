@@ -1,4 +1,4 @@
-// The transform pipeline's clip test of a part's bounds (ClipBounds, TransformPipeline::ClipTest, BeyondReach)
+// The transform pipeline's clip test of a part's bounds (ClipBounds, TransformPipeline::ClipTest)
 // and the viewport and projection matrices. See pipeline.h.
 #include "game/scene/pipeline.h"
 
@@ -134,25 +134,6 @@ TransformPipeline::ClipResult TransformPipeline::ClipTest(const ClipBounds* boun
         if (result >= 0) return static_cast<ClipResult>(result);
     }
     return ClipResult::Crossing;
-}
-
-// The least clip w over the box c + [lo, hi] (its centre's less the extents along the w row).
-static float LeastW(const Matrix4& m, const Vector3& c, const Vector3& lo, const Vector3& hi) {
-    const float* r = m.m;
-    const Vector3 w{r[12], r[13], r[14]};
-    const Vector3 middle = c + (lo + hi) * 0.5f;
-    return TransformColumnW(m, middle) - Dot(Abs(w), Abs(hi - lo) * 0.5f);
-}
-
-bool TransformPipeline::BeyondReach(const ClipBounds* bounds) const {
-    const MatrixStack& stack = stacks[kClipStack];
-    const Matrix4& m = stack.matrices[stack.count - 1];
-    if (bounds->flags & 1) {
-        const float r = bounds->radius;
-        if (LeastW(m, bounds->center, {-r, -r, -r}, {r, r, r}) > reachW) return true;
-    }
-    if (bounds->flags & 2) return LeastW(m, bounds->center, bounds->boxMin, bounds->boxMax) > reachW;
-    return false;
 }
 
 Matrix4* ViewportMatrix(Matrix4* out, const Rect* rect) {

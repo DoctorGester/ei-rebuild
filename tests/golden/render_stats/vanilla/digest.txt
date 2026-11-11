@@ -14953,7 +14953,7 @@ cunit831510 #place 3326EDC6
 cunit831510 #unit 49CD91E7
 cunit848411 #place 328C72FF
 cunit848411 #unit 6FEC8643
-@ 150 update 3020 frame 603 tick 2732 zone bz1g hash 9CA3413D n 403
+@ 150 update 3020 frame 603 tick 2732 zone bz1g hash D816BDAF n 403
 world tick 2732
 world updates 3020
 random isaac.count 107
@@ -15044,7 +15044,7 @@ cunit196568 #unit 521740CB
 cunit399469 #place B6F9A979
 cunit399469 #unit C101D3C5
 cunit469697 #place 995E063B
-cunit469697 #unit 2B2D4592
+cunit469697 #unit D5D0872D
 cunit481569 #place A9ADEC29
 cunit481569 #unit 5DB9C495
 cunit732495 #place 1846734E

@@ -12,7 +12,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <format>
-#include <iterator>
 #include <new>
 #include <string>
 
@@ -61,7 +60,6 @@ constexpr Value kCameraValues[] = {
     {kCamera, "CameraMaxLimitDistanceToCarrier", &GameOptions::cameraMaxLimitDistance},
     {kCamera, "CameraDefaultDistanceToCarrier", &GameOptions::cameraDefaultDistance},
     {kCamera, "NearClipDistance", &GameOptions::nearClipDistance},
-    {kCamera, "FarClipDistance", &GameOptions::farClipDistance},
     {kCamera, "CameraDefaultMinPitch", &GameOptions::cameraDefaultMinPitch},
     {kCamera, "CameraDefaultMaxPitch", &GameOptions::cameraDefaultMaxPitch},
     {kCamera, "CameraBriefingMinDistanceToCarrier", &GameOptions::briefingMinDistance},
@@ -102,33 +100,6 @@ constexpr Value kGameValues[] = {
     {kGame, "ToolTip Time", &GameOptions::toolTipTime},
     {kGame, "SwitchFilters", &GameOptions::switchFilters, kFlag},
 };
-
-// The chase camera's preset (Rebirth's starter, EIStarter.exe's "Камера Чейза" table; a freer camera): what it gives
-// the settings it covers. The starter's other values (speeds, flips, edge areas, the start's place) are its standard
-// preset's, and its camera views look like saved ones: those settings stay the player's.
-constexpr struct {
-    float GameOptions::*field = nullptr;
-    float value = 0.0f;
-} kChasePreset[] = {
-    {&GameOptions::cameraDefaultMinPitch, -45.0f},   // looking up
-    {&GameOptions::cameraDefaultMaxPitch, 90.0f},    // straight down
-    {&GameOptions::briefingMinPitch, -45.0f},
-    {&GameOptions::briefingMaxPitch, 90.0f},
-    {&GameOptions::cameraMinDistance, 0.0f},         // right up to the point it looks at
-    {&GameOptions::cameraMaxDistance, 50.0f},
-    {&GameOptions::cameraMinLimitDistance, 0.0f},
-    {&GameOptions::cameraMaxLimitDistance, 70.0f},
-    {&GameOptions::briefingMinDistance, 0.0f},
-    {&GameOptions::briefingMaxDistance, 50.0f},
-    {&GameOptions::briefingMinLimitDistance, 0.0f},
-    {&GameOptions::briefingMaxLimitDistance, 70.0f},
-    {&GameOptions::cameraMinHeight, 0.0f},
-    {&GameOptions::cameraMaxHeight, 70.0f},
-    {&GameOptions::nearClipDistance, 1.0f},
-    {&GameOptions::farClipDistance, 199680.0f},      // units, particles and lightning at any distance
-    {&GameOptions::cameraTerrainArea, 0.1f},         // the look-at point rides on the ground right under it
-};
-static_assert(std::size(kChasePreset) == kChaseCameraValues);
 
 // One string option: section, value name, field.
 using StringField = std::string& (*)(GameOptions&);
@@ -256,8 +227,6 @@ void GameOptions::Load() {
     l.Read(kCameraValues);
     l.ReadCameraMotions();
     l.ReadCameraShortcuts();
-    chaseCamera = false;
-    SetChaseCamera(GetInt(kCamera, "ChaseCamera") != 0);
     l.Read(kGameValues);
     difficultyStored = GetInt(kGame, "Difficulty Level");
     difficulty = difficultyStored;
@@ -265,9 +234,6 @@ void GameOptions::Load() {
 }
 
 void GameOptions::Save() {
-    // The covered settings' own values go into the file.
-    const bool chase = chaseCamera;
-    SetChaseCamera(false);
     Saver s(this);
     s.Write(kPathValues);
     SetString(kVideo, "VideoResolution", std::format("{}x{}", resolutionX, resolutionY));
@@ -277,26 +243,10 @@ void GameOptions::Save() {
     s.Write(kCameraValues);
     s.WriteCameraMotions();
     s.WriteCameraShortcuts();
-    SetBool(kCamera, "ChaseCamera", chase);
     s.Write(kGameValues);
     SetInt(kGame, "Difficulty Level", difficultyStored);
     // The Master Server Name is not saved (EI_Plugin's NewMaster, always on, NOPs these 42 bytes).
     settings::Save();
-    SetChaseCamera(chase);
-}
-
-void GameOptions::SetChaseCamera(bool on) {
-    if (on == chaseCamera) return;
-    chaseCamera = on;
-    for (int i = 0; i < kChaseCameraValues; ++i) {
-        float& value = this->*kChasePreset[i].field;
-        if (on) {
-            ownCamera[i] = value;
-            value = kChasePreset[i].value;
-        } else {
-            value = ownCamera[i];
-        }
-    }
 }
 
 // --- The global --------------------------------------------------------------------------------
