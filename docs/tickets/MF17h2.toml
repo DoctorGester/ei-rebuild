@@ -1,0 +1,6 @@
+id = "MF17h2"
+title = "Lua hooks on active effects: OnApply, OnTick, OnEnd"
+group = "mods"
+size = 2
+note = "After MF17h1. An effect kind may name a script (Res\\spells\\ like the spells) with OnApply / OnTick / OnEnd for logic beyond modifiers (timers, damage over time, events), with the same bindings the spells have. Consider moving regeneration's per-tick boost there if it stays exact. Cost per effect tick measured."
+order = 1389
