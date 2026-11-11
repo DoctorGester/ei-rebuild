@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install vanilla; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 9E7DB87B n 68
+@ 0 update 20 frame 3 tick 20 zone - hash BF80D1BB n 68
 + world world
 world tick 20
 world updates 20
@@ -529,7 +529,7 @@ timed259 # DC6D7850
 + timed260 75 CEffectPointLight
 timed260 # 72979814
 + missile0 spell 39
-missile0 # FEC14634
+missile0 # 32FA1123
 + aievents events
 aievents tick 20
 aievents width 9
@@ -602,7 +602,7 @@ cunit148 #vitals C17C1FEE
 cunit187 #place F3DF9084
 cunit187 #unit D3B5CFA9
 cunit187 #vitals 1DDF30F4
-@ 1 update 40 frame 7 tick 40 zone gz1g hash 545673AF n 791
+@ 1 update 40 frame 7 tick 40 zone gz1g hash 60BBE289 n 791
 world tick 40
 world updates 40
 world timeBase 5.97222233
@@ -6340,9 +6340,9 @@ obj1000011214 #vitals AC51EDE6
 - timed257
 - timed259
 - timed260
-missile0 # 79D2EFAB
+missile0 # F4D9D63D
 + missile1 spell 39
-missile1 # 1D6520AE
+missile1 # 27D9F871
 aievents tick 40
 aievents width 33
 aievents height 25
@@ -6381,7 +6381,7 @@ cunit1884 #vitals C3E01DE4
 cunit1000011214 #place DFCF543E
 cunit1000011214 #unit C6081760
 cunit1000011214 #vitals 7D2D89BA
-@ 2 update 60 frame 11 tick 60 zone gz1g hash 012EAEA6 n 791
+@ 2 update 60 frame 11 tick 60 zone gz1g hash 5268686A n 791
 world tick 60
 world updates 60
 random isaac.count 125
@@ -6412,8 +6412,6 @@ obj1937 #place 9C12207C
 obj1937 #unit 64F1D59E
 obj1937 #vitals C24DC6FA
 obj1000011214 #vitals 0C70B712
-missile0 # 90E33CB5
-missile1 # F454F3B0
 aievents tick 60
 client tick 60
 client ticksRun 32
@@ -6422,7 +6420,7 @@ cunit1804 #place C2A14CCD
 cunit1804 #unit D72CA4CA
 cunit1884 #place AE30F036
 cunit1000011214 #place FF01FC81
-@ 3 update 80 frame 15 tick 80 zone gz1g hash 30CF53C4 n 797
+@ 3 update 80 frame 15 tick 80 zone gz1g hash E3B68570 n 797
 world tick 80
 world updates 80
 world objects 781
@@ -6490,8 +6488,6 @@ obj1006716551 #ai F7A4C82C
 obj1006716551 #place 059A951E
 obj1006716551 #unit 16D3ECAB
 obj1006716551 #vitals 213B448F
-missile0 # 2B252685
-missile1 # 4F92E980
 aievents tick 80
 client tick 80
 client ticksRun 52
@@ -6512,7 +6508,7 @@ cunit1006716550 #vitals 8FC93AF9
 cunit1006716551 #place 1C05C69C
 cunit1006716551 #unit 342DB976
 cunit1006716551 #vitals 8FC93AF9
-@ 4 update 100 frame 19 tick 100 zone gz1g hash 9F402373 n 797
+@ 4 update 100 frame 19 tick 100 zone gz1g hash 3830DE7B n 797
 world tick 100
 world updates 100
 random isaac.count 157
@@ -6546,8 +6542,6 @@ obj1000011214 #vitals AC51EDE6
 obj1006716549 #vitals ED91BFD0
 obj1006716550 #vitals ED91BFD0
 obj1006716551 #vitals ED91BFD0
-missile0 # C71EB81A
-missile1 # A3A9771F
 aievents tick 100
 client tick 100
 client ticksRun 72
@@ -6558,7 +6552,7 @@ cunit1006716550 #place 645DAEF7
 cunit1006716550 #unit 0DD2CD4F
 cunit1006716551 #place 93C4F8C2
 cunit1006716551 #unit 56489103
-@ 5 update 120 frame 23 tick 120 zone gz1g hash 6AAEB28E n 797
+@ 5 update 120 frame 23 tick 120 zone gz1g hash 02E85158 n 797
 world tick 120
 world updates 120
 random isaac.count 41
@@ -6587,8 +6581,6 @@ obj1006716550 #vitals 5151B000
 obj1006716551 #ai 0C634F6C
 obj1006716551 #unit 6CEB2623
 obj1006716551 #vitals 5151B000
-missile0 # 28231DFA
-missile1 # 4C94D2FF
 aievents tick 120
 client tick 120
 client ticksRun 92
@@ -6596,7 +6588,7 @@ cunit1804 #place 5D944E41
 cunit1006716549 #place 25F2C647
 cunit1006716550 #place 7FF46116
 cunit1006716551 #place 886D3723
-@ 6 update 140 frame 27 tick 140 zone gz1g hash 1D2176CD n 797
+@ 6 update 140 frame 27 tick 140 zone gz1g hash FDF8666D n 797
 world tick 140
 world updates 140
 random isaac.count 156
@@ -6627,14 +6619,12 @@ obj1000011214 #vitals 9BA26E9A
 obj1006716549 #vitals 213B448F
 obj1006716550 #vitals 213B448F
 obj1006716551 #vitals 213B448F
-missile0 # C4188365
-missile1 # A0AF4C60
 aievents tick 140
 client tick 140
 client ticksRun 112
 cunit1000011214 #unit C101BFBC
 cunit1006716549 #unit CDF3F0CA
-@ 7 update 160 frame 31 tick 160 zone gz1g hash 494BDAFA n 797
+@ 7 update 160 frame 31 tick 160 zone gz1g hash 8048D6B7 n 797
 world tick 160
 world updates 160
 random isaac.count 16
@@ -6671,8 +6661,6 @@ obj1006716551 dead 1
 obj1006716551 hp -0.00999999046
 obj1006716551 #ai 64091073
 obj1006716551 #unit D82A0FA6
-missile0 # 2D29507B
-missile1 # 499E9F7E
 aievents tick 160
 client tick 160
 client ticksRun 132
@@ -6682,7 +6670,7 @@ cunit1006716550 #unit 1F6E858E
 cunit1006716550 #vitals 83B80DE4
 cunit1006716551 #unit 18672D52
 cunit1006716551 #vitals 83B80DE4
-@ 8 update 180 frame 35 tick 180 zone gz1g hash 566E950E n 797
+@ 8 update 180 frame 35 tick 180 zone gz1g hash D05E6D98 n 797
 world tick 180
 world updates 180
 random isaac.count 128
@@ -6714,14 +6702,12 @@ obj1006716550 #ai 30618F2F
 obj1006716550 #unit 6EDC96A1
 obj1006716551 #ai 30618F2F
 obj1006716551 #unit F0B80302
-missile0 # F6B3FF00
-missile1 # 92043005
 aievents tick 180
 client tick 180
 client ticksRun 152
 cunit1000011214 #unit 5DDB5359
 cunit1006716551 #unit 1F6E858E
-@ 9 update 200 frame 39 tick 200 zone gz1g hash BD1AABB6 n 797
+@ 9 update 200 frame 39 tick 200 zone gz1g hash 0DAB62C5 n 797
 world tick 200
 world updates 200
 world updateMap 16
@@ -6749,8 +6735,6 @@ obj1000011214 #ai 34D95E3E
 obj1000011214 #vitals 9BA26E9A
 obj1006716549 #ai 30618F2F
 obj1006716549 #unit 2CF893A3
-missile0 # 1A88619F
-missile1 # 7E3FAE9A
 aievents tick 200
 client tick 200
 client ticksRun 172

@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install vanilla; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 9E7DB87B n 68
+@ 0 update 20 frame 3 tick 20 zone - hash BF80D1BB n 68
 + world world
 world tick 20
 world updates 20
@@ -529,7 +529,7 @@ timed259 # DC6D7850
 + timed260 75 CEffectPointLight
 timed260 # 72979814
 + missile0 spell 39
-missile0 # FEC14634
+missile0 # 32FA1123
 + aievents events
 aievents tick 20
 aievents width 9
@@ -602,7 +602,7 @@ cunit148 #vitals C17C1FEE
 cunit187 #place F3DF9084
 cunit187 #unit D3B5CFA9
 cunit187 #vitals 1DDF30F4
-@ 1 update 40 frame 7 tick 25 zone - hash F29FA052 n 68
+@ 1 update 40 frame 7 tick 25 zone - hash 21BB201C n 68
 world tick 25
 world updates 40
 world paused 1
@@ -620,7 +620,6 @@ obj148 #ai 2C344464
 obj148 #place 6F51FCC7
 obj148 #vitals BEF079CD
 obj187 #vitals 6A538167
-missile0 # 8F96EA76
 aievents tick 25
 client tick 26
 client paused 1
@@ -631,10 +630,10 @@ cunit129 #unit 9165357D
 cunit148 #place 707C10BE
 cunit148 #unit 28E36ECC
 cunit187 #place 283E2734
-@ 2 update 60 frame 11 tick 25 zone - hash 8ADB5C48 n 68
+@ 2 update 60 frame 11 tick 25 zone - hash 59FFDC06 n 68
 world updates 60
 client ticksRun 57
-@ 3 update 80 frame 18 tick 30 zone - hash E3CCA84A n 68
+@ 3 update 80 frame 18 tick 30 zone - hash 55614C86 n 68
 world tick 30
 world updates 80
 world paused 0
@@ -652,12 +651,11 @@ obj148 #ai 235DABA9
 obj148 #place C6D23A4C
 obj148 #vitals 83049DF2
 obj187 #vitals 9BCCD591
-missile0 # 8C55D945
 aievents tick 30
 client tick 30
 client paused 0
 client ticksRun 77
-@ 4 update 100 frame 22 tick 40 zone - hash CDBA65A0 n 68
+@ 4 update 100 frame 22 tick 40 zone - hash 2D48BC03 n 68
 world tick 40
 world updates 100
 world paused 1
@@ -675,7 +673,6 @@ obj148 #ai CCF5EC49
 obj148 #place EF1E9625
 obj148 #vitals BEF079CD
 obj187 #vitals 6A538167
-missile0 # 17F0952A
 aievents tick 40
 client tick 41
 client paused 1
@@ -685,7 +682,7 @@ cunit129 #unit 81590308
 cunit148 #place 15435328
 cunit148 #unit 4423AE2B
 cunit187 #place 8FD72F05
-@ 5 update 120 frame 26 tick 45 zone - hash 7F9822FC n 68
+@ 5 update 120 frame 26 tick 45 zone - hash ACF8735E n 68
 world tick 45
 world updates 120
 world paused 0
@@ -702,7 +699,6 @@ obj148 #ai 6C4B015B
 obj148 #place F2E4A175
 obj148 #vitals 83049DF2
 obj187 #vitals 9BCCD591
-missile0 # 66A73968
 aievents tick 45
 client tick 45
 client paused 0

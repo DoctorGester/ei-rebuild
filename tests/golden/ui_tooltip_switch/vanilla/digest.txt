@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install vanilla; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 9E7DB87B n 68
+@ 0 update 20 frame 3 tick 20 zone - hash BF80D1BB n 68
 + world world
 world tick 20
 world updates 20
@@ -529,7 +529,7 @@ timed259 # DC6D7850
 + timed260 75 CEffectPointLight
 timed260 # 72979814
 + missile0 spell 39
-missile0 # FEC14634
+missile0 # 32FA1123
 + aievents events
 aievents tick 20
 aievents width 9
@@ -602,7 +602,7 @@ cunit148 #vitals C17C1FEE
 cunit187 #place F3DF9084
 cunit187 #unit D3B5CFA9
 cunit187 #vitals 1DDF30F4
-@ 1 update 40 frame 20 tick 20 zone - hash EEB8582E n 68
+@ 1 update 40 frame 20 tick 20 zone - hash CF4531EE n 68
 world updates 40
 world paused 1
 client tick 21
@@ -613,51 +613,51 @@ cunit129 #place 3302A9EB
 cunit148 #place 871EB996
 cunit148 #unit 381DC2F0
 cunit187 #place B7CE4832
-@ 2 update 60 frame 78 tick 20 zone - hash 3F5E1EDF n 68
+@ 2 update 60 frame 78 tick 20 zone - hash 1EA3771F n 68
 world updates 60
 client ticksRun 57
-@ 3 update 80 frame 133 tick 20 zone - hash B5947F0A n 68
+@ 3 update 80 frame 133 tick 20 zone - hash 946916CA n 68
 world updates 80
 client ticksRun 76
-@ 4 update 100 frame 188 tick 20 zone - hash 54FE37C3 n 68
+@ 4 update 100 frame 188 tick 20 zone - hash 75035E03 n 68
 world updates 100
 client ticksRun 96
-@ 5 update 120 frame 243 tick 20 zone - hash 82A818C1 n 68
+@ 5 update 120 frame 243 tick 20 zone - hash A3557101 n 68
 world updates 120
 client ticksRun 116
-@ 6 update 140 frame 298 tick 20 zone - hash A805F0FA n 68
+@ 6 update 140 frame 298 tick 20 zone - hash 89F8993A n 68
 world updates 140
 client ticksRun 136
-@ 7 update 160 frame 353 tick 20 zone - hash DF7FFF04 n 68
+@ 7 update 160 frame 353 tick 20 zone - hash FE8296C4 n 68
 world updates 160
 client ticksRun 156
-@ 8 update 180 frame 408 tick 20 zone - hash 3C001911 n 68
+@ 8 update 180 frame 408 tick 20 zone - hash 1DFD70D1 n 68
 world updates 180
 client ticksRun 176
-@ 9 update 200 frame 463 tick 20 zone - hash E0300A6F n 68
+@ 9 update 200 frame 463 tick 20 zone - hash C1CD63AF n 68
 world updates 200
 client ticksRun 196
-@ 10 update 220 frame 518 tick 20 zone - hash 63B1B2E5 n 68
+@ 10 update 220 frame 518 tick 20 zone - hash 424CDB25 n 68
 world updates 220
 client ticksRun 216
-@ 11 update 240 frame 573 tick 20 zone - hash 1F1823CF n 68
+@ 11 update 240 frame 573 tick 20 zone - hash 3EE54A0F n 68
 world updates 240
 client ticksRun 236
-@ 12 update 260 frame 628 tick 20 zone - hash 84599344 n 68
+@ 12 update 260 frame 628 tick 20 zone - hash A5A4FA84 n 68
 world updates 260
 client ticksRun 256
-@ 13 update 280 frame 683 tick 20 zone - hash A2A04FF4 n 68
+@ 13 update 280 frame 683 tick 20 zone - hash 835D2634 n 68
 world updates 280
 client ticksRun 276
-@ 14 update 300 frame 738 tick 20 zone - hash 7408DE13 n 68
+@ 14 update 300 frame 738 tick 20 zone - hash 55F5B7D3 n 68
 world updates 300
 client ticksRun 296
-@ 15 update 320 frame 793 tick 20 zone - hash A2B51DE0 n 68
+@ 15 update 320 frame 793 tick 20 zone - hash 83487420 n 68
 world updates 320
 client ticksRun 316
-@ 16 update 340 frame 848 tick 20 zone - hash 6EDD0EEB n 68
+@ 16 update 340 frame 848 tick 20 zone - hash 4F20672B n 68
 world updates 340
 client ticksRun 336
-@ 17 update 360 frame 903 tick 20 zone - hash DA764594 n 68
+@ 17 update 360 frame 903 tick 20 zone - hash FB8B2C54 n 68
 world updates 360
 client ticksRun 356

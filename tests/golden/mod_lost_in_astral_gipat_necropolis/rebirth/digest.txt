@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 597C9908 n 236
+@ 0 update 20 frame 3 tick 20 zone - hash BDD77397 n 236
 + world world
 world tick 20
 world updates 20
@@ -1680,11 +1680,11 @@ timed260 # 72979814
 + timed5321030 75 CEffectPointLight
 timed5321030 # 5E563E01
 + missile0 spell 39
-missile0 # E4EA997E
+missile0 # 66CE7CBB
 + missile1 spell 39
-missile1 # DF14DF95
+missile1 # 064B8A45
 + missile2 spell 39
-missile2 # EEA7987F
+missile2 # 8B3E34C3
 + aievents events
 aievents tick 20
 aievents width 13
@@ -1765,7 +1765,7 @@ cunit1000205 #vitals 42557372
 cunit1000206 #place 0581AB39
 cunit1000206 #unit 39D43514
 cunit1000206 #vitals 75BE0BF3
-@ 1 update 110 frame 22 tick 110 zone gz13g hash DE330722 n 751
+@ 1 update 110 frame 22 tick 110 zone gz13g hash CF58F7B4 n 751
 world tick 110
 world updates 110
 world timeBase 5.96444511
@@ -7263,7 +7263,7 @@ timed5321031 # 9EE82C48
 timed5321032 # F34DB3DC
 + timed5321033 99 CEffectSoundSeq
 timed5321033 # 9B681592
-missile0 # EF053555
+missile0 # F97AAA68
 + missile1 spell 6
 missile1 # F17E37CA
 - missile2
@@ -7298,7 +7298,7 @@ cunit1317 #vitals 21D51F80
 cunit1000011214 #place 6E9BB6F8
 cunit1000011214 #unit 26456645
 cunit1000011214 #vitals 4304CF29
-@ 2 update 880 frame 176 tick 880 zone gz13g hash F3D92246 n 748
+@ 2 update 880 frame 176 tick 880 zone gz13g hash 2EDC6359 n 748
 world tick 880
 world updates 880
 world occluderReplanTime 704
@@ -7478,7 +7478,6 @@ obj1000011214 #vitals 32E00697
 - timed5321033
 + timed5321044 75 CEffectPointLight
 timed5321044 # 51157B7F
-missile0 # 9565B067
 missile1 # 2FCF6DD5
 aievents tick 880
 script #gobject F6074F92

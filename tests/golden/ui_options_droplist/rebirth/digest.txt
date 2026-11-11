@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 4F87D5C9 n 172
+@ 0 update 20 frame 3 tick 20 zone - hash B94622C7 n 172
 + world world
 world tick 20
 world updates 20
@@ -1234,7 +1234,7 @@ timed387 # 7505AFA0
 + timed5147050 75 CEffectPointLight
 timed5147050 # 2E28BE64
 + missile0 spell 39
-missile0 # FEC14634
+missile0 # 32FA1123
 + aievents events
 aievents tick 20
 aievents width 9
@@ -1311,7 +1311,7 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 7 tick 20 zone - hash 51469A99 n 172
+@ 1 update 40 frame 7 tick 20 zone - hash A7876D97 n 172
 world updates 40
 world paused 1
 client tick 21
@@ -1324,64 +1324,64 @@ cunit148 #place 150823D8
 cunit148 #unit A13719CF
 cunit187 #place B7CE4832
 cunit388 #place C2155DED
-@ 2 update 60 frame 11 tick 20 zone - hash 1E7F02C6 n 172
+@ 2 update 60 frame 11 tick 20 zone - hash E8BEF5C8 n 172
 world updates 60
 client ticksRun 57
-@ 3 update 80 frame 15 tick 20 zone - hash D38C5019 n 172
+@ 3 update 80 frame 15 tick 20 zone - hash 254DA717 n 172
 world updates 80
 client ticksRun 77
-@ 4 update 100 frame 19 tick 20 zone - hash 3C9B5771 n 172
+@ 4 update 100 frame 19 tick 20 zone - hash CA5AA07F n 172
 world updates 100
 client ticksRun 97
-@ 5 update 120 frame 26 tick 20 zone - hash 905458A1 n 172
+@ 5 update 120 frame 26 tick 20 zone - hash 6695AFAF n 172
 world updates 120
 client ticksRun 117
-@ 6 update 140 frame 30 tick 20 zone - hash 1FA628A2 n 172
+@ 6 update 140 frame 30 tick 20 zone - hash E967DFAC n 172
 world updates 140
 client ticksRun 137
-@ 7 update 160 frame 34 tick 20 zone - hash E9088D3B n 172
+@ 7 update 160 frame 34 tick 20 zone - hash 1FC97A35 n 172
 world updates 160
 client ticksRun 157
-@ 8 update 180 frame 38 tick 20 zone - hash 4E9B8074 n 172
+@ 8 update 180 frame 38 tick 20 zone - hash B85A777A n 172
 world updates 180
 client ticksRun 177
-@ 9 update 200 frame 42 tick 20 zone - hash 47F84C3F n 172
+@ 9 update 200 frame 42 tick 20 zone - hash B139BB31 n 172
 world updates 200
 client ticksRun 197
-@ 10 update 220 frame 46 tick 20 zone - hash 9D5F8009 n 172
+@ 10 update 220 frame 46 tick 20 zone - hash 6B9E7707 n 172
 world updates 220
 client ticksRun 217
-@ 11 update 240 frame 50 tick 20 zone - hash 09809A5D n 172
+@ 11 update 240 frame 50 tick 20 zone - hash FF416D53 n 172
 world updates 240
 client ticksRun 237
-@ 12 update 260 frame 54 tick 20 zone - hash 73ADCAAE n 172
+@ 12 update 260 frame 54 tick 20 zone - hash 856C3DA0 n 172
 world updates 260
 client ticksRun 257
-@ 13 update 280 frame 58 tick 20 zone - hash A75F2C74 n 172
+@ 13 update 280 frame 58 tick 20 zone - hash 519EDB7A n 172
 world updates 280
 client ticksRun 277
-@ 14 update 300 frame 62 tick 20 zone - hash D9F247B4 n 172
+@ 14 update 300 frame 62 tick 20 zone - hash 2F33B0BA n 172
 world updates 300
 client ticksRun 297
-@ 15 update 320 frame 69 tick 20 zone - hash 805BE415 n 172
+@ 15 update 320 frame 69 tick 20 zone - hash 769A131B n 172
 world updates 320
 client ticksRun 317
-@ 16 update 340 frame 73 tick 20 zone - hash 180DB851 n 172
+@ 16 update 340 frame 73 tick 20 zone - hash EECC4F5F n 172
 world updates 340
 client ticksRun 337
-@ 17 update 360 frame 77 tick 20 zone - hash CE785314 n 172
+@ 17 update 360 frame 77 tick 20 zone - hash 38B9A41A n 172
 world updates 360
 client ticksRun 357
-@ 18 update 380 frame 81 tick 20 zone - hash BB7032D6 n 172
+@ 18 update 380 frame 81 tick 20 zone - hash 4DB1C5D8 n 172
 world updates 380
 client ticksRun 377
-@ 19 update 400 frame 85 tick 20 zone - hash 47674791 n 172
+@ 19 update 400 frame 85 tick 20 zone - hash B1A6B09F n 172
 world updates 400
 client ticksRun 397
-@ 20 update 420 frame 89 tick 20 zone - hash 9D887EAA n 172
+@ 20 update 420 frame 89 tick 20 zone - hash 6B4989A4 n 172
 world updates 420
 client ticksRun 417
-@ 21 update 440 frame 93 tick 35 zone - hash BD53F945 n 172
+@ 21 update 440 frame 93 tick 35 zone - hash 2B80E983 n 172
 world tick 35
 world updates 440
 world paused 0
@@ -1396,7 +1396,6 @@ obj148 pos.y 27.5229893
 obj148 #ai B6C199CA
 obj148 #place C43AB912
 obj388 #ai 7CC63E7B
-missile0 # FD027507
 aievents tick 35
 client tick 35
 client paused 0
@@ -1407,7 +1406,7 @@ cunit148 #place 2957C1F8
 cunit148 #unit D6FFF600
 cunit187 #place 8FD72F05
 cunit388 #place 2C65C503
-@ 22 update 460 frame 97 tick 55 zone - hash 5DC0DB71 n 172
+@ 22 update 460 frame 97 tick 55 zone - hash 58CA78D7 n 172
 world tick 55
 world updates 460
 random isaac.count 242
@@ -1431,7 +1430,6 @@ obj148 #vitals BEF079CD
 obj187 #vitals 6A538167
 obj388 #ai 0A0508A7
 obj388 #vitals 9B47EB67
-missile0 # 46C46F37
 aievents tick 55
 client tick 55
 client ticksRun 457
@@ -1439,7 +1437,7 @@ cunit129 #place 3508D507
 cunit148 #place DE6D5A72
 cunit148 #unit 80ADB64D
 cunit388 #place CC64C5DC
-@ 23 update 480 frame 101 tick 60 zone - hash 302972D4 n 172
+@ 23 update 480 frame 101 tick 60 zone - hash 203CAC88 n 172
 world tick 60
 world updates 480
 world paused 1
@@ -1459,7 +1457,6 @@ obj148 #vitals 83049DF2
 obj187 #vitals 9BCCD591
 obj388 #ai F6A6441D
 obj388 #vitals 5B449740
-missile0 # AC368F1A
 aievents tick 60
 client tick 61
 client paused 1
@@ -1467,15 +1464,15 @@ client ticksRun 477
 cunit129 #place 9093A07B
 cunit148 #place 85CFCB55
 cunit148 #unit A13719CF
-@ 24 update 500 frame 105 tick 60 zone - hash 7042B8FB n 172
+@ 24 update 500 frame 105 tick 60 zone - hash 605766A7 n 172
 world updates 500
 client ticksRun 497
-@ 25 update 520 frame 109 tick 60 zone - hash A898FF40 n 172
+@ 25 update 520 frame 109 tick 60 zone - hash B88D211C n 172
 world updates 520
 client ticksRun 517
-@ 26 update 540 frame 113 tick 60 zone - hash 72CD0334 n 172
+@ 26 update 540 frame 113 tick 60 zone - hash 62D8DD68 n 172
 world updates 540
 client ticksRun 537
-@ 27 update 560 frame 120 tick 60 zone - hash E626C19D n 172
+@ 27 update 560 frame 120 tick 60 zone - hash F6331FC1 n 172
 world updates 560
 client ticksRun 557

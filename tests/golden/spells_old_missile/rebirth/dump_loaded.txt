@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; dump loaded
 # compact (tools/golden.py): objects as hashes of their fields
-@ 2 update 45 frame 9 tick 125 zone gz1g hash 9AFF77A2 n 833
+@ 2 update 45 frame 9 tick 125 zone gz1g hash F2057FB3 n 833
 + world world
 world tick 125
 world updates 47
@@ -6070,9 +6070,9 @@ timed263 # 7FBB8F02
 + timed265 74 CEffectParticle
 timed265 # DF427956
 + missile0 spell 39
-missile0 # C2D1FDD7
+missile0 # 80DBD051
 + missile1 spell 39
-missile1 # A66632D2
+missile1 # E46C1F54
 + missile2 spell 0
 missile2 # F7598C34
 + aievents events

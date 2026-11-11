@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 4F87D5C9 n 172
+@ 0 update 20 frame 3 tick 20 zone - hash B94622C7 n 172
 + world world
 world tick 20
 world updates 20
@@ -1234,7 +1234,7 @@ timed387 # 7505AFA0
 + timed5147050 75 CEffectPointLight
 timed5147050 # 2E28BE64
 + missile0 spell 39
-missile0 # FEC14634
+missile0 # 32FA1123
 + aievents events
 aievents tick 20
 aievents width 9
@@ -1311,7 +1311,7 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 7 tick 20 zone - hash 51469A99 n 172
+@ 1 update 40 frame 7 tick 20 zone - hash A7876D97 n 172
 world updates 40
 world paused 1
 client tick 21
@@ -1324,28 +1324,28 @@ cunit148 #place 150823D8
 cunit148 #unit A13719CF
 cunit187 #place B7CE4832
 cunit388 #place C2155DED
-@ 2 update 60 frame 11 tick 20 zone - hash 1E7F02C6 n 172
+@ 2 update 60 frame 11 tick 20 zone - hash E8BEF5C8 n 172
 world updates 60
 client ticksRun 57
-@ 3 update 80 frame 15 tick 20 zone - hash D38C5019 n 172
+@ 3 update 80 frame 15 tick 20 zone - hash 254DA717 n 172
 world updates 80
 client ticksRun 77
-@ 4 update 100 frame 19 tick 20 zone - hash 3C9B5771 n 172
+@ 4 update 100 frame 19 tick 20 zone - hash CA5AA07F n 172
 world updates 100
 client ticksRun 97
-@ 5 update 120 frame 23 tick 20 zone - hash 905458A1 n 172
+@ 5 update 120 frame 23 tick 20 zone - hash 6695AFAF n 172
 world updates 120
 client ticksRun 117
-@ 6 update 140 frame 27 tick 20 zone - hash 1FA628A2 n 172
+@ 6 update 140 frame 27 tick 20 zone - hash E967DFAC n 172
 world updates 140
 client ticksRun 137
-@ 7 update 160 frame 31 tick 20 zone - hash E9088D3B n 172
+@ 7 update 160 frame 31 tick 20 zone - hash 1FC97A35 n 172
 world updates 160
 client ticksRun 157
-@ 8 update 180 frame 35 tick 20 zone - hash 4E9B8074 n 172
+@ 8 update 180 frame 35 tick 20 zone - hash B85A777A n 172
 world updates 180
 client ticksRun 177
-@ 9 update 200 frame 39 tick 25 zone - hash 266B13E5 n 172
+@ 9 update 200 frame 39 tick 25 zone - hash A6F26A64 n 172
 world tick 25
 world updates 200
 world paused 0
@@ -1364,7 +1364,6 @@ obj148 #vitals BEF079CD
 obj187 #vitals 6A538167
 obj388 #ai 9B599E98
 obj388 #vitals 9B47EB67
-missile0 # 8F96EA76
 aievents tick 25
 client tick 25
 client paused 0

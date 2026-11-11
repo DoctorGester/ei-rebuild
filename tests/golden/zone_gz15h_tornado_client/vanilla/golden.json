@@ -2,16 +2,22 @@
   "scenario": "zone_gz15h_tornado_client",
   "install": "vanilla",
   "recorded": "2026-11-11",
-  "commit": "85c555311",
+  "commit": "da6e624e0",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MF15a: the particle sources draw g_particleRandom (seeded from the client generator) instead of g_clientRandom, so the client generator in visuals.sav, the scorch marks' angles and the client units' idle picks in the digest follow other draws, and visuals.sav gains the ParticleGenerator section.",
+  "reason": "MF17g4a: the campfire runs on Campfire.lua (its missile records are the scripted cast's, its entry in the Lua state's casts), the casts carry over a base's script reset; outcomes and units the same.",
   "source": "image",
   "saves": "6 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save savea/visuals.sav: 13 fields in 2 records differ: visuals 13",
-    "  visuals: 13 fields in 2 records; first visuals.generator count: 21 in the old golden, 124 in the new run; largest numeric d 3.65e+09 at visuals.generator bb: 3759627429 -> 108590279"
+    "digest: 2 of 1094 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; no unit position differs",
+    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 1 fields",
+    "    missile0 (spell 39) #: FEC14634 in the old golden, 32FA1123 in the new run",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  missiles: 2 of 2 differ",
+    "    #: 2 missiles, 2 records, from 0; hash only (no numbers kept)",
+    "save current/gz1g.sav: 12 fields in 2 records differ: missile 12",
+    "  missile: 12 fields in 2 records; first missile0 position.z: 7.35812235 in the old golden, 0.5 in the new run; largest numeric d 180 at missile0 timer: 180 -> 0"
   ]
 }

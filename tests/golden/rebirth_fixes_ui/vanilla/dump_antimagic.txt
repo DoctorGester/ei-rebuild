@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; dump antimagic
 # compact (tools/golden.py): objects as hashes of their fields
-@ 16 update 325 frame 65 tick 287 zone gz1g hash D2694D57 n 793
+@ 16 update 325 frame 65 tick 287 zone gz1g hash 89A8D03F n 793
 + world world
 world tick 287
 world updates 325
@@ -5803,9 +5803,9 @@ obj1001390175 #place A47E07B3
 obj1001390175 #unit 63D747AD
 obj1001390175 #vitals 58E065C5
 + missile0 spell 39
-missile0 # 395EA0B4
+missile0 # F4D9D63D
 + missile1 spell 39
-missile1 # 5DE96FB1
+missile1 # 27D9F871
 + aievents events
 aievents tick 287
 aievents width 33

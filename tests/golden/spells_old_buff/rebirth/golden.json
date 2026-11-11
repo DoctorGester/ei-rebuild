@@ -2,12 +2,27 @@
   "scenario": "spells_old_buff",
   "install": "rebirth",
   "recorded": "2026-11-11",
-  "commit": "f87541c5a",
+  "commit": "da6e624e0",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MF17g5: spells_old_buff new, recorded on the build from before the buffs moved onto Buff.lua (a pre-port save's active buffs loaded, counting down and ending); the ported build must match it.",
+  "reason": "MF17g4a: the campfire runs on Campfire.lua (its missile records are the scripted cast's, its entry in the Lua state's casts), the casts carry over a base's script reset; outcomes and units the same.",
   "source": "image",
-  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "digest: 102 of 102 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; no unit position differs",
+    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 1 fields",
+    "    missile0 (spell 39) #: FEC14634 in the old golden, 32FA1123 in the new run",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  missiles: 2 of 2 differ",
+    "    #: 2 missiles, 102 records, from 0; hash only (no numbers kept)",
+    "dump later: digest: 1 of 1 records differ, first at record 102 (world update 2045, tick 2135, frame 409, zone gz1g); outcomes the same; no unit position differs",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  missiles: 2 of 2 differ",
+    "    #: 2 missiles, 1 record, from 102; hash only (no numbers kept)",
+    "dump loaded: digest: 1 of 1 records differ, first at record 2 (world update 45, tick 135, frame 9, zone gz1g); outcomes the same; no unit position differs",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "... 6 more lines"
+  ]
 }
