@@ -12,8 +12,10 @@
 #include <psapi.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -26,6 +28,8 @@ namespace ei {
 namespace {
 
 HANDLE g_main = nullptr;
+HANDLE g_sampler = nullptr;
+std::atomic<bool> g_stop{false};
 std::uintptr_t g_stackBase = 0;
 std::uintptr_t g_selfBase = 0, g_selfEnd = 0;
 
@@ -73,7 +77,7 @@ DWORD WINAPI Sampler(void*) {
     std::vector<HMODULE> known;
     WriteModules(f, known);
     std::vector<std::uintptr_t> stack(16384);
-    for (unsigned sample = 1;; ++sample) {
+    for (unsigned sample = 1; !g_stop; ++sample) {
         Sleep(1);
         if (SuspendThread(g_main) == DWORD(-1)) break;
         CONTEXT context{};
@@ -104,8 +108,19 @@ DWORD WINAPI Sampler(void*) {
             std::fflush(f);
         }
     }
+    WriteModules(f, known);
     std::fclose(f);
+    timeEndPeriod(1);
     return 0;
+}
+
+// An exit function (registered at the harness's start, so it runs after the game's own): the sampler ends and closes
+// profile.txt before the runtime's own end (its streams flushed, the other threads killed in ExitProcess). A sampler
+// still writing then, or killed holding the heap's lock, ended runs with an unhandled throw (E06D7363) after the quit
+// (H70a).
+void StopProfiler() {
+    g_stop = true;
+    WaitForSingleObject(g_sampler, 2000);
 }
 
 } // namespace
@@ -123,9 +138,10 @@ void InstallProfiler() {
     GetModuleInformation(GetCurrentProcess(), self, &info, sizeof info);
     g_selfBase = reinterpret_cast<std::uintptr_t>(info.lpBaseOfDll);
     g_selfEnd = g_selfBase + info.SizeOfImage;
-    HANDLE thread = CreateThread(nullptr, 0, Sampler, nullptr, 0, nullptr);
-    SetThreadPriority(thread, THREAD_PRIORITY_TIME_CRITICAL);
-    CloseHandle(thread);
+    g_sampler = CreateThread(nullptr, 0, Sampler, nullptr, 0, nullptr);
+    if (!g_sampler) return;
+    SetThreadPriority(g_sampler, THREAD_PRIORITY_TIME_CRITICAL);
+    std::atexit(StopProfiler);
     Log("profile: sampling the main thread into profile.txt");
 }
 
