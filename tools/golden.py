@@ -481,6 +481,14 @@ def report_result(folder):
     return next((l[8:] for l in text if l.startswith('RESULT: ')), None)
 
 
+def run_failures(folder):
+    """None for a run whose report says PASS (or that has no report); else its report's FAILED: lines."""
+    result = report_result(folder)
+    if result is None or result == 'PASS':
+        return None
+    return [l[8:] for l in read_lines(os.path.join(folder, 'harness_report.txt')) if l.startswith('FAILED: ')]
+
+
 def console(folder):
     """The console lines of a run folder's report (as run_all.console_of reads them)."""
     path = os.path.join(folder, 'harness_report.txt')
@@ -1072,6 +1080,13 @@ def compare_one(name, install, folder, ulps=0, records=1, fields=12, root=ROOT, 
                                 known=None if strict else known_pattern(), clear=meta.get('clear') or '',
                                 saves_known=None if strict else 'default')
         lines += [prefix + line for line in found]
+    if lines:
+        # A run that did not pass (a TIMEOUT under a busy machine, H70) left its digest and saves where it stopped: the
+        # first line says so, so the difference is not taken for a change of behaviour.
+        failed = [(side, failures) for side in sides(golden)
+                  for failures in [run_failures(on_side(folder, side))] if failures is not None]
+        lines[:0] = [f'{side + ": " if side else ""}the run did not pass ({"; ".join(failures) or "FAIL"}): '
+                     'what it left is compared where it stopped' for side, failures in failed]
     return ('DIFFERS' if lines else 'SAME'), lines
 
 

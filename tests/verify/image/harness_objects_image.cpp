@@ -10,6 +10,7 @@
 #include "game/core/core_streams.h"
 #include "game/scene/drawn_motion.h"
 #include "game/app/game_flow.h"
+#include "game/app/movies.h"
 #include "game/app/singletons.h"
 #include "game/models/figure_gltf.h"
 #include "game/models/figure_manager.h"
@@ -260,6 +261,7 @@ std::string GiveItem(int playerId, const char* name) {
 void* WorldHandle() { return g_serverWorld.worldHandle.Get(); }
 const char* ServerZoneName() { return g_serverWorld.zoneName.c_str(); }
 const char* LoadingMovieName() { return app::g_loadingMovieName; }
+void SetPlayedMoviesPaced(bool on) { ::SetPlayedMoviesPaced(on); }
 
 void* PickAt2(void* world, int x, int y) {
     const Point p{x, y};

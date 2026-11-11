@@ -565,8 +565,9 @@ unconverted load:
 - A made file is kept after its last close, up to 128 MB an archive (least recently used out first; the loose files'
   reload empties it): a zone's textures are closed and opened again between its loads, and were made two or three
   times each.
-Timings (one game, `--quiet`, Rebirth, 2026-11-10), converted against unpacked: `mod_lost_in_astral_cz_ingos` 24 s
-against 24 s (43 s before these), `_gipat` 15 to 17 s against 12 s (33 s), `_suslanger` 14 s against 12 s (17 s).
+Timings (one game, `--quiet`, Rebirth, 2026-11-10), converted against unpacked: `mod_lost_in_astral_cz_ingos` (all six
+bases, before H70 split it) 24 s against 24 s (43 s before these), `_gipat` 15 to 17 s against 12 s (33 s),
+`_suslanger` 14 s against 12 s (17 s).
 What is left in gipat: the textures' making (about 3 s, the DXT encode the most) and a slower start (the first frame
 0.97 s against 0.63 s).
 
@@ -1339,8 +1340,8 @@ What the expansion's data asks of the game that the base game's never did, and h
   bz23k's stops at line 267, a call of the never declared script `BuyHaburuMain#2#1#0` (the mod's error; the scripts
   before it stay).
 - The cut-scene bases (cz*) move story people ("merc2" and others) who join the party on the way: entered without
-  them, their briefings never start. Played from the story's state (`mod_lost_in_astral_cz_suslanger`, `_cz_ingos`,
-  `_cz_jigran`): the party the story has there, made by the script calls the mod's zones use (`CreateParty`,
+  them, their briefings never start. Played from the story's state (`mod_lost_in_astral_cz_suslanger`, `_cz_ingos`
+  and `_cz_ingos_end`, `_cz_jigran`): the party the story has there, made by the script calls the mod's zones use (`CreateParty`,
   `AddUnitToParty(0, "<party>::<member>", "<unit>")`, `SetCurrentParty`, `RedeployParty`; a member's unit is named
   by the member: "merc2" whatever its prototype). The parties: FPrison (Hero1, merc2) on Suslanger, Gipat (Hero3,
   merc2g as "merc2") on Gipat and Ingos, Jigran1 (Hero3 alone, `CopyStats` from Gipat's hero) on Jigran, Jigran3

@@ -1346,7 +1346,9 @@ def golden_check(jobs, out=None, root=ROOT, build=BUILD):
         counts[result] += 1
         if result == 'DIFFERS':
             # golden_explain's headline (the first difference, whether outcomes changed, the largest unit move)
-            heads.append((name, install, next((t for t in lines if t.startswith('digest:')), lines[0] if lines else '')))
+            # (a run that did not pass: its failure, golden.compare_one's first line)
+            heads.append((name, install, lines[0] if lines and 'the run did not pass' in lines[0] else
+                          next((t for t in lines if t.startswith('digest:')), lines[0] if lines else '')))
         if result != 'NO GOLDEN' and (result != 'SAME' or len(jobs) == 1):
             if result == 'DIFFERS' and len(heads) > GOLDEN_DETAIL_RUNS:
                 continue   # past the first few, the roll-up below says what differs

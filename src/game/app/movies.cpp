@@ -42,6 +42,7 @@ video::Movie* g_loadingMovie = /*007C5550*/ {nullptr};
 void PresentMovieFrame() { DevicePresent(g_sceneRenderer.device); }
 
 int g_movieKey;   // the blocking player's movie in the new renderer
+bool g_playedMoviesPaced = true;   // SetPlayedMoviesPaced
 
 // The movie's last frame has been decoded.
 bool Ended(const video::Movie* movie) { return video::DecodedFrameNumber(movie) >= video::FrameCount(movie); }
@@ -82,9 +83,9 @@ unsigned BinkVideo::Frame() {
 
 // --- The movie players outside the frame -----------------------------------
 
-// Plays the movie at its own rate in a message loop of its own, each frame into its letterboxed rectangle. Esc / Space
-// end it (`keysEnd`); the screen is filled black first (`clearScreen`), a loading screen step first (`loadingStep`).
-// Returns false when Esc ended it.
+// Plays the movie at its own rate (SetPlayedMoviesPaced) in a message loop of its own, each frame into its letterboxed
+// rectangle. Esc / Space end it (`keysEnd`); the screen is filled black first (`clearScreen`), a loading screen step
+// first (`loadingStep`). Returns false when Esc ended it.
 bool PlayMovie(const std::string& name, bool keysEnd, bool clearScreen, bool loadingStep) {
     if (!options::g_options.video) return true;
     if (loadingStep) g_clientWorld.sounds->StopAll(true);
@@ -117,7 +118,7 @@ bool PlayMovie(const std::string& name, bool keysEnd, bool clearScreen, bool loa
             continue;
         }
         if (Ended(movie)) break;
-        if (!video::Pump(movie)) continue;
+        if (!video::Pump(movie) && g_playedMoviesPaced) continue;
         video::DecodeFrame(movie);
         render::MovieFrame(&g_movieKey, video::FramePixels(movie), width, height);
         if (clearScreen) render::Fill(g_sceneRenderer.device->screen, 0);
@@ -129,6 +130,8 @@ bool PlayMovie(const std::string& name, bool keysEnd, bool clearScreen, bool loa
     g_cursor.ShowImage(1);
     return !escaped;
 }
+
+void SetPlayedMoviesPaced(bool on) { g_playedMoviesPaced = on; }
 
 // `progress` is a frame number. The loading screen's movie (the file named by a global, opened once) is decoded
 // up to that frame and stretched over the screen. Nothing when the off switch is set. The window's messages are taken
