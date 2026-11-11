@@ -25,6 +25,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <format>
+#include <map>
 #include <memory>
 #include <set>
 #include <string>
@@ -741,6 +742,176 @@ void CheckRuntime() {
     Expect(reported.size() == 1 && reported[0] == "broken:1: boom", "a run's Lua error is reported");
 }
 
+// ---- The scripted spells' host ----------------------------------------------------------------------------------
+
+// The spell files of the host's checks, by name.
+const std::map<std::string, std::string> kSpellFiles = {
+    {"pulse.lua", R"lua(
+-- A timer every 2 ticks counts to 3, then the cast finishes; OnEnd writes what happened into a global.
+local spell = {}
+local STEP = 2
+function spell.OnCast(cast)
+    cast.data = { count = 0, sum = 0, target = GetObjectID(cast.target) }
+    cast:After(STEP, "Pulse", { add = 5 })
+end
+function spell.Pulse(cast, payload)
+    cast.data.count = cast.data.count + 1
+    cast.data.sum = cast.data.sum + payload.add
+    if cast.data.count == 3 then cast:Finish() else cast:After(STEP, "Pulse", { add = payload.add + 1 }) end
+end
+function spell.OnEnd(cast, reason)
+    _G.spellEnd = string.format("%s %d %d %d at %d", reason, cast.data.count, cast.data.sum, cast.data.target, cast.tick)
+end
+return spell
+)lua"},
+    {"ticker.lua", R"lua(
+return {
+    OnTick = function(cast) cast.data.ticks = (cast.data.ticks or 0) + 1 end,
+    OnEnd = function(cast, reason) _G.spellEnd = reason .. " " .. cast.data.ticks .. " at " .. cast.tick end,
+}
+)lua"},
+    {"idle.lua", "return { OnEnd = function(cast, reason) _G.spellEnd = reason .. ' at ' .. cast.tick end }"},
+    {"boom.lua", "return {\n  OnCast = function(cast) error('boom') end,\n  OnEnd = function(cast, reason) _G.spellEnd = reason end,\n}"},
+    {"sleepy.lua", "return {\n  OnCast = function(cast) Sleep(1) end,\n  OnEnd = function(cast, reason) _G.spellEnd = reason end,\n}"},
+    {"world.lua", "local id = GetObjectID(nil)\nreturn {}"},
+    {"timerless.lua", "return { OnCast = function(cast) cast:After(1, 'Missing') end }"},
+};
+
+std::string SpellEnd(ScriptLuaScheduler& scheduler) {
+    lua_State* L = scheduler.lua.State();
+    lua_getglobal(L, "spellEnd");
+    std::string text = lua_isstring(L, -1) ? lua_tostring(L, -1) : "(none)";
+    lua_pop(L, 1);
+    lua_pushnil(L);
+    lua_setglobal(L, "spellEnd");
+    return text;
+}
+
+// The host (src/game/script/script_spell_host.h) on spell records of its own: OnCast, timers by name in order,
+// Finish, OnTick, the idle end and the tick cap, errors and waits ending the cast, no bindings at a file's top level,
+// and a cast saved with the scheduler mid-way that ends as the unbroken one.
+void CheckSpellHost(TestWorld& world) {
+    std::vector<itemdb::SpellRecord>& records = g_spellDatabase.spells.records;
+    const std::size_t first = records.size();
+    for (const auto& [file, text] : kSpellFiles) {
+        itemdb::SpellRecord& record = records.emplace_back();
+        record.code = file.substr(0, file.find('.'));
+        record.script = file;
+        record.behaviour = SpellType::Scripted;
+    }
+    const auto indexOf = [&](const char* file) {
+        std::size_t index = first;
+        for (const auto& [name, text] : kSpellFiles) {
+            if (name == file) break;
+            ++index;
+        }
+        return static_cast<std::uint32_t>(index);
+    };
+    std::vector<std::string> reported;
+    const auto prepare = [&reported](ScriptLuaScheduler& scheduler) {
+        scheduler.report = [&reported](const std::string& message) { reported.push_back(message); };
+        scheduler.spells.readModule = [](const std::string& file, std::string* text) {
+            const auto found = kSpellFiles.find(file);
+            if (found == kSpellFiles.end()) return false;
+            *text = found->second;
+            return true;
+        };
+    };
+    const auto cast = [&](SpellEffect& effect, const char* file, std::uint32_t duration) {
+        effect.HeldSpell()->prototypeId = indexOf(file) << 16;
+        effect.HeldSpell()->duration = duration;
+        effect.target.Assign(world.stones[0]);
+    };
+    // Ticks the cast until it ends (at most 100 ticks): the ticks it took.
+    const auto run = [](ScriptSpellHost& host, SpellEffect& effect) {
+        int ticks = 0;
+        while (ticks < 100 && host.Tick(effect)) ++ticks;
+        return ticks + 1;
+    };
+
+    {
+        Script script;
+        ScriptLuaScheduler& scheduler = script.Runner();
+        prepare(scheduler);
+        ScriptSpellHost& host = scheduler.spells;
+
+        SpellEffect pulse;
+        cast(pulse, "pulse.lua", 0);
+        Expect(host.Cast(pulse) && pulse.host == &host, "a cast with a timer lives on after OnCast");
+        Expect(run(host, pulse) == 6 && !pulse.host, "the pulse ends at its third timer");
+        Expect(SpellEnd(scheduler) == "finished 3 18 1001 at 6", "timers in order with their payloads, then Finish");
+
+        SpellEffect ticker;
+        cast(ticker, "ticker.lua", 5);
+        Expect(host.Cast(ticker) && run(host, ticker) == 5, "OnTick keeps a cast to its duration");
+        Expect(SpellEnd(scheduler) == "limit 5 at 5", "the cast ends at the tick cap");
+
+        SpellEffect idle;
+        cast(idle, "idle.lua", 0);
+        Expect(!host.Cast(idle) && SpellEnd(scheduler) == "idle at 0", "a cast with nothing pending ends at once");
+
+        SpellEffect boom;
+        cast(boom, "boom.lua", 0);
+        Expect(!host.Cast(boom) && SpellEnd(scheduler) == "error", "an error in a hook ends the cast");
+        Expect(reported.size() == 1 && reported.back() == "boom.lua:2: boom", "the hook's error reported");
+
+        SpellEffect sleepy;
+        cast(sleepy, "sleepy.lua", 0);
+        Expect(!host.Cast(sleepy) && SpellEnd(scheduler) == "error" && reported.size() == 2,
+               "a wait in a hook is an error");
+
+        SpellEffect top;
+        cast(top, "world.lua", 0);
+        Expect(!host.Cast(top) && reported.size() == 3 &&
+                   reported.back() == "Res\\spells\\world.lua did not load: world.lua:1: GetObjectID: no bindings at a "
+                                      "spell file's top level",
+               "no bindings at a spell file's top level");
+        SpellEffect again;
+        cast(again, "world.lua", 0);
+        Expect(!host.Cast(again) && reported.size() == 3, "a file that did not load is said once");
+
+        SpellEffect timerless;
+        cast(timerless, "timerless.lua", 0);
+        Expect(host.Cast(timerless) && !host.Tick(timerless) && reported.size() == 4 &&
+                   reported.back() == "timerless.lua: no function Missing for a timer",
+               "a timer naming no function ends the cast");
+        Expect(world.stones[0]->refCount > 1, "the casts' effects hold their target");
+    }
+
+    // A cast saved after each of its first ticks and restored into a new state ends as the unbroken one did.
+    for (int saveAt = 0; saveAt < 6; ++saveAt) {
+        std::string data, error, end;
+        int key = 0;
+        {
+            Script script;
+            ScriptLuaScheduler& scheduler = script.Runner();
+            prepare(scheduler);
+            SpellEffect pulse;
+            cast(pulse, "pulse.lua", 0);
+            scheduler.spells.Cast(pulse);
+            for (int tick = 0; tick < saveAt; ++tick) scheduler.spells.Tick(pulse);
+            key = pulse.castKey;
+            Expect(scheduler.Save(&data, &error), "a scheduler with a live cast saves");
+        }
+        Script script;
+        ScriptLuaScheduler& scheduler = script.Runner();
+        prepare(scheduler);
+        Expect(scheduler.Restore(data, &error), "and restores");
+        SpellEffect pulse;
+        cast(pulse, "pulse.lua", 0);
+        pulse.castKey = key;
+        Expect(scheduler.spells.Adopt(pulse), "the restored state has the cast");
+        Expect(run(scheduler.spells, pulse) == 6 - saveAt && SpellEnd(scheduler) == "finished 3 18 1001 at 6",
+               std::format("a cast saved at tick {} ends as the unbroken one", saveAt).c_str());
+        SpellEffect missing;
+        cast(missing, "pulse.lua", 0);
+        missing.castKey = key + 1;
+        Expect(!scheduler.spells.Adopt(missing), "a key the restored state lacks is no cast");
+    }
+    Expect(reported.size() == 4, "no errors through the saves");
+    records.resize(first);
+}
+
 // An effect of a particle type this build does not know (a mod's or a newer build's, from a peer or a save): its world
 // object starts, starts again and ticks without a source, no fatal exit; the type is logged once, a known type is
 // not logged.
@@ -793,6 +964,7 @@ int Main() {
     CheckSavedDeclarations();
     CheckCases();
     CheckRuntime();
+    CheckSpellHost(world);
     CheckUnknownParticleType();
     Expect(world.OnlyWorldReferences(), "every reference released at the end");
     std::printf("lua_check: %d checks, %d failed\n", g_checks, g_failures);

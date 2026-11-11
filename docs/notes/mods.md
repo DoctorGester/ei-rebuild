@@ -19,6 +19,7 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `src/game/mods/mod_plugins.h`, `.cpp` | the mods' plugins carried as code ("The mods' plugins"): `modplugins::FourShopClasses` |
 | `src/game/mods/mod_hash.h`, `.cpp`, `mod_identity.h`, `.cpp` | the mod's content hash and the mod a game plays as our peers tell it at login, the refusal texts ("Mods in multiplayer"; network.md, "Mods") |
 | `src/game/effects/particle_data.h`, `.cpp`, `particle_record.*`, `particle_expr.*` | the data effects, `Res\effects\<name>.effect.toml` merged through the layers (effects.md, "Data effects") |
+| `src/game/script/script_spell_host.h`, `.cpp` | the scripted spells, `Res\spells\<file>.lua` through the layers (items_spells.md, "Scripted spells") |
 | `tests/unit/mod_hash.cpp`, `tools/make_mod_pair.py`, `tests/scenarios/net_pair_mod_*.txt` | their checks: the hash of a folder and of its zip, the pairs with the same mod, another version and none |
 | `tests/verify/harness.cpp` | `Layers` / `MapPath` / `MapSearches`: the run's overlay as the map's top layer |
 | `tests/unit/path_layers.cpp` | the unit check (ei_unit_check, the POSIX port check) |
@@ -1355,7 +1356,8 @@ server that plays a mod).
   their animations, redress, menus, sounds, speech, music, movies, cameras, streams: the world is the server's, so a
   peer's own copy of these changes what it shows, not the game), the per-user `.ini` files the game writes into
   `Config\` (tutorial.ini, addrbook.ini) and the notes. The data effects (`Res\effects\`, effects.md "Data
-  effects") count: their `[server]` block decides when the world's effect objects end.
+  effects") count: their `[server]` block decides when the world's effect objects end. So do the spell scripts
+  (`Res\spells\`, items_spells.md "Scripted spells"), which the server runs.
 - **Cheap**: a zip mod's files are not unpacked, their CRC-32 is the zip's own (`platform::LayerFileCrc32`, the zip's
   list of files), so a mod hashes the same as a folder or as its zip, and Rebirth's LostInAstral.zip costs only its
   list. A folder's counted files are read once, on a thread of its own begun by the main menu's Multiplayer button

@@ -14,8 +14,8 @@ namespace modhash {
 // Whether the mod's file at `relative` (its path below the mod's folder in lower case, '\' between the parts) counts:
 // config.reg and config.reg.toml; every file below Maps\; Config\'s registries (.reg, .reg.toml: ai.reg; not the
 // .ini files, which the game writes or which only light a zone); below Res\ the database and texts archives and their
-// folders of loose files (database.res, databaselmp.res, texts.res, textslmp.res, database\, ...) and the data effects
-// (effects\). Not counted: the
+// folders of loose files (database.res, databaselmp.res, texts.res, textslmp.res, database\, ...), the data effects
+// (effects\) and the spell scripts (spells\). Not counted: the
 // looks and sounds (textures, figures, redress, menus, sounds, speech, music, movies, camera paths, streams) and the
 // mod's notes (readme.txt).
 bool Counted(std::string_view relative);

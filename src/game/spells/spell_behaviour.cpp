@@ -69,8 +69,10 @@ SpellUse UseOf(const SpellRecord& record) {
 }
 
 void SetBehaviours(std::vector<SpellRecord>& records) {
-    for (std::size_t i = 0; i < records.size(); ++i)
-        records[i].behaviour = i < kGameSpellCount ? static_cast<SpellType>(i) : SpellType::None;
+    for (std::size_t i = 0; i < records.size(); ++i) {
+        if (!records[i].script.empty()) records[i].behaviour = SpellType::Scripted;
+        else records[i].behaviour = i < kGameSpellCount ? static_cast<SpellType>(i) : SpellType::None;
+    }
 }
 
 } // namespace itemdb

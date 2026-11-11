@@ -252,12 +252,13 @@ def read_managed(r, manager, kind):
 def read_projectile(r):
     """CSpellEffect::Save (0067E960, the world's missile list): position, caster and target (AIRef::Save
     0050E290), the target point, the state, the embedded spell (its slot 10, CSpell::SaveSpell), the packed id,
-    the visual / sound / light ids, the timer, the flags and the position again."""
+    the visual / sound / light ids, the timer, the flags and the position again; ours in the scripted state (4) then
+    the cast's key and its owned objects (a count; ScriptSpellHost)."""
     r.vec('position')
     r.id('caster')
     r.id('target')
     r.vec('targetPoint')
-    r.i32('state')
+    state = r.i32('state')
     with r.scope('spell'):
         read_spell(r)
     r.x32('spellId')
@@ -267,6 +268,10 @@ def read_projectile(r):
     r.i32('timer')
     r.x32('flags')
     r.vec('position2')
+    if state == 4:
+        r.i32('castKey')
+        if r.i32('owned'):
+            r.fail('a scripted cast with owned objects is not decoded')
 
 
 # ---- the AI events (ai_events.cpp) ------------------------------------------------------------------------

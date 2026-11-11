@@ -1,6 +1,6 @@
 r"""A mod whose zone 1 mission script is Lua (docs/notes/mods.md, "Scripts in Lua"; tests/scenarios/mod_lua_*.txt).
 
-usage: python tools/make_lua_mod.py <saves dir> plain|changed|none|named|broken|addmob
+usage: python tools/make_lua_mod.py <saves dir> plain|changed|none|named|broken|spell|addmob
 
 Writes <saves dir>\lua_mod (the scenarios' `mod harness_saves\lua_mod`): a config.reg with [MOD] Title, Rebirth.txt and
   plain    Maps\zone1.lua   the game's zone1.mob script as ei-convert writes it (a converted install's own Maps\zone1.lua,
@@ -15,6 +15,9 @@ Writes <saves dir>\lua_mod (the scenarios' `mod harness_saves\lua_mod`): a confi
            Maps\zone1_named.lua  the conversion with a console line at the WorldScript's end ("L8b: the TOML's script")
            Maps\zone1.lua        the same with another line ("L8b: zone1.lua"), which the key passes over
   broken   Maps\zone1.lua   a file Lua does not load (a function left open at its end): error 18 at the zone's load
+  spell    Res\database\spells.sdb.toml  a spell "mf17b_pulse" whose script is Res\spells\mf17b_pulse.lua (SPELL;
+                            docs/notes/items_spells.md, "Scripted spells"): its cast pulses every 10 ticks into the
+                            game variable mf17b.count, 40 times, then finishes (no Maps\zone1.lua: the zone's .mob runs)
 and for addmob, no mod:
   addmob   <saves dir>\l8b_addmob.lua  the Lua of <saves dir>\l8b_addmob.mob (make_trap_mob.py makes the .mob, no
                             script in it), which `AddMob("..\saves\l8b_addmob.mob")` loads into zone 1's mission script
@@ -58,6 +61,42 @@ CHANGES = '''    -- L8's mod: two console lines, its definition, then a count ke
 # The named kind's lines, at the end of each file's WorldScript.
 NAMED = '    print("L8b: the TOML\'s script")\n'
 UNNAMED = '    print("L8b: zone1.lua")\n'
+# The spell kind: the record (a new spell after the game's 42) and its script.
+SPELL_RECORD = b'''[[spell]]
+name = "MF17b Pulse"
+code = "mf17b_pulse"
+script = "mf17b_pulse.lua"
+target_kind = "unit"
+icon = 1
+'''
+SPELL = '''-- MF17b's spell (tools/make_lua_mod.py spell): a cast that pulses every PERIOD ticks into the game variable
+-- mf17b.count, PULSES times, then finishes; its hooks say on the console what ran. A save and load mid-cast goes on
+-- from the saved count (the cast's data and timer are in the save).
+local PERIOD = 10
+local PULSES = 40
+
+local spell = {}
+
+function spell.OnCast(cast)
+    cast.data.count = 0
+    SetGameVar(0, "mf17b.target", GetObjectID(cast.target))
+    print("MF17b: OnCast " .. cast.code)
+    cast:After(PERIOD, "Pulse")
+end
+
+function spell.Pulse(cast)
+    cast.data.count = cast.data.count + 1
+    SetGameVar(0, "mf17b.count", cast.data.count)
+    if cast.data.count < PULSES then cast:After(PERIOD, "Pulse") else cast:Finish() end
+end
+
+function spell.OnEnd(cast, reason)
+    SetGameVar(0, "mf17b.ended", cast.tick)
+    print("MF17b: OnEnd " .. reason .. " after " .. cast.data.count .. " pulses at tick " .. cast.tick)
+end
+
+return spell
+'''
 BROKEN = '-- L8b (tools/make_lua_mod.py broken): Lua does not load this file.\nfunction WorldScript(\n'
 ADDMOB = '''-- L8b (tools/make_lua_mod.py addmob): the Lua of an AddMob'd .mob, loaded into zone 1's mission script while it
 -- runs (docs/notes/mods.md, "Scripts in Lua").
@@ -119,7 +158,7 @@ def changed(text, definition, lines):
 
 
 def main():
-    kinds = ('plain', 'changed', 'none', 'named', 'broken', 'addmob')
+    kinds = ('plain', 'changed', 'none', 'named', 'broken', 'spell', 'addmob')
     if len(sys.argv) != 3 or sys.argv[2] not in kinds:
         sys.exit(__doc__)
     kind = sys.argv[2]
@@ -147,6 +186,9 @@ def main():
         write(os.path.join(maps, 'zone1.lua'), changed(text, '', UNNAMED).encode('utf-8'))
     elif kind == 'broken':
         write(os.path.join(maps, 'zone1.lua'), BROKEN.encode('utf-8'))
+    elif kind == 'spell':
+        write(os.path.join(root, 'Res', 'database', 'spells.sdb.toml'), SPELL_RECORD)
+        write(os.path.join(root, 'Res', 'spells', 'mf17b_pulse.lua'), SPELL.encode('utf-8'))
     print(f'{root}: {kind}')
 
 

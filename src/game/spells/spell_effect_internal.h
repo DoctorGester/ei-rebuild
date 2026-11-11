@@ -147,6 +147,7 @@ constexpr int kStateCasting = 0;    // Start runs
 constexpr int kStateMissile = 1;    // the missile flies
 constexpr int kStateLasting = 2;    // the effect lasts, `timer` ticks
 constexpr int kStateEnded = 3;      // the effects' objects go and the spell effect is removed
+constexpr int kStateScripted = 4;   // a scripted spell's cast lives (ScriptSpellHost)
 
 // The effect lasts for the spell's duration (the lasting spells that stand where they were cast).
 inline void EnterLasting(SpellEffect* e) {

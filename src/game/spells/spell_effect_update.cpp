@@ -3,6 +3,7 @@
 #include "game/ai/ai_map.h"
 #include "game/objects/map_object.h"
 #include "game/script/script.h"
+#include "game/script/script_spell_host.h"
 #include "game/spells/spell.h"
 #include "game/spells/spell_effect_internal.h"
 #include "game/combat/combat.h"
@@ -358,6 +359,9 @@ int SpellEffect::Update() {
     case kStateCasting: Start(type); return 1;
     case kStateMissile: UpdateMissile(type); return 1;
     case kStateLasting: UpdateLasting(type); return 1;
+    case kStateScripted:
+        if (!host || !host->Tick(*this)) state = kStateEnded;
+        return 1;
     default:
         UpdateFootprint(type, 0);
         ReleaseVisual();

@@ -67,5 +67,16 @@ int RunSpellBehaviourChecks() {
     Expect("a new record without the fields: nothing", plain.ai == SpellAi::None &&
                                                             plain.damageType == DamageType::Other &&
                                                             !plain.offensive && !plain.turnsVictim && !plain.fighting);
+
+    // A record with a script is Scripted, a new one or one of the game's places, and reads its own fields.
+    records[44].script = "pulse.lua";
+    records[static_cast<int>(SpellType::Fireball)].script = "fireball.lua";
+    itemdb::SetBehaviours(records);
+    Expect("a script makes a record Scripted", records[44].behaviour == SpellType::Scripted &&
+                                                    records[static_cast<int>(SpellType::Fireball)].behaviour ==
+                                                        SpellType::Scripted &&
+                                                    records[45].behaviour == SpellType::None);
+    const itemdb::SpellUse scripted = UseOf(records[static_cast<int>(SpellType::Fireball)]);
+    Expect("a scripted record reads its fields", scripted.ai == SpellAi::Heal && scripted.offensive);
     return failures;
 }

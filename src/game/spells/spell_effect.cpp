@@ -4,9 +4,11 @@
 #include "game/ai/ai_map.h"
 #include "game/core/base_manager.h"
 #include "game/combat/combat.h"
+#include "game/console/console.h"
 #include "game/core/core_streams.h"
 #include "game/objects/map_object.h"
 #include "game/ai/sector_map.h"
+#include "game/script/script_lua_scheduler.h"
 #include "game/spells/spell.h"
 #include "game/spells/spell_effect_internal.h"
 #include "game/units/unit.h"
@@ -173,6 +175,11 @@ void SpellEffect::Load(ByteStream* stream) {
     stream->ReadValue(timer);
     stream->ReadValue(flags);
     stream->ReadValue(position);
+    if (state == spellfx::kStateScripted) {
+        stream->ReadValue(castKey);
+        std::int32_t owned = 0;
+        stream->ReadValue(owned);
+    }
     UpdateFootprint(HeldSpell()->Behaviour(), 1);
 }
 
@@ -190,6 +197,17 @@ void SpellEffect::Save(ByteStream* stream) {
     stream->WriteValue(timer);
     stream->WriteValue(flags);
     stream->WriteValue(position);
+    if (state == spellfx::kStateScripted) {
+        stream->WriteValue(castKey);
+        stream->WriteValue(std::int32_t{0});
+    }
+}
+
+void SpellEffect::ResumeScripted() {
+    if (state != spellfx::kStateScripted || world->MainScript()->Runner().spells.Adopt(*this)) return;
+    console::EndLine(console::g_consoleOut << "Script error: the save's Lua state has no cast " << castKey << " of "
+                                           << HeldSpell()->GetPrototype()->script << "; it ends");
+    state = spellfx::kStateEnded;
 }
 
 // --- The casting state -------------------------------------------------------------------------------
@@ -524,6 +542,11 @@ void StartCharm(SpellEffect* e) {
     e->state = kStateEnded;
 }
 
+// A scripted spell's cast: the zone's server state runs it (OnCast now), in the scripted state while it lives.
+void StartScripted(SpellEffect* e) {
+    e->state = e->world->MainScript()->Runner().spells.Cast(*e) ? kStateScripted : kStateEnded;
+}
+
 // Campfire: the effect only moves to the ground point.
 void StartAtGround(SpellEffect* e) {
     Vector3 centre = e->targetPoint;
@@ -571,6 +594,7 @@ void SpellEffect::Start(SpellType type) {
     case SpellType::Teleport: StartTeleport(this); break;
     case SpellType::Charm: StartCharm(this); break;
     case SpellType::Campfire: StartAtGround(this); break;
+    case SpellType::Scripted: StartScripted(this); break;
     default: state = kStateEnded; break;   // Shapechange, Comprehend and None
     }
     UpdateFootprint(type, 1);
@@ -711,6 +735,7 @@ void SpellEffect::CreatePointLight(const Vector3& at, const Vector3& color, floa
 SpellEffect::SpellEffect() = default;
 
 SpellEffect::~SpellEffect() {
+    if (host) host->Forget(*this);
     if (footprintStamped) UpdateFootprint(HeldSpell()->Behaviour(), 0);
     ReleaseVisual();
     ReleaseSound();
@@ -730,7 +755,10 @@ void SpellEffect::Init(WorldServer* newWorld, Spell* newSpell, Unit* newCaster, 
 }
 
 bool SpellEffect::Forget(EngineObject* object) {
-    if (target == object) return false;
+    if (target == object) {
+        if (state != kStateScripted) return false;
+        target.Reset();
+    }
     if (caster == object && caster) caster.Reset();
     return true;
 }

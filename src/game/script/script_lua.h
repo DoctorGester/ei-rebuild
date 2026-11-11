@@ -90,6 +90,9 @@ public:
     // functions), and `types`, the GlobalVars types. SetGlobals puts such a table (at `index`) into this state.
     void PushGlobals();
     void SetGlobals(int index);
+    // The value on top of the stack (popped) a permanent under `name`: persisted as its name, the same name's value of
+    // the state it is unpersisted into (a value of the runtime made after the constructor: the spell host's).
+    void AddPermanent(const char* name);
 
     Script* script = nullptr;
     ScriptRun* currentRun = nullptr;
@@ -97,6 +100,9 @@ public:
     // on the stack; the scheduler's. Without one a call is a Lua error.
     std::function<void(lua_State* L)> startScript;
     int bindingCount = 0;               // the keywords bound (276)
+    // While set, every binding is a Lua error: a spell file's top level runs so (ScriptSpellHost), and a fresh state
+    // and a restored one then see the same world.
+    bool worldOff = false;
     ScriptObjectRef noObject;           // the argument a nil object passes; stays null
     // The live object and group values (their userdata link themselves in; RemoveDeletedObjects walks them).
     scriptlua::ObjectValue* objects = nullptr;

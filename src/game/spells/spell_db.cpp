@@ -205,6 +205,7 @@ void Fields(SpellRecord& r, Visit& v) {
     v("ai", Enum<SpellAi>{r.ai, kSpellAis});
     v("damage_type", Enum<DamageType>{r.damageType, kDamageTypeNames});
     v("offensive", dbtoml::Bool{r.offensive});
+    v("script", r.script);
 }
 
 template <class Visit>

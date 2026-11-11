@@ -1,0 +1,39 @@
+# A scripted spell (docs/notes/items_spells.md, "Scripted spells"): tools/make_lua_mod.py spell adds the spell
+# "mf17b_pulse", whose record names Res\spells\mf17b_pulse.lua. A console line casts it at the hero; the zone's server
+# state runs the file's hooks: OnCast (a console line, the target's id into a game variable), a timer every 10 ticks
+# counting into mf17b.count, 40 times, then Finish and OnEnd (a console line, its tick into mf17b.ended). The game is
+# saved and loaded mid-cast: the count goes on from the saved one (the cast's data and its timer are in the save) and
+# the cast finishes at the same tick as an unbroken one would (tick 400).
+# prepare: make_lua_mod.py spell
+mod harness_saves\lua_mod
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitline 15 Saved savea
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @GodMode(0,1)
+console @CastSpellUnit("mf17b_pulse",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+waitline 10 MF17b: OnCast mf17b_pulse
+check IsEqual(GSGetVar(0,"mf17b.target"),GetObjectID(GetLeader()))
+waitfor 20 IsGreater(GSGetVar(0,"mf17b.count"),4)
+
+key esc
+waitwindow 10 escmenu
+click 395 120
+waitwindow 10 saveload
+clickregion 0
+waitline 15 Saved save1
+wait 300
+load save1
+waitwindow 30 battle
+waitfor 20 IsGreater(HP(GetLeader()),0)
+check IsLess(GSGetVar(0,"mf17b.count"),40)
+check IsGreater(GSGetVar(0,"mf17b.count"),4)
+waitline 30 MF17b: OnEnd finished after 40 pulses at tick 400
+check IsEqual(GSGetVar(0,"mf17b.count"),40)
+check IsEqual(GSGetVar(0,"mf17b.ended"),400)
+dump loaded_save1
+check IsAlive(GetLeader())
+report
+quit
