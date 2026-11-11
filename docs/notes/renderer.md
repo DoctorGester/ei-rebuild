@@ -107,7 +107,7 @@ presents it through its own swap chain on the game window (section 9); captures 
 
 **When the renderer fails** (the user's rule: no fallbacks). When it cannot start or cannot go on, the game ends.
 `render::Fatal` (render.cpp) logs "render: fatal: <reason>" to ei-rebuild.log, shows the reason in the game's
-error box (`app::ShowMessageBox`; the harness ends the run on it) and exits with -1. The cases:
+error box (`ShowErrorBox`, engine/core/program_window.h; the harness ends the run on it) and exits with -1. The cases:
 - no device at the start (the first use): "Can't start the renderer: <gpu::Error()>." (no Direct3D 12 or Vulkan
   device: "no Direct3D 12 or Vulkan device (...)");
 - a pipeline or texture the start makes: "Can't start the renderer: the terrain pipeline / the mesh pipeline / the

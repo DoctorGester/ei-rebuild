@@ -84,8 +84,8 @@ address,size,name,file
 0079B7C0,136,g_lengthBits,src/engine/core/coder.cpp
 0079B848,136,g_lengthCodes,src/engine/core/coder.cpp
 0079B91C,4,g_netLog,src/game/net/net_session.h
-0079BB24,256,g_windowTitle,src/game/app/main_loop.cpp
-0079BC28,4,g_mainWindow,src/game/app/main_loop.cpp
+0079BB24,256,g_windowTitle,src/engine/core/program_window.cpp
+0079BC28,4,g_mainWindow,src/engine/core/program_window.cpp
 0079BC54,1,g_recordingFrames,src/game/app/main_loop.cpp
 0079BC58,4,g_movieFrame,src/game/app/main_loop.cpp
 0079BC5C,1,g_active,src/game/app/main_loop.cpp

@@ -3,7 +3,7 @@
 // (the options' brightness / contrast / gamma, SetGammaRamp's table) as a shader step, and presented with the vertical
 // blank. Also where the frame sits in the window, for the game's mouse coordinates (WindowToFrame / FrameToWindow).
 // docs/notes/renderer.md, section 9.
-#include "game/app/app.h"
+#include "engine/core/program_window.h"
 #include "../platform/log.h"
 #include "../platform/sdl/sdl_window.h"
 #include "render.h"
@@ -17,7 +17,7 @@
 
 namespace render {
 
-static platform::NativeWindow GameWindow() { return app::g_mainWindow; }
+static platform::NativeWindow GameWindow() { return g_mainWindow; }
 
 // Present waits for the vertical blank unless the settings file's "VSync" is 0 (render::SetVsync: Immediate, which may
 // tear) or the harness's virtual clock runs the game (render::SetWaitForVsync: Mailbox), where a frame's length does

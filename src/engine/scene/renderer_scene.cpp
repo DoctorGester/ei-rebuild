@@ -12,7 +12,6 @@
 #include "engine/scene/renderer_lines.h"
 #include "engine/scene/light.h"
 #include "game/ui/ui.h"
-#include "game/ui/screen_layout.h"
 #include "game/world/world.h"
 #include "lib/scales.h"
 #include "lib/crt.h"
@@ -167,15 +166,13 @@ RendererBase::~RendererBase() = default;
 
 // ---- Matrices ---------------------------------------------------------------------------------------
 
-// The axis swap of the projection: x, -y, z, w on the diagonal. Returns the matrix. x is scaled by width43 / width
-// and y by height43 / height (the window's 4:3 part, screen_layout.h; Rebirth's WideScreen scaled x), so the 4:3
-// picture keeps its proportions on any window, 1 and 1 on a 4:3 one; renderer_init.cpp calls it through its address
-// (rule 9).
+// The axis swap of the projection: x, -y, z, w on the diagonal, x and y scaled by the scene renderer's axis scales.
+// Returns the matrix; renderer_init.cpp calls it through its address (rule 9).
 Matrix4* AxisSwapMatrix(Matrix4* out) {
     std::memset(out, 0, sizeof(*out));
     out->m[15] = 1.0f;
     out->m[10] = 1.0f;
-    out->m[0] = screen_layout::AxisScale();
-    out->m[5] = -screen_layout::AxisScaleY();
+    out->m[0] = g_sceneRenderer.axisScale;
+    out->m[5] = -g_sceneRenderer.axisScaleY;
     return out;
 }

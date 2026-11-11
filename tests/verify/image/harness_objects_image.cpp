@@ -8,6 +8,7 @@
 #include "engine/scene/camera.h"
 #include "game/console/console.h"
 #include "engine/core/core_streams.h"
+#include "engine/core/program_window.h"
 #include "engine/scene/drawn_motion.h"
 #include "game/app/game_flow.h"
 #include "game/app/movies.h"
@@ -150,7 +151,7 @@ std::string HudStateOf(void* window, const std::string& argument) {
 
 } // namespace
 
-void* MainWindow() { return app::g_mainWindow; }
+void* MainWindow() { return g_mainWindow; }
 std::uint8_t& InterfaceHasScreen() { return app::g_interfaceHasScreen; }
 std::uint8_t& RecordingFrames() { return app::g_recordingFrames; }
 bool AppActive() { return app::g_active != 0; }
@@ -740,8 +741,8 @@ CameraView ViewCamera() {
     if (!ground) return view;
     const auto above = [ground](const Vector3& p) { return p.z - ground->CalmSurfaceHeight(p.x, p.y); };
     const float slope = std::tan(c.fieldOfView * 0.5f);
-    const float halfX = c.nearDistance * slope / screen_layout::AxisScale();
-    const float halfY = c.nearDistance * slope / (4.0f / 3.0f * screen_layout::AxisScaleY());
+    const float halfX = c.nearDistance * slope / g_sceneRenderer.axisScale;
+    const float halfY = c.nearDistance * slope / (4.0f / 3.0f * g_sceneRenderer.axisScaleY);
     const Vector3 across = drawn.rotation.AxisX(), up = drawn.rotation.AxisY();
     const Vector3 centre = drawn.position + drawn.rotation.AxisZ() * c.nearDistance;
     float least = above(drawn.position);

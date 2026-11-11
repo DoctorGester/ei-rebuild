@@ -107,6 +107,7 @@ std::string Format(const char* format, va_list args);
 
 } // namespace libcrt
 
+// FatalExit and Warning are defined in engine/core/program_window.cpp, DebugLog in crt.cpp.
 namespace game {
 
 // A real error (a required file missing or broken, corrupt saved data, broken internal state): logs "fatal: <text>",

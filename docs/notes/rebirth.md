@@ -273,7 +273,8 @@ origin (`UiWindow::originX`):
   The weapon bar starts its regions at 80 - extra but still loops while x < 240 (at 3840x2160: eight regions, tips on
   the first four). The unit panel's draw puts the model at layout x 100 - extra - slide offset; the map's click takes the
   centre at 700 + extra.
-- The axis swap's m[0] is `width43 / width` (`AxisScale`), so the 3D view at the full width keeps 4:3 proportions; the
+- The axis swap's m[0] is `width43 / width` (`SceneRenderer::axisScale`, set by screen_layout::Configure), so the 3D
+  view at the full width keeps 4:3 proportions; the
   fonts' scale `width * 0.0075f / height` (the float 0.0075 widened to a double; `FontScale`); the backdrop at the
   window's size; the camera's and the global map's drags scaled without the margin (addon's read of the global map's pick picture at
   `x / 2 - margin / 2` went with the picture: the zone is found by its marker's faces at the mouse); curtains over the margins of the camp and the multiplayer hero screen

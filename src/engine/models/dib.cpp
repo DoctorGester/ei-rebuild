@@ -2,7 +2,7 @@
 // reader and writer are in dib.cpp.
 #include "engine/models/dib.h"
 
-#include "game/app/app.h"
+#include "engine/core/program_window.h"
 #include "lib/crt.h"
 #include "platform/platform.h"
 
@@ -113,11 +113,11 @@ int Dib::Read(platform::File* input) {
     try {
         DibFileHeader fileHeader;
         if (input->ReadValue(fileHeader) != sizeof(fileHeader)) {
-            app::ShowLibraryMessageBox("read error 1");
+            ShowLibraryMessageBox("read error 1");
             return 0;
         }
         if (fileHeader.type != kBitmapFileType) {
-            app::ShowLibraryMessageBox("Invalid bitmap file");
+            ShowLibraryMessageBox("Invalid bitmap file");
             return 0;
         }
         // Everything between the file header and the bits: the info header, then masks or colours (not kept).
@@ -130,7 +130,7 @@ int Dib::Read(platform::File* input) {
         bits.resize(imageSize);
         input->Read(bits.data(), imageSize);
     } catch (const platform::FileError&) {
-        app::ShowLibraryMessageBox("Read error 1");
+        ShowLibraryMessageBox("Read error 1");
         return 0;
     }
     colourCount = ColourCount(*header, colourCount);
@@ -150,7 +150,7 @@ int Dib::Write(platform::File* output) {
         if (maskBytes) output->Write(masks, maskBytes);
         output->Write(bits.data(), imageSize);
     } catch (const platform::FileError&) {
-        app::ShowLibraryMessageBox("write error");
+        ShowLibraryMessageBox("write error");
         return 0;
     }
     return 1;

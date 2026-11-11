@@ -5,6 +5,9 @@
 #include "game/ui/ui.h"
 #include "game/ui/ui_mesh.h"
 
+#include "engine/core/engine_globals.h"
+#include "engine/scene/scene_renderer.h"
+
 #include "platform/log.h"
 #include "lib/rect.h"
 
@@ -30,10 +33,8 @@ Layout Compute(int width, int height) {
     layout.marginY = (height - layout.height43) / 2;
     const float units = layout.margin * 800.0f / layout.width43;
     layout.extra = static_cast<int>(std::ceil(units));
-    // width43 / width (addon's 10024954) and width * 0.0075 / height43 (10024902), written as 0.01 times the
-    // window's width over its 4:3 width so a 4:3 window gets 0.01 exactly.
-    layout.axisScale = layout.width43 / static_cast<float>(width);
-    layout.axisScaleY = layout.height43 / static_cast<float>(height);
+    // width * 0.0075 / height43 (addon's 10024902), written as 0.01 times the window's width over its 4:3 width so a
+    // 4:3 window gets 0.01 exactly.
     layout.fontScale = 0.01f * (static_cast<float>(width) * 0.75f / static_cast<float>(layout.height43));
     return layout;
 }
@@ -61,6 +62,9 @@ float g_panelRight = /*007428AC*/ 695.0f;
 // (addon: extra + 800.0 / 695.0 summed as doubles, stored as floats).
 void Configure(int width, int height) {
     g_layout = Compute(width, height);
+    // width43 / width (addon's 10024954) and height43 / height.
+    g_sceneRenderer.axisScale = g_layout.width43 / static_cast<float>(width);
+    g_sceneRenderer.axisScaleY = g_layout.height43 / static_cast<float>(height);
     g_layoutWidth = g_layout.extra + 800.0f;
     g_panelRight = g_layout.extra + 695.0f;
     ei::Log("Interface layout: %dx%d, 4:3 part %dx%d, margins %d, %d pixels (%d layout units); layout width %g, panel "
@@ -108,9 +112,6 @@ Size TextExtentToLayout(Size pixels) {
     const Layout& l = Get();
     return Size{MulDiv64(pixels.w, kLayoutWidth, l.width43), MulDiv64(pixels.h, kLayoutHeight, l.height43)};
 }
-
-float AxisScale() { return Get().axisScale; }
-float AxisScaleY() { return Get().axisScaleY; }
 
 float FontScale() { return Get().fontScale; }
 

@@ -104,6 +104,12 @@ public:
     // The display settings SetGamma last applied, as given.
     float brightness = 0.0f;
     float gamma = 0.0f;
+    // The projection's x and y scales on the axis swap's diagonal (AxisSwapMatrix; the camera's near plane): the
+    // window's 4:3 part over the whole window, width43 / width and height43 / height, so the 4:3 picture keeps its
+    // proportions on any window (Rebirth's WideScreen scaled x); 1 and 1 on a 4:3 window. game/ui/screen_layout.cpp
+    // sets them with the interface layout.
+    float axisScale = 1.0f;
+    float axisScaleY = 1.0f;
     // The frame time (milliseconds; BeginScene / EndScene).
     std::uint32_t frameTime = 0;               // the last frame's
     std::uint32_t frameStart = 0;              // timeGetTime at this frame's BeginScene

@@ -1,6 +1,7 @@
 // WinMain: the application's start-up, its main loop and its shutdown. See docs/notes/app.md, "WinMain".
 #include "game/units/acks_db.h"
 #include "game/app/app.h"
+#include "engine/core/program_window.h"
 #include "game/app/game_flow.h"
 #include "game/app/harness_hooks.h"
 #include "game/app/tool_hooks.h"
@@ -580,8 +581,6 @@ bool ModSwitchPending() { return g_modRequest.has_value(); }
 
 const std::string& GameFolder() { return g_gameFolder; }
 
-char g_windowTitle[256] = /*0079BB24*/ {""};
-platform::NativeWindow g_mainWindow = /*0079BC28*/ {};
 std::uint8_t g_active = /*0079BC5C*/ {};
 std::uint8_t g_interfaceHasScreen = /*00784750*/ 1;
 std::uint8_t g_recordingFrames = /*0079BC54*/ {};
