@@ -230,7 +230,20 @@ numbers), `[curves]` (name = `[[t, value], ...]`, linear, held at the ends).
 
 ### Expressions
 
-A number, `true` / `false`, or a string compiled once at load (`particle_expr.h`): numbers, names, `+ - * / %`,
+A number, `true` / `false`, or a string compiled once at load (`particle_expr.h`) into a stack program over four-lane
+values (`Lanes`). The compiler knows each value's width (1 to 4): a scalar fills all four lanes, so it combines lane by
+lane with a vector; two vectors of different widths are a load error; a scalar context (a condition, a size, an index)
+reads lane x; a random draw draws once per lane it fills. A swizzle on a name or a value (`origin.x`, `sun.rgb`,
+`(a + b).xy`, `aim.yx.x`) picks lanes, and on a name it narrows the load (`origin.x` compiles to the one float, as the
+scalar names did). `vec2/3/4(...)` join values (`Op::Construct`; one scalar repeats); `dot length normalize cross
+distance` (normalize as `v * (1 / length)`), `ball()` (`RandomInBall`, ten tries), `shell()` (the ball's point scaled
+to length 1), `disc()` (an angle, then `sqrt(below(1))`), `circle(angle)`, `platform_normal(point)`, `on_ground(point,
+height)`; the maths functions and `range`, `below` work per lane. A var takes the widest width of its start and tick
+(the reader reads the record again while a var widens, since a var may read one declared after it); vars sit one after
+another in their scope's floats (`Var::slot`), a particle's in its eight. Cost: the v4 stack made effect_check's coarse
+run (146 cases, 8 seeds) 1.39 s -> 1.63 s on the old files (+17%; the run stack left unset and a scalar's binary
+operations done once).
+Numbers, names, `+ - * / %`,
 comparisons, `!`, `&&`, `||` (both short), `a ? b : c`, functions `sin cos atan2 sqrt abs floor ceil round min max clamp
 lerp pow exp log`, `ground(x, y)` (the ground's height there, as `on_ground` reads it; 0 in the unit checks and in
 effect_check's empty terrain), `platform_height(x, y)`, `platform_normal_x(x, y)`, `_y`, `_z` (the plane of a platform
@@ -244,7 +257,8 @@ one), `ball_x()` (a point drawn in the unit ball, `effectdata::RandomInBall`; it
 last drawn point's y and z). Constants `pi`, `deg`. Names, by where the expression runs:
 - everywhere: the inputs, the vars, the source's values (`size`, `height`, `growth`, `alpha`, `param`, `base_size`,
   `age`, `stage_age`, `stage`, `carrier_radius`, `carrier_z`, `attached`, `distance`, `motion.x/y/z`, `origin.x/y/z`,
-  `count`, `index`, `total`, `wind.x/y/z`, `wind_strength`, `extent.x/y/z`, `turn_cos`, `turn_sin`, `emitting`: the
+  `count`, `index`, `total`, `wind.x/y/z`, `wind_strength`, `extent.x/y/z` (each `name.x/y/z` here a vector `name`),
+  `turn_cos`, `turn_sin`, `emitting`: the
   source's emission flag, which the game's StopEmitting and Stop and an effect's `once` clear, `spread_min.x/y/z`,
   `spread_max.x/y/z` (the spread box, scaled by ScaleSize), `sun.r/g/b` (the scene's sun colour, 0..1; 0 without a
   sun), `side.x/y/z`, `up.x/y/z` (the motion's side and up axes this
@@ -254,13 +268,14 @@ last drawn point's y and z). Constants `pi`, `deg`. Names, by where the expressi
   `carrier_left_foot.x/y/z`, `carrier_right_foot.x/y/z` (its "ll3" / "rl3" parts, else its body, else its position
   raised by its bounds' top, as particlehost::WriteCarrier finds a part; the origin without a unit carrier); written at the tick's
   start only for an effect that reads one of them), `anchors.<group>` (live count), `stage.<name>`;
-- in an anchor's and its particles' fields: `a.index`, `a.count`, `a.age`, `a.ticks` (left), `a.x/y/z`,
-  `a.spawn.x/y/z`, `a.<var>`;
-- in a particle's: `p.age`, `p.life`, `p.t` (age / (age + life)), `p.x/y/z`, `p.vx/vy/vz`, `p.size`, `p.alpha`,
-  `p.frame`, `p.anchor`, `p.index` (the values before this tick's update), `p.spawn.x/y/z` (at the emission; 0 in the
-  update), `p.<var>` (as the vars' ticks left them). A particle var may not take one of these names (`age`, `x`,
-  `life`...): a load error, since `p.life` would read the var.
-A name the context lacks is a load error. Every operation is a float operation in the written order, so the draws come
+- in an anchor's and its particles' fields: `a.index`, `a.count`, `a.age`, `a.ticks` (left), `a.position` (`a.x/y/z`
+  its lanes), `a.spawn`, `a.<var>`;
+- in a particle's: `p.age`, `p.life`, `p.t` (age / (age + life)), `p.position` (`p.x/y/z`), `p.velocity`
+  (`p.vx/vy/vz`), `p.size`, `p.alpha`, `p.color` (0..255 a lane), `p.frame`, `p.anchor`, `p.index` (the values before
+  this tick's update), `p.spawn` (at the emission; 0 in the update), `p.<var>` (as the vars' ticks left them). A
+  particle var may not take one of these names (`age`, `x`, `life`...): a load error, since `p.life` would read the
+  var.
+A name the context lacks is a load error. Every operation runs lane by lane in the written order, so the draws come
 in the written order too; an emission's parts draw in the order lifetime, vars, the shape, the vars after it, the
 offset or position, velocity, size, colour, frame. Every draw is `g_particleRandom`'s.
 
@@ -464,29 +479,34 @@ Found in the 83 files (user 2026-11-11: exactness dropped, an effect may drift i
 - **Whole files that are variants but for order**: CastingDivination (a kind before the base's), VisionStar2 and
   CampFire (vars before the base's), Transform (a reaction less).
 
-Proposals (implemented in this order; each step re-records effect_check's reference where effects move, checked by
-the coarse compare and the viewer's captures):
-1. effect_check's coarse mode: per case and quarter of its ticks, particle counts, lifetimes, bounds, average size and
-   colour, within a tolerance (tests/effects/coarse.txt, recorded before any change).
-2. Vector values: every value is four floats (a v4 stack, scalars broadcast to all lanes; the compiler knows each
-   value's width, so a random draw draws once per lane it fills and a scalar context reads `.x`). Swizzles (`.x`,
-   `.xy`, `.rgb`) on any name or `(...)` / `[...]`; `vec2() vec3() vec4()`; `dot length normalize cross distance`;
-   math functions per lane; `range(lo, hi)` on vectors draws each lane; `ball() shell() disc()` and `circle(angle)`
-   return points; `ground surface platform_height platform_normal on_ground` take a point. Names: `origin`, `motion`,
-   `wind`, `extent`, `spread_min / max`, `side`, `up`, `sun`, the carrier's axes and feet, `p.position`, `p.velocity`,
-   `p.color`, `p.spawn`, `a.position`, `a.spawn`, a vector input, `path[i]`, `group.var[i]`; vars take the width of
-   their expressions (a particle's eight floats hold its vars, a vector three).
-3. One field form: a field is a value (its start) or `{ start, tick }`; `tick` alone starts with the same expression.
-   `spawn` is one point expression (the default `0`), drawn before the vars; `position` defaults to the centre plus
-   `p.spawn` and to moving by the velocity; `velocity = { start, tick }` replaces `speed`, `drag`, `gravity`, `wind`;
-   `size`'s `growth` is a tick; an anchor's `position` replaces `x / y / z / radius / angle`; `color` is `"RRGGBB"` or a
-   vector expression. `after_spawn`, `tries`, `shift`, `offset`, `on_ground`, `ball_x/y/z`, `platform_normal_x/y/z`
-   and the scalar `p.x / p.vx / a.x` names go.
-4. The update after death goes: a dead particle is drawn once more where it was and then pooled without an update, so
-   the age guards go and those kinds take a plain `lifetime`.
-5. Variants: a new keyed element (`[[particle]]`, `[[anchor]]`, `[[stage]]`, `[[on]]` with a `name`) or var takes
-   `before = "<name>"`, and `remove = true` takes the base's out: the four whole files become variants.
-6. The files rewritten in the new form (shorter, saying what they mean); the showcase mod and docs/modding.md
+Proposals (in this order; each step re-records effect_check's reference where effects move, checked by the coarse
+compare and the viewer's captures). In: 1, 2 and 5 (the files unchanged in effect, effect_check exact). Left: 3, 4
+and 6, which move effects and rewrite the files.
+1. (In) effect_check's coarse mode: per case and quarter of its ticks, particle counts, lifetimes, bounds, average
+   size and colour, within a tolerance (tests/effects/coarse.txt, recorded before any change).
+2. (In; the files still use the scalar names) Vector values ("Expressions" above): every value is four floats (a v4
+   stack, scalars broadcast to all lanes; the compiler knows each value's width, so a random draw draws once per lane
+   it fills and a scalar context reads `.x`). Swizzles (`.x`, `.xy`, `.rgb`) on any name or `(...)` / `[...]`;
+   `vec2() vec3() vec4()`; `dot length normalize cross distance`; math functions per lane; `range(lo, hi)` on vectors
+   draws each lane; `ball() shell() disc()` and `circle(angle)` return points; `ground surface platform_height
+   platform_normal on_ground` take a point. Names: `origin`, `motion`, `wind`, `extent`, `spread_min / max`, `side`,
+   `up`, `sun`, the carrier's axes and feet, `p.position`, `p.velocity`, `p.color`, `p.spawn`, `a.position`,
+   `a.spawn`, a vector input, `path[i]`, `group.var[i]`; vars take the width of their expressions (a particle's eight
+   floats hold its vars, a vector three). A field of three is one vector expression or `[x, y, z]`; `color` takes a
+   vector expression and an anchor `position` (beside `x / y / z` and `radius / angle`, until step 3).
+3. (Left) One field form: a field is a value (its start) or `{ start, tick }`; `tick` alone starts with the same
+   expression. `spawn` is one point expression (the default `0`), drawn before the vars; `position` defaults to the
+   centre plus `p.spawn` and to moving by the velocity; `velocity = { start, tick }` replaces `speed`, `drag`,
+   `gravity`, `wind`; `size`'s `growth` is a tick; an anchor's `position` replaces `x / y / z / radius / angle`.
+   `after_spawn`, `tries`, `shift`, `offset`, `on_ground`, `ball_x/y/z`, `platform_normal_x/y/z` and the scalar
+   `p.x / p.vx / a.x` names go.
+4. (Left) The update after death goes (particle_manager.cpp `UpdateParticles`: a dead particle is released and still
+   updated once): it is drawn once more where it was and then pooled without an update, so the age guards go and
+   those kinds take a plain `lifetime`. Only kinds that end by `kill` or a frame mode see it (a lifetime's end returns
+   before any change); it moves their bounds, draws and writes, so effect_check's reference is re-recorded with it.
+5. (In) Variants: a new keyed element (`[[particle]]`, `[[anchor]]`, `[[stage]]`, `[[on]]` with a `name`) or var takes
+   `before = "<name>"`, and `remove = true` takes the base's out: the four whole files are variants.
+6. (Left) The files rewritten in the new form (shorter, saying what they mean); the showcase mod and docs/modding.md
    "Effects" to match, with a migration note for older mod files.
 
 ### Checks
@@ -498,7 +518,11 @@ the coarse compare and the viewer's captures):
   points as OnPathMarker reads them), or a hero that runs, walks, dies and turns), each tick's
   particles (position, size, colour, frame, their previous values, the dead flag), origin,
   bounds, flags, RunTick's answer and the particle generator's draws, hashed per tick. No game data (no texture is
-  loaded).
+  loaded). Then the coarse compare (tests/effects/coarse.txt, also built in; `--coarse` alone, `--record-coarse
+  <file>`): every case run with 8 seeds, per quarter of its ticks the births, deaths and age at death, the particle
+  count, size, colour and the mean and spread of the places, each within a tolerance (`kTolerances`; a quarter with
+  under one particle a tick compares its count alone). An effect changed on purpose passes it before its exact
+  reference is recorded again.
 - `tests/unit/particle_record.cpp` (ei_unit_check): expressions (precedence, short evaluation and its draws, tables,
   curves, errors), a record read and merged over a lower layer (a field by name, an element appended), problems named
   with file and line, the state machine driven by its inputs (stages by ticks, by `until` on an input, by an event;
@@ -515,7 +539,10 @@ the coarse compare and the viewer's captures):
   docs/modding.md (and in this file, which has none now) read without a problem (EI_SOURCE_DIR); MF15g5a's `like`:
   a variant over its base (a var and the texture replaced, a kind merged by name and one appended, a number array and
   an `[[on]]`'s action list replaced whole), a chain of two, a mod's layer over the base reaching the variant, and a
-  missing base, a `like` to itself, a circle of two and a `like` that is no name refused with file and line. The
+  missing base, a `like` to itself, a circle of two and a `like` that is no name refused with file and line, a var and
+  a kind put `before` the base's and a var, a kind and an `[[on]]` taken out by `remove`; MF15l's vectors (a vector
+  input, `normalize`, `length`, `dot`, `cross`, chained swizzles, `ball()`, a per-lane `lerp`, a var reading a later
+  vector var, vectors of two widths refused, a particle's vars over eight floats refused). The
   POSIX port check (`port_platform`) runs the same checks.
 - `mod_effect` (both installs; the showcase mod's `Res\effects\showcase_aura.effect.toml`): CreateParticleSource by
   name, the client's source and its stages (`effect ... check`), inputs set by value and by enum name, the burst's

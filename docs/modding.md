@@ -633,6 +633,19 @@ frame = { start = "pick(16)", delay = 1 }
   (`p.age`, `p.life`, `p.x`...). A var with `at_create = true` starts when the source is made (a random count drawn
   once, before the first tick); so does an anchor group with `at_create = true` (the fireball's fragments). The
   scene's sun colour is `sun.r/g/b` (0..1: the tornado takes its colour from it).
+- **Vectors**: a value can be a vector of up to four numbers. `origin`, `motion`, `wind`, `extent`, `spread_min`,
+  `spread_max`, `side`, `up`, `sun`, `carrier_axis`, `carrier_axis_y`, the feet, a `vector` input, a list's point
+  `path[i]`, `p.position`, `p.velocity`, `p.spawn`, `p.color` (0..255), `a.position` and `a.spawn` are vectors;
+  `vec3(x, y, z)` makes one (`vec3(0.5)`: 0.5 in all three; `vec2`, `vec4` too). `.x`, `.xy`, `.zyx`, `.rgb` pick its
+  numbers (`origin.z`, `sun.r`). Arithmetic and the maths functions work number by number, a single number counting
+  for every one (`origin + p.spawn * 0.5`); `dot`, `length`, `normalize`, `cross` and `distance` are the usual ones;
+  `ball()` is a random point in the unit ball, `shell()` one on its surface, `disc()` one in the unit circle on the
+  ground, `circle(angle)` the circle's point at that angle, and `range(lo, hi)` of vectors draws each number;
+  `platform_normal(point)` is a platform's slope there and `on_ground(point, height)` the point moved to that height
+  over the ground (`ground`, `surface` and `platform_height` take a point too). A var is as wide as its value (`dir =
+  "normalize(p.spawn)"`, read as `p.dir` or `p.dir.z`); a particle's vars hold eight numbers between them. A field of
+  three (`position`, `velocity`, `gravity`, `color`, a spawn's `min`, `max`, `from`, `to`, an anchor's `position`) is
+  one vector expression or `[x, y, z]`.
 - **Reactions** (`[[on]] event = "tick"`, with a `when` condition) run actions each tick: `{ set = "height", value =
   ... }` changes an input, a var or the source's own `size`, `height`, `growth`, `alpha` or `param`, `{ stop_emitting =
   true }` ends the emission (the particles live on), `{ stop = true }` stops the source, `{ let_go = true }` lets go
