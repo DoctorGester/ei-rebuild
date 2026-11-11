@@ -4,3 +4,5 @@ group = "mods"
 depends = ["MF17g4"]
 note = "The last of the lasting areas (docs/notes/items_spells.md, 'The game's spells on scripts'; LastingArea.lua's pattern). Every zone's flames standing on the ground cast one (world_units.cpp SpecKind::Flame, CreateSpellFromText campfire, no caster): 437 of 437 goldens hold campfire records, so the port re-records every golden (missile record form; the zone saves' missile records and the Lua state's casts) and every old save resumes them (OnResume: the count goes up forever, a hit every 4th tick at (timer & 3) == 0 from old.ticks). StartAtGround makes no objects and no footprint (no visual); HitUnitsInRadius at the ground + 1, fire, area, split by the duration, credit every pulse (flags never set); max_ticks = 0 (it never ends). Then GetDamage, DamageKindOf, HitUnitsInRadius and CountingCloud go. Measure the cost: towns have several, each a timer call every 4 ticks. User 2026-11-11: go ahead and re-record the goldens for it (check with golden.py explain that only missile records / saved casts change first). Start after MF17g6's merge."
 order = 1380
+status = "running"
+started = "2026-11-11"
