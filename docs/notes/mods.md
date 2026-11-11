@@ -65,6 +65,8 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `tests/scenarios/mod_example.txt` | the example mod played: its text, weapons, pig, red ground (`hues world 0.2 1 red`) and reads |
 | `examples/showcase_mod/`, `tools/make_showcase_mod.py` | the showcase mod, all our own files ("The showcase mod"); the tool writes its pictures and models and copies it for a run |
 | `tests/scenarios/mod_showcase.txt` | the showcase mod played: the island, the golem's fight, the quest and its reward |
+| `figure_gltf.h` (`IsWornModel`, `JoinWorn`), `resource.cpp` (`WornSetFile`, `JoinedSet`) | an item's worn model joined to the figure sets that lack its parts ("Worn models") |
+| `tests/scenarios/mod_showcase_worn.txt` | the showcase hammer in the hero's hand (`unitpart`) |
 | `src/engine/models/figure_gltf_animation.cpp`, `figure_gltf_glb.h` | a set's animations as glTF animations and back ("Animations as glTF"); the pieces the two files share (the .glb's writer, the reader's accessors) |
 | `tests/scenarios/mod_gltf_animation.txt` | a mod's glTF hero whose idle is twice as slow, played in a new game |
 | `src/game/script/script_lua_mission.cpp` | a .mob's script from a .lua ("Scripts in Lua"): `Script::LoadLua`; `Script::Runner`, `GlobalValues`, `GlobalGroup` and the scheduler's views for the digest and the saves |
@@ -983,6 +985,42 @@ millisecond a figure (a converted install's load: "Textures as PNG", "Loading co
   the hero, trees, rocks, a loose figure): no errors or warnings; its infos are the TEXCOORD_0 it calls unused (no
   material has a texture). Blender was not at hand.
 
+## Worn models
+
+A weapon in hand and the armour worn are parts of every unit figure that can wear them (MF13c): ShowWeapon loads
+`WeaponModelParts` (`rh3.club05`, the bow's seven), ArmourPutOn and the unit's first figure `<bone>.armor<nn>`, each by
+`Object3D::LoadPart` (the piece from the figure set) and the skeleton's bone of the part's name (`AttachMesh`), which
+the set's link list makes. A new item number has no piece and no bone. Its worn model, a glTF named as the item's
+model without material and variant (`<code>_<nn>`, `figure_gltf::IsWornModel`: letters, `_`, digits; no shipped
+figure or converted file has such a name), holds the parts under root nodes named as the bones they hang from.
+
+The parts join the figure sets at the file level (one path for vanilla and mod parts, nothing in the game's code
+changes): `MappedResource::FindFile` answers a `.mod` or `.bon` request through `WornSetFile`, which (once per name,
+`wornSets`) reads the set's own `.mod` and `.bon` as FindFile would (a glTF's made file, a folder's, an archive's entry)
+and joins every worn model of its sources (`JoinedSet`; the top source's of a name): `figure_gltf::JoinWorn` adds each
+worn link whose parent the set links (or just gained) and whose part it does not link, the part in lower case (the
+skeleton and the parts match names with their case; the game asks in lower case) under the set's spelling of the
+parent, its record to the `.mod` and its offsets to the `.bon` (when the set has one), in place of an entry of the
+name. A set nothing joins is read as before (vanilla and Rebirth: no worn model, nothing changes). The joined set is
+the same set for every reader: both figure caches (the figure manager's and the link loader's), the skeleton
+(`LoadSkeletonLinks`: a bone for the part from the unit's creation), `ArmourPutOn`'s `FindEntry`, the bounds
+(`SetUpAnimatedFigure` boxes the new bone too) and the remorph. The `.anm` is not touched: the joined bone has no track
+and hangs still from its parent, as the game's clubs hang from `rh3.axe00`.
+
+Texture: the game's weapons and helmets take the unit's second texture (kind 2): the weapon's picture in its left 0.3
+(the game's hammers are opaque only there), the helmet's in the middle; NameSkinTextures composes the helmet's
+then the weapon's. So a worn weapon's picture is clear outside its strip (the showcase hammer's: 38 of 128 pixels).
+
+Gaps: a worn part is not scaled by the unit's build unless its glTF has the morph targets; the weapon's point
+(`baseclubNN`, `WeaponPoint`) is not read for any weapon today (it asks `WeaponBaseFigure` with the packed id).
+
+Checks:
+- `ei_unit_check`'s worn checks (tests/unit/figure_gltf.cpp): the names; a club and the tip under it join a set with
+  the hand bone (lower case, the set's parent spelling, record and bones), a part the set has keeps its own, a root it
+  lacks and a set without the bone join nothing, a second join changes nothing.
+- `mod_showcase_worn` (both installs): the hero wears no `rh3.club09` until it takes the hammer, then one
+  (`unitpart`, harness.md); the capture `worn`; the trace has `hm_09.glb` read.
+
 ## Animations as glTF
 
 A set's animations can be glTF animations (MF7, user 2026-11-09). Every `.anm` still loads; the set's glTF ("Models as
@@ -1307,8 +1345,8 @@ Each part, its format, and what the formats could not do (each gap a ticket):
 |---|---|---|---|
 | The zone | `Maps\zone1\` (map.toml, heights.png, tiles.png), `Maps\zone1.mob.toml`, `Maps\zone1.lua`; `Res\textures\zone1000.png` (the ground page), `zone1map.png`, `zone1quest.png` (minimap, objectives map); texts' `zone gz1g` | map folder, map objects TOML, Lua, PNG | It replaces zone 1 (map.txt's gz1g: `#res zone1 zone1`): a mod cannot add a zone, since map.txt is one texts entry read whole (MF13a). A new game enters it with no extra step, its 8 x 6 sectors keep gz1g's exits fitting: the party lands at exit 1's (49, 133)-(59, 143), exit 2 at (181, 108)-(193, 120) still leads to the base bz1g. The AI region graph is zone 1's, read from the game's zone1.mob (MF13d) |
 | The enemy | `Res\figures\scgolem.glb` (15 boxes, 13 animations), `Res\database\scgolem.adb.toml`, `units.udb.toml` (`[[model]]` "Showcase Golem", `[[unit]]` "ShowcaseGolem"), `Res\textures\scgolem00.png` (the placement's `parent_iname`) | glTF set, records TOML, databases TOML, PNG | None. No sounds: `sound_folder` empty, the animations' `sounds` empty; its footsteps name the game's stone steps. The shards (`[[unit]]` "ShowcaseShard", 4002 and 4003 by the golem) are the golem's model at scale 0.3 in their own skin (`Res\textures\scshard00.png`) |
-| The weapon | items.idb.toml `[[weapon]]` "showcase hammer" (hammer number 9), `Res\figures\initwehm9.glb` (inventory model, loose figure, part `weapon`), `Res\redress\unhumahm_09.gr.0.png` | databases TOML, glTF loose, PNG | Not seen in the hand: the hand's model is a part of every unit figure (`rh3.<type><nn>`), which a new number lacks (MF13c) |
-| The armour | `[[armor]]` "showcase boots" (boots number 20), `initarbt20.glb`, `Res\redress\unhumabt_20.le.0.png` (a layer over the hero's 256 x 256 skin: opaque where the feet and shins are) | as the weapon | None: boots, gloves, shirts and trousers are skin layers, no part. Helmets, body armour and leggings would need parts (MF13c) |
+| The weapon | items.idb.toml `[[weapon]]` "showcase hammer" (club number 9), `Res\figures\initwehm9.glb` (inventory model, loose figure, part `weapon`), `Res\figures\hm_09.glb` (its worn model: `rh3.club09` under `rh3.axe00`, "Worn models"), `Res\redress\unhumahm_09.gr.0.png` (the weapons' strip of the hero's second texture) | databases TOML, glTF loose and worn, PNG | None (MF13c) |
+| The armour | `[[armor]]` "showcase boots" (boots number 20), `initarbt20.glb`, `Res\redress\unhumabt_20.le.0.png` (a layer over the hero's 256 x 256 skin: opaque where the feet and shins are) | as the weapon | None: boots, gloves, shirts and trousers are skin layers, no part. Helmets, body armour and leggings take a worn model as the weapon does (none shipped) |
 | The spell | spells.sdb.toml `[[spell]]` "spark" (Chain Spark, `script = "chain_spark.lua"`, icon 101), `Res\spells\chain_spark.lua`, `Res\effects\ChainSpark.effect.toml`, `ChainSparkHit.effect.toml`, `Res\textures\chainspark.png` (the effects' 16 pictures), `spell0101.png`, `prototype0101.png`, texts' `SPELL spark` | databases TOML, Lua, data effects, PNG | None (MF17e): a scripted spell (items_spells.md, "Scripted spells"). The spark (a missile carrying ChainSpark) strikes, then an arc reaches the nearest enemy within the radius not struck yet and the spark leaps along it 10 ticks later (a timer), each strike 0.6 of the one before (12, 7.2, 4.32), each leaving its victim shocked 40 ticks (the spell's own active effect: OnStats slows as the game's slow, the record's `look` ChainSparkShock) and starting ChainSparkHit on it, up to `target_count`; the last chain's strikes go into the game variables `chain_spark.*`. No sounds of its own: the game's lightning sound |
 | The buff | spells.sdb.toml `[[spell]]` "ember" (Ember Brand, `script = "ember_brand.lua"`, `duration` 120, `damage` 5, `look` the game's SphereFire), `Res\spells\ember_brand.lua` | databases TOML, Lua | None (MF17h3, MF17h1a): a curse, the spell's own active effect. OnStats subtracts its value from Strength (a stat no game buff touches); OnEffectTick burns 2 fire every 20 ticks left (`effect:Damage`, no caster); OnEffectApplied / OnEffectEnded say so on the console; the burns and the end into the game variables `ember_brand.*`. No item carries it: `CastSpellUnit("ember", ...)` |
 | The quest | `Maps\zone1.lua` (sets `q.gz1g.showcase_golem` and its objective `.1`, gives the spell container `spell container[spark]`, watches the golem, `QuestComplete`, `GiveItem`), `quests.qdb.toml` (its experience), texts' `quest showcase_golem` | Lua, databases TOML, texts TOML | None |

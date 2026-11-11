@@ -179,8 +179,8 @@ StepKind Classify(const std::string& verb) {
     static const std::set<std::string> kSkip = {
         "wait", "frames", "waitmenu", "waitwindow", "waitdialogue", "talk", "waitunit", "waitidle", "walkto", "waitdead",
         "waitaward", "awardfrom", "waitline", "waitexpect", "waitfor", "waitzone", "waitpresent", "check", "expect",
-        "reject", "allow", "report", "groundview", "hudstate", "campstock", "clientbolts", "clienthurt", "figurealone", "minimap",
-        "consoleline", "recordcut", "recordpart", "origin"};
+        "reject", "allow", "report", "groundview", "hudstate", "campstock", "clientbolts", "clienthurt", "unitpart",
+        "figurealone", "minimap", "consoleline", "recordcut", "recordpart", "origin"};
     static const std::set<std::string> kKept = {
         "newgame", "load", "console", "zone", "screen", "speed", "frametime", "focus", "windowsize", "chat", "campputon",
         "freeze", "unfreeze", "digest", "dump", "quit", "shadows", "masterhost", "hit",

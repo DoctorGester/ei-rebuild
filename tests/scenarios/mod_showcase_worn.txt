@@ -1,0 +1,33 @@
+# The showcase mod's hammer in the hero's hand (examples/showcase_mod; docs/notes/mods.md, "Worn models"): the hammer
+# (club number 9, which no figure of the game has) brings its own worn model, Res\figures\hm_09.glb: its part
+# rh3.club09 under the bone rh3.axe00 the game's clubs hang from. The part joins the hero's figure set (unhuma: its link
+# list, records and bones), so the hero's skeleton has a bone of its name from the start and no unit wears it yet
+# (unitpart 0). The hero takes the hammer (GiveUnitWeapon puts it in the hand); the client loads the part as it loads a
+# game's club (ShowWeapon: LoadPart, the bone of its name carries it), and the hero wears it (unitpart 1, logged with
+# the bone's parent and place). Capture: the hero with the hammer, near (worn), its head in the weapons' strip of the
+# hero's second texture (Res\redress\unhumahm_09.gr.0.png).
+# prepare: make_showcase_mod.py
+mod harness_saves\showcase_mod
+reject Script error
+waitmenu
+console thingamabob
+
+newgame
+waitline 20 Showcase mod: the island loads
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitwindow 10 battle
+console @GodMode(0,1)
+unitpart rh3.club09 0
+console @MoveToPoint(GetLeader(),56,136)
+waitfor 15 IsLess(DistanceUnitPoint(GetLeader(),56,136),1)
+console @GiveUnitWeapon(GetLeader(),"showcase hammer.granite",0)
+frames 30
+unitpart rh3.club09 1
+camera 56 136 20 5 40
+frames 5
+capture worn
+
+read mod Res\figures\hm_09.glb yes
+read mod Res\redress\unhumahm_09.gr.0.mmp yes
+report
+quit

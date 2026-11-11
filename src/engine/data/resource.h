@@ -182,6 +182,12 @@ public:
     // The figure files made from each glTF read (by where it was read; none when it fails to parse): docs/notes/mods.md,
     // "Models as glTF".
     std::map<std::string, std::optional<std::map<std::string, std::string>>> madeModels;
+    // Each figure set's .mod and .bon with the worn models joined (docs/notes/mods.md, "Worn models"), by the figure's
+    // name, made at its first request; none when no worn model joins it.
+    struct WornSetFiles {
+        std::string mod, bon;
+    };
+    std::map<std::string, std::optional<WornSetFiles>, std::less<>> wornSets;
     // The .mmp files made from PNGs that nothing holds any more, the last closed at the back, up to kKeptPngBytes
     // together (docs/notes/mods.md, "Textures as PNG"): a zone asks again for most of the textures the zone before it
     // let go, and making one from its PNG costs far more than reading an archive's entry.
@@ -239,6 +245,16 @@ private:
     bool HasModelFile(std::string_view name, const Source& source);
     // The files made from the glTF `model` (its file's name) in `source`, read once; null when it fails to parse.
     const std::map<std::string, std::string>* MadeModel(const Source& source, const std::string& model);
+    // The bytes of the figure file `key` (a LooseKey) made from a glTF in `source` that holds it (the longest name that
+    // begins it first), or null.
+    const std::string* MadeModelFile(const std::string& key, const Source& source);
+    // A figure set's .mod or .bon `name` (`key` its LooseKey) with the worn models of `sources` joined (shared when made
+    // already); null when none joins the set, which is then read as it is. Docs/notes/mods.md, "Worn models".
+    void* WornSetFile(std::string_view name, const std::string& key, const std::vector<Source>& sources,
+                      std::uint32_t* size);
+    // Figure set `figure`'s .mod and .bon as the sources hold them, joined by each worn model of theirs (the top
+    // source's of a name); none when no part joins.
+    std::optional<WornSetFiles> JoinedSet(const std::string& figure, const std::vector<Source>& sources);
     // GetFile's search; with `utf8` (FindText) a folder's texts.toml too.
     void* Find(std::string_view name, std::uint32_t* size, bool* utf8);
     void* FindFile(std::string_view name, std::uint32_t* size, bool* utf8);

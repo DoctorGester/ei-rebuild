@@ -22,7 +22,9 @@ Made files:
   Res\\textures\\spell0101.png, prototype0101.png     the Chain Spark's pictures (icon 101): its spell items and
                                                      scrolls, the spell maker's prototype
   Res\\figures\\initwehm9.glb, initarbt20.glb         the hammer's and the boots' inventory models
-  Res\\redress\\unhumahm_09.gr.0.png                  the hammer's texture (granite)
+  Res\\figures\\hm_09.glb                            the hammer's worn model: its part in the hand of each figure
+                                                     that wears clubs (docs/notes/mods.md, "Worn models")
+  Res\\redress\\unhumahm_09.gr.0.png                  the hammer's texture (granite), in the weapons' strip
   Res\\redress\\unhumabt_20.le.0.png                  the boots' layer over the hero's skin (thin leather)
 """
 import json, math, os, random, shutil, struct, sys, zlib
@@ -327,7 +329,21 @@ class Gltf:
         return names.index(name)
 
     def node(self, name, translation, shape, material, parent=None):
-        """A part: its mesh (the game's axes, relative to the part) and its translation from its parent."""
+        """A part: its mesh (the game's axes, relative to the part; None: a node without one) and its translation from
+        its parent."""
+        node = {'name': name}
+        if shape is not None:
+            node['mesh'] = self.mesh(name, shape, material)
+        node['translation'] = list(game_to_gltf(translation))
+        self.doc['nodes'].append(node)
+        index = len(self.doc['nodes']) - 1
+        if parent is None:
+            self.doc['scenes'][0]['nodes'].append(index)
+        else:
+            self.doc['nodes'][parent].setdefault('children', []).append(index)
+        return index
+
+    def mesh(self, name, shape, material):
         positions, normals, uvs, indices = shape
         primitive = {
             'attributes': {
@@ -339,14 +355,7 @@ class Gltf:
             'material': self.material(material),
         }
         self.doc['meshes'].append({'name': name, 'primitives': [primitive]})
-        node = {'name': name, 'mesh': len(self.doc['meshes']) - 1, 'translation': list(game_to_gltf(translation))}
-        self.doc['nodes'].append(node)
-        index = len(self.doc['nodes']) - 1
-        if parent is None:
-            self.doc['scenes'][0]['nodes'].append(index)
-        else:
-            self.doc['nodes'][parent].setdefault('children', []).append(index)
-        return index
+        return len(self.doc['meshes']) - 1
 
     def animation(self, name, frames, rotations, translations):
         """One animation of frames + 1 keys a tick apart: rotations {node: [quaternion (x, y, z, w), game axes]},
@@ -604,8 +613,11 @@ def spark_icon(background, rim, bolt, glow):
 
 # --- The hammer and the boots ------------------------------------------------------------------------------------------
 
-HANDLE_UV = (0.0, 0.0, 0.25, 1.0)
-HEAD_UV = (0.25, 0.0, 1.0, 1.0)
+# A unit's weapons take the left 0.3 of its second texture (the helmets the middle; the game's hammers' pictures are
+# opaque there alone), so the hammer's picture is a strip of that width and its faces' coordinates lie in it.
+STRIP = 38   # of the picture's 128
+HANDLE_UV = (0.0, 0.0, 9 / 128, 1.0)
+HEAD_UV = (9 / 128, 0.0, STRIP / 128, 1.0)
 
 
 def turned_flat(shape, degrees, scale):
@@ -627,23 +639,40 @@ def hammer_icon():
     return gltf.glb({'ei': {'layout': 'loose'}})
 
 
+def hammer_worn():
+    """hm_09: the hammer in the hand, the part the game loads for club number 9 (rh3.club09) under the bone the game's
+    clubs hang from (rh3.axe00, a node without a mesh here: the figures have it), in the second texture's weapons'
+    strip (material "stone 2"). The game's clubs point along -y from the grip, about 0.45 long; this one is 0.56."""
+    gltf = Gltf()
+    shape = merge(box((0, -0.17, 0), (0.035, 0.56, 0.035), HANDLE_UV),
+                  box((0, -0.42, 0), (0.2, 0.1, 0.09), HEAD_UV),
+                  box((0, -0.42, 0), (0.24, 0.06, 0.06), HEAD_UV))
+    hand = gltf.node('rh3.axe00', (0, 0, 0), None, None)
+    gltf.node('rh3.club09', (0, 0, 0), shape, 'stone 2', hand)
+    return gltf.glb()
+
+
 def hammer_texture(rng):
-    """unhumahm_09.gr.0: the handle (left quarter) dark wood, the head granite with a blue rune."""
+    """unhumahm_09.gr.0: in the weapons' strip the handle dark wood, the head granite with a blue rune; the rest clear
+    (a helmet's picture shows there)."""
     size = 128
     grain = Fractal(rng, 4, 3, float(size))
     pixels = []
     for y in range(size):
         for x in range(size):
-            if x < size // 4:
+            if x >= STRIP:
+                pixels.append((0, 0, 0, 0))
+                continue
+            if x < 9:
                 t = grain.at(x * 4.0, y * 0.5)
                 colour = mix((60, 38, 22), (110, 76, 44), t)
             else:
                 t = grain.at(x, y)
                 colour = mix((92, 90, 96), (176, 170, 160), (t - 0.2) * 1.5)
-                cx, cy = size * 0.625, size * 0.5
-                if abs(math.hypot(x - cx, y - cy) - 14) < 2 or (abs(x - cx) < 2 and abs(y - cy) < 14):
+                cx, cy = 23.5, size * 0.5
+                if abs(math.hypot(x - cx, y - cy) - 9) < 1.5 or (abs(x - cx) < 1.5 and abs(y - cy) < 12):
                     colour = (70, 170, 240)
-            pixels.append(colour)
+            pixels.append(colour + (255,))
     return size, pixels
 
 
@@ -709,8 +738,9 @@ def made_files():
     size, pixels = spark_icon((120, 80, 40), (220, 190, 110), (255, 240, 190), (240, 200, 90))
     files['Res/textures/prototype0101.png'] = png(size, size, 'rgb', pixels)
     files['Res/figures/initwehm9.glb'] = hammer_icon()
+    files['Res/figures/hm_09.glb'] = hammer_worn()
     size, pixels = hammer_texture(rng('hammer'))
-    files['Res/redress/unhumahm_09.gr.0.png'] = png(size, size, 'rgb', pixels)
+    files['Res/redress/unhumahm_09.gr.0.png'] = png(size, size, 'rgba', pixels)
     files['Res/figures/initarbt20.glb'] = boots_icon()
     size, pixels = boots_texture(rng('boots'))
     files['Res/redress/unhumabt_20.le.0.png'] = png(size, size, 'rgba', pixels)

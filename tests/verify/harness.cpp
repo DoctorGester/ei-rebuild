@@ -2264,6 +2264,23 @@ std::string ClientHurtStep(const std::string& argument) {
     return "";
 }
 
+// --- unitpart <part> <count> ---------------------------------------------------------------------------------------
+// The client units wearing the figure part <part> (carried by their skeleton's bone of its name: a worn weapon's or
+// armour's part attached, docs/notes/mods.md "Worn models"): logs each one, fails unless there are <count>
+// (mod_showcase_worn).
+std::string UnitPartStep(const std::string& argument) {
+    char part[64] = "";
+    int count = 0;
+    if (std::sscanf(argument.c_str(), "%63s %d", part, &count) != 2) return "unitpart needs <part> <count>";
+    const std::vector<std::string> wearing = image::UnitsWearing(part);
+    for (const std::string& unit : wearing) Log("harness: unitpart: %s", unit.c_str());
+    Log("harness: unitpart: %s on %d units (wanted %d)", part, static_cast<int>(wearing.size()), count);
+    if (static_cast<int>(wearing.size()) != count)
+        return "unitpart: " + std::string(part) + " on " + std::to_string(wearing.size()) + " units, wanted " +
+               std::to_string(count);
+    return "";
+}
+
 // --- figurealone <model> <animation> <part> <frames> ---------------------------------------------------------------
 // A figure alone (FigureInstance, MF15k3): the model built without a game object, the animation played and moved on,
 // the part's point read at rest and after; fails without the figure, the animation or the part, or when the part did
@@ -3035,7 +3052,7 @@ void RunSteps() {
                 g_failures.push_back(error);
             }
         } else if (s.verb == "hudstate" || s.verb == "campputon" || s.verb == "campstock" || s.verb == "clientbolts" || s.verb == "figurealone" ||
-                   s.verb == "clienthurt" ||
+                   s.verb == "clienthurt" || s.verb == "unitpart" ||
                    s.verb == "modfile" || s.verb == "modlist" ||
                    s.verb == "modarchive" || s.verb == "mapfile" || s.verb == "playstream" ||
                    s.verb == "folderprofile" || s.verb == "modtext" || s.verb == "modack" || s.verb == "modweapon" ||
@@ -3052,6 +3069,7 @@ void RunSteps() {
                                 : s.verb == "campstock"     ? CampStock(s.argument)
                                 : s.verb == "clientbolts"   ? ClientBoltsStep(s.argument)
                                 : s.verb == "clienthurt"    ? ClientHurtStep(s.argument)
+                                : s.verb == "unitpart"      ? UnitPartStep(s.argument)
                                 : s.verb == "figurealone"   ? FigureAloneStep(s.argument)
                                 : s.verb == "folderprofile" ? folder_profile::Step()
                                 : s.verb == "modlist"       ? starter::ModListStep(s.argument)

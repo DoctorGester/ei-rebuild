@@ -402,6 +402,32 @@ mesh's transforms applied, under the same name into your mod's `Res\figures\`. B
 repository's checks: the loader is checked on ei-convert's files, on files with the extras removed
 (`mod_gltf_animation`), and on hand-written glTF.
 
+### Worn models
+
+A weapon in hand and a helmet, body armour or leggings worn are parts of the unit's figure: the game loads the parts
+named after the item (`rh3.club05` for club number 5, `<bone>.armor12` for armour number 12) and the skeleton's bone of
+that name carries each one. A new item number has no such part, so it brings its own **worn model**: one glTF named as
+the item's model without its material and variant, `<type code>_<number>.glb` (`Res\figures\hm_09.glb` for hammer
+number 9: the same name its textures take after the figure's, `Res\redress\unhumahm_09.gr.0.png`), in the figures'
+folder.
+
+- Its **root nodes** are named as bones of the figures that wear the item: the bone each part hangs from, as the
+  game's parts of that kind do (`rh3.axe00` for axes and clubs, `rh3.sword00` for swords and daggers, `rh3` for pikes;
+  an armour part `<bone>.armor<number>` under its `<bone>`, `hd` for a helmet's). Their meshes, if any, are left out,
+  so you can export a part together with the hero's bone it sits on.
+- Their **children** are the item's parts, named as the game loads them, with their meshes and translations as any
+  figure's parts (the morph targets too). A part under another part of the item joins with it.
+- Every figure that has the root bones and lacks the parts gains them, for every unit of it: the four human and orc
+  figures (`unhuma`, `unhufe`, `unorma`, `unorfe`) for a club's `rh3.axe00`. A figure that has a part of the name
+  keeps its own.
+- The parts take the unit's second texture (material `"<kind> 2"`, as the game's weapons and helmets): its left 0.3 is
+  the weapon's picture, the middle the helmet's. The item's picture (`unhumahm_09.<material>.<variant>.png`) is drawn
+  into that texture over the helmet's, so leave it clear outside the item's own rectangle.
+- A part has no animation of its own: it follows its bone (the game's clubs hang still from `rh3.axe00`, which the
+  animations turn).
+
+The showcase mod's hammer is one (`tests/scenarios/mod_showcase_worn.txt` checks it in the hero's hand).
+
 ## Animations as glTF
 
 A figure's animations are glTF animations in the same `.glb`: each one named as the game names it (`cidle01`,
@@ -1772,13 +1798,12 @@ Read its files as a recipe for each kind of new content:
 |---|---|
 | A zone | `Maps\zone1\map.toml`, `heights.png`, `tiles.png` (a map folder with no `.mpr`), `Res\textures\zone1000.png` (its ground tiles), `zone1map.png` / `zone1quest.png` (the minimap and objectives pictures), `Maps\zone1.mob.toml` (its objects), `Maps\zone1.lua` (its script) |
 | A creature | `Res\figures\scgolem.glb` (parts and animations), `Res\database\scgolem.adb.toml` (its animation list), `units.udb.toml` (a `[[model]]` and a `[[unit]]`), `Res\textures\scgolem00.png` (the skin its placement names); the shards: a second `[[unit]]` on the golem's model at a smaller scale, `Res\textures\scshard00.png` |
-| A weapon, boots | `items.idb.toml`, `Res\figures\initwehm9.glb`, `initarbt20.glb` (inventory models: a loose figure named `initwe<type code><number>` / `initar...`, one part `weapon` / `armor`), `Res\redress\unhumahm_09.gr.0.png`, `unhumabt_20.le.0.png` (their textures; the boots' is a layer over the hero's skin) |
+| A weapon, boots | `items.idb.toml`, `Res\figures\initwehm9.glb`, `initarbt20.glb` (inventory models: a loose figure named `initwe<type code><number>` / `initar...`, one part `weapon` / `armor`), `Res\figures\hm_09.glb` (the hammer's worn model, in the hand: [Worn models](#worn-models)), `Res\redress\unhumahm_09.gr.0.png`, `unhumabt_20.le.0.png` (their textures: the hammer's in the weapons' strip, the boots' a layer over the hero's skin) |
 | A quest | `Maps\zone1.lua` (the quest's variable `q.<zone>.<quest>`, its reward), `quests.qdb.toml` (its experience), `Res\texts\texts.toml` (`quest <name>`: the title, the description, `#subobj` lines) |
 | A spell | `spells.sdb.toml` (Chain Spark's record, `script` naming its file), `Res\spells\chain_spark.lua` (its mechanic: a missile with `OnHit`, the next victim by `FindUnits`, `Damage`, `Apply`, `Effect`, `Bolt`, a timer for the leap; [Spells](#spells)), `Res\textures\spell0101.png`, `prototype0101.png` (its pictures, `icon = 101`), `Maps\zone1.lua` (`GiveItem` of its spell container); `tests/scenarios/mod_showcase_spell.txt` casts it |
 | A buff | `spells.sdb.toml` (Ember Brand's record, `code = "ember"`), `Res\spells\ember_brand.lua` (a curse: `OnStats` lowers the victim's `Strength`, `OnEffectTick` burns it every 20 ticks with `effect:Damage`, `OnEffectEnded` says how it went; [Active effects](#active-effects)); `tests/scenarios/mod_showcase_buff.txt` casts it with `CastSpellUnit` |
 | An effect | `Res\effects\showcase_aura.effect.toml` (orbs trailing light and rising motes, driven by its inputs; `tests/scenarios/mod_effect.txt` starts it from the console); the spell's `ChainSpark.effect.toml` (the missile's spark and its trail) , `ChainSparkHit.effect.toml` (a strike's flash and ring of sparks) and `ChainSparkShock.effect.toml` (the look of the shock a strike leaves: the record's `look`, [Active effects](#active-effects)), all on the mod's own texture `Res\textures\chainspark.png` (16 pictures, 4 x 4) |
 
-What it cannot do yet: add a zone beside the game's (it replaces zone 1: the zone list is one text read whole), show
-a new weapon in the hero's hand or a new helmet or body armour on him (those are parts of the hero's figure), and its
-island keeps zone 1's path-finding graph. The pictures and models are made by `tools/make_showcase_mod.py` in this
+What it cannot do yet: add a zone beside the game's (it replaces zone 1: the zone list is one text read whole), and
+its island keeps zone 1's path-finding graph. The pictures and models are made by `tools/make_showcase_mod.py` in this
 repository.
