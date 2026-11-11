@@ -639,7 +639,7 @@ cunit129 #unit 883CBF00
 cunit148 #place 794B2FBB
 cunit148 #unit D3E383F0
 cunit187 #place 8FD72F05
-@ 3 update 80 frame 15 tick 40 zone gz1g hash BBA484F4 n 791
+@ 3 update 80 frame 15 tick 40 zone gz1g hash 75B907A2 n 791
 world tick 40
 world updates 80
 world paused 0
@@ -6381,7 +6381,7 @@ script #globals A5413D6F
 script #gobject 83A825DA
 script #inst 8C20D7F0
 script #instances 00A7DFBD
-script #run 57C965F6
+script #run 0B7E7945
 script #runs 160741CD
 client tick 40
 client paused 0
@@ -7659,7 +7659,7 @@ client tick 920
 client ticksRun 902
 cunit1000011214 #place E551697E
 cunit1000011214 #unit 75848075
-@ 49 update 1000 frame 199 tick 940 zone gz1g hash 4C73B765 n 791
+@ 49 update 1000 frame 199 tick 940 zone gz1g hash B1909BEF n 791
 world tick 940
 world updates 1000
 random isaac.count 126
@@ -7710,7 +7710,7 @@ aievents tick 940
 script #gobject 28C96CEB
 script #inst 9280F77D
 script #instances 77A0EF2B
-script #run 59FB0EAF
+script #run 5907C490
 script #runs 6100715B
 client tick 940
 client ticksRun 922
@@ -7722,7 +7722,7 @@ cunit1884 #place AB50DC46
 cunit1884 #unit 493C589B
 cunit1000011214 #place 2DE90F3F
 cunit1000011214 #unit 71C85E1C
-@ 50 update 1020 frame 203 tick 960 zone gz1g hash 0730DE7C n 793
+@ 50 update 1020 frame 203 tick 960 zone gz1g hash 0DB6C269 n 793
 world tick 960
 world updates 1020
 random isaac.count 140
@@ -7766,7 +7766,7 @@ obj1000011214 #vitals 9BA26E9A
 missile0 # 7BF0E478
 missile1 # 0BFEA738
 aievents tick 960
-script #run A9627D5C
+script #run 3718A85C
 client tick 960
 client ticksRun 942
 client objects 732
@@ -7788,7 +7788,7 @@ cunit1936 #unit C6F65C9D
 cunit1936 #vitals 1F5A7471
 cunit1000011214 #place 3C500DCD
 cunit1000011214 #unit 75848075
-@ 51 update 1040 frame 207 tick 980 zone gz1g hash 29FF2082 n 793
+@ 51 update 1040 frame 207 tick 980 zone gz1g hash E6F3CEBF n 793
 world tick 980
 world updates 1040
 random isaac.count 151
@@ -7835,7 +7835,7 @@ obj1000011214 #vitals AC51EDE6
 missile0 # 92C13766
 missile1 # E2CF7426
 aievents tick 980
-script #run 44B9A256
+script #run 0E4C23D1
 client tick 980
 client ticksRun 962
 cunit699 #place FA37AABF

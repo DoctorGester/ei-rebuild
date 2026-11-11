@@ -8,6 +8,7 @@
   0
   Saved savea
   1
+  Script error: zone1evil.mob line 8: Duplicate script VCheck#1#1
   1
   Saved savea
   1

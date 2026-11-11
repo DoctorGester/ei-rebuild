@@ -7,9 +7,11 @@
 #include "game/app/movies.h"
 
 #include "game/combat/combat.h"
+#include "game/console/console.h"
 #include "game/app/singletons.h"
 #include "game/map/map_spec.h"
 #include "game/map/mob_script_decoder.h"
+#include "game/objects/map_object_manager.h"
 #include "game/world/diplomacy.h"
 #include "game/app/options.h"
 #include "game/script/script.h"
@@ -25,6 +27,7 @@
 #include <memory>
 #include <new>
 #include <string>
+#include <string_view>
 
 namespace mapspec {
 
@@ -41,52 +44,49 @@ constexpr std::uint32_t kChunkFlagOff = 0xD000;
 
 constexpr int kBehaviourCount = 5;
 
-// A new record for the given chunk id, or null for other ids (or without memory).
-Spec* NewRecord(std::uint32_t id) {
+// A new record for the given chunk id, or null for other ids.
+std::unique_ptr<Spec> NewRecord(std::uint32_t id) {
     switch (id) {
-    case 0xB001: return new ObjectSpec();
-    case 0xAA01: return new LightSpec();
-    case 0xCC01: return new SoundSpec();
-    case 0xDD01: return new ParticleSpec();
-    case 0xBBAB0000: return new TrapSpec();
-    case 0xBBAC0000: return new LeverSpec();
-    case 0xBBBB0000: return new UnitSpec();
-    case 0xBBBF0000: return new FlameSpec();
+    case 0xB001: return std::make_unique<ObjectSpec>();
+    case 0xAA01: return std::make_unique<LightSpec>();
+    case 0xCC01: return std::make_unique<SoundSpec>();
+    case 0xDD01: return std::make_unique<ParticleSpec>();
+    case 0xBBAB0000: return std::make_unique<TrapSpec>();
+    case 0xBBAC0000: return std::make_unique<LeverSpec>();
+    case 0xBBBB0000: return std::make_unique<UnitSpec>();
+    case 0xBBBF0000: return std::make_unique<FlameSpec>();
     default: return nullptr;
     }
 }
 
-// 0xB000: every record chunk inside `parent` is read into a new record, keyed by its id.
+// 0xB000: every record chunk inside `parent` is read into a new record.
 void ReadRecords(Chunk* parent, MobRecords* records) {
     Chunk chunk(parent);
     do {
         chunk.ReadHeader();
-        if (Spec* spec = NewRecord(chunk.id)) {
+        if (std::unique_ptr<Spec> spec = NewRecord(chunk.id)) {
             spec->parent = &chunk;
             spec->ForEachChild();
-            if (records->maxId < spec->id) records->maxId = spec->id;
-            records->byId[spec->id] = spec;
+            records->Add(std::move(spec));
         }
     } while (parent->size != parent->consumed);
 }
 
-// 0xABD0: wind direction and strength and the time of day (two more values are read and unused).
-void ReadWeather(Chunk* parent) {
+// 0xABD0: the wind's direction and strength and the time of day (two more values are read and unused).
+MobWeather ReadWeather(Chunk* parent) {
     Chunk chunk(parent);
-    Vector3 direction = {0.0f, 1.0f, 0.0f};
+    MobWeather weather;
     chunk.ReadHeader();
-    direction = chunk.ReadVector3();
+    weather.wind = chunk.ReadVector3();
     chunk.ReadHeader();
-    float strength = chunk.ReadFloat();
+    weather.windStrength = chunk.ReadFloat();
     chunk.ReadHeader();
-    float time = chunk.ReadFloat();
-    chunk.ReadHeader();
-    chunk.ReadFloat();
+    weather.time = chunk.ReadFloat();
     chunk.ReadHeader();
     chunk.ReadFloat();
-    WorldServer* server = &g_serverWorld;
-    server->WorldServer::SetTime(time);
-    server->ChangeWind(direction, MinKeepA(options::kDefaultWindForce, strength));
+    chunk.ReadHeader();
+    chunk.ReadFloat();
+    return weather;
 }
 
 // 0xDDDDDDD1: the relation table and the player names.
@@ -103,10 +103,36 @@ void ReadScripts(Chunk* chunk, std::string* scripts, bool encoded) {
     *scripts = encoded ? chunk->ReadEncodedString() : chunk->ReadString();
 }
 
+// Whether the factory makes the record's class (the TOML's `class`, the chunk's parent id) for a record of its kind:
+// the world casts the object it builds to the kind's type, so a class that makes none (a hand-written record without
+// a class is 0) or another kind's would crash the zone's load. Kinds with no class of their own (lights, sounds,
+// particles) always fit.
+bool ClassFits(const Spec& spec) {
+    if (spec.kind != SpecKind::Object && spec.kind != SpecKind::Unit && spec.kind != SpecKind::Flame &&
+        spec.kind != SpecKind::Trap && spec.kind != SpecKind::Lever)
+        return true;
+    const auto type = static_cast<MapObjectType>(static_cast<const ObjectSpec&>(spec).parentId);
+    switch (spec.kind) {
+    case SpecKind::Unit: return IsUnitType(type);
+    case SpecKind::Flame: return type == MapObjectType::Torch;
+    case SpecKind::Trap: return type == MapObjectType::MagicTrap;
+    case SpecKind::Lever: return type == MapObjectType::Lever;
+    default:
+        // An object record may hold a unit's class too (the main menu's unmoco2 is one).
+        return IsUnitType(type) || type == MapObjectType::Tree || type == MapObjectType::Building ||
+               type == MapObjectType::Stone || type == MapObjectType::StuffObject;
+    }
+}
+
 } // namespace
 
-bool MobFile::ReadChunks(MobRecords* records, ZoneDiplomacy* diplomacy, std::string* scripts) {
-    bool flag = true;
+void MobRecords::Add(std::unique_ptr<Spec> spec) {
+    byId[spec->id] = spec.get();
+    read.push_back(std::move(spec));
+}
+
+MobContents MobFile::ReadChunks(bool objects) {
+    MobContents contents;
     ReadHeader();
     Chunk child(this);
     do {
@@ -114,61 +140,81 @@ bool MobFile::ReadChunks(MobRecords* records, ZoneDiplomacy* diplomacy, std::str
         const std::uint32_t childId = child.id;
         if (child.size != child.consumed) {
             switch (childId) {
-            case kChunkScripts: ReadScripts(&child, scripts, false); break;
-            case kChunkEncodedScripts: ReadScripts(&child, scripts, true); break;
-            case kChunkWeather: ReadWeather(&child); break;
-            case kChunkRecords: ReadRecords(&child, records); break;
-            case kChunkPlayers: ReadPlayers(&child, diplomacy); break;
+            case kChunkScripts: ReadScripts(&child, &contents.scripts, false); break;
+            case kChunkEncodedScripts: ReadScripts(&child, &contents.scripts, true); break;
+            case kChunkWeather:
+                if (objects) contents.weather.push_back(ReadWeather(&child));
+                break;
+            case kChunkRecords:
+                if (objects) ReadRecords(&child, &contents.records);
+                break;
+            case kChunkPlayers:
+                if (objects) ReadPlayers(&child, &contents.diplomacy);
+                break;
             default: break;
             }
         }
-        if (childId == kChunkFlagOn) flag = true;
-        else if (childId == kChunkFlagOff) flag = false;
+        if (childId == kChunkFlagOn) contents.appliesRelations = true;
+        else if (childId == kChunkFlagOff) contents.appliesRelations = false;
         child.SkipContent();
     } while (size != consumed);
-    return flag;
+    return contents;
 }
 
-bool MobFile::Load(int keepIds) {
-    MobRecords records;
-    records.maxId = 0;
-    ZoneDiplomacy zoneDiplomacy;
-    ZoneDiplomacy* diplomacy = &zoneDiplomacy;
-    std::string scripts;
-
-    if (ReadChunks(&records, diplomacy, &scripts)) {
-        Diplomacy* table = &g_serverWorld.diplomacy;
+void LoadMob(MobContents& contents, int keepIds, std::string_view name) {
+    WorldServer* server = &g_serverWorld;
+    for (const MobWeather& weather : contents.weather) {
+        server->WorldServer::SetTime(weather.time);
+        server->ChangeWind(weather.wind, MinKeepA(options::kDefaultWindForce, weather.windStrength));
+    }
+    const ZoneDiplomacy& diplomacy = contents.diplomacy;
+    if (contents.appliesRelations) {
+        Diplomacy* table = &server->diplomacy;
         for (int i = 0; i < 32; ++i)
-            for (int j = 0; j < 32; ++j) table->SetRelation(i, j, static_cast<DiplomacyRelation>(diplomacy->relations[i][j]));
+            for (int j = 0; j < 32; ++j) table->SetRelation(i, j, static_cast<DiplomacyRelation>(diplomacy.relations[i][j]));
     }
 
-    // Every record becomes a world object, then is deleted (the map keeps the dangling pointer).
+    // Every record becomes a world object (the records are freed with `contents`).
+    MobRecords& records = contents.records;
     const int step = static_cast<int>(records.byId.size()) / 5 + 1;
     int done = 0;
     for (auto& node : records.byId) {
         Spec* spec = node.second;
+        if (!ClassFits(*spec)) {
+            game::Warning("map objects: %s record %d: class %d does not fit its kind; the record is left out",
+                          name, spec->id, static_cast<const ObjectSpec*>(spec)->parentId);
+            ++done;
+            continue;
+        }
         if (spec->kind == SpecKind::Trap) {
             auto* record = static_cast<TrapSpec*>(spec);
             record->trap.sides = 0;
             record->trap.position = spec->position;
-            const std::int32_t* row = diplomacy->relations[record->side];
+            const std::int32_t* row = diplomacy.relations[record->side];
             const auto hostile = static_cast<std::int32_t>(DiplomacyRelation::Hostile);
             for (int c = 0; c < 32; ++c) record->trap.sides |= static_cast<std::uint32_t>(row[c] == hostile) << c;
         }
-        g_serverWorld.CreateObject(spec);
+        server->CreateObject(spec);
         if (spec->kind == SpecKind::Unit) {
             auto* unitSpec = static_cast<UnitSpec*>(spec);
             Unit* unit = UnitOrNull(unitSpec->object);
             if (unit && (spec->id != 2 || str::Compare(unitSpec->texture, "unmoco2") != 0))
                 unit->ServerController()->brain.SetAlarmRecords(unitSpec->behaviour, kBehaviourCount);
         }
-        delete spec;
         ++done;
         if (done % step == 0) ShowLoadingMovie(done / step + 1);
     }
 
-    if (!(keepIds & 0xFF)) TheMissionScript()->Load(&scripts, 1);
-    return true;
+    // A .lua runs in place of the scripts (Script::LoadLua; docs/notes/mods.md, "Scripts in Lua").
+    Script* script = TheMissionScript();
+    if (!(keepIds & 0xFF) && !(contents.luaName.empty() ? script->Load(&contents.scripts, 1)
+                                                        : script->LoadLua(&contents.scripts, contents.lua, contents.luaName))) {
+        // The game goes on without the file's scripts (the original said nothing); the console names the error.
+        ScriptErrorInfo error;
+        TheMissionScript()->GetError(&error);
+        console::EndLine(console::g_consoleOut << "Script error: " << std::string(name) << " line " << error.line
+                                               << ": " << error.text);
+    }
 }
 
 } // namespace mapspec

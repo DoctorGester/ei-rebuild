@@ -36,12 +36,13 @@ The build is Release, universal (`-DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"`: one
 slices; the shader toolchain stays the runner's arm64) for macOS 13.3 and later (`-DCMAKE_OSX_DEPLOYMENT_TARGET`;
 Apple's libc++ has float `std::to_chars`, which settings_document.cpp and std::format's floats use, from 13.3). Then
 ctest's four checks, the x86_64 slice's `ei_port_check` under Rosetta where the runner has it, a check that the
-executable has both slices and links only system libraries, the release's version into Info.plist, an ad-hoc
-signature (`codesign -s -`: arm64 code must carry one) and `ei-rebuild-macos.zip` (ditto) with the app, a README.txt
-and third_party_notices.txt.
+executable and ei-convert have both slices and link only system libraries, the release's version into Info.plist, ad-hoc
+signatures on the app and ei-convert (`codesign -s -`: arm64 code must carry one) and `ei-rebuild-macos.zip` (ditto)
+with the app, `ei-convert`, the build's `examples` folder (`ei-convert --example-mod` reads it from beside itself), a
+README.txt and third_party_notices.txt.
 
 The app is not Developer ID signed or notarised (that needs an Apple Developer account: the user's call), so a
-downloaded copy is quarantined and Gatekeeper refuses it: `xattr -dr com.apple.quarantine ei-rebuild.app` once, or
+downloaded copy is quarantined and Gatekeeper refuses it: `xattr -dr com.apple.quarantine ei-rebuild.app ei-convert` once, or
 Control-click > Open (macOS 15 and later: open it once, then System Settings > Privacy & Security > Open Anyway).
 The zip's README.txt says how the app finds the game folder and where it writes ("The game folder and the log" below).
 

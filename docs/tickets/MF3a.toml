@@ -6,3 +6,6 @@ model = "sonnet"
 depends = ["MF5"]
 note = "User 2026-11-10: make them all merge per field. MF5's databases merge a TOML record's fields over the n-th record of its key; MF3's acks.db / prints.db records and .adb animations replace the whole record. Change those to MF5's field merge (shared code in src/game/data/database_toml), so a mod gives only the fields it changes (one speech list, one print's wet values, one animation's chance). Registries, .mat and texts already merge per key. Notes and the round-trip check updated; goldens the same; a scenario or unit check showing a one-field change."
 order = 1312
+status = "done"
+started = "2026-11-10"
+done = "2026-11-10"

@@ -1,0 +1,9 @@
+id = "L8b"
+title = "Scenarios for the rest of a mod's Lua: an AddMob'd .mob's .lua and a TOML script key naming another file"
+group = "lua"
+depends = ["L8"]
+note = "L8 checks a zone's own Maps\\zone1.lua (mod_lua_plain / none / changed). Not reached by a scenario: an AddMob'd .mob with a .lua into a zone on the old executor (the shim's take-over of the running script, Script::LoadLua's Resume), a .mob.toml whose script key names another file, a .lua that does not load (error 18 at the zone's load), and the example mod (MF10) with a zone .lua. docs/notes/mods.md 'Scripts in Lua', Checks."
+order = 1323
+status = "done"
+started = "2026-11-10"
+done = "2026-11-10"

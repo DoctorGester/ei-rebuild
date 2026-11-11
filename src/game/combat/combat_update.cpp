@@ -155,6 +155,7 @@ bool UnitServer::RunTick() {
         if (player && player->IsLeader(unit) != 0) {
             player->connection->LeaderDied();
         } else {
+            if (player && player->Server()) player->Server()->CompanionDied(unit);
             brain.Reset();
             voice.Reset();
         }

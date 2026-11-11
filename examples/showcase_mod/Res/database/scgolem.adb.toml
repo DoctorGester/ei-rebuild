@@ -1,0 +1,160 @@
+# The golem's animation list (docs/modding.md, "Records as TOML"): a new file, no game file below it. Each
+# animation is a glTF animation of Res\figures\scgolem.glb of the same name, played to its `frames`. `kind`, `move`,
+# `play` and the kind's parts (an attack's `height` and `blow`, a death's `fall`) say when the game plays it, as the
+# game's creatures have the same animations; `flags_other` are the bits nothing reads that the game's give them
+# (docs/modding.md, "Animation lists"). `steps` are its footfalls, `moment` the frame a blow lands. It plays no sounds.
+name = "Showcase Golem"
+start = 0.5
+length = 0.76
+end = 1.0
+
+[[animation]]
+name = "uattack01"
+kind = "attack"
+move = "walk"
+height = "middle"
+blow = true
+flags_other = 0xE
+chance = 100
+frames = 43
+steps = [20, 23, 28, 36]
+moment = 23
+sound_frame = 14
+
+[[animation]]
+name = "uattack02"
+kind = "attack"
+move = "walk"
+height = "low"
+blow = true
+flags_other = 0xE
+chance = 100
+frames = 29
+steps = [12, 14, 22, 29]
+moment = 14
+sound_frame = 14
+
+[[animation]]
+name = "udeath01"
+kind = "death"
+move = "walk"
+fall = "none"
+death_side = "minus_x"
+flags_other = 0x61D000C
+chance = 100
+frames = 25
+moment = 10
+sound_frame = 1
+
+[[animation]]
+name = "cdeath02"
+kind = "death"
+move = "stop"
+play = "looped"
+fall = "none"
+death_side = "plus_x"
+flags_other = 0x61C800C
+chance = 100
+frames = 21
+moment = 9
+sound_frame = 1
+
+[[animation]]
+name = "udeath03"
+kind = "death"
+move = "walk"
+fall = "none"
+death_side = "plus_x"
+flags_other = 0x61D000C
+chance = 100
+frames = 15
+moment = 15
+sound_frame = 1
+
+[[animation]]
+name = "cidle"
+kind = "idle"
+move = "walk"
+play = "looped"
+number = 1
+flags_other = 0xC
+chance = 100
+frames = 68
+moment = 20
+sound_frame = 2
+
+[[animation]]
+name = "cwalk"
+kind = "walk"
+move = "walk"
+play = "looped"
+flags_other = 0x2
+chance = 100
+frames = 16
+stride = 0.9075
+steps = [2, 4, 10, 12]
+
+[[animation]]
+name = "crun"
+kind = "run"
+move = "walk"
+play = "looped"
+flags_other = 0x2
+chance = 100
+frames = 10
+stride = 5.1165
+steps = [5, 6, 9, 10]
+
+[[animation]]
+name = "uhit01"
+kind = "hit"
+move = "walk"
+fall = "none"
+flags_other = 0xE
+chance = 100
+frames = 33
+steps = [6, 7, 19, 30]
+moment = 2
+sound_frame = 1
+
+[[animation]]
+name = "uhit02"
+kind = "hit"
+move = "stop"
+fall = "none"
+flags_other = 0xC
+chance = 100
+frames = 10
+moment = 7
+sound_frame = 1
+
+[[animation]]
+name = "ucross01"
+kind = "cross"
+move = "walk"
+number = 5
+flags_other = 0x2
+chance = 100
+frames = 73
+steps = [16, 30, 73]
+
+[[animation]]
+name = "ucross02"
+kind = "cross"
+move = "stop"
+number = 2
+flags_other = 0x2
+chance = 100
+frames = 15
+steps = [4, 6, 8]
+
+[[animation]]
+name = "crest"
+kind = "idle"
+move = "stop"
+play = "looped"
+number = 1
+flags_other = 0x4
+chance = 100
+frames = 45
+moment = 45

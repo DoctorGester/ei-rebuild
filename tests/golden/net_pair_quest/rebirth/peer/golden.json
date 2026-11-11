@@ -1,21 +1,13 @@
 {
   "scenario": "net_pair_quest",
   "install": "rebirth",
-  "recorded": "2026-11-06",
-  "commit": "dc71172b5",
+  "recorded": "2026-11-10",
+  "commit": "91b031ae6",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R37f13: an object's parts are drawn whole after its one view test, so the client units' Static and Shown flags come from that verdict and the client picture's unit weather lists the units drawn whole (visuals.sav); no server record differs",
+  "reason": "L8c: the loop bindings set the counter global a converted loop names, as the game's loops do, so the digest's script record and the decoded saves compare the loops' counters again (L8a had left them out): the counters' values now recorded (script gobject, saves commands globals).",
   "side": "peer",
-  "source": "image",
-  "change": [
-    "digest: 53 of 516 records differ, first at record 395 (world update 7920, tick 7517, frame 1583, zone bz1mpg); outcomes the same; no unit position differs",
-    "  first difference at record 395 (world update 7920, tick 7517, frame 1583, zone bz1mpg): 1 fields",
-    "    cunit469697 (80 unhufe \"\") #unit: 6AC9040A in the old golden, 6DC0ACD6 in the new run",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  client units: 1 of 24 differ",
-    "    #unit: 1 client unit, 53 records, from 395; hash only (no numbers kept)"
-  ]
+  "source": "image"
 }

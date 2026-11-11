@@ -8,6 +8,7 @@
 #include "game/core/core_streams.h"
 #include "game/data/database_file.h"
 #include "game/data/database_toml.h"
+#include "game/data/record_names.h"
 #include "game/data/resource.h"
 #include "game/units/unit_db.h"   // InlineStrings
 
@@ -203,7 +204,37 @@ void ItemDatabase::Read(const RecordFile& file) {
 
 // --- As TOML ---------------------------------------------------------------------------------------
 
+using dbtoml::Bits;
+using dbtoml::Bool;
+using dbtoml::Enum;
 using dbtoml::Hex;
+using dbtoml::Name;
+using dbtoml::OtherBits;
+using dbtoml::Table;
+using recordnames::kDamageTypes;
+using recordnames::kTraders;
+
+namespace {
+
+constexpr Name kArmorTypes[] = {
+    {0, "helmet"}, {1, "body_armor"}, {2, "leggings"}, {3, "shirt"}, {4, "pants"}, {5, "boots"}, {6, "gloves"},
+};
+constexpr Name kQuickItemCategories[] = {
+    {0, "danger_sensor"}, {2, "consumable"}, {5, "wand"}, {8, "potion"},
+};
+constexpr std::int64_t kNoRecord = 0x7FFFFFFF;   // a loot item's kind and record type in the data's "none"
+constexpr Name kLootKinds[] = {{0, "self"}, {1, "material"}, {2, "record"}, {kNoRecord, "none"}};
+constexpr Name kLootRecordTypes[] = {
+    {0, "weapon"}, {1, "armor"}, {2, "quick_item"}, {3, "spell"}, {4, "modifier"}, {kNoRecord, "none"},
+};
+constexpr std::uint32_t kTraderBits = dbtoml::NamedBits(kTraders);
+
+template <class T>
+Table<T> DamageTable(T* values) {
+    return {values, kDamageTypes};
+}
+
+} // namespace
 
 template <class Visit>
 void Fields(MaterialRecordHead& r, Visit& v) {
@@ -218,17 +249,18 @@ void Fields(MaterialRecordHead& r, Visit& v) {
     v("condition_factor", r.conditionFactor);
     v.Unread("unread", r.unreadField);
     v("damage_factor", r.damageFactor);
-    v("absorb_factors", r.absorbFactors);
+    v("absorb_factors", DamageTable(r.absorbFactors));
     v("armour_flags", Hex{r.armourFlags});
-    v("class_mask", Hex{r.classMask});
+    v("sold_by", Bits{r.classMask, kTraders});
+    v("sold_by_other", OtherBits{r.classMask, kTraderBits});
 }
 
-// The head's fields but its category (each kind names that its own way).
-template <class Visit>
-void HeadFields(ItemRecordHead& r, Visit& v) {
+// The head's fields but its category (each kind names that its own way); `type` its type field.
+template <class Visit, class Type>
+void HeadFields(ItemRecordHead& r, Visit& v, Type&& type) {
     v("name", r.name);
     v("family", r.family);
-    v("type", r.type);
+    v("type", type);
     v("material_class", r.materialClass);
     v.Unread("unread_head", r.unreadHeadField);
     v("number", r.number);
@@ -240,18 +272,19 @@ void HeadFields(ItemRecordHead& r, Visit& v) {
     v("magic_level", r.magicLevel);
     v("condition", r.condition);
     v("material_units", r.materialUnits);
-    v("class_mask", Hex{r.classMask});
-    v("buildable", r.buildable);
+    v("sold_by", Bits{r.classMask, kTraders});
+    v("sold_by_other", OtherBits{r.classMask, kTraderBits});
+    v("buildable", Bool{r.buildable});
 }
 
 template <class Visit>
 void Fields(WeaponRecord& r, Visit& v) {
-    HeadFields(r, v);
+    HeadFields(r, v, Enum<int>{r.type, recordnames::kWeaponTypes});
     v("attack_interval", r.category);
     v("reach", r.reach);
     v("damage", r.damage);
     v("damage_spread", r.damageSpread);
-    v("damage_types", r.damageTypes);
+    v("damage_types", DamageTable(r.damageTypes.data()));
     v("skill_bonus", r.skillBonus);
     v("attack_bonus", r.attackBonus);
     v("defence_bonus", r.defenceBonus);
@@ -260,22 +293,22 @@ void Fields(WeaponRecord& r, Visit& v) {
 
 template <class Visit>
 void Fields(ArmorRecord& r, Visit& v) {
-    HeadFields(r, v);
+    HeadFields(r, v, Enum<int>{r.type, kArmorTypes});
     v("first_factor", r.firstFactor);
-    v("absorb_first", r.absorbFirst);
+    v("absorb_first", DamageTable(r.absorbFirst.data()));
     v("first_flags", Hex{r.firstFlags});
     v("others_factor", r.othersFactor);
-    v("absorb_others", r.absorbOthers);
+    v("absorb_others", DamageTable(r.absorbOthers.data()));
     v("others_flags", Hex{r.othersFlags});
-    v("shows_wounds", r.showsWounds);
+    v("shows_wounds", Bool{r.showsWounds});
     v("layer", r.layer);
     v.Unread("unread", r.unreadFields);
 }
 
 template <class Visit>
 void Fields(QuickItemRecord& r, Visit& v) {
-    HeadFields(r, v);
-    v("category", r.category);
+    HeadFields(r, v, r.type);
+    v("category", Enum<std::uint32_t>{r.category, kQuickItemCategories});
     v("action_value", r.actionValue);
     v("spell_text", r.spellText);
     v("attribute_bonus", r.attributeBonus);
@@ -284,16 +317,16 @@ void Fields(QuickItemRecord& r, Visit& v) {
 
 template <class Visit>
 void Fields(QuestItemRecord& r, Visit& v) {
-    HeadFields(r, v);
+    HeadFields(r, v, r.type);
     v("id", r.category);
     v("zones", r.zones);
 }
 
 template <class Visit>
 void Fields(LootItemRecord& r, Visit& v) {
-    HeadFields(r, v);
-    v("kind", r.category);
-    v("record_type", r.recordType);
+    HeadFields(r, v, r.type);
+    v("kind", Enum<std::uint32_t>{r.category, kLootKinds});
+    v("record_type", Enum<std::uint32_t>{r.recordType, kLootRecordTypes});
     v("index", r.index);
 }
 
@@ -316,12 +349,12 @@ void ItemDatabase::MergeToml(const toml::Value& root, const std::string& path) {
 
 std::string ItemDatabase::ToToml() const {
     toml::Writer writer;
-    dbtoml::WriteRecords(writer, "material", materials.records);
-    dbtoml::WriteRecords(writer, "weapon", weapons.records);
-    dbtoml::WriteRecords(writer, "armor", armors.records);
-    dbtoml::WriteRecords(writer, "quick_item", quickItems.records);
-    dbtoml::WriteRecords(writer, "quest_item", questItems.records);
-    dbtoml::WriteRecords(writer, "loot", loot.records);
+    dbtoml::WriteRecords(writer, "material", materials.records, "key");
+    dbtoml::WriteRecords(writer, "weapon", weapons.records, "name");
+    dbtoml::WriteRecords(writer, "armor", armors.records, "name");
+    dbtoml::WriteRecords(writer, "quick_item", quickItems.records, "name");
+    dbtoml::WriteRecords(writer, "quest_item", questItems.records, "name");
+    dbtoml::WriteRecords(writer, "loot", loot.records, "name");
     return writer.text;
 }
 

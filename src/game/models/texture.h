@@ -222,6 +222,8 @@ public:
     // lowered).
     Texture* FindTexture(std::string_view name);
     Texture* FindTypedTexture(int type, std::string_view name);
+    // Whether a registered or cached texture of `type` and `name` is loaded (nothing taken from the cache).
+    bool IsLoaded(int type, std::string_view name);
     void FreeCache();
     // Each layer a `width` x `width` .mmp from the archives, its name into `found`; a missing one is skipped, one of
     // another size skipped with a warning. Returns the layers found.

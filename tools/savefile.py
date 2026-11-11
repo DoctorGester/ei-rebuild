@@ -161,6 +161,10 @@ RULES = {
     'addr': 'a heap, stack or module address copied with a raw block; the loader does not use it as a value',
     'junk': 'bytes the game never sets before writing them (padding, stack leftovers, unused tails)',
     'identity': 'a pointer used as a record identity: numbered by first appearance (p1, p2, ...)',
+    'lua': "a script's Lua state (Eris): its tables are written in the order of Lua's string hashes, whose seed differs "
+           'in every run; the fields before it describe the state in the game\'s format',
+    'eval': "a script call's argument slot that a binding or nested call fills when the call runs: the game's executor "
+            "left its last value there, which our Lua calls do not write",
 }
 
 
@@ -324,6 +328,17 @@ class Reader:
         self.excluded(name, 'addr', why)
         self.put(name, '0' if null and v == 0 else '~addr')
         return v
+
+    def lua(self, name, n, why):
+        """n bytes of a Lua state (rule lua): left out, not even their size (an old-format save has none)."""
+        self.take(n)
+        self.excluded(name, 'lua', why)
+
+    def eval(self, name, n):
+        """n bytes of an evaluation slot (rule eval; a string's already read: 0)."""
+        self.take(n)
+        self.excluded(name, 'eval', RULES['eval'])
+        self.put(name, '~eval')
 
     def junk(self, name, n, why):
         """n bytes the game never set (rule junk)."""

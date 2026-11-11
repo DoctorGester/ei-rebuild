@@ -1,0 +1,8 @@
+id = "L1a"
+title = "AddMob's script errors on the console; Lost in Astral's AddMob'd scripts fail on Duplicate script"
+group = "lua"
+note = "L1 survey (lua-scripting.md, Survey): 55 of Lost in Astral's 61 AddMob'd mobs fail at their first DeclareScript ('Duplicate script VCheck#1#1'): the zone they load into declares the same name and FindScript's !n! retry finds it, so those zones play without the added scripts. MobFile::Load ignores the load's result (LoadZoneScripts prints 'Script error: <zone>.mob line <n>: ...'). Say so on the console the same way; then decide with the user whether a later file's DeclareScript of a name an earlier file declared should get its own qualified definition (behaviour change: the mod's sub-scripts would run). Check the original game does the same first (rebirth.md: no patch touches FindScript). Done (option B): the original drops these too (the rebuild is the original's code; rebirth.md lists no patch of FindScript or Script::Load; MobFile::Load discarded the result). MobFile::Load(keepIds, name) now prints 'Script error: <file>.mob line <n>: ...'; scenario mod_lost_in_astral_addmob_error (zone10hunter.mob, line 8 Duplicate script) checks it. No per-file qualified definitions."
+order = 1316
+status = "done"
+started = "2026-11-10"
+done = "2026-11-10"

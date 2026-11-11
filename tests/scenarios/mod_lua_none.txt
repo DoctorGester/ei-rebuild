@@ -1,0 +1,28 @@
+# mod_lua_plain's twin (docs/notes/mods.md, "Scripts in Lua"; tools/make_lua_mod.py none): the same mod without its
+# Maps\zone1.lua, so zone 1's mission script is the .mob's, converted at its load, through the same new game, save
+# and load. The two scenarios' goldens are the same (`golden.py explain` of the two runs says "the same").
+# prepare: make_lua_mod.py none
+mod harness_saves\lua_mod
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitline 15 Saved savea
+waitfor 15 IsGreater(HP(GetLeader()),0)
+wait 4000
+
+key esc
+waitwindow 10 escmenu
+click 395 120
+waitwindow 10 saveload
+clickregion 0
+waitline 15 Saved save1
+wait 300
+load save1
+waitwindow 30 battle
+waitfor 20 IsGreater(HP(GetLeader()),0)
+wait 2000
+dump loaded_save1
+check IsAlive(GetLeader())
+report
+quit

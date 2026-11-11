@@ -240,9 +240,9 @@ void PlayerServer::SendPartyState() {
     }
     out.WriteValue(danger);
 
-    // The objects shared with the hero of a multiplayer client that plays one.
+    // The objects shared with the hero of a multiplayer client (its party's first record).
     ScriptGroup shared;
-    if (IsMultiplayerClient() && std::ssize(currentPlayer->GetParty()->members) == 1)
+    if (IsMultiplayerClient() && !currentPlayer->GetParty()->members.empty())
         g_serverWorld.CollectSharedObjects(static_cast<int>(currentPlayer->GetParty()->members[0].unitId), &shared);
     WriteDword(&out, static_cast<std::uint32_t>(shared.size()));
     for (const ScriptObjectRef& member : shared) WriteDword(&out, static_cast<std::uint32_t>(member.AsUnit()->id));
@@ -321,6 +321,8 @@ int PlayerServer::Receive() {
             case ClientMessage::FightAtWill: handled = OnFightAtWill(); break;
             case ClientMessage::LastPosition: handled = OnLastPosition(); break;
             case ClientMessage::PartyUpdate: handled = OnPartyUpdate(); break;
+            case ClientMessage::AddCompanion: handled = OnAddCompanion(); break;
+            case ClientMessage::RemoveCompanion: handled = OnRemoveCompanion(); break;
             default: return PlayerMessageError("Serv packet has no handler prevID=%x curID=%x", previous, messageType);
             }
             if (!handled) return PlayerMessageError("Serv error during parsing command prevID=%x curID=%x", previous, messageType);

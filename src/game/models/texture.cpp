@@ -389,6 +389,16 @@ Texture* TextureManager::FindTypedTexture(int textureType, std::string_view name
     return found;
 }
 
+bool TextureManager::IsLoaded(int textureType, std::string_view name) {
+    const auto loaded = [&](const Texture* texture) {
+        return texture->type == textureType && texture->name == name && (texture->flags & TextureFlag::Loaded);
+    };
+    ObjectListIteratorOf<Texture> registered;
+    for (Texture* texture = registered.First(this); texture; texture = registered.Next())
+        if (loaded(texture)) return true;
+    return std::ranges::any_of(cache, loaded);
+}
+
 void TextureManager::FreeCache() {
     for (auto node = cache.begin(); node != cache.end();) {
         Texture* texture = *node;

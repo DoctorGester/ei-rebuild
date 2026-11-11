@@ -1,0 +1,11 @@
+# texts.res's entries changed or added by this mod (docs/modding.md, "Texts"); every other text stays the game's.
+
+# A button of the in-game menu (one line).
+"string quit" = "Leave the islands"
+
+# The name and description of the new weapon of items.idb.toml: "weapon <name> <material>", spaces as "_". The game's
+# texts end their lines with CR LF: "\r" before each line's end.
+"weapon example_axe malachite" = """
+Example axe\r
+The example mod's axe: lighter than a stone axe, and it hits harder.\r
+"""

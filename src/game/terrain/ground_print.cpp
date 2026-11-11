@@ -26,6 +26,7 @@
 #include "game/core/asset_text.h"
 #include "lib/crt.h"
 #include "game/data/resource.h"
+#include "game/data/database_toml.h"
 #include "lib/toml.h"
 
 #include <algorithm>
@@ -456,85 +457,46 @@ void PrintsDatabase::Read(const RecordFile& file) {
 
 // ---- prints.db as TOML ---------------------------------------------------------------------------
 
+template <class Visit>
+void Fields(PrintLook& r, Visit& v) {
+    v("alpha", r.alpha);
+    v("life", r.life);
+    v("lifetime", r.lifetime);
+}
+
+template <class Visit>
+void Fields(PrintRecord& r, Visit& v) {
+    v("name", r.name);
+    v("dry", r.dryLook);
+    v("wet", r.wetLook);
+}
+
+template <class Visit>
+void Fields(PrintRecord2& r, Visit& v) {
+    v("name", r.name);
+    v("dry", r.dryLook);
+    v("wet", r.wetLook);
+    v.Unread("unread", r.unreadChunk);
+}
+
 namespace {
 
-std::string LookToml(const PrintLook& look) {
-    return toml::InlineTable({{"alpha", toml::Float(look.alpha)}, {"life", toml::Int(look.life)},
-                              {"lifetime", toml::Int(look.lifetime)}});
-}
-
-void ReadLook(const toml::Value& value, PrintLook* look) {
-    toml::Read(value["alpha"], &look->alpha);
-    toml::Read(value["life"], &look->life);
-    toml::Read(value["lifetime"], &look->lifetime);
-}
-
-template <class Record>
-void WriteRecord(toml::Writer& writer, const char* table, const Record& record) {
-    writer.ArrayTable(table);
-    writer.Pair("name", toml::String(text::FromAssetText(record.name)));
-    writer.Pair("dry", LookToml(record.dryLook));
-    writer.Pair("wet", LookToml(record.wetLook));
-}
-
-// Each record of the TOML array of tables `table` merged into `records` by name (the first of the name that this
-// merge has not replaced, else appended); `read(key, value, record)` reads a key a record type has of its own.
-template <class Record, class ReadKey>
-void MergeRecords(const toml::Value& table, std::vector<Record>& records, const std::string& path, ReadKey read) {
-    std::vector<bool> replaced;
-    for (int i = 0; i < table.Size(); ++i) {
-        const toml::Value item = table.At(i);
-        std::string name;
-        if (toml::Read(item["name"], &name)) name = text::ToAssetText(name);
-        std::size_t index = 0;
-        while (index < records.size() && ((index < replaced.size() && replaced[index]) || records[index].name != name))
-            ++index;
-        if (index == records.size()) records.emplace_back();
-        replaced.resize(records.size());
-        replaced[index] = true;
-        Record& record = records[index];
-        record.name = name;
-        record.dryLook = {};
-        record.wetLook = {};
-        if constexpr (std::is_same_v<Record, PrintRecord2>) std::fill(std::begin(record.unreadChunk), std::end(record.unreadChunk), 0u);
-        for (int k = 0; k < item.Size(); ++k) {
-            const std::string_view key = item.KeyAt(k);
-            const toml::Value value = item.ValueAt(k);
-            if (key == "dry") ReadLook(value, &record.dryLook);
-            else if (key == "wet") ReadLook(value, &record.wetLook);
-            else if (key != "name" && !read(key, value, record))
-                game::Warning("prints: %s line %d: unknown key %s", path, value.Line(), std::string(key));
-        }
-    }
-}
+constexpr const char* kPrints = "prints.db";
+const auto kNameOf = [](const auto& record) -> const std::string& { return record.name; };
 
 } // namespace
 
 void PrintsDatabase::MergeToml(const toml::Value& root, const std::string& path) {
-    const auto none = [](std::string_view, const toml::Value&, PrintRecord&) { return false; };
-    MergeRecords(root["blood"], blood, path, none);
-    MergeRecords(root["footprint"], footprints, path, [](std::string_view key, const toml::Value& value, PrintRecord2& record) {
-        if (key != "unread") return false;
-        toml::ReadArray(value, record.unreadChunk, 3);
-        return true;
-    });
-    MergeRecords(root["scorch"], scorch, path, none);
-    for (int i = 0; i < root.Size(); ++i) {
-        const std::string_view key = root.KeyAt(i);
-        if (key != "blood" && key != "footprint" && key != "scorch" && !IsReplaceKey(key, root.ValueAt(i)))
-            game::Warning("prints: %s line %d: unknown table %s", path, root.ValueAt(i).Line(), std::string(key));
-    }
+    dbtoml::MergeRecords(root["blood"], blood, "name", kNameOf, kPrints, path);
+    dbtoml::MergeRecords(root["footprint"], footprints, "name", kNameOf, kPrints, path);
+    dbtoml::MergeRecords(root["scorch"], scorch, "name", kNameOf, kPrints, path);
+    dbtoml::CheckTables(root, {"blood", "footprint", "scorch"}, kPrints, path);
 }
 
 std::string PrintsDatabase::ToToml() const {
     toml::Writer writer;
-    for (const PrintRecord& record : blood) WriteRecord(writer, "blood", record);
-    for (const PrintRecord2& record : footprints) {
-        WriteRecord(writer, "footprint", record);
-        if (record.unreadChunk[0] != 0 || record.unreadChunk[1] != 0 || record.unreadChunk[2] != 0)
-            writer.Pair("unread", toml::Array({toml::Int(record.unreadChunk[0]), toml::Int(record.unreadChunk[1]),
-                                               toml::Int(record.unreadChunk[2])}));
-    }
-    for (const PrintRecord& record : scorch) WriteRecord(writer, "scorch", record);
+    dbtoml::WriteRecords(writer, "blood", blood, "name");
+    dbtoml::WriteRecords(writer, "footprint", footprints, "name");
+    dbtoml::WriteRecords(writer, "scorch", scorch, "name");
     return writer.text;
 }

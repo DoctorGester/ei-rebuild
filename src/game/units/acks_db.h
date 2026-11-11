@@ -108,8 +108,9 @@ struct AckDatabase {
 
     // TOML (docs/notes/mods.md, "Records as TOML"): [[unit]], [[model]] and [[extra]] tables, each a record: its
     // name and its speech lists by ack kind (AckKind's names in snake case: selected = [{ sound = "...", chance = 100,
-    // text = "...", name = "...", environment = 0x1 }, ...]). Merge: a record replaces the first of its name in its
-    // table (not one this file replaced already), or is appended; an unknown key is logged (with `path`).
+    // text = "...", name = "...", environment = 0x1 }, ...]). Merge (dbtoml::MergeRecords): a record's lists given go
+    // over the first record of its name that this file has not merged yet (a list replaces the whole list), or a new
+    // record is appended; an unknown key is logged (with `path`).
     void MergeToml(const toml::Value& root, const std::string& path);
     std::string ToToml() const;
 

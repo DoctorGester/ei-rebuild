@@ -2,6 +2,7 @@
 // block, the area lookups and the temporary object references of the
 // evaluator. See script.h and docs/notes/script.md.
 #include "game/script/script.h"
+#include "game/script/script_lua_scheduler.h"
 #include "game/objects/map_object.h"
 
 #include "game/effects/world_effect.h"
@@ -69,15 +70,16 @@ ScriptErrorInfo* Script::GetError(ScriptErrorInfo* out) {
 // See script.h and docs/notes/script.md.
 
 void Script::Reset() {
+    DropRunner();
     loaded = 0;
     fileCount = 0;
     errorText = "Unknown error";
     errorLine = 0;
 
-    DropInstancesAndRuns();
+    savedInstances.clear();
+    savedRuns.clear();
     worldBlocks.clear();
     globals.Clear();
-    forDepth = 0;
     FreeTemporaries();
 
     // Point lights: objects dropped, slots zeroed.

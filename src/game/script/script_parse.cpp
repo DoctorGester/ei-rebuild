@@ -333,7 +333,7 @@ const char* KeywordName(ScriptLexeme id) {
     return "Unknown command";
 }
 
-bool Script::Tokenize(const std::string& source, std::vector<ScriptToken>* tokens) {
+bool Script::Tokenize(const std::string& source, std::vector<ScriptToken>* tokens, std::vector<ScriptComment>* comments) {
     // The source up to its first zero byte, where the C string ended; `at` reads a zero byte past the end.
     const std::string_view chars = std::string_view(source).substr(0, source.find('\0'));
     const auto at = [&](std::size_t i) { return i < chars.size() ? chars[i] : '\0'; };
@@ -366,15 +366,20 @@ bool Script::Tokenize(const std::string& source, std::vector<ScriptToken>* token
         if (length == 0) continue;
         const std::string_view buffer = chars.substr(start, length);
 
+        const auto trailing = [&] { return !tokens->empty() && tokens->back().line == line; };
         if (buffer.starts_with(kCommentOpen)) {
             // Block comment: the search for the end starts after the token (so "/**/" written as
             // one token does not end it) and skips quoted text.
+            const int firstLine = line;
+            const bool after = trailing();
+            const std::size_t first = start + std::string_view(kCommentOpen).size();
             if (p >= chars.size()) return Error(this, line, ScriptParseError::EndOfFile, "End of file before '%s'", kCommentClose);
             for (;;) {
                 const char c = chars[p];
                 if (c == '\n') ++line;
                 if (c == quote) inQuote = !inQuote;
                 if (!inQuote && chars.substr(p).starts_with(kCommentClose)) {
+                    if (comments) comments->push_back({firstLine, after, std::string(chars.substr(first, p - first))});
                     p += std::string_view(kCommentClose).size();
                     break;
                 }
@@ -384,7 +389,10 @@ bool Script::Tokenize(const std::string& source, std::vector<ScriptToken>* token
             continue;
         }
         if (text::CompareIgnoringCase(buffer.substr(0, std::string_view(kLineComment).size()), kLineComment) == 0) {
+            const bool after = trailing();
+            const std::size_t first = start + std::string_view(kLineComment).size();
             while (p < chars.size() && chars[p] != '\n') ++p;
+            if (comments) comments->push_back({line, after, std::string(chars.substr(first, p - first))});
             continue;
         }
 
@@ -449,8 +457,8 @@ void AddDefine(std::vector<ScriptDefine>* defines, const ScriptDefine* define) {
     defines->insert(before, *define);
 }
 
-void ApplyDefines(std::string* line, const std::vector<ScriptDefine>& defines) {
-    for (const ScriptDefine& define : defines) {
+void ApplyDefines(std::string* line, std::vector<ScriptDefine>* defines) {
+    for (ScriptDefine& define : *defines) {
         // Replaces from the start again after each replacement (a value containing its own name
         // never ends; kept).
         for (;;) {
@@ -460,6 +468,7 @@ void ApplyDefines(std::string* line, const std::vector<ScriptDefine>& defines) {
             std::string right = str::Right(text, static_cast<int>(line->size()) - static_cast<int>(define.name.size()) - at);
             std::string left = str::Left(text, at);
             *line = (left + define.value) + right;
+            ++define.uses;
         }
     }
 }

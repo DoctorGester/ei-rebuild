@@ -54,7 +54,9 @@
 //                             <attacker> (none: no attacker, as a script's InflictDamage): Unit::ReceiveHit, so the
 //                             attacker gives the hit a side (HitDirection) and the game's own rules decide what it
 //                             does, also in a network game where "@" commands do nothing. A unit is "leader" (the
-//                             local player's first party member), "#<id>" or a script name (as GetObjectByName)
+//                             local player's first party member), "companion" (server player 0's first companion),
+//                             "enemy" (as a target: the living unit nearest the attacker, or the leader, that
+//                             is hostile to it), "#<id>" or a script name (as GetObjectByName)
 //   giveitem <player> <item>  the server world's player <player> (its id: 0 the host's own) is given a new item
 //                             <item> (a database name, as the item manager's CreateItem takes it), as a script's
 //                             GiveItem(player, item) does, also in a network game (net_pair_database)
@@ -216,8 +218,11 @@
 //   modfile <archive> <file> <bytes>, modlist <archive> <pattern> <count>, modarchive figures|links|textures <file> <bytes>,
 //   mapfile exists <name> yes|no, playstream <name>.mp3
 //                             Rebirth's mod-folder patches asked directly (harness_starter.h; S19d)
-//   modtext <name> <text>, modack <unit> <speech> <sound>, modweapon <weapon> <min> <max>
-//                             a mod's records as TOML seen by the game (harness_starter.h; MF3, MF5)
+//   modtext <name> <text>, modack <unit> <speech> <sound>, modweapon <weapon> <min> <max>,
+//   modrecord ack|anim|track|blood|footprint|scorch <name> = <text>
+//                             a mod's records as TOML, and an animation's track, seen by the game (harness_starter.h;
+//                             MF3, MF5)
+//   ground <x> <y> <low> <high>  the ground's height at (x, y) in the landscape and the AI map (harness_starter.h)
 //   waitline <seconds> <text> wait until the console has printed <text> (at any time in the run)
 //   read mod|game <path> yes|no, wrote mod|game <path> yes|no, waitread <seconds> mod|game <path>
 //                             whether the game touched (read, listed, asked about) or wrote the file below the mod
@@ -233,11 +238,19 @@
 //   checktick <ms>            require the world update period to be <ms> now (the speed keys' effect)
 //   checklimit <n>            require the client session's player limit (ClientSession::PlayerLimit) to be <n>
 //   checkpaused 0|1           require the server world's pause flag to be off / on (the host's pause mode)
+//   companions <n>            require server player 0's party to hold <n> records (its hero and companions)
+//   companionlist <n>         require the companions picked in the base (SavedParties::companions) to number <n>
+//   askcompanion <name>       send the add of saved hero <name> from the local client as a mid-game add (the server
+//                             refuses it: the list changes in the base only)
+//   heroxp <name> [more]      log the experience of the saved hero <name>, its file read from the disk; with
+//                             "more" require it above what the previous heroxp of <name> logged
 //   waitfor <seconds> <expression>
 //                             evaluate the expression every 250 ms until it is nonzero; fail if
 //                             that takes longer than <seconds>
 //   expect <text>             require <text> in the console output since the previous expect
 //   reject <text>             fail if <text> appears in the console output from now on
+//   allow <text>              lines containing <text> are exempt from reject (a known message, e.g. a mod's
+//                             AddMob'd script the original drops too)
 //   report                    write the verify totals to harness_report.txt
 //   diskfull <text>           TEST ONLY (harness_disk_full.txt): writes to files whose path contains
 //                             <text> fail with ERROR_DISK_FULL from now on (harness_crash.h)
@@ -355,10 +368,11 @@
 //                             require the fraction of neighbouring level-map pixel pairs of
 //                             frames\<frame>.bmp whose level jumps (capture::LevelSteps: the seams of
 //                             R12) to lie within <least>..<most>
-//   hues <frame> <least> <most>
+//   hues <frame> <least> <most> [red|green|blue|yellow]
 //                             require each of red, green, blue and yellow (capture::HueShares: the quadrants of
-//                             tools/make_loose_bmp.py's loose terrain textures, A-I23a) to cover a fraction of
-//                             frames\<frame>.bmp within <least>..<most>
+//                             tools/make_loose_bmp.py's loose terrain textures, A-I23a), or only the one named (the
+//                             example mod's tinted ground), to cover a fraction of frames\<frame>.bmp within
+//                             <least>..<most>
 //   mmplevels <most>          require the levels of every .mmp texture the image holds, decoded as drawn,
 //                             to lie within a mean difference of <most> (0..255 per channel) from their
 //                             level 0, both box-filtered to 4 x 4 (render::CheckMmpLevels: levels read
@@ -555,6 +569,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <map>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -700,6 +715,7 @@ std::string LogText() {
 }
 std::size_t g_expectFrom = 0;                // first line "expect" looks at
 std::vector<std::string> g_rejected;         // texts that must not appear
+std::vector<std::string> g_allowed;          // lines containing one of these are exempt from g_rejected
 std::vector<std::string> g_failures;
 // A pending "check": the console line index its output starts at, and when to give up.
 bool g_checking = false;
@@ -788,10 +804,13 @@ unsigned g_awardMoney = 0;
 bool g_awardServed = false;      // "waitaward ... served": the server's award queue filled and emptied
 bool g_awardQueueSeen = false;   // the server's award queue was seen with awards
 bool g_awardFromSet = false;   // "awardfrom" took them (the next waitaward compares with those)
+// What each "heroxp" step read, by hero.
+std::map<std::string, float> g_heroExperience;
 // A "hit" step's unit: "leader", "#<id>" or a script name; "none" (0) where `none` allows it; -1 when not found.
 int HitUnitId(const std::string& name, bool none) {
     if (none && name == "none") return 0;
     if (name == "leader") return digest::LocalLeader();
+    if (name == "companion") return image::CompanionUnit(0);
     if (!name.empty() && name[0] == '#') return std::atoi(name.c_str() + 1);
     const int id = image::TextKey(name.c_str());
     return id ? id : -1;
@@ -826,8 +845,10 @@ void OnConsoleLine(std::string_view text) {
         while (!line.empty() && (line.back() == '\n' || line.back() == '\r')) line.pop_back();
         Log("console: %s", line.c_str());
         if (!g_captureAfter.empty() && line.find(g_captureAfter) != std::string::npos) g_captureAfterSeen = true;
+        bool allowed = false;
+        for (const std::string& a : g_allowed) allowed = allowed || line.find(a) != std::string::npos;
         for (const std::string& r : g_rejected)
-            if (line.find(r) != std::string::npos) g_failures.push_back("rejected output: " + line);
+            if (!allowed && line.find(r) != std::string::npos) g_failures.push_back("rejected output: " + line);
         g_console.push_back(std::move(line));
     }
 }
@@ -2839,8 +2860,10 @@ void RunSteps() {
             if (std::sscanf(s.argument.c_str(), "%95s %95s %f", target, attacker, &amount) != 3) {
                 error = "hit needs <target> <attacker> <amount>";
             } else {
-                const int targetId = HitUnitId(target, false);
                 const int attackerId = HitUnitId(attacker, true);
+                const int targetId = std::string(target) == "enemy"
+                                         ? image::NearestEnemy(attackerId > 0 ? attackerId : digest::LocalLeader())
+                                         : HitUnitId(target, false);
                 if (targetId < 0 || attackerId < 0)
                     error = std::string("hit: no unit ") + (targetId < 0 ? target : attacker);
                 else
@@ -2921,19 +2944,22 @@ void RunSteps() {
                 g_failures.push_back(error);
             }
         } else if (s.verb == "hudstate" || s.verb == "campputon" || s.verb == "modfile" || s.verb == "modlist" ||
-                   s.verb == "modarchive" || s.verb == "mapfile" || s.verb == "playstream" || s.verb == "folderprofile" ||
-                   s.verb == "modtext" || s.verb == "modack" || s.verb == "modweapon") {
-            std::string error = s.verb == "hudstate" ? HudState(s.argument)
-                                : s.verb == "modtext" ? starter::ModTextStep(s.argument)
-                                : s.verb == "modack" ? starter::ModAckStep(s.argument)
-                                : s.verb == "modweapon" ? starter::ModWeaponStep(s.argument)
-                                : s.verb == "campputon" ? CampPutOn(s.argument)
+                   s.verb == "modarchive" || s.verb == "mapfile" || s.verb == "playstream" ||
+                   s.verb == "folderprofile" || s.verb == "modtext" || s.verb == "modack" || s.verb == "modweapon" ||
+                   s.verb == "modrecord" || s.verb == "ground") {
+            std::string error = s.verb == "hudstate"        ? HudState(s.argument)
+                                : s.verb == "modtext"       ? starter::ModTextStep(s.argument)
+                                : s.verb == "modack"        ? starter::ModAckStep(s.argument)
+                                : s.verb == "modweapon"     ? starter::ModWeaponStep(s.argument)
+                                : s.verb == "modrecord"     ? starter::ModRecordStep(s.argument)
+                                : s.verb == "ground"        ? starter::GroundStep(s.argument)
+                                : s.verb == "campputon"     ? CampPutOn(s.argument)
                                 : s.verb == "folderprofile" ? folder_profile::Step()
-                                : s.verb == "modlist" ? starter::ModListStep(s.argument)
-                                : s.verb == "modarchive" ? starter::ModArchiveStep(s.argument)
-                                : s.verb == "mapfile" ? starter::MapFileStep(s.argument)
-                                : s.verb == "playstream" ? starter::PlayStreamStep(s.argument)
-                                : starter::ModFileStep(s.argument);
+                                : s.verb == "modlist"       ? starter::ModListStep(s.argument)
+                                : s.verb == "modarchive"    ? starter::ModArchiveStep(s.argument)
+                                : s.verb == "mapfile"       ? starter::MapFileStep(s.argument)
+                                : s.verb == "playstream"    ? starter::PlayStreamStep(s.argument)
+                                                            : starter::ModFileStep(s.argument);
             if (!error.empty()) {
                 Log("harness: %s", error.c_str());
                 g_failures.push_back(error);
@@ -3163,6 +3189,37 @@ void RunSteps() {
             if (limit != want)
                 g_failures.push_back("checklimit: the session's player limit is " + std::to_string(limit) + ", not " +
                                      std::to_string(want));
+        } else if (s.verb == "companions") {
+            const int want = std::atoi(s.argument.c_str());
+            const int records = image::ServerPartyRecords(0);
+            Log("harness: companions: server player 0's party has %d records (wanted %d)", records, want);
+            if (records != want)
+                g_failures.push_back("companions: server player 0's party has " + std::to_string(records) +
+                                     " records, not " + std::to_string(want));
+        } else if (s.verb == "companionlist") {
+            const int want = std::atoi(s.argument.c_str());
+            const int picked = image::CompanionList();
+            Log("harness: companionlist: %d companions picked (wanted %d)", picked, want);
+            if (picked != want)
+                g_failures.push_back("companionlist: " + std::to_string(picked) + " companions picked, not " +
+                                     std::to_string(want));
+        } else if (s.verb == "askcompanion") {
+            if (!image::AskCompanion(s.argument.c_str()))
+                g_failures.push_back("askcompanion " + s.argument + ": nothing to send");
+        } else if (s.verb == "heroxp") {
+            char name[64] = {}, more[16] = {};
+            std::sscanf(s.argument.c_str(), "%63s %15s", name, more);
+            std::string file;
+            float experience = 0.0f;
+            if (!image::SavedHero(name, &file, &experience)) {
+                g_failures.push_back(std::string("heroxp: no saved hero ") + name + " reads");
+            } else {
+                Log("harness: heroxp: %s (%s) has %.3f experience", name, file.c_str(), experience);
+                auto previous = g_heroExperience.find(name);
+                if (std::string(more) == "more" && (previous == g_heroExperience.end() || !(experience > previous->second)))
+                    g_failures.push_back(std::string("heroxp: ") + name + " did not gain experience");
+                g_heroExperience[name] = experience;
+            }
         } else if (s.verb == "checkpaused") {
             const bool want = std::atoi(s.argument.c_str()) != 0;
             Log("harness: checkpaused: the server world is %s (wanted %s)", image::ServerPaused() ? "paused" : "running",
@@ -3491,6 +3548,8 @@ void RunSteps() {
             }
         } else if (s.verb == "reject") {
             g_rejected.push_back(s.argument);
+        } else if (s.verb == "allow") {
+            g_allowed.push_back(s.argument);
         } else if (s.verb == "diskfull") {
             crash::FailWritesTo(s.argument.c_str());
         } else if (s.verb == "expectcrash") {

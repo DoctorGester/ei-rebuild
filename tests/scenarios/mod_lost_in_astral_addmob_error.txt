@@ -1,0 +1,14 @@
+# An AddMob'd file whose script does not load says so on the console (L1a; MobFile::Load): Lost in Astral's
+# zone10hunter.mob declares VCheck#1#1, which the mission's script already declares, so its load fails at line 8
+# ("Duplicate script"); the original dropped the file's scripts without a word and does so still, now with
+# "Script error: <file>.mob line <n>: ..." (as a zone's own script, WorldServer::LoadZoneScripts). docs/notes/script.md.
+# On the vanilla data (no starter\Mods) only the menu runs: every later step is Rebirth's.
+mod starter\Mods\LostInAstral
+waitmenu
+rebirth console thingamabob
+rebirth newgame
+rebirth waitfor 20 IsGreater(HP(GetLeader()),0)
+rebirth console @AddMob("zone10hunter.mob")
+rebirth waitline 10 Script error: zone10hunter.mob line 8: Duplicate script
+report
+quit

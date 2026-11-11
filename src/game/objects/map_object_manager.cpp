@@ -30,6 +30,7 @@
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "game/data/resource.h"
+#include "game/data/database_toml.h"
 #include "lib/toml.h"
 
 #include <algorithm>
@@ -142,67 +143,161 @@ std::unique_ptr<AnimationDatabase> ReadAdbImage(const std::uint8_t* data, std::u
     return database;
 }
 
-// An animation's name as the record holds it: the asset code page's text, cut to its 16 bytes.
-void SetAnimationName(FigureAnimationRecord& record, std::string_view utf8) {
-    const std::string name = text::ToAssetText(utf8);
-    std::fill(std::begin(record.name), std::end(record.name), '\0');
-    std::copy_n(name.data(), std::min(name.size(), sizeof(record.name)), record.name);
-}
-
 // The name's bytes up to its terminator.
 std::string_view BoundedName(const FigureAnimationRecord& record) {
     return std::string_view(record.name, str::BoundedLength(record.name, sizeof(record.name)));
 }
 
-std::string AnimationName(const FigureAnimationRecord& record) {
-    return text::FromAssetText(BoundedName(record));
-}
+} // namespace
 
-// The numbers of an array field with its trailing zeros left out (none: an empty array).
-std::string TrimmedArray(const std::uint32_t* values, int count) {
-    while (count > 0 && values[count - 1] == 0) --count;
-    std::vector<std::string> items;
-    for (int i = 0; i < count; ++i) items.push_back(toml::Int(values[i]));
-    return toml::Array(items);
-}
+// ---- .adb as TOML ----------------------------------------------------------------------------------------------
 
-// The fields of one animation from its TOML table; false for a key it does not know.
-bool ReadAnimationKey(std::string_view key, const toml::Value& value, FigureAnimationRecord& record) {
-    if (key == "name") {
-        std::string name;
-        if (toml::Read(value, &name)) SetAnimationName(record, name);
-    } else if (key == "index") {
-        toml::Read(value, &record.index);
-    } else if (key == "key") {
-        toml::Read(value, &record.key);
-    } else if (key == "flags") {
-        toml::Read(value, &record.flags);
-    } else if (key == "chance") {
-        toml::Read(value, &record.chance);
-    } else if (key == "frames") {
-        toml::Read(value, &record.frameCount);
-    } else if (key == "stride") {
-        toml::Read(value, &record.stride);
-    } else if (key == "arrow") {
-        std::uint32_t arrow[2];
-        toml::ReadArray(value, arrow, 2);
-        record.arrowFrom = arrow[0];
-        record.arrowTo = arrow[1];
-    } else if (key == "steps") {
-        toml::ReadArray(value, record.stepFrames, 4);
-    } else if (key == "moment") {
-        toml::Read(value, &record.moment);
-    } else if (key == "sound_frame") {
-        toml::Read(value, &record.soundFrame);
-    } else if (key == "sounds") {
-        toml::ReadArray(value, record.sounds, 4);
-    } else {
-        return false;
-    }
+// An animation's arrow frames, [from, to] (left out when 0, 0); a list of numbers written without its trailing zeros
+// (the footsteps' frames, the sound numbers; the rest read back zero).
+struct ArrowFrames {
+    std::uint32_t& from;
+    std::uint32_t& to;
+};
+struct TrimmedNumbers {
+    std::uint32_t (&values)[4];
+};
+
+std::string ValueText(ArrowFrames field) { return toml::Array({toml::Int(field.from), toml::Int(field.to)}); }
+bool ReadValue(const toml::Value& value, ArrowFrames field) {
+    std::uint32_t arrow[2];
+    if (!toml::ReadArray(value, arrow, 2)) return false;
+    field.from = arrow[0];
+    field.to = arrow[1];
     return true;
 }
+bool IsUnset(ArrowFrames field) { return field.from == 0 && field.to == 0; }
 
-} // namespace
+std::string ValueText(TrimmedNumbers field) {
+    int count = 4;
+    while (count > 0 && field.values[count - 1] == 0) --count;
+    std::vector<std::string> items;
+    for (int i = 0; i < count; ++i) items.push_back(toml::Int(field.values[i]));
+    return toml::Array(items);
+}
+bool ReadValue(const toml::Value& value, TrimmedNumbers field) { return dbtoml::ReadValue(value, field.values); }
+
+// The key's and the flags' parts (object3d.h; docs/notes/mods.md, "Readable values").
+using dbtoml::Name;
+
+constexpr Name kKinds[] = {
+    {0, "none"}, {1, "special"}, {2, "attack"}, {3, "cast"}, {4, "run"},
+    {5, "walk"}, {6, "idle"},    {7, "death"},  {8, "hit"},  {9, "cross"},
+};
+// AnimationWeaponBit by weapon type; "any" the seven weapons.
+constexpr Name kWeapons[] = {
+    {0x7F, "any"}, {0x1, "sword"}, {0x2, "axe"},       {0x4, "dagger"}, {0x8, "spear"},
+    {0x10, "club"}, {0x20, "bow"}, {0x40, "crossbow"}, {0x100, "none"},
+};
+constexpr Name kMoves[] = {{1, "stop"}, {2, "walk"}, {4, "crawl"}, {6, "lie"}};   // AnimationMoveBits >> 15
+constexpr Name kPlays[] = {{1, "once"}, {2, "looped"}};                           // AnimationKeyFlag >> 30
+// A Special's number (SkillAnimation).
+constexpr Name kSkills[] = {
+    {0x1, "briefing01"}, {0x2, "briefing02"}, {0x3, "briefing03"}, {0x4, "briefing04"}, {0x5, "briefing05"},
+    {0x6, "briefing06"}, {0x7, "briefing07"}, {0x8, "briefing08"}, {0x9, "briefing09"}, {0xA, "briefing10"},
+    {0xB, "briefing11"}, {0xC, "briefing12"}, {0xD, "briefing13"}, {0x13, "tame"},      {0x14, "steal"},
+    {0x15, "use"},       {0x16, "search_body_ranged"},             {0x21, "special14"},
+    {0x30, "search_body_walking"},            {0x34, "search_body_walking_ranged"},       {0x35, "search_body"},
+};
+constexpr Name kHeights[] = {{1, "high"}, {2, "middle"}, {3, "low"}};                       // AttackHeight >> 24
+constexpr Name kSides[] = {{1, "back"}, {2, "front"}, {3, "minus_x"}, {4, "plus_x"}};   // BlowSide >> 22
+// A death's or hit's fall bits (bits 25, 26; combat_steps.cpp's kKeyFallWalking, kKeyFall, kKeyDeath).
+constexpr Name kFalls[] = {{1, "walking"}, {2, "standing"}, {3, "none"}};
+constexpr Name kFlagBits[] = {{0x1, "arrow"}, {0x10, "fits_under_armour"}, {0x20, "fits_upper_armour"}};
+
+constexpr std::uint32_t kWeaponBits = dbtoml::NamedBits(kWeapons);
+constexpr std::uint32_t kKnownKeyBits =
+    kWeaponBits | kAnimationMoveMask | kAnimationKindMask | kAnimationNumberMask | 0xC0000000u;
+constexpr std::uint32_t kKnownFlagBits = dbtoml::NamedBits(kFlagBits) | kBlowSideMask;
+constexpr std::uint32_t kBlowBit = kAnimationAttackBlow;
+constexpr std::uint32_t kHeightMask = 0x3000000;
+constexpr std::uint32_t kFallMask = 0x6000000;
+
+// The parts of the key's number (bits 22..29), which mean what the kind says: written as the parts the kind has
+// when they hold the whole number, else as `number`; the reader takes each.
+enum class NumberPart { Number, Skill, Height, Blow, Side, Fall };
+
+struct KeyNumber {
+    std::uint32_t& key;
+    NumberPart part = NumberPart::Number;
+
+    // The parts the key is written with.
+    static bool ByParts(std::uint32_t key, NumberPart part) {
+        const int number = AnimationNumber(key);
+        switch (AnimationKindOf(key)) {
+        case AnimationKind::Special:
+            return part == NumberPart::Skill && !dbtoml::NameOf(kSkills, number).empty();
+        case AnimationKind::Attack:
+        case AnimationKind::Cast:
+            return (part == NumberPart::Height || part == NumberPart::Blow) && (number & ~0xE) == 0;
+        case AnimationKind::Death:
+        case AnimationKind::Hit:
+            return (part == NumberPart::Side || part == NumberPart::Fall) && (number & ~0x1F) == 0 && (number & 7) <= 4;
+        default: return false;
+        }
+    }
+    dbtoml::Code AsCode() const {
+        switch (part) {
+        case NumberPart::Skill: return {key, kAnimationNumberMask, kSkills};
+        case NumberPart::Height: return {key, kHeightMask, kHeights};
+        case NumberPart::Side: return {key, kBlowSideMask, kSides};
+        case NumberPart::Fall: return {key, kFallMask, kFalls};
+        default: return {key, kAnimationNumberMask, {}};
+        }
+    }
+    bool Skipped() const {
+        if ((key & AsCode().mask) == 0 || (part == NumberPart::Blow && (key & kBlowBit) == 0)) return true;
+        bool byParts = false;
+        for (NumberPart other : {NumberPart::Skill, NumberPart::Height, NumberPart::Blow, NumberPart::Side, NumberPart::Fall})
+            byParts = byParts || ByParts(key, other);
+        return part == NumberPart::Number ? byParts : !ByParts(key, part);
+    }
+};
+
+std::string ValueText(KeyNumber field) {
+    if (field.part == NumberPart::Blow) return toml::Bool((field.key & kBlowBit) != 0);
+    return dbtoml::ValueText(field.AsCode());
+}
+bool ReadValue(const toml::Value& value, KeyNumber field) {
+    if (field.part != NumberPart::Blow) return dbtoml::ReadValue(value, field.AsCode());
+    if (!value.IsBool()) return false;
+    field.key = value.Bool() ? field.key | kBlowBit : field.key & ~kBlowBit;
+    return true;
+}
+std::string ValidNames(const KeyNumber& field) { return dbtoml::ValidNames(field.AsCode()); }
+
+template <class Visit>
+void Fields(FigureAnimationRecord& r, Visit& v) {
+    using dbtoml::Code;
+    v("name", dbtoml::Chars<16>{r.name});
+    v("index", r.index);
+    v("kind", Code{r.key, kAnimationKindMask, kKinds});
+    v("weapons", dbtoml::Bits{r.key, kWeapons});
+    v("move", Code{r.key, kAnimationMoveMask, kMoves});
+    v("play", Code{r.key, 0xC0000000u, kPlays});
+    v("skill", KeyNumber{r.key, NumberPart::Skill});
+    v("height", KeyNumber{r.key, NumberPart::Height});
+    v("blow", KeyNumber{r.key, NumberPart::Blow});
+    v("side", KeyNumber{r.key, NumberPart::Side});
+    v("fall", KeyNumber{r.key, NumberPart::Fall});
+    v("number", KeyNumber{r.key, NumberPart::Number});
+    v("key_other", dbtoml::OtherBits{r.key, kKnownKeyBits});
+    v("flags", dbtoml::Bits{r.flags, kFlagBits});
+    v("death_side", Code{r.flags, kBlowSideMask, kSides});
+    v("flags_other", dbtoml::OtherBits{r.flags, kKnownFlagBits});
+    v("chance", r.chance);
+    v("frames", r.frameCount);
+    v("stride", r.stride);
+    v.Unread("arrow", ArrowFrames{r.arrowFrom, r.arrowTo});
+    v("steps", TrimmedNumbers{r.stepFrames});
+    v("moment", r.moment);
+    v("sound_frame", r.soundFrame);
+    v("sounds", TrimmedNumbers{r.sounds});
+}
 
 std::unique_ptr<AnimationDatabase> ReadAnimationDatabase(const RecordFile& file) {
     auto database = file.found ? ReadAdbImage(reinterpret_cast<const std::uint8_t*>(file.original.data()),
@@ -219,33 +314,14 @@ void AnimationDatabase::MergeToml(const toml::Value& root, const std::string& pa
     toml::Read(root["start"], &start);
     toml::Read(root["length"], &length);
     toml::Read(root["end"], &end);
-    std::vector<bool> replaced;
-    const toml::Value table = root["animation"];
-    for (int i = 0; i < table.Size(); ++i) {
-        const toml::Value item = table.At(i);
-        FigureAnimationRecord record;
-        std::string itemName;
-        toml::Read(item["name"], &itemName);
-        SetAnimationName(record, itemName);
-        std::size_t index = 0;
-        while (index < animations.size() &&
-               ((index < replaced.size() && replaced[index]) || BoundedName(animations[index]) != BoundedName(record)))
-            ++index;
-        record.index = static_cast<std::uint8_t>(index);
-        for (int k = 0; k < item.Size(); ++k)
-            if (!ReadAnimationKey(item.KeyAt(k), item.ValueAt(k), record))
-                game::Warning("adb: %s line %d: unknown key %s", path, item.ValueAt(k).Line(), std::string(item.KeyAt(k)));
-        if (index == animations.size()) animations.emplace_back();
-        replaced.resize(animations.size());
-        replaced[index] = true;
-        animations[index] = FigureAnimation{record, this};
-    }
-    for (int i = 0; i < root.Size(); ++i) {
-        const std::string_view key = root.KeyAt(i);
-        if (key != "name" && key != "start" && key != "length" && key != "end" && key != "animation" &&
-            !IsReplaceKey(key, root.ValueAt(i)))
-            game::Warning("adb: %s line %d: unknown key %s", path, root.ValueAt(i).Line(), std::string(key));
-    }
+    dbtoml::MergeRecords(
+        root["animation"], animations, "name",
+        [](const FigureAnimation& animation) { return std::string(BoundedName(animation)); }, ".adb", path,
+        [this](FigureAnimation& animation, std::size_t index) {
+            animation.database = this;
+            animation.index = static_cast<std::uint8_t>(index);
+        });
+    dbtoml::CheckTables(root, {"name", "start", "length", "end", "animation"}, ".adb", path);
 }
 
 std::string AnimationDatabase::ToToml() const {
@@ -254,22 +330,9 @@ std::string AnimationDatabase::ToToml() const {
     writer.Pair("start", toml::Float(start));
     writer.Pair("length", toml::Float(length));
     writer.Pair("end", toml::Float(end));
-    for (const FigureAnimation& animation : animations) {
-        writer.ArrayTable("animation");
-        writer.Pair("name", toml::String(AnimationName(animation)));
-        writer.Pair("index", toml::Int(animation.index));
-        writer.Pair("key", toml::Hex(animation.key));
-        writer.Pair("flags", toml::Hex(animation.flags));
-        writer.Pair("chance", toml::Int(animation.chance));
-        writer.Pair("frames", toml::Int(animation.frameCount));
-        writer.Pair("stride", toml::Float(animation.stride));
-        if (animation.arrowFrom != 0 || animation.arrowTo != 0)
-            writer.Pair("arrow", toml::Array({toml::Int(animation.arrowFrom), toml::Int(animation.arrowTo)}));
-        writer.Pair("steps", TrimmedArray(animation.stepFrames, 4));
-        writer.Pair("moment", toml::Int(animation.moment));
-        writer.Pair("sound_frame", toml::Int(animation.soundFrame));
-        writer.Pair("sounds", TrimmedArray(animation.sounds, 4));
-    }
+    dbtoml::WriteRecords(writer, "animation", animations, "name", [](FigureAnimation& animation, std::size_t index) {
+        animation.index = static_cast<std::uint8_t>(index);
+    });
     return writer.text;
 }
 

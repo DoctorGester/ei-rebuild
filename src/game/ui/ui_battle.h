@@ -179,6 +179,7 @@ public:
     int questSound = 0;              // the quest sound to play (1 quest, 2 part done, 3 done)
     bool hasHero = false;            // a hero id was added (new game)
     PartyIds clientParty;            // the client's party ids last built
+    int companionPortraits = 0;      // ours: the local hero's companions, the portraits after the first
     // The key a player's item gives when it starts mode 6; SelectUnit and the hover hand it to the target's
     // AcceptsKey.
     LockKey itemUseKey = {1, 0, 0};

@@ -1,10 +1,13 @@
 // Loading the mission script from a savegame (Script::LoadState) and the loaders of its parts:
 // the particle / FX / lightning lists, command blocks, WorldScript blocks, if-then
-// arrays, the four kinds of variables, script instances and runs. The mirror image of script_save.cpp; see
-// docs/notes/script.md. Every piece is read through the stream's Read in the save's order and in its pieces.
+// arrays, the four kinds of variables, script instances and runs (an old-format save's, for the old-save shim). The
+// mirror image of script_save.cpp; see docs/notes/script.md. Every piece is read through the stream's Read in the
+// save's order and in its pieces.
 #include "game/core/base_manager.h"
 #include "game/core/core_streams.h"
 #include "game/script/script.h"
+#include "game/script/script_lua_scheduler.h"
+#include "game/console/console.h"
 #include "game/effects/world_effect.h"
 
 #include "game/saves/save_versions.h"
@@ -14,6 +17,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
+#include <iterator>
 #include <string>
 
 namespace {
@@ -84,20 +88,13 @@ void ScriptVars::Load(ByteStream* stream) {
     groups.Load(stream);
 }
 
-void ScriptRun::Load(ByteStream* stream, Script* script) {
-    position.block = script->FindBlock(stream->ReadAs<std::int32_t>());
-    stream->ReadValue(position.index);
-    stream->ReadValue(position.ticks);
-    stream->ReadValue(position.sleepStart);
-    const int instanceIndex = stream->ReadAs<std::int32_t>();
-    killFlag = nullptr;
-    int k = 0;
-    for (ScriptDefinition& instance : script->instances) {
-        if (k++ == instanceIndex) {
-            killFlag = &instance.killed;
-            break;
-        }
-    }
+void ScriptSavedRun::Load(ByteStream* stream, const Script* script) {
+    block = script->FindBlock(stream->ReadAs<std::int32_t>());
+    stream->ReadValue(index);
+    stream->ReadValue(ticks);
+    stream->ReadValue(sleepStart);
+    instance = stream->ReadAs<std::int32_t>();
+    if (instance < 0 || instance >= std::ssize(script->savedInstances)) instance = -1;
     vars.Load(stream);
 }
 
@@ -107,7 +104,7 @@ void ScriptRun::Load(ByteStream* stream, Script* script) {
 // slots are made and left null. The called block is found in the lists of the world's first script (-1, an
 // unset block, finds a WorldScript block with id -1 if any). A For / ForIf whose body did not resolve (a save made
 // with other scripts) is cleared into a command that does nothing: its block keeps its length, so the saved runs'
-// indices still point at their commands, and Execute always has a body to run.
+// indices still point at their commands, and the old-save shim always has a body to convert.
 void ScriptCall::Load(ByteStream* stream, const Script* script) {
     stream->ReadValue(id);
 
@@ -176,8 +173,11 @@ ScriptBlock* Script::FindBlock(int id) const {
 // ---- Script::LoadState ---------------------------------------------------------------------------
 
 // Reads what SaveState wrote, in the same order; every block id resolves in this script. Areas are read only
-// from stream version 0x57 on.
+// from stream version 0x57 on. The globals', instances' and runs' fields hold the saved state either way: an
+// old-format save's for the shim, ours the scheduler's as far as those fields go (script_save.cpp, WriteLuaState),
+// which its Lua state after the areas holds whole.
 void Script::LoadState(ByteStream* stream) {
+    DropRunner();
     pointLights.resize(stream->ReadCount());
     for (ScriptPointLight& light : pointLights) light.Load(stream);
 
@@ -202,17 +202,41 @@ void Script::LoadState(ByteStream* stream) {
     for (ScriptDefinition& definition : definitions) definition.Load(stream, this);
 
     globals.Load(stream);
-    LoadList(&instances, stream, [this, stream](ScriptDefinition& instance) { instance.Load(stream, this); });
-    LoadList(&runs, stream, [this, stream](ScriptRun& run) { run.Load(stream, this); });
-    std::erase_if(runs, [](const ScriptRun& run) { return !run.position.block; });
+    LoadList(&savedInstances, stream, [this, stream](ScriptDefinition& instance) { instance.Load(stream, this); });
+    LoadList(&savedRuns, stream, [this, stream](ScriptSavedRun& run) { run.Load(stream, this); });
+    std::erase_if(savedRuns, [](const ScriptSavedRun& run) { return !run.block; });
     stream->ReadValue(loaded);
+    const bool onLua = loaded >= kScriptLoadedOnLua;
+    if (onLua) loaded -= kScriptLoadedOnLua;
     stream->ReadValue(fileCount);
 
-    if (stream->version < kVersionScriptAreas) return;
-    areas.resize(stream->ReadCount());
-    for (ScriptArea& area : areas) {
-        stream->ReadValue(area.id);
-        area.parts.resize(stream->ReadCount());
-        for (ScriptAreaPart& part : area.parts) stream->ReadValue(part);
+    if (stream->version >= kVersionScriptAreas) {
+        areas.resize(stream->ReadCount());
+        for (ScriptArea& area : areas) {
+            stream->ReadValue(area.id);
+            area.parts.resize(stream->ReadCount());
+            for (ScriptAreaPart& part : area.parts) stream->ReadValue(part);
+        }
     }
+    // The script goes on with its saved state, whatever the zone's files say now (a save keeps running the code it
+    // was saved with): our save's Lua state, or an old-format save's program and state through the old-save shim.
+    // One that does not go on leaves the script empty, said on the console.
+    std::string error;
+    if (onLua) {
+        std::string data(static_cast<std::size_t>(stream->ReadCount()), '\0');
+        stream->Read(data.data(), static_cast<std::uint32_t>(data.size()));
+        if (!data.empty() && !Runner().Restore(data, &error)) {
+            console::EndLine(console::g_consoleOut << "Script error: the save's Lua state did not load: " << error);
+            DropRunner();
+        }
+    } else {
+        std::string text;
+        if (!Runner().Resume(*this, &text, &error)) {
+            console::EndLine(console::g_consoleOut << "Script error: the save's script did not go on in Lua: " << error);
+            DropRunner();
+        }
+    }
+    savedInstances.clear();
+    savedRuns.clear();
+    globals.ResetValues();   // the declarations stay: the later texts' names
 }

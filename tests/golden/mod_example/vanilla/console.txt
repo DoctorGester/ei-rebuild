@@ -1,0 +1,13 @@
+  Activated!
+  Cannot open file autoexec.cfg for reading
+  Example mod: zone1.lua runs
+  Example mod: the pig greets the party
+  Saved savea
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1

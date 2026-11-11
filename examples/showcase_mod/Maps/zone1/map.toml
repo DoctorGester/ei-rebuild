@@ -1,0 +1,28 @@
+# The showcase island (tools/make_showcase_mod.py): zone 1's map replaced (docs/modding.md, "Maps as
+# folders"). Its normals are worked out from heights.png; it has no water.
+name = "Zone1"
+height_range = 20.0
+sectors = [8, 6]
+pages = 1
+page_size = 512
+tile_size = 64
+water_sectors = [
+    "........",
+    "........",
+    "........",
+    "........",
+    "........",
+    "........",
+]
+# Per tile texture its class: the ground's surface (footsteps and prints).
+classes = [
+    "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass",
+    "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass",
+    "ground", "ground", "ground", "ground", "ground", "ground", "ground", "ground",
+    "ground", "ground", "ground", "ground", "ground", "ground", "ground", "ground",
+    "stone", "stone", "stone", "stone", "stone", "stone", "stone", "stone",
+    "stone", "stone", "stone", "stone", "stone", "stone", "stone", "stone",
+    "sand", "sand", "sand", "sand", "sand", "sand", "sand", "sand",
+    "sand", "sand", "sand", "sand", "sand", "sand", "sand", "sand",
+]
+animated = []

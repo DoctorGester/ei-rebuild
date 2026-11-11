@@ -61,7 +61,8 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
 - `newgame` starts a new single-player game (the hero on zone1); `load <slot>` loads a save.
 - `console <command>` types into the game's console. `console thingamabob` unlocks scripting; then `@<command>` runs a
   world script command (e.g. `@AddUnitToServer(...)`, `@Attack(...)`) and `#<expression>` prints a script expression.
-- `check <expression>` requires the expression to print nonzero; `expect`/`reject <text>` look for console output.
+- `check <expression>` requires the expression to print nonzero; `expect`/`reject <text>` look for console output;
+  `allow <text>` exempts lines containing <text> from `reject`.
 - `waitfor <seconds> <expression>` waits until the expression is nonzero (fails after <seconds>); prefer it to fixed
   `wait`s. `waitline <seconds> <text>` waits until the console has printed <text> (e.g. `Saved savea`).
 - Waits on the interface rather than the clock (each fails the run after <seconds>): `waitmenu [seconds]` (default 30)
@@ -152,7 +153,12 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   `[network]` SecondMaster (rebirth.md, "Settings"). A game's player limit and pause mode are the host's create-server choices:
   a scenario drags the player slider (`layout ldown` / `move` / `lup`, `net_pair_portraits`) or clicks the pause
   mode's region (29) with the new game's row selected; `checklimit <n>` requires the client session's player limit
-  (`ClientSession::PlayerLimit`), `checkpaused 0|1` the server world's pause flag. `folderprofile` checks the drop-in start-up (harness_folder_profile.h,
+  (`ClientSession::PlayerLimit`), `checkpaused 0|1` the server world's pause flag. Companions (network.md): the
+  create-server screen's region 30 turns them on; `companions <n>` requires server player 0's party records, `companionlist <n>` the companions picked in the base
+  (`SavedParties::companions`), `askcompanion <hero>` sends a mid-game add of that saved hero (the server refuses it),
+  `heroxp <name> [more]` reads the saved hero's file from the disk and logs its experience (`more`: above the last
+  heroxp of that hero); the `hit` step's units take `companion` (server player 0's first) and, as a target, `enemy`
+  (the living unit nearest the attacker that is hostile to it; `net_pair_companion`). `folderprofile` checks the drop-in start-up (harness_folder_profile.h,
   `dropin_profile.txt`).
 - Mod folders (S19d; standalone.md, "Mod folders"): `mod <folder>` answers the settings' `[game] Mod` with a mod folder
   of the install (relative to the game folder, `starter\Mods\LostInAstral`), in full, or `harness_saves\<folder>` for

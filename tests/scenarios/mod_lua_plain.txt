@@ -1,0 +1,29 @@
+# A mod's zone1.lua that is the game's zone1.mob script as ei-convert writes it (docs/notes/mods.md, "Scripts in Lua";
+# tools/make_lua_mod.py plain): zone 1's mission script runs from the mod's file through a new game, a save and its
+# load (the save holds the Lua state, Eris). mod_lua_none is its twin, the same mod without the .lua (the .mob
+# converted at its load): their goldens are the same, digests, dump and saves.
+# prepare: make_lua_mod.py plain
+mod harness_saves\lua_mod
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitline 15 Saved savea
+waitfor 15 IsGreater(HP(GetLeader()),0)
+wait 4000
+
+key esc
+waitwindow 10 escmenu
+click 395 120
+waitwindow 10 saveload
+clickregion 0
+waitline 15 Saved save1
+wait 300
+load save1
+waitwindow 30 battle
+waitfor 20 IsGreater(HP(GetLeader()),0)
+wait 2000
+dump loaded_save1
+check IsAlive(GetLeader())
+report
+quit

@@ -235,6 +235,8 @@ void MpConnectScreen::LeftDown(UiEvent& event) {
         }
     } else if (region == pauseSwitch) {
         if (selected == 0) pauseMode = static_cast<net::PauseMode>((static_cast<int>(pauseMode) + 1) % kPauseModes);
+    } else if (region == companionSwitch) {
+        if (selected == 0) companions = companions == 0 ? net::kMostCompanions : 0;
     } else if (shownRow >= 0) {
         unsigned row = static_cast<unsigned>(scrollTop + shownRow);
         if (row < entries.size()) {
@@ -306,7 +308,7 @@ void MpConnectScreen::Connect() {
         std::string name = nameEdit->text;
         if (name.size() == 0) name = kDefaultGameName;
         SaveAddressBook();
-        g_gameFlow.StartServer(name, players, pauseMode, gameType, hostPassword, unlisted,
+        g_gameFlow.StartServer(name, players, pauseMode, companions, gameType, hostPassword, unlisted,
                                static_cast<int>(net::g_gameClient->queries.extra));
         return;
     }
@@ -515,6 +517,9 @@ void MpConnectScreen::CreateScreen() {
     for (int row = 0, top = 132; row < kRows; ++row, top += 24) rows[row] = region(108, top, 370, top + 24, 0);
     pauseSwitch = region(440, 396, 690, 418, 0);
     pauseMode = net::PauseMode::Original;
+    // Ours, region 30: on the game type's title row, right of the title (the tabs below reach x 670).
+    companionSwitch = region(560, 214, 700, 237, 0);
+    companions = 0;
 
     AddSurface(NewSurface(Rect{100, 100, 700, 500}))->PaintWith([this](UiSurface& out) { PaintList(out); });
     {

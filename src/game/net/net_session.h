@@ -81,6 +81,8 @@ enum class PauseMode : std::uint8_t { Original, Announced, AnyPlayer, Off };
 // The most players a hosted game takes (the create-server screen's slider): the chat strip's faces, 0x38 wide from
 // x 0x2E8 leftwards, fit 14 in the layout's width.
 inline constexpr int kMostPlayers = 14;
+// Ours: the companions the create-server screen's switch offers: a hero and two make a party of three.
+inline constexpr int kMostCompanions = 2;
 
 enum class AwardKind : std::uint32_t {
     Experience = 0,
@@ -536,6 +538,9 @@ public:
     std::string mapName;
     std::uint32_t maxPlayers = 8;       // 8; set by the creator
     PauseMode pauseMode = PauseMode::Original;   // set by the creator (StartServer)
+    // Ours: the most companions (other saved heroes) a player may add to its hero in a zone, 0 none; set by
+    // the creator (StartServer). Only our clients learn it (ServerMessage::Companions).
+    std::uint32_t companions = 0;
     std::uint32_t kind = 0;             // the constructor's argument: the game kind
     char password[0x14] = {};           // the join password (empty: none)
     std::uint32_t masterKey = 0;        // set by the creator (StartServer); announced, and the master

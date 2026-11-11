@@ -1336,7 +1336,7 @@ client ticksRun 97
 @ 5 update 120 frame 23 tick 20 zone - hash 905458A1 n 172
 world updates 120
 client ticksRun 117
-@ 6 update 140 frame 27 tick 40 zone gz1g hash 304EAACD n 832
+@ 6 update 140 frame 27 tick 40 zone gz1g hash FE53299B n 832
 world tick 40
 world updates 140
 world paused 0
@@ -7452,7 +7452,7 @@ script #globals A5413D6F
 script #gobject 83A825DA
 script #inst 8C20D7F0
 script #instances 00A7DFBD
-script #run 57C965F6
+script #run 0B7E7945
 script #runs 160741CD
 client tick 40
 client paused 0

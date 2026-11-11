@@ -52,9 +52,23 @@ bool Seen(const std::string& where, const std::string& path, bool written, std::
     const std::string relative = Normal(path);
     std::lock_guard<std::mutex> lock(g_lock);
     const std::set<std::string>& seen = written ? g_written : g_seen;
-    // A read of the file's TOML stands for a read of the file (docs/notes/mods.md, "Records as TOML": a converted
-    // install has the TOML alone).
-    auto has = [&](const std::string& file) { return seen.count(file) != 0 || (!written && seen.count(file + ".toml") != 0); };
+    // A read of the file's TOML stands for a read of the file, of a texture's PNG for its .mmp, and of a figure model's
+    // glTF for its figure files and animations (docs/notes/mods.md, "Records as TOML", "Textures as PNG", "Models as
+    // glTF", "Animations as glTF": a converted install has those alone; a glTF's name begins the files' it holds).
+    auto model = [&](const std::string& file) {
+        const bool figure = file.ends_with(".mod") || file.ends_with(".bon") || file.ends_with(".lnk") || file.ends_with(".fig") ||
+                            file.ends_with(".anm");
+        const std::size_t folder = file.find_last_of('\\') + 1;
+        for (std::size_t end = file.size() - 4; figure && end > folder; --end)
+            if (seen.count(file.substr(0, end) + ".glb") != 0 || seen.count(file.substr(0, end) + ".gltf") != 0) return true;
+        return false;
+    };
+    auto has = [&](const std::string& file) {
+        if (seen.count(file) != 0) return true;
+        const bool mmp = file.ends_with(".mmp");
+        return !written && (seen.count(file + ".toml") != 0 || (mmp && seen.count(file.substr(0, file.size() - 4) + ".png") != 0) ||
+                            model(file));
+    };
     if (where == "mod") {
         if (g_mod.empty()) {
             *error = "no mod folder (the scenario has no mod line)";

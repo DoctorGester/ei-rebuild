@@ -1,0 +1,24 @@
+{
+  "scenario": "net_pair_companion",
+  "install": "rebirth",
+  "recorded": "2026-11-10",
+  "commit": "0c1c8717c",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "L8a: the digest's script record and the decoded saves describe a script in terms both executors share (runs by definition and rule without block or command, loop counters and evaluation slots left out, a save on Lua's state in the old fields), so a converted install's goldens are the normal install's",
+  "source": "image",
+  "saves": "2 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "digest: 119 of 336 records differ, first at record 29 (world update 600, tick 22, frame 119, zone bz1mpg); outcomes CHANGED: script; no unit position differs",
+    "  first difference at record 29 (world update 600, tick 22, frame 119, zone bz1mpg): 1 fields",
+    "    script (script) #run: 297674EC in the old golden, 113605A6 in the new run",
+    "  outcomes: CHANGED script; same: zone, deaths, spawns, money, quest variables, party and items, game result",
+    "    script: script #run differs (hashes only), from record 29 (+118 more)",
+    "  script: 1 of 1 differ",
+    "    run: 1 script, 119 records, from 29; hash only (no numbers kept)",
+    "save current/z3q2.sav: 15 fields in 1 records differ: commands 15",
+    "  commands: 15 fields in 1 records; first commands blocks.8.cmd0.float0: 0.0 in the old golden, ~eval in the new run"
+  ]
+}

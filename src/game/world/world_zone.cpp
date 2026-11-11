@@ -8,6 +8,7 @@
 #include "game/app/singletons.h"
 #include "game/objects/map_object.h"
 #include "game/map/map_spec.h"
+#include "game/map/mob_toml.h"
 #include "game/net/net_delta.h"
 #include "game/map/map_database.h"
 #include "game/players/party.h"
@@ -25,6 +26,7 @@
 #include <cstdint>
 #include <cstring>
 #include <new>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -84,16 +86,24 @@ void WorldServer::TakeLookFromUnit(PartyUnitRecord* record) {
 
 void WorldServer::LoadMapObjects(std::string_view fileName, int keepIds) {
     const std::string file(fileName);
-    mapspec::MobFile rootChunk;
-    mapspec::MobFile* root = &rootChunk;
-    auto* fileObject = &root->file;
-
-    std::string path = MapPath(file);
-    if (!root->Open(path, platform::FileMode::Read))
-        game::FatalExit("CWorldServer::LoadMapObjects()\nUnable to read file \"%s\"\n", file);
-    bool read = root->Load(keepIds);
-    fileObject->Close();
-    if (!read) game::FatalExit("CWorldServer::LoadMapObjects\nUnable to read file \"%s\"\n", file);
+    const std::string path = MapPath(file);
+    // The .mob's TOML stands for its chunks but the scripts, which stay in the .mob (docs/notes/mods.md, "Map objects
+    // as TOML"): with a TOML the .mob may be missing.
+    std::optional<mapspec::MobContents> contents = mobtoml::Find(path);
+    mapspec::MobFile root;
+    const bool opened = root.Open(path, platform::FileMode::Read);
+    if (!opened && !contents) game::FatalExit("CWorldServer::LoadMapObjects()\nUnable to read file \"%s\"\n", file);
+    if (!contents) contents = root.ReadChunks();
+    else if (opened) contents->scripts = root.ReadChunks(false).scripts;
+    root.file.Close();
+    // The scripts' .lua, which runs in their place (docs/notes/mods.md, "Scripts in Lua").
+    if (!(keepIds & 0xFF)) {
+        if (std::optional<mobtoml::ScriptLuaFile> lua = mobtoml::FindScriptLua(path, contents->scriptFile)) {
+            contents->lua = std::move(lua->text);
+            contents->luaName = mobtoml::ScriptLuaName(file, lua->name);
+        }
+    }
+    mapspec::LoadMob(*contents, keepIds, fileName);
 }
 
 int WorldServer::LoadMobFile(std::string_view file) {

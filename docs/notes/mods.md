@@ -35,6 +35,37 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `src/game/data/database_toml.h`, `.cpp` | the game databases as TOML ("Databases as TOML"): field lists, `WriteRecords`, `MergeRecords` |
 | `tools/convert/convert_databases.h`, `.cpp` | ei-convert's databases: each round trip, compared by the records' own serialisers |
 | `tests/scenarios/mod_toml_databases.txt` | a mod's items.idb.toml: a weapon changed and one added, given in a new game |
+| `src/game/models/texture_png.h`, `.cpp`; `third_party/stb/` | textures as PNG and back ("Textures as PNG"): `ToPng`, `FromPng`, `ReadLevel`; stb_dxt |
+| `src/lib/png.h`, `.cpp`; `third_party/wuffs/` | PNG files written (in segments) and read (Wuffs; a segmented one on threads): `png::Write`, `png::ReadRgba` ("Loading cost") |
+| `src/game/data/resource.cpp` | `MappedResource::PngTexture`: an .mmp's PNG made into it where it is found |
+| `tools/convert/convert_textures.h`, `.cpp` | ei-convert's textures: each as PNG, its round trip measured |
+| `tests/unit/texture_png.cpp` | the unit check (ei_unit_check, the POSIX port check) |
+| `tests/scenarios/mod_png_texture.txt` | a mod's PNG terrain pages seen on the ground |
+| `src/game/map/map_folder.h`, `.cpp` | maps as folders ("Maps as folders"): `Decode`, `EncodeMap` / `EncodeSector`, `WriteFolder`, `Assemble` (PNGs written by `png::Write`, read by `png::ReadRgba` / `ReadRgba16`) |
+| `src/game/data/resource.cpp` | `MappedResource::FolderMap` / `FolderMapFile`: an archive's map file and sectors made from its folder |
+| `tools/convert/convert_maps.h`, `.cpp` | ei-convert's maps: each as its folder, the round trip byte for byte |
+| `tests/unit/map_folder.cpp` | the unit check (ei_unit_check, the POSIX port check) |
+| `tests/scenarios/mod_map_heights.txt` | a mod's heights.png seen as the ground's height (`ground`) |
+| `tests/scenarios/mod_map_objects.txt` | a mod's zone1.mob.toml (a pig moved, one added) with no .mob, seen in a new game |
+| `src/game/map/mob_toml.h`, `.cpp` | a .mob's objects as TOML and back ("Map objects as TOML"): `Write`, `Read`, `Find`, `FieldImages` |
+| `src/game/map/mob_reader.cpp`, `map_spec.h` | `MobContents` (what a .mob holds), `MobFile::ReadChunks`, `LoadMob` (applied to the server) |
+| `tools/convert/convert_mobs.h`, `.cpp` | ei-convert's map objects: each .mob's TOML, its round trip compared field by field |
+| `src/game/models/figure_gltf.h`, `.cpp`; `third_party/cgltf/` | figure models as glTF and back ("Models as glTF"): `FromFiles`, `Files`, `ToGlb` (our writer), `FromGltf` (cgltf, reading only) |
+| `src/lib/json.h`, `.cpp` | a small JSON reader (the glTF's extras) and the writer's strings and floats |
+| `src/game/data/resource.cpp` | `MappedResource::ModelFile`, `HasModelFile`, `MadeModel`: a figure file answered from a glTF where it is found |
+| `tools/convert/convert_models.h`, `.cpp` | ei-convert's models: an archive's figure files grouped into figures, each as a .glb, its round trip compared |
+| `tests/unit/figure_gltf.cpp` | the unit check (ei_unit_check, the POSIX port check) |
+| `tests/scenarios/mod_gltf_model.txt` | a mod's glTF hero (no extras, 1.5 times as large) seen in a new game |
+| `docs/modding.md` | the modder's guide (MF10): keep it in step with the loaders when a format changes |
+| `examples/example_mod/`, `examples/example_mod_additions/`, `tools/convert/example_mod.cpp` | the guide's example mod: hand-written TOML and Lua, and zone 1's ground PNGs (recoloured), zone1.mob.toml (a pig appended) and zone1.lua (the mod's lines spliced in) made from the install by `ei-convert --example-mod`, which reads the examples folder beside the exe (the build copies it there; the release packages ship it); `tools/make_example_mod.py` is mod_example's prepare step calling it |
+| `tests/scenarios/mod_example.txt` | the example mod played: its text, weapons, pig, red ground (`hues world 0.2 1 red`) and reads |
+| `examples/showcase_mod/`, `tools/make_showcase_mod.py` | the showcase mod, all our own files ("The showcase mod"); the tool writes its pictures and models and copies it for a run |
+| `tests/scenarios/mod_showcase.txt` | the showcase mod played: the island, the golem's fight, the quest and its reward |
+| `src/game/models/figure_gltf_animation.cpp`, `figure_gltf_glb.h` | a set's animations as glTF animations and back ("Animations as glTF"); the pieces the two files share (the .glb's writer, the reader's accessors) |
+| `tests/scenarios/mod_gltf_animation.txt` | a mod's glTF hero whose idle is twice as slow, played in a new game |
+| `src/game/script/script_lua_mission.cpp` | a .mob's script from a .lua ("Scripts in Lua"): `Script::LoadLua`; `Script::Runner`, `GlobalValues`, `GlobalGroup` and the scheduler's views for the digest and the saves |
+| `src/game/map/mob_toml.h`, `.cpp` | `FindScriptLua` (a .mob's .lua through the layers), `ScriptFile` (a TOML's `script` key), `ScriptLuaName` |
+| `tools/make_lua_mod.py`, `tests/scenarios/mod_lua_plain.txt`, `mod_lua_none.txt`, `mod_lua_changed.txt` | a mod's zone1.lua: the plain conversion and its twin without the file (the .mob converted at its load), and one with the mod's own lines through a save |
 
 ## Choosing a mod
 
@@ -234,9 +265,9 @@ commit), the writer our own (src/lib/toml.h: floats as the shortest text that re
 |---|---|---|---|
 | a registry `.reg`: `Config\ai.reg`, `Res\music.reg`, `Res\smessbase.reg`, `Res\streamsn.reg`, aiinfo.res's `tileDesc.reg`, menus.res's `menus.reg`, a mod's `config.reg` | `Config\ai.reg.toml`, `Res\aiinfo\tileDesc.reg.toml`, `<mod>\config.reg.toml`, ... | a table per section, a key per value: integer, float, string, or an array of one (an empty array answers any array type) | merged by section and key (no case) |
 | materials.res's `.mat` | `Res\materials\<name>.mat.toml` | name, diffuse / ambient / specular / emissive `[r, g, b, a]`, power | the keys given over the colours |
-| database.res's `.adb` | `Res\database\<name>.adb.toml` | name, start, length, end, `[[animation]]` (name, index, key, flags, chance, frames, stride, arrow, steps, moment, sound_frame, sounds) | the header's keys given; an animation replaces the first of its name, or is appended |
-| `acks.db` (database.res) | `Res\database\acks.db.toml` | `[[unit]]`, `[[model]]`, `[[extra]]`: name and the speech lists by ack kind (AckKind in snake case: `selected`, `move`, ..., `bored` with `environment`, `scenario` the named ones), each speech `{ sound, chance, text, name }` | a record replaces the first of its name in its table, or is appended |
-| `prints.db` (database.res, databaselmp.res) | `Res\database\prints.db.toml` | `[[blood]]`, `[[footprint]]`, `[[scorch]]`: name, `dry` / `wet` = `{ alpha, life, lifetime }` (a footprint's `unread`: chunk 10) | as acks.db (a table's index is the ground's surface class) |
+| database.res's `.adb` | `Res\database\<name>.adb.toml` | name, start, length, end, `[[animation]]` (name, index, the key's and flags' parts ("Readable values"), chance, frames, stride, arrow, steps, moment, sound_frame, sounds) | the header's keys given; an animation's fields given over the first of its name that the file has not merged yet, or it is appended ("Merging by field") |
+| `acks.db` (database.res) | `Res\database\acks.db.toml` | `[[unit]]`, `[[model]]`, `[[extra]]`: name and the speech lists by ack kind (AckKind in snake case: `selected`, `move`, ..., `bored` with `environment`, `scenario` the named ones), each speech `{ sound, chance, text, name }` | per field ("Merging by field"): a speech list given replaces that list whole; a record of a new name is appended |
+| `prints.db` (database.res, databaselmp.res) | `Res\database\prints.db.toml` | `[[blood]]`, `[[footprint]]`, `[[scorch]]`: name, `dry` / `wet` = `{ alpha, life, lifetime }` (a footprint's `unread`: chunk 10) | per field: `dry` and `wet` merge by their own keys (`wet = { alpha = 0.25 }`); a new name is appended (a table's index is the ground's surface class) |
 | texts.res's, textslmp.res's entries | `Res\texts\texts.toml`, `Res\textslmp\texts.toml`: one per archive | `"<entry name>" = "<text>"` (quoted keys, multi-line text as `"""`, CR kept as `\r`) | per entry: a folder's own file of the name, then its texts.toml, in the archive's order of places; so a mod's texts.toml holds only the strings it changes |
 | `Camera\<name>.cam` | `Camera\<name>.cam.toml` | `[[key]]`: time, position `[x, y, z]`, rotation `[w, x, y, z]` | the top TOML is the whole path |
 
@@ -244,14 +275,30 @@ Merging (`FindRecordFile` / `MappedResource::FindRecord`, resource.h; `MergeToml
 the first place that has the original, and that place's own, are read; the bottom one is merged first over the original,
 so the top one (the mod's) wins. A TOML file with no original anywhere builds the records alone. One that does not parse
 is logged ("warning: records: ...") and left out; an unknown key is logged with the file. A merge never removes a
-record: a mod replaces one, or adds one. A TOML file with the top-level key `replace = true` is the whole file: the
+record: a mod changes fields of one, or adds one ("Merging by field"). A TOML file with the top-level key `replace = true` is the whole file: the
 search ends there, nothing below it (its place's original, lower TOML files, the game's file) is read, as a mod's
 original hides the game's file. ei-convert writes it in every record file it converts, so a converted copy plays as
 the original: Lost in Astral's own `.adb`, `ai.reg` and the like hide the game's rather than merging over them (without
 it mod_lost_in_astral_start's units differed). A mod's file of only the records it changes leaves it out.
 
-The game databases (units.udb, items.idb, ...) can be TOML too: "Databases as TOML". What stays binary: the quest
-zones' `quest.reg` (a `.mq`'s, read as bytes for the briefings: MF9), the maps.
+The game databases (units.udb, items.idb, ...) can be TOML too: "Databases as TOML"; the maps can be folders ("Maps as
+folders"), the maps' objects TOML ("Map objects as TOML"). What stays binary: the quest zones' `quest.reg` (a `.mq`'s,
+read as bytes for the briefings), a `.mob`'s scripts and AI graph.
+
+### Merging by field
+
+Every record file of these tables (acks.db, prints.db, the .adb animations, and the game databases of "Databases as
+TOML") merges one way (user 2026-11-10; the shared code is `dbtoml::MergeRecords`, src/game/data/database_toml.h): a TOML
+record is matched to the first record of its key (the name) that this file has not merged yet and gives the fields it
+has; the others keep what the original, or a TOML file below, had. A key no record has is a new record at the end of its
+table, so every record keeps its index. Each record type lists its fields once (`Fields(record, visit)`, in acks_db.cpp,
+ground_print.cpp and map_object_manager.cpp), which the writer and the merge both walk. So a mod gives only what it
+changes: one ack kind's speech list, one print's `wet = { alpha = 0.25 }`, one animation's `chance = 37`. A list is
+the unit of a field: a speech list (`attack = [...]`) given replaces the record's whole list; the arrays of an animation
+(`arrow`, `steps`, `sounds`) are read whole, the rest of a short one zero. A record without its `name` is logged and
+left out; a new animation's `index` is its place unless the record gives one. Names that repeat (the empty ones in some
+.adb) are matched in order, as in "Databases as TOML". Registries (per section and key), `.mat` (per key) and texts (per
+entry) merged by key already; a camera's key list is the whole path.
 
 ### ei-convert
 
@@ -280,8 +327,11 @@ its TOML when the install has that alone (make_test_mod.py).
 
 - `ei_unit_check`'s toml checks: the writer's strings, keys, numbers and 200,000 floats read back through tomlc17.
 - `mod_toml_records` (both installs; tools/make_mod_s19d.py toml): a mod with only `config.reg.toml`, a `texts.toml`
-  that changes "string quit" and an `acks.db.toml` that replaces Haburu's record; the interface's text and the acks
-  database the units speak from have the mod's (`modtext`, `modack`).
+  that changes "string quit", an `acks.db.toml` that gives Haburu's scenario list and the mercenary warrior's attack
+  list alone, a `prints.db.toml` that gives the stone blood print's wet alpha alone and a `unanhoco.adb.toml` that
+  gives the chance of the animation "cidle01" alone; the interface's text and the records have the mod's fields and
+  the game's others (`modtext`, `modack`, `modrecord`: the mercenary's move list is the game's six speeches, the print's
+  dry look and its wet life and lifetime, the animation's frames, key, flags and moment).
 - `ei-convert --check` on both installs (all round trips hold), and on the stub data in the Linux suites' workflow.
 - `work.py test <ID> --converted --golden --rebirth`: every golden the same.
 
@@ -324,8 +374,9 @@ lists are TOML's own, a model's body slots and a prototype's gold rolls inline t
   file reads back exactly. A lever's `spots` lists only its spot_count spots (Lever::UseSpots reads no more; the count
   is the list's length read back): the bytes of the unused ones (the original data holds garbage there, NaNs among it)
   are not kept, and ei-convert's comparison clears them on both sides.
-- Unsigned flags and masks are written in hexadecimal (`class_mask = 0x1`); a perk's required stats are floats
-  (`required_strength`, held as their bits), its worth exponent signed.
+- Codes, masks and fixed-meaning arrays are written by name, and a field equal to a new record's is left out
+  ("Readable values"); a perk's required stats are floats (`required_strength`, held as their bits), its worth
+  exponent signed.
 
 Counts (2026-11-10, ei-convert, every round trip holding): vanilla 2 each of units.udb, perks.pdb, spells.sdb, items.idb,
 Levers.ldb and 1 quests.qdb (database.res: 389 units, 51 models, 14 NPCs, 5 levels; 78 perks, 7 skills; 42 spells, 38
@@ -344,6 +395,639 @@ armours, 63 weapons, 126 quests).
 - `net_pair_database` on a converted install: tools/make_extra_item_db.py adds its quest item as an overlay
   `items.idb.toml` merged over the game's TOML (the same index as its binary file's).
 - `work.py test <ID> --converted --golden --rebirth`: every golden the same with every database as TOML.
+
+## Readable values
+
+The record TOML says what a value means rather than its bits (MF14, user 2026-11-11: the showcase mod's `class_mask =
+0x1`, `key = 0x2890000`, `blood_kind = 8`, unnamed arrays and a 32 x 32 relations matrix could not be written by
+hand). One path: ei-convert writes this form, the game reads only this form. The field helpers are database_toml.h's
+(`dbtoml::Enum`, `Bits`, `Code`, `OtherBits`, `Table`), which mob_toml.cpp uses too:
+- An enum is its name (`natural_weapon = "club"`); a value no name has stays a number (the data's garbage, a code no
+  code tests), which the reader also takes.
+- A bit mask is a list of names (`sold_by = ["gipat_smith"]`; a name may stand for several bits: `weapons = ["any"]`
+  is 0x7F). Bits no name covers go to `<key>_other = 0x..`, written only when not zero.
+- A fixed-meaning array is an inline table by name (`perception = { sight = 8.5, near = 2.8 }`); elements left out
+  keep the record's value (0 in a new record).
+- Defaults are left out: `dbtoml::WriteRecords` writes a field only when its text differs from a new record's (the
+  key always), the merge fills the rest from the record below or the type's defaults; mob.toml did this already.
+- An unknown name is a load warning with the file, the line and the valid names ("items.idb: <file> line 7: type has
+  a value it does not take (one of: sword, axe, ...)"), as the other TOML errors; the field keeps its value.
+
+Field by field (the names, the code that reads each):
+
+| File | Field | Was | Now |
+|---|---|---|---|
+| items.idb | weapon `type`, `natural_weapon` (udb) | 0..6, 8, 16 | WeaponType: `sword`, `axe`, `dagger`, `spear`, `club`, `bow`, `crossbow`, `none` (8), `spells_only` (16) |
+| items.idb | armor `type` | 0..6 | ArmorType: `helmet`, `body_armor`, `leggings`, `shirt`, `pants`, `boots`, `gloves` |
+| items.idb | quick item / quest item / loot `type` | garbage (stack addresses) | a number, as it was (nothing reads it) |
+| items.idb, spells.sdb | `class_mask` | hex | `sold_by`: the trader class templates (bit class - 1, ClassTemplate::type; the classes by the scripts that open them: `gipat_smith` 1 (basecam "b.smith.constr_1"), `gipat_witch` 2 (bz2g), `ingos_trader` 3 (bz8k Shopper), `suslanger_smith` 4 (bz14h Kuzn), `rick` 5 (bz7g)) |
+| items.idb | `damage_types`, `absorb_first`, `absorb_others`, material `absorb_factors`; udb `damage_weights`, `protection` | 7-element arrays | tables by damage type (texts "string dmg_0".."dmg_6"): `piercing` (dagger, spear, bows), `slashing` (sword, axe), `crushing` (club), `fire`, `acid`, `lightning`, `general` |
+| items.idb | `buildable`, armor `shows_wounds` | 0 / 1 | true / false |
+| items.idb | quick item `category` | 0, 5, 8 | QuickItemCategory: `danger_sensor`, `consumable`, `wand`, `potion` |
+| items.idb | loot `kind`, `record_type` | numbers | LootKind `self`, `material`, `record`; LootRecordType `weapon`, `armor`, `quick_item`, `spell`, `modifier`; 0x7FFFFFFF `none` |
+| units.udb | model `object_class` | 50..52 | `class`: MapObjectType `hero`, `creature`, `animal` (52: Bat, Boar, Cow, ... the code's UnitSpare) |
+| units.udb | `movement_kind` | 1..3 | `movement`: `walks` (1: the load factor from the legs), `flies` (2), `rooted` (3: Fungus) |
+| units.udb | `mode_speeds` | [4] | `{ run, walk, crawl, lie }` (ModeSpeedOf) |
+| units.udb | `action_speeds` | [6] | `{ attack, cast, hit, death, cross, special }` (Unit::ActionSpeed) |
+| units.udb | `blood_kind` | 0..9 | `blood`: `none`, `red`, `green`, `blue`, `brown` (1..4: a shower and a bloodprints.png decal of that colour), `red_spray`, `green_spray`, `blue_spray`, `brown_spray` (5..8: the shower alone) |
+| units.udb | `footprint_kind` | -1..25 | `footprint`: the footprints texture's tile, named by the game's model that uses it (`none` -1, `human`, `driad`, `cyclope`, `skeleton`, `troll`, `golem`, `elemental`, `goblin`, `toad`, `ogre`, `lizardman`, `zombie`, `unicorn`, `horse`, `scrab`, `orc`, `pig`, `hyena`, `boar`, `cow`, `wolf`, `tiger`, `hare`, `rat`, `deer`, `dog`) |
+| units.udb | `cast_effect`, `swap_feet` | 0 / 1 | true / false |
+| units.udb | model `sounds` | 16 names | `step_sounds`: a table by the ground's surface class (FootstepSound; prints.db's names): `grass`, `ground`, `stone`, `sand`, `rock`, `field`, `water`, `road`, `surface_8`, `snow`, `ice`, `dry_grass`, `snowballs`, `lava`, `swamp`, `high_rock` |
+| units.udb | unit `combat` | [5] | `{ reach, attack, attack_spread, defence, speed }` (CombatIndex) |
+| units.udb | unit `perception`, `conspicuity` | [6] | `{ sight, day_sight, near, hearing, smell, unread }` (Sense; smell: Slot4, raised by the Stench spell) |
+| units.udb | unit `hit_sound_kind` | 8..16 | `hit_sound`: the weapon types (0..6), `none` (8), the sound folders `hands1` 9, `pierce` 10, `crash` 11, `hands4` 12, `slash` 13, `hands6` 14, `hands7` 15, `spells_only` 16 (HitSoundFormat) |
+| units.udb | npc `stats` | [3] | `{ strength, dexterity, intelligence }` |
+| .adb | `key` | hex | its parts (object3d.h): `kind` (AnimationKind: `special`, `attack`, `cast`, `run`, `walk`, `idle`, `death`, `hit`, `cross`), `weapons` (bits 0..7 by weapon type, `any` 0x7F), `move` (`stop`, `walk`, `crawl`, `lie`), `play` (`once`, `looped`); the number (bits 22..29) by the kind: an attack's or cast's `height` (`high`, `middle`, `low`) and `blow` (true), a death's or hit's `side` (BlowSide: `back`, `front`, `minus_x`, `plus_x`) and `fall` (`walking`, `standing`, `none`: 0x08, 0x10, 0x18), a special's `skill` (SkillAnimation), else `number`; the other variant bits (8..14) `key_other` |
+| .adb | `flags` | hex | `flags = ["arrow", "fits_under_armour", "fits_upper_armour"]` (bit 0: UpdateArrow; 0x10, 0x20: Unit::AcceptsAnimation), `death_side` (0x1C00000, ActionPoint); the bits nothing reads (1..3, 15..21, 25, 26: they mirror the key in most entries) `flags_other` |
+| .adb | `index` | its place | left out when it is its place (a new animation's default) |
+| mob.toml | `parent_id` | 50..60 | `class`: MapObjectType `hero`, `creature`, `animal`, `tree`, `building`, `stone`, `stuff`, `torch`, `magic_trap`, `lever` |
+| mob.toml | `[players]` | 32 names, 32 x 32 matrix | `names = { 3 = "Golems" }` only names other than "Player-n"; `allied`, `neutral`, `hostile`: lists of `[player, other]` pairs whose relation differs from the default (neutral, allied with itself); the data's relations are all 0..2 |
+
+Kept as numbers (quantities, indexes, a player number): `number`, `variant`, `magic_level`, `material_units`, a
+unit's `level`, `size_class` (the AI map's size class), `foot_part` (the "ll<n>" part), `side` (the owner's player
+number), `player`, an item's `attack_interval`, a quest item's `id`, a loot record's `index`, the eyes, the chances.
+
+Also by name: spells.sdb's `school`, `target_kind` (`unit`, `point`), `allowed_modifiers` (`{ range, targets, area,
+effect, duration }`), a modifier's `kind`, `needs_sight`; map.toml's `classes` (the surfaces, `line` 16).
+
+Left for MF14a: a spell's `cast_type`, quests.qdb, perks.pdb, Levers.ldb, a lever's `lock.mask`, map.toml's
+`[[material]] kind`, config.reg.toml (`Single`, `Multi` as booleans: the registry writer knows no key's meaning), an
+NPC's `attributes` and `skills`, the unit level records, acks.db and prints.db (already names and numbers).
+
+## Textures as PNG
+
+A texture can be a PNG (MF4, user 2026-11-09). Every .mmp still loads; `<name>.png` found where `<name>.mmp` would be
+(each place of "Loose files", top first: a folder's file or an archive's entry) stands for it there: at each place the
+PNG is asked before the .mmp, so a mod's PNG hides the game's .mmp and a converted copy's PNG its removed one
+(`MappedResource::PngTexture`, resource.cpp). The PNG is made into the .mmp file the game would have read
+(src/game/models/texture_png.h, `FromPng`): its header, its extra block, every level. So every reader of an .mmp sees one
+as before: the texture loads, the item and inventory pictures, the cursors, the composed skins' layers, the terrain's
+`HasFile`. A made file is shared like a loose one, and kept after its last close ("Loading cost"). A PNG that does not
+decode, or whose settings name a format it does not make, is logged ("warning: textures: ...") and the .mmp is read.
+
+- Settings: what is not pixels (the format, the header's channel masks, the level count, the extra block) is in the
+  PNG's `tEXt` chunk "ei-texture", TOML: `format = "DXT1"`, `channels = "1555"`, `levels = 5` (not for PNT3),
+  `extra = "<hex>"` (only when there is one; no shipped archive texture has one). ei-convert writes it. A PNG without
+  the chunk (an image editor drops it) takes them from the .mmp it stands for: in its own place or the first below it.
+  A PNG with neither is a new texture: A8R8G8B8, every level down to 1 x 1. A PNG of another size than the .mmp keeps
+  the .mmp's settings, its levels at most its own full chain.
+- The PNG: any kind (palette, grey, grey and alpha, RGB, RGBA, interlaced or not; 16 bits a channel taken to 8 by the
+  high byte; gamma and colour profiles not applied), as 8-bit RGBA with straight alpha. ei-convert writes RGB when
+  every texel is opaque, else RGBA, deflated by miniz in segments (`png::Write`, "Loading cost").
+- Formats (the texels as the texture holds them; files: ei-convert's counts, vanilla / Rebirth with its mods):
+
+| .mmp format | Files | In the file | The PNG | Back |
+|---|---|---|---|---|
+| 565 | 37 / 4 | 16-bit, straight | RGB, each channel widened (its bits repeated) | rounded to its bits: exact |
+| 1555 | 83 / 57 | 16-bit, straight (17 / 20 files have colour under alpha 0: kept) | RGBA, alpha 0 or 255 | exact; alpha 128 or more is 1 |
+| 4444 | 40 / 9 | 16-bit, straight (35 / 4 effect pictures have colour under alpha 0: kept) | RGBA | exact |
+| 8888 | 70 / 72 | premultiplied (every texel's colour at most its alpha) | RGBA, colour x 255 / alpha | premultiplied again: exact |
+| PNT3 | 2,838 / 3,511 | premultiplied ARGB, runs of transparent black packed; the header's level count is the packed bytes | RGBA as 8888 | premultiplied and packed again (our runs: any run of transparent black, else groups of four) |
+| DXT1 | 617 / 990 | BC1 blocks, a block's third mode transparent black | RGBA as the blocks decode (the D3D formulas rounded to nearest) | blocks again |
+| DXT3, DXT5 | 15 / 10, 0 / 58 | BC2 / BC3 blocks, straight | RGBA | blocks again |
+| DXT2, DXT4 | none | the premultiplied BC2 / BC3 | as 8888 | as DXT3 / DXT5, premultiplied |
+
+  Each format comes back as itself, with the same header (all 19 fields; PNT3's packed size its own). Other formats (an
+  unknown code, PNT2) are not made: ei-convert counts them as failed, the game reads the .mmp.
+- Alpha: 8888's and PNT3's texels are premultiplied (checked on every shipped file: the compositor and the item
+  pictures draw them so, render.h `ImageLayout::Argb`); a PNG holds straight alpha, so the export divides
+  (`round(c x 255 / a)`, 0 for alpha 0) and the load multiplies (`round(c' x a / 255)`): every texel whose colour is at
+  most its alpha comes back exactly (`ei_unit_check` tries every pair). A texel whose colour is above its alpha cannot be
+  held (a straight colour stops at 255) and comes back as its alpha; alpha 0 comes back black. No vanilla file has one;
+  Rebirth's mods' PNT3 pictures have them (see the counts below). The 16-bit formats and DXT are straight already and
+  are written as they are.
+- DXT: the PNG holds the decoded texels; at load each block is made again: the block whose two colours are among its
+  texels and that decodes to them exactly when there is one (the shipped blocks' nearly always), else stb_dxt's (high
+  quality; a BC1 block with transparent texels in the third mode: stb_dxt's colours for its opaque texels, those the
+  nearest of the two and their mean). DXT3's 4-bit alpha is exact; DXT5's alpha block likewise exact when its ends are
+  its texels' largest and smallest alpha. GPU memory stays the DXT size.
+- Levels: made at load from the first by a 2 x 2 box filter (each texel the rounded mean of the four above it, the
+  edges clamped), never taken from a file; the levels of a format with one bit of alpha (DXT1, 1555): a texel is opaque
+  when any of its four is, of their mean colour (the shipped files' levels so, nearly texel for texel; a plain mean
+  would make the cutouts thin and dark at a distance). The shipped levels were made by another filter from the
+  original pictures: ours differ by a few steps (see the counts).
+
+### ei-convert's textures
+
+ei-convert writes each archive's `.mmp` as `<archive folder>\<name>.png` (tools/convert/convert_textures.cpp) and lists
+it as converted. Each round trip: the PNG made into an .mmp as the game makes it (no .mmp below), then compared with the
+original: the header field by field, the extra block, the first level texel for texel (exact; premultiplied texels
+above their alpha expected as their alpha; a DXT format within a mean of 0.5 a channel), the levels below within a mean
+of 32 a channel (the colour where both are opaque, the alpha everywhere but below a first level with no transparent
+texel: some shipped files have transparent texels in their levels below, a DXT1 block's third mode or a 1555 texel by
+mistake, e.g. vanilla's stone02 .. stone07 and eagle00; ours have none). The levels below are only bounded: the shipped
+ones were made by another filter, the worst file's mean is 18.6 (below), and levels read from the wrong bytes differ by
+50 and more.
+
+Counts (2026-11-10, `ei-convert --check`, every round trip holding; files / first-level texels that differ, by at most /
+the worst file's mean a channel over the levels below, colour and alpha / seconds to make the .mmps from the PNGs):
+
+| Format | Vanilla | Rebirth (its mods too) |
+|---|---|---|
+| 565 | 37 / 0 / 0.95, 0 | 4 / 0 / 0.95, 0 |
+| 1555 | 83 / 0 / 3.95, 0 (9 files with shipped holes) | 57 / 0 / 3.95, 0 (9) |
+| 4444 | 40 / 0 / 2.50, 14.42 (banshee's alpha) | 9 / 0 / 1.47, 1.22 |
+| 8888 | 70 / 0 / one level | 72 / 0 / one level |
+| PNT3 | 2,838 / 0 / one level / 1.5 s | 3,511 / 0, 499 texels in 44 files clamped (colour above alpha) / one level / 1.1 s |
+| DXT1 | 617 / 35,597 of 93.1 M, by 3 / 14.13, 5.75 (13 with shipped holes) / 3.8 s | 990 / 170.6 M of 1,363 M, by 33, worst file's mean 0.28 / 14.11, 18.64 (2) / 27.5 s |
+| DXT3 | 15 / 3,125 of 0.48 M, by 3 / 17.45 (arrow01), 2.05 | 10 / 17,335 of 1.44 M, by 8 / 3.55, 0.51 |
+| DXT5 | none | 58 / 1.72 M of 40.8 M, by 18, worst mean 0.15 / 10.38, 7.34 / 0.9 s |
+
+The shipped DXT blocks of vanilla nearly all come back exactly (their ends are among their texels). Rebirth's large
+DXT1 and DXT5 textures were compressed by a tool whose ends are not, so most of their blocks are stb_dxt's again: close
+(the worst file's mean 0.28 a channel) but not the same. A large level's blocks are made on several threads (the
+bytes the same). The stub data (`build\stub`, the Linux workflow's) gives the same kinds of counts, every round trip
+holding.
+
+Loading cost. Making a texture is its PNG's decode, the box filter for its levels and the DXT blocks; a converted
+Rebirth zone makes hundreds (cz_ingos 447, 132 MB of .mmps), most of them DXT1 terrain pages. What keeps it near an
+unconverted load:
+- The reader (`png::ReadRgba`, src/lib/png.cpp) decodes with Wuffs (third_party/wuffs, v0.3.6, Apache 2.0), the only
+  PNG decoder (`png::ReadRgba16` reads the same as 16-bit RGBA, for a map folder's heights and normals). ei-convert's PNGs are written in segments (`png::Write`): runs of about 256 KB
+  of rows, each deflated on its own (a full flush between them) with its first row filtered None or Sub, and an
+  "eiSG" chunk naming each segment's rows and its start in the zlib stream. Still one valid PNG any reader takes; ours
+  inflates and unfilters the segments on threads and checks the stream's Adler-32 (the segments' combined). A PNG
+  without the chunk, or whose segments fail on their own, is read by Wuffs whole.
+- The levels' box filter and the DXT blocks run on threads in runs of rows (the bytes the same).
+- A map's terrain pages are made together before they are loaded (`Terrain::SetupPages`, `MappedResource::MakePngs`):
+  one a processor at a time, up to half of the kept bytes below. Other textures are made at their first GetFile, one
+  at a time (in gipat 545 makes, 1.4 s together; its 146 pages take 1.9 s made together).
+- A made file is kept after its last close, up to 128 MB an archive (least recently used out first; the loose files'
+  reload empties it): a zone's textures are closed and opened again between its loads, and were made two or three
+  times each.
+Timings (one game, `--quiet`, Rebirth, 2026-11-10), converted against unpacked: `mod_lost_in_astral_cz_ingos` 24 s
+against 24 s (43 s before these), `_gipat` 15 to 17 s against 12 s (33 s), `_suslanger` 14 s against 12 s (17 s).
+What is left in gipat: the textures' making (about 3 s, the DXT encode the most) and a slower start (the first frame
+0.97 s against 0.63 s).
+
+### Checks
+
+- `ei_unit_check`'s texture checks (tests/unit/texture_png.cpp): widening and narrowing every channel value, premultiply
+  and back for every colour and alpha pair, every 16-bit texel of 565, 1555 and 4444 through a PNG and back, 8888 with
+  its levels from the box filter, a PNT3 stream, a DXT1 cutout made over an .mmp below, the settings chunk and a new
+  texture's defaults.
+- `mod_png_texture` (both installs; tools/make_mod_s19d.py png): a mod whose zone 1 terrain pages are PNGs of four
+  coloured quadrants without the settings chunk; the ground shows the colours (`hues`) and the trace has the PNG read
+  for the .mmp.
+- `ei-convert --check` on both installs (every texture's round trip holding), and on the stub data in the Linux suites'
+  workflow.
+- `work.py test <ID> --converted --golden` (and `--rebirth-only`): the converted installs have every texture as a PNG.
+
+## Maps as folders
+
+A map can be a folder of TOML and PNGs (MF8, user 2026-11-09). Every `.mpr` still loads. The folder is the archive's
+own loose folder ("Loose files"): `Maps\zone1\` for `Maps\zone1.mpr`, with fixed file names, so a modder finds it by
+unpacking the archive or converting the install. When a place of the archive's lookup (top first, as "Loose files") has
+one of the files below, the archive's map file `<name>.MP` and its sectors `<name>XXXYYY.SEC` are made from the folder
+over the original (src/game/map/map_folder.h, `Assemble`; resource.cpp `MappedResource::FolderMap`) and every reader
+reads those: the landscape (`Terrain::LoadMap`, the sectors) and the AI map (`AIMap::LoadTerrain`) alike. The made files
+are kept while the archive is open; `ListFiles` lists their names. A folder file that does not read (not a PNG, another
+size, a value out of range) is logged ("warning: maps: <folder>: ...") and left out. The `.mob` objects are "Map
+objects as TOML"; the quest zones stay as they are.
+
+| File | What | Pixels |
+|---|---|---|
+| `map.toml` | the header: `name` (the files' name inside the archive), `height_range`, `sectors = [x, y]`, `pages`, `page_size`, `tile_size`, `water_sectors` (a text per row of sectors: `W` with water, `.` without), `classes` (per tile texture its class by name: the surfaces of "Readable values", `line` 16; another as a number), `animated` (`{texture, frames}`), `[[material]]` (`kind`, `colour`, `opacity`, `light`, `priority`) | |
+| `heights.png` | the ground's heights, a vertex a pixel | 16-bit grey |
+| `normals.png` | the ground's normals | 16-bit RGB: the sector file's codes widened by repeating their bits: x and y 1000 + 1000 x (11 bits), z 1000 z (10 bits); a normal map's look, up is (0.49, 0.49, 0.98) |
+| `offsets.png` | the ground vertices' sideways displacements | 8-bit RGB: R = 128 + x, G = 128 + y (1/252 of a cell a step), B 128 |
+| `water.png` | the water surface's heights | 16-bit grey (0 in a sector without water) |
+| `water_normals.png` | the water's normals | as normals.png |
+| `tiles.png` | the ground's tiles, a tile a pixel | 8-bit RGB: R the texture's low byte, G its high byte, B the quarter turns x 85 (0, 85, 170, 255) |
+| `water_tiles.png` | the water's tiles | as tiles.png |
+| `water_materials.png` | the water's material per tile | 8-bit grey: the `[[material]]` index, 255 none |
+| `seams.toml` | where two sectors' copies of a shared vertex differ (below) | |
+
+- Grids: the map is `sectors` x / y sectors of 32 x 32 cells; a cell is the vertices' spacing and one world unit
+  (zone 1: 6 x 8 sectors, 192 x 256 units). The vertex layers are (32 x + 1) x (32 y + 1) pixels, the tile layers
+  16 x by 16 y (a tile is 2 x 2 cells); the PNG's first row is y = 0 (world (0, 0) at the image's top left, x to the
+  right, y down). A sector's own vertices are the grid's 33 x 33 from
+  (32 sx, 32 sy).
+- Heights: a pixel's world height is value x height_range / 65534 (zone 1: 21.95 units at 65534). Painting heights in
+  an editor gives what it shows. Normals: when heights.png comes from a place above normals.png (a mod's heights.png
+  over the game's map, or one painted into a converted folder whose normals.png was removed), the normals are worked out
+  from the heights, each vertex's the mean of its four faces (displacements counted); so a modder paints heights alone.
+  The shipped normals are not the heights' (made by another tool from finer data), so they are kept in normals.png.
+- Seams: each sector holds its own copy of the vertices on its edges. The grid takes the earlier sector's (lower y,
+  then lower x; the one the height queries read), and `seams.toml` lists where a later sector's copy differs, by what
+  it adds (`{sector, vertex, height, offset, normal}`, `ground` and `water`). Vanilla's 38 maps have 100, Rebirth's 88
+  (its mods too) 2,015. Seams from a place below a layer are left out of it: painted heights meet at the edges,
+  worked-out normals are the same in each sector.
+- Water: the water grid takes the first copy among the sectors with water; a sector without water has none of its
+  water layers (its water tiles and materials none). `water_sectors` says which sectors have water: 19 of Rebirth's
+  sectors have water tiles but no water material.
+- Merging, each file from the first place that has it, no lower than the original's (the first place with a map file);
+  each PNG replaces its layer whole, `map.toml` merges by key over the original's header (a list whole). A new size in
+  `map.toml` starts every layer of the other size again (flat, dry, no turn). A folder without an original needs
+  `map.toml` (named by its `name`, else the folder's).
+- Rebirth's Maps (mod_folders.cpp `SelectMaps`): a mod whose `Maps\` has `zone1\` reads the mod's `Maps\zone1.mpr` in
+  place of the game's, so a mod that paints heights alone ships the archive (or its folder) with them, as the test mod
+  does.
+- Not held (no loader reads them): each material's warp speed and reserved bytes, the water vertices' displacements; a
+  sector flag byte 1 (water vertices without water tiles: none ship) comes back as 3.
+
+### ei-convert's maps
+
+ei-convert writes each `.mpr` (and each unpacked `Maps\<zone>\` holding a map file) as its folder
+(tools/convert/convert_maps.cpp) and lists the map file and the sectors as converted (the archive left holds the rest).
+Each round trip: the folder's files assembled as the game assembles them (the only place), the map file and every
+sector made from them and compared byte for byte with the original, the unread bytes above zeroed.
+
+Counts (2026-11-10, `ei-convert --check`, every round trip holding):
+
+| | Maps | Sectors (with water) | Seams | Originals | Folders | Assembled in |
+|---|---|---|---|---|---|---|
+| Vanilla | 38 | 2,504 (747) | 100 | 30.5 MB | 18.7 MB | 0.19 s (the slowest zone19, 0.018 s) |
+| Rebirth (its mods too) | 88 | 6,141 (1,949) | 2,015 | 75.8 MB | 44.2 MB | 0.45 s (the slowest zone1, 0.018 s) |
+| Stub data | 126 | 8,645 (2,696) | 2,115 | 106.3 MB | 62.8 MB | 0.64 s |
+
+Loading: a zone's folder is assembled at its archive's first file read, in about 20 ms (the 16-bit PNGs' decode), so
+maps add little to a converted install's load (its textures cost the time: "Textures as PNG", "Loading cost").
+
+### Checks
+
+- `ei_unit_check`'s map checks (tests/unit/map_folder.cpp): the PNG writer's 16-bit grey and 8-bit RGB read back
+  (`ReadRgba`, `ReadRgba16`); both against the pixels the writer was given (fixed ones for a palette PNG with tRNS),
+  every channel count at 8 and 16 bits, two
+  segmented images (8-bit RGB, 16-bit grey and alpha) and one whose segment offset is wrong (read whole by Wuffs), and
+  a cut PNG refused; a made-up map with water and seams through its files and back byte for byte; heights.png over the
+  original (worked-out normals, the rest the original's, its seams' heights and normals left out); flat normals up.
+- `mod_map_heights` (both installs; tools/make_mod_s19d.py heights): a mod with zone 1's archive and a heights.png
+  raising a plateau of 60000 (20.1 units) where the ground is at about 1; `ground` reads the landscape's and the AI
+  map's height there and 20 cells away (the archive's), and the trace has the PNG read.
+- `ei-convert --check` on both installs (every map's round trip holding), and on the stub data in the Linux suites'
+  workflow.
+- `work.py test <ID> --converted --golden` (and `--rebirth-only`): the converted installs have every map as a folder.
+
+## Map objects as TOML
+
+A `.mob`'s chunks but its scripts can be TOML (MF9, user 2026-11-10): `Maps\zone1.mob.toml` beside `Maps\zone1.mob`.
+Every `.mob` still loads. `WorldServer::LoadMapObjects` (world_zone.cpp) asks `mobtoml::Find` (src/game/map/mob_toml.h)
+for the TOML, looked for as a record file's (`FindRecordFile` without reading the original: each layer of the path map
+top first, down to the first that has the .mob); the top one that parses is the whole of the objects, the weather and
+the player table (no merge: a mod's file holds every record, as a camera path's). The scripts are still read from the
+`.mob` (`MobFile::ReadChunks(false)`: its script chunks alone), and so are the AI graph (`ReadAIGraph`) and the main
+script (`LoadZoneScripts`); with a TOML the `.mob` may be missing (no scripts then). The `.lua` the TOML's `script`
+key names runs in place of the scripts when it is there ("Scripts in Lua"). Both readers build one
+`mapspec::MobContents` (map_spec.h: the records, the weather, the player table, the relations flag, the scripts, the
+TOML's `script` key), which `mapspec::LoadMob` applies as the zone loader did.
+
+```toml
+# A .mob's map objects (docs/notes/mods.md, "Map objects as TOML"); its script stays in the .mob.
+script = "zone1.lua"
+applies_relations = true
+
+[[weather]]
+wind = [0.0, 1.0, 0.0]
+...
+[players]
+hostile = [[0, 3], [3, 0]]
+
+[[object]]
+kind = "unit"
+id = 12
+...
+```
+
+- `[[object]]`: the records in the file's order (the order they are filed by id; the zone loader walks `byId`, whose
+  order is the insertions', so the order is behaviour). `kind`: `object`, `unit`, `flame`, `trap`, `lever`,
+  `light`, `sound`, `particle` (the chunks B001, BBBB0000, BBBF0000, BBAB0000, BBAC0000, AA01, CC01, DD01). Then
+  `id` and each field that differs from the kind's defaults (the record's constructor: a missing key is the default).
+  Each kind's fields are those its chunks set, listed once in mob_toml.cpp (`Fields(record, visit)`), which the
+  writer, the reader and ei-convert's comparison walk:
+  - every object kind: `id`, `name`, `model`, `texture`, `primary_texture`, `skin_texture`, `parent_iname`,
+    `class`, `position`, `rotation` (`[w, x, y, z]`), `scale` (`[x, y, z]`), `side`, `player`, `shadow`,
+    `visible` (true / false), `parts`, `comment`;
+  - flame: `volume`, `offset`, `sound`; trap: `spell`, `sides` (hex; the loader sets it from the player table),
+    `period`, `single_target`, `area` (`{ x, y, radius }` circles), `points` (`[x, y]`); lever: `lock`
+    (`{ mask, id, level }`), `state`, `state_count`, `cycling`, `direct_use_blocked`, `keeps_map_flag`;
+  - unit: `prototype`, `apply_stats`, the item lists `carried`, `quick_items`, `spells`, `weapons`, `armour`;
+    `[object.stats]` (the statistics chunk BBBB0004 by field: `hit_points`, `speed`, `mode_speeds`, `perception`,
+    ...; its unused bytes `unread_...` only when not zero), `[[object.behaviour]]` (up to five: `type`, `alarm`,
+    `alert_mode` by name, `alarm_kind`, `enabled`, `guard`, `guard_radius`, `call_radius`, `loop`,
+    `always_updated`, `unread`), each with its `[[object.behaviour.patrol]]` (`position`, `waypoints` of
+    `{ position, time, look_wait, stop_first }`);
+  - light: `id`, `name`, `position`, `colour`, `radius`, `shadows`, `comment`; sound: `id`, `name`, `position`,
+    `sounds`, `volume`, `radius`, `min_interval`, `max_interval`, `ambient`, `unread` (chunk CC0E), `comment`;
+    particle: `id`, `name`, `position`, `type`, `scale`, `comment`.
+- `[[weather]]` (chunk ABD0, each applied in order): `wind`, `wind_strength`, `time`; its two unused values are
+  not kept. `[players]` (chunk DDDDDDD1) only what differs from `ZoneDiplomacy`'s defaults ("Player-n"; neutral,
+  allied with itself): `names = { 3 = "Golems" }` by player number, `allied`, `neutral`, `hostile` as lists of
+  `[player, other]` pairs (DiplomacyRelation 0..2; the shipped data has no other relation). Left out when nothing
+  differs (no map of vanilla or Lost in Astral names its players).
+  `applies_relations`: the last of the flag chunks C000 / D000 (false: the table only tells traps their targets).
+- Strings are UTF-8 both ways (the chunk reader converts the .mob's 1251); floats the shortest text that reads back.
+  A record of an unknown kind, an unknown key or a value its field does not take is logged ("warning: map objects:
+  <file> line n: ...") and left out.
+- `class` (the chunk's parent id) is the object's class (`MapObjectType` by name, record_names.h: `hero`, `creature`,
+  `animal` units, `tree`, `building`, `stone`, `stuff`, `torch`, `magic_trap`, `lever`), the factory's type in `WorldServer::CreateObject`. `mapspec::LoadMob`
+  (mob_reader.cpp, `ClassFits`) checks each record's class against its kind (units 50-52; flames 58; traps 59; levers
+  60; objects 53-56 or a unit's class: the main menu's unmoco2 is an object record of class 51) before it makes the
+  object, and a record that does not fit is logged ("warning: map objects: <zone> record <id>: class <n> does not fit its
+  kind; the record is left out") and skipped (MF10a; without the check the null object was used and
+  the zone load crashed: MF10's hand-written pig without a class, 2026-11-10). It is there, not in the readers
+  (mob_toml.cpp is also ei-convert's and knows no factory) nor in `WorldServer::CreateObject` (which has four make
+  sites and no zone name), and covers the .mob reader too; every shipped record of both installs fits.
+- A record id the file repeats: the later record takes the earlier's place in `byId` (the original leaked the earlier
+  one); the TOML writes the later record at its own place. ei-convert compares the walks, so a file where that moved
+  the order would fail its check (Lost in Astral's files repeat two ids; their walks hold).
+
+### ei-convert's map objects
+
+ei-convert writes each `.mob` of an install (any folder: the mods' too) as `<path>.mob.toml`
+(tools/convert/convert_mobs.cpp), naming `<stem>.lua` as its script when it has one, and does not list the `.mob` as
+converted: a converted copy keeps it for its scripts and AI graph. Each round trip: the .mob read by the game's
+reader, written, read back by `mobtoml::Read`, and compared: the records in `byId`'s walk, every field by its bytes
+(`mobtoml::FieldImages`: floats by their bits, the five behaviour records, the statistics), the weather, the player
+table, the flag.
+
+Counts (2026-11-10, `ei-convert --check`, every round trip holding):
+
+| | Files | Records | Repeated ids | .mob | TOML | Read back in |
+|---|---|---|---|---|---|---|
+| Vanilla | 99 | 52,670 (43,655 objects, 7,953 units, 408 levers, 212 particles, 209 lights, 133 flames, 87 sounds, 13 traps) | 0 | 60.0 MB | 25.4 MB | 0.6 s |
+| Rebirth's maps | 99 | 52,822 (43,789 objects, 7,954 units, 225 lights, ...) | 0 | 60.0 MB | 25.5 MB | 0.6 s |
+| AllHeroes | 11 | 4,011 (3,481 objects, 274 units, ...) | 0 | 4.6 MB | 1.6 MB | 0.04 s |
+| Lost in Astral | 130 | 90,403 (80,134 objects, 7,216 units, 1,617 levers, ...) | 2 | 89.2 MB | 34.8 MB | 0.8 s |
+
+Zone 1's TOML (777 records, 12,824 lines, 0.3 MB) reads in about 10 ms.
+
+### Checks
+
+- `ei-convert --check` on both installs (every `.mob`'s round trip holding), and on the stub data in the Linux suites'
+  workflow.
+- `work.py test <ID> --converted --golden` (and `--rebirth-only`): every zone's objects come from its TOML.
+- `mod_map_objects` (both installs; tools/make_mod_s19d.py mobs): a mod whose only file but its config is
+  `Maps\zone1.mob.toml`, the game's zone1.mob as ei-convert writes it (a converted install's own file, else made at
+  run time by the build's ei-convert from a copy of the install's .mob; nothing is committed) with the pig 1947 moved to
+  (50, 138) and a pig `MF9aPig` (id 2009) added at (50, 142), beside the party's start. The mod has no `.mob`, so the
+  scripts come from the game's: in a new game both pigs stand near their places (`GetObject(id)`, `GetX`, `GetY`; the
+  capture shows them by the hero), another pig and the script's units keep theirs, and the trace has the mod's TOML
+  and the game's `.mob` read; two more records at the file's end (a unit without a class, one of a tree's class, ids
+  2010 and 2011) are left out with their warnings (`expectlog`). A map unit is found by its id (`GetObject`): `GetObjectByName` found none of the
+  pigs by the names the TOML gives.
+- Still binary in a mod: the `.mob`'s AI graph chunk (0x31415926, `ReadAIGraph`) comes from the game's `.mob` (or none
+  when no layer has one); a mod that moves objects keeps the game's graph, which the TOML does not carry. Its scripts
+  can be a `.lua` ("Scripts in Lua").
+
+## Scripts in Lua
+
+A `.mob`'s script runs from a `.lua` when one is there (L8, user 2026-11-10; the modder's side: docs/modding.md,
+"Scripts"); without one the .mob's script is converted at its load (lua-scripting.md, "Texts at runtime"). Both run on
+the script's Lua scheduler; the runtime, the scheduler and the saves are lua-scripting.md's.
+
+- **Which file.** `mobtoml::FindScriptLua` (mob_toml.cpp): the name the `.mob.toml`'s `script` key gives (the TOML
+  `mobtoml::Find` used; `MobContents::scriptFile`), else the .mob's name with `.lua`, in the .mob's folder of each layer
+  of the path map, top first, down to the first layer that has the `.mob` (MF3's rule for a record's TOML): a mod that
+  ships its own `.mob` takes the `.lua` from its own layer only, and a converted install's `Maps\zone1.lua` stands for
+  its own zone1.mob. Looked for at every load of a .mob's script into the mission script: a zone's (`LoadMapObjects`
+  then `mapspec::LoadMob`, and `WorldServer::LoadZoneScripts` for a brief zone, which reloads the script after it,
+  reading the TOML's key with `mobtoml::ScriptFile`) and an AddMob'd one. A TOML that names a file no layer has (every
+  ei-convert TOML names `<stem>.lua`) runs the .mob's script.
+- **Script::LoadLua** (script_lua_mission.cpp). The .mob's text is parsed (`Script::Parse`: the parser's declarations
+  and `fileCount`, later texts' names) and converted (the scheduler's `names`: the Lua names those texts refer to), and
+  the `.lua` is loaded in its place into the script's scheduler (`Script::Runner`; an AddMob'd .mob's `.lua` goes into
+  the zone's running script beside the texts before it), a UTF-8 byte order mark dropped, its chunk `Maps\<file>`
+  (`mobtoml::ScriptLuaName`), its WorldScript started. A file that does not load is error 18 with Lua's
+  message (the caller's `Script error: zone1.mob line 0: Maps\zone1.lua:<line>: ...`). A `.mob` text the game's
+  parser stops in keeps that error (the caller's report, as before) and leaves the script as the parser does: not
+  loaded (no ticks) and the WorldScript not started, so a converted install's `.lua` of it (what came before the
+  error) plays as the game (Lost in Astral's bz23k.mob and zone10hunter.mob); a mod's `.lua` for such a `.mob` needs a
+  `.mob` that parses. Every later text (an AddMob'd
+  mob without a `.lua`, QFinish's quests, execs files) goes through Script::Load to the scheduler as L7's runtime
+  conversion.
+- **The scheduler.** `Script::Tick` is the scheduler's tick (a Reset inside it drops the scheduler after it:
+  `retired`), `ResetZone` the scheduler's, `Reset` drops it (the next load makes a new one). The world's reads of the
+  script's globals go through `Script::GlobalGroup` (the Heroes group the server gives its players, world_server.cpp)
+  and `Script::GlobalValues` (Rebirth's `listgvar`, the digest): the Lua values under the parser's names (the names
+  map), then the globals only a Lua GlobalVars declared.
+- **Saves** (lua-scripting.md, "Saves"): the old format's fields hold the scheduler's state as far as they go, the
+  Eris state follows the areas; a save keeps running the code it was saved with, whatever the zone's files say now.
+- **The record** (L8a, so that a converted install's goldens are the normal install's): the digest's script record
+  (harness_digest_image.cpp, `ReadRuns`) and tools/savefile.py describe the script in the game's executor's terms
+  (`Script::InstanceViews` / `RunViews`, script.h `ScriptRunView`):
+  - the globals by the parser's names with their Lua values, the loops' counters too (L8c: the bindings set the
+    counter global a converted loop names as the game's loops do; lua-scripting.md "Loop counters");
+  - the instances by definition name, kill flag and values (typed as the definition's parameters);
+  - the runs by definition and rule (a WorldScript's: no name, -1), ticks, sleep start, instance and values (a
+    scheduler's run keeps its definition, rule and starting values for this: `Run::values`, persisted with it);
+    no block id or command index, which Lua has not;
+  - in the saves, the program without the arguments a binding or nested call fills when a call runs (rule `eval`:
+    the game's executor's last values, which Lua's calls never write), `loaded` without the 2, and the Lua state left
+    out (rule `lua`: Eris writes tables in the order of Lua's string hashes, whose seed changes every run).
+- **The sandbox** (script_lua.cpp, every ScriptLua): no io, os, debug, package / require, dofile / loadfile; no
+  `math.random` / `math.randomseed` (C's rand() is a draw outside the game's: a script draws through `Random`, the
+  game's generator, saved with the game); `print` writes a console line; `load` text only (bytecode could break the
+  state); `pairs` walks the keys sorted (numbers, strings by bytes, false, true, then the rest in no set order; a
+  `__pairs` first), since Lua's own order follows the seeded string hashes.
+
+### Checks
+
+- `ei-convert --lua-check` (the build checks): the sandbox (each removed name, `load` refusing bytecode, the `pairs`
+  order, `__pairs`) and a mission from a `.lua` through SaveState and LoadState into another script (the coroutine's
+  local count going on the same in both), a `.lua` that does not load as error 18.
+- `mod_lua_plain` (vanilla; tools/make_lua_mod.py plain): a mod whose only file but its config is `Maps\zone1.lua`,
+  ei-convert's conversion of the install's zone1.mob, through a new game, a save and its load. Its twin `mod_lua_none`
+  is the same mod without the file (the .mob converted at its load). Their goldens are the same (L8a, 2026-11-10): the
+  digests' 12 records, the loaded save's dump, the console and the decoded saves (`golden.py explain <none run> <plain
+  run>` says "the same").
+- `mod_lua_changed` (vanilla; make_lua_mod.py changed): the conversion with the mod's lines: two console lines (the
+  second the `pairs` order), a definition of the mod's that prints when a count reaches 3 and then fails (`Script
+  error: Maps\zone1.lua:<line>: L8 mod: a failing run`), and the WorldScript counting in a local variable into the game
+  variable l8.count; after a save and its load the count goes on from its saved value (a restarted coroutine would
+  count from 1).
+- A converted install (`work.py test <ID> --converted --golden --rebirth`) runs every zone's mission script from its
+  ei-convert `.lua`. With the record above and the counters set (L8c, 2026-11-10): 447 runs pass, 381 goldens the
+  same, 0 differ (rebirth_flags' `listgvar` line prints `VSS#i#val : object = <CUnit:...>` on Lua too; before L8c it
+  printed null there and its goldens differed). Before L8a 186 of 233 and
+  129 of 145 differed in the script record and the saves' `commands` alone. Lost in Astral's bz23k.mob and
+  zone10hunter.mob, which the parser stops in, keep their error and their WorldScript unstarted on Lua as in the game.
+- `mod_lua_addmob` (vanilla; make_trap_mob.py makes `l8b_addmob.mob`, one of zone 1's objects renumbered and no
+  script, make_lua_mod.py addmob its `.lua` beside it in the saves folder): `AddMob("..\saves\l8b_addmob.mob")` into
+  zone 1's running script (the `.lua` prints `heroes 1, Ogre kept`: two of the zone's globals with their values), the
+  `.lua`'s definition and its counting WorldScript go on through a save and its load. On a converted install the
+  golden is the same.
+- `mod_lua_named` (vanilla; make_lua_mod.py named): `Maps\zone1.mob.toml` (ei-convert's) with `script =
+  "zone1_named.lua"` beside both `zone1_named.lua` and `zone1.lua`: the key's file runs (its line on the console),
+  zone1.lua's line never comes.
+- `mod_lua_broken` (vanilla; make_lua_mod.py broken): a `Maps\zone1.lua` that does not load: `Script error: zone1.mob
+  line 0: Maps\zone1.lua:3: <name> or '...' expected near <eof>`, and the game goes on with the zone's script empty;
+  the zone's globals are not declared in Lua, so the engine's text adding the party to Heroes fails too (`Script
+  error: text2:4: AddObject: argument 1 is no group (nil)`).
+- `mod_example` (both installs): the example mod (docs/modding.md) has a `Maps\zone1.lua`, ei-convert's with the mod's
+  lines (`examples/example_mod_additions/Maps/zone1.lua`: a console line and a definition whose rule greets the party
+  when the leader is near the mod's pig); the digest's records up to the greeting are those it had with the .mob's
+  script.
+- The four with `--converted`: their goldens the same (2026-11-10).
+
+## Models as glTF
+
+A figure model can be a glTF 2.0 file (MF6, user 2026-11-09). Every original still loads; a `<name>.gltf` or
+`<name>.glb` found where the figure's files would be (each place of "Loose files", top first: a folder's file or an
+archive's entry) stands for them there (`MappedResource::ModelFile`, resource.cpp). At each place, before its own file, a
+request for a `.mod`, `.bon`, `.lnk`, `.fig` or `.anm` ("Animations as glTF") asks the glTF models of that place whose name begins the file's stem
+(the longest first): the glTF is read once (src/game/models/figure_gltf.h, `FromGltf`, on cgltf), made into the files
+the game would have read (`Files`), and the one asked for is answered from them, shared like a loose file. So both
+loaders (the figure manager's `<name>.mod`/`.bon`, the link loader's set or its `<name>.lnk` and `<name><part>.fig` /
+`.bon`) and the item models' `<name>.fig` see the files as before. A `.gltf` comes before a `.glb` of its name; its
+buffers (`"uri"`, relative, percent-decoded; data URIs too) are read from the same place. A glTF cgltf cannot read is
+logged ("warning: models: ...; not read") and the original is read; what the reader left out is logged too
+("warning: models: <file>: <part>: ...").
+
+- The figure: the scene's nodes are the parts, named as the parts are; the link list is the node tree (a child's
+  parent its node's parent). A node's mesh is the part's record, one primitive (several are merged, the first's
+  material the part's). The node's translation is the part's bone (version 0); the node's rotation and scale are not
+  applied (logged).
+- The mesh: a glTF vertex per triangle corner. POSITION is corner 0 of the FIG8 morph cube; the other 7 corners are
+  morph targets named (mesh `extras.targetNames`, as Blender writes them) `s`, `t`, `st`, `u`, `su`, `tu`, `stu` (the
+  corner's coefficient bits, docs/notes/models.md "Link figures"); the older record's 6 versions `s`, `t`, `u`, `su`,
+  `tu`. A target's POSITION is the corner's displacement from corner 0. NORMAL and TEXCOORD_0 as the record has them;
+  indices as the record's (none: every vertex once, in order).
+- Materials: one per material kind and texture kind, named `"<kind> <texture kind>"` ("wood 8", "metal 2"; a kind
+  without a file of its own by its number, "25 6"), `extras.ei = {material, kind}`. A part without one is stone, kind 1.
+  The figure files name no texture: the game picks the texture by the unit's or object's database record and the
+  texture kind, so the glTF has no images.
+- Axes: glTF (x, y, z) = game (x, z, -y): a rotation, no mirror (the game is right-handed with z up; the triangles keep
+  their winding, counter-clockwise from the outside as the normals say). Blender's importer turns glTF's y up into its
+  z up, so Blender shows the game's own coordinates, the right way up. The bounds and bones in `extras` are in the
+  game's axes.
+- `extras.ei` (ei-convert writes them; the loader takes them only when they agree with the glTF's data):
+  - mesh: `format` (`FIG8`, `FIG` with its `magic`, `old`), `unused` (the header's last dword, when not 0), `bounds`
+    (`center`, `min`, `max`, `radius` per version), `slots` (an accessor: each vertex's position, normal and texture
+    slot, u16), the slots no vertex gives exactly as `positions` / `normals` / `texcoords` patches (a slot accessor and
+    a value accessor: the packets' padding lanes, unused slots, a position whose versions a float displacement does not
+    give back (about 4% of the shipped values), a normal whose w is not 1 or that is not of unit length: NORMAL holds
+    a unit one, as glTF requires, straight up for a zero one), `words` (an accessor; only when they are not the derived
+    ones; -1: none), `indices: false` (a record without), `skipped` (the older record's block, a buffer view).
+  - node: `bone` (all versions), `linked: false` (a part outside the link list: the unlinked armour pieces), `parent`
+    (a parent that is no node).
+  - scene: `layout` (`set` or `loose`), `link: false` (a loose figure without a .lnk, a set whose .mod has no link
+    list), `bones: false` (a set without a .bon archive), `files` (archive entries and files a glTF cannot hold, carried
+    as they are: Lost in Astral's stray link entries in its .mod files, records that do not parse, a .bon that is no
+    archive; name, `mod` / `bon` / `folder`, a buffer view).
+- Without the extras (another tool's file, or one that changed the mesh so that they no longer agree: a slot's
+  vertices with different values, a patch more than the sum's rounding away), the record is built from the glTF's data:
+  the slots numbered by value in vertex order (padding lanes copies of the first position and of the last normal, as
+  the shipped records), words derived (one per normal slot: its slot in the high half, in the low half the slot or the
+  last used one, as every shipped record but 28 of Rebirth's), the bounds fitted as `ClipBounds::Fit` fits them; a FIG8
+  record unless the mesh's `format` says otherwise (missing targets: copies of corner 0); a node without `bone` gets 8
+  copies of its translation.
+
+### ei-convert's models
+
+ei-convert writes each archive's figure files as `<archive folder>\<figure>.glb` (tools/convert/convert_models.cpp) and
+lists them as converted: a set per `.mod` (with its `.bon`); a loose figure per `.lnk`, with the `.fig` and `.bon`
+files whose name its name begins (the longest); a `.fig` or `.bon` of no `.lnk` its own figure. A `.lnk` beside a `.mod`
+of its name (vanilla's ingm3, which the game never reads: both loaders take the `.mod`) and its parts' files are left as
+they are (listed). Each round trip: the files made from the .glb as the game makes them, compared with the originals
+(an archive entry by entry, a link list by its names, every record and bone byte for byte).
+
+Counts (2026-11-10, `ei-convert --check`, every round trip holding): vanilla 870 figures (454 sets, 416 loose), 3,651
+parts (3,583 FIG8 records, 55 older ones), 1 file carried as it is, 217,252 corners on 154,692 slots, 253,142 triangles;
+24.2 MB of originals as 45.7 MB of .glb (a vertex per corner, 8 positions each), read back and made into files in
+0.35 s. Rebirth (its mods too): 978 figures (483 sets, 495 loose), 4,639 parts (4,569 FIG8, 55 older), 46 files carried
+as they are (Lost in Astral's stray entries, a .bon that is no archive), 306,364 corners on 223,208 slots, 365,451
+triangles; 34.6 MB as 62.3 MB, 0.42 s. Loading costs little: the read and the files' making take well under a
+millisecond a figure (a converted install's load: "Textures as PNG", "Loading cost").
+
+### Checks
+
+- `ei_unit_check`'s figure checks (tests/unit/figure_gltf.cpp): a set and a loose figure of every record kind (FIG8
+  with corners a float displacement cannot hold, FIG, the older record with its skipped block, no indices; padding,
+  unused slots, a normal's w, zero and non-unit normals, words of their own, a prism bone, an unlinked part, a part
+  without a record, an entry of another kind) come back as the same files; a hand-made .gltf with an external buffer
+  and a data URI and no extras is turned to the game's axes, numbered by value, its bounds fitted; lib/json.h.
+- `mod_gltf_model` (both installs; tools/make_mod_s19d.py gltf): the hero's figure (unhuma) as ei-convert writes it,
+  then with every `extras` dropped and 1.5 times as large; the hero stands taller in the capture and the trace has the
+  glTF read for unhuma.mod and unhuma.bon.
+- `ei-convert --check` on both installs, and on the stub data in the Linux suites' workflow.
+- `work.py test <ID> --converted --golden` (and `--rebirth-only`): the converted installs have every figure as a .glb.
+- The Khronos glTF Validator (the npm package gltf-validator 2.0.0-dev.3.10, run with node on a few exported .glb:
+  the hero, trees, rocks, a loose figure): no errors or warnings; its infos are the TEXCOORD_0 it calls unused (no
+  material has a texture). Blender was not at hand.
+
+## Animations as glTF
+
+A set's animations can be glTF animations (MF7, user 2026-11-09). Every `.anm` still loads; the set's glTF ("Models as
+glTF") stands for its `<name>.anm` too when it has animations (or `extras.ei.anm`): `ModelFile` answers the `.anm` from
+the files made of the glTF (src/game/models/figure_gltf_animation.cpp makes the archive the game would have read), so
+the figure manager's `FindModel` / `FindAnimation` and the link loader's figure sets read it as before. A glTF without
+animations does not stand for the `.anm`: the one below it is read (a mod's model alone keeps the game's animations).
+A layer's glTF is read as that layer's own file (`ReadSource` through `platform::ReadLayerFile`): a read through the
+path map took the mod's glTF of the name in the game's place, so Lost in Astral's hero (its `unhuma.mod` and `.bon`,
+the game's `unhuma.anm`) had no animations on a converted Rebirth install and every Lost in Astral golden differed
+(its footprints, the client units). The animations are in the figure's own .glb, so Blender imports a unit with them: each `.anm` entry is a glTF
+animation of the name the game gives it (`cidle01`, `uattack02`), its channels the parts' nodes (named as the parts).
+
+- Keys and time: one key a world tick (55 ms at the game's normal speed): key k at k x 0.055 s, LINEAR. A channel of
+  other times (another tool's: Blender writes its own frames) is sampled at every tick up to its last key with glTF's
+  interpolation (STEP, LINEAR with the game's `Quaternion::Slerp` for rotations, CUBICSPLINE); a key within 0.1 ms of a
+  tick is that tick's. How far the game plays is the `.adb`'s frame count, so a longer animation needs its `.adb`
+  record's `frames` too ("Records as TOML").
+- Rotations: the game turns a child by its key after its parent's turn (`FigureBone::Place`: the part's rotation is
+  its key times its parent's, in the figure's frame), a glTF node by its own rotation before its parent's. So a node's
+  rotation is its key carried into its parent's frame, `L = P^-1 T P` (P the parent's rotation at that key: the keys'
+  product up the tree, a shorter track's last key past its end, the identity for a part without a track), and the
+  loader turns it back, `T = P L P^-1`. A root's is its key. Axes as the models': (x, y, z, w) = the game's (x, z, -y)
+  and w. On the hero (`cidle01`, `crun01`) the glTF's world rotations are the game's within 1e-6. A key not of unit
+  length would be normalised in the glTF (the extras keep it; no shipped key is more than 0.00001 off).
+- Positions: a root's track positions are its node's translation channel (they place the figure). A child's the game
+  never reads (its bone places it: the node's translation), so they have no channel (the shipped ones are not offsets
+  from the parent: the hero's `crun01` moves `bd` 3.5 away from `hp`).
+- Vertex frames (222 tracks of 13 figures: wings' membranes, faces, hair; each frame an offset of every position slot)
+  are in the extras alone. Morph target weights could hold them only as a target per frame on the mesh, and an
+  animated `weights` channel sets every target, the `s`, `t`, `u` corners too, which the game takes from the unit's
+  stats. Blender does not show them.
+- `extras.ei` of an animation: `tracks` (every track in the archive's order: `name`, the key counts `rotations` and
+  `positions`, `frames` and `slots` of its vertex frames), and the accessors `rotations` (every track's keys as the file
+  holds them, w first, one track's after another), `positions`, `vertices`. A track's rotations are the extras' when
+  its node has no rotation channel or the channel agrees (its keys at the ticks, each within 1e-5 of the rotation the
+  extras' key makes, or of its negation), else the channel's, sampled and turned back; a root's positions likewise;
+  a child's positions and the vertex frames are the extras'. The parents are decided first: a child's check uses its
+  parent's keys as they came out. A track of no node (546 vanilla, 562 Rebirth: parts the figure does not have) is in
+  the extras alone; a node's channel no track of the extras names makes a track of the node's name. A glTF that lost
+  the extras (Blender's export, `mod_gltf_animation`'s idle) gets the channels' rotations and roots' positions and no
+  vertex frames.
+- Carried as they are (the scene's `files`, `"in": "anm"`): an `.anm` entry that is no archive of tracks that read,
+  or whose tracks have a name twice, and an animation whose glTF animation would have no channel (tracks only of no
+  node or without keys); none shipped. The scene's `extras.ei.anm`: the set has an `.anm`. The made `.anm` lists its
+  animations by name (the glTF holds those it carries apart).
+- Left out (logged): a glTF animation's scale and morph weight channels, an animation without a name.
+
+### ei-convert's animations
+
+A set is its `.mod`, `.bon` and `.anm` (tools/convert/convert_models.cpp); an `.anm` without a `.mod` of its name is
+left as it is (none shipped). Each round trip compares the `.anm` made from the .glb with the original entry by entry,
+each animation track by track, byte for byte.
+
+Counts (2026-11-10, `ei-convert --check`, every round trip holding): vanilla 51 `.anm`, 969 animations, 22,311 tracks
+(546 of no part, 222 with vertex frames), 1,171,646 rotation keys and as many positions, 598,051 frame vertices;
+Rebirth (its mods too) 55, 1,007 and 22,825 (562, 222), 1,177,091 keys, 598,051 frame vertices. The .glb files with
+them: 111.3 MB for 65.4 MB of originals vanilla (45.7 MB for 24.2 MB without the animations), 128.2 MB for 75.9 MB
+Rebirth (62.3 MB for 34.6 MB): every rotation is there twice (the node's and the file's) and the times are shared by
+count. Read back and made into files in 0.38 s and 0.46 s (0.35 s and 0.42 s without). In the game the hero's
+files are made from its 21.8 MB .glb (179 animations) in about 66 ms, and every model made in
+`mod_lost_in_astral_cz_ingos` on converted Rebirth took 0.96 s together (625 makes; the whole load: "Textures as
+PNG", "Loading cost").
+
+### Checks
+
+- `ei_unit_check`'s animation checks (tests/unit/figure_gltf.cpp): a set's animations (a root's and children's keys, a
+  child with fewer keys than its parent, keys of no length and twice the unit length, vertex frames, a track of no part
+  and an unlinked part's, an animation of no channel, one without tracks, an entry that is no archive) come back as
+  the same files; a hand-made .gltf with an animation and no extras (keys two ticks apart, STEP, a scale channel) is
+  sampled at the ticks, its root's middle key slerped and its child's keys turned after the root's.
+- `mod_gltf_animation` (both installs; tools/make_mod_s19d.py anim): the hero's figure as ei-convert writes it with
+  its idle `cidle18` twice as slow (its keys' times doubled, its extras dropped) and an `unhuma.adb.toml` giving it 210
+  frames (the game's 105). The figure manager's track of `hp` has 211 keys (the game's 106 at the even ticks, slerps
+  between), the other idles' as they were (`cidle02`: 96), the hero standing plays `cidle18` past its frame 105
+  (`objplayed cidle18 past 105`: to 207 vanilla, 195 Rebirth, in 120 frames), the trace has the glTF read for `unhuma.anm`.
+  `mod_gltf_model` drops the animations of its glTF (the game's `.anm` below is read).
+- `ei-convert --check` on both installs, and on the stub data in the Linux suites' workflow.
+- `work.py test <ID> --converted --golden` (and `--rebirth-only`): the converted installs have every `.anm` in its .glb.
+- The Khronos glTF Validator (gltf-validator 2.0.0-dev.3.10 with node) on the hero (179 animations), unmowi (vertex
+  frames), unmodg and unanhoco: no errors or warnings; its infos are the extras' accessors and TEXCOORD_0, which it
+  calls unused.
 
 ## A mod's config.reg
 
@@ -568,6 +1252,49 @@ back. Reload: made again from the new mod's files. The list to check when a swit
 Risks: a mod-dependent global missed shows the old mod's data after a switch (the table above; the start-twice check
 catches state, not stale files); a fatal error in the new mod's files (a missing music.reg) ends the game as it would at
 the start.
+
+## The showcase mod
+
+`examples/showcase_mod/` (MF13, user 2026-11-10): a mod made only of our own files, so it lives in the public repo and
+releases ship it ready-made (MF12 adds the Mods folder; the package copies the folder whole into `Mods\showcase_mod\`).
+A new game starts on its island: its ground, a stone golem of its own guarding the path, one quest whose reward is the
+mod's hammer and boots. Hand-written: config, texts, databases, the golem's animation list, the map objects and the
+script. Made by `tools/make_showcase_mod.py --write` (procedural pixels and boxes from one seeded generator per file,
+no game file read; `--check` compares pixels and glTF data, not bytes, since zlib's output may differ between
+versions): the map folder's PNGs and `map.toml`, the ground page and minimap pictures, the golem's skin and `.glb`,
+the item models and textures. About 0.5 MB. LICENSE.txt: the files are ours, under the repo's MIT license.
+
+Each part, its format, and what the formats could not do (each gap a ticket):
+
+| Part | Files | Format | Gap |
+|---|---|---|---|
+| The zone | `Maps\zone1\` (map.toml, heights.png, tiles.png), `Maps\zone1.mob.toml`, `Maps\zone1.lua`; `Res\textures\zone1000.png` (the ground page), `zone1map.png`, `zone1quest.png` (minimap, objectives map); texts' `zone gz1g` | map folder, map objects TOML, Lua, PNG | It replaces zone 1 (map.txt's gz1g: `#res zone1 zone1`): a mod cannot add a zone, since map.txt is one texts entry read whole (MF13a). A new game enters it with no extra step, its 8 x 6 sectors keep gz1g's exits fitting: the party lands at exit 1's (49, 133)-(59, 143), exit 2 at (181, 108)-(193, 120) still leads to the base bz1g. The AI region graph is zone 1's, read from the game's zone1.mob (MF13d) |
+| The enemy | `Res\figures\scgolem.glb` (15 boxes, 13 animations), `Res\database\scgolem.adb.toml`, `units.udb.toml` (`[[model]]` "Showcase Golem", `[[unit]]` "ShowcaseGolem"), `Res\textures\scgolem00.png` (the placement's `parent_iname`) | glTF set, records TOML, databases TOML, PNG | None. No sounds: `sound_folder` empty, the animations' `sounds` empty; its footsteps name the game's stone steps |
+| The weapon | items.idb.toml `[[weapon]]` "showcase hammer" (hammer number 9), `Res\figures\initwehm9.glb` (inventory model, loose figure, part `weapon`), `Res\redress\unhumahm_09.gr.0.png` | databases TOML, glTF loose, PNG | Not seen in the hand: the hand's model is a part of every unit figure (`rh3.<type><nn>`), which a new number lacks (MF13c) |
+| The armour | `[[armor]]` "showcase boots" (boots number 20), `initarbt20.glb`, `Res\redress\unhumabt_20.le.0.png` (a layer over the hero's 256 x 256 skin: opaque where the feet and shins are) | as the weapon | None: boots, gloves, shirts and trousers are skin layers, no part. Helmets, body armour and leggings would need parts (MF13c) |
+| The spell | spells.sdb.toml `[[spell]]` "spark", texts' `SPELL spark` | databases TOML | Placeholder: a spell's behaviour and look are the game's code for its place in the table (`Spell::Type()`, prototypeId >> 16), place 42 has none; nothing gives or casts it (MF13b) |
+| The quest | `Maps\zone1.lua` (sets `q.gz1g.showcase_golem` and its objective `.1`, watches the golem, `QuestComplete`, `GiveItem`), `quests.qdb.toml` (its experience), texts' `quest showcase_golem` | Lua, databases TOML, texts TOML | None |
+
+Notes from making it:
+- A map folder with no `.mpr` of the mod's: the mod's `Maps\zone1\` makes Rebirth's Maps rule (`SelectMaps`) read the
+  zone's map from the mod, the folder alone (the game's zone1.mpr is not read), and the `.mob` from the game's folder
+  (`zone1.mob.toml` is not a `.mob`). The map is named `Zone1` (map.toml `name`), so its ground pages are `zone1000..`.
+- A map page's tiles count from the page's bottom row up (texture 0 is the bottom-left 64 x 64), and the game draws a
+  tile's inner 48 x 48 pixels (8 kept from each edge), so tiles that meet seamlessly repeat their pattern every 48.
+- A figure's root is placed by its animations' root translations: the golem's hips are 1.15 above its origin (the
+  hero's 0.95); the first try had them at 0 and the golem stood buried to its waist.
+- Units a `.mob.toml` places have no script name (`GetObjectByName`, the harness's names): the scenario and the script
+  find the golem by its id, and the harness's `objtrace start #<id>` follows a unit by id.
+- Inventory models are drawn at their own size: the game's lie diagonally, about 2.5 long.
+
+### Checks
+
+- `mod_showcase` (both installs; tools/make_showcase_mod.py copies the folder into the run's saves): a new game on the
+  island (the script's line, the quest's variable 1), the hero (god mode) walks to the golem, which walks to it and
+  attacks (`objplayed cwalk`, `uattack01` from the glTF), and breaks it in the fight; the quest is done (variable 2, the
+  message log's lines), the party has the hammer at granite's damage (`modweapon showcase hammer 14.4 21.6`); captures
+  of the fight, the broken golem and the camp's inventory with both items; the trace has each kind of file read from
+  the mod, and the game's zone1.mob read, its zone1.mpr not.
 
 ## Open questions
 

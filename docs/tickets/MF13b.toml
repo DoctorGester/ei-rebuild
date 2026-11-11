@@ -1,0 +1,7 @@
+id = "MF13b"
+title = "New spells with an effect: a [[spell]] record that names the game's spell whose code and look it uses"
+group = "mods"
+size = 3
+note = "MF13 found: a spell's behaviour and look are the game's code for its place in spells.sdb (SpellType = prototypeId >> 16, the 42 places), so a new record (the showcase mod's 'spark', place 42) has none and nothing should cast it. Wanted: a field (e.g. kind = \"lightning\") that gives a new record an existing behaviour and particle look with its own numbers, every per-type table checked for a place past 41, the hero able to learn and cast it; particle effects stay code (say whether a data format for them is wanted)."
+order = 1329
+status = "later"

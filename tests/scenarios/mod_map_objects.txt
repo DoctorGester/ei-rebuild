@@ -1,0 +1,45 @@
+# Map objects as TOML (docs/notes/mods.md, "Map objects as TOML"): a mod of our own, tools/make_mod_s19d.py mobs,
+# written into the run's harness_saves\s19d_mod, which "mod" makes the settings' Mod (either install). Its
+# Maps\zone1.mob.toml is the game's zone1.mob as ei-convert writes it, with the pig PigF0-1947 (id 1947) moved from
+# (190.8, 78.5) to (50, 138) and a pig MF9aPig (id 2009) added at (50, 142), beside the party's start (54, 138). The mod
+# has no zone1.mob: the scripts come from the game's. In a new game (the capture shows both pigs by the hero):
+# - the moved pig is within 3 of its new place (not at its old one) and the added pig, which the game's .mob has not,
+#   is in the world; another pig (1948) keeps its place, as does the game's script's unit GoblV1 (666);
+# - the trace has the mod's TOML read and the game's .mob read for its scripts;
+# - MF10a: the file's last two records, a unit without a class (id 2010) and one of a tree's class (2011), are left
+#   out with a warning each, not a crash.
+# prepare: make_mod_s19d.py mobs
+mod harness_saves\s19d_mod
+reject Script error
+waitmenu
+console thingamabob
+
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 10 battle
+move 400 60
+camera 52 140 0 16 55
+frames 5
+check IsAlive(GetObject(1947))
+check IsAlive(GetObject(2009))
+check IsGreater(GetX(GetObject(1947)),47)
+check IsLess(GetX(GetObject(1947)),53)
+check IsGreater(GetY(GetObject(1947)),135)
+check IsLess(GetY(GetObject(1947)),141)
+check IsGreater(GetX(GetObject(2009)),47)
+check IsLess(GetX(GetObject(2009)),53)
+check IsGreater(GetY(GetObject(2009)),139)
+check IsLess(GetY(GetObject(2009)),145)
+check IsGreater(GetX(GetObject(1948)),200)
+wait 500
+freeze
+capture world
+unfreeze
+check IsAlive(GetObject(666))
+expectlog warning: map objects: zone1.mob record 2010: class 0 does not fit its kind
+expectlog warning: map objects: zone1.mob record 2011: class 53 does not fit its kind
+read mod Maps\zone1.mob.toml yes
+read game Maps\zone1.mob yes
+report
+quit

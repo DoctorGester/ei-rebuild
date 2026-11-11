@@ -1,21 +1,19 @@
 {
   "scenario": "render_shadows_shimmer",
   "install": "rebirth",
-  "recorded": "2026-11-06",
-  "commit": "dc71172b5",
+  "recorded": "2026-11-10",
+  "commit": "91b031ae6",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R37f13: an object's parts are drawn whole after its one view test, so the client units' Static and Shown flags come from that verdict and the client picture's unit weather lists the units drawn whole (visuals.sav); no server record differs",
+  "reason": "L8c: the loop bindings set the counter global a converted loop names, as the game's loops do, so the digest's script record and the decoded saves compare the loops' counters again (L8a had left them out): the counters' values now recorded (script gobject, saves commands globals).",
   "source": "image",
   "saves": "7 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 1 of 12 records differ, first at record 11 (world update 240, tick 19241, frame 47, zone bz1g); outcomes the same; no unit position differs",
-    "  first difference at record 11 (world update 240, tick 19241, frame 47, zone bz1g): 1 fields",
-    "    cunit182595 (80 unanhopi \"\") #unit: 4A589AC1 in the old golden, 4D51321D in the new run",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  client units: 1 of 18 differ",
-    "    #unit: 1 client unit, 1 record, from 11; hash only (no numbers kept)"
+    "save current/gz1g.sav: 2 fields in 1 records differ: commands 2",
+    "  commands: 2 fields in 1 records; first commands globals.objects.1.value: ~loop in the old golden, 699 in the new run",
+    "save save2/gz1g.sav: 2 fields in 1 records differ: commands 2",
+    "  commands: 2 fields in 1 records; first commands globals.objects.1.value: ~loop in the old golden, 699 in the new run"
   ]
 }

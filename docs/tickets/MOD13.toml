@@ -5,5 +5,6 @@ size = 1
 model = "sonnet"
 note = "Bug report (user 2026-11-10): after playing a mod, vanilla could not be played again: an error about an item missing from the item database. Our exe keeps a mod's saves in saves\\<mod>\\ but every mod's heroes in the game's mp\\, so a hero given a mod's item breaks vanilla's hero list. Rebirth's starter\\addon.dll redirects mp\\ per mod as it does saves\\ ('Set Addon path for: mp\\*', 'mp\\ (CreateDir)', 'mp\\backup\\'). Map mp\\ under the mod's saves folder (path layer: as saves\\), every reader and writer of mp\\ (hero list, hero create, net game hero save), the folder made at start and after a switch; vanilla keeps mp\\. Harness: its overlay owns mp\\ already, check a mod run. Notes: mods.md. A scenario: a hero made under a mod not listed under no mod and the reverse."
 order = 1313
-status = "review"
+status = "done"
 started = "2026-11-10"
+done = "2026-11-10"

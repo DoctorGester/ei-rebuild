@@ -16,13 +16,19 @@ int RunPlatformTextChecks();   // platform_text.cpp: Cyrillic names through the 
 int RunPathLayersChecks();     // path_layers.cpp: the mod's path map (sets the program's mod: last)
 int RunWeatherFieldChecks();   // weather_field.cpp: the rain's and the snow's particles move smoothly
 int RunTomlChecks();           // toml.cpp: lib/toml.h's writer read back through tomlc17
+int RunTexturePngChecks();     // texture_png.cpp: textures as PNG and back
+int RunMapFolderChecks();      // map_folder.cpp: maps as folders and back, the PNG writer
+int RunFigureGltfChecks();     // figure_gltf.cpp: figure models as glTF and back
+int RunLuaNumberChecks();      // lua_number.cpp: script floats across the Lua boundary, NaN payloads kept
 
 int main() {
     std::setvbuf(stdout, nullptr, _IONBF, 0);   // what was printed survives a crashing check
     const int failures = RunSettingsFileChecks() + RunHashMapChecks() + RunIniFileChecks() + RunIpv4Checks() +
                          RunMathsChecks() + RunSavePictureChecks() + RunAudioMixChecks() + RunDisplaySizesChecks() +
                          RunBoundedTextChecks() + RunTaggedStreamChecks() + RunGameBufferChecks() +
-                         RunPlatformTextChecks() + RunPathLayersChecks() + RunWeatherFieldChecks() + RunTomlChecks();
+                         RunPlatformTextChecks() + RunPathLayersChecks() + RunWeatherFieldChecks() + RunTomlChecks() +
+                         RunTexturePngChecks() + RunMapFolderChecks() +
+                         RunFigureGltfChecks() + RunLuaNumberChecks();
     std::printf("ei_unit_check: %d problems\n", failures);
     return failures ? 1 : 0;
 }

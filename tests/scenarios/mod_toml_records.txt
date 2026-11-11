@@ -3,8 +3,11 @@
 # config.reg.toml only; its Res\texts\texts.toml changes one string of the game's texts.res and its
 # Res\database\acks.db.toml one record of the game's acks.db. At the main menu:
 # - the interface's text "string quit" is the mod's (a string neither has stays none);
-# - the acks database the units speak from has the mod's Haburu record (s24's sound changed, s25 gone, as the
-#   mod's record replaces the game's) and the game's records the mod leaves (HadExpW's s7).
+# - the acks database the units speak from has the mod's Haburu scenario list (s24's sound changed, s25 gone: a list
+#   given replaces the game's whole list) and the game's records the mod leaves (HadExpW's s7);
+# - records merge by field (MF3a): the mod gives only the mercenary warrior's attack list (his move list is the game's),
+#   only the stone blood print's wet alpha (its dry look and the rest of its wet look are the game's) and only the
+#   chance of the cow's animation "cidle01" (its frames, key, flags and moment are the game's).
 # prepare: make_mod_s19d.py toml
 mod harness_saves\s19d_mod
 reject Script error
@@ -14,5 +17,9 @@ modtext no_such_string_mf3 -
 modack Haburu s24 Acks\Haburu\Scenario\MF3.wav
 modack Haburu s25 -
 modack HadExpW s7 Acks\HadExpW\Scenario\HadExpW.wav
+modrecord ack Human Mercenary Warrior/2 = 1 Acks\HMW\Attack\MF3a.wav
+modrecord ack Human Mercenary Warrior/1 = 6 Acks\HMW\Move\1.wav
+modrecord blood stone = dry 0.45 900 150 wet 0.25 225 150
+modrecord anim unanhoco/cidle01 = chance 37 frames 50 key 80590000 flags c moment 23
 report
 quit

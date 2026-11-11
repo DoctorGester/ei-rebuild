@@ -131,7 +131,7 @@ void Execs(const CommandArgs& args) {
 
 // listgvar: the global script variables (floats, strings, objects, groups).
 void ListGlobals(const CommandArgs&) {
-    const ScriptVars& globals = TheMissionScript()->globals;
+    const ScriptVars globals = TheMissionScript()->GlobalValues();
     auto name = [](const std::vector<std::string>& names, int i) -> const std::string& { return names[static_cast<std::size_t>(i)]; };
     for (int i = 0; i < std::ssize(globals.floats.values); ++i)
         SayFormat("%s : float = %f", name(globals.floats.names, i), static_cast<double>(globals.floats.values[i]));

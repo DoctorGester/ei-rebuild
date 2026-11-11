@@ -609,8 +609,30 @@ players "n/m", the game type's allod name ("?" for 4) and the ping; the selectio
 the selected entry's details at the right in 0xA7D7E4: for the new game the game type tabs (sprites 6-9) with their names,
 texts 0, 2 (with maxPlayers), 3, 16 and 17, then the pause mode's row (ours, surface (340, 296): "Pause: as the original" /
 "the leader, announced" / "any player" / "off", in Russian where the game's texts are, `GameTextsInRussian`; a click on
-region 29 with the new game selected steps to the next mode, passed to StartServer as `net::PauseMode`); for a server its name, players, game type, the map's title wrapped over up to
+region 29 with the new game selected steps to the next mode, passed to StartServer as `net::PauseMode`) and, ours, the
+companions switch on the game type's title row (surface 460; region 30 at (560, 214)-(700, 237): "Companions: off" /
+"two", network.md, "Companions"); for a server its name, players, game type, the map's title wrapped over up to
 three lines, address, ping and, with a password, text 21.
+
+## Companions window
+
+Ours (`ui_companions.cpp`; network.md, "Companions"). The list of companions is picked only in the multiplayer base,
+the briefing screen of a multiplayer game (a local zone: no server link, no HUD). `BriefingScreen::CreateScreen` adds
+`CompanionButton` next to the chat window when `CompanionsOffered` (a multiplayer client; a host only with its
+companions option on): a framed "+" on a shade, 30 x 30 at (762, 562) in the 800 x 600 layout (bottom right), tip
+"Companions (F3)"; F3 (`BriefingScreen::KeyDown`) opens the same window. A joined game does not know its host's option
+in the base (it learns the limit with the first network zone), so it always offers; `SavedParties::companions` past the
+host's limit are dropped when a zone asks for them. The battle screen has no button and no F3.
+The window is a shaded box over (200, 150)-(600, 412): the title, one row per picked companion ("(with you)") and then
+per saved hero neither played nor picked (at most 8 in all), the picked one framed (the first at first), below them what
+OK does ("OK: add", "OK: send away", or why nothing); regions 0 OK (the OK button's picture), 1 Close (cancel's), 2 on
+the rows. OK (or Enter) takes the picked companion off `SavedParties::companions` or puts the picked hero on it while
+there is room (the host's limit, `net::kMostCompanions` for a joined game), and closes; nothing is sent. Close or Esc
+closes. It leaves a value no screen takes.
+The battle screen's client party puts the hero's companions (its party's records after the first, with a unit) right after
+the camera's hero (`companionPortraits`), so the HUD shows their portraits with health bars beside the other players'
+faces (AddPortrait centres the hero, its companions and the players); ToggleMember (portrait clicks, the member keys) then
+works on a network client for the hero and its companions only.
 
 ## ExchangeScreen::CreateScreen
 

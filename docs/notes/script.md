@@ -1,10 +1,12 @@
 # Mission script engine, text reader and small engine pieces
 
-Files (`src/game/`): `script.h` (the records and `Script`), `script_*.cpp` (group, vars, eval, parse, parse_load, exec,
+Files (`src/game/`): `script.h` (the records and `Script`), `script_*.cpp` (group, vars, eval, parse, parse_load, ir, exec,
 exec_run, exec_helpers, save, load, blocks, cleanup, effects, quest, unit_modes, addon* (Rebirth, `rebirth.md`)),
 `quest_database.cpp`, `text_manager.cpp`. Scenarios: `script_parse`, `script_exec`, `script_copy`, `script_fx`,
-`script_quest`, `world_load` (save / load round trip), `console`, `effects`, `particles`, `zone_gz2g_traps`. The plan to
-run the scripts on Lua: `lua-scripting.md`.
+`script_quest`, `world_load` (save / load round trip), `console`, `effects`, `particles`, `zone_gz2g_traps`. Every
+script runs on Lua: its runtime (`script_lua.*`), the writer of converted scripts (`script_lua_writer.*`) and their
+scheduler in the game's tick order (`script_lua_scheduler.*`; Script::TickEffects and ResetEffects are the parts of
+the tick and the zone reset it shares), the old-save shim (`script_lua_resume.cpp`): `lua-scripting.md`.
 
 ## Data structures
 
@@ -25,12 +27,12 @@ run the scripts on Lua: `lua-scripting.md`.
   arguments are evaluated in no fixed order. The loops (For, ForIf, Every / Any / Sum) re-read their counter and
   condition slots directly.
 - `ScriptDefinition`: index, qualified name, parameter type letters ("fso"), the if-then pairs {conditions block,
-  commands block}, its variables. `ScriptRun`: block, index, ticks, sleep start, the kill flag (a pointer to the
-  instance's flag; null for the WorldScript), a copy of the variables. Instances are copies of a definition whose first
-  field is the "killed" flag.
+  commands block}, its variables. `ScriptRun`, a Lua run's state: ticks, sleep start, the kill flag (a pointer to the
+  instance's flag; null for the WorldScript). An old-format save's instances are copies of a definition whose first
+  field is the "killed" flag, its waiting runs `ScriptSavedRun`s (block, index, ticks, sleep start, the instance's
+  index, a copy of the variables), both only on the way to the old-save shim.
 - `Script`: a command block's id is the list's count right after the append (the WorldScript's with bit 31 set); the
-  temporaries lists always keep one entry; a counter of For nesting (temporaries are not freed while it is positive);
-  the loaded flag and file counter; error text / code / line. Areas hold parts `{isRect; x, y, x2 | radius^2, y2}`
+  temporaries lists always keep one entry; the loaded flag and file counter; error text / code / line. Areas hold parts `{isRect; x, y, x2 | radius^2, y2}`
   (AddRectToArea / AddRoundToArea make a missing area; IsInArea of an unknown id is 0 and makes none). A script body
   (`LoadScriptBody`) that fails to parse drops the blocks and pairs it added. FX
   sources are sound sources (volume, radius, idle, placement radius, min / max delay, countdown). Point lights: 256
@@ -61,7 +63,8 @@ params `)(` body `)` (a definition not declared before; after `DeclareScript` it
 "Unexpected '%s'". 5. On success the loaded flag is set and the file counter incremented; a failed load does not count
 the file but definitions and globals added before the error stay. A zone's mission script that fails
 (`WorldServer::LoadZoneScripts`) says so on the console, `Script error: <zone>.mob line <n>: <error>` (ours; the
-original said nothing; Lost in Astral's bz23k, mods.md).
+original said nothing; Lost in Astral's bz23k, mods.md); so does an AddMob'd file's (`MobFile::Load`), whose
+scripts stay dropped when a name clashes (Lost in Astral's zone10hunter.mob, scenario `mod_lost_in_astral_addmob_error`).
 
 Names declared in a file are qualified with the file counter: `QualifyName` gives `!<count>!name` once a file has been
 loaded; lookups try the plain name then the qualified one; `FindScript` also retries without each leading `!n!`, so a
@@ -73,35 +76,45 @@ in the target; the value is the one argument). `LoadFunction` parses one call ag
 loop counter = a global object variable); each parameter is a literal, a local variable, a global variable (plain or
 qualified) or a nested call of a function with the right result type.
 The parser reads the tokens through a `TokenReader` (`Next(&id)` takes a token and classifies it, `Expect(lexeme)` checks
-the next one, `EndOfFileError()` reports on the last line); error codes are `ScriptParseError`.
+the next one, `EndOfFileError()` reports on the last line); error codes are `ScriptParseError`. Each Load also fills a
+parse tree beside its structures (`script_ir.h`, handed out through `Load`'s `ir`; lua-scripting.md, "Design" and
+"Survey"). `Script::Parse` stops there (ei-convert's survey, `Script::LoadLua`); `Script::Load` hands the tree to the
+script's scheduler, which converts and loads it and starts its WorldScript; its failure is error 18, ours
+(lua-scripting.md, "Texts at runtime"). The structures are the program a save keeps (below).
 
 **Lexer** (`ClassifyToken`): lines start at 1 and count `\n` in white space and block comments; a token runs to white
 space (a space inside quotes does not end it) or to one of `, ) ( : =` after its first character, at most 255
 characters looked at; only the recognised prefix is kept and the rest scanned again (a number, a quoted string, or the
 longest keyword the text starts with, case-insensitively), so `(abc` is `(` `abc`, `1.5.5` is `1.5` `.5`, and `Run1` is
 `Run` `1`; `/*` starts a comment only at the start of a token and the search for `*/` starts after that token (`/**/2`
-does not close it; quoted `"*/"` inside is skipped); `//` runs to the end of the line. Keywords compare with
+does not close it; quoted `"*/"` inside is skipped); `//` runs to the end of the line (`Script::Tokenize` can hand each comment to the caller, `ScriptComment`, for the
+Lua writer; the parse is the same). Keywords compare with
 `text::CompareIgnoringCase` (src/lib/text_case.h), keeping `_strnicmp`'s rule that a zero byte in either string ends the
 compare; the keywords are ASCII, so the UTF-8 fold finds the same keyword as the original code page fold (the original's
 locale-aware `_strnicmp` per byte cost ~400 ms of a zone load).
 
 ## Runtime
 
-The world calls `Script::Tick` every world update for its two scripts. A tick, when loaded:
-1. every waiting run continues with `ScriptRun::Execute`; one returning 0 is removed; 2. every instance drops deleted
+The world calls `Script::Tick` every world update for its two scripts; the tick is the Lua scheduler's
+(lua-scripting.md, "Scheduler"), which keeps the game's executor's order and rules described here, its bindings
+calling the built-ins (`ScriptCall::CalcFloat` / `CalcObject` / `CalcGroup`, `scriptaddon::CalcString`,
+`ScriptRun::RunCommand`). The game's tick, when loaded:
+1. every waiting run continues (Execute); one that had already ended is removed; 2. every instance drops deleted
 objects from its variables and runs its if-then pairs in order (conditions with CalcFloat, temporaries freed after each,
-the first zero or NaN ends it; when all hold the commands block runs once in a new run (index 0, a copy of the
-instance's variables, kill flag = the instance) and, if Execute returns 1, a copy goes to the head of the run list)
+the first zero ends it, a NaN holds; when all hold the commands block runs once in a new run (index 0, a copy of the
+instance's variables, kill flag = the instance) and, if Execute returns 1 (every block but an empty one: a run that
+ran to its end leaves at its next Execute), a copy goes to the head of the run list without the flag)
 until one kills it; 3. global object variables and groups drop deleted objects; 4. timed effects: FX sources respawn
 their effect when the countdown runs out (`Next() % (max - min + 1) + min`, a class 0x48 object at a random offset within
 the radius), point lights move for their remaining steps then stop, particle sources move, count down their lifetime
 and are removed; 5. temporaries freed. The WorldScript and every console `@` line first run on the next tick.
 
-`Execute`: counts the call; returns 0 if the block had already ended; otherwise drops deleted objects, then per command
-binds variables (`SetParameters`), evaluates nested calls (`CalcParameters`), runs the command, frees temporaries,
-advances. A waiting command leaves the index on itself and Execute returns 1: Sleep(n) records the tick count and waits
+The game's `Execute`: counts the call; returns 0 if the block had already ended; otherwise drops deleted objects, then
+per command binds variables, evaluates nested calls (again on every Execute: a wait's argument is read on each poll),
+runs the command, frees temporaries, advances. A waiting command leaves the index on itself and Execute returns 1:
+Sleep(n) records the tick count and waits
 while `ticks - start < n` (FISTP-rounded n; so n further Execute calls), then resets it to -1; WaitSegment(n) waits while
-the run has been executed fewer than n times in total; SleepUntil(c) while c is 0 or NaN; SleepUntilIdle(unit) while the
+the run has been executed fewer than n times in total; SleepUntil(c) while c is 0 (a NaN goes on); SleepUntilIdle(unit) while the
 unit's brain has an action. For(counter, group)(body) / ForIf(counter, group, condition)(body) walk the group from last
 to first (size read once), store the member in the counter (a global object variable) and run the body block in the
 same run (block, index, ticks and sleep start saved, set to body / 0 / 0 / -1, Execute recursion, restored: a Sleep in
@@ -127,8 +140,10 @@ value array. Effect elements: object id (-1 none), then fields; loading looks th
 Block ids resolve in the lists of the world's first script (negative ids in the WorldScript blocks, others in the
 command blocks; unknown gives null). A definition's or instance's if-then pair and a run whose block did not resolve
 (a save made with other scripts) are dropped at load, and a For / ForIf whose body did not resolve is cleared into a
-command that does nothing (id 0; the block keeps its length, so runs' saved indices stay right), so the savers and
-Execute always have their blocks. Runs: block id, index, ticks, sleep start, the instance index (0 out of range),
+command that does nothing (id 0; the block keeps its length, so runs' saved indices stay right), so the saver and the
+old-save shim always have their blocks. Our saves write the scheduler's globals, instances and runs in those fields as
+far as they go and its Lua state after the areas, 2 added to the loaded flag; an old-format save (vanilla's, or ours
+before every script ran on Lua) goes on through the old-save shim (lua-scripting.md, "Saves"). Runs: block id, index, ticks, sleep start, the instance index (0 out of range),
 the variables (object ids looked up, group members sorted).
 
 ## Quests, unit modes, text manager

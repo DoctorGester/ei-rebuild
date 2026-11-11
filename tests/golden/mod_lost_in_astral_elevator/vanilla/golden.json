@@ -1,13 +1,19 @@
 {
   "scenario": "mod_lost_in_astral_elevator",
   "install": "vanilla",
-  "recorded": "2026-11-06",
-  "commit": "fc84ce294",
+  "recorded": "2026-11-10",
+  "commit": "91b031ae6",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MOD9: new scenario, Lost in Astral's gz1d2 lift from the user's save: the deck lever used through the battle screen's use pick, the ride down and the walk on",
+  "reason": "L8c: the loop bindings set the counter global a converted loop names, as the game's loops do, so the digest's script record and the decoded saves compare the loops' counters again (L8a had left them out): the counters' values now recorded (script gobject, saves commands globals).",
   "source": "image",
-  "saves": "10 decoded saves (tools/savefile.py), the same in 2 runs"
+  "saves": "10 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "save LostInAstral/save1/gz1h.sav: 1 fields in 1 records differ: commands 1",
+    "  commands: 1 fields in 1 records; first commands globals.objects.2.value: ~loop in the old golden, -1 in the new run",
+    "save LostInAstral/save1/mission.sav: 1 fields in 1 records differ: commands 1",
+    "  commands: 1 fields in 1 records; first commands globals.objects.2.value: ~loop in the old golden, 1000059185 in the new run"
+  ]
 }

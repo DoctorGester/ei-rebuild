@@ -1,0 +1,28 @@
+# items.idb records changed or added by this mod (docs/modding.md, "Databases"). A record is matched by its name and
+# takes only the fields given; a name the game's table lacks is a new record at the end of it.
+
+# The game's stone axe hits a little harder; its other fields stay the game's.
+[[weapon]]
+name = "stone axe"
+damage = 3.0
+
+# A new axe. The fields left out keep their defaults (0, false; buildable true); its text is texts.toml's
+# "weapon example_axe <material>".
+[[weapon]]
+name = "example axe"
+family = "axe"
+type = "axe"
+material_class = "Stone"
+number = 1
+price = 600.0
+weight = 3.0
+charge = 30.0
+magic_level = 6
+condition = 4378.0
+material_units = 4
+sold_by = ["gipat_smith"]
+attack_interval = 33
+damage = 5.0
+damage_spread = 1.0
+damage_types = { slashing = 1.0 }
+defence_bonus = -5.0

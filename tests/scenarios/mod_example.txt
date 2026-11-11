@@ -1,0 +1,61 @@
+# The example mod of docs/modding.md (examples/example_mod), made by the build's ei-convert --example-mod (the command
+# players run; tools/make_example_mod.py calls it) into the run's harness_saves\example_mod, which "mod" makes the
+# settings' Mod (either install): only common files, its TOML our own, its PNGs, zone1.mob.toml and zone1.lua made at
+# run time from the vanilla install's files.
+# Checked:
+# - texts.toml: the in-game menu's "quit" button is the mod's text (a string the mod leaves stays the game's);
+# - items.idb.toml: in a new game the party is given the game's stone axe and the mod's new example axe, made from the
+#   merged table as any script's GiveItem makes them: the stone axe's damage is the mod's 3.0 to 3.0 + 2.0 (its spread
+#   the game's), times malachite's 4.2; the example axe's 5.0 to 6.0 times 4.2;
+# - Maps\zone1.mob.toml: the pig ExamplePig (id 3001) the mod adds stands by the party's start; the game's pig 1947 and
+#   the script's unit GoblV1 (666) keep theirs;
+# - Maps\zone1.lua: zone 1's script runs from the mod's Lua (ei-convert's with the mod's lines): the WorldScript's
+#   first call prints a line and starts the mod's definition, whose rule prints when the leader is near the pig;
+# - Res\textures\Zone1000.png ..: the ground around the hero is red (the grass recoloured: about 30% of the frame red,
+#   where mod_map_objects' frame of the same view has 0.3%), and the trace has the PNG read for the .mmp, the TOML
+#   files read, and the game's .mob read for its scripts' names. The capture also shows texts.toml's name of the new axe
+#   ("Example axe") in the message log.
+# prepare: make_example_mod.py
+mod harness_saves\example_mod
+reject Script error
+waitmenu
+modtext quit Leave the islands
+modtext item_weapon оружие
+console thingamabob
+
+newgame
+waitline 15 Example mod: zone1.lua runs
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitline 10 Example mod: the pig greets the party
+console @BlockUnit(GetLeader(),0)
+modweapon stone axe -
+console @GiveItem(0,"stone axe.malachite")
+frames 5
+console @GiveItem(0,"example axe.malachite")
+frames 5
+modweapon stone axe 12.6 21
+modweapon example axe 21 25.2
+waitwindow 10 battle
+move 400 60
+camera 52 140 0 16 55
+frames 5
+check IsAlive(GetObject(3001))
+check IsGreater(GetX(GetObject(3001)),45)
+check IsLess(GetX(GetObject(3001)),57)
+check IsGreater(GetY(GetObject(3001)),136)
+check IsLess(GetY(GetObject(3001)),148)
+check IsGreater(GetX(GetObject(1947)),185)
+wait 500
+freeze
+capture world
+unfreeze
+hues world 0.2 1 red
+check IsAlive(GetObject(666))
+read mod Res\texts\texts.toml yes
+read mod Res\database\items.idb.toml yes
+read mod Res\textures\Zone1000.mmp yes
+read mod Maps\zone1.mob.toml yes
+read mod Maps\zone1.lua yes
+read game Maps\zone1.mob yes
+report
+quit

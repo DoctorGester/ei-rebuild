@@ -1,0 +1,745 @@
+// ei-convert --lua-check: see lua_check.h.
+#include "lua_check.h"
+
+#include "game/app/singletons.h"
+#include "game/core/core_streams.h"
+#include "game/core/random.h"
+#include "game/effects/world_effect.h"
+#include "game/objects/map_object.h"
+#include "game/objects/map_object_manager.h"
+#include "game/players/player_manager.h"
+#include "game/scene/camera.h"
+#include "game/script/script.h"
+#include "game/spells/spell.h"
+#include "game/script/script_lua.h"
+#include "game/script/script_lua_scheduler.h"
+#include "game/script/script_lua_number.h"
+#include "game/script/script_lua_writer.h"
+#include "game/world/world.h"
+
+#include "eris/lauxlib.h"
+#include "eris/lua.h"
+
+#include <bit>
+#include <cstdint>
+#include <cstdio>
+#include <format>
+#include <memory>
+#include <set>
+#include <string>
+#include <vector>
+
+namespace lua_check {
+
+bool g_logMuted = false;
+
+namespace {
+
+int g_checks = 0;
+int g_failures = 0;
+
+void Expect(bool ok, const char* what) {
+    ++g_checks;
+    if (ok) return;
+    std::printf("lua_check: %s\n", what);
+    ++g_failures;
+}
+
+constexpr int kIds[] = {1001, 1002, 1003};
+constexpr std::uint32_t kNanBits = 0x7FC12345u;   // a quiet NaN with a payload
+
+// Three stones in the server world's id map, each holding one reference of the world's.
+struct TestWorld {
+    TestWorld() {
+        for (int id : kIds) {
+            auto* stone = new CStone();
+            stone->AddRef();
+            stone->id = id;
+            g_serverWorld.objects.Set(static_cast<unsigned>(id), stone);
+            stones.push_back(stone);
+        }
+    }
+    ~TestWorld() {
+        for (CStone* stone : stones) {
+            g_serverWorld.objects.map.erase(static_cast<unsigned>(stone->id));
+            delete stone;
+        }
+    }
+    // Every stone back to the world's one reference.
+    bool OnlyWorldReferences() const {
+        for (const CStone* stone : stones)
+            if (stone->refCount != 1) return false;
+        return true;
+    }
+
+    std::vector<CStone*> stones;
+};
+
+// Lua's `check(ok, what)`: a failure counted and printed.
+int LuaCheck(lua_State* L) {
+    Expect(lua_toboolean(L, 1), luaL_optstring(L, 2, "(unnamed)"));
+    return 0;
+}
+
+bool Run(ScriptLua& lua, const char* text) {
+    std::string error;
+    if (lua.RunChunk(text, "=check", &error)) return true;
+    std::printf("lua_check: chunk failed: %s\n", error.c_str());
+    ++g_failures;
+    return false;
+}
+
+// Every keyword bound once, under a name no other has.
+void CheckNames(ScriptLua& lua) {
+    const std::vector<scriptlua::BindingName> names = scriptlua::BindingNames();
+    Expect(names.size() == 276 && lua.bindingCount == 276, "276 keywords bound");
+    std::set<std::string> seen;
+    lua_State* L = lua.State();
+    for (const scriptlua::BindingName& name : names) {
+        if (!seen.insert(name.lua).second) Expect(false, name.lua);
+        lua_getglobal(L, name.lua);
+        if (lua_type(L, -1) != LUA_TFUNCTION) Expect(false, name.lua);
+        lua_pop(L, 1);
+    }
+    Expect(scriptlua::LuaName("UMGuard") == std::string("UnitModeGuard"), "UMGuard's Lua name");
+    Expect(scriptlua::LuaName("GetObject") == std::string("GetObject"), "GetObject keeps its name");
+    Expect(scriptlua::LuaName("then") == nullptr, "no binding for a section word");
+    // The writer gives no script name a global of the state already has.
+    lua_pushglobaltable(L);
+    lua_pushnil(L);
+    while (lua_next(L, -2)) {
+        lua_pop(L, 1);
+        if (lua_type(L, -1) == LUA_TSTRING && !scriptlua::ReservedNames().contains(lua_tostring(L, -1)))
+            Expect(false, lua_tostring(L, -1));
+    }
+    lua_pop(L, 1);
+}
+
+constexpr const char* kChunk = R"lua(
+local a = GetObject(1001)
+check(GetObjectID(a) == 1001, "GetObject")
+local b = GetObjectByID("1002")
+check(b ~= nil and GetObjectID(b) == 1002, "GetObjectByID")
+check(GetObject(4242) == nil, "no object: nil")
+check(GetObjectID(nil) == 0, "nil passes a null object")
+local g = NewGroup()
+AddObject(g, b) AddObject(g, a) AddObject(g, a)
+check(GroupSize(g) == 2 and #g == 2, "AddObject keeps one of each")
+check(GetObjectID(g[1]) == 1001 and GetObjectID(g[2]) == 1002 and g[3] == nil, "members in id order")
+check(g[1] == a and g[1] ~= b, "values of one object are equal")
+local seen = {}
+ForEach(g, function(member) seen[#seen + 1] = GetObjectID(member) end)
+check(seen[1] == 1002 and seen[2] == 1001 and seen[3] == nil, "ForEach from last to first")
+local picked = {}
+ForEachIf(g, function(member) return IsEqual(GetObjectID(member), 1001) end,
+          function(member) picked[#picked + 1] = GetObjectID(member) end)
+check(picked[1] == 1001 and picked[2] == nil, "ForEachIf")
+check(Every(g, function(member) return IsGreater(GetObjectID(member), 1000) end) == 1, "Every")
+check(Every(g, function(member) return IsEqual(GetObjectID(member), 1001) end) == 0, "Every with one false")
+check(Any(g, function(member) return IsEqual(GetObjectID(member), 1002) end) == 1, "Any")
+check(Sum(g, function(member) return GetObjectID(member) end) == 2003, "Sum")
+check(Sum(g, 2.5) == 5 and Every(g, 7) == 7 and Any(g, 0) == 0, "constant conditions")
+GlobalVars { counter = "object", notObject = "float" }
+local inBody = {}
+ForEach("counter", g, function(member) inBody[#inBody + 1] = GetObjectID(counter) end)
+check(inBody[1] == 1002 and inBody[2] == 1001 and GetObjectID(counter) == 1001, "ForEach's counter: the first member after")
+counter = nil
+ForEachIf("counter", g, 0, function(member) end)
+check(GetObjectID(counter) == 1001, "ForEachIf sets its counter for each member, a constant condition too")
+check(Every("counter", g, function(member) return IsEqual(GetObjectID(member), 1001) end) == 0 and
+      GetObjectID(counter) == 1002, "Every's counter: the last member tested")
+check(Any("counter", g, function(member) return IsEqual(GetObjectID(counter), 1001) end) == 1 and
+      GetObjectID(counter) == 1001, "Any's counter: the member that held")
+counter = nil
+check(Sum("counter", g, 2) == 4 and counter == nil, "a constant condition leaves the counter as it was")
+check(not pcall(ForEach, "notObject", g, function() end), "a counter that is no object global: an error")
+check(not pcall(Any, "undeclared", g, 1), "an undeclared counter: an error")
+counter, notObject = nil, nil
+check(Add(0.1, 0.2) == 0.30000001192092896, "Add in single precision")
+check(Div(1, 3) == 0.3333333432674408, "Div in single precision")
+check(GroupHas(GroupUnion(g, NewGroup()), a) == 1, "GroupUnion, GroupHas")
+check(GroupSize(GroupIntersection(g, NewGroup())) == 0, "GroupIntersection")
+local c = CopyGroup(g)
+RemoveObject(c, a)
+check(GroupSize(c) == 1 and GroupSize(g) == 2, "CopyGroup copies")
+check(IsEqualString("a", "a") == 1 and IsEqualString("a", "b") == 0, "IsEqualString")
+check(StringConcat("a", "b", "c") == "abc", "Rebirth's StrCat with its '+'")
+check(Max(1, 5, 3) == 5 and Min(4, 2) == 2, "Rebirth's Max and Min")
+check(not pcall(Add, 1), "too few arguments: an error")
+check(not pcall(IsEqual, 1, 2, 3), "too many arguments: an error")
+check(not pcall(GetObjectID, "x"), "a string for an object: an error")
+check(not pcall(GroupSize, nil), "nil for a group: an error")
+check(not pcall(Add, "1", 2), "a string for a number: an error")
+nanResult = Sub(nanValue, 0)
+held = GetObject(1003)
+heldGroup = NewGroup()
+AddObject(heldGroup, held)
+)lua";
+
+// The chunk above; then the NaN through Sub, the references Lua holds, the deleted object dropped.
+void CheckChunk(ScriptLua& lua, TestWorld& world) {
+    lua_State* L = lua.State();
+    lua_pushnumber(L, scriptlua::ToLuaNumber(std::bit_cast<float>(kNanBits)));
+    lua_setglobal(L, "nanValue");
+    if (!Run(lua, kChunk)) return;
+    lua_getglobal(L, "nanResult");
+    Expect(std::bit_cast<std::uint32_t>(scriptlua::FromLuaNumber(lua_tonumber(L, -1))) == kNanBits,
+           "a NaN payload through a binding");
+    lua_pop(L, 1);
+    Expect(world.stones[2]->refCount == 3, "a held object and a group member count a reference each");
+    world.stones[2]->flags |= MapObjectFlag::Removed;
+    lua.RemoveDeletedObjects();
+    Expect(world.stones[2]->refCount == 1, "a deleted object's references dropped");
+    Run(lua, R"lua(check(GetObjectID(held) == 0 and GroupSize(heldGroup) == 0, "a deleted object reads as none"))lua");
+    world.stones[2]->flags &= ~MapObjectFlag::Removed;
+    Run(lua, "held, heldGroup = nil, nil collectgarbage()");
+    Expect(world.OnlyWorldReferences(), "collected values release their objects");
+}
+
+// Continue calls until a Lua run of `text` (a function's body) returns.
+int LuaContinues(ScriptLua& lua, const std::string& text, ScriptRun* run) {
+    lua_State* L = lua.State();
+    if (luaL_loadstring(L, text.c_str()) != LUA_OK) {
+        std::printf("lua_check: %s: %s\n", text.c_str(), lua_tostring(L, -1));
+        lua_pop(L, 1);
+        ++g_failures;
+        return -1;
+    }
+    lua_State* thread = lua_newthread(L);
+    lua_insert(L, -2);
+    lua_xmove(L, thread, 1);
+    int calls = 0;
+    std::string error;
+    bool waiting = true;
+    while (waiting && calls < 100) {
+        waiting = lua.Continue(thread, run, 0, &error);
+        ++calls;
+    }
+    if (!error.empty()) {
+        std::printf("lua_check: %s: %s\n", text.c_str(), error.c_str());
+        ++g_failures;
+    }
+    lua_pop(L, 1);
+    return calls;
+}
+
+// The waits as yields: the ticks the game took (its run's ticks until a one-command block ended: Sleep
+// counts from its first tick, its argument rounded to even; WaitSegment the run's ticks); a wait in a loop body ends
+// the body; KillScript sets the run's flag and the function goes on.
+void CheckWaits(ScriptLua& lua) {
+    struct Case {
+        const char* name;
+        float argument;
+        int ticks;
+    };
+    const Case cases[] = {{"Sleep", 0.0f, 1},       {"Sleep", 1.0f, 2},       {"Sleep", 2.5f, 3},
+                          {"Sleep", 3.0f, 4},       {"WaitSegment", 0.0f, 1}, {"WaitSegment", 4.0f, 4}};
+    for (const Case& c : cases) {
+        ScriptRun run;
+        const int ours = LuaContinues(lua, std::string(c.name) + "(" + std::to_string(c.argument) + ")", &run);
+        if (ours != c.ticks) {
+            std::printf("lua_check: %s(%g): %d ticks, not %d\n", c.name, c.argument, ours, c.ticks);
+            ++g_failures;
+        }
+    }
+    ScriptRun run;
+    Expect(LuaContinues(lua, "local n = 0 SleepUntil(function() n = n + 1 return IsGreater(n, 2) end)", &run) == 3,
+           "SleepUntil polls its function each tick");
+    Expect(LuaContinues(lua, "SleepUntilIdle(nil)", &run) == 1, "SleepUntilIdle of no unit goes on");
+    Expect(LuaContinues(lua, "Sleep(function() return 2 end)", &run) == 3, "Sleep's argument as a function");
+    Expect(LuaContinues(lua, R"lua(
+        local g = NewGroup() AddObject(g, GetObject(1001)) AddObject(g, GetObject(1002))
+        bodies = 0
+        ForEach(g, function(member) bodies = bodies + 1 Sleep(5) bodies = bodies + 100 end))lua", &run) == 1,
+           "a wait in a loop body ends the body, not the run");
+    Run(lua, R"lua(check(bodies == 2, "each body ended at its wait"))lua");
+    bool killed = false;
+    run.killFlag = &killed;
+    Expect(LuaContinues(lua, "KillScript() afterKill = 1", &run) == 1 && killed, "KillScript sets the run's flag");
+    Run(lua, R"lua(check(afterKill == 1, "the function goes on after KillScript"))lua");
+}
+
+// The sandbox (docs/notes/lua-scripting.md, "Bindings"): no file, system or debug access, no generator of Lua's own,
+// load for text alone, pairs in an order of the keys.
+constexpr const char* kSandbox = R"lua(
+check(io == nil and os == nil and debug == nil and package == nil and require == nil, "no io, os, debug, package, require")
+check(dofile == nil and loadfile == nil, "no dofile, loadfile")
+check(math.random == nil and math.randomseed == nil, "no math.random: scripts draw through the game's Random")
+check(type(print) == "function", "print")
+check(load("return 6 * 7")() == 42, "load takes text")
+check(load(string.dump(function() return 1 end)) == nil, "load refuses bytecode")
+local keys = {}
+for key in pairs({ zulu = 1, [3] = 1, alpha = 1, [true] = 1, [1.5] = 1, mike = 1, [false] = 1 }) do
+    keys[#keys + 1] = tostring(key)
+end
+check(table.concat(keys, " ") == "1.5 3 alpha mike zulu false true", "pairs in key order")
+local walked = 0
+for _ in pairs(setmetatable({ 1 }, { __pairs = function(t) return function() return nil end, t, nil end })) do
+    walked = walked + 1
+end
+check(walked == 0, "pairs keeps __pairs")
+)lua";
+
+// A mission script from a .lua (Script::LoadLua; docs/notes/mods.md, "Scripts in Lua"): its WorldScript's coroutine
+// counts in a local; saved by SaveState at tick 5 and loaded by LoadState into another script, both go on the same; a
+// .lua that does not load is error 18.
+void CheckMission() {
+    constexpr const char* kLua = R"lua(
+GlobalVars { n = "float" }
+function WorldScript()
+    local k = 0
+    while true do
+        Sleep(1)
+        k = k + 1
+        n = k
+    end
+end
+)lua";
+    auto count = [](Script& script) {
+        const ScriptVars values = script.GlobalValues();
+        const int index = values.FindOfType(ScriptType::Float, "n");
+        return index < 0 ? -1.0f : values.floats.values[static_cast<std::size_t>(index)];
+    };
+    Script script;
+    std::string text;
+    Expect(script.LoadLua(&text, kLua, "check.lua"), "a .lua loads");
+    for (int i = 0; i < 5; ++i) script.Tick();
+    MemoryStream stream;
+    script.SaveState(&stream);
+    Script loaded;
+    stream.Seek(0);
+    loaded.LoadState(&stream);
+    Expect(loaded.loaded == 1, "the save loads");
+    Expect(count(loaded) == count(script) && count(script) > 0, "the saved global back");
+    for (int i = 0; i < 5; ++i) {
+        script.Tick();
+        loaded.Tick();
+    }
+    Expect(count(loaded) == count(script) && count(script) > 5, "the loaded coroutine goes on counting");
+    Script failing;
+    std::string none;
+    Expect(!failing.LoadLua(&none, "this is not Lua", "bad.lua") && failing.errorCode == ScriptParseError::Lua &&
+               failing.errorText.starts_with("bad.lua:1:"),
+           "a .lua that does not load: error 18 with Lua's message");
+    // A .mob's text that the parser stops in keeps its error (the caller's report) and leaves the script as the game's
+    // parser does: not loaded, the .lua's WorldScript not started.
+    Script stopped;
+    std::string broken = "GlobalVars ( a : float, a : float )";
+    Expect(!stopped.LoadLua(&broken, kLua, "stopped.lua") && stopped.errorCode == ScriptParseError::DuplicateVariable,
+           "a .mob the parser stops in: its error kept");
+    for (int i = 0; i < 5; ++i) stopped.Tick();
+    Expect(stopped.loaded == 0 && count(stopped) == 0, "its .lua not started");
+}
+
+// A coroutine waiting in Sleep with an object, a group and a NaN in its locals: persisted, unpersisted into another
+// state (the first one closed), resumed to its end there.
+void CheckPersistence(Script& script, TestWorld& world) {
+    std::string data, error;
+    ScriptRun run;
+    {
+        ScriptLua first(&script);
+        lua_State* L = first.State();
+        lua_pushnumber(L, scriptlua::ToLuaNumber(std::bit_cast<float>(kNanBits)));
+        lua_setglobal(L, "nanValue");
+        if (!Run(first, R"lua(
+            function Holder()
+                local unit = GetObject(1002)
+                local group = NewGroup()
+                AddObject(group, unit) AddObject(group, GetObject(1001))
+                local nan = nanValue
+                Sleep(2)
+                return GetObjectID(unit), GroupSize(group), GetObjectID(group[1]), nan
+            end)lua"))
+            return;
+        lua_State* thread = lua_newthread(L);
+        lua_getglobal(thread, "Holder");
+        Expect(first.Continue(thread, &run, 0, &error), "the coroutine waits in Sleep");
+        Expect(world.stones[1]->refCount == 3, "the waiting coroutine holds its object twice");
+        if (!first.Persist(&data, &error)) {
+            std::printf("lua_check: persist: %s\n", error.c_str());
+            ++g_failures;
+            return;
+        }
+    }
+    Expect(world.OnlyWorldReferences(), "the closed state released its objects");
+    ScriptLua second(&script);
+    lua_State* L = second.State();
+    if (!second.Unpersist(data, &error)) {
+        std::printf("lua_check: unpersist: %s\n", error.c_str());
+        ++g_failures;
+        return;
+    }
+    lua_State* thread = lua_tothread(L, -1);
+    Expect(thread && lua_status(thread) == LUA_YIELD, "a waiting coroutine back");
+    if (!thread) return;
+    Expect(world.stones[1]->refCount == 3, "the unpersisted coroutine holds the object by id again");
+    Expect(second.Continue(thread, &run, 0, &error), "still waiting one tick later");
+    Expect(!second.Continue(thread, &run, 0, &error) && error.empty(), "the coroutine ends after its Sleep");
+    Expect(lua_gettop(thread) == 4 && lua_tonumber(thread, 1) == 1002 && lua_tonumber(thread, 2) == 2 &&
+               lua_tonumber(thread, 3) == 1001,
+           "its object and group after the round trip");
+    Expect(lua_gettop(thread) == 4 &&
+               std::bit_cast<std::uint32_t>(scriptlua::FromLuaNumber(lua_tonumber(thread, 4))) == kNanBits,
+           "its NaN after the round trip");
+    if (!error.empty()) std::printf("lua_check: %s\n", error.c_str());
+}
+
+// ---- Short texts through a save at every tick -------------------------------------------------------------------
+
+// The texts of one short case, each loaded before the tick of its number; the zone reset before `resetTick`.
+struct CaseText {
+    int tick = 0;
+    const char* text = nullptr;
+};
+struct Case {
+    const char* name = nullptr;
+    std::vector<CaseText> texts;
+    int resetTick = -1;
+};
+
+constexpr int kTicks = 24;
+
+// Rules with conditions that draw (stopping at the first false one keeps the draws), KillScript and the run going on,
+// instances started by an instance (they run from the next tick) and by a waiting run (the same tick), the waits with
+// nested and variable arguments, a group assignment copied, the loops and Every / Any / Sum, a counter read after its
+// loop.
+const Case kRules{"rules", {{0, R"(
+GlobalVars( a : float, b : float, hits : float, g : group, h : group, u : object, i : object, last : object, n : float,
+            r : float, word : string )
+DeclareScript Tally( k : float )
+DeclareScript Echo( who : object, much : float, said : string )
+Script Tally (
+  if ( IsLess( a, k ) IsLess( Random( 10 ), 7 ) ) then ( a = Add( a, 1 ) )
+  if ( IsEqual( a, k ) ) then ( KillScript() b = Add( b, 10 ) Echo( u, k, "done" ) )
+)
+Script Echo (
+  if () then ( KillScript() hits = Add( hits, much ) last = who word = said Sleep( 2 ) hits = Add( hits, 100 ) )
+)
+WorldScript(
+  u = GetObject( 1001 )
+  AddObject( g, GetObject( 1003 ) ) AddObject( g, GetObject( 1001 ) ) AddObject( g, GetObject( 1002 ) )
+  Tally( 5 )
+  Sleep( 3 )
+  Echo( GetObject( 1002 ), 2.5, "x" )
+  h = g
+  RemoveObject( h, GetObject( 1001 ) )
+  n = GroupSize( g )
+  Sleep( n )
+  For( i, g ) ( r = Add( r, GetObjectID( i ) ) )
+  last = i
+  SleepUntil( IsLess( 3, a ) )
+  r = Sum( i, g, GetObjectID( i ) )
+  b = Any( i, g, IsEqual( GetObjectID( i ), 1002 ) )
+  Sleep( Random( 4 ) )
+  WaitSegment( 12 )
+  a = Every( i, h, IsLess( 1001, GetObjectID( i ) ) )
+)
+)"}}};
+
+// A rule that kills ends the instance's other rules for the tick; the run waits on without its kill flag; a group
+// parameter is a copy per instance and per run; a rule set without a kill stays polled; a NaN condition holds; ForIf;
+// a Sleep on a global that the instances change while it waits.
+const Case kKills{"kills", {{0, R"(
+GlobalVars( t : float, g : group, s : float, i : object, x : float )
+DeclareScript Watch( q : group, step : float )
+Script Watch (
+  if ( IsLess( t, 6 ) ) then ( t = Add( t, step ) AddObject( q, GetObject( 1003 ) ) s = Add( s, GroupSize( q ) ) )
+  if ( IsEqual( t, 2 ) ) then ( KillScript() Sleep( 3 ) x = Add( x, GroupSize( q ) ) )
+  if () then ( x = Add( x, 1000 ) )
+  if ( Div( 0, 0 ) ) then ( x = Add( x, 0.25 ) )
+)
+WorldScript(
+  AddObject( g, GetObject( 1001 ) ) AddObject( g, GetObject( 1002 ) )
+  Watch( g, 1 ) Watch( g, 0.5 )
+  ForIf( i, g, IsEqual( GetObjectID( i ), 1001 ) ) ( s = Add( s, 7 ) )
+  Sleep( s )
+  Sleep( 1 )
+  s = Add( s, GroupSize( g ) )
+)
+)"}}};
+
+// Names that are no Lua identifier, a parameter with a global's name.
+const Case kNames{"names", {{0, R"(
+GlobalVars( this : object, Heroes : group, VSS#i#val : object, seen : float, Dog-12 : object )
+DeclareScript VTriger#0#1( this : object )
+Script VTriger#0#1 ( if () then ( KillScript() seen = Add( seen, GetObjectID( this ) ) ) )
+WorldScript(
+  AddObject( Heroes, GetObject( 1002 ) ) AddObject( Heroes, GetObject( 1003 ) )
+  For( VSS#i#val, Heroes ) ( VTriger#0#1( VSS#i#val ) )
+  Dog-12 = GetObject( 1001 )
+  this = Dog-12
+  VTriger#0#1( this )
+)
+)"}}};
+
+// A second text loaded later into the same script: it starts the first one's script and uses its global, and its own
+// global of the same name is never found.
+const Case kLater{"later",
+                  {{0, R"(
+GlobalVars( m : float, k : object )
+DeclareScript Plus( x : float )
+Script Plus ( if () then ( KillScript() m = Add( m, x ) ) )
+WorldScript( Plus( 2 ) )
+)"},
+                   {4, R"(
+GlobalVars( m : float, z : float )
+WorldScript( Plus( 5 ) Sleep( 1 ) z = m m = 9 )
+)"}}};
+
+// Number literals: each written so that it reads back as the parser's float.
+const Case kNumbers{"numbers", {{0, R"(
+GlobalVars( a : float, b : float, c : float, d : float, e : float, f : float )
+WorldScript(
+  a = 0.1 b = 16777217 c = -0 d = 340282346638528859811704183484516925440
+  e = 1000000000000000000000000000000000000000000 f = 0.000001
+  Sleep( 1 )
+  a = 123456789.123 b = -2.5 c = 0.0000000000000000000000000000000000000117549435
+  d = 0.0000000000000000000000000000000000000000000007 e = 33333.333 f = .5
+)
+)"}}};
+
+// The zone reset: instances and runs dropped, every global zeroed and every text's WorldScript started again (the last
+// loaded first), an empty WorldScript and an empty then-section (no run), a run that ends staying a tick.
+const Case kReset{"reset",
+                  {{0, R"(
+GlobalVars( n : float, g : group, s : string, u : object )
+DeclareScript Count()
+Script Count ( if ( IsLess( n, 100 ) ) then ( n = Add( n, 1 ) ) if ( IsEqual( n, 3 ) ) then () )
+WorldScript( u = GetObject( 1001 ) AddObject( g, u ) s = "x" Count() Sleep( 2 ) n = Add( n, 10 ) )
+)"},
+                   {2, "WorldScript()"},
+                   {3, R"(
+GlobalVars( m : float )
+WorldScript( m = Add( m, Random( 5 ) ) Sleep( 20 ) m = Add( m, 1 ) )
+)"}},
+                  8};
+
+// Two quests built by QFinish into the same script (L7): QFinish's quest texts converted at their load (the runtime
+// conversion), the second quest's plain names (Su0, Su1 ...) qualified by the parser (!2!Su0) and given a
+// suffix in Lua (Su0_2), its calls finding its own scripts; the objectives' conditions use the mission's i and
+// Heroes. Then console-like lines that declare nothing, the same text again (from the cache).
+const Case kQuests{"quests",
+                   {{0, R"q(
+GlobalVars( i : object, Heroes : group, n : float )
+WorldScript(
+  AddObject( Heroes, GetObject( 1002 ) )
+  QStart( "qa" ) QObjKillUnit( "GetObject( 1001 )" ) QObjArea( 7 ) QFinish()
+  Sleep( 3 )
+  QStart( "qb" ) QObjArea( 8 ) QObjKillGroup( "Heroes" ) QFinish()
+  Sleep( 4 )
+  AddRoundToArea( 7, GetX( GetObject( 1002 ) ), GetY( GetObject( 1002 ) ), 5 )
+  Sleep( 5 )
+  AddRoundToArea( 8, GetX( GetObject( 1002 ) ), GetY( GetObject( 1002 ) ), 5 )
+)
+)q"},
+                    {14, "WorldScript( AddObject( Heroes, GetObject( 1003 ) ) )"},
+                    {15, "WorldScript( AddObject( Heroes, GetObject( 1003 ) ) )"},
+                    {16, "WorldScript( RemoveObject( Heroes, GetObject( 1003 ) ) )"},
+                    {17, "WorldScript( AddObject( Heroes, GetObject( 1003 ) ) )"}}};
+
+const Case* const kCases[] = {&kRules, &kKills, &kNames, &kLater, &kNumbers, &kReset, &kQuests};
+
+// The server world's managers the commands reach (World::Create's, without the data it loads): the effects (sounds,
+// lights, bolts, particle sources), the players and map objects (none), the spells (no database: none made), the
+// camera.
+void PrepareWorld() {
+    if (!g_serverWorld.timedObjectManager) {
+        g_serverWorld.timedObjectManager = std::make_unique<EffectManager>();
+        g_serverWorld.timedObjectManager->Init(&g_serverWorld);
+    }
+    if (!g_serverWorld.players) {
+        g_serverWorld.players = std::make_unique<PlayerManager>();
+        g_serverWorld.players->Init(&g_serverWorld);
+    }
+    if (!g_serverWorld.objectManager) {
+        g_serverWorld.objectManager = std::make_unique<MapObjectManager>();
+        // Not created: its Create opens the data archives; the walks of its objects find none.
+    }
+    if (!g_serverWorld.spellManager) {
+        g_serverWorld.spellConstructor = std::make_unique<SpellConstructor>();
+        g_serverWorld.spellConstructor->Create();
+        g_serverWorld.spellManager = std::make_unique<SpellManager>();
+        g_serverWorld.spellManager->Init(&g_serverWorld);
+    }
+    g_clientWorld.camera = &g_camera;
+}
+
+int g_draws = 0;   // the random generator's draws so far (its observer counts them)
+
+void CountDraw(IsaacRandom&, std::uint32_t, const void*) { ++g_draws; }
+
+// The random generator as it was, its draws counted while it lives.
+struct DrawCounter {
+    DrawCounter() : saved(g_random) { IsaacRandom::SetDrawObserver(CountDraw); }
+    ~DrawCounter() {
+        IsaacRandom::SetDrawObserver(nullptr);
+        g_random = saved;
+    }
+    // The generator and the count back to the start (the next run).
+    void Restart() {
+        g_random = saved;
+        g_draws = 0;
+    }
+    DrawCounter(const DrawCounter&) = delete;
+    DrawCounter& operator=(const DrawCounter&) = delete;
+
+    IsaacRandom saved;
+};
+
+std::string ObjectText(const MapObject* object) { return object ? std::to_string(object->id) : "none"; }
+
+// Every value of `vars` by type (floats by their bits), with its name where it has one.
+std::string VarsText(const ScriptVars& vars) {
+    std::string text;
+    const auto named = [&text](const std::vector<std::string>& names, std::size_t i, const std::string& value) {
+        text += (i < names.size() ? names[i] : std::string("#")) + "=" + value + " ";
+    };
+    for (std::size_t i = 0; i < vars.floats.values.size(); ++i)
+        named(vars.floats.names, i, std::format("{:08X}", std::bit_cast<std::uint32_t>(vars.floats.values[i])));
+    for (std::size_t i = 0; i < vars.strings.values.size(); ++i)
+        named(vars.strings.names, i, "\"" + vars.strings.values[i] + "\"");
+    for (std::size_t i = 0; i < vars.objects.values.size(); ++i)
+        named(vars.objects.names, i, ObjectText(vars.objects.values[i].object));
+    for (std::size_t i = 0; i < vars.groups.values.size(); ++i) {
+        std::string group = "{";
+        for (const ScriptObjectRef& member : vars.groups.values[i]) group += " " + ObjectText(member.object);
+        named(vars.groups.names, i, group + " }");
+    }
+    return text;
+}
+
+// One tick's state as the digest reads it (Script::GlobalValues, InstanceViews, RunViews), with the texts loaded and
+// the random draws so far.
+std::string StateText(Script& script) {
+    std::string text = std::format("files {}, draws {}\nglobals {}\n", script.fileCount, g_draws, VarsText(script.GlobalValues()));
+    for (const ScriptInstanceView& instance : script.InstanceViews())
+        text += std::format("instance {} killed {}: {}\n", instance.name, instance.killed, VarsText(instance.vars));
+    for (const ScriptRunView& run : script.RunViews())
+        text += std::format("run {} rule {} ticks {} sleep {} instance {}: {}\n", run.script, run.rule, run.ticks,
+                            run.sleepStart, run.instance, VarsText(run.vars));
+    return text;
+}
+
+// One run of a case: each tick's state after it; with `saveTick` >= 0 the script saved after that tick (SaveState)
+// and loaded into a new one (LoadState), which goes on, its state standing for that tick's. Every Lua error goes to
+// *errors.
+std::vector<std::string> RunCase(const Case& test, int saveTick, std::vector<std::string>* errors) {
+    const auto report = [errors](const std::string& message) { errors->push_back(message); };
+    auto script = std::make_unique<Script>();
+    script->Runner().report = report;
+    std::vector<std::string> states;
+    for (int tick = 0; tick < kTicks; ++tick) {
+        for (const CaseText& text : test.texts) {
+            if (text.tick != tick) continue;
+            std::string copy = text.text;
+            if (!script->Load(&copy, true)) errors->push_back(std::format("tick {}: {}", tick, script->errorText));
+        }
+        if (tick == test.resetTick) script->ResetZone();
+        script->Tick();
+        if (tick == saveTick) {
+            MemoryStream stream;
+            script->SaveState(&stream);
+            stream.Seek(0);
+            auto loaded = std::make_unique<Script>();
+            loaded->LoadState(&stream);
+            loaded->Runner().report = report;
+            script = std::move(loaded);
+        }
+        states.push_back(StateText(*script));
+    }
+    return states;
+}
+
+// Each case run straight, then through a save at every tick: each tick's state the same as the straight run's, no Lua
+// error.
+void CheckCases() {
+    PrepareWorld();
+    struct Mute {
+        Mute() { g_logMuted = true; }
+        ~Mute() { g_logMuted = false; }
+    } mute;
+    DrawCounter counter;
+    for (const Case* test : kCases) {
+        std::vector<std::string> errors;
+        counter.Restart();
+        const std::vector<std::string> straight = RunCase(*test, -1, &errors);
+        ++g_checks;
+        if (!errors.empty()) {
+            std::printf("lua_check: %s: %s\n", test->name, errors.front().c_str());
+            ++g_failures;
+            continue;
+        }
+        for (int tick = 0; tick + 1 < kTicks; ++tick) {
+            counter.Restart();
+            const std::vector<std::string> saved = RunCase(*test, tick, &errors);
+            ++g_checks;
+            int differs = -1;
+            for (int t = tick; t < kTicks && differs < 0; ++t)
+                if (saved[static_cast<std::size_t>(t)] != straight[static_cast<std::size_t>(t)]) differs = t;
+            if (errors.empty() && differs < 0) continue;
+            ++g_failures;
+            if (!errors.empty()) std::printf("lua_check: %s, saved at tick %d: %s\n", test->name, tick, errors.front().c_str());
+            else
+                std::printf("lua_check: %s, saved at tick %d: tick %d differs:\n%s-- straight:\n%s", test->name, tick, differs,
+                            saved[static_cast<std::size_t>(differs)].c_str(), straight[static_cast<std::size_t>(differs)].c_str());
+            errors.clear();
+        }
+    }
+}
+
+// The runtime conversion's cache and errors: a text that declares nothing converted once (the same text again from
+// the cache, which a text that changes the names empties), a Lua error of a run reported.
+void CheckRuntime() {
+    Script script;
+    ScriptLuaScheduler& scheduler = script.Runner();
+    std::vector<std::string> reported;
+    scheduler.report = [&reported](const std::string& message) { reported.push_back(message); };
+    const auto load = [&script](const char* text) {
+        std::string copy = text;
+        return script.Load(&copy, true);
+    };
+    const char* line = "WorldScript( Sleep( 1 ) )";
+    load(line);
+    load(line);
+    load(line);
+    Expect(scheduler.texts == 3 && scheduler.cachedTexts == 2, "a line loaded three times is converted once");
+    load("GlobalVars( k : float ) WorldScript( k = 2 )");
+    load(line);
+    Expect(scheduler.cachedTexts == 2, "a text that changes the names empties the cache");
+    load(line);
+    Expect(scheduler.cachedTexts == 3, "the cache fills again");
+    Expect(script.RunViews().size() == 6, "every text's WorldScript starts");
+
+    std::string error;
+    scheduler.Load("function WorldScript() error('boom') end", "=broken", true, &error);
+    scheduler.Tick();
+    Expect(reported.size() == 1 && reported[0] == "broken:1: boom", "a run's Lua error is reported");
+}
+
+} // namespace
+
+int Main() {
+    g_checks = 0;
+    g_failures = 0;
+    TestWorld world;
+    {
+        Script script;
+        {
+            ScriptLua lua(&script);
+            CheckNames(lua);
+            lua_register(lua.State(), "check", LuaCheck);
+            Run(lua, kSandbox);
+            CheckChunk(lua, world);
+            CheckWaits(lua);
+        }
+        CheckPersistence(script, world);
+    }
+    CheckMission();
+    CheckCases();
+    CheckRuntime();
+    Expect(world.OnlyWorldReferences(), "every reference released at the end");
+    std::printf("lua_check: %d checks, %d failed\n", g_checks, g_failures);
+    return g_failures ? 1 : 0;
+}
+
+}   // namespace lua_check

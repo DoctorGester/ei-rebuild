@@ -331,31 +331,31 @@ Risks:
 | Folder | Files | Lines today | Move batch |
 |---|---|---|---|
 | `ai/` | 28 | 12553 | C168f |
-| `app/` | 23 | 6926 | C168e |
-| `combat/` | 13 | 6394 | C168f |
+| `app/` | 23 | 6939 | C168e |
+| `combat/` | 13 | 6395 | C168f |
 | `console/` | 5 | 2038 | C168e |
 | `core/` | 27 | 3875 | C168d |
-| `data/` | 15 | 4474 | C168d |
+| `data/` | 16 | 5692 | C168d |
 | `effects/` | 23 | 10833 | C168g |
-| `items/` | 10 | 2855 | C168g |
-| `map/` | 11 | 2036 | C168e |
-| `models/` | 19 | 5150 | C168g |
+| `items/` | 10 | 2889 | C168g |
+| `map/` | 15 | 4157 | C168e |
+| `models/` | 25 | 8219 | C168g |
 | `mods/` | 6 | 603 | C168d |
-| `net/` | 21 | 7981 | C168h |
-| `objects/` | 23 | 8062 | C168f |
-| `players/` | 24 | 5251 | C168e |
+| `net/` | 21 | 7991 | C168h |
+| `objects/` | 23 | 8125 | C168f |
+| `players/` | 24 | 5473 | C168e |
 | `saves/` | 7 | 828 | C168d |
 | `scene/` | 30 | 4414 | C168g |
-| `script/` | 20 | 6750 | C168h |
+| `script/` | 31 | 10233 | C168h |
 | `sound/` | 3 | 1679 | C168e |
-| `spells/` | 8 | 2560 | C168g |
-| `terrain/` | 12 | 3636 | C168g |
-| `ui/` | 95 | 32812 | C168h |
-| `units/` | 27 | 9807 | C168f |
-| `world/` | 35 | 10226 | C168e |
-| all | 485 | 151743 | |
+| `spells/` | 8 | 2585 | C168g |
+| `terrain/` | 12 | 3559 | C168g |
+| `ui/` | 97 | 33107 | C168h |
+| `units/` | 27 | 9786 | C168f |
+| `world/` | 35 | 10247 | C168e |
+| all | 509 | 162220 | |
 
-532 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
+556 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
 
 ### Every file
 
@@ -516,6 +516,7 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | database_toml.h | data/database_toml.h |  |  |
 | ini_file.cpp | data/ini_file.cpp |  |  |
 | ini_file.h | data/ini_file.h |  |  |
+| record_names.h | data/record_names.h |  |  |
 | registry.cpp | data/registry.cpp |  |  |
 | registry.h | data/registry.h |  |  |
 | resource.cpp | data/resource.cpp |  |  |
@@ -584,11 +585,15 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | exit_area.cpp | map/map_database.cpp | fold | ZoneExit's members (78 lines): a map database record |
 | object_tables.h | map/map_database.h | split | grab-bag: the map database's records stay (named for map_database.cpp); NamedFloatTable -> core/named_floats.h, text keys -> data/text_manager.h, key names -> app/key_bindings.h (C168b) |
 | map_file.h | map/map_file.h |  | kept whole: map/file.h would not say which file |
+| map_folder.cpp | map/map_folder.cpp |  |  |
+| map_folder.h | map/map_folder.h |  |  |
 | map_spec.cpp | map/map_spec.cpp |  |  |
 | map_spec.h | map/map_spec.h |  |  |
 | map_spec_unit.cpp | map/map_spec_unit.cpp |  |  |
 | mob_reader.cpp | map/mob_reader.cpp |  |  |
 | mob_script_decoder.h | map/mob_script_decoder.h |  |  |
+| mob_toml.cpp | map/mob_toml.cpp |  |  |
+| mob_toml.h | map/mob_toml.h |  |  |
 
 #### `models/` (C168g)
 
@@ -600,6 +605,10 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | figure_bones.cpp | models/animation_bones.cpp | fold | FigureBone::Place (57 lines): FigureBone's other members are there |
 | dib.cpp | models/dib.cpp |  |  |
 | dib.h | models/dib.h |  |  |
+| figure_gltf.cpp | models/figure_gltf.cpp |  |  |
+| figure_gltf.h | models/figure_gltf.h |  |  |
+| figure_gltf_animation.cpp | models/figure_gltf_animation.cpp |  |  |
+| figure_gltf_glb.h | models/figure_gltf_glb.h |  |  |
 | figure_manager.cpp | models/figure_manager.cpp |  |  |
 | menu_rects.cpp | models/figure_manager.cpp | fold | FigureManager::LoadMenuRects (57 lines): a member of the manager |
 | figure_manager.h | models/figure_manager.h |  |  |
@@ -616,6 +625,8 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | texture.cpp | models/texture.cpp |  |  |
 | texture.h | models/texture.h |  | TextureDevice and MeshArgs leave for scene/device.h (C168c) |
 | texture_load.cpp | models/texture_load.cpp |  |  |
+| texture_png.cpp | models/texture_png.cpp |  |  |
+| texture_png.h | models/texture_png.h |  |  |
 
 #### `mods/` (C168d)
 
@@ -790,7 +801,18 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | script_exec_run.cpp | script/script_exec_run.cpp |  |  |
 | script_cleanup.cpp | script/script_exec_run.cpp | fold | Script's runtime resets (39 lines): instances and runs, beside where they start |
 | script_group.cpp | script/script_group.cpp |  |  |
+| script_ir.cpp | script/script_ir.cpp |  |  |
+| script_ir.h | script/script_ir.h |  |  |
 | script_load.cpp | script/script_load.cpp |  |  |
+| script_lua.cpp | script/script_lua.cpp |  |  |
+| script_lua.h | script/script_lua.h |  |  |
+| script_lua_mission.cpp | script/script_lua_mission.cpp |  |  |
+| script_lua_number.h | script/script_lua_number.h |  |  |
+| script_lua_resume.cpp | script/script_lua_resume.cpp |  |  |
+| script_lua_scheduler.cpp | script/script_lua_scheduler.cpp |  |  |
+| script_lua_scheduler.h | script/script_lua_scheduler.h |  |  |
+| script_lua_writer.cpp | script/script_lua_writer.cpp |  |  |
+| script_lua_writer.h | script/script_lua_writer.h |  |  |
 | script_parse.cpp | script/script_parse.cpp |  |  |
 | script_parse.h | script/script_parse.h |  |  |
 | script_parse_load.cpp | script/script_parse_load.cpp |  |  |
@@ -864,6 +886,8 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | ui_chat_overlay.cpp | ui/ui_chat_overlay.cpp |  |  |
 | ui_chat_overlay.h | ui/ui_chat_overlay.h |  |  |
 | ui_chat_window.cpp | ui/ui_chat_window.cpp |  |  |
+| ui_companions.cpp | ui/ui_companions.cpp |  |  |
+| ui_companions.h | ui/ui_companions.h |  |  |
 | ui_connect_list.cpp | ui/ui_connect_list.cpp |  |  |
 | ui_connect_screen.cpp | ui/ui_connect_screen.cpp |  |  |
 | ui_container.cpp | ui/ui_container.cpp |  |  |

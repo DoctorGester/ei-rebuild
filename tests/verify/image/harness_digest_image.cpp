@@ -24,7 +24,9 @@
 #include <algorithm>
 #include <bit>
 #include <cstdint>
+#include <list>
 #include <typeinfo>
+#include <vector>
 
 namespace ei::verify::digest::image_side {
 
@@ -456,43 +458,45 @@ std::uint32_t HashVars(const ScriptVars& v) {
     return h.h;
 }
 
-// The mission script (Script, script.h): its running instances and waiting runs (the command
-// queues: block, next command, ticks, sleep), the global variables (floats by name, the rest as
-// hashes), and the effects it keeps with their countdowns.
-void ReadScript(Script* s, Builder& b) {
-    b.Int("loaded", s->loaded);
-    b.Int("files", s->fileCount);
-    b.Int("nextParticleId", s->nextParticleId);
-    b.Int("nextFxId", s->nextFxId);
-    b.Int("instances", static_cast<int>(s->instances.size()));
-    std::vector<const bool*> killFlags;
+// The instances and waiting runs in the original game's terms (Script::InstanceViews, RunViews; docs/notes/mods.md,
+// "Scripts in Lua"): an instance by its definition's name, its kill flag and values; a run by its definition and rule,
+// its ticks, sleep start, instance and values. No block or command index: Lua has none.
+void ReadRuns(Script* s, Builder& b) {
+    const std::vector<ScriptInstanceView> instances = s->InstanceViews();
+    b.Int("instances", static_cast<int>(instances.size()));
     int i = 0;
-    for (const ScriptDefinition& instance : s->instances) {
-        killFlags.push_back(&instance.killed);
+    for (const ScriptInstanceView& instance : instances) {
         b.Int("inst#.killed", instance.killed, i);
         b.Bits("inst#.name", TextHash(Text(instance.name)), i);
         b.Bits("inst#.vars", HashVars(instance.vars), i);
         ++i;
     }
-    b.Int("runs", static_cast<int>(s->runs.size()));
+    const std::vector<ScriptRunView> runs = s->RunViews();
+    b.Int("runs", static_cast<int>(runs.size()));
     i = 0;
-    for (const ScriptRun& run : s->runs) {
-        int instance = -1;   // the WorldScript's runs have none
-        if (run.killFlag) {
-            auto found = std::find(killFlags.begin(), killFlags.end(), run.killFlag);
-            instance = found != killFlags.end() ? static_cast<int>(found - killFlags.begin()) : -2;
-        }
-        b.Int("run#.block", run.position.block ? run.position.block->id : -1, i);
-        b.Int("run#.index", run.position.index, i);
-        b.Int("run#.ticks", run.position.ticks, i);
-        b.Int("run#.sleepStart", run.position.sleepStart, i);
-        b.Int("run#.instance", instance, i);
+    for (const ScriptRunView& run : runs) {
+        b.Bits("run#.script", TextHash(Text(run.script)), i);
+        b.Int("run#.rule", run.rule, i);
+        b.Int("run#.ticks", run.ticks, i);
+        b.Int("run#.sleepStart", run.sleepStart, i);
+        b.Int("run#.instance", run.instance, i);
         b.Bits("run#.vars", HashVars(run.vars), i);
         ++i;
     }
+}
+
+// The mission script (Script, script.h): its running instances and waiting runs (ReadRuns), the global variables
+// (floats by name, the rest as hashes), and the effects it keeps with their countdowns: the scheduler's, in the
+// original game's terms (Script::InstanceViews, RunViews, GlobalValues).
+void ReadScript(Script* s, Builder& b) {
+    b.Int("loaded", s->loaded);
+    b.Int("files", s->fileCount);
+    b.Int("nextParticleId", s->nextParticleId);
+    b.Int("nextFxId", s->nextFxId);
+    ReadRuns(s, b);
     // The global variables by name (by index past the names, "<kind>#"): floats, strings (a hash of the
     // text), objects (the id) and groups (a hash of the sorted ids).
-    const ScriptVars& g = s->globals;
+    const ScriptVars g = s->GlobalValues();
     auto field = [&b](const char* kind, const auto& names, std::size_t v, Kind type, std::uint32_t value) {
         if (v < names.size()) b.Add(Intern(std::string(kind) + "." + Text(names[v])), -1, type, value);
         else b.Add(Intern(std::string(kind) + "#"), static_cast<int>(v), type, value);
@@ -508,7 +512,7 @@ void ReadScript(Script* s, Builder& b) {
         field("ggroup", g.groups.names, v, Kind::Bits, HashWords(reinterpret_cast<const std::uint32_t*>(ids.data()), int(ids.size())));
     }
     b.Int("globals.names", static_cast<int>(g.floats.names.size() + g.strings.names.size() + g.objects.names.size() + g.groups.names.size()));
-    i = 0;
+    int i = 0;
     for (const ScriptFxSource& fx : s->fxSources) {
         b.Int("fx#.id", fx.id, i);
         b.Int("fx#.sound", IdOf(fx.object), i);

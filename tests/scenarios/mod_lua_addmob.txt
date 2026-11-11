@@ -1,0 +1,39 @@
+# An AddMob'd .mob with a .lua beside it, loaded into zone 1's mission script while it runs (docs/notes/mods.md,
+# "Scripts in Lua"; tools/make_lua_mod.py addmob): Script::LoadLua loads the .lua into the zone's scheduler in place
+# of the .mob's script (the .mob, one of zone 1's map objects renumbered by make_trap_mob.py, has none). Its
+# WorldScript prints a line with two of the zone's globals (Heroes, Ogre: the zone's script set them), starts a definition of its own that prints when its count reaches 3, and counts every 20 ticks into the game
+# variable l8b.count. The game is saved and loaded: the count goes on from the saved coroutine (a restarted one would
+# count from 1 again), and the zone's script with it.
+# prepare: make_trap_mob.py --zone zone1 --kind B001 --first-id 30200 --count 1 --out l8b_addmob.mob
+# prepare: make_lua_mod.py addmob
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitline 15 Saved savea
+waitfor 15 IsGreater(HP(GetLeader()),0)
+wait 2000
+console @AddMob("..\saves\l8b_addmob.mob")
+waitline 10 L8b: the AddMob'd Lua runs: heroes
+waitline 10 L8b: the count reached 3
+check IsAlive(GetObject(30200))
+waitfor 20 IsGreater(GSGetVar(0,"l8b.count"),10)
+
+key esc
+waitwindow 10 escmenu
+click 395 120
+waitwindow 10 saveload
+clickregion 0
+waitline 15 Saved save1
+wait 300
+load save1
+waitwindow 30 battle
+waitfor 20 IsGreater(HP(GetLeader()),0)
+# Fewer than 10 counts' ticks after the load: a count started again would be below 10.
+wait 100
+check IsGreater(GSGetVar(0,"l8b.count"),10)
+waitfor 20 IsGreater(GSGetVar(0,"l8b.count"),16)
+dump loaded_save1
+check IsAlive(GetLeader())
+report
+quit

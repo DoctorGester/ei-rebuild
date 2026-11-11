@@ -1,0 +1,35 @@
+# The showcase island's objects (docs/modding.md, "Map objects"): the whole of zone 1's objects, which the mod
+# replaces with its own. Its script is zone1.lua beside it.
+script = "zone1.lua"
+applies_relations = true
+
+[[weather]]
+wind = [-0.6, -0.8, 0.0]
+wind_strength = 0.2
+time = 11.0
+
+# Player 0 is the party; the golem plays for player 3 (its side), hostile to it both ways. The other pairs keep the
+# default relation (neutral; each player allied with itself), and every player its name "Player-<n>".
+[players]
+hostile = [[0, 3], [3, 0]]
+
+# The golem: the mod's creature (Res\database\units.udb.toml's "ShowcaseGolem"), guarding the path north-east of the
+# party's landing. Its texture is Res\textures\scgolem00.png; the script finds it by its id.
+[[object]]
+kind = "unit"
+id = 4001
+name = "ShowcaseGolem"
+texture = "scgolem"
+primary_texture = "ShowcaseGolem"
+parent_iname = "ScGolem00"
+class = "creature"
+position = [78.0, 116.0, 0.0]
+side = 3
+shadow = true
+prototype = "ShowcaseGolem"
+
+[[object.behaviour]]
+type = "guard"
+guard = [78.0, 116.0, 0.0]
+guard_radius = 8.0
+call_radius = 12.0

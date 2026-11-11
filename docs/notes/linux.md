@@ -69,7 +69,8 @@ exact spelling first). Arguments for the game follow `--`. Under WSLg Mesa draws
 ## Release
 
 The Release workflow (.github/workflows/release.yml, run by hand) builds Linux beside Windows and puts
-`ei-rebuild-linux-x64.tar.gz` (`ei-rebuild-linux-x64/`: `ei-rebuild`, `README.txt`, `third_party_notices.txt`) on the
+`ei-rebuild-linux-x64.tar.gz` (`ei-rebuild-linux-x64/`: `ei-rebuild`, `ei-convert`, `examples/`, `README.txt`,
+`third_party_notices.txt`) on the
 same GitHub release. Its `linux` job runs in an `ubuntu:22.04` container so that the binary needs no newer glibc than
 22.04's 2.35: gcc 13 from the ubuntu-toolchain-r PPA (22.04's gcc 11 has no `<format>`) with `-static-libstdc++
 -static-libgcc`, cmake from pip (CMakeLists.txt wants 3.24, 22.04 has 3.22), `-DCMAKE_BUILD_TYPE=Release`, the port

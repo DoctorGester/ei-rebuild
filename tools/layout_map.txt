@@ -65,6 +65,7 @@ chunk_archive.cpp           data/chunk_archive.cpp
 database_file.h             data/database_file.h
 database_toml.h             data/database_toml.h
 database_toml.cpp           data/database_toml.cpp
+record_names.h              data/record_names.h
 database_globals.cpp        data/database_file.h        split # each database's global to its database's file: spells/spell_db.cpp, items/item_db.cpp, world/quest_database.cpp, terrain/ground_print.cpp, units/acks_db.cpp (C168b; the file goes)
 text_manager.h              data/text_manager.h
 text_manager.cpp            data/text_manager.cpp
@@ -208,6 +209,10 @@ exit_area.cpp               map/map_database.cpp        fold  # ZoneExit's membe
 object_tables.h             map/map_database.h          split # grab-bag: the map database's records stay (named for map_database.cpp); NamedFloatTable -> core/named_floats.h, text keys -> data/text_manager.h, key names -> app/key_bindings.h (C168b)
 object_tables.cpp           data/text_manager.cpp       split # text keys -> data/text_manager.cpp, NamedFloatTable -> core/named_floats.cpp (C168b; the file goes)
 map_file.h                  map/map_file.h                    # kept whole: map/file.h would not say which file
+map_folder.h                map/map_folder.h
+map_folder.cpp              map/map_folder.cpp
+mob_toml.h                  map/mob_toml.h
+mob_toml.cpp                map/mob_toml.cpp
 world_map_files.h           map/folder.h                      # the maps folder and its files
 
 # ---- ai: the AI map, searches, paths and motion; the brain and its modes ------------------------------------------
@@ -400,6 +405,10 @@ figure_manager.cpp          models/figure_manager.cpp
 menu_rects.cpp              models/figure_manager.cpp   fold  # FigureManager::LoadMenuRects (57 lines): a member of the manager
 figure_mesh.h               models/figure_mesh.h
 figure_mesh.cpp             models/figure_mesh.cpp
+figure_gltf.h               models/figure_gltf.h
+figure_gltf.cpp             models/figure_gltf.cpp
+figure_gltf_animation.cpp   models/figure_gltf_animation.cpp
+figure_gltf_glb.h           models/figure_gltf_glb.h
 figure_part_draw.cpp        models/figure_part_draw.cpp
 map_object_animation.h      models/animation.h                # figure animation tracks (AnimationTrack), not map objects
 map_object_animation.cpp    models/animation.cpp            # with models/animation.h
@@ -413,6 +422,8 @@ link_loader_create.cpp      models/link_loader.cpp      fold  # LinkFigureLoader
 texture.h                   models/texture.h                  # TextureDevice and MeshArgs leave for scene/device.h (C168c)
 texture.cpp                 models/texture.cpp
 texture_load.cpp            models/texture_load.cpp
+texture_png.h               models/texture_png.h
+texture_png.cpp             models/texture_png.cpp
 material.h                  models/material.h
 material.cpp                models/material.cpp
 dib.h                       models/dib.h
@@ -457,6 +468,8 @@ script.h                    script/script.h
 script_parse.h              script/script_parse.h
 script_parse.cpp            script/script_parse.cpp
 script_parse_load.cpp       script/script_parse_load.cpp
+script_ir.h                 script/script_ir.h
+script_ir.cpp               script/script_ir.cpp
 script_blocks.cpp           script/script_blocks.cpp
 script_vars.cpp             script/script_vars.cpp
 script_group.cpp            script/script_group.cpp
@@ -470,6 +483,15 @@ script_load.cpp             script/script_load.cpp
 script_save.cpp             script/script_save.cpp
 script_addon.h              script/script_addon.h
 script_addon.cpp            script/script_addon.cpp
+script_lua.h                script/script_lua.h
+script_lua.cpp              script/script_lua.cpp
+script_lua_number.h         script/script_lua_number.h
+script_lua_writer.h         script/script_lua_writer.h
+script_lua_writer.cpp       script/script_lua_writer.cpp
+script_lua_scheduler.h      script/script_lua_scheduler.h
+script_lua_scheduler.cpp    script/script_lua_scheduler.cpp
+script_lua_resume.cpp       script/script_lua_resume.cpp
+script_lua_mission.cpp      script/script_lua_mission.cpp
 script_addon_handlers.h     script/script_addon_handlers.h
 script_addon_commands.cpp   script/script_addon_commands.cpp
 script_addon_math.cpp       script/script_addon_math.cpp
@@ -568,6 +590,8 @@ camera_trace.h              ui/camera_trace.h
 camera_trace.cpp            ui/camera_trace.cpp
 ui_battle.h                 ui/ui_battle.h
 ui_battle.cpp               ui/ui_battle.cpp
+ui_companions.h             ui/ui_companions.h
+ui_companions.cpp           ui/ui_companions.cpp
 ui_hud.h                    ui/ui_hud.h
 ui_hud_pieces.h             ui/ui_hud_pieces.h
 ui_hud_corner.cpp           ui/ui_hud_corner.cpp

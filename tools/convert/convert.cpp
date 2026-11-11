@@ -2,14 +2,25 @@
 // game's own loaders, and each one's round trip checked.
 // usage: ei-convert <install or archive> <target folder>   write the TOML files into the target
 //        ei-convert --check <install or archive>...        only the round trips
+//        ei-convert --scripts <install>... [options]       the script survey and parse tree check (convert_scripts.cpp)
+//        ei-convert --lua-check                             the scripts' Lua bindings on a small world (lua_check.cpp)
+//        ei-convert --example-mod <game folder> [<mods folder>] the example mod made from the install (example_mod.h),
+//                                                           into <game folder>\starter\Mods by default
 // An install is walked for its archives (Res\<name>.res, or the folder of an unpacked one under a Res folder) and its
 // loose registries (*.reg; not those of Maps\, whose quest archives are not converted) and camera paths (*.cam). Of an
 // archive: its registries, materials (.mat), animation databases (.adb), acks.db, prints.db and the game databases
 // (convert_databases.h: units.udb, perks.pdb, spells.sdb, items.idb, quests.qdb, Levers.ldb), each as
-// <archive folder>\<name>.toml; a texts archive's (texts.res, textslmp.res) texts as <archive folder>\texts.toml. A
-// loose file as <name>.toml beside it. A record file's TOML has `replace = true`: it stands for the whole original,
-// nothing below it read (a mod's original hides the game's file too). The target mirrors the source's layout (MF1's loose folders); converted.txt
-// there lists the converted originals (relative to the source), which tools/convert_install.py removes from its copy.
+// <archive folder>\<name>.toml; a texts archive's (texts.res, textslmp.res) texts as <archive folder>\texts.toml; its
+// textures (.mmp) as <archive folder>\<name>.png (convert_textures.cpp, docs/notes/mods.md "Textures as PNG"); its
+// figure models (.mod, .bon, .lnk, .fig, .anm) as <archive folder>\<figure>.glb (convert_models.cpp, "Models as glTF",
+// "Animations as glTF"). A map archive (Maps\<zone>.mpr, or the folder of an unpacked one under a Maps folder) as its
+// folder's map.toml and PNG layers (convert_maps.cpp, docs/notes/mods.md "Maps as folders"). A .mob's script as
+// <zone>.lua beside it (convert_scripts.h, docs/notes/lua-scripting.md "Converted scripts"), its other chunks as
+// <zone>.mob.toml (convert_mobs.cpp, docs/notes/mods.md "Map objects as TOML"; the .mob stays for its scripts and AI
+// graph, so it is not listed as converted). A loose file as <name>.toml beside it. A record file's TOML has
+// `replace = true`: it stands for the whole original, nothing below it read (a mod's original hides the game's file
+// too). The target mirrors the source's layout (MF1's loose folders); converted.txt there lists the converted originals
+// (relative to the source), which tools/convert_install.py removes from its copy.
 // Each file's round trip: the original read by the game's loader, written as TOML, the TOML read back by the game's
 // loader, every field compared (floats by their bits). Exit code 0 when every round trip holds.
 #include "game/data/registry.h"
@@ -24,6 +35,13 @@
 #include "lib/toml.h"
 
 #include "convert_databases.h"
+#include "convert_maps.h"
+#include "convert_mobs.h"
+#include "convert_models.h"
+#include "convert_scripts.h"
+#include "lua_check.h"
+#include "convert_textures.h"
+#include "example_mod.h"
 
 #include <bit>
 #include <cstdarg>
@@ -272,6 +290,7 @@ void ConvertFile(const std::string& format, const std::string& name, const std::
     if (g_options.target.empty()) return;
     const fs::path path = g_options.target / output;
     fs::create_directories(path.parent_path());
+    fs::remove(path);   // a link into another copy (tools/convert_install.py) is not written through
     std::ofstream(path, std::ios::binary) << toml;
     g_converted.push_back(original);
 }
@@ -324,6 +343,11 @@ void ConvertPrints(const RecordFile& original, const std::string& name, std::str
     ComparePrints(a, b, d);
 }
 
+// A texture as PNG (convert_textures.cpp).
+void ConvertTexture(const RecordFile& original, const std::string&, std::string* png, Differences& d) {
+    d.lines = convert_textures::RoundTrip(original.original, png);
+}
+
 void ConvertCamera(const RecordFile& original, const std::string& name, std::string* toml, Differences& d) {
     const std::vector<CameraKey> a = ReadCameraKeys(original);
     *toml = WholeFile(CameraKeysToml(a));
@@ -365,6 +389,40 @@ std::string Relative(const fs::path& path) {
     return relative;
 }
 
+// The figure models among an archive's names, each figure as one .glb (convert_models.cpp), its round trip checked.
+void ConvertModels(MappedResource& archive, const std::vector<std::string>& names, const std::string& folderRelative) {
+    std::vector<std::string> left;
+    for (const convert_models::Group& group : convert_models::Groups(names, &left)) {
+        std::map<std::string, std::string> files;
+        for (const std::string& name : group.files) {
+            std::uint32_t size = 0;
+            void* data = archive.GetFile(name, &size);
+            if (!data) continue;
+            files[name] = std::string(static_cast<const char*>(data), size);
+            archive.CloseFile(data);
+        }
+        Count& count = g_counts["model"];
+        ++count.files;
+        std::string glb;
+        const std::vector<std::string> lines = convert_models::RoundTrip(group, files, &glb);
+        const std::string where = folderRelative + "\\" + text::FromAssetText(group.name);
+        if (!lines.empty()) {
+            ++count.failed;
+            std::printf("FAILED model %s:\n", where.c_str());
+            for (std::size_t i = 0; i < lines.size() && i < 10; ++i) std::printf("    %s\n", lines[i].c_str());
+            continue;
+        }
+        if (g_options.target.empty()) continue;
+        const fs::path path = g_options.target / PathOf(where + ".glb");
+        fs::create_directories(path.parent_path());
+        fs::remove(path);
+        std::ofstream(path, std::ios::binary) << glb;
+        for (const std::string& name : group.files) g_converted.push_back(folderRelative + "\\" + text::FromAssetText(name));
+    }
+    for (const std::string& line : left) std::printf("ei-convert: left as it is: %s\\%s\n", folderRelative.c_str(), line.c_str());
+    g_counts["model files left as they are"].files += static_cast<int>(left.size());
+}
+
 // The record entries of an archive (its texts too for a texts archive) converted.
 void ConvertArchive(const fs::path& archivePath) {
     const fs::path folder = fs::path(archivePath).replace_extension();
@@ -377,7 +435,9 @@ void ConvertArchive(const fs::path& archivePath) {
     const bool texts = stem == "texts" || stem == "textslmp";
     toml::Writer textsToml;
     std::vector<std::pair<std::string, std::string>> textEntries;   // the entries' names and UTF-8 texts
+    ConvertModels(archive, names, folderRelative);
     for (const std::string& name : names) {
+        if (convert_models::IsFigureFile(name)) continue;
         std::uint32_t size = 0;
         void* data = archive.GetFile(name, &size);
         if (!data) continue;
@@ -406,6 +466,9 @@ void ConvertArchive(const fs::path& archivePath) {
                         [&](const RecordFile& file, const std::string& path, std::string* toml, Differences& d) {
                             ConvertDatabase(lower, file, path, WholeFile, toml, d.lines);
                         });
+        } else if (extension == ".mmp") {
+            ConvertFile(convert_textures::CountName(bytes), original, bytes, PathOf(original.substr(0, original.size() - 4) + ".png"),
+                        original, ConvertTexture);
         }
     }
     if (!texts) return;
@@ -433,6 +496,66 @@ void ConvertArchive(const fs::path& archivePath) {
     std::ofstream(path, std::ios::binary) << textsToml.text;
 }
 
+// A map archive (an .mpr, or the folder of an unpacked one) as the map's folder: its files written only when the round
+// trip holds, its map file and sectors listed as converted.
+void ConvertMapArchive(const fs::path& archivePath) {
+    const fs::path folder = fs::path(archivePath).replace_extension();
+    const std::string folderRelative = Relative(folder);
+    MappedResource archive;
+    if (!archive.OpenResource(Utf8(archivePath))) return;
+    Count& count = g_counts["map"];
+    ++count.files;
+    const int logged = g_logLines;
+    convert_maps::Converted converted = convert_maps::RoundTrip(archive, Utf8(folder.filename()));
+    if (g_logLines != logged) converted.differences.push_back("the loaders logged");
+    if (!converted.differences.empty()) {
+        ++count.failed;
+        std::printf("FAILED map %s:\n", folderRelative.c_str());
+        for (std::size_t i = 0; i < converted.differences.size() && i < 10; ++i)
+            std::printf("    %s\n", converted.differences[i].c_str());
+        return;
+    }
+    if (g_options.target.empty()) return;
+    for (const auto& [name, bytes] : converted.files) {
+        const fs::path path = g_options.target / PathOf(folderRelative) / PathOf(name);
+        fs::create_directories(path.parent_path());
+        fs::remove(path);   // a link into another copy (tools/convert_install.py) is not written through
+        std::ofstream(path, std::ios::binary) << bytes;
+    }
+    for (const std::string& original : converted.originals)
+        g_converted.push_back(folderRelative + "\\" + text::FromAssetText(original));
+}
+
+// A .mob's chunks but its scripts as <name>.mob.toml beside it, written only when the round trip holds. The .mob is not
+// listed as converted: the game still reads its scripts and AI graph.
+void ConvertMob(const fs::path& path) {
+    const std::string relative = Relative(path);
+    Count& count = g_counts["map objects"];
+    ++count.files;
+    const int logged = g_logLines;
+    convert_mobs::Converted converted = convert_mobs::RoundTrip(path);
+    if (g_logLines != logged) converted.differences.push_back("the loaders logged");
+    if (!converted.differences.empty()) {
+        ++count.failed;
+        std::printf("FAILED map objects %s:\n", relative.c_str());
+        for (std::size_t i = 0; i < converted.differences.size() && i < 10; ++i)
+            std::printf("    %s\n", converted.differences[i].c_str());
+        return;
+    }
+    if (g_options.target.empty()) return;
+    const fs::path output = g_options.target / PathOf(relative + ".toml");
+    fs::create_directories(output.parent_path());
+    fs::remove(output);   // a link into another copy (tools/convert_install.py) is not written through
+    std::ofstream(output, std::ios::binary) << converted.toml;
+}
+
+// Whether `folder` holds a map file (.mp): an unpacked map archive's folder.
+bool HoldsMapFile(const fs::path& folder) {
+    for (const fs::directory_entry& entry : fs::directory_iterator(folder))
+        if (entry.is_regular_file() && Extension(Utf8(entry.path().filename())) == ".mp") return true;
+    return false;
+}
+
 bool UnderFolderNamed(const fs::path& relative, const std::string& name) {
     for (const fs::path& part : relative.parent_path())
         if (Lower(Utf8(part)) == name) return true;
@@ -441,26 +564,37 @@ bool UnderFolderNamed(const fs::path& relative, const std::string& name) {
 
 void ConvertInstall(const fs::path& source) {
     std::set<std::string> archives;   // lower case, full paths without the extension
-    std::vector<fs::path> archivePaths;
+    std::vector<fs::path> archivePaths, mapPaths, mobPaths;
     auto addArchive = [&](const fs::path& path) {
         if (archives.insert(Lower(Utf8(fs::path(path).replace_extension()))).second) archivePaths.push_back(path);
+    };
+    auto addMap = [&](const fs::path& path) {
+        if (archives.insert(Lower(Utf8(fs::path(path).replace_extension()))).second) mapPaths.push_back(path);
     };
     std::vector<fs::path> loose;
     for (auto entry = fs::recursive_directory_iterator(source); entry != fs::recursive_directory_iterator(); ++entry) {
         const fs::path relative = fs::relative(entry->path(), source);
         if (entry->is_directory()) {
             // An unpacked archive's folder: one below a Res folder.
-            if (Lower(Utf8(entry->path().parent_path().filename())) == "res") {
+            const std::string parent = Lower(Utf8(entry->path().parent_path().filename()));
+            if (parent == "res") {
                 addArchive(fs::path(entry->path()).replace_extension(".res"));
+                entry.disable_recursion_pending();
+            } else if (parent == "maps" && HoldsMapFile(entry->path())) {
+                addMap(fs::path(entry->path()) += ".mpr");
                 entry.disable_recursion_pending();
             }
             continue;
         }
         const std::string extension = Extension(Utf8(entry->path().filename()));
         if (extension == ".res") addArchive(entry->path());
+        else if (extension == ".mpr") addMap(entry->path());
         else if ((extension == ".reg" && !UnderFolderNamed(relative, "maps")) || extension == ".cam") loose.push_back(entry->path());
+        else if (extension == ".mob") mobPaths.push_back(entry->path());
     }
     for (const fs::path& archive : archivePaths) ConvertArchive(archive);
+    for (const fs::path& map : mapPaths) ConvertMapArchive(map);
+    for (const fs::path& mob : mobPaths) ConvertMob(mob);
     for (const fs::path& path : loose) {
         std::string bytes;
         if (!ReadFile(path, &bytes)) continue;
@@ -480,10 +614,19 @@ void ConvertAll(const std::vector<fs::path>& sources) {
     for (const fs::path& source : sources) {
         if (!fs::exists(source)) throw std::runtime_error("no " + Utf8(source));
         g_converted.clear();
-        const bool archive = Extension(Utf8(source.filename())) == ".res";
+        const std::string extension = Extension(Utf8(source.filename()));
+        const bool archive = extension == ".res" || extension == ".mpr";
         g_options.source = archive ? source.parent_path() : source;
-        if (archive) ConvertArchive(source);
-        else ConvertInstall(source);
+        if (extension == ".res") {
+            ConvertArchive(source);
+        } else if (extension == ".mpr") {
+            ConvertMapArchive(source);
+        } else {
+            ConvertInstall(source);
+            const convert_scripts::MissionCounts scripts = convert_scripts::WriteMissions(source, g_options.target);
+            g_counts["mission script"].files += scripts.files;
+            g_counts["mission script"].failed += scripts.failed;
+        }
         if (g_options.target.empty()) continue;
         fs::create_directories(g_options.target);
         std::ofstream list(g_options.target / "converted.txt", std::ios::binary);
@@ -493,7 +636,10 @@ void ConvertAll(const std::vector<fs::path>& sources) {
 
 int Usage() {
     std::printf("usage: ei-convert <install or archive> <target folder>\n"
-                "       ei-convert --check <install or archive>...\n");
+                "       ei-convert --check <install or archive>...\n"
+                "       ei-convert --scripts <install>... [--scenarios <folder>] [--dump <folder>] [--lua <folder>]\n"
+                "                  [--quiet]\n"
+                "       ei-convert --lua-check\n");
     return 2;
 }
 
@@ -506,6 +652,7 @@ void Log(const char* format, ...) {
     va_start(args, format);
     std::vsnprintf(text, sizeof(text), format, args);
     va_end(args);
+    if (lua_check::g_logMuted) return;
     ++g_logLines;
     std::printf("  log: %s\n", text);
 }
@@ -515,6 +662,12 @@ std::string OutputPath(const char* name) { return name; }
 int main(int argc, char** argv) {
     std::setvbuf(stdout, nullptr, _IONBF, 0);
     std::vector<fs::path> sources;
+    if (argc >= 2 && std::strcmp(argv[1], "--scripts") == 0) return convert_scripts::Main({argv + 2, argv + argc});
+    if (argc == 2 && std::strcmp(argv[1], "--lua-check") == 0) return lua_check::Main();
+    if ((argc == 3 || argc == 4) && std::strcmp(argv[1], "--example-mod") == 0) {
+        const fs::path install = fs::absolute(argv[2]);
+        return example_mod::Write(install, argc == 4 ? fs::absolute(argv[3]) : install / "starter" / "Mods");
+    }
     if (argc >= 3 && std::strcmp(argv[1], "--check") == 0) {
         for (int i = 2; i < argc; ++i) sources.push_back(fs::absolute(argv[i]));
     } else if (argc == 3) {
@@ -529,6 +682,10 @@ int main(int argc, char** argv) {
         std::printf("ei-convert: %s\n", error.what());
         return 1;
     }
+    convert_textures::PrintMeasures();
+    convert_maps::PrintMeasures();
+    convert_mobs::PrintMeasures();
+    convert_models::PrintMeasures();
     int failed = 0;
     for (const auto& [format, count] : g_counts) {
         std::printf("ei-convert: %s: %d files, %d failed\n", format.c_str(), count.files, count.failed);

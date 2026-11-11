@@ -13,6 +13,7 @@
 #include "game/data/text_manager.h"
 #include "game/core/text_split.h"
 #include "game/ui/ui_briefing.h"
+#include "game/ui/ui_companions.h"
 #include "game/ui/ui_cursor.h"
 #include "game/units/unit.h"
 #include "game/ai/unit_ai.h"
@@ -288,6 +289,12 @@ void BriefingScreen::KeyDown(UiEvent& event) {
         return;
     }
     UiContainer::OnEvent(event);
+    // Ours: F3, the companions window of a multiplayer base.
+    if (event.key == platform::KeyAfter(platform::Key::F1, 2) && !event.repeat && CompanionsOffered()) {
+        g_interface.PushWindow(std::make_unique<CompanionWindow>(), WindowBackdrop::FirstWindow);
+        event.handled = true;
+        return;
+    }
     switch (event.key) {
     case platform::Key::Backspace:
         if (IsMultiplayerClient()) {

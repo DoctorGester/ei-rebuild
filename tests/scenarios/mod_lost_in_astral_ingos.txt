@@ -22,6 +22,8 @@ rebirth wait 500
 rebirth check IsAlive(GetLeader())
 
 reject Script error
+# AddMob'd scripts that fail to load in the original too (L1a): printed, not this run's failure
+allow Script error: bz23k.mob line 267: Unexpected token 'BuyHaburuMain#2#1#0'
 rebirth zone gz21k 0
 rebirth waitzone 25 gz21k
 rebirth waitfor 15 IsGreater(HP(GetLeader()),0)

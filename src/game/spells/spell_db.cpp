@@ -7,6 +7,7 @@
 #include "game/core/core_streams.h"
 #include "game/data/database_file.h"
 #include "game/data/database_toml.h"
+#include "game/data/record_names.h"
 #include "game/data/resource.h"
 #include "game/units/unit_db.h"   // InlineStrings
 
@@ -134,7 +135,28 @@ void SpellDatabase::Read(const RecordFile& file) {
 
 // --- As TOML ---------------------------------------------------------------------------------------
 
-using dbtoml::Hex;
+using dbtoml::Bits;
+using dbtoml::Enum;
+using dbtoml::Name;
+using dbtoml::OtherBits;
+using recordnames::kTraders;
+
+namespace {
+
+constexpr Name kSchools[] = {
+    {0, "fire"},       {1, "lightning"}, {2, "acid"},       {3, "illusion"}, {4, "divination"},
+    {5, "enchantment"}, {6, "healing"},  {7, "domination"}, {8, "none"},
+};
+// SpellRecord::targetKind, the letter: a unit or a point.
+constexpr Name kTargetKinds[] = {{'u', "unit"}, {'t', "point"}};
+// The modifier kinds (SpellModifierRecord::kind; its code's letters), and those allowedModifiers holds a byte of.
+constexpr Name kModifierKinds[] = {
+    {0, "range"}, {1, "targets"}, {2, "area"}, {3, "effect"}, {4, "duration"}, {5, "mana"}, {6, "filter"}, {7, "item"},
+};
+constexpr std::string_view kAllowedModifiers[] = {"range", "targets", "area", "effect", "duration"};
+constexpr std::uint32_t kTraderBits = dbtoml::NamedBits(kTraders);
+
+} // namespace
 
 template <class Visit>
 void Fields(SpellRecord& r, Visit& v) {
@@ -143,24 +165,25 @@ void Fields(SpellRecord& r, Visit& v) {
     v.Unread("unread_text", r.unreadText);
     v("price", r.price);
     v("cast_type", r.castType);
-    v("school", r.school);
+    v("school", Enum<SpellSchool>{r.school, kSchools});
     v("mana", r.mana);
     v("complexity", r.complexity);
     v("speed", r.speed);
     v("range", r.range);
     v("area", r.area);
     v("damage", r.damage);
-    v("target_kind", r.targetKind);
+    v("target_kind", Enum<std::uint32_t>{r.targetKind, kTargetKinds});
     v("target_count", r.targetCount);
     v("duration", r.duration);
     v("cast_time", r.castTime);
-    v("needs_sight", r.needsSight);
+    v("needs_sight", dbtoml::Bool{r.needsSight});
     v.Unread("unread_ids_a", r.unreadIdListA);
     v.Unread("unread_ids_b", r.unreadIdListB);
     v("icon", r.icon);
-    v("allowed_modifiers", r.allowedModifiers);
+    v("allowed_modifiers", dbtoml::Table<std::uint8_t>{r.allowedModifiers, kAllowedModifiers});
     v("skill", r.skill);
-    v("class_mask", Hex{r.classMask});
+    v("sold_by", Bits{r.classMask, kTraders});
+    v("sold_by_other", OtherBits{r.classMask, kTraderBits});
     v("light_color", r.lightColor);
     v("light_range", r.lightRange);
     v("light_rise_divisor", r.lightRiseDivisor);
@@ -171,12 +194,13 @@ void Fields(SpellModifierRecord& r, Visit& v) {
     v("name", r.name);
     v("code", dbtoml::Chars<4>{r.code});
     v("price", r.price);
-    v("kind", r.kind);
+    v("kind", Enum<std::uint32_t>{r.kind, kModifierKinds});
     v("mana", r.mana);
     v("strength", r.strength);
     v("skill", r.skill);
     v.Unread("unread_text", r.unreadText);
-    v("class_mask", Hex{r.classMask});
+    v("sold_by", Bits{r.classMask, kTraders});
+    v("sold_by_other", OtherBits{r.classMask, kTraderBits});
 }
 
 template <class Visit>
@@ -185,7 +209,8 @@ void Fields(SpellListRecord& r, Visit& v) {
     v("required", r.required);
     v("optional", r.optional);
     v("repeated", r.repeated);
-    v("class_mask", Hex{r.classMask});
+    v("sold_by", Bits{r.classMask, kTraders});
+    v("sold_by_other", OtherBits{r.classMask, kTraderBits});
 }
 
 namespace {
@@ -207,11 +232,11 @@ void SpellDatabase::MergeToml(const toml::Value& root, const std::string& path) 
 
 std::string SpellDatabase::ToToml() const {
     toml::Writer writer;
-    dbtoml::WriteRecords(writer, "spell", spells.records);
-    dbtoml::WriteRecords(writer, "modifier", modifiers.records);
-    dbtoml::WriteRecords(writer, "scroll_recipe", scrollRecipes);
-    dbtoml::WriteRecords(writer, "armor_recipe", armorRecipes);
-    dbtoml::WriteRecords(writer, "weapon_recipe", weaponRecipes);
+    dbtoml::WriteRecords(writer, "spell", spells.records, "code");
+    dbtoml::WriteRecords(writer, "modifier", modifiers.records, "code");
+    dbtoml::WriteRecords(writer, "scroll_recipe", scrollRecipes, "spell");
+    dbtoml::WriteRecords(writer, "armor_recipe", armorRecipes, "spell");
+    dbtoml::WriteRecords(writer, "weapon_recipe", weaponRecipes, "spell");
     return writer.text;
 }
 

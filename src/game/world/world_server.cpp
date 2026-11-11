@@ -391,15 +391,7 @@ void WorldServer::Update() {
 
     // The local players' heroes: the global "Heroes" group plus each one's own heroes, then given
     // back to every local player.
-    ScriptGroup heroes;
-    ScriptVars& globals = MainScript()->globals;
-    auto& names = globals.groups.names;
-    for (std::size_t i = 0; i < names.size(); ++i) {
-        if (str::Compare(names[i], "Heroes") == 0) {
-            heroes = globals.groups.values[i];
-            break;
-        }
-    }
+    ScriptGroup heroes = MainScript()->GlobalGroup("Heroes");
     for (Player* player = it.First(PlayerList()); player; player = it.Next()) {
         PlayerServer* state = player->Server();
         if (!NoPendingPossession(state)) continue;

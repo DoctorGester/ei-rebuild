@@ -1,0 +1,11 @@
+id = "MF11"
+title = "Converted installs load about as fast as the originals: profile a converted zone load, faster PNG/inflate, smaller .glb extras"
+group = "mods"
+size = 2
+model = "opus"
+depends = ["MF7"]
+note = "Converted Rebirth's mod_lost_in_astral_cz_ingos takes ~45 s vs 25 s unconverted. Profile one converted LIA zone load, fix the biggest costs (PNG decode, double decodes, .glb rotations stored twice). Goal: within ~20% of unconverted, every golden the same on the normal and converted suites."
+order = 1320
+status = "done"
+started = "2026-11-10"
+done = "2026-11-10"

@@ -319,19 +319,54 @@ def read_vars(r, name):
         read_named(r, 'groups', read_group)
 
 
+FLOAT, STRING = 1, 2
+
+
+def _command_slots(r, depth):
+    """A command read without recording (SSCCmd::Save, below): the float and string argument slots a binding or a
+    nested call fills when it runs ({(type, argIndex)})."""
+    if depth > 64:
+        r.fail('commands nested too deep')
+    evaluated = set()
+    r.take(4)
+    for _ in range(r.i32(None)):
+        r.take(4)
+    for _ in range(r.i32(None)):
+        r.string(None)
+    r.take(8)
+    for _ in range(2):   # the local bindings, then the global ones: type, argIndex, varIndex
+        for _ in range(r.i32(None)):
+            evaluated.add((r.i32(None), r.i32(None)))
+            r.take(4)
+    for _ in range(r.i32(None)):
+        evaluated.add((r.i32(None), r.i32(None)))
+        _command_slots(r, depth + 1)
+    r.take(4)
+    return evaluated
+
+
 def read_command(r, depth=0):
     """SSCCmd::Save (004B6360): id, the float and string arguments, the object and group argument counts,
     the local and global bindings (ScriptBinding: type, argIndex, varIndex), the nested calls, the called
-    script's id."""
-    if depth > 64:
-        r.fail('commands nested too deep')
+    script's id. A float or string slot a binding or a nested call fills is the value it put there when it last ran
+    (rule eval): the game's executor's, which our Lua calls do not write."""
+    start = r.p
+    evaluated = _command_slots(r, depth)
+    r.p = start
     r.i32('id')
     n = r.i32('floats')
     for i in range(n):
-        r.f32(f'float{i}')
+        if (FLOAT, i) in evaluated:
+            r.eval(f'float{i}', 4)
+        else:
+            r.f32(f'float{i}')
     n = r.i32('strings')
     for i in range(n):
-        r.string(f'string{i}')
+        if (STRING, i) in evaluated:
+            r.string(None)
+            r.eval(f'string{i}', 0)
+        else:
+            r.string(f'string{i}')
     r.i32('objects')
     r.i32('groups')
     for kind in ('local', 'global'):
@@ -360,23 +395,30 @@ def read_block(r):
 
 
 def read_definition(r):
-    """ScriptDefinition::Save (004BBFE0): index, name, parameter types, the if-then pairs' block ids, the
-    variables."""
-    r.i32('index')
-    r.string('name')
+    """ScriptDefinition::Save (004BBFE0): the kill flag, name, parameter types, the if-then pairs' block ids, the
+    variables. Returns the name and the then-sections' block ids."""
+    r.i32('killed')
+    name = r.string('name')
     r.string('params')
     n = r.i32('ifThen')
+    commands = []
     for i in range(n):
         r.i32(f'ifThen{i}.conditions')
-        r.i32(f'ifThen{i}.commands')
+        commands.append(r.i32(f'ifThen{i}.commands'))
     read_vars(r, 'vars')
+    return name, commands
 
 
-def read_run(r):
-    """ScriptRun::Save (004BB320): block id, index, ticks, sleep start, the instance's index (-1: none), the
-    variables."""
-    r.i32('block')
-    r.i32('index')
+def read_run(r, rules):
+    """ScriptRun::Save (004BB320): block id, command index, ticks, sleep start, the instance's index (-1: none), the
+    variables. The block is written as its definition and rule (`rules`: a then-section's block id -> (name, index);
+    a WorldScript's, a negative id: no name, rule -1), the command index not at all: a script on Lua has neither
+    (script_save.cpp, WriteLuaState; the digest's script record does the same)."""
+    block = r.i32(None)
+    script, rule = rules.get(block, ('', -1) if block < 0 else (f'?block {block}', -1))
+    r.put('script', '"' + script + '"')
+    r.put('rule', str(rule))
+    r.i32(None)
     r.i32('ticks')
     r.i32('sleepStart')
     r.i32('instance')
@@ -386,15 +428,19 @@ def read_run(r):
 def read_list(r, name, reader):
     with r.scope(name):
         count = r.i32('count')
+        out = []
         for i in range(count):
             with r.scope(i):
-                reader(r)
+                out.append(reader(r))
+        return out
 
 
 def read_script(r):
     """CScript::SaveState (004C0F90): the script's point lights (004B1940), particle sources (004B1A80), sound
     sources (004B1C50), lightning (004B1DB0), the next ids, the command blocks and WorldScript blocks, the
-    definitions, the globals, the instances, the runs, two counters and the areas (004CAEC0)."""
+    definitions, the globals, the instances, the runs, two counters and the areas (004CAEC0). A script on Lua
+    (ours: 2 added to `loaded`) writes its globals, instances and runs in the same fields and its Lua state after the
+    areas; the fields read the same either way (docs/notes/mods.md, "Scripts in Lua")."""
     def point_light(r):
         r.id('object')
         r.i32('id')
@@ -448,15 +494,21 @@ def read_script(r):
     r.i32('nextFxId')
     read_list(r, 'blocks', read_block)
     read_list(r, 'worldBlocks', read_block)
-    read_list(r, 'definitions', read_definition)
+    rules = {}
+    for name, commands in read_list(r, 'definitions', read_definition):
+        for rule, block in enumerate(commands):
+            rules.setdefault(block, (name, rule))
+
     with r.scope('globals'):
         read_named(r, 'floats', lambda r: r.f32('value'))
         read_named(r, 'strings', lambda r: r.string('value'))
         read_named(r, 'objects', lambda r: r.id('value'))
         read_named(r, 'groups', read_group)
     read_list(r, 'instances', read_definition)
-    read_list(r, 'runs', read_run)
-    r.i32('loaded')
+    read_list(r, 'runs', lambda r: read_run(r, rules))
+    loaded = r.i32(None)
+    on_lua = loaded >= 2   # ours: 2 added for a script on Lua, its state after the areas
+    r.put('loaded', str(loaded - 2 if on_lua else loaded))
     r.i32('fileCount')
 
     def area(r):
@@ -472,6 +524,8 @@ def read_script(r):
                 r.f32('y2')
 
     read_list(r, 'areas', area)
+    if on_lua:
+        r.lua('luaState', r.i32(None), "the scheduler's state (Script::SaveState, ScriptLuaScheduler::Save)")
 
 
 def read_command_queue(r):

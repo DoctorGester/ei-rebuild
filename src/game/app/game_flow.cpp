@@ -14,6 +14,7 @@
 #include "game/players/saved_parties.h"
 #include "game/data/text_manager.h"
 #include "game/map/mob_script_decoder.h"
+#include "game/map/mob_toml.h"
 #include "game/mods/mod_folders.h"
 #include "game/net/net_session.h"
 #include "game/core/coder.h"
@@ -60,6 +61,7 @@
 #include <cstring>
 #include <memory>
 #include <new>
+#include <optional>
 #include <string>
 #include <vector>
 #include "lib/rounding.h"
@@ -534,6 +536,7 @@ std::string GameFlow::MultiplayerZone() {
 
 void GameFlow::BeginMultiplayerGame() {
     PartyManagerNewGameFour(&g_partyManager);
+    g_savedParties.companions.clear();
     if (std::ssize(GlobalParty()->members) == 1) GlobalParty()->members.data()->unitId = kMultiplayerHeroId;
     GlobalParty()->zone = MultiplayerZone();
     GlobalParty()->variables.Set(kMultiplayerVariable, 1.0f);
@@ -552,7 +555,8 @@ void GameFlow::ReturnLocalParty() {
     Player* player = g_clientWorld.LocalView()->player;
     Party* party = player->GetParty();
     GlobalParty()->Assign(party);
-    g_partyManager.records.BeginRedeploy(party);
+    // Companions go back to their own files; the hero's file and the party records keep the hero alone.
+    g_partyManager.records.BeginRedeploy(g_savedParties.ReturnCompanions(GlobalParty()) ? GlobalParty() : party);
     // The global party record written into the heroes' folder.
     g_savedParties.outsideGame.WriteFile(g_savedParties.folder);
     UpdateFromServer();
@@ -689,8 +693,12 @@ void WorldServer::LoadZoneScripts(std::string_view mob) {
         script = reinterpret_cast<const char*>(text.data.data());
     }
     MainScript()->Reset();
-    // The game goes on without the scripts after the error (the original said nothing); the console names it.
-    if (!MainScript()->Load(&script, 1)) {
+    // A .lua runs in place of the scripts (Script::LoadLua; docs/notes/mods.md, "Scripts in Lua"). The game goes on
+    // without the scripts after the error (the original said nothing); the console names it.
+    const std::string path = MapPath(mob);
+    const std::optional<mobtoml::ScriptLuaFile> lua = mobtoml::FindScriptLua(path, mobtoml::ScriptFile(path));
+    if (!(lua ? MainScript()->LoadLua(&script, lua->text, mobtoml::ScriptLuaName(mob, lua->name))
+              : MainScript()->Load(&script, 1))) {
         ScriptErrorInfo error;
         MainScript()->GetError(&error);
         console::EndLine(console::g_consoleOut << "Script error: " << std::string(mob) << " line " << error.line
@@ -742,7 +750,7 @@ void GameFlow::SwitchMultiplayerZone() {
     zoneSwitchStarted = 1;
 }
 
-void GameFlow::StartServer(std::string_view name, int maxPlayers, net::PauseMode pauseMode, int gameType,
+void GameFlow::StartServer(std::string_view name, int maxPlayers, net::PauseMode pauseMode, int companions, int gameType,
                            std::string_view password, bool unlisted, int masterKey) {
     BuildZoneTable();
     net::g_netLog = &console::g_netLogOut;
@@ -756,6 +764,7 @@ void GameFlow::StartServer(std::string_view name, int maxPlayers, net::PauseMode
     net::g_gameServer->name.assign(name.empty() ? std::string_view(kServerName) : name);
     net::g_gameServer->maxPlayers = maxPlayers;
     net::g_gameServer->pauseMode = pauseMode;
+    net::g_gameServer->companions = static_cast<std::uint32_t>(companions);
     net::g_gameClient->maxPlayers = maxPlayers;
     if (!password.empty()) net::g_gameServer->SetPassword(password);
     net::g_gameServer->SetPublic(!unlisted);

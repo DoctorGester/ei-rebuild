@@ -1,0 +1,7 @@
+  Activated!
+  Cannot open file autoexec.cfg for reading
+  Script error: zone1.mob line 0: Maps\zone1.lua:3: <name> or '...' expected near <eof>
+  Script error: text2:4: AddObject: argument 1 is no group (nil)
+  Saved savea
+  1
+  1

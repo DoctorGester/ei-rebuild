@@ -65,6 +65,9 @@ std::string ModTextStep(const std::string& argument);
 // "modack <unit> <speech> <sound>": the acks database's record <unit> has the named speech <speech> with the sound
 // <sound> ("-": no such speech), as SayNamedAck finds it. Records as TOML: a mod's acks.db.toml record over the game's.
 std::string ModAckStep(const std::string& argument);
+// "modrecord <kind> <name> = <text>": a record of a database as image::RecordText writes it is <text> ("-": no such
+// record). Records as TOML: a mod's TOML record gives only the fields it changes, the others keep the game's.
+std::string ModRecordStep(const std::string& argument);
 // "modweapon <weapon> <min> <max>": the local player (its given items, then its party's) holds a weapon of the
 // prototype named <weapon> (the rest of the line before the two numbers), whose damage as the game reckons it from the
 // item's prototype and material (WeaponMinDamage, WeaponMaxDamage) is <min> to <max> ("%g"; "-": no such weapon).
@@ -74,6 +77,9 @@ std::string ModWeaponStep(const std::string& argument);
 // menu's music is; the stream's steps run on the virtual clock, so a scenario waits for it with "waitread"
 // (harness_modtrace.h) and the wait takes the same world updates every run.
 std::string PlayStreamStep(const std::string& argument);
+// "ground <x> <y> <low> <high>": the ground's height at (x, y) in the client's landscape and in the server's AI map is
+// from <low> to <high> in both. Maps as folders (docs/notes/mods.md): a mod's heights.png seen by both.
+std::string GroundStep(const std::string& argument);
 // "mapfile exists <name> yes|no": the maps folder's MapFileExists, as the client's shared-file handler calls it (the
 // folder follows Rebirth's Maps: the mod's or the game's).
 std::string MapFileStep(const std::string& argument);

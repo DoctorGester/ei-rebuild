@@ -1,0 +1,9 @@
+id = "L8a"
+title = "Converted installs' goldens the same again: a script on Lua's digest and save as the old executor's"
+group = "lua"
+depends = ["L8"]
+note = "Since L8 a converted install (run_all --converted) runs every zone's mission script from its ei-convert .lua; 2026-11-10 every run passes but the goldens differ in the script alone (vanilla 186 of 233, Rebirth 129 of 145: the digest's script record, hashed; mission.sav's commands entity), no unit position differs. The causes: runs' block and command (-1 on Lua: harness_digest_image.cpp ReadLuaRuns), the loop counters the converted Lua keeps local (gobject.i, VSS#i#val) and the old format's evaluation slots in the save. Either give the Lua runs and loop counters the old values (the converter's line map) or make the converted check leave the script record out; docs/notes/mods.md 'Scripts in Lua'."
+order = 1324
+status = "done"
+started = "2026-11-10"
+done = "2026-11-10"

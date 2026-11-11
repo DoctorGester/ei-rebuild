@@ -1,0 +1,59 @@
+# Quest scripts in the mission script through a save, and console lines (L7; docs/notes/lua-scripting.md, "Texts at
+# runtime"). QFinish (src/game/script/script_exec.cpp) builds a quest script and loads it into the script that runs it;
+# only the mission script is in a save, so the quests come from a file Rebirth's "execs" loads there
+# (tools/make_quest_script.py): two quests into one script, the second's plain names after the first's. The first
+# objective of "zqa" (the leader seen) holds at once; then the game is saved and loaded back with both quests'
+# instances waiting, and a second file makes the areas the remaining objectives wait for, so both finish in the
+# loaded game. The scheduler converts each quest text when QFinish loads it (the save's Lua state holds the quests
+# too) and the areas file after the load; the same "@" line three times is converted once (the scheduler's cache), and
+# a "#" and a "$" line go the same way.
+# prepare: make_quest_script.py
+waitmenu
+console thingamabob
+newgame
+waitline 15 Saved savea
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+reject Script error
+
+console execs .\saves\quests.txt
+waitfor 5 IsEqual(GSGetVar(0,"zq.loaded"),1)
+waitfor 5 IsEqual(GSGetVar(0,"q.zqa.zqa.1"),2)
+check IsEqual(GSGetVar(0,"q.zqa.zqa.2"),1)
+check IsEqual(GSGetVar(0,"q.zqa.zqa"),0)
+check IsEqual(GSGetVar(0,"q.zqb.zqb"),0)
+wait 300
+
+# Save with the quests waiting on their areas, then load it.
+key esc
+waitwindow 10 escmenu
+click 395 120
+waitwindow 10 saveload
+clickregion 0
+waitline 15 Saved save1
+wait 300
+load save1
+waitwindow 30 battle
+waitfor 20 IsGreater(HP(GetLeader()),0)
+check IsEqual(GSGetVar(0,"q.zqa.zqa.1"),2)
+check IsEqual(GSGetVar(0,"q.zqa.zqa"),0)
+
+# The areas: both quests finish.
+console execs .\saves\areas.txt
+waitfor 10 IsEqual(GSGetVar(0,"q.zqa.zqa"),2)
+waitfor 10 IsEqual(GSGetVar(0,"q.zqb.zqb"),2)
+check IsEqual(GSGetVar(0,"q.zqa.zqa.2"),2)
+check IsEqual(GSGetVar(0,"q.zqb.zqb.1"),2)
+
+# Console lines: the same line three times, a "#" and a "$" line.
+console @GSSetVar(0,"zq.n",Add(GSGetVar(0,"zq.n"),1))
+console @GSSetVar(0,"zq.n",Add(GSGetVar(0,"zq.n"),1))
+console @GSSetVar(0,"zq.n",Add(GSGetVar(0,"zq.n"),1))
+check IsEqual(GSGetVar(0,"zq.n"),3)
+console #GSGetVar(0,"zq.n")
+console $FloatToStr(GSGetVar(0,"zq.n"),1)
+wait 300
+check IsAlive(GetLeader())
+report
+quit

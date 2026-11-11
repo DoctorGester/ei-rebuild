@@ -49,4 +49,14 @@ constexpr bool NoPadding(const MapMaterial*) {
                            &MapMaterial::priority, &MapMaterial::warpSpeed, &MapMaterial::reserved>();
 }
 
+// An animated tile texture: the texture and its frame count (the entries after the class words).
+struct MapAnimatedTexture {
+    std::uint16_t texture = 0;
+    std::uint16_t frames = 0;
+};
+static_assert(sizeof(MapAnimatedTexture) == 4);
+constexpr bool NoPadding(const MapAnimatedTexture*) {
+    return lib::FieldsFill<&MapAnimatedTexture::texture, &MapAnimatedTexture::frames>();
+}
+
 } // namespace terrain

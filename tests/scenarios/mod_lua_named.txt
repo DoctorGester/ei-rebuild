@@ -1,0 +1,20 @@
+# A .mob.toml whose `script` key names another file (docs/notes/mods.md, "Scripts in Lua"; tools/make_lua_mod.py
+# named): the mod's Maps\zone1.mob.toml (zone 1's objects as ei-convert writes them) says `script = "zone1_named.lua"`,
+# and the mod has both Maps\zone1_named.lua and Maps\zone1.lua, each the zone's converted script with a console line
+# of its own at the WorldScript's end. The key's file runs, zone1.lua does not.
+# prepare: make_lua_mod.py named
+mod harness_saves\lua_mod
+reject Script error
+reject L8b: zone1.lua
+waitmenu
+console thingamabob
+newgame
+waitline 15 L8b: the TOML's script
+waitfor 15 IsGreater(HP(GetLeader()),0)
+wait 2000
+read mod Maps\zone1.mob.toml yes
+read mod Maps\zone1_named.lua yes
+dump zone1
+check IsAlive(GetLeader())
+report
+quit

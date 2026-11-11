@@ -182,6 +182,37 @@ void SavedParties::SaveAll() {
     for (unsigned i = 0; i < static_cast<unsigned>(entries.size()); ++i) entries[i].WriteFile(folder);
 }
 
+bool SavedParties::InUse(const MpHeroRecord* hero) const {
+    if (hero->file == outsideGame.file) return true;
+    for (const std::string& file : companions)
+        if (file == hero->file) return true;
+    return false;
+}
+
+bool SavedParties::ReturnCompanions(Party* party) {
+    const std::vector<std::string>& files = companions;
+    std::vector<bool> taken(files.size(), false);
+    for (int i = 1; i < std::ssize(party->members); ++i) {
+        const PartyUnitRecord& record = party->members[i];
+        for (int c = 0; c < std::ssize(files); ++c) {
+            if (taken[c]) continue;
+            MpHeroRecord* hero = nullptr;
+            for (MpHeroRecord& entry : entries)
+                if (entry.file == files[c]) hero = &entry;
+            if (!hero || hero->party.members.size() != 1) continue;
+            PartyUnitRecord& saved = hero->party.members[0];
+            if (saved.scriptName != record.scriptName || saved.prototype != record.prototype) continue;
+            taken[c] = true;
+            saved.CopyFrom(record, &hero->party);
+            hero->WriteFile(folder);
+            break;
+        }
+    }
+    if (std::ssize(party->members) < 2) return false;
+    party->members.erase(party->members.begin() + 1, party->members.end());
+    return true;
+}
+
 void SavedParties::ReserveOne() {
     if (entries.size() == entries.capacity()) entries.reserve(entries.empty() ? 1 : 2 * entries.size());
 }
@@ -341,6 +372,27 @@ void PartyUnitRecord::CopyItemsFrom(const PartyUnitRecord* source, Party* party)
     CopyList(quickItems, source->quickItems, party);
     CopyList(armor, source->armor, party);
     CopyList(spells, source->spells, party);
+}
+
+void PartyUnitRecord::CopyFrom(const PartyUnitRecord& source, Party* party) {
+    CopyItemsFrom(&source, party);
+    scriptName = source.scriptName;
+    name = source.name;
+    figureName = source.figureName;
+    parentIname = source.parentIname;
+    skinTexture = source.skinTexture;
+    prototype = source.prototype;
+    secondPrototype = source.secondPrototype;
+    unitId = source.unitId;
+    stats = source.stats;
+    scaleX = source.scaleX;
+    scaleY = source.scaleY;
+    height = source.height;
+    moveMode2 = source.moveMode2;
+    weaponIndex = source.weaponIndex;
+    selected = source.selected;
+    leaderId = source.leaderId;
+    fightAtWill = source.fightAtWill;
 }
 
 PartyUnitRecord* Party::AddMember(std::string_view name, std::string_view prototype, std::string_view extra) {

@@ -409,6 +409,6 @@ void LeverRecordTable::MergeToml(const toml::Value& root, const std::string& pat
 
 std::string LeverRecordTable::ToToml() const {
     toml::Writer writer;
-    dbtoml::WriteRecords(writer, "lever", records);
+    dbtoml::WriteRecords(writer, "lever", records, "name");
     return writer.text;
 }

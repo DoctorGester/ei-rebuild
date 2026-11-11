@@ -2,12 +2,16 @@
 #include "game/core/asset_text.h"
 #include "game/core/core_streams.h"
 #include "game/data/resource.h"
+#include "game/map/map_folder.h"
 #include "game/mods/mod_folders.h"
+#include "game/models/figure_gltf.h"
+#include "game/models/texture_png.h"
 
 #include "lib/bytes.h"
 #include "lib/crt.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
+#include "lib/threads.h"
 #include "lib/toml.h"
 #include "platform/platform.h"
 
@@ -21,6 +25,7 @@
 #include <new>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -73,8 +78,36 @@ void* KeptFile(MappedResource& archive, std::unique_ptr<LoadedFile> file, std::u
     return data;
 }
 
+// How many bytes of .mmp files made from PNGs an archive keeps after their last close (MappedResource::keptPngs): with
+// 128 MB each texture of mod_lost_in_astral_cz_ingos' seven zones (447 textures, 132 MB) is made once.
+constexpr std::size_t kKeptPngBytes = 128u << 20;
+
+// A map archive's map file's extension (the landscape and the AI map list "*.mp").
+constexpr const char* kMapFileExtension = ".MP";
+
 // The name of a folder's texts (docs/notes/mods.md, "Records as TOML"), as LooseKey gives it.
 constexpr std::string_view kTextsToml = "texts.toml";
+
+// Whether `key` (a LooseKey) ends with `extension`.
+bool EndsWith(std::string_view key, std::string_view extension) {
+    return key.size() > extension.size() && key.substr(key.size() - extension.size()) == extension;
+}
+
+// A figure model's glTF (docs/notes/mods.md, "Models as glTF"): `key` (a LooseKey) entered by its name without the
+// extension, a .gltf before a .glb of the same name.
+void AddModel(std::map<std::string, std::string, std::less<>>& models, const std::string& key) {
+    const bool gltf = EndsWith(key, ".gltf");
+    if (!gltf && !EndsWith(key, ".glb")) return;
+    const auto [found, added] = models.try_emplace(key.substr(0, key.size() - (gltf ? 5 : 4)), key);
+    if (!added && gltf) found->second = key;
+}
+
+// Whether `key` (a LooseKey) is a figure file a glTF can stand for: .mod, .bon, .lnk, .fig, .anm.
+bool IsFigureFile(std::string_view key) {
+    for (const std::string_view extension : {".mod", ".bon", ".lnk", ".fig", ".anm"})
+        if (EndsWith(key, extension)) return true;
+    return false;
+}
 
 // The texts of `loose`'s texts.toml read into it; a file that cannot be read or parsed, or a value that is not a
 // string, is logged and left out.
@@ -173,6 +206,7 @@ void MappedResource::CloseResource() {
 void MappedResource::FindLooseFiles(const std::string& path) {
     const std::string folder = LooseFolderOf(path);
     if (folder.empty()) return;
+    if (text::CompareIgnoringCase(std::string_view(path).substr(folder.size()), ".mpr") == 0) mapFolder = folder;
     std::vector<platform::FolderLayer> layers = platform::FilesByLayer(folder);
     for (std::size_t i = 0; i < layers.size(); ++i) {
         LooseFiles& loose = i + 1 < layers.size() ? looseOver.emplace_back() : looseOwn;
@@ -184,7 +218,10 @@ void MappedResource::FindLooseFiles(const std::string& path) {
                 continue;
             }
             const auto [kept, added] = loose.byName.try_emplace(LooseKey(file.name), file);
-            if (added) continue;
+            if (added) {
+                AddModel(loose.models, kept->first);
+                continue;
+            }
             // Two files of one name in a folder (a system that tells their case apart): the first by name is read.
             platform::LayerFile& first = kept->second;
             if (file.name < first.name) std::swap(file, first);
@@ -197,6 +234,14 @@ void MappedResource::FindLooseFiles(const std::string& path) {
 void MappedResource::ForgetLooseFiles() {
     looseOver.clear();
     looseOwn = {};
+    mapFolder.clear();
+    folderMap.reset();
+    folderMapMade = false;
+    modelEntries.clear();
+    modelEntriesRead = false;
+    madeModels.clear();
+    keptPngs.clear();
+    keptPngBytes = 0;
 }
 
 std::vector<MappedResource::Source> MappedResource::Sources() {
@@ -236,9 +281,160 @@ void* MappedResource::Find(std::string_view name, std::uint32_t* size, bool* utf
     return data;
 }
 
+namespace {
+
+// The name of the PNG that stands for the texture `name` (docs/notes/mods.md, "Textures as PNG"): an .mmp's name with
+// ".png"; empty for another file.
+std::string PngNameOf(std::string_view name) {
+    constexpr std::string_view kMmp = ".mmp";
+    if (name.size() <= kMmp.size() || text::CompareIgnoringCase(name.substr(name.size() - kMmp.size()), kMmp) != 0) return {};
+    return std::string(name.substr(0, name.size() - kMmp.size())) + ".png";
+}
+
+} // namespace
+
+bool MappedResource::ReadSource(const Source& source, std::string_view name, std::string* bytes, std::string* where) {
+    if (source.loose) {
+        const auto file = source.loose->byName.find(LooseKey(name));
+        if (file == source.loose->byName.end()) return false;
+        *where = file->second.path;
+        // The layer's own file: a read through the path map would take a layer over it that has one of its name
+        // (a mod's model without animations over the game's with them).
+        return platform::ReadLayerFile(file->second.path, bytes);
+    }
+    if (source.entries->FindEntry(name) == -1) return false;
+    std::uint32_t size = 0;
+    void* data = source.entries->EntryFile(name, &size);
+    if (!data) return false;
+    bytes->assign(static_cast<const char*>(data), size);
+    source.entries->CloseFile(data);
+    *where = name;
+    return true;
+}
+
+bool MappedResource::SourceHas(const Source& source, std::string_view name) {
+    return source.loose ? source.loose->byName.contains(LooseKey(name)) : source.entries->FindEntry(name) != -1;
+}
+
+void* MappedResource::KeptPng(std::string_view name, std::uint32_t* size) {
+    const auto kept = std::find_if(keptPngs.begin(), keptPngs.end(), [&](const auto& file) { return file->name == name; });
+    if (kept == keptPngs.end()) return nullptr;
+    std::unique_ptr<LoadedFile> file = std::move(*kept);
+    keptPngs.erase(kept);
+    keptPngBytes -= file->bytes.size();
+    return KeptFile(*this, std::move(file), size);
+}
+
+struct MappedResource::PngRead {
+    std::string name;       // the .mmp's
+    std::string png;
+    std::string where;      // the PNG's path or entry, for the warning
+    std::string original;   // the .mmp it stands for when the PNG has no settings chunk; empty when none
+};
+
+bool MappedResource::ReadPng(std::string_view name, const std::string& pngName, const std::vector<Source>& sources,
+                             std::size_t at, PngRead* out) {
+    out->name = name;
+    if (!ReadSource(sources[at], pngName, &out->png, &out->where)) return false;
+    std::string originalWhere;
+    if (texture_png::SettingsText(out->png).empty())
+        for (std::size_t i = at; i < sources.size(); ++i)
+            if (ReadSource(sources[i], name, &out->original, &originalWhere)) break;
+    return true;
+}
+
+std::unique_ptr<LoadedFile> MappedResource::MakePng(const PngRead& read, std::string* error) {
+    MmpHeader originalHeader;
+    texture_png::MmpView below;
+    if (read.original.size() >= sizeof(MmpHeader)) {
+        std::memcpy(&originalHeader, read.original.data(), sizeof(MmpHeader));
+        below = {&originalHeader, reinterpret_cast<const std::uint8_t*>(read.original.data()) + sizeof(MmpHeader),
+                 read.original.size() - sizeof(MmpHeader)};
+    }
+    auto file = std::make_unique<LoadedFile>();
+    if (!texture_png::FromPng(read.png, below.header ? &below : nullptr, &file->bytes, error)) return nullptr;
+    file->name = read.name;
+    file->size = static_cast<std::uint32_t>(file->bytes.size());
+    file->madeFromPng = true;
+    return file;
+}
+
+void* MappedResource::PngTexture(std::string_view name, const std::string& pngName, const std::vector<Source>& sources,
+                                 std::size_t at, std::uint32_t* size) {
+    if (!SourceHas(sources[at], pngName)) return nullptr;
+    if (void* data = SharedFile(*this, name, size)) return data;
+    if (void* data = KeptPng(name, size)) return data;
+    PngRead read;
+    if (!ReadPng(name, pngName, sources, at, &read)) return nullptr;
+    std::string error;
+    std::unique_ptr<LoadedFile> file = MakePng(read, &error);
+    if (!file) {
+        game::Warning("textures: %s: %s; not read", read.where, error);
+        return nullptr;
+    }
+    return KeptFile(*this, std::move(file), size);
+}
+
+void MappedResource::MakePngs(std::span<const std::string> files) {
+    const std::vector<Source> sources = Sources();
+    // Each name's PNG and the source it is in, FindFile's: the first source with the PNG or the .mmp.
+    std::vector<std::pair<const std::string*, std::size_t>> pngs;
+    for (const std::string& name : files) {
+        const std::string pngName = PngNameOf(name);
+        if (pngName.empty() || filesByName.contains(name) ||
+            std::ranges::any_of(keptPngs, [&](const auto& file) { return file->name == name; }))
+            continue;
+        for (std::size_t i = 0; i < sources.size(); ++i) {
+            if (SourceHas(sources[i], pngName)) {
+                pngs.emplace_back(&name, i);
+                break;
+            }
+            if (SourceHas(sources[i], name)) break;
+        }
+    }
+    // A round of one a processor at a time, up to half of keptPngs' bytes: the files made first are still kept when
+    // their GetFile comes (the rest are made there, one at a time).
+    const std::size_t round = std::max(1u, std::thread::hardware_concurrency());
+    std::size_t madeBytes = 0;
+    for (std::size_t first = 0; first < pngs.size() && madeBytes < kKeptPngBytes / 2; first += round) {
+        std::vector<PngRead> reads;
+        for (std::size_t i = first; i < std::min(first + round, pngs.size()); ++i) {
+            const std::string& name = *pngs[i].first;
+            if (PngRead read; ReadPng(name, PngNameOf(name), sources, pngs[i].second, &read)) reads.push_back(std::move(read));
+        }
+        std::vector<std::unique_ptr<LoadedFile>> made(reads.size());
+        lib::OnThreads(static_cast<int>(reads.size()), [&](int i) {
+            std::string error;
+            made[i] = MakePng(reads[i], &error);
+        });
+        for (std::unique_ptr<LoadedFile>& file : made)
+            if (file) {
+                madeBytes += file->bytes.size();
+                KeepPng(std::move(file));
+            }
+    }
+}
+
+void MappedResource::KeepPng(std::unique_ptr<LoadedFile> file) {
+    keptPngBytes += file->bytes.size();
+    keptPngs.push_back(std::move(file));
+    while (keptPngBytes > kKeptPngBytes) {
+        keptPngBytes -= keptPngs.front()->bytes.size();
+        keptPngs.pop_front();
+    }
+}
+
 void* MappedResource::FindFile(std::string_view name, std::uint32_t* size, bool* utf8) {
+    if (void* data = FolderMapFile(name, size)) return data;
     const std::string key = LooseKey(name);
-    for (const Source& source : Sources()) {
+    const std::string pngName = PngNameOf(name);
+    const std::vector<Source> sources = Sources();
+    for (std::size_t i = 0; i < sources.size(); ++i) {
+        const Source& source = sources[i];
+        if (!pngName.empty())
+            if (void* data = PngTexture(name, pngName, sources, i, size)) return data;
+        if (IsFigureFile(key))
+            if (void* data = ModelFile(name, source, size)) return data;
         if (!source.loose) {
             if (void* data = source.entries->EntryFile(name, size)) return data;
             continue;
@@ -306,8 +502,98 @@ RecordFile MappedResource::FindRecord(std::string_view name) {
 
 bool MappedResource::HasFile(std::string_view name) {
     const std::string key = LooseKey(name);
-    for (const Source& source : Sources())
-        if (source.loose ? source.loose->byName.contains(key) : source.entries->FindEntry(name) != -1) return true;
+    const std::string pngName = PngNameOf(name);
+    for (const Source& source : Sources()) {
+        if (SourceHas(source, name)) return true;
+        if (!pngName.empty() && SourceHas(source, pngName)) return true;
+        if (IsFigureFile(key) && HasModelFile(name, source)) return true;
+    }
+    return false;
+}
+
+// ---- Figure models as glTF (docs/notes/mods.md, "Models as glTF") ----------------------------------------------
+
+namespace {
+
+// The glTF models among an archive's own entries (read at the first use).
+const std::map<std::string, std::string, std::less<>>& ModelEntries(MappedResource& archive) {
+    if (archive.modelEntriesRead) return archive.modelEntries;
+    archive.modelEntriesRead = true;
+    if (!archive.entries || !archive.names) return archive.modelEntries;
+    for (std::uint32_t i = 0; i < archive.header.count; ++i) {
+        const ResEntry& entry = archive.entries[i];
+        if (entry.nameOffset > archive.header.namesSize || entry.nameLength > archive.header.namesSize - entry.nameOffset)
+            continue;
+        AddModel(archive.modelEntries, LooseKey(std::string_view(archive.names + entry.nameOffset, entry.nameLength)));
+    }
+    return archive.modelEntries;
+}
+
+} // namespace
+
+const std::map<std::string, std::string>* MappedResource::MadeModel(const Source& source, const std::string& model) {
+    std::string bytes, where;
+    const std::string place = source.loose ? source.loose->folder : std::to_string(reinterpret_cast<std::uintptr_t>(source.entries));
+    const auto cached = madeModels.find(place + "|" + model);
+    if (cached != madeModels.end()) return cached->second ? &*cached->second : nullptr;
+    auto& made = madeModels[place + "|" + model];
+    if (!ReadSource(source, model, &bytes, &where)) return nullptr;
+    // A .gltf's buffers are files of its place, named relative to it.
+    const std::size_t slash = model.find_last_of('\\');
+    const std::string folder = slash == std::string::npos ? std::string() : model.substr(0, slash + 1);
+    const figure_gltf::ReadUri readUri = [&](const std::string& uri, std::string* out) {
+        std::string name = folder + uri;
+        std::replace(name.begin(), name.end(), '/', '\\');
+        std::string ignored;
+        return ReadSource(source, text::ToAssetText(name), out, &ignored);
+    };
+    figure_gltf::Figure figure;
+    figure_gltf::Notes notes;
+    std::string error;
+    if (!figure_gltf::FromGltf(bytes, readUri, &figure, &error, &notes)) {
+        game::Warning("models: %s: %s; not read", where, error);
+        return nullptr;
+    }
+    for (const std::string& line : notes.lines) game::Warning("models: %s: %s", where, line);
+    const std::size_t dot = model.find_last_of('.');
+    made = figure_gltf::Files(figure, model.substr(0, dot));
+    return &*made;
+}
+
+void* MappedResource::ModelFile(std::string_view name, const Source& source, std::uint32_t* size) {
+    const auto& models = source.loose ? source.loose->models : ModelEntries(*source.entries);
+    if (models.empty()) return nullptr;
+    const std::string key = LooseKey(name);
+    const std::string_view stem = std::string_view(key).substr(0, key.size() - 4);
+    // The longest model name that begins the file's (a loose figure's <name><part>.fig).
+    for (std::size_t length = stem.size(); length > 0; --length) {
+        const auto model = models.find(stem.substr(0, length));
+        if (model == models.end()) continue;
+        const std::map<std::string, std::string>* files = MadeModel(source, model->second);
+        if (!files) continue;
+        const auto file = files->find(key);
+        if (file == files->end()) continue;
+        if (void* data = SharedFile(*this, name, size)) return data;
+        auto made = std::make_unique<LoadedFile>();
+        made->name = name;
+        made->size = static_cast<std::uint32_t>(file->second.size());
+        made->bytes.assign(file->second.begin(), file->second.end());
+        return KeptFile(*this, std::move(made), size);
+    }
+    return nullptr;
+}
+
+bool MappedResource::HasModelFile(std::string_view name, const Source& source) {
+    const auto& models = source.loose ? source.loose->models : ModelEntries(*source.entries);
+    if (models.empty()) return false;
+    const std::string key = LooseKey(name);
+    const std::string_view stem = std::string_view(key).substr(0, key.size() - 4);
+    for (std::size_t length = stem.size(); length > 0; --length) {
+        const auto model = models.find(stem.substr(0, length));
+        if (model == models.end()) continue;
+        const std::map<std::string, std::string>* files = MadeModel(source, model->second);
+        if (files && files->contains(key)) return true;
+    }
     return false;
 }
 
@@ -353,11 +639,12 @@ bool MappedResource::CloseFile(void* data) {
         game::DebugLog("CMappedResource::CloseFile()\nFile already closed\n");
         return false;
     }
-    LoadedFile* file = byData->second.get();
-    if (--file->refCount != 0) return true;
+    if (--byData->second->refCount != 0) return true;
 
+    std::unique_ptr<LoadedFile> file = std::move(byData->second);
     filesByName.erase(file->name);
     filesByData.erase(byData);
+    if (file->madeFromPng) KeepPng(std::move(file));
     return true;
 }
 
@@ -410,7 +697,7 @@ bool MMIOResource::CloseFile(void*) { return true; }
 
 void MMIOResource::FreeAllFiles() {}
 
-RecordFile FindRecordFile(const std::string& path) {
+RecordFile FindRecordFile(const std::string& path, bool readOriginal) {
     RecordFile record;
     const std::size_t slash = path.find_last_of("\\/");
     const std::string folder = slash == std::string::npos ? std::string(".") : path.substr(0, slash);
@@ -430,7 +717,7 @@ RecordFile FindRecordFile(const std::string& path) {
         }
         if (original || record.replaced) break;
     }
-    if (!record.replaced) record.found = platform::ReadWholeFile(path, &record.original);
+    if (!record.replaced && readOriginal) record.found = platform::ReadWholeFile(path, &record.original);
     return record;
 }
 
@@ -533,14 +820,15 @@ void MappedResource::ListFiles(std::vector<std::string>* fileNames, const char* 
     if (!modfolders::Active()) fileNames->clear();
     const PathParts patternParts = pattern ? SplitPath(pattern) : PathParts{};
     const PathParts* parts = pattern ? &patternParts : nullptr;
+    std::vector<std::string> listed;
     for (const Source& source : Sources()) {
         if (source.loose) {
             const LooseFiles& loose = *source.loose;
             for (const auto& [key, file] : loose.byName)
-                if (NameMatches(file.name, parts)) fileNames->push_back(file.name);
+                if (NameMatches(file.name, parts)) listed.push_back(file.name);
             // The texts.toml's names the folder has no file of.
             for (const auto& [name, text] : loose.texts)
-                if (NameMatches(name, parts) && !loose.byName.contains(LooseKey(name))) fileNames->push_back(name);
+                if (NameMatches(name, parts) && !loose.byName.contains(LooseKey(name))) listed.push_back(name);
             continue;
         }
         const MappedResource& owner = *source.entries;
@@ -549,7 +837,93 @@ void MappedResource::ListFiles(std::vector<std::string>* fileNames, const char* 
             const std::string key = LooseKey(name);
             if (NameMatches(name, parts) && !owner.looseOwn.byName.contains(key) &&
                 !owner.looseOwn.textIndex.contains(key))
-                fileNames->push_back(std::move(name));
+                listed.push_back(std::move(name));
         }
     }
+    // A map made from the folder's files lists its map file and sectors first (those not listed already), so that the
+    // landscape and the AI map read its name.
+    if (const map_folder::MapData* map = FolderMap()) {
+        std::vector<std::string> made = {map->name + kMapFileExtension};
+        for (int sy = 0; sy < map->header.sectorsY; ++sy)
+            for (int sx = 0; sx < map->header.sectorsX; ++sx) made.push_back(map_folder::SectorName(map->name, sx, sy));
+        for (std::string& name : made) {
+            const bool there = std::ranges::any_of(
+                listed, [&](const std::string& other) { return text::CompareIgnoringCase(other, name) == 0; });
+            if (!there && NameMatches(name, parts)) fileNames->push_back(std::move(name));
+        }
+    }
+    fileNames->insert(fileNames->end(), std::make_move_iterator(listed.begin()), std::make_move_iterator(listed.end()));
+}
+
+// ---- Maps as folders --------------------------------------------------------------------------------------------
+
+const map_folder::MapData* MappedResource::FolderMap() {
+    if (mapFolder.empty()) return nullptr;
+    if (folderMapMade) return folderMap.get();
+    folderMapMade = true;
+    const PathParts mapFiles = SplitPath(std::string("*") + kMapFileExtension);
+    std::vector<map_folder::Place> places;
+    for (const Source& source : Sources()) {
+        map_folder::Place& place = places.emplace_back();
+        if (const LooseFiles* loose = source.loose) {
+            place.has = [loose](std::string_view name) { return loose->byName.contains(LooseKey(name)); };
+            place.read = [loose](std::string_view name, std::string* bytes) {
+                const auto file = loose->byName.find(LooseKey(name));
+                return file != loose->byName.end() && platform::ReadLayerFile(file->second.path, bytes);
+            };
+            for (const auto& [key, file] : loose->byName)
+                if (NameMatches(file.name, &mapFiles)) {
+                    place.mapFile = file.name;
+                    break;
+                }
+            continue;
+        }
+        MappedResource* owner = source.entries;
+        place.has = [owner](std::string_view name) { return owner->FindEntry(name) != -1; };
+        place.read = [owner](std::string_view name, std::string* bytes) {
+            std::uint32_t size = 0;
+            void* data = owner->EntryFile(name, &size);
+            if (!data) return false;
+            bytes->assign(static_cast<const char*>(data), size);
+            owner->CloseFile(data);
+            return true;
+        };
+        for (std::uint32_t i = 0; i < owner->header.count && place.mapFile.empty(); ++i) {
+            std::string name = EntryName(*owner, i);
+            if (NameMatches(name, &mapFiles) && !owner->looseOwn.byName.contains(LooseKey(name)))
+                place.mapFile = std::move(name);
+        }
+    }
+    const std::size_t slash = mapFolder.find_last_of("\\/");
+    std::vector<std::string> warnings;
+    std::optional<map_folder::MapData> map = map_folder::Assemble(
+        places, std::string_view(mapFolder).substr(slash == std::string::npos ? 0 : slash + 1), &warnings);
+    for (const std::string& line : warnings) game::Warning("maps: %s: %s", mapFolder, line);
+    if (map) folderMap = std::make_shared<const map_folder::MapData>(std::move(*map));
+    return folderMap.get();
+}
+
+void* MappedResource::FolderMapFile(std::string_view name, std::uint32_t* size) {
+    const map_folder::MapData* map = FolderMap();
+    if (!map) return nullptr;
+    // The map file, or a sector <name>XXXYYY.SEC (sx, sy; -1 for the map file).
+    int sx = -1, sy = -1;
+    if (text::CompareIgnoringCase(name, map->name + kMapFileExtension) != 0) {
+        const std::string_view stem = name.substr(0, name.find_last_of('.'));
+        if (stem.size() != map->name.size() + 6) return nullptr;
+        const std::string_view digits = stem.substr(map->name.size());
+        if (!std::ranges::all_of(digits, [](char c) { return c >= '0' && c <= '9'; })) return nullptr;
+        sx = std::stoi(std::string(digits.substr(0, 3)));
+        sy = std::stoi(std::string(digits.substr(3)));
+        if (sx >= map->header.sectorsX || sy >= map->header.sectorsY ||
+            text::CompareIgnoringCase(name, map_folder::SectorName(map->name, sx, sy)) != 0)
+            return nullptr;
+    }
+    if (void* data = SharedFile(*this, name, size)) return data;
+    const std::string bytes = sx < 0 ? map_folder::EncodeMap(*map) : map_folder::EncodeSector(*map, sx, sy);
+    auto file = std::make_unique<LoadedFile>();
+    file->name = name;
+    file->size = static_cast<std::uint32_t>(bytes.size());
+    file->bytes.assign(bytes.begin(), bytes.end());
+    return KeptFile(*this, std::move(file), size);
 }

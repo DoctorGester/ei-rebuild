@@ -11,6 +11,7 @@
 #include "game/scene/drawn_motion.h"
 #include "game/app/game_flow.h"
 #include "game/app/singletons.h"
+#include "game/models/figure_gltf.h"
 #include "game/models/figure_manager.h"
 #include "game/items/item.h"
 #include "game/scene/light.h"
@@ -41,6 +42,8 @@
 #include "game/ui/ui_drop_list.h"
 #include "game/ui/ui_saveload.h"
 #include "game/ui/ui_options.h"
+#include "game/terrain/ground_print.h"
+#include "game/objects/map_object_manager.h"
 #include "game/units/acks_db.h"
 #include "game/units/unit.h"
 #include "game/units/unit_client_models.h"
@@ -49,6 +52,7 @@
 #include "game/core/coder.h"
 #include "game/sound/sound.h"
 #include "game/map/folder.h"
+#include "game/terrain/terrain.h"
 #include "lib/crt.h"
 #include "game/ui/screen_layout.h"
 
@@ -466,6 +470,69 @@ long AckSound(const char* unit, const char* speech, std::string* sound) {
     return 0;
 }
 
+long RecordText(const char* kind, const char* name, std::string* text) {
+    char line[256] = {};
+    const std::string key = name;
+    const std::string table = kind;
+    if (table == "ack") {
+        // "<unit>/<kind number>": the unit record's speeches of that ack kind.
+        const std::size_t slash = key.rfind('/');
+        if (slash == std::string::npos) return 0;
+        acks::UnitAcks* record = g_ackDatabase.units.Find(key.substr(0, slash));
+        if (!record) return 0;
+        const auto found = record->head.speeches.find(std::atoi(key.c_str() + slash + 1));
+        if (found == record->head.speeches.end() || !found->second) return 0;
+        const std::vector<SpeechRecord>& list = found->second->records;
+        std::snprintf(line, sizeof(line), "%d %s", static_cast<int>(list.size()),
+                      list.empty() ? "-" : list.front().sound.c_str());
+    } else if (table == "anim") {
+        // "<figure>/<animation>": the animation's fields.
+        const std::size_t slash = key.rfind('/');
+        MapObjectManager* manager = g_clientWorld.GetMapObjectManager();
+        if (!manager) return -3;
+        const FigureAnimation* animation =
+            slash == std::string::npos ? nullptr : manager->FindFigureAnimation(key.substr(0, slash), key.substr(slash + 1));
+        if (!animation) return 0;
+        std::snprintf(line, sizeof(line), "chance %u frames %u key %x flags %x moment %u", animation->chance,
+                      animation->frameCount, animation->key, animation->flags, animation->moment);
+    } else if (table == "track") {
+        // "<figure>/<animation>/<part>": the part's track as the figure manager loads it (FindModel, FindAnimation).
+        const std::size_t second = key.rfind('/');
+        const std::size_t first = second == std::string::npos || second == 0 ? std::string::npos : key.rfind('/', second - 1);
+        if (!g_clientWorld.figureManager) return -3;
+        if (first == std::string::npos) return 0;
+        FigureModel* model = g_clientWorld.figureManager->FindModel(key.substr(0, first));
+        MappedResource* animation = model ? model->FindAnimation(key.substr(first + 1, second - first - 1)) : nullptr;
+        std::uint32_t size = 0;
+        void* data = animation ? animation->GetFile(key.substr(second + 1), &size) : nullptr;
+        figure_gltf::Track track;
+        if (!data || !figure_gltf::ReadTrack(std::string_view(static_cast<const char*>(data), size), &track)) return 0;
+        std::snprintf(line, sizeof(line), "rotations %d positions %d frames %d slots %d",
+                      static_cast<int>(track.rotations.size() / 4), static_cast<int>(track.positions.size() / 3),
+                      track.frames, track.slots);
+    } else {
+        // blood, footprint or scorch: a print of the ground's surface by name.
+        const PrintLook* dry = nullptr;
+        const PrintLook* wet = nullptr;
+        const auto find = [&](const auto& records) {
+            for (const auto& record : records) {
+                if (record.name != key) continue;
+                dry = &record.dryLook;
+                wet = &record.wetLook;
+                return;
+            }
+        };
+        if (table == "blood") find(g_printsDatabase.blood);
+        else if (table == "scorch") find(g_printsDatabase.scorch);
+        else find(g_printsDatabase.footprints);
+        if (!dry) return 0;
+        std::snprintf(line, sizeof(line), "dry %g %d %d wet %g %d %d", dry->alpha, dry->life, dry->lifetime, wet->alpha,
+                      wet->life, wet->lifetime);
+    }
+    *text = line;
+    return 1;
+}
+
 long LocalWeaponDamage(const char* weapon, float* minimum, float* maximum) {
     if (!g_serverWorld.players) return -3;
     Player* player = g_serverWorld.GetPlayer(0);
@@ -520,6 +587,13 @@ bool SwitchMod(const char* folder) { return app::RequestModSwitch(folder); }
 bool ModSwitchPending() { return app::ModSwitchPending(); }
 
 bool MapsFileExists(const char* name) { return MapFileExists(name); }
+
+bool GroundHeights(float x, float y, float* client, float* server) {
+    if (!g_clientWorld.terrain || !g_clientWorld.terrain->mapLoaded || !g_serverWorld.aiMap.loaded) return false;
+    *client = g_clientWorld.terrain->HeightAt(x, y, terrain::Layer::Ground);
+    *server = g_serverWorld.GridHeight(x, y);
+    return true;
+}
 
 namespace {
 void (*g_streamWrites)(void* stream, std::uint32_t size, void* const* frame) = nullptr;

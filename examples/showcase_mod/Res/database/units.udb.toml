@@ -1,0 +1,70 @@
+# The mod's creature (docs/modding.md, "Databases"): a model (its figure Res\figures\scgolem.glb, its animation list
+# Res\database\scgolem.adb.toml) and a prototype, both new records after the game's. Maps\zone1.mob.toml places one;
+# its texture is the placement's (parent_iname "ScGolem00": Res\textures\scgolem00.png). The footstep sounds are the
+# game's stone ones (names of the install's files, not files of the mod), by the ground's surface.
+
+[[model]]
+name = "Showcase Golem"
+class = "creature"
+hit_point_regen = 0.005
+mana_regen = 0.1
+movement = "walks"
+angle = 180.0
+mode_speeds = { run = 0.5, walk = 0.15, crawl = 0.26, lie = 0.13 }
+action_speeds = { attack = 1.0, cast = 1.0, hit = 1.0, death = 1.0, cross = 1.0, special = 1.0 }
+reach_height_scale = 0.4
+size_class = 3
+size_class_small = 1
+size_scale = 1.0
+damage_weights = { crushing = 1.0 }
+protection = { piercing = 1.0, slashing = 1.0, crushing = 1.0, fire = 1.0, acid = 1.0, lightning = 1.0, general = 1.0 }
+slots = [{ level = "skull", share = 1.0, factor = 1.01 }, { level = "torso", share = 3.0, factor = 1.01 }, { level = "arm", share = 1.0, factor = 0.34 }, { level = "arm", share = 1.0, factor = 0.34 }, { level = "leg", share = 2.0, factor = 0.67 }, { level = "leg", share = 2.0, factor = 0.67 }]
+figure = "scgolem"
+blood = "brown_spray"
+footprint = "golem"
+foot_part = 3
+cast_effect = true
+hit_material = "Stone"
+
+[model.step_sounds]
+grass = "steps\\Human\\Stone"
+ground = "steps\\Human\\Stone"
+stone = "steps\\Human\\Stone"
+sand = "steps\\Human\\Stone"
+rock = "steps\\Human\\Stone"
+field = "steps\\Human\\Stone"
+water = "steps\\Human\\Water"
+road = "steps\\Human\\Stone"
+surface_8 = "steps"
+snow = "steps\\Human\\Snow"
+ice = "steps\\Human\\Snow"
+dry_grass = "steps\\Human\\Stone"
+snowballs = "steps\\Human\\Snow"
+lava = "steps\\Human\\Dirt"
+swamp = "steps\\Human\\Dirt"
+high_rock = "steps\\Human\\Stone"
+
+[[unit]]
+name = "ShowcaseGolem"
+model = "Showcase Golem"
+scale = [0.5, 0.5, 0.5]
+panel_view_size = 1.0
+view_height = 1.0
+hit_points = 30.0
+level = 1
+experience_value = 12.0
+protection_scale = 7.0
+attack_category = 55.0
+speed = 1.0
+combat = { attack = 10.0, attack_spread = 40.0, defence = 10.0, speed = 1.0 }
+natural_weapon = "spear"
+hit_sound = "crash"
+damage = 4.0
+damage_spread = 3.0
+skill_level = 3.0
+attributes_01 = 100.0
+attribute_2 = 100.0
+peripheral_range = 1.7
+perception = { sight = 8.5, day_sight = 100.0, hearing = 2.8, unread = 10.0 }
+conspicuity = { sight = 1.0, day_sight = 1.0, near = 1.0, hearing = 1.0, smell = 1.0, unread = 1.0 }
+gold = { chance = 100.0, minimum = 5.0, maximum = 10.0 }
