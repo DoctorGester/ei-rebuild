@@ -5,5 +5,6 @@ size = 2
 model = "opus"
 note = "User 2026-11-11: we have the full source, so nothing should stay unknown or guessed. Trace every remaining value in MF14's formats to the code that reads it and name it by what it does: adb flags_other / key_other bits (to zero in every vanilla, Rebirth and mod file), the footprint, hit_sound (hands1..7), surface_8, perception's 'unread' and any other placeholder name listed in docs/modding.md / docs/notes/mods.md. A bit or value nothing reads is said so (and the writer drops it if it never changes behaviour). Unknown names in TOML are a load error (file:line, valid names), as MF14 asked. Goldens the same (normal and --converted)."
 order = 1336
-status = "review"
+status = "done"
 started = "2026-11-11"
+done = "2026-11-11"
