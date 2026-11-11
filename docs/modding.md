@@ -306,15 +306,16 @@ the record is left out`); the record is not read. The names (docs/notes/mods.md,
 | model `mode_speeds`, `action_speeds` | `{ run, walk, crawl, lie }`; `{ attack, cast, hit, death, cross, special }` |
 | unit `combat` | `{ reach, attack, attack_spread, defence, speed }` |
 | unit `perception`, `conspicuity` | `{ sight, day_sight, near, hearing, smell, unread }` (`unread`: no code reads it; a prototype's conspicuity `sight` also scales its footprints) |
-| unit `hit_sound` | the sound of its natural attack's hit: a weapon type (that weapon's sound), `none`, `spells_only` (no sound), or a folder of `Res\sfx\weapons\`: `pierce`, `crash`, `slash`, `hands1` (the humans' fists), `hands4` (the ogres'), `hands6` (the trolls'), `hands7` (the animals': no install has the folder, so they hit silently; a mod may add `weapons\hands7\<material>\1.wav`) |
+| unit `hit_sound` | the sound of its natural attack's hit: a weapon type (that weapon's sound), `none`, `spells_only` (no sound), or a folder of `Res\sfx\weapons\`: `pierce`, `crash`, `slash`, `hands1` (the humans' unarmed hits), `hands4` (the ogres'), `hands6` (the trolls'), `hands7` (the animals': no install has the folder, so they hit silently; a mod may add `weapons\hands7\<material>\1.wav`) |
 | npc `stats` | `{ strength, dexterity, intelligence }` |
 | spell `school` | `fire`, `lightning`, `acid`, `illusion`, `divination`, `enchantment`, `healing`, `domination`, `none` |
 | spell `target_kind`, `allowed_modifiers`; modifier `kind` | `unit`, `point`; `{ range, targets, area, effect, duration }`; `range`, `targets`, `area`, `effect`, `duration`, `mana`, `filter`, `item` |
 | true / false | `buildable`, `shows_wounds`, `cast_effect`, `swap_feet`, `voiced`, `needs_sight` |
 
 A table gives only the elements it changes (`perception = { sight = 9.0 }`); a long one can be a sub-table of the
-record (`[model.step_sounds]` after the model's other fields). A value without a name (the game data has a few, such
-as the loot items' `kind` of some records) is a number. A list of bits takes a number where the code gives one and no
+record (`[model.step_sounds]` after the model's other fields). A value without a name is a number: the game data has
+two, Shapechange's `target_kind` 115 (neither a unit nor a point: the interface asks for a point) and Lost in Astral's
+`blood = 9` (the same as `none`). A list of bits takes a number where the code gives one and no
 name does: a weapon type in an animation's `weapons`, a trader class in `sold_by`.
 
 ### Animation lists
