@@ -2,27 +2,20 @@
   "scenario": "mod_showcase_spell",
   "install": "vanilla",
   "recorded": "2026-11-11",
-  "commit": "73c4605a0",
+  "commit": "809aa9411",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MF17h2: Chain Spark's strike leaves the spell's own effect (the showcase's example of a buff with its own look, ChainSparkShock) in place of the game's slow: the same slowing by its OnStats, the effect's record place 42 not 34, and the client's look draws its own particles.",
+  "reason": "MF15h: Chain Spark's record names its own cast look (cast_look = ChainSparkCast), so the hero's casting particle object carries that effect's id instead of CastingElectricity's; nothing else in the run changes.",
   "source": "image",
+  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 9 of 48 records differ, first at record 36 (world update 740, tick 702, frame 147, zone gz1g); outcomes the same (deaths unknown: hash only); no unit position differs",
-    "  first difference at record 36 (world update 740, tick 702, frame 147, zone gz1g): 1 fields",
-    "    obj4001 (80 scgolem \"\") #vitals: 65730251 in the old golden, 9D5C7942 in the new run",
-    "  outcomes: none changed (deaths unknown: vitals differ, only a hash is kept); same: zone, spawns, money, quest variables, party and items, game result, script",
-    "  units: 3 of 8 differ",
-    "    #vitals: 3 units, 9 records, from 36; hash only (no numbers kept)",
-    "dump loaded_save1: digest: 1 of 1 records differ, first at record 46 (world update 930, tick 728, frame 186, zone gz1g); outcomes the same (deaths unknown: hash only); no unit position differs",
-    "  outcomes: none changed (deaths unknown: vitals differ, only a hash is kept); same: zone, spawns, money, quest variables, party and items, game result, script",
-    "  units: 3 of 4 differ",
-    "    #vitals: 3 units, 1 record, from 46; hash only (no numbers kept)",
-    "save showcase_mod/save1/mission.sav: 1 fields in 1 records differ: obj 1",
-    "  obj: 1 fields in 1 records; first obj4001 effect0.type: 34 in the old golden, 42 in the new run (d 8)",
-    "... 2 more lines"
-  ],
-  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs"
+    "digest: 1 of 48 records differ, first at record 35 (world update 720, tick 682, frame 143, zone gz1g); outcomes the same; no unit position differs",
+    "  first difference at record 35 (world update 720, tick 682, frame 143, zone gz1g): 1 fields",
+    "    timed282 (74 CEffectParticle) #: 2B54C7B1 in the old golden, 5FFFC630 in the new run",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  effects: 1 of 19 differ",
+    "    #: 1 effect, 1 record, from 35; hash only (no numbers kept)"
+  ]
 }

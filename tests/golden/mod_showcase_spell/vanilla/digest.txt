@@ -1374,7 +1374,7 @@ obj1000011214 #vitals 921422B1
 aievents tick 662
 client tick 662
 client ticksRun 672
-@ 35 update 720 frame 143 tick 682 zone gz1g hash 1F015ACE n 15
+@ 35 update 720 frame 143 tick 682 zone gz1g hash 343B9ED3 n 15
 world tick 682
 world updates 720
 world timedObjects 1
@@ -1388,7 +1388,7 @@ obj1000011214 #place 8B7BCBF9
 obj1000011214 #unit B0777207
 obj1000011214 #vitals ECA55E0C
 + timed282 74 CEffectParticle
-timed282 # 2B54C7B1
+timed282 # 5FFFC630
 aievents tick 682
 client tick 682
 client ticksRun 692
