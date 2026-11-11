@@ -25,7 +25,7 @@
 #include "game/world/hoover.h"
 #include "game/core/named_floats.h"
 #include "game/map/map_database.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "game/players/party.h"
 #include "game/players/party_manager.h"
 #include "game/players/party_records.h"
@@ -42,7 +42,7 @@
 #include "game/units/unit.h"
 #include "game/units/unit_db.h"
 #include "game/world/world.h"
-#include "game/map/folder.h"
+#include "game/mods/maps_folder.h"
 
 #include "lib/calendar.h"
 #include "lib/containers.h"

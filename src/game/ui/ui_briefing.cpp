@@ -14,7 +14,7 @@
 #include "game/items/item_db.h"
 #include "lib/vecmath.h"
 #include "game/map/map_database.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "game/players/party.h"
 #include "game/players/player.h"
 #include "game/data/text_manager.h"

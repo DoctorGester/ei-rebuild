@@ -3,7 +3,7 @@
 // Its times are the real clock's, not the game's.
 #include "game/net/net_second_master.h"
 
-#include "game/app/settings.h"
+#include "game/data/settings.h"
 #include "game/net/net_session.h"
 #include "game/core/coder.h"
 #include "game/net/net_messages.h"

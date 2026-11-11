@@ -9,7 +9,7 @@
 #include "game/data/resource.h"
 #include "game/app/logic_settings.h"
 #include "game/net/net_delta.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "game/sound/sound.h"
 #include "game/units/unit.h"
 #include "game/units/unit_create.h"

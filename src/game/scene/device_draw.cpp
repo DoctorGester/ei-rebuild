@@ -4,7 +4,6 @@
 // once. See docs/notes/models.md ("Material draw").
 #include "game/scene/device_material.h"
 
-#include "game/app/app.h"
 #include "game/scene/device.h"
 #include "game/scene/scene_renderer.h"
 #include "game/scene/render_helper.h"   // RenderPreset

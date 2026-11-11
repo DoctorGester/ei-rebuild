@@ -2,7 +2,7 @@
 // the menus' button rectangles (read from "menus.reg"). See figure_manager.h.
 #include "game/models/figure_manager.h"
 
-#include "game/app/singletons.h"
+#include "game/core/engine_globals.h"
 #include "game/core/engine_object.h"   // EngineObject
 #include "game/data/registry.h"
 #include "game/models/animation.h"

@@ -2,7 +2,7 @@
 #include "convert_maps.h"
 
 #include "game/data/resource.h"
-#include "game/map/map_folder.h"
+#include "game/data/map_folder.h"
 
 #include "lib/bytes.h"
 #include "lib/text_case.h"

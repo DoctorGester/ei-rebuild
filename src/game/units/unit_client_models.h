@@ -6,6 +6,7 @@
 
 #include "game/ai/ai_map.h"
 #include "game/core/engine_object.h"
+#include "game/models/texture.h"   // SkinRequest
 #include "lib/rect.h"
 #include "game/units/unit.h"
 
@@ -64,14 +65,6 @@ struct SkinLayer {
     int kind = 0;
     std::uint32_t id = 0xFFFFFFFFu;
     int slot = -1;
-};
-
-// What the texture manager composes a skin from: the layers as bytes in 32-byte aligned storage, the layer
-// texture names, and the side of the square texture in texels (0x100 detailed, 0x80 simple).
-struct SkinRequest {
-    std::vector<std::uint8_t> layers;
-    std::vector<std::string> textures;
-    int side = 0;
 };
 
 struct AttackParams;

@@ -22,7 +22,7 @@
 #include <utility>
 
 #include "game/app/singletons.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "game/world/world.h"
 
 #include <list>

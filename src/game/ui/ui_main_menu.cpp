@@ -4,7 +4,7 @@
 #include "game/app/app.h"
 #include "game/app/game_flow.h"
 #include "game/mods/mod_list.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "game/sound/sound.h"
 #include "game/ui/ui.h"
 #include "game/ui/ui_message_box.h"

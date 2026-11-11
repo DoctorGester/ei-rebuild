@@ -28,6 +28,8 @@ def checks(out):
         py + [tool('retired_vtables.py'), '--check'],
         # The game's code calls Windows only through src/platform (tools/check_platform.py).
         py + [tool('check_platform.py')],
+        # The engine (ei_engine) includes no game header beyond tools/engine_layers.txt's (tools/engine_layers.py).
+        py + [tool('engine_layers.py')],
         # docs/settings.md against the settings catalog, and the catalog against the settings the code reads (C69).
         py + [tool('gen_settings_doc.py'), '--check'],
         # Checks of our code without the game: the settings file, lib::HashMap's order (tests/unit).

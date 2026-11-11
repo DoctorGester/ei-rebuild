@@ -5,7 +5,7 @@
 #include "game/scene/light.h"
 #include "game/scene/scene_renderer.h"
 #include "game/scene/pipeline.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "game/world/world.h"
 
 #include "game/core/core_maths.h"

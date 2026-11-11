@@ -1,6 +1,8 @@
 // ResourceManager. See resource_manager.h.
 #include "game/data/resource_manager.h"
 
+#include "game/core/engine_globals.h"
+
 #include <cstddef>
 #include <string>
 #include <vector>
@@ -14,6 +16,11 @@ void CloseAll(std::vector<ArchiveEntry>& archives) {
 }
 
 } // namespace
+
+// The game's folders (engine_globals.h; app/app.cpp sets them).
+std::string g_startFolder;
+std::string g_textFolder;
+std::string g_dataFolder;
 
 // --- Construction and destruction ---------------------------------------------------------------
 

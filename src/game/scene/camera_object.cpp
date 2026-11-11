@@ -7,7 +7,7 @@
 #include "game/app/singletons.h"
 #include "game/objects/object3d.h"
 #include "game/mods/mod_folders.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "game/saves/save_versions.h"
 #include "game/ui/screen_layout.h"
 #include "game/world/world.h"

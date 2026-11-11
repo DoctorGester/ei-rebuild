@@ -211,7 +211,7 @@ void Load() {
         unsigned(S().keys.size()), values);
 }
 
-// ---- the standalone's settings file (game/app/settings.h) ----
+// ---- the standalone's settings file (game/data/settings.h) ----
 
 // The run's settings file is written from the snapshot's option tree game.exe reads on this install (the original's,
 // or Rebirth's: addon.dll's NivalRegistry patch), its keys by section, and Rebirth's switches.

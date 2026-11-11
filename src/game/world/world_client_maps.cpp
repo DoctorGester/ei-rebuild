@@ -27,7 +27,7 @@
 #include "game/scene/pipeline.h"
 #include "game/models/texture.h"
 #include "game/map/map_database.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "platform/platform.h"
 #include "game/players/player_client.h"
 #include "game/players/player_manager.h"
@@ -46,7 +46,7 @@
 #include "game/units/unit_looks.h"
 #include "game/world/world.h"
 #include "game/effects/world_effect.h"
-#include "game/map/folder.h"
+#include "game/mods/maps_folder.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"

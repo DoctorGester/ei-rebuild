@@ -3,7 +3,7 @@
 
 #include "../harness_netstate_read.h"
 
-#include "game/mods/mod_identity.h"
+#include "game/net/mod_identity.h"
 #include "game/net/net_session.h"
 #include "game/players/player.h"
 #include "game/players/player_client.h"

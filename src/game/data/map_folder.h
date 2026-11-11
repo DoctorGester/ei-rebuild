@@ -6,7 +6,7 @@
 // the files again, WriteFolder writes the folder's files and Assemble reads them over the original, place by place.
 // No game state: the archives (data/resource.cpp), ei-convert and the unit check use it as it is.
 
-#include "game/map/map_file.h"
+#include "game/data/map_file.h"
 
 #include <array>
 #include <cstddef>

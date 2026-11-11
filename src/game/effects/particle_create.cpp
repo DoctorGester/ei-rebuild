@@ -1,12 +1,10 @@
 // ParticleSource set-up: the types' names, Create (from the effect's record), Reset and Clear.
 // More: docs/notes/effects.md, "Particle sources".
 #include "game/core/core_transform.h"
-#include "game/effects/effects.h"
-#include "game/app/singletons.h"
-#include "game/objects/object3d.h"
+#include "game/effects/particle_source.h"
 #include "game/effects/particle_data.h"
+#include "game/effects/particle_host.h"
 #include "game/models/texture.h"
-#include "game/world/world.h"
 
 #include "lib/containers.h"
 #include "lib/text_case.h"
@@ -119,7 +117,7 @@ void ParticleSource::Clear() {
     ReleaseAllParticles();
     texture.Reset();
     if (attachedTo)
-        attachedTo->RemoveEffectSource(this);
+        particlehost::LetGo(attachedTo, this);
     Reset();
 }
 

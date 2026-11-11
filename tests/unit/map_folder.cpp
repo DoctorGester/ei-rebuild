@@ -1,9 +1,9 @@
-// game/map/map_folder.h: maps as folders and back (docs/notes/mods.md, "Maps as folders"), and lib/png.h's writer. A
+// game/data/map_folder.h: maps as folders and back (docs/notes/mods.md, "Maps as folders"), and lib/png.h's writer. A
 // made-up map of 2 x 2 sectors (one with water, seams on its shared edges) comes back byte for byte through its files
 // and through its folder; a heights.png over the original replaces the heights alone and brings normals worked out
 // from them; every 16-bit sample comes back through a PNG; lib/png.h's reader gives the pixels the writer was given for
 // every kind of PNG it makes (in segments too, at 8 and 16 bits) and fixed ones for a palette with transparency.
-#include "game/map/map_folder.h"
+#include "game/data/map_folder.h"
 
 #include "lib/png.h"
 

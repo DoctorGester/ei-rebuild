@@ -2,17 +2,15 @@
 // typed inputs. More: docs/notes/effects.md, "Data effects".
 #include "game/effects/particle_data.h"
 
-#include "game/effects/effects.h"
+#include "game/effects/particle_source.h"
+#include "game/effects/particle_host.h"
 
-#include "game/app/singletons.h"
+#include "game/core/engine_globals.h"
 #include "game/core/random.h"
 #include "game/data/resource.h"
 #include "game/scene/camera.h"
 #include "game/scene/light.h"
 #include "game/scene/scene_renderer.h"
-#include "game/objects/map_object.h"
-#include "game/units/unit.h"
-#include "game/world/world.h"
 
 #include "lib/crt.h"
 #include "lib/float_select.h"
@@ -194,59 +192,16 @@ Vector3 AnchorPosition(const State& state, int anchor) {
             values[static_cast<int>(AnchorValue::Z)]};
 }
 
-// The carrier's radius and centre height, at their first read in a tick (State::measure): AttachmentOffset measures the
-// carrier's bounds again, so only when an expression reads them.
+// The carrier's radius and centre height, at their first read in a tick (State::measure): particlehost::MeasureCarrier
+// measures the carrier's bounds again, so only when an expression reads them.
 void MeasureCarrier(void* context) {
     ParticleSource& s = *static_cast<ParticleSource*>(context);
     State& state = *s.data;
     if (state.measured) return;
     state.measured = true;
-    const ParticleSource::Attachment carrier = s.AttachmentOffset();
+    const particlehost::Measure carrier = particlehost::MeasureCarrier(s.attachedTo);
     Value(state.source, SourceValue::CarrierRadius) = carrier.radius;
     Value(state.source, SourceValue::CarrierZ) = carrier.offset.z;
-}
-
-// The ground's height for `ground(x, y)` (State::ground).
-float GroundHeight(float x, float y) { return g_clientWorld.RawSurfaceHeightAt(x, y); }
-
-// The top platform's plane for `platform_height` and `platform_normal_x/y/z`, and what stands there for `surface`
-// (State::platform).
-float PlatformPlane(float x, float y, int which) {
-    if (which == 4) return g_clientWorld.platforms.SurfaceHeight({x, y, 0.0f}, g_clientWorld.RawSurfaceHeightAt(x, y));
-    const PlatformSet::SurfacePlaneResult plane = g_clientWorld.platforms.SurfacePlane(x, y);
-    switch (which) {
-    case 0: return plane.height;
-    case 1: return plane.normal.x;
-    case 2: return plane.normal.y;
-    default: return plane.normal.z;
-    }
-}
-
-// The carrier's unit values (SourceValue::CarrierUnit...): its feet as ParticleSource::PartPoint finds a part.
-void WriteCarrier(ParticleSource& s, std::vector<float>& v) {
-    MapObject* carrier = s.attachedTo;
-    Unit* unit = UnitOrNull(carrier);
-    Value(v, SourceValue::CarrierUnit) = unit ? 1.0f : 0.0f;
-    Value(v, SourceValue::CarrierRunning) = unit && unit->moveMode == MoveMode::Run ? 1.0f : 0.0f;
-    Value(v, SourceValue::CarrierDead) = unit && unit->IsDead() ? 1.0f : 0.0f;
-    const Vector3 axis = carrier ? carrier->localRotation.AxisX() : Vector3{};
-    Value(v, SourceValue::CarrierAxisX) = axis.x;
-    Value(v, SourceValue::CarrierAxisY) = axis.y;
-    Value(v, SourceValue::CarrierAxisZ) = axis.z;
-    Value(v, SourceValue::CarrierBoundsRadius) = carrier ? carrier->bounds.radius : 0.0f;
-    Value(v, SourceValue::CarrierUnitRadius) = unit ? unit->Radius() : 0.0f;
-    const Vector3 axisY = carrier ? carrier->localRotation.AxisY() : Vector3{};
-    Value(v, SourceValue::CarrierAxisYX) = axisY.x;
-    Value(v, SourceValue::CarrierAxisYY) = axisY.y;
-    Value(v, SourceValue::CarrierAxisYZ) = axisY.z;
-    const Vector3 left = unit ? s.PartPoint(unit, "ll3") : s.origin;
-    const Vector3 right = unit ? s.PartPoint(unit, "rl3") : s.origin;
-    Value(v, SourceValue::CarrierLeftFootX) = left.x;
-    Value(v, SourceValue::CarrierLeftFootY) = left.y;
-    Value(v, SourceValue::CarrierLeftFootZ) = left.z;
-    Value(v, SourceValue::CarrierRightFootX) = right.x;
-    Value(v, SourceValue::CarrierRightFootY) = right.y;
-    Value(v, SourceValue::CarrierRightFootZ) = right.z;
 }
 
 // The values that change when the source lets go of its carrier.
@@ -256,7 +211,7 @@ void WriteAttachment(ParticleSource& s, State& state) {
     Value(v, SourceValue::OriginX) = s.origin.x;
     Value(v, SourceValue::OriginY) = s.origin.y;
     Value(v, SourceValue::OriginZ) = s.origin.z;
-    if (state.record->readsUnit) WriteCarrier(s, v);
+    if (state.record->readsUnit) particlehost::WriteCarrier(s, v);
 }
 
 // A source value (SourceValue: size, height, growth, alpha, param, the spread box, the extent) written back to the
@@ -293,7 +248,7 @@ void ApplyActions(ParticleSource& s, State& state) {
     for (const ScorchRequest& scorch : state.scorches) {
         const float angle = ScaleWord(g_clientRandom.Next(), 6.3f);
         const float alpha = MinKeepA(scorch.alpha, 1.0f);
-        g_clientWorld.AddScorchMark(s.origin.x, s.origin.y, scorch.radius, scorch.radius, angle, alpha);
+        particlehost::AddScorchMark(s.origin.x, s.origin.y, scorch.radius, scorch.radius, angle, alpha);
     }
     state.scorches.clear();
     const bool detached = state.stopRequested || state.letGo;
@@ -359,7 +314,7 @@ void WriteSource(ParticleSource& s, State& state) {
     Value(v, SourceValue::SunR) = sun ? sun->color[0] : 0.0f;
     Value(v, SourceValue::SunG) = sun ? sun->color[1] : 0.0f;
     Value(v, SourceValue::SunB) = sun ? sun->color[2] : 0.0f;
-    if (state.record->readsUnit) WriteCarrier(s, v);
+    if (state.record->readsUnit) particlehost::WriteCarrier(s, v);
 }
 
 // A particle's own values (`p.*`) as its update or emission reads them.
@@ -501,7 +456,7 @@ Emitted EmitKind(ParticleSource& s, Particle& p, int kindIndex, int anchor, int 
         p.pos = placed ? offset + centre : centre;
     }
     if (!kind.onGround.Empty())
-        p.pos.z = g_clientWorld.RawSurfaceHeightAt(p.pos.x, p.pos.y) + kind.onGround.Run(env);
+        p.pos.z = particlehost::GroundHeight(p.pos.x, p.pos.y) + kind.onGround.Run(env);
     if (kind.space == Space::Source) p.drift = p.pos - s.origin;
     else if (kind.space == Space::Anchor) p.drift = p.pos - centre;
     WriteParticle(p, values);
@@ -622,8 +577,8 @@ void SetUp(ParticleSource& s, std::shared_ptr<const Record> record) {
     s.data = std::make_unique<State>(std::move(record));
     s.data->measure = MeasureCarrier;
     s.data->measureContext = &s;
-    s.data->ground = GroundHeight;
-    s.data->platform = PlatformPlane;
+    s.data->ground = particlehost::GroundHeight;
+    s.data->platform = particlehost::PlatformPlane;
     if (std::any_of(r.vars.begin(), r.vars.end(), [](const Var& var) { return var.atCreate; }) ||
         std::any_of(r.anchors.begin(), r.anchors.end(), [](const Anchor& anchor) { return anchor.atCreate; })) {
         WriteSource(s, *s.data);

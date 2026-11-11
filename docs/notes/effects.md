@@ -1,8 +1,11 @@
 # Particles and world effects
 
-Code: `particle_manager.cpp` (the manager, attach, draw, tick), `particle_create.cpp` (the types' names, Create), the
-data runtime (`particle_expr.*`, `particle_record.*`, `particle_data.*`: "Data effects" below), `effects.h`,
-`effects_weather.cpp`, `world_effect*.cpp`. Scenarios:
+Code: the particle core (part of the engine library: file-layout.md, "The engine library"): `particle_source.h`
+(the types, the manager, the sources), `particle_manager.cpp` (the manager, attach, draw, tick), `particle_create.cpp`
+(the types' names, Create), the data runtime (`particle_expr.*`, `particle_record.*`, `particle_data.*`: "Data
+effects" below) and `particle_host.h`, what the core asks of the world (the ground, the platforms, the wind, the tick
+fraction, the scorch marks, the carriers), answered on the client world by the game's `effects_particles.cpp`. The
+game's: `effects.h` (the rain and snow, the visibility fog), `effects_weather.cpp`, `world_effect*.cpp`. Scenarios:
 `particles.txt` (every source type it can make), `effects.txt`, `spells*`, `effects_bow`.
 
 ## Particle sources
@@ -23,7 +26,7 @@ data runtime (`particle_expr.*`, `particle_record.*`, `particle_data.*`: "Data e
 - `Tick` computes the source motion, runs the effect's step and its update per particle (saving / restoring
   the "prev" fields), tracks the bounding box and emits up to `max(emitCount, distance moved /
   emitSpacing)` particles with `emitChance`% each. Particles are pooled.
-- The types are `ParticleType` (effects.h): the script table's names, and descriptive ones for the types it lacks.
+- The types are `ParticleType` (particle_source.h): the script table's names, and descriptive ones for the types it lacks.
 - `ParticleManager`: free particles, `held` (sources by id, one reference each), a quiet-start flag that stops
   CampFire, Fire and Smoke (by type id; never set). `TickSources` ticks every source (paused: only `TicksWhilePaused`; a held source whose
   tick returned 0 is released); `ReleaseUnheld` releases held sources with no other reference (the client's zone
@@ -232,7 +235,7 @@ last drawn point's y and z). Constants `pi`, `deg`. Names, by where the expressi
   `carrier_unit`, `carrier_running`, `carrier_dead` (0 / 1), `carrier_unit_radius` (the unit's own radius, 0 else), `carrier_axis.x/y/z`, `carrier_axis_y.x/y/z` (its own x and
   y axes; 0 when free), `carrier_bounds_radius` (its bounds' radius as it stands, not measured again),
   `carrier_left_foot.x/y/z`, `carrier_right_foot.x/y/z` (its "ll3" / "rl3" parts, else its body, else its position
-  raised by its bounds' top, as ParticleSource::PartPoint; the origin without a unit carrier); written at the tick's
+  raised by its bounds' top, as particlehost::WriteCarrier finds a part; the origin without a unit carrier); written at the tick's
   start only for an effect that reads one of them), `anchors.<group>` (live count), `stage.<name>`;
 - in an anchor's and its particles' fields: `a.index`, `a.count`, `a.age`, `a.ticks` (left), `a.x/y/z`,
   `a.spawn.x/y/z`, `a.<var>`;
@@ -469,10 +472,11 @@ camera, all without a second start-up. It also lets the harness drive the viewer
   menu. StartNewGame puts the party into `--zone` when one is given (the party's zone set before the redeploy), else
   the campaign's first zone. The hero is the unit the first pick goes on. The zone entry's autosave is off in this
   mode (ui_battle.cpp, AutoSaveEnabled), so the player's `savea` survives the viewer.
-  - Not a separate exe: an `ei-effects` entry point would still need GameMain's whole start (the worlds, the
-    databases, the window, the renderer, the interface) and a zone with a unit, which is what the new game gives.
-    The flag costs a few lines of app code, while a second exe would add a CMake target, its packaging and a second
-    copy of main.cpp's set-up.
+  - Not a separate exe yet: an `ei-effects` entry point needs GameMain's whole start (the worlds, the databases,
+    the window, the renderer, the interface) and a zone with a unit, which is what the new game gives. The user
+    (2026-11-11) wants it as its own exe all the same: on the engine library (file-layout.md, "The engine library";
+    ei_engine with the particle core, MF15k1), once the particle core's world calls (`particle_host.h`) are an
+    interface (MF15k2) and a figure plays without a unit (MF15k3), the viewer is MF15k4's exe.
   - The in-game panel (the harness's `effectviewer open`, over a game started as usual) is the same viewer.
   - A base zone (map list kind 2) has no 3D scene, so `--zone` wants a battle zone.
   - tests/scenarios/effect_viewer_standalone.txt starts the exe with `--effects Portal` (run_all's `# arguments:` line).
@@ -487,7 +491,7 @@ camera, all without a second start-up. It also lets the harness drive the viewer
   - Its draws come from the viewer's own IsaacRandom, swapped with `g_particleRandom` around its set-up and its ticks.
     The game's generator is untouched, and every replay draws the same.
   - It is placed as EffectParticle::Spawn places a spawned effect (localPosition, ScaleSize(size / baseSize),
-    Attach). On a unit outside the party it draws only while its unit is shown (`AttachedToHiddenUnit`).
+    Attach). On a unit outside the party it draws only while its unit is shown (`particlehost::Hidden`).
   - The viewer lets go of it before the worlds are emptied (`worldsEnding`, from StopGame).
 - **Sub-effects** (a data effect's `effect` actions, `on_death` too): StartEffects makes those of a source with
   OwnClock through `effectdata::g_startOwnClock`, which the viewer sets at Open (`StartChild`): unheld, one reference

@@ -1091,3 +1091,15 @@ void AIMemory::Save(ByteStream* stream) {
     calls.Save(stream);
     stream->WriteValue(noticedDecay);
 }
+
+// The trap's units and the brain's lists, saved and loaded by id (LoadRef).
+HeldUnits LoadUnitList(ByteStream* stream, World* context) {
+    HeldUnits list;
+    for (int count = stream->ReadCount(); count > 0; --count) LoadRef(list.emplace_back(), stream, context);
+    return list;
+}
+
+void SaveUnitList(const HeldUnits& list, ByteStream* stream) {
+    stream->WriteCount(list.size());
+    for (const HeldRef<Unit>& unit : list) stream->WriteId(unit);
+}

@@ -31,7 +31,7 @@
 #include "game/units/unit_db.h"
 #include "game/world/world.h"
 #include "game/effects/world_effect.h"
-#include "game/map/folder.h"
+#include "game/mods/maps_folder.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"

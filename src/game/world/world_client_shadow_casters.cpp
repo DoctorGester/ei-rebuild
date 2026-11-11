@@ -10,7 +10,7 @@
 #include "game/objects/map_object.h"
 #include "game/objects/object3d.h"
 #include "game/objects/map_object_shadow.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "game/players/player.h"
 #include "render/render.h"
 #include "game/spells/spell.h"

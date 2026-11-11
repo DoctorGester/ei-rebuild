@@ -18,6 +18,11 @@ enum class ArchiveClass : std::int32_t {
     PartyRecord = 2,
 };
 
+class RefCounted;
+// The object an index entry's class id stands for, new with no references; null for any other id. The game's
+// (players/party_manager.cpp: the class templates and the party records are its classes).
+RefCounted* CreateArchived(ArchiveClass type);
+
 // The bits of RefCounted's two flag bytes.
 enum class RefFlag : std::uint8_t {
     CopyOnShare = 0x01,    // flags6: sharing makes a copy (the copy is marked too)

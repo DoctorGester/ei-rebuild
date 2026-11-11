@@ -20,7 +20,7 @@
 #include "lib/vecmath.h"
 #include "game/scene/scene_renderer.h"
 #include "game/models/texture.h"
-#include "game/mods/mod_identity.h"
+#include "game/net/mod_identity.h"
 #include "game/net/net_second_master.h"
 #include "game/ui/ui_cursor.h"
 #include "game/ui/ui_credits.h"

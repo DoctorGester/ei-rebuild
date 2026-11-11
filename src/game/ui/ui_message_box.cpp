@@ -10,7 +10,7 @@
 #include <string>
 #include "game/app/movies.h"
 #include "game/app/singletons.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "platform/platform.h"
 
 #include <cstring>

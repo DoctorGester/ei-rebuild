@@ -6,9 +6,8 @@
 #include "game/core/core_maths.h"
 #include "game/core/core_streams.h"
 #include "game/core/core_transform.h"
-#include "game/app/singletons.h"
 #include "lib/vecmath.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 
 
 #include <cstddef>

@@ -29,7 +29,7 @@ public:
     explicit ManagerContext(ContextKind contextKind = ContextKind::Party) : contextKind(contextKind) {}
     void Create() override;
 
-    // The world this context is (manager_context.cpp), else null.
+    // The world this context is (world/manager_context.cpp: the members below answer from the world), else null.
     World* ThisWorld();
     WorldServer* ThisServerWorld();
     WorldClient* ThisClientWorld();
@@ -48,7 +48,7 @@ public:
     // CopyItem here: WorldServer's plain member of that name would hide it.
     virtual Item* DuplicateItem(Item* item) { return MakeCopyOf(item); }
 
-    // (manager_context.cpp). The item factory makes an item of `item`'s kind,
+    // (world/manager_context.cpp). The item factory makes an item of `item`'s kind,
     // prototype (high word of the packed id) and material (low word), which `item` then fills (its
     // CopyTo with the spell manager). Returns the new item.
     Item* MakeCopyOf(Item* item);

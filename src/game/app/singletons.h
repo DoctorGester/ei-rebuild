@@ -1,12 +1,11 @@
 #pragma once
 
-// The game's global objects and tick counters, named once (they were per-file copies): the game flow,
-// the interface manager, the client and server worlds and what they hold (the ticks, the managers, the
-// mission script, the sector map), the scene renderer, its render device and lock, the cursor, the map database,
-// the camera, the party manager and the folders.
-// The global random generator is g_random.
+// The game's global objects, named once (they were per-file copies): the game flow, the interface manager, the client
+// and server worlds and what they hold (the managers, the mission script, the sector map), the cursor, the map
+// database and the party manager. The engine's (the scene renderer, the camera, the folders) are in
+// game/core/engine_globals.h, included here. The global random generator is g_random.
 
-#include <string>
+#include "game/core/engine_globals.h"
 
 struct GameFlow;
 class Interface3D;
@@ -28,8 +27,6 @@ class Cursor;
 struct MapDatabase;
 class Script;
 class SectorMap;
-class SceneRenderer;
-class Camera;
 struct PartyManager;
 
 extern GameFlow g_gameFlow;   // app/game_flow.cpp
@@ -41,21 +38,10 @@ extern WorldClient g_clientWorld;   // world_create.cpp
 
 extern WorldServer g_serverWorld;   // world_create.cpp
 
-// The scene renderer.
-extern SceneRenderer g_sceneRenderer;   // renderer_scene.cpp
-
-// The cursor. The map database. The server world's mission script and sector map. The camera.
+// The cursor. The map database. The server world's mission script and sector map.
 extern Cursor g_cursor;   // ui_cursor.cpp
 extern MapDatabase g_mapDatabase;   // map_database.cpp
 Script* TheMissionScript();
-extern Camera g_camera;   // camera_object.cpp
 
 // The party manager (the parties by key, the named records and the class templates).
 extern PartyManager g_partyManager;   // party_manager.cpp
-
-// The game's folders (app/app.cpp): where the game was started,
-// the text resources' and the data folder (with its trailing backslash; the movies, the voices and the saves are
-// under it).
-extern std::string g_startFolder;
-extern std::string g_textFolder;
-extern std::string g_dataFolder;

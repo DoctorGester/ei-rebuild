@@ -9,7 +9,7 @@
 #include "game/net/net_connection.h"
 #include "game/net/net_messages.h"
 #include "game/net/net_second_master.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "lib/crt.h"
 
 #include <cstdint>

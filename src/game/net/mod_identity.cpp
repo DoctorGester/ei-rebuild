@@ -1,5 +1,5 @@
 // The mod a game plays as our peers tell it (mod_identity.h).
-#include "game/mods/mod_identity.h"
+#include "game/net/mod_identity.h"
 
 #include "game/app/singletons.h"
 #include "game/data/registry.h"

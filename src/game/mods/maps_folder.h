@@ -1,6 +1,6 @@
 #pragma once
 
-// The maps folder and its files (world_map.cpp).
+// The maps folder and its files (mods/mod_folders.cpp).
 
 #include <string>
 #include <string_view>

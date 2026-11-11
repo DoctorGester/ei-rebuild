@@ -20,7 +20,7 @@
 #include "game/net/net_session.h"
 #include "game/net/net_messages.h"
 #include "game/app/key_bindings.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "game/players/party.h"
 #include "game/players/player_client.h"
 #include "game/players/player.h"

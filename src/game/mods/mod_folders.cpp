@@ -3,10 +3,11 @@
 // by their addresses in addon.dll v0.12.4.2 (image base 10000000).
 #include "game/mods/mod_folders.h"
 
+#include "game/core/engine_globals.h"
 #include "game/data/registry.h"
 #include "game/data/resource.h"
-#include "game/map/folder.h"
-#include "game/app/settings.h"
+#include "game/mods/maps_folder.h"
+#include "game/data/settings.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 
@@ -127,7 +128,7 @@ ResConfig ReadResConfig() {
 
 // The mod's Maps\ as addon lists it at start (1001B092): files of the top folder by name, files of
 // subfolders as "<sub>\<name>"; the top folder's folders (each stands for the archives of its name, docs/notes/mods.md
-// "Loose files"); whether the top folder has a quest file (map/folder.h, IsQuestFile).
+// "Loose files"); whether the top folder has a quest file (mods/maps_folder.h, IsQuestFile).
 struct MapsListing {
     std::vector<std::string> names;
     std::vector<std::string> folders;
@@ -357,3 +358,40 @@ std::string MovieFile(std::string_view name) {
 }
 
 } // namespace modfolders
+
+// --- The maps folder ---------------------------------------------------------------------------------
+
+// The maps folder and its files (MapsFolder, MapPath, MapFileExists), with Rebirth's Maps when a mod is played
+// (above). See mods/maps_folder.h and docs/notes/world.md.
+
+namespace {
+
+constexpr const char* kMapsFolderName = "maps\\";
+
+} // namespace
+
+std::string MapsFolder() {
+    // Rebirth's Maps (modfolders::SelectMaps names the file before each maps-folder use): the folder the last site
+    // selected.
+    return modfolders::MapsRoot(g_dataFolder) + kMapsFolderName;
+}
+
+std::string MapPath(std::string_view name) {
+    if (name.size() > 1 && name[1] == ':') return std::string(name);
+    modfolders::SelectMaps(name, modfolders::MapsSite::MapPath);
+    std::string path = MapsFolder();
+    path += name;
+    return path;
+}
+
+bool MapFileExists(const char* name) {
+    modfolders::SelectMaps(name, modfolders::MapsSite::FileExists);
+    return ResourceExists(MapsFolder() + name);
+}
+
+bool IsQuestFile(const platform::FolderEntry& found) {
+    if (found.folder) return platform::IsFile(found.path + "\\" + found.name + "\\quest.reg");
+    const std::string_view name = found.name;
+    return name.size() > 3 && text::CompareIgnoringCase(name.substr(name.size() - 3), ".mq") == 0;
+}
+

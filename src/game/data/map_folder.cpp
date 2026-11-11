@@ -1,5 +1,5 @@
 // Maps as folders: map_folder.h. The folder's files, units and grids: docs/notes/mods.md, "Maps as folders".
-#include "game/map/map_folder.h"
+#include "game/data/map_folder.h"
 
 #include "game/core/asset_text.h"
 #include "game/data/record_names.h"

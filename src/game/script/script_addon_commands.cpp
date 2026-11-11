@@ -7,7 +7,7 @@
 #include "game/items/item.h"
 #include "game/items/item_db.h"
 #include "game/objects/map_object.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "game/players/party.h"
 #include "game/players/player_messages.h"
 #include "game/players/player.h"

@@ -55,7 +55,7 @@ enum class MapsSite : int {
     NewZoneMap = 1, NewZoneMob, MapPath, ClientLoadZone, ZoneTable, ZoneQuests, ZoneQuestsPath, FileExists,
 };
 // Before a maps-folder use: the folder becomes the mod's when its Maps\ has `name` (any case; an archive also as its
-// folder, docs/notes/mods.md "Loose files"; the zone table: when its top folder has a quest file, map/folder.h
+// folder, docs/notes/mods.md "Loose files"; the zone table: when its top folder has a quest file, mods/maps_folder.h
 // IsQuestFile), else the game's. It stays until the next one. Nothing without a mod.
 void SelectMaps(std::string_view name, MapsSite site);
 // The folder MapsFolder starts from: the game's data folder or the mod's.

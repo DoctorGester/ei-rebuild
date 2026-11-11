@@ -1,7 +1,7 @@
 // The run's settings file in the image (image_side.h; harness_settings.cpp, harness_startup.cpp).
 #include "image_side.h"
 
-#include "game/app/settings.h"
+#include "game/data/settings.h"
 
 namespace ei::verify::image {
 

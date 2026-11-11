@@ -3,7 +3,7 @@
 #include "game/ai/ai_map.h"
 #include "game/console/console.h"
 #include "game/app/singletons.h"
-#include "game/map/map_file.h"
+#include "game/data/map_file.h"
 #include "game/data/registry.h"
 #include "game/data/resource.h"
 #include "game/ai/sector_map.h"

@@ -689,7 +689,7 @@ src/game/world/world_loot.cpp
 src/game/world_managers.cpp
 src/game/world/world_map.cpp
 src/game/world_map_files.cpp
-src/game/map/folder.h
+src/game/mods/maps_folder.h
 src/game/world/world_object_sets.cpp
 src/game/world/world_party.cpp
 src/game/world/world_quests.cpp
@@ -787,7 +787,7 @@ src/game/app/logic_settings.cpp
 src/game/app/logic_settings.h
 src/game/objects/traps.cpp
 src/game/objects/traps.h
-src/game/core/manager_context.cpp
+src/game/world/manager_context.cpp
 src/game/core/manager_context.h
 src/game/models/material.cpp
 src/game/models/material.h
@@ -818,9 +818,9 @@ src/game/object_maths.h
 src/game/object_small_slots.cpp
 src/game/object_tables.cpp
 src/game/map/map_database.h
-src/game/app/options.cpp
-src/game/app/options.h
-src/game/app/options.cpp
+src/game/data/options.cpp
+src/game/data/options.h
+src/game/data/options.cpp
 src/game/options_defaults.cpp
 src/game/options_global.cpp
 src/game/app/persistent_globals.cpp
@@ -840,9 +840,9 @@ src/game/data/registry.h
 src/game/ai/search_grid.h
 src/game/objects/side_managers.cpp
 src/game/objects/side_managers.h
-src/game/app/settings_document.cpp
-src/game/app/settings.cpp
-src/game/app/settings.h
+src/game/data/settings_document.cpp
+src/game/data/settings.cpp
+src/game/data/settings.h
 src/game/skin_quaternion.cpp
 src/game/scene/sky_object.cpp
 src/game/scene/sky_object.h
@@ -1118,7 +1118,7 @@ src/game/app/logic_settings.cpp
 src/game/app/logic_settings.h
 src/game/objects/traps.cpp
 src/game/objects/traps.h
-src/game/core/manager_context.cpp
+src/game/world/manager_context.cpp
 src/game/core/manager_context.h
 src/game/map/map_database.cpp
 src/game/objects/map_object.cpp
@@ -1230,9 +1230,9 @@ src/game/object_maths.h
 src/game/object_small_slots.cpp
 src/game/object_tables.cpp
 src/game/map/map_database.h
-src/game/app/options.cpp
-src/game/app/options.h
-src/game/app/options.cpp
+src/game/data/options.cpp
+src/game/data/options.h
+src/game/data/options.cpp
 src/game/options_defaults.cpp
 src/game/options_global.cpp
 src/game/particle_attach.cpp
@@ -1342,9 +1342,9 @@ src/game/ai/sector_map.h
 src/game/sector_spiral.cpp
 src/game/objects/side_managers.cpp
 src/game/objects/side_managers.h
-src/game/app/settings_document.cpp
-src/game/app/settings.cpp
-src/game/app/settings.h
+src/game/data/settings_document.cpp
+src/game/data/settings.cpp
+src/game/data/settings.h
 src/game/skin_quaternion.cpp
 src/game/scene/sky_object.cpp
 src/game/scene/sky_object.h
@@ -1681,7 +1681,7 @@ src/game/world/world_loot.cpp
 src/game/world_managers.cpp
 src/game/world/world_map.cpp
 src/game/world_map_files.cpp
-src/game/map/folder.h
+src/game/mods/maps_folder.h
 src/game/world/world_object_sets.cpp
 src/game/world/world_party.cpp
 src/game/world/world_quests.cpp

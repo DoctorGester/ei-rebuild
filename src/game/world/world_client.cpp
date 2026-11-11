@@ -14,7 +14,7 @@
 #include "game/net/net_link.h"
 #include "game/core/named_floats.h"
 #include "game/map/map_database.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "game/players/party.h"
 #include "game/players/player_client.h"
 #include "game/players/player_messages.h"
