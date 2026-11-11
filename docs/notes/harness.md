@@ -10,10 +10,10 @@ references) is in `standalone-verification.md`.
 (`build\verify\runs\<name>-standalone\harness_report.txt`) holds everything the game console printed, and any failed
 checks. Scenarios live in `tests/scenarios/`; the steps are listed at the top of `tests/verify/harness.cpp`.
 
-    harness.cmd tests\scenarios\combat.txt
+    harness.cmd tests\scenarios\batch_combat.txt
 
 `python tools\run_all.py` runs every scenario on the vanilla install's data, several games at once (`--jobs N`,
-default 16; the whole suite takes about 2 minutes); workers run it through `python tools/work.py test <ID> [run_all
+default 16; the whole suite, 190 runs, takes about 75 s and the Rebirth set, 43, about 30 s since H74); workers run it through `python tools/work.py test <ID> [run_all
 args]` (work-board.md). Each run writes to its own folder, `build\verify\runs\<scenario>-<install>` (`EI_OUT_DIR`): its
 `ei-rebuild.log`, report and `harness_saves`, emptied first. A folder that cannot be emptied (a file in it still open) fails the run; a run that passes in digest mode
 (`EI_DIGEST`, `--golden`) without a `digest.txt` fails too, and a digest the game cannot create fails its report (H54; a rerun by name that empties a suite's run folder before the suite's comparison waits in the scheduler, work-board.md). Installs: `standalone` (the vanilla data) and
@@ -35,6 +35,23 @@ game.exe, tools/exe_path.py); a `work.py test` batch carries the submitter's two
 (every archive replaced by its folder of loose files; mods.md, "Unpacked installs"), `--converted` to those copies'
 converted copies (the record files as TOML; mods.md, "Converted installs"). `EI_BUILD_DIR` points run_all at
 another verify build.
+
+Tiers (H74). `--smoke` plays `config/smoke_scenarios.csv`'s runs (a scenario and an install per line), the few that
+reach the most code between them: `tools/suite_coverage.py --smoke-file` picks them greedily from a coverage pass's
+per-run functions (below, "Source coverage"): 60 runs (50 vanilla, 10 Rebirth; about 8 game-minutes of the suite's
+25) reach 99% of the functions and 97% of the edge flags the whole suite reaches (2026-11-11). `work.py test`
+without names plays the smoke tier for every ticket but MAIN; `--full` (run_all's own default) the whole suite, which
+the merge runs always play (`work.py test MAIN --golden` and `--rebirth-only --golden`). `--converted` through `work.py
+test` without names plays only when a file under `run_all.CONVERTED_PATHS` (the converter, the install copies, the
+loaders of the converted formats, `assets/`) changed against `converted_base()`: a branch's merge base with main, or on
+main the commit before the merge. Merged scenarios (`batch_*.txt`, and `render_batch` / `camera_batch`, whose names
+keep the Linux workflow's render_ and camera_ filter on their sections; H74) play several former scenarios as sections
+in one game: each section after the first undoes what the ones before set (`frametime 0`, `speed 0`, `unfreeze`), goes
+back to the main menu (Esc unless the escape menu is up already, its exit, Enter) and starts its own new game (or, for
+the menu ones, starts at the main menu); a `# ---- section <name>` line keeps the old name, which the notes still use,
+and its `reject` lines start with the section (sections that allow script errors come first). The smoke list of
+2026-11-11 counts a merged run as reaching what its sections reached as scenarios; the next coverage pass
+(`coverage.py run`, then `suite_coverage.py --smoke-file config/smoke_scenarios.csv`) measures them.
 
 How a run starts (run_all.launch, tools/game_process.py): the exe itself, with the working directory and `EI_GAME_ROOT`
 the install, `EI_HARNESS` the scenario, `EI_OUT_DIR` the run folder and `EI_INSTALL_ROOTS` both installs. The game prints into the run folder's
@@ -341,7 +358,7 @@ their `asan.*` files, not their result.
 ## Source coverage
 
 `python tools\coverage.py run <ticket>` builds `build.cmd coverage`, plays the image and Rebirth suites on it (`work.py
-test <ticket> --rebirth --golden`, with `EI_BUILD_DIR` at `build\coverage`; more run_all arguments pass through) and
+test <ticket> --full --rebirth --golden`, with `EI_BUILD_DIR` at `build\coverage`; more run_all arguments pass through) and
 writes `build\coverage\report.md` (totals, a table per area with gameplay first, the ranked gaps, the biggest unreached
 functions, every file), the HTML view `build\coverage\html\index.html` (a page per file, its lines marked) and
 `coverage.json`. `python tools\coverage.py report` rewrites them from the runs already there. Not part of the merge
@@ -535,9 +552,9 @@ differ from the desktop's.
   build check with the exe linked is a warning, so the smoke still runs. The input `builds_only` stops there.
 - **Smoke**: the stub data fetched and unpacked as in the Linux and macOS jobs (same variable and secrets), vanilla only.
   `boot` alone first as a gate (the `gpu:` lines and logs are printed when it does not pass); then the `scenarios` input
-  or `SMOKE_LIST` (the macOS list less render_stats: boot, smoke, settings_defaults, ui_main_menu, ui_screens, ui_hud,
-  ui_saveload, rec_save_load, save_flight, world_load, zone_gz3g, render_scene, render_present, render_water,
-  render_shadows, units, items), one game at a time, `--vanilla-only --golden`, EI_TIME_SCALE 8. All of them passed
+  or `SMOKE_LIST` (the macOS list less render_stats: boot, smoke, settings_defaults, batch_menus, ui_screens, ui_hud,
+  batch_items_saves, rec_save_load, batch_scripts, world_load, zone_gz3g, render_scene, render_present_shot,
+  render_water, render_shadows; H74 merged and dropped some of the names the timings below are for), one game at a time, `--vanilla-only --golden`, EI_TIME_SCALE 8. All of them passed
   on the runner with none of their goldens differing (run 42124917682: 5 to 197 s each, about 15 minutes together; render_stats
   alone 616 s); the first run of the smoke job itself (42149539900) passed: builds 9 minutes, the smoke job 18 (17 games
   and the gate, all the same). The summary has the goldens block and the device line; `tools/ci_details.py` prints the runs that did
@@ -598,9 +615,9 @@ job, never Release, nothing published or uploaded:
   `EI_STUB_DATA_TOKEN` / `EI_STUB_DATA_KEY`), vanilla only.
 - **Gate**: `boot` alone first. When it does not pass (no Metal device, or it cannot draw) the step prints the `gpu:`
   lines, the run's launch.txt and ei-rebuild.log, and the job stops: that is the answer then.
-- **Smoke**: `SMOKE_LIST` (boot, smoke, settings_defaults, ui_main_menu, ui_screens, ui_hud, ui_saveload, rec_save_load,
-  save_flight, world_load, zone_gz3g, render_scene, render_present, render_water, render_shadows, render_stats, units,
-  items; seconds each on a desktop), one game at a time, `--vanilla-only --golden`, `EI_TIME_SCALE` 3. The summary has the
+- **Smoke**: `SMOKE_LIST` (boot, smoke, settings_defaults, batch_menus, ui_screens, ui_hud, batch_items_saves,
+  rec_save_load, batch_scripts, world_load, zone_gz3g, render_scene, render_present_shot, render_water, render_shadows,
+  render_stats; seconds each on a desktop), one game at a time, `--vanilla-only --golden`, `EI_TIME_SCALE` 3. The summary has the
   goldens block, the GPU device line and each run's `TIMING: median frame` (harness_report.txt). Goldens that differ on
   Metal are listed, not excused: no check is widened for it.
 - **Differences in detail** (always runs; `tools/ci_details.py`): for each scenario that did not pass or differs (run

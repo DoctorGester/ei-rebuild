@@ -3,8 +3,8 @@
 
 usage:
   python tools/coverage.py run <ticket> [--no-build] [run_all arguments]
-      build.cmd coverage, then the image and Rebirth suites on that build (work.py test <ticket> --rebirth --golden
-      plus the arguments, with EI_BUILD_DIR at build/coverage), then the report
+      build.cmd coverage, then the image and Rebirth suites on that build (work.py test <ticket> --full --rebirth
+      --golden plus the arguments, with EI_BUILD_DIR at build/coverage), then the report
   python tools/coverage.py report [--runs FOLDER] [--top N]
       merges every run's coverage.dat under build/coverage/runs and writes build/coverage/report.md, the HTML view
       build/coverage/html/index.html and build/coverage/coverage.json
@@ -642,8 +642,8 @@ def run(ticket, build, extra):
         if os.path.isfile(path) and not os.path.islink(path):
             os.remove(path)   # run_all empties the folders it runs in; this drops the others' dumps
     env = dict(os.environ, EI_BUILD_DIR=BUILD)
-    subprocess.call([sys.executable, os.path.join(ROOT, 'tools', 'work.py'), 'test', ticket, '--rebirth', '--golden']
-                    + extra, env=env)
+    subprocess.call([sys.executable, os.path.join(ROOT, 'tools', 'work.py'), 'test', ticket, '--full', '--rebirth',
+                     '--golden'] + extra, env=env)
     report(os.path.join(BUILD, 'runs'), 40)
     write_scenarios(os.path.join(BUILD, 'runs'), os.path.join(BUILD, 'scenarios.json'))
 

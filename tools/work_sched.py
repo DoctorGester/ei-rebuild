@@ -798,6 +798,19 @@ def cmd_test(db, args):
     quiet = '--quiet' in args.run_all_args
     argv = [a for a in args.run_all_args if a != '--quiet']
     ra = run_all.parse_args(argv)           # run_all's own errors and exit
+    if not (ra.scenarios or ra.smoke or ra.full or ra.widescreen) and args.id != 'MAIN':
+        # H74: without names a worker's batch is the smoke tier; --full asks for the whole suite (MAIN's merge runs
+        # always play it)
+        argv.append('--smoke')
+        ra = run_all.parse_args(argv)
+        print('work.py: the smoke tier (config/smoke_scenarios.csv); --full plays the whole suite')
+    if ra.converted and not ra.scenarios:
+        changed = run_all.converted_changes(run_all.ROOT)
+        if not changed:
+            print('work.py: --converted skipped: nothing the converted installs read changed against '
+                  f'{run_all.converted_base(run_all.ROOT)} (run_all.CONVERTED_PATHS; name scenarios to play them anyway)')
+            return 0
+        print(f'work.py: --converted: {len(changed)} changed file(s) the converted installs read, e.g. {changed[0]}')
     if ra.unpacked:
         # The installs' unpacked copies: their folders go with the batch's environment below.
         run_all.use_unpacked()
@@ -807,6 +820,8 @@ def cmd_test(db, args):
         run_all.use_converted()
         argv = [a for a in argv if a != '--converted']
     jobs = run_all.plan(ra)
+    # The tier only chose the runs (the jobs below); the scheduler's run_all needs no word of it
+    argv = [a for a in argv if a not in ('--smoke', '--full')]
     root, build = work.norm(run_all.ROOT), work.norm(run_all.BUILD)
     if not os.path.exists(os.path.join(build, run_all.EXE)):
         sys.exit(f'work.py: {build}/{run_all.EXE} is missing; build.cmd verify first')

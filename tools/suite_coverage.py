@@ -3,7 +3,7 @@ makes, the runs that could go or merge into longer ones, and a smoke set with th
 
 usage:
   python tools/suite_coverage.py [--coverage FILE] [--times FILE] [--out FILE] [--smoke N] [--budget SECONDS]
-                                 [--members N]
+                                 [--members N] [--smoke-file FILE]
       reads build/coverage/scenarios.json (tools/coverage.py scenarios: the functions and flags each run of the
       coverage build reached), the scenarios (tests/scenarios, a pair's peer in tests/scenarios/peer), the goldens
       (tests/golden) and the coverage runs' times (build/coverage/run_times.json), and writes build/h74/report.md
@@ -30,7 +30,7 @@ What counts (docs/notes/harness.md, "Source coverage"):
   load, a new game, a window or mode change, a mod, a peer) can only go last; ALONE_VERBS and "# key:" lines keep a
   scenario out.
 - The smoke set: from the runs that stay, greedily the run that adds the most functions not yet reached (new edges
-  break ties), --smoke runs.
+  break ties), --smoke runs; --smoke-file writes it as run_all's smoke tier (config/smoke_scenarios.csv).
 """
 import argparse
 import base64
@@ -575,6 +575,17 @@ def write(result, args):
         'smoke': [list(k) for k in smoke],
         'runs': {f'{k[0]}|{k[1]}': {x: v for x, v in rows[k].items() if x != 'unique_checks'} for k in keys},
     }
+    if args.smoke_file:
+        last_f = result['curve'][-1][1] if result['curve'] else 0
+        with open(args.smoke_file, 'w', encoding='utf-8', newline='\n') as f:
+            f.write('# The smoke tier (H74; run_all --smoke, work.py test\'s default without names): written by\n'
+                    '# `python tools/suite_coverage.py --smoke-file config/smoke_scenarios.csv` from a coverage pass, '
+                    'greedily the run that\n'
+                    f'# adds the most src/ functions; {len(smoke)} runs reached {last_f} of the suite\'s {n_f} '
+                    'functions.\n')
+            f.write('scenario,install\n')
+            for k in smoke:
+                f.write(f'{k[0]},{k[1]}\n')
     with open(os.path.join(os.path.dirname(args.out), 'suite.json'), 'w', encoding='utf-8') as f:
         json.dump(summary, f, indent=1)
     print(f'suite_coverage: {len(keys)} runs; {len(redundant)} redundant by function, {len(drop)} drop candidates; '
@@ -590,6 +601,7 @@ def main(argv):
     ap.add_argument('--smoke', type=int, default=60)
     ap.add_argument('--budget', type=float, default=40.0)
     ap.add_argument('--members', type=int, default=6)
+    ap.add_argument('--smoke-file', help='also write the smoke set there (config/smoke_scenarios.csv)')
     args = ap.parse_args(argv)
     write(analyse(args), args)
 
