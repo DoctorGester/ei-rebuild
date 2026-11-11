@@ -2,4 +2,4 @@ id = "H70a"
 title = "EI_PROFILE runs end with exit code E06D7363 after the quit"
 group = "harness"
 note = "Seen in H70's profiled --rebirth-only suite (EI_PROFILE=1, 2026-11-11): 14 runs ended with E06D7363 (a C++ exception) after their scenario quit, after 'exit: the exit functions done' (ui_widescreen, ui_trade_restore, mod_lost_in_astral_gipat and others passed on the retry; net_pair_kick failed). Never in a batch without EI_PROFILE. Likely the sampler thread (tests/verify/system/profile_win32.cpp) still suspending the main thread and writing profile.txt with fprintf while the CRT tears down; stop it at the exit (a flag and a join, or its own exit stage) and check a profiled suite ends clean."
-order = 1338
+order = 1340
