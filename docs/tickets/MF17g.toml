@@ -3,5 +3,5 @@ title = "Port the original spells onto the mod spell path (scripts and bindings)
 group = "mods"
 size = 3
 depends = ["MF17c", "MF17d"]
-note = "User 2026-11-11: the game's original content should use the functionality we expose to modders: more reuse, less duplication. After MF17b-d, move vanilla spells family by family onto the scripted runtime and bindings (shipped as readable Res\\spells\\ scripts or record fields), behaviour-exact (vanilla and Rebirth goldens the same, short eq checks), and delete the Spell::Type() switches and tables they replace. Split into batches if large."
+note = "User 2026-11-11: the game's original content should use the functionality we expose to modders: more reuse, less duplication. After MF17b-d, move vanilla spells family by family onto the scripted runtime and bindings (shipped as readable Res\\spells\\ scripts or record fields), behaviour-exact (vanilla and Rebirth goldens the same, short eq checks), and delete the Spell::Type() switches and tables they replace. Split into batches if large. MF17a (2026-11-11): vanilla rows differ from 'offensive covers all' for Lichdom/Charm (offensive, victim not turned) and Rick/curses (not fighting); add turns_victim and fighting fields when porting."
 order = 1361

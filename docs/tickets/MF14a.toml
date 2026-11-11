@@ -5,5 +5,6 @@ size = 2
 depends = ["MF14"]
 note = "MF14 made idb, udb, adb, sdb and mob.toml (and map.toml's classes) readable (docs/notes/mods.md, 'Readable values': dbtoml::Enum / Bits / Code / OtherBits / Table / Bool, record_names.h, defaults left out by WriteRecords). Left: a spell's cast_type (0/1/2, meaning half known), quests.qdb, perks.pdb (required_skill by the skill byte's name), Levers.ldb and a lever's lock.mask, map.toml's [[material]] kind, config.reg.toml's [MOD] Single / Multi / ForceShowTutorial as true/false (the generic registry writer knows no key's meaning: needs a per-section key list or a reader that takes booleans), an NPC's attributes[3] and skills[8] as named tables (find the names: UnitStats::SkillWithBonus, the hero screen texts), the unit level records' values_a/values_b, loot index by the record's name, a mob unit's side by player name. Same checks as MF14: ei-convert round trips on both installs, normal and --converted --golden --rebirth all the same."
 order = 1335
-status = "review"
+status = "done"
 started = "2026-11-11"
+done = "2026-11-11"
