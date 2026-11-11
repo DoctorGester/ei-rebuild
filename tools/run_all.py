@@ -1247,7 +1247,7 @@ def allowed(name, install, root=ROOT):
 # maps' objects, PNG textures and heights, glTF figures and animations, Lua scripts, map folders, zips) and the
 # repository's own content (assets: vanilla content through the modders' path).
 CONVERTED_PATHS = ('tools/convert/', 'tools/convert_install.py', 'tools/unpack_install.py', 'src/engine/data/',
-                   'src/engine/models/figure_gltf', 'src/engine/models/texture_png', 'src/engine/mods/',
+                   'src/engine/models/figure_gltf', 'src/engine/models/animation_db', 'src/engine/models/texture_png', 'src/engine/mods/',
                    'src/game/map/mob_', 'src/game/script/script_lua', 'src/lib/json', 'src/lib/png', 'src/lib/toml',
                    'src/platform/zip_folders', 'assets/')
 
