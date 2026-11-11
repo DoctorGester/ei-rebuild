@@ -3,7 +3,7 @@
 -- stun, antimagic, strength, weak, regeneration, feeblemind, speed, slow, enlarge, shrink). CastSpell casts it once
 -- at each target (per_target). The target gets the spell's own effect for the cast's duration, and the cast ends.
 -- What the effect does to the unit's stats is OnStats below, by the effect's kind (the record's `effect`,
--- spells.sdb.toml); its look and sounds are the game's.
+-- spells.sdb.toml); its look and sounds are the record's fields there.
 local spell = {}
 
 -- The game's 0.01 as a float, exactly: invisibility lowers the sight conspicuity by its value in percent.

@@ -417,7 +417,7 @@ void UnitClientSpecific::PlayStepSounds() {
         if (current->stepFrames[step] == 0) break;   // the list ends at its first 0
         int frame = static_cast<int>(current->stepFrames[step]) - 1;
         if (!PassedFrame(frame, lastAnimationTime, now)) continue;
-        if (!unit->HasEffect(SpellType::Silence)) {
+        if (!unit->HasEffectKind([](const itemdb::SpellRecord& kind) { return kind.quietSteps; })) {
             auto* world = ClientWorld();
             int ground = world->terrain->SurfaceClass(position.x, position.y);
             if (std::optional<std::string> footstep = FootstepSound(ground)) sound = std::move(*footstep);   // else the last one stays

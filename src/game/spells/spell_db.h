@@ -107,6 +107,14 @@ enum class SpellAi : int {
 inline constexpr std::size_t kMaxSpellRecords = 256;
 inline constexpr std::size_t kMaxModifierRecords = 127;
 
+// How a unit's figure is drawn while an active effect of a kind lasts (SpellRecord::figure, `figure`): as it is,
+// faded in a pulse with no shadow (invisibility), or pulsing red (stun).
+enum class EffectFigure : std::uint8_t {
+    Plain = 0,
+    Faded = 1,
+    Tinted = 2,
+};
+
 // A record's `effect` not given: its active effects do what its behaviour does (SpellRecord::effect).
 inline constexpr int kOwnEffect = -1;
 
@@ -196,6 +204,30 @@ struct SpellRecord {
     // Set by the load too: the place of the record whose script's OnStats gives an effect of this record its stats
     // (MapEffect::Kind(), effect_stats.h): the game's spell its `effect` names, this record for its own, -1 for none.
     int effectKind = -1;
+
+    // TOML only: how an active effect of this record's kind shows on the unit (MapEffect::KindRecord; the client
+    // reads them, map_object_client_effects.cpp; docs/modding.md, "Active effects"). The game's buffs have theirs in
+    // assets/spells/spells.sdb.toml.
+    // `look`: the particle effect (a data effect's name) on the unit while the kind lasts, power / 16 its size.
+    std::string look;
+    // `look_ring`: a particle effect started once as the kind comes and once as it goes, power / 16 times
+    // ringScale (`look_ring_scale`) its size, negated as it goes.
+    std::string lookRing;
+    float ringScale = 1.0f;
+    // `figure`: how the unit's figure is drawn while the kind lasts.
+    EffectFigure figure = EffectFigure::Plain;
+    // `sound_start`, `sound_end`: played as the kind comes and goes.
+    std::string startSound;
+    std::string endSound;
+    // `sound_loop`: played while the kind lasts: one after another following the unit (after the start sound), or,
+    // with `sound_loop_ticks`, one of them at random every that many ticks + 1.
+    std::vector<std::string> loopSounds;
+    int loopTicks = 0;
+    // `quiet_steps`: the unit's steps make no sound while the kind lasts.
+    bool quietSteps = false;
+    // `greys_spells`: the unit's own interface offers no spell while the kind lasts (the client's side of OnStats's
+    // NoCasting: the client has the effects' kinds, not their stats).
+    bool greysSpells = false;
 };
 
 // How the game's tables use a spell (UseOf).

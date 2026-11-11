@@ -424,6 +424,35 @@ void SoundManager::RemoveEmitter(int index) {
 
 // --- Sound sequences ------------------------------------------------------------------------------
 
+namespace {
+
+std::uint32_t NextRandom() { return g_clientRandom.Next(); }
+
+// The choosers ChooserFor gives, called with the previous index and the number of sounds started so far.
+int LoopFirst(int, int) { return kSequenceLoop; }
+int AnyOf2(int, int) { return static_cast<int>(NextRandom() & 1); }
+int AnyOf3(int, int) { return static_cast<int>(NextRandom() % 3); }
+int AnyOf4(int, int) { return static_cast<int>(NextRandom() & 3); }
+int AnyOf5(int, int) { return static_cast<int>(NextRandom() % 5); }
+int FirstThenLoop1(int, int played) { return played != 0 ? kSequenceLoop | 1 : 0; }
+int FirstThenOf2(int, int played) { return played != 0 ? static_cast<int>(NextRandom() & 1) + 1 : 0; }
+int FirstThenOf3(int, int played) { return played != 0 ? static_cast<int>(NextRandom() % 3) + 1 : 0; }
+int FirstThenOf4(int, int played) { return played != 0 ? static_cast<int>(NextRandom() & 3) + 1 : 0; }
+int FirstThenOf5(int, int played) { return played != 0 ? static_cast<int>(NextRandom() % 5) + 1 : 0; }
+
+} // namespace
+
+SequenceChooser ChooserFor(int count, bool withFirst) {
+    switch (count) {
+    case 1: return withFirst ? &FirstThenLoop1 : &LoopFirst;
+    case 2: return withFirst ? &FirstThenOf2 : &AnyOf2;
+    case 3: return withFirst ? &FirstThenOf3 : &AnyOf3;
+    case 4: return withFirst ? &FirstThenOf4 : &AnyOf4;
+    case 5: return withFirst ? &FirstThenOf5 : &AnyOf5;
+    default: return &LoopFirst;
+    }
+}
+
 bool SoundSequence::PlayNext(SoundManager* manager) {
     if (chooser != nullptr) {
         int played = remaining;

@@ -87,6 +87,12 @@ bool MapObject::HasEffect(SpellType spellType) {
     return false;
 }
 
+bool MapObject::HasEffectKind(bool (*test)(const itemdb::SpellRecord& kind)) const {
+    for (const MapEffect& effect : effects)
+        if (const itemdb::SpellRecord* kind = effect.KindRecord(); kind && test(*kind)) return true;
+    return false;
+}
+
 // --- Per-tick update -------------------------------------------------------------------------
 
 void MapObject::Update() {

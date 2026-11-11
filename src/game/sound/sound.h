@@ -131,6 +131,13 @@ struct SoundSequence {
     bool PlayNext(struct SoundManager* manager);
 };
 
+// A sequence's chooser (SoundSequence::chooser).
+using SequenceChooser = int (*)(int previous, int played);
+// The chooser of a sequence of an optional first name and `count` names after it: the first plays once, then the
+// others go on, one name looped, two to five picked at random by the client effects' generator (g_clientRandom) as
+// each ends; more than five loop the first name.
+SequenceChooser ChooserFor(int count, bool withFirst);
+
 // How Play2D plays a sound.
 struct Play2DOptions {
     bool loop = false;          // endlessly

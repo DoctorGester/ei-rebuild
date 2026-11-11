@@ -4,7 +4,6 @@
 
 #include "game/app/singletons.h"
 #include "game/console/console.h"
-#include "game/core/random.h"
 #include "game/effects/world_effect_internal.h"
 #include "game/net/net_delta.h"
 #include "game/net/net_link.h"
@@ -27,37 +26,6 @@ namespace {
 
 // The local position moved by the velocity.
 void MoveByVelocity(Effect* e) { e->localPosition += e->velocity; }
-
-// --- The sound sequence's choosers ---
-
-std::uint32_t NextRandom() { return g_clientRandom.Next(); }
-
-// The choosers: called with the previous index and the number of sounds
-// started so far; kSequenceLoop in the result loops the sound. Without a first name any of the n names is
-// picked; with one, the first call plays it (index 0) and later calls pick among the n after it.
-int LoopFirst(int, int) { return kSequenceLoop; }
-int AnyOf2(int, int) { return static_cast<int>(NextRandom() & 1); }
-int AnyOf3(int, int) { return static_cast<int>(NextRandom() % 3); }
-int AnyOf4(int, int) { return static_cast<int>(NextRandom() & 3); }
-int AnyOf5(int, int) { return static_cast<int>(NextRandom() % 5); }
-int FirstThenLoop1(int, int played) { return played != 0 ? kSequenceLoop | 1 : 0; }
-int FirstThenOf2(int, int played) { return played != 0 ? static_cast<int>(NextRandom() & 1) + 1 : 0; }
-int FirstThenOf3(int, int played) { return played != 0 ? static_cast<int>(NextRandom() % 3) + 1 : 0; }
-int FirstThenOf4(int, int played) { return played != 0 ? static_cast<int>(NextRandom() & 3) + 1 : 0; }
-int FirstThenOf5(int, int played) { return played != 0 ? static_cast<int>(NextRandom() % 5) + 1 : 0; }
-
-using Chooser = int(*)(int, int);
-
-Chooser ChooserFor(int count, bool withFirst) {
-    switch (count) {
-    case 1: return withFirst ? &FirstThenLoop1 : &LoopFirst;
-    case 2: return withFirst ? &FirstThenOf2 : &AnyOf2;
-    case 3: return withFirst ? &FirstThenOf3 : &AnyOf3;
-    case 4: return withFirst ? &FirstThenOf4 : &AnyOf4;
-    case 5: return withFirst ? &FirstThenOf5 : &AnyOf5;
-    default: return &LoopFirst;
-    }
-}
 
 } // namespace
 
@@ -447,7 +415,7 @@ void EffectSoundSeq::Start(int update) {
     const std::vector<std::string>& others = names;
     bool withFirst = str::Compare(first, "") != 0;
     if (withFirst) list.push_back(first);
-    Chooser chooser = ChooserFor(static_cast<int>(others.size()), withFirst);
+    SequenceChooser chooser = ChooserFor(static_cast<int>(others.size()), withFirst);
     for (const std::string& other : others) list.push_back(other);
     sound = sounds->AddSequence(list, noFade != 0 ? 1000 : 0,
                                  localPosition, volume, radius, false, -1, chooser);
