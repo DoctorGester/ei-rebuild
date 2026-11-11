@@ -363,6 +363,14 @@ routine: run it when wanted.
   their function, so the line numbers are an upper bound and the function numbers exact. Only src/ counts, by the part of
   the PDB's path from `src/` on (the compiler cache's objects name the checkout that compiled them first); functions
   marked inline are inlined at `/Ob1` and count in their callers. `static.pickle` keeps the exe's analysis.
+- **Per scenario (H74):** `coverage.py scenarios` (also the end of `run`) writes `build\coverage\scenarios.json`: per
+  run folder (a pair's peer folded in, retried attempts left out) the functions it reached and its set flags.
+  `python tools\suite_coverage.py` reads it with the scenarios, the goldens and the runs' times and writes
+  `build\h74\report.md`: the runs that reach no function the others miss and check nothing of their own (drop
+  candidates), the families of scenarios with the same start that could share a run, a smoke set (the most functions
+  per run) and the counts before and after; its docstring says how each is decided. The mod scenarios' prepare tools
+  run `EI_BUILD_DIR`'s `ei-convert.exe`, which the coverage build does not make: `run` copies the checkout's verify
+  (else release) one into `build\coverage`, so build one of those first.
 - **Measured (H43, 2026-11-04):** the 258 runs (270 games with the pairs' peers) took 68 s, as on the verify
   build (the `_penter` patch), with every golden the same (252 the same, 6 without one); functions 7973 of 12292
   reached (64.9%), lines 66862 of 76533 (87.4%). The report itself takes under 10 s (dumpbin and dbghelp; then

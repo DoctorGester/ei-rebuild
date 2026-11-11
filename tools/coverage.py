@@ -8,6 +8,9 @@ usage:
   python tools/coverage.py report [--runs FOLDER] [--top N]
       merges every run's coverage.dat under build/coverage/runs and writes build/coverage/report.md, the HTML view
       build/coverage/html/index.html and build/coverage/coverage.json
+  python tools/coverage.py scenarios [--runs FOLDER] [--out FILE]
+      the coverage per run (H74; run writes it too): build/coverage/scenarios.json, each run's reached functions and
+      set flags; tools/suite_coverage.py ranks the scenarios by it
 
 What the build records (tests/verify/harness_coverage.h): a flag byte per instrumented edge (MSVC's
 /fsanitize-coverage=inline-bool-flag) and, through /Gh's _penter, every function entered. This tool finds the flags'
@@ -295,25 +298,33 @@ def dump_paths(runs):
                   glob.glob(os.path.join(runs, '*', 'peer', 'coverage.dat')))
 
 
+def read_dump(path, stamp, size, flag_start):
+    """A coverage.dat's set flags and marked entry slots, or None for a dump of another build."""
+    with open(path, 'rb') as f:
+        data = f.read()
+    if data[:8] != MAGIC or len(data) < 8 + 4 * 6:
+        return None
+    words = struct.unpack_from(f'<{(len(data) - 8) // 4}I', data, 8)
+    if words[0] != stamp or words[1] != size or words[2] != flag_start:
+        return None
+    at = 4
+    n = words[at]
+    flags = words[at + 1:at + 1 + n]
+    at += 1 + n
+    n = words[at]
+    return flags, words[at + 1:at + 1 + n]
+
+
 def read_dumps(runs, stamp, size, flag_start):
     flags, slots = set(), set()
     used, stale = [], []
     for path in dump_paths(runs):
-        with open(path, 'rb') as f:
-            data = f.read()
-        if data[:8] != MAGIC or len(data) < 8 + 4 * 6:
+        dump = read_dump(path, stamp, size, flag_start)
+        if dump is None:
             stale.append(path)
             continue
-        words = struct.unpack_from(f'<{(len(data) - 8) // 4}I', data, 8)
-        if words[0] != stamp or words[1] != size or words[2] != flag_start:
-            stale.append(path)
-            continue
-        at = 4
-        n = words[at]
-        flags.update(words[at + 1:at + 1 + n])
-        at += 1 + n
-        n = words[at]
-        slots.update(words[at + 1:at + 1 + n])
+        flags.update(dump[0])
+        slots.update(dump[1])
         used.append(path)
     return flags, slots, used, stale
 
@@ -549,11 +560,84 @@ def report(runs, top):
     print(f'coverage: {os.path.join(BUILD, "report.md")}, {os.path.join(BUILD, "html", "index.html")}')
 
 
+# ---- Coverage per run (H74: which scenarios reach what) ----
+
+def run_name(runs, path):
+    """The run a coverage.dat belongs to: its run folder's name (<scenario>-<install>; a pair's peer counts with its
+    run), or None for a failed attempt that a retry replaced (<folder>-attemptN, run_all's keep_attempt)."""
+    name = os.path.relpath(path, runs).replace('\\', '/').split('/')[0]
+    return None if re.search(r'-attempt\d+$', name) else name
+
+
+def per_run(data, runs):
+    """{run: (indices of the functions it reached in data['functions'], the flags it set in them)} for every run
+    folder under runs with a dump of this build; a function counts as in evaluate()."""
+    image_base = data['image_base']
+    slot_owners = collections.defaultdict(list)
+    flag_owner = {}
+    for i, f in enumerate(data['functions']):
+        for slot in range((f['start'] - image_base) >> 4, ((f['end'] - 1 - image_base) >> 4) + 1):
+            slot_owners[slot].append(i)
+        for _, index in f['flags']:
+            flag_owner[index] = i
+    result = {}
+    for path in dump_paths(runs):
+        name = run_name(runs, path)
+        dump = read_dump(path, data['stamp'], data['size'], data['flag_start']) if name else None
+        if dump is None:
+            continue
+        functions, flags = result.setdefault(name, (set(), set()))
+        for slot in dump[1]:
+            functions.update(slot_owners.get(slot, ()))
+        for index in dump[0]:
+            owner = flag_owner.get(index)
+            if owner is not None:
+                functions.add(owner)
+                flags.add(index)
+    return result
+
+
+def write_scenarios(runs, out):
+    """The coverage per run: the src/ functions (name, file, line, bytes, area, flags) and per run the indices of the
+    functions it reached and its set flags (a zlib-packed bitmap over the flag indices, base64);
+    tools/suite_coverage.py reads it."""
+    import base64
+    import zlib
+    if not os.path.exists(EXE):
+        sys.exit(f'coverage: no {EXE} (build.cmd coverage)')
+    data = static_analysis()
+    found = per_run(data, runs)
+    if not found:
+        sys.exit(f'coverage: no coverage.dat of this build under {runs}')
+    flag_bits = 1 + max((index for f in data['functions'] for _, index in f['flags']), default=0)
+    packed = {}
+    for name, (functions, flags) in sorted(found.items()):
+        bits = bytearray((flag_bits + 7) // 8)
+        for index in flags:
+            bits[index >> 3] |= 1 << (index & 7)
+        packed[name] = {'functions': sorted(functions), 'flag_count': len(flags),
+                        'flags': base64.b64encode(zlib.compress(bytes(bits), 9)).decode('ascii')}
+    functions = [{'name': f['name'], 'file': f['file'], 'line': f['line'], 'bytes': f['size'],
+                  'area': area_of(f['file']), 'flags': len(f['flags'])} for f in data['functions']]
+    with open(out, 'w', encoding='utf-8') as f:
+        json.dump({'stamp': data['stamp'], 'flag_bits': flag_bits, 'functions': functions, 'runs': packed}, f)
+    print(f'coverage: {len(packed)} runs, {len(functions)} functions -> {out}')
+
+
 def run(ticket, build, extra):
     if build:
         code = subprocess.call(['cmd', '/c', os.path.join(ROOT, 'build.cmd'), 'coverage'])
         if code:
             sys.exit(f'coverage: build.cmd coverage failed ({code})')
+    # The mod scenarios' prepare tools run EI_BUILD_DIR's ei-convert; the coverage build makes only the exe.
+    for build_dir in ('verify', 'release'):
+        convert = os.path.join(ROOT, 'build', build_dir, 'ei-convert.exe')
+        if os.path.exists(convert):
+            shutil.copy2(convert, os.path.join(BUILD, 'ei-convert.exe'))
+            break
+    else:
+        print('coverage: no build\\verify or build\\release ei-convert.exe: the mod scenarios that make their mod '
+              'with it will fail', flush=True)
     for path in dump_paths(os.path.join(BUILD, 'runs')):
         if os.path.isfile(path) and not os.path.islink(path):
             os.remove(path)   # run_all empties the folders it runs in; this drops the others' dumps
@@ -561,6 +645,7 @@ def run(ticket, build, extra):
     subprocess.call([sys.executable, os.path.join(ROOT, 'tools', 'work.py'), 'test', ticket, '--rebirth', '--golden']
                     + extra, env=env)
     report(os.path.join(BUILD, 'runs'), 40)
+    write_scenarios(os.path.join(BUILD, 'runs'), os.path.join(BUILD, 'scenarios.json'))
 
 
 def main(argv):
@@ -572,9 +657,16 @@ def main(argv):
     p = sub.add_parser('report')
     p.add_argument('--runs', default=os.path.join(BUILD, 'runs'))
     p.add_argument('--top', type=int, default=40)
+    c = sub.add_parser('scenarios')
+    c.add_argument('--runs', default=os.path.join(BUILD, 'runs'))
+    c.add_argument('--out', default=os.path.join(BUILD, 'scenarios.json'))
     args, extra = ap.parse_known_args(argv)
     if args.command == 'run':
         run(args.ticket, not args.no_build, extra)
+    elif args.command == 'scenarios':
+        if extra:
+            ap.error(f'unknown arguments {extra}')
+        write_scenarios(args.runs, args.out)
     else:
         if extra:
             ap.error(f'unknown arguments {extra}')
