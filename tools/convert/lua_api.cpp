@@ -391,6 +391,8 @@ bool ReadFile(const fs::path& path, std::string* text) {
     std::ifstream file(path, std::ios::binary);
     if (!file) return false;
     text->assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+    // A checkout with CRLF line ends (Windows CI's git) compares as its LF text.
+    std::erase(*text, '\r');
     return true;
 }
 
