@@ -1,0 +1,2 @@
+  netlist: "host" plays "Showcase mod" (other files), cannot join for the mods
+  netlist: "host" plays no mark, joinable
