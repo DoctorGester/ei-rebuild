@@ -2,24 +2,24 @@
   "scenario": "mod_lost_in_astral_ending",
   "install": "rebirth",
   "recorded": "2026-11-11",
-  "commit": "f805e89a7",
+  "commit": "7341ededf",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "The merge of MF17g4 (walls and cloud on LastingArea.lua) with MF17g5 (buffs on Buff.lua) changes the wall and cloud missiles' hashes; outcomes and units are the same.",
+  "reason": "MF17g4: the fire wall, light wall and poison cloud run on LastingArea.lua; their casts' missile records (and the zone saves' ones) take the scripted form (state 4, objects owned); outcomes, units and timed objects the same",
   "source": "image",
   "saves": "14 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
     "digest: 2 of 4 records differ, first at record 1 (world update 250, tick 250, frame 50, zone gz36j); outcomes the same; no unit position differs",
     "  first difference at record 1 (world update 250, tick 250, frame 50, zone gz36j): 1 fields",
-    "    missile0 (spell 7) #: 52A08D7F in the old golden, E8545A62 in the new run",
+    "    missile0 (spell 7) #: E8545A62 in the old golden, 52A08D7F in the new run",
     "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
     "  missiles: 2 of 6 differ",
     "    #: 2 missiles, 2 records, from 1; hash only (no numbers kept)",
     "save LostInAstral/current/gz36j.sav: 38 fields in 6 records differ: missile 38",
-    "  missile: 38 fields in 6 records; first missile0 position.y: 74.0 in the old golden, 75.0 in the new run; largest numeric d 4.44e+07 at missile1 sound: -1 -> 44432470",
+    "  missile: 38 fields in 6 records; first missile0 position.y: 75.0 in the old golden, 74.0 in the new run; largest numeric d 4.44e+07 at missile1 sound: 44432470 -> -1",
     "save LostInAstral/savea/mission.sav: 21 fields in 1 records differ: missile 21",
-    "  missile: 21 fields in 1 records; first missile0 position.y: 74.0 in the old golden, 75.0 in the new run; largest numeric d 4.44e+07 at missile0 sound: -1 -> 44432461"
+    "  missile: 21 fields in 1 records; first missile0 position.y: 75.0 in the old golden, 74.0 in the new run; largest numeric d 4.44e+07 at missile0 sound: 44432461 -> -1"
   ]
 }

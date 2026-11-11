@@ -2,27 +2,12 @@
   "scenario": "spells_old_lasting",
   "install": "rebirth",
   "recorded": "2026-11-11",
-  "commit": "f805e89a7",
+  "commit": "7341ededf",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "The merge of MF17g4 (walls and cloud on LastingArea.lua) with MF17g5 (buffs on Buff.lua) changes the wall and cloud missiles' hashes; outcomes and units are the same.",
+  "reason": "MF17g4: the fire wall, light wall and poison cloud run on LastingArea.lua; their casts' missile records (and the zone saves' ones) take the scripted form (state 4, objects owned); outcomes, units and timed objects the same",
   "source": "image",
-  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
-  "change": [
-    "digest: 10 of 16 records differ, first at record 1 (world update 40, tick 200, frame 7, zone gz1g); outcomes the same; no unit position differs",
-    "  first difference at record 1 (world update 40, tick 200, frame 7, zone gz1g): 4 fields",
-    "    missile2 (spell 8) #: F6F24AFC in the old golden, 230D0B87 in the new run",
-    "    missile3 (spell 6) #: 5A1420DF in the old golden, C4303C2A in the new run",
-    "    missile4 (spell 7) #: D8B42BD4 in the old golden, 0BABD6E1 in the new run",
-    "    ... 1 more",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  missiles: 4 of 6 differ",
-    "    #: 4 missiles, 10 records, from 1; hash only (no numbers kept)",
-    "dump hurt: digest: 1 of 1 records differ, first at record 4 (world update 80, tick 240, frame 16, zone gz1g); outcomes the same; no unit position differs",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  missiles: 3 of 5 differ",
-    "... 5 more lines"
-  ]
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
 }
