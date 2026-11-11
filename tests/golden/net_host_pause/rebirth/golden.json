@@ -1,0 +1,12 @@
+{
+  "scenario": "net_host_pause",
+  "install": "rebirth",
+  "recorded": "2026-11-11",
+  "commit": "b80a6ccb2",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "H71: Rebirth goldens for the scenarios whose checks Rebirth's data decides",
+  "source": "image"
+}

@@ -52,16 +52,17 @@ usage:
   python tools/golden.py explain A B [--labels A,B] [--ulps N] [--lines N]
       The summary of how two run folders (console, digest, dumps, saves) or two digest files differ; nothing is
       changed. For two full digests (two runs, e.g. a baseline of main and a branch) every field has its numbers.
-  python tools/golden.py record [SCENARIO...] --reason TEXT [--before DIR] [--install vanilla|rebirth] [--runs DIR...]
+  python tools/golden.py record [SCENARIO...] --reason TEXT [--new] [--before DIR] [--install vanilla|rebirth] [--runs DIR...]
       Keeps runs of the image as goldens (H40). Each DIR (default build\verify\runs) holds the image's run
       folders <scenario>-standalone or -standalone-rebirth; there must be at least IMAGE_RUNS of them (two runs of
       the same build: a scenario whose state depends on more than its steps differs), each passed with a digest,
       and every other DIR's run must agree with the first DIR's: the console, every digest record and dump (but
       the known differences, KNOWN). A scenario that does not is not recorded, its old golden kept; its first
       difference is printed. The saves are kept (saves.txt) only when every run's saves decode to the same
-      fields. No SCENARIO: every run folder of the install in the first DIR. A golden whose content would not change
-      is left as it is (golden.json too: "the same as its golden, kept"); the others are reported as new or changed
-      (the files that did).
+      fields. No SCENARIO: every run folder of the install in the first DIR whose scenario has a golden there
+      already; --new takes every one (a golden is made new only for a named scenario or with --new). A golden
+      whose content would not change is left as it is (golden.json too: "the same as its golden, kept"); the
+      others are reported as new or changed (the files that did).
       --reason is required (a sentence: what changed on purpose). A changed golden is reported with the summary of
       how the new run differs from what was kept (as `compare` would: numbers where the old golden keeps them, else
       hashes), or from --before DIR (the same scenarios' runs from before the change, laid out as --runs: every
@@ -954,6 +955,20 @@ def record_one(name, args, dirs, suffix):
     return 0, 1, out
 
 
+def recorded_names(folder, suffix, install, new):
+    """record without a scenario list: the runs in folder with a digest whose scenario has a golden on the install
+    already, or every such run with --new. A golden is made new only for a scenario named on the command line or
+    with --new (a record without a list once wrote ~60 goldens nobody asked for, twice)."""
+    runs = sorted(d[:-len(suffix) - 1] for d in os.listdir(folder)
+                  if d.endswith('-' + suffix) and os.path.exists(os.path.join(folder, d, 'digest.txt')))
+    if new:
+        return runs
+    kept = [n for n in runs if os.path.exists(os.path.join(GOLDEN, n, install, 'golden.json'))]
+    if len(kept) < len(runs):
+        print(f'{len(runs) - len(kept)} runs without a golden left out (name them, or --new, to record new goldens)')
+    return kept
+
+
 def record(args):
     if len((args.reason or '').split()) < 2:
         print('record: --reason needs a sentence (two words at least) saying why the goldens change (what the ticket changed on purpose); '
@@ -961,8 +976,7 @@ def record(args):
         return 2
     dirs = args.runs or [os.path.join(run_all.BUILD, 'runs')]
     suffix = folder_install(args)
-    names = args.scenarios or sorted(d[:-len(suffix) - 1] for d in os.listdir(dirs[0])
-                                     if d.endswith('-' + suffix) and os.path.exists(os.path.join(dirs[0], d, 'digest.txt')))
+    names = args.scenarios or recorded_names(dirs[0], suffix, args.install, args.new)
     code = 0
     recorded = 0
     # The scenarios in a pool (a core each); what each prints is kept and printed in the scenarios' order.
@@ -1220,6 +1234,8 @@ def main():
     p.add_argument('--before', help="a folder of the same scenarios' runs from before the change (laid out as --runs): "
                    "the summary of what changed has every number, not hashes where the old golden keeps none")
     p.add_argument('--fields', type=int, default=12)
+    p.add_argument('--new', action='store_true', help='without a scenario list: also make a new golden for every run '
+                   'that has none (by default only the existing goldens are re-recorded)')
     p = sub.add_parser('saves')
     p.add_argument('scenarios', nargs='*')
     p.add_argument('--install', default='vanilla', choices=['vanilla', 'rebirth'])

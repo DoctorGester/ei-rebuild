@@ -71,7 +71,9 @@ python tools\golden.py saves --runs <dirs>         (only the saves of existing g
 ```
 `record` keeps a scenario only when every run agrees with the first in console, every digest record, every dump and the
 decoded saves; one that does not keeps its old golden. It names each golden it wrote new, the same as before (only
-golden.json changed) or changed. An intended change re-records the affected goldens and says why in the commit; anything
+golden.json changed) or changed. Without a scenario list it re-records only the scenarios that have a golden on that
+install already (and says how many runs it left out); a new golden needs the scenario named, or `--new` for every run
+in the passes (a list-less record once wrote ~60 goldens nobody asked for, twice). Name the scenarios when recording. An intended change re-records the affected goldens and says why in the commit; anything
 else that differs is a regression.
 
 A golden that differs explains itself before anyone records it again (`tools/golden_explain.py`; `compare`, run_all
@@ -93,8 +95,29 @@ Renderer-only scenarios (render_cursor_present, render_present_shot,
 render_present_window, render_present_fullscreen) have goldens too, but their digests do not follow the renderer: the
 world moves only with frames on the virtual clock, presents are counted on the main thread, a stall is one long frame.
 
-**No golden by rule**: the three watchdogs (meant to time out). `golden.py KNOWN` / `SAVES_KNOWN` (fields kept in clear but
-left out of comparisons until a ticket lands; `compare --strict` keeps them) are empty.
+`golden.py KNOWN` / `SAVES_KNOWN` (fields kept in clear but left out of comparisons until a ticket lands;
+`compare --strict` keeps them) are empty.
+
+### Scenarios without a golden
+
+Every scenario in tests/scenarios has a vanilla golden but these (run_all's summary counts them as "without a golden"):
+- **By rule**: the watchdogs (`watchdog_backstop`, `watchdog_dump`, `watchdog_main`: meant to time out); the
+  `screenshots_*` (never in a suite, harness.md "Running a scenario"); the seven `render_device_lost_*` (a lost device
+  ends the game with the renderer's fatal message: there is no passing end to compare).
+- **Timing**: `render_weather_cost` (frame times measured on the machine).
+- **Frame-checked renderer scenarios**: what they check is frames (tools/compare_frames.py or by eye; goldens hold no
+  frames and renderer upgrades replace the look), over a world other goldens already play, several from a user's save
+  whose decoded text is megabytes: `render_clouds`, `render_drawn_lights`, `render_drawn_motion`, `render_far_ground`,
+  `render_load_town`, `render_map_clouds`, `render_occlusion`, `render_occlusion_cave`, `render_preview_blend`,
+  `render_resize_edgepan`, `render_resize_zone`, `render_save_frame`, `render_shadows_decals`, `render_shadows_trees`,
+  `render_shore_seams`, `render_swamp_shore`, `render_unit_skin`, `render_water_looks`, `render_weather`,
+  `render_weather_panel`, `render_weather_particles`, `render_weather_roofs`, `render_weather_shelter`,
+  `render_weather_units`, `mod_lost_in_astral_first_pose` (R65's first drawn pose).
+
+A Rebirth golden is made where Rebirth's data decides what a scenario checks (SV9: config/rebirth_scenarios.csv's
+marks, Rebirth's steps, Lost in Astral, Rebirth's mods in the menu's list); every Rebirth golden puts its scenario into
+the Rebirth set. The Rebirth set's scenarios without one are those above (frames, screenshots). A scenario
+that gets a golden later is named on `record`'s command line.
 
 ### WideScreen references
 

@@ -1,0 +1,4 @@
+LostInAstral/save1/info.sav 7d217fedfafe5250
+LostInAstral/save1/mission.sav f3ad65f7fb2fa26b
+LostInAstral/save1/scenario.sav ff8b9023a68a2517
+LostInAstral/save1/visuals.sav 9e0633ad7afc2f07

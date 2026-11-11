@@ -26,7 +26,7 @@ on:
         options: ["no", both, vanilla, rebirth]
         default: "no"
       scenarios:
-        description: "record: only these scenarios (space-separated; empty: every scenario)"
+        description: "record: only these scenarios (space-separated; a named one without a golden gets a new one; empty: every scenario that has a golden)"
         required: false
         default: ""
       reason:
