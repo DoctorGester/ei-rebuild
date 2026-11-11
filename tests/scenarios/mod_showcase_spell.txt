@@ -1,6 +1,6 @@
 # The showcase mod's Chain Spark (examples/showcase_mod; docs/notes/mods.md, "The showcase mod"; docs/modding.md,
 # "Spells"): a scripted spell with data effects of its own, cast by the hero from the HUD.
-# - The quest gives it: taking the quest puts a spell container of "spark" in the party's things (Maps\zone1.lua's
+# - The quest gives it: taking the quest puts a spell container of "spark" in the party's things (Maps\showcase.lua's
 #   line); the camp's magic page draws it with the mod's picture (Res\textures\spell0101.png) and puts it on the new
 #   game's hero as it is (the record's skill 0 needs no elemental skill; its 8 mana are within the hero's 50).
 # - The golem and its two shards have their AI modes cleared (UMClear: they stand and do not come at the hero, whose
@@ -22,6 +22,10 @@ reject Script error
 waitmenu
 console thingamabob
 newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitwindow 15 battle
+zone showcase 0
+waitzone 30 showcase
 waitline 20 Showcase mod: the party has the Chain Spark
 waitfor 15 IsGreater(HP(GetLeader()),0)
 waitwindow 10 battle

@@ -1,5 +1,5 @@
 # The mod's creature (docs/modding.md, "Databases"): a model (its figure Res\figures\scgolem.glb, its animation list
-# Res\database\scgolem.adb.toml) and a prototype, both new records after the game's. Maps\zone1.mob.toml places one;
+# Res\database\scgolem.adb.toml) and a prototype, both new records after the game's. Maps\showcase.mob.toml places one;
 # its texture is the placement's (parent_iname "ScGolem00": Res\textures\scgolem00.png). The footstep sounds are the
 # game's stone ones (names of the install's files, not files of the mod), by the ground's surface.
 

@@ -1,6 +1,6 @@
 # The mod's texts (docs/modding.md, "Texts"): the island's name, the quest, the golem and its shards, the items and
 # the spell.
-"zone gz1g" = "Showcase Island"
+"zone showcase" = "Showcase Island"
 
 "quest showcase_golem" = """
 Break the golem\r

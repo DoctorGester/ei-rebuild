@@ -1,14 +1,15 @@
 # The showcase mod (examples/showcase_mod; docs/notes/mods.md, "The showcase mod"): a mod made only of our own files,
 # copied by tools/make_showcase_mod.py into the run's harness_saves\showcase_mod, which "mod" makes the settings' Mod.
 # Checked:
-# - Maps\zone1\, Maps\zone1.mob.toml, Maps\zone1.lua: a new game starts on the mod's island (its map folder read for
-#   the game's zone1.mpr, which is not read; the game's zone1.mob read for its AI graph alone), its script runs (the
-#   console line) and gives the quest (q.gz1g.showcase_golem 1) and the Chain Spark's spell container
+# - Res\texts\map.toml, Maps\showcase\, Maps\showcase.mob.toml, Maps\showcase.lua: the mod's own zone "showcase"
+#   (entered from a new game with "zone"; mod_showcase_zone walks there through its exit): its map from the folder
+#   alone and its objects from the TOML alone (no .mpr, no .mob: its AI graph built at the load), its script runs
+#   (the console line) and gives the quest (q.showcase.showcase_golem 1) and the Chain Spark's spell container
 #   (mod_showcase_spell casts it); the golem's two shards (4002, 4003) stand by it and join the fight;
 # - Res\database\units.udb.toml, scgolem.adb.toml, Res\figures\scgolem.glb, Res\textures\scgolem00.png: the golem
-#   (map object 4001) stands, sees the hero coming, walks to it and attacks (objplayed: its glTF animations by the
+#   (map object 4001) stands, sees the hero coming, runs to it and attacks (objplayed: its glTF animations by the
 #   animation list's names), and the hero (god mode) breaks it in the fight;
-# - the quest: the golem's death finishes it (q.gz1g.showcase_golem 2, the message log's lines), and the party has the
+# - the quest: the golem's death finishes it (q.showcase.showcase_golem 2, the message log's lines), and the party has the
 #   mod's hammer from items.idb.toml at granite's damage (4.0 to 6.0 times 3.6) and its boots;
 # - captures: the fight (the golem on the island's ground, the minimap the mod's picture), the golem broken with the
 #   quest's lines, and the camp's inventory with the hammer's and the boots' inventory models (initwehm9.glb,
@@ -20,13 +21,17 @@ waitmenu
 console thingamabob
 
 newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitwindow 15 battle
+zone showcase 0
+waitzone 30 showcase
 waitline 20 Showcase mod: the island loads
 waitfor 15 IsGreater(HP(GetLeader()),0)
 check IsAlive(GetObject(4001))
-check IsEqual(GSGetVar(0,"q.gz1g.showcase_golem"),1)
+check IsEqual(GSGetVar(0,"q.showcase.showcase_golem"),1)
 waitwindow 10 battle
 console @GodMode(0,1)
-console @MoveToPoint(GetLeader(),75,118)
+console @MoveToPoint(GetLeader(),GetX(GetObject(4001)),GetY(GetObject(4001)))
 objtrace start #4001 - log
 waitfor 30 IsLess(DistanceUnitUnit(GetLeader(),GetObject(4001)),5)
 frames 20
@@ -35,11 +40,11 @@ frames 5
 capture fight
 waitline 40 Showcase mod: the golem is broken
 check IsDead(GetObject(4001))
-check IsEqual(GSGetVar(0,"q.gz1g.showcase_golem"),2)
+check IsEqual(GSGetVar(0,"q.showcase.showcase_golem"),2)
 modweapon showcase hammer 14.4 21.6
 frames 40
 objtrace stop golem
-objplayed cwalk
+objplayed crun
 objplayed uattack01
 capture broken
 
@@ -48,14 +53,13 @@ waitwindow 15 camp
 frames 10
 capture camp
 
-read mod Maps\zone1.lua yes
-read mod Maps\zone1.mob.toml yes
-read mod Maps\zone1\heights.png yes
-read mod Maps\zone1\tiles.png yes
-read game Maps\zone1.mpr no
-read game Maps\zone1.mob yes
-read mod Res\textures\zone1000.mmp yes
-read mod Res\textures\zone1map.mmp yes
+read mod Res\texts\map.toml yes
+read mod Maps\showcase.lua yes
+read mod Maps\showcase.mob.toml yes
+read mod Maps\showcase\heights.png yes
+read mod Maps\showcase\tiles.png yes
+read mod Res\textures\showcase000.mmp yes
+read mod Res\textures\showcasemap.mmp yes
 read mod Res\textures\scgolem00.mmp yes
 read mod Res\figures\scgolem.mod yes
 read mod Res\figures\scgolem.anm yes

@@ -1,6 +1,6 @@
-# The showcase island (tools/make_showcase_mod.py): zone 1's map replaced (docs/modding.md, "Maps as
-# folders"). Its normals are worked out from heights.png; it has no water.
-name = "Zone1"
+# The showcase island (tools/make_showcase_mod.py): the map of the mod's own zone (docs/modding.md, "Maps
+# as folders"). Its normals are worked out from heights.png; it has no water.
+name = "Showcase"
 height_range = 20.0
 sectors = [8, 6]
 pages = 1

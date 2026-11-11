@@ -1,0 +1,65 @@
+# A mod's zone (docs/notes/mods.md, "Zones from a mod"): the showcase mod's Res\texts\map.toml adds the zone
+# "showcase" (its map folder Maps\showcase\ with no .mpr, its objects Maps\showcase.mob.toml with no .mob, its AI graph
+# built at the load) and merges an exit 3 into the game's gz1g. Checked:
+# - a new game on the first island (the game's zone1): the hero walks onto exit 3's area (63, 134)-(69, 142), east of
+#   the landing's ruins, and is ordered to another point of it (a click there, off the hero): the leave question, and the party arrives on the
+#   island in the island's exit 1's deploy rectangle (49, 133)-(59, 143): the island's script runs (its console line,
+#   the quest's variable 1), the golem stands;
+# - back: the hero walks onto the island's exit 1 area (42, 134)-(47, 142) and is ordered there; it leads to gz1g's
+#   exit 3: the party arrives in gz1g in that exit's deploy rectangle (57, 135)-(61, 141), the zone loaded from its save;
+# - and in again: the island loaded from its save (its graph built again: a save holds none for it), the golem and the
+#   quest's variable as they were.
+# prepare: make_showcase_mod.py
+mod harness_saves\showcase_mod
+reject Script error
+waitmenu
+console thingamabob
+
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitwindow 10 battle
+console @GodMode(0,1)
+console @MoveToPoint(GetLeader(),66,138)
+waitfor 30 IsGreater(GetX(GetLeader()),64)
+clickground 66 135
+waitwindow 30 msgbox
+key enter
+waitzone 30 showcase
+waitline 20 Showcase mod: the island loads
+waitfor 15 IsGreater(HP(GetLeader()),0)
+check IsAlive(GetObject(4001))
+check IsEqual(GSGetVar(0,"q.showcase.showcase_golem"),1)
+check IsGreater(GetX(GetLeader()),48)
+check IsLess(GetX(GetLeader()),60)
+check IsGreater(GetY(GetLeader()),132)
+check IsLess(GetY(GetLeader()),144)
+
+waitwindow 10 battle
+console @MoveToPoint(GetLeader(),44,138)
+waitfor 30 IsLess(GetX(GetLeader()),46)
+clickground 45 135
+waitwindow 30 msgbox
+key enter
+waitzone 30 gz1g
+waitfor 15 IsGreater(HP(GetLeader()),0)
+check IsGreater(GetX(GetLeader()),56)
+check IsLess(GetX(GetLeader()),62)
+check IsGreater(GetY(GetLeader()),134)
+check IsLess(GetY(GetLeader()),142)
+
+waitwindow 10 battle
+console @MoveToPoint(GetLeader(),66,138)
+waitfor 30 IsGreater(GetX(GetLeader()),64)
+clickground 66 135
+waitwindow 30 msgbox
+key enter
+waitzone 30 showcase
+waitfor 15 IsGreater(HP(GetLeader()),0)
+check IsAlive(GetObject(4001))
+check IsEqual(GSGetVar(0,"q.showcase.showcase_golem"),1)
+
+read mod Res\texts\map.toml yes
+read mod Maps\showcase.mob.toml yes
+read mod Maps\showcase\heights.png yes
+report
+quit

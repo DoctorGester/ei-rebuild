@@ -1,0 +1,40 @@
+# The mod's zones (docs/modding.md, "Zones"): merged over the game's map.txt by zone name. The showcase island is a
+# zone of its own; the first island (gz1g) gets one exit more, which leads there.
+
+[[zone]]
+name = "showcase"
+allod = "gipat"
+kind = "game"
+map = "showcase"          # Maps\showcase\ (no .mpr: the folder alone)
+mob = "showcase"          # Maps\showcase.mob.toml (no .mob) and its showcase.lua
+size = [8, 6]
+minimap = "showcasemap"
+objectives_map = "showcasequest"
+position = [-2.370, 0.120, 0.805]   # the global map's arrow while the party is here: the first island's place
+
+# Exit 1: back to the first island, beside the landing; the party arrives here from the first island's exit 3.
+[[zone.exit]]
+target = "gz1g"
+entrance = 3
+deploy = [49.0, 133.0, 59.0, 143.0]
+remove = [42.0, 134.0, 47.0, 142.0]
+view = 90.0
+
+# Exit 2: the base, at the path's end past the golem.
+[[zone.exit]]
+target = "bz1g"
+entrance = 1
+deploy = [184.0, 101.0, 190.0, 108.0]
+remove = [181.0, 108.0, 193.0, 120.0]
+
+# The first island: exit 3 (after the game's two) leads to the showcase island, east of the landing.
+[[zone]]
+name = "gz1g"
+
+[[zone.exit]]
+number = 3
+target = "showcase"
+entrance = 1
+deploy = [57.0, 135.0, 61.0, 141.0]
+remove = [63.0, 134.0, 69.0, 142.0]
+view = 90.0

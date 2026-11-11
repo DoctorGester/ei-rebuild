@@ -1,5 +1,5 @@
 # The mod's quest (docs/modding.md, "Databases"): the experience QuestComplete gives. Its title and objective are
-# Res\texts\texts.toml's "quest showcase_golem"; Maps\zone1.lua sets its variable q.gz1g.showcase_golem.
+# Res\texts\texts.toml's "quest showcase_golem"; Maps\showcase.lua sets its variable q.showcase.showcase_golem.
 
 [[quest]]
 name = "showcase_golem"
