@@ -331,31 +331,31 @@ Risks:
 | Folder | Files | Lines today | Move batch |
 |---|---|---|---|
 | `ai/` | 28 | 12552 | C168f |
-| `app/` | 24 | 6987 | C168e |
+| `app/` | 24 | 7012 | C168e |
 | `combat/` | 13 | 6383 | C168f |
 | `console/` | 5 | 2038 | C168e |
 | `core/` | 27 | 3881 | C168d |
 | `data/` | 16 | 5803 | C168d |
-| `effects/` | 28 | 10386 | C168g |
+| `effects/` | 25 | 9452 | C168g |
 | `items/` | 10 | 2958 | C168g |
 | `map/` | 15 | 4292 | C168e |
 | `models/` | 25 | 8219 | C168g |
 | `mods/` | 10 | 971 | C168d |
 | `net/` | 21 | 8194 | C168h |
 | `objects/` | 23 | 8216 | C168f |
-| `players/` | 24 | 5473 | C168e |
+| `players/` | 24 | 5478 | C168e |
 | `saves/` | 7 | 848 | C168d |
 | `scene/` | 30 | 4397 | C168g |
-| `script/` | 33 | 11501 | C168h |
+| `script/` | 33 | 11590 | C168h |
 | `sound/` | 3 | 1679 | C168e |
-| `spells/` | 9 | 2423 | C168g |
+| `spells/` | 9 | 2214 | C168g |
 | `terrain/` | 12 | 3560 | C168g |
-| `ui/` | 97 | 33143 | C168h |
-| `units/` | 27 | 9839 | C168f |
+| `ui/` | 97 | 33145 | C168h |
+| `units/` | 27 | 9850 | C168f |
 | `world/` | 35 | 10290 | C168e |
-| all | 522 | 164033 | |
+| all | 519 | 163022 | |
 
-569 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
+566 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
 
 ### Every file
 
@@ -539,8 +539,6 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | embed_effects.cmake | effects/embed_effects.cmake |  |  |
 | lightning.cpp | effects/lightning.cpp |  |  |
 | lightning.h | effects/lightning.h |  |  |
-| particle_blasts.cpp | effects/particle_blasts.cpp |  |  |
-| particle_common.h | effects/particle_common.h |  |  |
 | particle_create.cpp | effects/particle_create.cpp |  |  |
 | particle_data.cpp | effects/particle_data.cpp |  |  |
 | particle_data.h | effects/particle_data.h |  |  |
@@ -549,7 +547,6 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | particle_manager.cpp | effects/particle_manager.cpp |  |  |
 | particle_record.cpp | effects/particle_record.cpp |  |  |
 | particle_record.h | effects/particle_record.h |  |  |
-| particle_world.cpp | effects/particle_world.cpp |  |  |
 | vis_fog_manager.cpp | effects/vis_fog_manager.cpp |  |  |
 | weather_field.cpp | effects/weather_field.cpp |  |  |
 | weather_field.h | effects/weather_field.h |  |  |
