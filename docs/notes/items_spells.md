@@ -10,6 +10,7 @@ what they do not say. The HUD panels and windows are in `ui.md`; players and the
 | Item texts | text_manager | items |
 | Spell rules, construction | spell, spell_manager | spells |
 | Spell effects | spell_effect, spell_effect_update | spells, spells_cast, spells_more |
+| Scripted spells | script/script_spell_host | mod_spell_script, `--lua-check` |
 | Quest database | quest_database, quest_records | any new game in zone1 |
 | Textures (mmp, composed) | texture_load, texture | all (skins at zone load) |
 | Registry files, ini | registry, ini_file, settings | all |
@@ -144,8 +145,9 @@ closes files from GetFile (reference counts only grow).
 A spell record's place (Spell's `prototypeId >> 16`, `SpellValues::prototypeIndex`, `MapEffect::type`) says which
 record it is; its behaviour (`SpellRecord::behaviour`, `Spell::Behaviour()`, `MapEffect::Behaviour()`) says what it
 does. The load (`SpellDatabase::Read`, `SetBehaviours`) gives the game's 42 records the behaviour of their place, so for
-them the two are one number and every golden stays; a record after them (a mod's: the showcase's "spark", 42) gets
-`SpellType::None`, which starts nothing.
+them the two are one number and every golden stays. A record with a `script` gets `SpellType::Scripted` (any place;
+"Scripted spells"), any other record after them (a mod's: the showcase's "spark", 42) `SpellType::None`, which starts
+nothing.
 
 - What reads the behaviour: `SpellEffect::Start`, `UpdateMissile`, `UpdateLasting`, `UpdateFootprint`, `DamageKindOf`
   (spell_effect*.cpp), the cut spells in `CastSpell`, `FillCastKind`'s Rick / curse magic, the healing item triggers
@@ -157,7 +159,7 @@ them the two are one number and every golden stays; a record after them (a mod's
   kind (`ai`), the damage type of the AI's estimate (`GetSpellDamage`), `offensive` (the HUD's use at once aims at the
   nearest enemy), `turnsVictim` (`CreateMissile`: the victim sees the caster, diplomacy counts an attack) and
   `fighting` (`UnitServer::IsFighting`: the battle music). The game's 42 have one row each (`kGameSpells`, with
-  Rebirth's FixSpellSelfCasting and FixPlaingBattleMusicFromAntimagic in it); a None record reads its TOML fields
+  Rebirth's FixSpellSelfCasting and FixPlaingBattleMusicFromAntimagic in it); a Scripted or None record reads its TOML fields
   `ai`, `damage_type` and `offensive` (offensive also standing for turnsVictim and fighting). The fields of a game
   record are not read: its row is its behaviour's.
 - Limits: a spell's place is a byte (prototypeIndex, MapEffect::type, saved and sent), a modifier's place + 1 a signed
@@ -166,7 +168,63 @@ them the two are one number and every golden stays; a record after them (a mod's
   `fighting` to be fields of their own: the game's rows differ from `offensive` there (Lichdom and Charm are
   offensive and turn nobody; Rick and curse magic are not fighting).
 - Checked by ei_unit_check's spell behaviour cases (tests/unit/spell_behaviour.cpp: a fake 300-record table cut to
-  256, the game's rows whatever the fields say, a new record's fields) and by every golden staying the same.
+  256, the game's rows whatever the fields say, a new record's fields, a script making any record Scripted) and by
+  every golden staying the same.
+
+## Scripted spells
+
+A spell record with `script = "<file>.lua"` (TOML only, `SpellRecord::script`) is Scripted, wherever its place: the
+file below `Res\spells\` runs its casts. It is meant as the one spell path: the game's own spells are to move onto it
+(MF17g), so nothing in it is a mod's alone. Code: `ScriptSpellHost` (src/game/script/script_spell_host.h), one per
+scheduler (`ScriptLuaScheduler::spells`); the casts use the world's main script's (`MainScript()->Runner()`), the
+zone's server state that Eris saves. Only the server runs it; clients see what it makes (MF17c's bindings).
+
+- **The file** is a module: it returns a table of hooks, named in the game's bindings' style. `OnCast(cast)` once, at
+  the cast's start; `OnTick(cast)` every tick after (optional: a module with it keeps its casts alive); `OnEnd(cast,
+  reason)` once, before the cast goes, `reason` "finished", "idle", "limit" or "error"; a timer's function by the name
+  `cast:After` gave it (`module.<name>(cast, payload)`). `OnHit` (a missile of the cast arrived) comes with MF17c's
+  missiles. The hooks are looked up by name at each call, so a fixed file reaches the casts of a save.
+- **Loading.** A file is found through the layers (`FilesByLayer("Res\spells", {file})`, the top layer that has it)
+  and loaded at the first cast that needs it in a state (so again after a restore: the modules are not saved), into
+  globals of its own that read the state's (`setmetatable({}, {__index = _G})`), so it sets no mission global. Its top
+  level runs with every binding off (`ScriptLua::worldOff`: a binding is a Lua error), so when it loads cannot matter.
+  A file that does not load (missing, a Lua error, no table) says `Script error: Res\spells\<file> did not load: ...`
+  once per state; its casts end at once with no hook.
+- **The cast value**, a new table for each hook: `id` (the key), `code`, `caster`, `target` (objects or nil), `from`,
+  `point` (`{x, y, z}`), `tick` (ticks since the cast; 0 in OnCast), the built `damage`, `range`, `radius`,
+  `duration`, `targetCount`, `speed`, `mana`, and `data`, the script's own table (a new one assigned to `cast.data` is
+  kept). Values are lower camelCase, methods CamelCase: `cast:After(ticks, "Name" [, payload])` (at least 1 tick, whole
+  ticks), `cast:Finish()` (the cast ends after this hook). MF17c adds the world methods (FindUnits, Damage, ...).
+- **The order** (`SpellEffect::Update`, in the world tick's projectile walk, in list order): state 0 runs `Start`,
+  whose Scripted case makes the entry and calls OnCast, then state 4 (`kStateScripted`); each later update counts the
+  tick, runs the due timers one at a time by due tick, then by the order they were set in (a timer set by one is due
+  the next tick at the earliest), then OnTick, then the end test. The end: Finish after any hook (the rest of that
+  tick's hooks skipped), the tick cap (the spell's `duration`, else 600 ticks), or nothing pending (no timer and no
+  OnTick: "idle"); a hook's Lua error goes to the console (`Script error: <file>:<line>: <message>`), then OnEnd(cast,
+  "error"). The effect then ends as any spell does (state 3, removed at its next update).
+- **Hooks are not coroutines**: they run with `lua_pcall` on the state's main thread, so `Sleep` and the other waits
+  raise an error (no yield outside a coroutine). Timers and OnTick do the pacing (user 2026-11-11). The bindings work
+  in them; their commands run in a run of the host's own.
+- **CastSpell** makes one effect for a Scripted spell, whatever its target count and filters (the script chooses its
+  targets, MF17c). The victim turning on the caster is `offensive`'s (UseOf). `Forget` keeps a scripted cast when its
+  target goes (`target` cleared); the caster is cleared as before.
+- **Saves.** The host's `casts` table (key: `data`, `timers` = `{due, seq, name, payload}`, `tick`, `seq`, `finished`)
+  and `nextCast` are in the scheduler's persisted table; the cast value's metatable and its methods are permanents
+  (`ei.cast`, `ei.cast.After`, ...). A state-4 `SpellEffect` record adds its key and its owned objects (a count, 0 until
+  MF17c) after the old fields (tools/savefile_items.py `castKey`, `owned`). The save version stays 0x74: only a state-4
+  record has the fields, which no older save holds, and a bump would change every decoded save (the version is in the
+  decoded text); MF17g, when vanilla saves can hold scripted casts, may want it so that older builds refuse them.
+  After `MainScript()->LoadState` each state-4 effect finds its entry (`SpellEffect::ResumeScripted`,
+  `ScriptSpellHost::Adopt`); one the restored state lacks ends with the console's `Script error: the save's Lua state
+  has no cast ...`.
+- **Zone teardown.** The host goes with its scheduler (`Script::Reset`); its live casts' effects let go of it and end
+  at their next update, with no hook. An effect that goes first (the projectile list cleared) drops its entry.
+- **Mods in multiplayer**: `Res\spells\` counts in the mod's content hash (mods.md, "Mods in multiplayer").
+- **Checks.** `--lua-check`'s host cases (tools/convert/lua_check.cpp `CheckSpellHost`: timers in order with payloads,
+  Finish, OnTick to the cap, idle, a hook's error, a wait in a hook, no bindings at the top level and the file said
+  once, a timer naming no function, a cast saved after each of its first six ticks ending as the unbroken one);
+  `mod_spell_script` (both installs; tools/make_lua_mod.py spell): a console cast of a timer spell, saved and loaded
+  mid-cast, its count going on to the same end tick as an unbroken run.
 
 ## Spell effects
 

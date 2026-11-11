@@ -378,6 +378,7 @@ void ReadArguments(lua_State* L, Binding* binding) {
 int CallBinding(lua_State* L) {
     auto* binding = static_cast<Binding*>(lua_touserdata(L, lua_upvalueindex(1)));
     ScriptLua* lua = ScriptLua::Of(L);
+    if (lua->worldOff) return luaL_error(L, "%s: no bindings at a spell file's top level", binding->name);
     Script* script = lua->script;
     ReadArguments(L, binding);
     ScriptCall& call = binding->call;
@@ -1042,6 +1043,15 @@ void ScriptLua::SetGlobals(int index) {
         lua_insert(L, -2);
         lua_rawset(L, -4);
     }
+    lua_pop(L, 2);
+}
+
+void ScriptLua::AddPermanent(const char* name) {
+    lua_State* L = state;
+    lua_getfield(L, LUA_REGISTRYINDEX, kPersistKey);
+    lua_getfield(L, LUA_REGISTRYINDEX, kUnpersistKey);
+    lua_rotate(L, -3, 2);
+    scriptlua::AddPermanent(L, lua_absindex(L, -3), lua_absindex(L, -2), name);
     lua_pop(L, 2);
 }
 

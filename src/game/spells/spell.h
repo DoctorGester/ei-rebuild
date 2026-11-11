@@ -26,6 +26,7 @@ struct MapEffect;
 class Effect;
 class EffectParticle;
 class EffectPointLight;
+class ScriptSpellHost;
 enum class ParticleType : int;
 
 // The bits of Spell::targetFlags (saved as the number). The low 16 bits restrict the targets (CanAffect; the
@@ -207,14 +208,18 @@ public:
 
     void Init(WorldServer* world, Spell* spell, Unit* caster, const Vector3& position, MapObject* target,
               const Vector3& targetPoint, std::uint8_t newSilentEnd);
-    // 0 when `object` is the target (the world then drops the effect).
+    // 0 when `object` is the target (the world then drops the effect); a scripted cast lives on without it.
     bool Forget(EngineObject* object);
 
     // The position, caster and target ids, the target point, the state, the spell, the packed id, the visual
-    // / sound / light ids (-1 for none), the timer, the flags and the position again. Load finds the objects
-    // in g_loadingProjectileWorld and stamps the footprint.
+    // / sound / light ids (-1 for none), the timer, the flags and the position again; a scripted cast then its key
+    // and its owned objects (a count, 0). Load finds the objects in g_loadingProjectileWorld and stamps the
+    // footprint.
     void Load(ByteStream* stream);
     void Save(ByteStream* stream);
+    // After the world's script state loaded: a scripted cast goes on in the restored state's entry of its key, else
+    // it ends (said on the console).
+    void ResumeScripted();
 
     WorldServer* world = nullptr;
     std::uint32_t flags = 0;    // bit 0: the caster gets no credit for the hit
@@ -222,7 +227,7 @@ public:
     Ref<MapObject> target; // a unit or another map object
     Ref<Unit> caster;      // null for traps and scripts
     Vector3 targetPoint;
-    int state = 0;              // 0 casting, 1 missile, 2 lasting, else ends
+    int state = 0;              // 0 casting, 1 missile, 2 lasting, 4 scripted, else ends
     Spell spell;
     Ref<Effect> visual;              // particle source, wall, lightning or missile
     Ref<Effect> sound;               // a sound or a sound sequence
@@ -230,6 +235,10 @@ public:
     std::uint8_t footprintStamped = 0;
     int timer = 0;                        // ticks left in the next state
     std::uint8_t silentEnd = 0;           // copied into the buff record; healing: skip when at full health
+    // A scripted cast's key in its host's casts, and the host while the cast lives there (null once it ended, or
+    // when the host went with its zone's Lua state).
+    int castKey = 0;
+    ScriptSpellHost* host = nullptr;
 
     // The visual as the effect class its spell's behaviour creates.
     template <class T> T* Visual() const { return static_cast<T*>(visual.Get()); }

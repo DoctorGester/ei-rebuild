@@ -74,7 +74,7 @@ void AddResolved(const scriptir::File& file, std::string& key) {
 
 } // namespace
 
-ScriptLuaScheduler::ScriptLuaScheduler(Script* script) : lua(script), script(script), L(lua.State()) {
+ScriptLuaScheduler::ScriptLuaScheduler(Script* script) : lua(script), script(script), L(lua.State()), spells(*this) {
     lua.startScript = [this](lua_State* from) { Start(from); };
     report = [](const std::string& message) {
         console::EndLine(console::g_consoleOut << "Script error: " << message);
@@ -162,7 +162,7 @@ void ScriptLuaScheduler::Tick() {
 
 // The persisted table: { globals = ..., types = ..., names = (SaveNames), texts = n, instances = { { values, count, killed }... }, runs = { {
 // thread (false when it ended), ticks, sleepStart, arguments, kill (the instance index, -1 for none), values (a rule's
-// run), rule }... }, worlds = { WorldScript... } }.
+// run), rule }... }, worlds = { WorldScript... }, casts = ..., nextCast = n (ScriptSpellHost::Save) }.
 bool ScriptLuaScheduler::Save(std::string* data, std::string* error) {
     const int base = lua_gettop(L);
     lua.PushGlobals();
@@ -219,6 +219,7 @@ bool ScriptLuaScheduler::Save(std::string* data, std::string* error) {
         lua_rawseti(L, -2, ++i);
     }
     lua_setfield(L, root, "worlds");
+    spells.Save(root);
 
     const bool ok = lua.Persist(data, error);
     lua_settop(L, base);
@@ -290,6 +291,8 @@ bool ScriptLuaScheduler::Restore(std::string_view data, std::string* error) {
         lua_rawgeti(L, -1, i);
         worldScripts.push_back(luaL_ref(L, LUA_REGISTRYINDEX));
     }
+    lua_pop(L, 1);
+    spells.Restore(root);
     lua_settop(L, base);
     return true;
 }

@@ -306,6 +306,7 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
 
     aiMap.events.Load(stream);
     MainScript()->LoadState(stream);
+    for (SpellEffect* missile : projectiles) missile->ResumeScripted();
     diplomacy.Load(stream);
     stream->ReadValue(climate);
     stream->ReadValue(cave);

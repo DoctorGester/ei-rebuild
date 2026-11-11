@@ -10,6 +10,7 @@
 
 #include "game/script/script_lua.h"
 #include "game/script/script_lua_writer.h"
+#include "game/script/script_spell_host.h"
 
 #include <functional>
 #include <list>
@@ -63,7 +64,8 @@ public:
     // The whole state persisted with Eris into *data: the scripts' own globals and the GlobalVars types
     // (ScriptLua::PushGlobals), the names and the count of texts converted, every instance (its definition and
     // values, its count of values, its kill flag), every waiting run (its coroutine, its tick count and sleep start,
-    // whether it ended, the instance its kill flag names) and every text's WorldScript. Restore puts it into a
+    // whether it ended, the instance its kill flag names), every text's WorldScript and the scripted spells' casts
+    // (ScriptSpellHost::Save). Restore puts it into a
     // scheduler that has loaded nothing. False with the message in *error.
     bool Save(std::string* data, std::string* error);
     bool Restore(std::string_view data, std::string* error);
@@ -131,4 +133,9 @@ private:
     std::list<Instance> instances;   // the kill flags of runs point into it
     std::list<Run> runs;
     std::vector<int> worldScripts;   // the registry's references of every text's WorldScript, in load order
+
+public:
+    // The scripted spells' casts in this state (the main script's: the zone's server state), saved with it. Last, so
+    // it goes first.
+    ScriptSpellHost spells;
 };

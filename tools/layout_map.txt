@@ -503,6 +503,8 @@ script_lua_scheduler.h      script/script_lua_scheduler.h
 script_lua_scheduler.cpp    script/script_lua_scheduler.cpp
 script_lua_resume.cpp       script/script_lua_resume.cpp
 script_lua_mission.cpp      script/script_lua_mission.cpp
+script_spell_host.h         script/script_spell_host.h
+script_spell_host.cpp       script/script_spell_host.cpp
 script_addon_handlers.h     script/script_addon_handlers.h
 script_addon_commands.cpp   script/script_addon_commands.cpp
 script_addon_math.cpp       script/script_addon_math.cpp

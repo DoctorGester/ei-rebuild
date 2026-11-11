@@ -454,6 +454,9 @@ script loads comes to it ("Texts at runtime"). Every world script runs on one (`
   at the head (the last loaded runs first).
 - **Errors.** A Lua error ends its run (a failed condition does not hold); its message goes to `report`, by default
   the console's `Script error: <chunk>:<line>: <message>`.
+- **Spells.** Every scheduler has a `ScriptSpellHost` (`spells`): the scripted spells' casts run in the main script's
+  state, beside the mission's runs, their hooks called from the world tick's projectile walk (items_spells.md,
+  "Scripted spells"). Their modules have globals of their own; their casts are the persisted table's `casts`.
 
 ## Saves
 

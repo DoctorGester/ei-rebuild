@@ -31,9 +31,10 @@ enum class SpellSchool : int {
     None = 8,
 };
 
-// What a spell does (SpellRecord::behaviour, Spell::Behaviour()): the game's 42 spells, then None. The game's records
-// have the behaviour of their own place in the spell database (the order of database.res, Spell's prototypeId >> 16),
-// so for them the place and the behaviour are one number; a record after them does nothing (None).
+// What a spell does (SpellRecord::behaviour, Spell::Behaviour()): the game's 42 spells, then Scripted and None. The
+// game's records have the behaviour of their own place in the spell database (the order of database.res, Spell's
+// prototypeId >> 16), so for them the place and the behaviour are one number; a record with a script runs it
+// (Scripted), any other record after them does nothing (None).
 // Names from the prototypes' names (the code name where it differs), the sound folders under magic\ and the Start*
 // functions. The 1.06 database and Rebirth's both have all 42. Shapechange and Comprehend start nothing; Teleport's
 // record on the caster stuns it like Stun's (the client draws no particles for it). An active effect holds the place
@@ -81,6 +82,7 @@ enum class SpellType : int {
     Campfire = 0x27,                // StartAtGround: the effect stands at the ground point
     RickMagic = 0x28,               // "rick_magic", school fire: a fire arrow with the RikArrowSmoke trail
     CurseMagic = 0x29,              // "curse_magic", school lightning: lightning (CreateLightning's flag 1)
+    Scripted = 0xFE,                // its record's script runs every cast (SpellRecord::script); the tables read its fields
     None = 0xFF,                    // no behaviour of its own: it starts nothing, the tables read the record's fields
 };
 // The behaviours of the game's own records, places 0 to 0x29.
@@ -147,6 +149,9 @@ struct SpellRecord {
     // shows the level when the 'e' byte is set.
     std::uint8_t allowedModifiers[5] = {};
     std::uint32_t classMask = 0;        // bit (class - 1): the class templates that may use it
+    // TOML only (`script`): the Lua file below Res\spells\ (through the mod layers) that runs the spell's casts
+    // (docs/notes/items_spells.md, "Scripted spells").
+    std::string script;
     // What the spell does, set by the load (SetBehaviours; not in spells.sdb or its TOML).
     SpellType behaviour = SpellType::None;
     // TOML only (`ai`, `damage_type`, `offensive`): what the game's tables read for a record whose behaviour has no
@@ -165,11 +170,12 @@ struct SpellUse {
     bool fighting = false;      // casting it is fighting (UnitServer::IsFighting: the battle music)
 };
 
-// The row of the record's behaviour for the game's 42; for None the record's fields, `offensive` also standing for
+// The row of the record's behaviour for the game's 42; for Scripted and None the record's fields, `offensive` also standing for
 // turnsVictim and fighting.
 SpellUse UseOf(const SpellRecord& record);
 
-// Each record's behaviour from its place: the first kGameSpellCount their own, the others None.
+// Each record's behaviour: Scripted with a script, else from its place (the first kGameSpellCount their own, the
+// others None).
 void SetBehaviours(std::vector<SpellRecord>& records);
 
 // The records past `limit` erased; how many there were.
