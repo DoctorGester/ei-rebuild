@@ -9,7 +9,6 @@
   "repeated_in": 2,
   "reason": "L8c: the loop bindings set the counter global a converted loop names, as the game's loops do, so the digest's script record and the decoded saves compare the loops' counters again (L8a had left them out): the counters' values now recorded (script gobject, saves commands globals).",
   "source": "image",
-  "saves": "12 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
     "save LostInAstral/current/cz3j.sav: 2 fields in 1 records differ: commands 2",
     "  commands: 2 fields in 1 records; first commands globals.objects.1.value: ~loop in the old golden, -1 in the new run",
@@ -17,5 +16,6 @@
     "  commands: 1 fields in 1 records; first commands globals.objects.2.value: ~loop in the old golden, -1 in the new run",
     "save LostInAstral/savea/mission.sav: 1 fields in 1 records differ: commands 1",
     "  commands: 1 fields in 1 records; first commands globals.objects.2.value: ~loop in the old golden, -1 in the new run"
-  ]
+  ],
+  "saves": "12 decoded saves (tools/savefile.py), the same in 2 runs"
 }
