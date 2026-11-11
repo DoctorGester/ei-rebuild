@@ -4,3 +4,5 @@ group = "mods"
 depends = ["MF13d2"]
 note = "MF13d2 made StartZone go to the main menu when EnterZone fails (a zone whose map or objects the install lacks, e.g. a mod's map.toml zone without files). StartNetworkZone returns 0 the same way after TeardownZone (NewZone or the saves\\current file failing), and both callers (GameFlow::ProcessRequest's kStateNetworkZone, SetNetworkZone) ignore it: a hosted game then plays on with no world. Wanted: the same uniform fallback (warning, sessions closed, main menu) and a net scenario with a map.toml zone whose .mpr is missing."
 order = 1408
+status = "running"
+started = "2026-11-11"
