@@ -8,6 +8,8 @@
 #include "platform/seams.h"
 #include "platform/zip_folders.h"
 
+#include "miniz/miniz.h"
+
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
@@ -16,6 +18,7 @@
 #include <set>
 #include <string>
 #include <system_error>
+#include <vector>
 
 namespace platform {
 
@@ -170,6 +173,26 @@ bool ReadLayerFile(std::string_view path, std::string* bytes) {
         bytes->clear();
         return false;
     }
+    return true;
+}
+
+bool LayerFileCrc32(std::string_view path, std::uint32_t* crc) {
+    const std::string system = SystemPath(path, PathUse::Layer);
+    if (ZipPlace place; InZip(system, &place)) {
+        *crc = place.crc;
+        return place.found && !place.folder;
+    }
+    std::ifstream file(NativePath(system), std::ios::binary);
+    if (!file) return false;
+    std::vector<char> chunk(1 << 20);
+    mz_ulong sum = mz_crc32(0, nullptr, 0);
+    while (file) {
+        file.read(chunk.data(), static_cast<std::streamsize>(chunk.size()));
+        const std::streamsize got = file.gcount();
+        if (got > 0) sum = mz_crc32(sum, reinterpret_cast<const unsigned char*>(chunk.data()), static_cast<size_t>(got));
+    }
+    if (!file.eof()) return false;
+    *crc = static_cast<std::uint32_t>(sum);
     return true;
 }
 

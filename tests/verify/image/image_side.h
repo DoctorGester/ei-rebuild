@@ -53,6 +53,11 @@ void* ClientUnit(unsigned id, std::uint32_t** flags, std::uint32_t** rotation);
 
 // The sessions' state as console lines (harness_netstate_read.h).
 std::vector<std::string> NetState();
+// "netmod" (MF16): the mods our lobby compares (modidentity, net::ReadModMark) as console lines: this game's, the
+// client's join state, refusal and the host's mod, the server's refusals for a mod and the last one's.
+std::vector<std::string> NetMod();
+// "originalnet" (MF16): this game's lobby acts as the original's from now on (net::g_originalPeer).
+void OriginalNet();
 // The awards the game server keeps queued (each for 60 s: ServerSession::QueueAward), -1 without a server.
 int ServerAwards();
 // The client session's player limit (ClientSession::PlayerLimit), -1 without a client.

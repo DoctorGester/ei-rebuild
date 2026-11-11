@@ -1,0 +1,6 @@
+id = "MF16a"
+title = "The connection screen's list shows each host's mod (the info entry carries our mod mark)"
+group = "mods"
+depends = ["MF16"]
+note = "After MF16 a client learns the host's mod only from a refused join. Our server's info answer (PacketKind::Info) could carry the mod mark after the entry, where an original client reads nothing: the list then names the mod and marks hosts this game cannot join; a host whose mod is in the menu's list could offer the switch. A pair scenario with the showcase mod."
+order = 1353

@@ -1,0 +1,7 @@
+id = "MF17"
+title = "Spell API for mods: study and design (Lua spell hooks, server side)"
+group = "mods"
+size = 2
+model = "opus"
+note = "User 2026-11-11: the showcase mod's spell does nothing; goal: a custom unique spell with a custom particle and a unique mechanic. Study how spells work now (spell_db records, behaviour by record index, cast types, the 's' types, targeting, mana, cooldown, the effect objects they create, saves, MP: the server runs them). Design a mod spell: a [[spell]] record that names a Lua spell script (on_cast, on_tick, on_end, on_hit) running in the zone's server Lua state (saved with Eris, deterministic, world random only), bindings (find units in range, damage by type, heal, apply/remove a modifier, move/push, spawn an effect by name (MF15c), timers), UI/AI: how the hero's book, the hotkeys and the AI's spell choice see a mod spell. Report build/mf17_spells.md with tickets. Showcase target: 'Chain Spark' (a spark that jumps between up to 3 enemies, each jump weaker, with its own effect)."
+order = 1351

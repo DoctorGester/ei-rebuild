@@ -9,11 +9,13 @@
 #include "game/core/core_refcount.h"
 #include "game/players/party.h"
 #include "game/core/coder.h"
+#include "game/mods/mod_identity.h"
 #include "platform/platform.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <optional>
 #include <string_view>
 #include <list>
 #include <type_traits>
@@ -59,8 +61,8 @@ enum class PacketKind : std::uint8_t {
     GetInfo = 3,        // a ping: the sender's time follows
     Login = 4,          // a join request
     Info = 5,           // a server's description
-    Accepted = 6,       // the join id follows
-    Rejected = 7,       // the join id and a RefusalReason follow
+    Accepted = 6,       // the join id follows (then our mod mark)
+    Rejected = 7,       // the join id and a RefusalReason follow (then our mod mark for ModMismatch)
 };
 
 // Why a server refuses a join (the byte after the join id of a Rejected packet; ClientBase::refusal).
@@ -69,7 +71,24 @@ enum class RefusalReason : std::uint8_t {
     Full = 1,
     Banned = 2,
     WrongPassword = 3,
+    // Ours: the client's mod is not the server's (modidentity::Agrees; an original client's join to a server playing a
+    // mod too). An original client shows its unknown reasons' box, lmp_cannot_connect.
+    ModMismatch = 4,
 };
+
+// Ours (docs/notes/network.md, "Mods"): our peers' mod mark, written where an original peer reads nothing: after a
+// login's 20-byte password, an acceptance's join id and a ModMismatch refusal's reason. kModMark (with its zero), a
+// format byte (kModMarkFormat), the content hash (its low dword, then its high), the title's length (a byte) and its
+// bytes (UTF-8).
+inline constexpr char kModMark[] = "ei-rebuild mod";
+inline constexpr std::uint8_t kModMarkFormat = 1;
+void WriteModMark(GameBuffer* out, const modidentity::Identity& mod);
+// The mark at the cursor, none when there is none (an original peer's packet ends before it) or it is of another
+// format.
+std::optional<modidentity::Identity> ReadModMark(BufferCursor* cursor);
+// The harness's "originalnet" step: this game's lobby acts as the original's: its joins and acceptances carry no
+// mark, its server admits any mod and its client reads no mark.
+inline bool g_originalPeer = false;
 
 // The kind of an award message (AwardMessage::kind; ClientSession::ApplyAwards).
 // Who may pause a hosted game (the host's choice on the create-server screen, ServerSession::pauseMode;
@@ -422,7 +441,7 @@ public:
     virtual void Describe(Ref<ServerEntry>* out) = 0;   // this server's entry into *out
     // Whether a client from `from` may join (and `*reason` when not): the login's password at the cursor, read
     // when one is checked.
-    virtual bool Admit(const NetAddress* from, BufferCursor* password, RefusalReason* reason) = 0;
+    virtual bool Admit(const NetAddress* from, std::uint32_t joinId, BufferCursor* password, RefusalReason* reason) = 0;
 
     // Answers a ping from `address` with this server's description (5, the echoed time,
     // the magic and the entry).
@@ -444,7 +463,7 @@ public:
     void OnMessage(Connection* from, MessageEvent event, Message* message) override;
     void Tick(double dt) override;
     void Describe(Ref<ServerEntry>* out) override;
-    bool Admit(const NetAddress* from, BufferCursor* password, RefusalReason* reason) override;
+    bool Admit(const NetAddress* from, std::uint32_t joinId, BufferCursor* password, RefusalReason* reason) override;
 
     // Switches the server to map `name`.
     void SetMap(const std::string& name);
@@ -545,6 +564,12 @@ public:
     char password[0x14] = {};           // the join password (empty: none)
     std::uint32_t masterKey = 0;        // set by the creator (StartServer); announced, and the master
                                         // server's packets must start with it (OnMaster)
+    // Ours: the joins refused for the client's mod (each join once, however often it asks), the last one's address,
+    // join id and mod (none: an original client's).
+    std::uint32_t modRefusals = 0;
+    NetAddress modRefusedFrom = {};
+    std::uint32_t modRefusedJoin = 0;
+    std::optional<modidentity::Identity> modRefused;
 };
 
 // ---- The client base and the game client ----------------------------------------------------------
@@ -592,6 +617,9 @@ public:
     std::uint32_t joinId = 0;           // rand() << 16 | tick count
     JoinState joinState = JoinState::NotJoined;
     RefusalReason refusal = {};         // the reason the host gave
+    // Ours: the mod the host's acceptance or ModMismatch refusal named (none: no mark, an original host's), or the one
+    // this client refused itself for after an acceptance (OnAccepted: refusal ModMismatch).
+    std::optional<modidentity::Identity> hostMod;
     float retryTimer = 0.0f;            // seconds to the next join request
     float retryInterval = 0.0f;         // doubles with every request (0.1 first)
     std::vector<SharedRef<ServerEntry>> servers;

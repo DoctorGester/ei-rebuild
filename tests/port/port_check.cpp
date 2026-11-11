@@ -29,6 +29,7 @@ int RunMathsChecks();
 int RunSavePictureChecks();
 int RunAudioMixChecks();
 int RunDisplaySizesChecks();
+int RunModHashChecks();
 int RunPathLayersChecks();
 int RunWeatherFieldChecks();
 int RunTomlChecks();
@@ -191,6 +192,7 @@ int main() {
     platform::SetCurrentFolder(old, &folderError);
     // This tree is freshly made by this process and contains no links or game data.
     fs::remove_all(temp);
+    Check(RunModHashChecks() == 0, "a mod's content hash");
     // Last: it sets the program's mod.
     Check(RunPathLayersChecks() == 0, "the mod's path map");
     std::puts("Native platform and ARM maths checks passed");

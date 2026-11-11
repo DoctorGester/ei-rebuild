@@ -3,6 +3,7 @@
 
 #include "../harness_netstate_read.h"
 
+#include "game/mods/mod_identity.h"
 #include "game/net/net_session.h"
 #include "game/players/player.h"
 #include "game/players/player_client.h"
@@ -15,6 +16,38 @@
 namespace ei::verify::image {
 
 std::vector<std::string> NetState() { return pair::NetLines<net::ServerEntry>(net::g_gameServer.Get(), net::g_gameClient.Get()); }
+
+namespace {
+
+// A mod as the netmod lines name it: its title and whether its hash is this game's (the hash itself depends on the
+// checkout's line ends), "no mod" or "no mark".
+std::string ShownMod(const std::optional<modidentity::Identity>& mod) {
+    if (!mod) return "no mark";
+    if (mod->title.empty()) return "no mod";
+    const bool same = mod->hash == modidentity::Played().hash;
+    return "\"" + mod->title + "\" (" + (same ? "this game's files" : "other files") + ")";
+}
+
+} // namespace
+
+std::vector<std::string> NetMod() {
+    std::vector<std::string> lines;
+    const modidentity::Identity& played = modidentity::Played();
+    lines.push_back("netmod: this game plays " + (played.title.empty() ? std::string("no mod") : "\"" + played.title + "\""));
+    if (const net::ClientSession* client = net::g_gameClient.Get()) {
+        lines.push_back("netmod: the client's join state " + std::to_string(static_cast<unsigned>(client->joinState)) +
+                        ", refusal " + std::to_string(static_cast<unsigned>(client->refusal)) + ", the host's mod " +
+                        ShownMod(client->hostMod));
+    }
+    if (const net::ServerSession* server = net::g_gameServer.Get()) {
+        std::string line = "netmod: the server refused " + std::to_string(server->modRefusals) + " joins for their mod";
+        if (server->modRefusals) line += ", the last playing " + ShownMod(server->modRefused);
+        lines.push_back(line);
+    }
+    return lines;
+}
+
+void OriginalNet() { net::g_originalPeer = true; }
 
 int ServerAwards() {
     const net::ServerSession* server = net::g_gameServer.Get();

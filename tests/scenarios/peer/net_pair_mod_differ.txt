@@ -1,0 +1,64 @@
+# The peer of net_pair_mod_differ: another version of the showcase mod (the same title, other files), a hero, the
+# host's game (row 1) joined: refused for the mod, the refusal box naming the version (Enter closes it). Then the host
+# acts as the original game: the join is accepted without the mark, and this game, which plays a mod, does not join
+# (the original-game box).
+timeout 180
+mod harness_saves\showcase_mod
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key p
+frames 3
+key e
+frames 3
+key e
+frames 3
+key r
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 mpconnect
+
+peerwait 90 hosted
+wait 4000
+clickregion 15
+frames 5
+clickregion 0
+waitwindow 10 msgbox
+frames 5
+capture mod_version_box
+netmod
+expect the client's join state 0, refusal 4, the host's mod "Showcase mod" (other files)
+expectlog mod: the host
+key enter
+waitwindow 10 mpconnect
+peersignal refused
+
+peerwait 60 original
+clickregion 15
+frames 5
+clickregion 0
+waitwindow 10 msgbox
+frames 5
+capture mod_original_box
+netmod
+expect the client's join state 0, refusal 4, the host's mod no mark
+expectlog not joined
+key enter
+waitwindow 10 mpconnect
+peersignal refusedself
+peerwait 60 seen
+frames 20
+peersignal leaving
+frames 2
+report
+quit

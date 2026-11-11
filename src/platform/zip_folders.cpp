@@ -35,6 +35,7 @@ public:
         std::string name;                 // the last part, as the zip writes it
         bool folder = false;
         std::uint32_t size = 0;
+        std::uint32_t crc = 0;            // a file's CRC-32, as the zip's list of files gives it
         mz_uint index = 0;                // a file's entry
         std::vector<std::string> children;   // a folder's items' keys, by name
     };
@@ -56,7 +57,8 @@ public:
             std::string path = stat.m_filename;
             std::replace(path.begin(), path.end(), '/', '\\');
             while (!path.empty() && path.back() == '\\') path.pop_back();
-            if (!path.empty()) Add(path, stat.m_is_directory != 0, static_cast<std::uint32_t>(stat.m_uncomp_size), i);
+            if (!path.empty())
+                Add(path, stat.m_is_directory != 0, static_cast<std::uint32_t>(stat.m_uncomp_size), stat.m_crc32, i);
         }
         for (auto& [key, item] : items)
             std::sort(item.children.begin(), item.children.end(), [this](const std::string& a, const std::string& b) {
@@ -89,7 +91,7 @@ public:
 
 private:
     // `path` and the folders above it; a path met before (in any case) keeps its first entry.
-    void Add(const std::string& path, bool folder, std::uint32_t size, mz_uint index) {
+    void Add(const std::string& path, bool folder, std::uint32_t size, std::uint32_t crc, mz_uint index) {
         const std::string key = Lower(path);
         const auto [at, made] = items.try_emplace(key);
         if (!made) return;
@@ -98,9 +100,10 @@ private:
         item.name = path.substr(cut == std::string::npos ? 0 : cut + 1);
         item.folder = folder;
         item.size = folder ? 0 : size;
+        item.crc = folder ? 0 : crc;
         item.index = index;
         const std::string parent = cut == std::string::npos ? std::string() : key.substr(0, cut);
-        if (items.count(parent) == 0) Add(path.substr(0, cut), true, 0, 0);
+        if (items.count(parent) == 0) Add(path.substr(0, cut), true, 0, 0, 0);
         items[parent].children.push_back(key);
     }
 
@@ -173,7 +176,7 @@ bool InZip(std::string_view path, ZipPlace* place) {
     if (!zip) return false;
     if (place) {
         *place = {};
-        if (const Zip::Item* item = zip->Find(rest)) *place = {true, item->folder, item->size};
+        if (const Zip::Item* item = zip->Find(rest)) *place = {true, item->folder, item->size, item->crc};
     }
     return true;
 }

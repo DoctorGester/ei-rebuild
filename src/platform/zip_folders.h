@@ -22,6 +22,7 @@ struct ZipPlace {
     bool found = false;
     bool folder = false;          // the zip itself is its root folder
     std::uint32_t size = 0;       // a file's
+    std::uint32_t crc = 0;        // a file's CRC-32, from the zip's list of files
 };
 
 // Whether `path` goes through a zip file (the zip itself or a path below it); `place` what it names there.

@@ -263,12 +263,14 @@ void ReportStatus(net::PlayerStatus kind) {
 
 constexpr std::size_t kPasswordSize = 0x14;
 
-// The local client joins the server at `address` with the password (zero padded to 20 bytes) as its hello.
+// The local client joins the server at `address` with the password (zero padded to 20 bytes) as its hello, then
+// (ours) the mod mark of the mod it plays, which an original server never reads.
 void JoinWithPassword(const net::NetAddress& address, std::string_view password) {
     GrowingBuffer hello;
     char secret[kPasswordSize] = {};
     std::memcpy(secret, password.data(), std::min(password.size(), kPasswordSize));
     hello.Put(secret);
+    if (!net::g_originalPeer) net::WriteModMark(&hello, modidentity::Played());
     net::g_gameClient->Join(const_cast<net::NetAddress*>(&address), &hello);
 }
 

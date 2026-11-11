@@ -1,0 +1,56 @@
+# MF16: a pair of games playing different versions of one mod (docs/notes/network.md, "Mods"): this game the showcase
+# mod, the peer (peer/net_pair_mod_differ.txt) a copy whose Maps\zone1.lua has one line more (tools/make_mod_pair.py
+# changed): the same title, another content hash. This game hosts as net_pair_join does; the peer's join is refused
+# for its mod (Admit: RefusalReason::ModMismatch, with this game's mark in the refusal), the server's line names it
+# once (modidentity::RefusedLine) and the peer's box names the host's mod. Then this game's lobby acts as the original's
+# ("originalnet": any mod admitted, no mark in the acceptance) and the peer joins again: accepted, but the peer, which
+# plays a mod, does not join a host without the mark (ClientBase::OnAccepted) and shows the original-game box.
+# prepare: make_mod_pair.py showcase changed
+timeout 180
+peer net_pair_mod_differ
+mod harness_saves\showcase_mod
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key h
+frames 3
+key o
+frames 3
+key s
+frames 3
+key t
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 mpconnect
+
+# Row 0 (the new game), host.
+clickregion 14
+frames 5
+clickregion 0
+waitwindow 25 briefing
+peersignal hosted
+
+peerwait 120 refused
+netmod
+expect the server refused 1 joins for their mod, the last playing "Showcase mod" (other files)
+expectlog mod: refused the join of
+originalnet
+peersignal original
+peerwait 60 refusedself
+netstate
+expect the server has 1 connections
+peersignal seen
+peerwait 60 leaving
+frames 60
+report
+quit

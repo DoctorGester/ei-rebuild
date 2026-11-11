@@ -171,6 +171,9 @@ std::vector<FolderLayer> FilesByLayer(std::string_view folder, const std::vector
 // through the map would take from a layer over it that has one of its name (a record file's TOML in each layer,
 // docs/notes/mods.md "Records as TOML").
 bool ReadLayerFile(std::string_view path, std::string* bytes);
+// The CRC-32 (zip's) of the file `path`, not mapped, as ReadLayerFile reads it: a zip's file's from the zip's list of
+// files (nothing unpacked), any other's of its bytes; false when it is no file or a read fails.
+bool LayerFileCrc32(std::string_view path, std::uint32_t* crc);
 
 // The whole file `path` into `bytes`, shared with any writer (an editor or a sync tool holding it open); false (and
 // `bytes` empty) when it does not open or a read fails, with the system's error code in `error`.

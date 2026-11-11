@@ -192,6 +192,11 @@
 //   nolan                     in a pair's game: its broadcasts are lost (the lobby's ping finds nothing)
 //   netstate                  the server's connections, the lobby client's join state and listed servers as
 //                             console lines "netstate: ..." (harness_pair.h; a golden keeps them)
+//   netmod                    the mods the lobby compares as console lines "netmod: ...": this game's, the
+//                             client's join state, refusal and the host's mod, the server's refusals for a mod
+//                             (image::NetMod; a mod by its title and whether its files are this game's)
+//   originalnet               this game's lobby acts as the original's from now on: no mod mark sent or read, its
+//                             server admits any mod (net::g_originalPeer)
 //   badupdate                 in a pair's game: its next update to the other game carries a record of an
 //                             unknown type (harness_pair.h): the other game drops its connection
 //   peer <name>               run_all's: start a second game beside this one on tests/scenarios/peer/<name>.txt,
@@ -3123,11 +3128,13 @@ void RunSteps() {
             else if (port <= 0 || port > 0xFFFF) g_failures.push_back("fakemaster needs <port>");
             else if (!pair::FakeMaster(static_cast<std::uint16_t>(port), reply))
                 g_failures.push_back("fakemaster: the reply is list, badsize or short");
-        } else if (s.verb == "netstate") {
-            for (std::string& line : pair::NetState()) {
+        } else if (s.verb == "netstate" || s.verb == "netmod") {
+            for (std::string& line : s.verb == "netstate" ? pair::NetState() : image::NetMod()) {
                 Log("harness: %s", line.c_str());
                 g_console.push_back(std::move(line));
             }
+        } else if (s.verb == "originalnet") {
+            image::OriginalNet();
         } else if (s.verb == "nolan" || s.verb == "badupdate") {
             if (!pair::Active()) g_failures.push_back(s.verb + ": not a pair's game (a \"peer\" line starts the other)");
             else if (s.verb == "nolan") pair::NoLan();

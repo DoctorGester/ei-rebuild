@@ -1,0 +1,13 @@
+{
+  "scenario": "net_pair_mod_none",
+  "install": "vanilla",
+  "recorded": "2026-11-11",
+  "commit": "75c12ae89",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "MF16: new scenarios, the mods compared at the lobby's join (same mod admitted, another version and no mod refused, an original peer on either side)",
+  "side": "peer",
+  "source": "image"
+}

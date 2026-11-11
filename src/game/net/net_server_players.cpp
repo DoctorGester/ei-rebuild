@@ -10,6 +10,7 @@
 #include "game/ui/ui.h"
 #include "lib/float_select.h"
 #include "lib/text_case.h"
+#include "platform/log.h"
 
 #include <algorithm>
 #include <bit>
@@ -58,15 +59,36 @@ int ServerSession::LeaderId() {
     return -1;
 }
 
-// Whether a client from `from` may join. Refused when the address is banned (Banned), when a password is
-// set and the 20 bytes at the cursor differ (WrongPassword; read either way), or when the clients and the pending
-// joins reach the maximum (Full).
-bool ServerSession::Admit(const NetAddress* from, BufferCursor* given, RefusalReason* reason) {
+// Whether a client from `from` may join. Refused when the address is banned (Banned), when the client's mod (our
+// mark after the 20 password bytes; none from an original client, which counts as playing no mod) is not this game's
+// (ModMismatch, ours: a line for the players, once per join `joinId`), when a password is set and the 20 bytes at the
+// cursor differ (WrongPassword; read either way), or when the clients and the pending joins reach the maximum (Full).
+bool ServerSession::Admit(const NetAddress* from, std::uint32_t joinId, BufferCursor* given, RefusalReason* reason) {
     *reason = RefusalReason::Banned;
     // find_if over the banned addresses: the host compared, not the port.
     auto newBanned = banned.begin();
     while (newBanned != banned.end() && newBanned->ip != from->ip) ++newBanned;
     if (newBanned != banned.end()) return false;
+
+    if (!g_originalPeer) {
+        BufferCursor mark = *given;
+        std::uint8_t skipped[kPasswordSize];
+        mark.Take(skipped);
+        std::optional<modidentity::Identity> theirs = ReadModMark(&mark);
+        if (!modidentity::Agrees(theirs)) {
+            *reason = RefusalReason::ModMismatch;
+            if (std::memcmp(&modRefusedFrom, from, sizeof(NetAddress)) != 0 || modRefusedJoin != joinId) {
+                ++modRefusals;
+                modRefusedFrom = *from;
+                modRefusedJoin = joinId;
+                ei::Log("mod: refused the join of %s: it plays %s, this game %s", from->ToString(),
+                        modidentity::Described(theirs), modidentity::Described(modidentity::Played()));
+                Announce(modidentity::RefusedLine(from->ToString(), theirs), nullptr);
+            }
+            modRefused = std::move(theirs);
+            return false;
+        }
+    }
 
     const char* stored = password;
     if (stored[0]) {

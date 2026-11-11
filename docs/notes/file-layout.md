@@ -331,31 +331,31 @@ Risks:
 | Folder | Files | Lines today | Move batch |
 |---|---|---|---|
 | `ai/` | 28 | 12553 | C168f |
-| `app/` | 23 | 6939 | C168e |
+| `app/` | 23 | 6943 | C168e |
 | `combat/` | 13 | 6395 | C168f |
 | `console/` | 5 | 2038 | C168e |
 | `core/` | 27 | 3875 | C168d |
-| `data/` | 16 | 5692 | C168d |
-| `effects/` | 23 | 10833 | C168g |
-| `items/` | 10 | 2889 | C168g |
-| `map/` | 15 | 4157 | C168e |
+| `data/` | 16 | 5716 | C168d |
+| `effects/` | 23 | 10831 | C168g |
+| `items/` | 10 | 2896 | C168g |
+| `map/` | 15 | 4177 | C168e |
 | `models/` | 25 | 8219 | C168g |
-| `mods/` | 6 | 603 | C168d |
-| `net/` | 21 | 7991 | C168h |
-| `objects/` | 23 | 8125 | C168f |
+| `mods/` | 10 | 944 | C168d |
+| `net/` | 21 | 8165 | C168h |
+| `objects/` | 23 | 8143 | C168f |
 | `players/` | 24 | 5473 | C168e |
 | `saves/` | 7 | 828 | C168d |
-| `scene/` | 30 | 4414 | C168g |
-| `script/` | 31 | 10233 | C168h |
+| `scene/` | 30 | 4397 | C168g |
+| `script/` | 31 | 10004 | C168h |
 | `sound/` | 3 | 1679 | C168e |
-| `spells/` | 8 | 2585 | C168g |
+| `spells/` | 8 | 2578 | C168g |
 | `terrain/` | 12 | 3559 | C168g |
-| `ui/` | 97 | 33107 | C168h |
-| `units/` | 27 | 9786 | C168f |
-| `world/` | 35 | 10247 | C168e |
-| all | 509 | 162220 | |
+| `ui/` | 97 | 33118 | C168h |
+| `units/` | 27 | 9794 | C168f |
+| `world/` | 35 | 10235 | C168e |
+| all | 513 | 162560 | |
 
-556 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
+560 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
 
 ### Every file
 
@@ -634,6 +634,10 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 |---|---|---|---|
 | mod_folders.cpp | mods/mod_folders.cpp |  |  |
 | mod_folders.h | mods/mod_folders.h |  |  |
+| mod_hash.cpp | mods/mod_hash.cpp |  |  |
+| mod_hash.h | mods/mod_hash.h |  |  |
+| mod_identity.cpp | mods/mod_identity.cpp |  |  |
+| mod_identity.h | mods/mod_identity.h |  |  |
 | mod_list.cpp | mods/mod_list.cpp |  |  |
 | mod_list.h | mods/mod_list.h |  |  |
 | mod_plugins.cpp | mods/mod_plugins.cpp |  |  |

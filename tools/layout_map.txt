@@ -77,6 +77,10 @@ mod_list.h                  mods/mod_list.h
 mod_list.cpp                mods/mod_list.cpp
 mod_plugins.h               mods/mod_plugins.h
 mod_plugins.cpp             mods/mod_plugins.cpp
+mod_hash.h                  mods/mod_hash.h
+mod_hash.cpp                mods/mod_hash.cpp
+mod_identity.h              mods/mod_identity.h
+mod_identity.cpp            mods/mod_identity.cpp
 
 # ---- saves: the save files' container, versions, pictures and the client's kept picture --------------------------
 save_file.h                 saves/save_file.h               # kept whole: saves/file.h would not say which file

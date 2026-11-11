@@ -1,0 +1,53 @@
+# MF16: a pair of games playing the same mod (docs/notes/network.md, "Mods"): each its own copy of the showcase mod
+# (tools/make_mod_pair.py). This game hosts as net_pair_join does; the peer (peer/net_pair_mod_same.txt) joins. Its
+# login carries our mod mark after the password (the title and the content hash, modhash::ContentHash), which agrees
+# with this game's (modidentity::Agrees), so the server admits it as before; the acceptance's mark tells the peer the
+# host's mod. "netmod" shows both sides: nothing refused, the host's mod the peer's own files.
+# prepare: make_mod_pair.py showcase showcase
+timeout 180
+peer net_pair_mod_same
+mod harness_saves\showcase_mod
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key h
+frames 3
+key o
+frames 3
+key s
+frames 3
+key t
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 mpconnect
+
+# Row 0 (the new game), host.
+clickregion 14
+frames 5
+clickregion 0
+waitwindow 25 briefing
+netmod
+expect this game plays "Showcase mod"
+peersignal hosted
+
+peerwait 120 joined
+frames 60
+netstate
+expect the server has 2 connections
+netmod
+expect the server refused 0 joins for their mod
+peersignal seen
+peerwait 60 leaving
+frames 60
+report
+quit

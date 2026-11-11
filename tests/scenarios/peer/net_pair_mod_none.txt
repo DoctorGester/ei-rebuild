@@ -1,0 +1,58 @@
+# The peer of net_pair_mod_none: no mod, a hero, the host's game (row 1): refused for the mod, the box naming the
+# host's mod and this game's none (Enter closes it). Then its lobby acts as the original's and joins again: refused.
+timeout 180
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key p
+frames 3
+key e
+frames 3
+key e
+frames 3
+key r
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 mpconnect
+
+peerwait 90 hosted
+wait 4000
+clickregion 15
+frames 5
+clickregion 0
+waitwindow 10 msgbox
+frames 5
+capture mod_mismatch_box
+netmod
+expect the client's join state 0, refusal 4, the host's mod "Showcase mod" (other files)
+key enter
+waitwindow 10 mpconnect
+peersignal refused
+
+peerwait 60 again
+originalnet
+clickregion 15
+frames 5
+clickregion 0
+waitwindow 10 msgbox
+netmod
+expect the client's join state 0, refusal 4, the host's mod no mark
+key enter
+waitwindow 10 mpconnect
+peersignal refusedoriginal
+peerwait 60 seen
+frames 20
+peersignal leaving
+frames 2
+report
+quit
