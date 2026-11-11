@@ -124,6 +124,19 @@ bool FromFiles(std::string_view name, Layout layout, const std::map<std::string,
 // .bon when it had one, its .anm when it had one or has animations).
 std::map<std::string, std::string> Files(const Figure& figure, std::string_view name);
 
+// ---- Worn models (docs/notes/mods.md, "Worn models") ----------------------------------------------------------------
+
+// Whether `model` (a glTF's name without its extension) names a worn model: an item's model name without its material
+// and variant, letters, '_' and digits (`hm_09`, the hammer number 9's).
+bool IsWornModel(std::string_view model);
+// Figure set `name`'s .mod image `*mod` and .bon image `*bon` (empty: the set has none) joined by the parts of the
+// worn model `wornName` (the .mod and .bon images made of its glTF; `wornBon` empty without one) that the set does not
+// link and whose parent it links or gains: their links after the set's, their records and bones after its entries
+// (taking the place of an entry of the same name). The parts joined, in the worn model's link order; none leaves both
+// images as they were.
+std::vector<std::string> JoinWorn(std::string_view name, std::string* mod, std::string* bon, std::string_view wornName,
+                                  std::string_view wornMod, std::string_view wornBon);
+
 // ---- glTF ---------------------------------------------------------------------------------------------------------
 
 // The figure as a .glb named `name` (the scene's name).

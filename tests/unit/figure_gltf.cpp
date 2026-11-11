@@ -144,6 +144,83 @@ void CheckSet() {
     CheckRoundTrip(badBones, "unTest3");
 }
 
+// Worn models (docs/notes/mods.md, "Worn models"): an item's parts join a set that lacks them under the bones it has;
+// a part the set has, a root it lacks and a set without the attach bone join nothing.
+void CheckWorn() {
+    Check(figure_gltf::IsWornModel("hm_09") && figure_gltf::IsWornModel("HL_120") && !figure_gltf::IsWornModel("hm_09.0") &&
+              !figure_gltf::IsWornModel("unhuma") && !figure_gltf::IsWornModel("_09") && !figure_gltf::IsWornModel("hm_") &&
+              !figure_gltf::IsWornModel("hm1_09"),
+          "worn: the names");
+    Figure set;
+    Part body = MakePart("bd", true, "", 8);
+    body.hasMesh = true;
+    body.mesh = MakeRecord(8, 4, false);
+    Part hand = MakePart("rh3", true, "bd", 8);
+    hand.hasMesh = true;
+    hand.mesh = MakeRecord(8, 4, false);
+    Part club = MakePart("rh3.club01", true, "rh3", 8);
+    club.hasMesh = true;
+    club.mesh = MakeRecord(8, 4, false);
+    set.parts = {body, hand, club};
+    std::map<std::string, std::string> files = figure_gltf::Files(set, "unTest");
+
+    Figure worn;
+    Part attach = MakePart("RH3", true, "", 8);   // the bone it hangs from (another case), its mesh left out
+    attach.hasMesh = true;
+    attach.mesh = MakeRecord(8, 4, false);
+    Part added = MakePart("rh3.Club09", true, "RH3", 8);   // joined in lower case
+    added.hasMesh = true;
+    added.mesh = MakeRecord(8, 8, false);
+    Part tip = MakePart("baseclub09", true, "rh3.Club09", 6);   // under a part that joins (a prism bone)
+    Part own = MakePart("rh3.club01", true, "RH3", 8);           // the set has it: its own stays
+    own.hasMesh = true;
+    own.mesh = MakeRecord(8, 8, false);
+    Part stray = MakePart("lh9", true, "", 8);
+    Part strayChild = MakePart("lh9.club09", true, "lh9", 8);   // under a root the set lacks
+    worn.parts = {attach, added, tip, own, stray, strayChild};
+    const std::map<std::string, std::string> wornFiles = figure_gltf::Files(worn, "hm_09");
+
+    std::string mod = files.at("untest.mod"), bon = files.at("untest.bon");
+    const std::vector<std::string> joined =
+        figure_gltf::JoinWorn("unTest", &mod, &bon, "hm_09", wornFiles.at("hm_09.mod"), wornFiles.at("hm_09.bon"));
+    Check(joined == std::vector<std::string>{"rh3.club09", "baseclub09"}, "worn: the parts joined");
+    std::map<std::string, std::string> made = {{"untest.mod", mod}, {"untest.bon", bon}};
+    Figure back;
+    std::string error;
+    Check(figure_gltf::FromFiles("unTest", figure_gltf::Layout::Set, made, &back, &error), "worn: FromFiles: " + error);
+    const auto part = [&](const std::string& name) -> const Part* {
+        for (const Part& p : back.parts)
+            if (p.name == name) return &p;
+        return nullptr;
+    };
+    const Part* joinedClub = part("rh3.club09");
+    const Part* joinedTip = part("baseclub09");
+    Check(back.parts.size() == 5 && back.raw.empty(), "worn: the set's parts");
+    Check(joinedClub && joinedClub->linked && joinedClub->parent == "rh3" && joinedClub->hasMesh &&
+              joinedClub->mesh.Slots() == added.mesh.Slots() && joinedClub->bone == added.bone,
+          "worn: the club's link, record and bone");
+    Check(joinedTip && joinedTip->linked && joinedTip->parent == "rh3.club09" && !joinedTip->hasMesh &&
+              joinedTip->bone == tip.bone,
+          "worn: the tip under the club");
+    Check(part("rh3.club01") && part("rh3.club01")->mesh.Slots() == club.mesh.Slots() && part("rh3")->mesh.Slots() == 4,
+          "worn: the set's own parts kept");
+
+    // A set without the attach bone, and the set with the club already joined: nothing joins, the images stay.
+    Figure other;
+    other.parts = {body};
+    std::map<std::string, std::string> otherFiles = figure_gltf::Files(other, "unOther");
+    std::string otherMod = otherFiles.at("unother.mod"), otherBon = otherFiles.at("unother.bon");
+    Check(figure_gltf::JoinWorn("unOther", &otherMod, &otherBon, "hm_09", wornFiles.at("hm_09.mod"),
+                                wornFiles.at("hm_09.bon"))
+                  .empty() &&
+              otherMod == otherFiles.at("unother.mod") && otherBon == otherFiles.at("unother.bon"),
+          "worn: a set without the bone");
+    const std::string joinedMod = mod;
+    Check(figure_gltf::JoinWorn("unTest", &mod, &bon, "hm_09", wornFiles.at("hm_09.mod"), wornFiles.at("hm_09.bon")).empty() &&
+              mod == joinedMod,
+          "worn: joined once");
+}
+
 // A track of `keys` rotations and positions: turns about a varying axis (with `odd` the last key of no length and the
 // one before it twice the unit length), positions moving along x.
 Track MakeTrack(const std::string& name, int keys, bool odd) {
@@ -387,6 +464,7 @@ int RunFigureGltfChecks() {
     g_failures = 0;
     CheckJson();
     CheckSet();
+    CheckWorn();
     CheckLoose();
     CheckOtherTools();
     CheckAnimations();

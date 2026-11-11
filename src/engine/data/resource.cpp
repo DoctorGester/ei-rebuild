@@ -239,6 +239,7 @@ void MappedResource::ForgetLooseFiles() {
     modelEntries.clear();
     modelEntriesRead = false;
     madeModels.clear();
+    wornSets.clear();
     keptPngs.clear();
     keptPngBytes = 0;
 }
@@ -428,6 +429,8 @@ void* MappedResource::FindFile(std::string_view name, std::uint32_t* size, bool*
     const std::string key = LooseKey(name);
     const std::string pngName = PngNameOf(name);
     const std::vector<Source> sources = Sources();
+    if (EndsWith(key, ".mod") || EndsWith(key, ".bon"))
+        if (void* data = WornSetFile(name, key, sources, size)) return data;
     for (std::size_t i = 0; i < sources.size(); ++i) {
         const Source& source = sources[i];
         if (!pngName.empty())
@@ -559,10 +562,9 @@ const std::map<std::string, std::string>* MappedResource::MadeModel(const Source
     return &*made;
 }
 
-void* MappedResource::ModelFile(std::string_view name, const Source& source, std::uint32_t* size) {
+const std::string* MappedResource::MadeModelFile(const std::string& key, const Source& source) {
     const auto& models = source.loose ? source.loose->models : ModelEntries(*source.entries);
     if (models.empty()) return nullptr;
-    const std::string key = LooseKey(name);
     const std::string_view stem = std::string_view(key).substr(0, key.size() - 4);
     // The longest model name that begins the file's (a loose figure's <name><part>.fig).
     for (std::size_t length = stem.size(); length > 0; --length) {
@@ -570,30 +572,86 @@ void* MappedResource::ModelFile(std::string_view name, const Source& source, std
         if (model == models.end()) continue;
         const std::map<std::string, std::string>* files = MadeModel(source, model->second);
         if (!files) continue;
-        const auto file = files->find(key);
-        if (file == files->end()) continue;
-        if (void* data = SharedFile(*this, name, size)) return data;
-        auto made = std::make_unique<LoadedFile>();
-        made->name = name;
-        made->size = static_cast<std::uint32_t>(file->second.size());
-        made->bytes.assign(file->second.begin(), file->second.end());
-        return KeptFile(*this, std::move(made), size);
+        if (const auto file = files->find(key); file != files->end()) return &file->second;
     }
     return nullptr;
 }
 
+void* MappedResource::ModelFile(std::string_view name, const Source& source, std::uint32_t* size) {
+    const std::string* file = MadeModelFile(LooseKey(name), source);
+    if (!file) return nullptr;
+    if (void* data = SharedFile(*this, name, size)) return data;
+    auto made = std::make_unique<LoadedFile>();
+    made->name = name;
+    made->size = static_cast<std::uint32_t>(file->size());
+    made->bytes.assign(file->begin(), file->end());
+    return KeptFile(*this, std::move(made), size);
+}
+
 bool MappedResource::HasModelFile(std::string_view name, const Source& source) {
-    const auto& models = source.loose ? source.loose->models : ModelEntries(*source.entries);
-    if (models.empty()) return false;
-    const std::string key = LooseKey(name);
-    const std::string_view stem = std::string_view(key).substr(0, key.size() - 4);
-    for (std::size_t length = stem.size(); length > 0; --length) {
-        const auto model = models.find(stem.substr(0, length));
-        if (model == models.end()) continue;
-        const std::map<std::string, std::string>* files = MadeModel(source, model->second);
-        if (files && files->contains(key)) return true;
+    return MadeModelFile(LooseKey(name), source) != nullptr;
+}
+
+// ---- Worn models (docs/notes/mods.md, "Worn models") ----------------------------------------------------------------
+
+void* MappedResource::WornSetFile(std::string_view name, const std::string& key, const std::vector<Source>& sources,
+                                  std::uint32_t* size) {
+    const std::string figure = key.substr(0, key.size() - 4);
+    auto [set, added] = wornSets.try_emplace(figure);
+    if (added) set->second = JoinedSet(figure, sources);
+    if (!set->second) return nullptr;
+    const std::string& bytes = EndsWith(key, ".bon") ? set->second->bon : set->second->mod;
+    if (bytes.empty()) return nullptr;
+    if (void* data = SharedFile(*this, name, size)) return data;
+    auto made = std::make_unique<LoadedFile>();
+    made->name = name;
+    made->size = static_cast<std::uint32_t>(bytes.size());
+    made->bytes.assign(bytes.begin(), bytes.end());
+    return KeptFile(*this, std::move(made), size);
+}
+
+std::optional<MappedResource::WornSetFiles> MappedResource::JoinedSet(const std::string& figure,
+                                                                 const std::vector<Source>& sources) {
+    struct Worn {
+        const Source* source = nullptr;
+        std::string name, file;
+    };
+    std::vector<Worn> worn;
+    for (const Source& source : sources)
+        for (const auto& [model, file] : source.loose ? source.loose->models : ModelEntries(*source.entries))
+            if (figure_gltf::IsWornModel(model) &&
+                std::ranges::none_of(worn, [&](const Worn& w) { return w.name == model; }))
+                worn.push_back({&source, model, file});
+    if (worn.empty()) return std::nullopt;
+    // The set's files as FindFile reads them: a glTF's made file, else a folder's file or an archive's entry.
+    const auto setFile = [&](const std::string& extension, std::string* bytes) {
+        const std::string key = figure + extension;
+        for (const Source& source : sources) {
+            if (const std::string* made = MadeModelFile(key, source)) {
+                *bytes = *made;
+                return true;
+            }
+            std::string where;
+            if (ReadSource(source, key, bytes, &where)) return true;
+        }
+        return false;
+    };
+    WornSetFiles set;
+    if (!setFile(".mod", &set.mod)) return std::nullopt;
+    setFile(".bon", &set.bon);
+    std::size_t joined = 0;
+    for (const Worn& w : worn) {
+        const std::map<std::string, std::string>* files = MadeModel(*w.source, w.file);
+        if (!files) continue;
+        const auto mod = files->find(w.name + ".mod");
+        const auto bon = files->find(w.name + ".bon");
+        if (mod == files->end()) continue;
+        joined += figure_gltf::JoinWorn(figure, &set.mod, &set.bon, w.name, mod->second,
+                                        bon == files->end() ? std::string_view() : std::string_view(bon->second))
+                      .size();
     }
-    return false;
+    if (joined == 0) return std::nullopt;
+    return set;
 }
 
 void* MappedResource::LoadLooseFile(std::string_view name, const std::string& path, std::uint32_t* size) {

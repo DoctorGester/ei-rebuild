@@ -938,4 +938,21 @@ std::vector<std::string> ClientHurt() {
     return hurt;
 }
 
+std::vector<std::string> UnitsWearing(const std::string& part) {
+    std::vector<std::string> wearing;
+    for (MapObject* object : g_clientWorld.objects) {
+        if (!object || object->GetClassId() != ClassId::Unit) continue;
+        Object3D* figure = object->AsObject3D();
+        FigureMesh* mesh = figure->FindPart(part);
+        const FigureBone* bone = mesh && figure->animation ? figure->animation->FindBone(part) : nullptr;
+        if (!bone || bone->mesh != mesh) continue;
+        char text[256];
+        std::snprintf(text, sizeof(text), "id %d %s: %s under %s at %.3f %.3f %.3f%s", object->id, figure->name.c_str(),
+                      part.c_str(), bone->parentName.c_str(), bone->position.x, bone->position.y, bone->position.z,
+                      lib::Has(mesh->flags, FigureMeshFlag::Hidden) ? " hidden" : "");
+        wearing.emplace_back(text);
+    }
+    return wearing;
+}
+
 } // namespace ei::verify::image

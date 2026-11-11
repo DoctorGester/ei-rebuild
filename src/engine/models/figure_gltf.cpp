@@ -610,6 +610,71 @@ std::map<std::string, std::string> Files(const Figure& figure, std::string_view 
     return files;
 }
 
+// ---- Worn models --------------------------------------------------------------------------------------------------
+
+bool IsWornModel(std::string_view model) {
+    const std::size_t bar = model.find('_');
+    if (bar == 0 || bar == std::string_view::npos || bar + 1 == model.size()) return false;
+    const auto letter = [](char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'); };
+    const auto digit = [](char c) { return c >= '0' && c <= '9'; };
+    return std::all_of(model.begin(), model.begin() + static_cast<std::ptrdiff_t>(bar), letter) &&
+           std::all_of(model.begin() + static_cast<std::ptrdiff_t>(bar) + 1, model.end(), digit);
+}
+
+std::vector<std::string> JoinWorn(std::string_view name, std::string* mod, std::string* bon, std::string_view wornName,
+                                  std::string_view wornMod, std::string_view wornBon) {
+    using Entries = std::vector<std::pair<std::string, std::string_view>>;
+    using Links = std::vector<std::pair<std::string, std::string>>;
+    std::vector<std::string> joined;
+    Entries entries, wornEntries, bones, wornBones;
+    if (!ReadArchive(*mod, &entries) || !ReadArchive(wornMod, &wornEntries)) return joined;
+    const auto entryOf = [](const Entries& list, std::string_view entry) -> const std::string_view* {
+        for (const auto& [named, bytes] : list)
+            if (SameName(named, entry)) return &bytes;
+        return nullptr;
+    };
+    Links links, wornLinks;
+    const std::string_view* linkList = entryOf(entries, name);
+    const std::string_view* wornLinkList = entryOf(wornEntries, wornName);
+    if (!linkList || !wornLinkList || !ReadLinks(*linkList, &links) || !ReadLinks(*wornLinkList, &wornLinks)) return joined;
+    const bool hasBones = !bon->empty() && ReadArchive(*bon, &bones);
+    if (!wornBon.empty() && !ReadArchive(wornBon, &wornBones)) wornBones.clear();
+    // The set's name of a part it links (the game's skeleton matches names with their case), or null.
+    const auto linked = [&](std::string_view part) -> const std::string* {
+        for (const auto& link : links)
+            if (SameName(link.first, part)) return &link.first;
+        return nullptr;
+    };
+    std::vector<std::pair<std::string, std::string>> records, offsets;
+    for (const auto& [wornPart, wornParent] : wornLinks) {
+        const std::string* parent = wornParent.empty() ? nullptr : linked(wornParent);
+        if (!parent || linked(wornPart)) continue;
+        // In lower case, as the game names the parts it loads for an item (rh3.club09, hd.armor20).
+        const std::string part = Key(wornPart);
+        std::string parentName = *parent;
+        links.emplace_back(part, std::move(parentName));
+        joined.push_back(part);
+        if (const std::string_view* record = entryOf(wornEntries, part)) records.emplace_back(part, *record);
+        if (const std::string_view* offset = entryOf(wornBones, part)) offsets.emplace_back(part, *offset);
+    }
+    if (joined.empty()) return joined;
+    // The set's entries, its link list written anew, then the joined ones in place of any of their names.
+    const auto rewritten = [&](const Entries& own, const std::vector<std::pair<std::string, std::string>>& added,
+                               bool withLinks) {
+        std::vector<std::pair<std::string, std::string>> out;
+        for (const auto& [entry, bytes] : own) {
+            if (std::ranges::any_of(added, [&](const auto& a) { return SameName(a.first, entry); })) continue;
+            out.emplace_back(entry, withLinks && SameName(entry, name) ? WriteLinks(links) : std::string(bytes));
+        }
+        out.insert(out.end(), added.begin(), added.end());
+        return WriteArchive(out);
+    };
+    std::string newMod = rewritten(entries, records, true);
+    if (hasBones) *bon = rewritten(bones, offsets, false);
+    *mod = std::move(newMod);
+    return joined;
+}
+
 // ---- Writing the .glb ---------------------------------------------------------------------------------------------
 
 namespace {

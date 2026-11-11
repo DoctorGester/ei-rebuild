@@ -403,6 +403,10 @@ std::vector<std::string> ClientBolts();
 // The client world's living units whose packed hit points (as the server last sent them) are below their maximum:
 // each one's "id <id> hp <hit points> of <maximum>".
 std::vector<std::string> ClientHurt();
+// The client world's units whose figure has the part `part` carried by its skeleton's bone of that name (a worn
+// weapon's or armour's part attached; docs/notes/mods.md, "Worn models"): each one's "id <id> <figure>: <part> under
+// <parent bone> at <x y z>", " hidden" after a hidden part.
+std::vector<std::string> UnitsWearing(const std::string& part);
 // A figure alone (FigureInstance, MF15k3; "figurealone"): `model` built by the client world's figure manager without a
 // game object (a hero's model with the heroes' parts and hair 1, another whole), dressed with the skin of its name,
 // its animation database's `animation` played and moved on `frames` frames; `part`'s point at rest and then each
