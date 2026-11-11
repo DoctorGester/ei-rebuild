@@ -120,6 +120,7 @@ constexpr const char* kAllFiles = "*.*";
 // ---- StartZone ---------------------------------------------------------------------------------
 constexpr const char* kEndOfGame = "endofgame";
 constexpr const char* kZoneNotFound = "Zone %s not found";
+constexpr const char* kZoneNotEntered = "Zone %s cannot be entered";
 constexpr const char* kMenuMap = "ZoneMainMenuNew.mpr";
 constexpr const char* kMenuMob = "ZoneMainMenuNew.mob";
 
@@ -916,7 +917,25 @@ void GameFlow::StartZone(std::string_view zone, ZoneMode mode) {
     }
 
     g_serverWorld.SetTimeSpeed(static_cast<float>(options::kDefaultTimeScale));
-    GameState result;
+    GameState result = GameState::Playing;
+    if (mode != ZoneMode::MainMenu && mode != ZoneMode::EndOfGame) {
+        // The party enters the zone, then the clock is set from its "gtime". A zone that cannot be entered (its map
+        // or objects missing from the install, its saves\current file gone) goes to the main menu as an unknown one
+        // does: the world was torn down, and a battle screen over no world reads party units that are not there.
+        Party records;
+        g_partyManager.records.EndRedeploy(&records);
+        const bool entered = EnterZone(&records) != 0;
+        g_partyManager.records.BeginRedeploy(&records);
+        if (entered) {
+            g_serverWorld.SetTime(HoursOfDay(records.variables.Get(kGTime)));
+            g_serverWorld.SetClimate(zoneRecord->climate);
+            g_serverWorld.SetCave(zoneRecord->cave);
+        } else {
+            game::Warning(kZoneNotEntered, std::string(zone));
+            if (IsLive(net::g_gameClient)) DropSessions();
+            mode = ZoneMode::MainMenu;
+        }
+    }
     if (mode == ZoneMode::MainMenu) {
         g_serverWorld.NewZone(kMenuMap, kMenuMob, std::nullopt);
         // The menu shows the local time of day.
@@ -927,20 +946,6 @@ void GameFlow::StartZone(std::string_view zone, ZoneMode mode) {
         result = GameState::MainMenu;
         // The first script command queue runs in the menu too (Rebirth's AllowScriptsInMainMenu).
         g_serverWorld.scriptsActive = 1;
-    } else if (mode == ZoneMode::EndOfGame) {
-        result = GameState::Playing;
-    } else {
-        // The party enters the zone, then the clock is set from its "gtime".
-        Party records;
-        g_partyManager.records.EndRedeploy(&records);
-        EnterZone(&records);
-        g_partyManager.records.BeginRedeploy(&records);
-        g_serverWorld.SetTime(HoursOfDay(records.variables.Get(kGTime)));
-        if (zoneRecord) {
-            g_serverWorld.SetClimate(zoneRecord->climate);
-            g_serverWorld.SetCave(zoneRecord->cave);
-        }
-        result = GameState::Playing;
     }
 
     g_serverWorld.zoneMode = mode;

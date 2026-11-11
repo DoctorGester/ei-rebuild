@@ -1,0 +1,27 @@
+# A zone that cannot be entered (src/game/app/game_flow.cpp StartZone; MF13d2). From the new game in zone1 the party
+# goes to the final zone gz20g (zone20, its one entrance), then to gz21g: map.txt names zonemichel.mpr / .mob for it,
+# which no install has (no exit of the shipped game leads there; only the edge zone gz1g_gz21g, which nothing reaches).
+# NewZone refuses the missing map after the zone was torn down; StartZone then goes to the main menu with the warning
+# "Zone gz21g cannot be entered", as for a zone map.txt lacks, instead of playing on with no world under the battle
+# screen (that read the party's units, gone with the zone: C0000005 in HudPortraits::Update). A new game then starts.
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+zone gz20g 0
+waitzone 25 gz20g
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @GodMode(0,1)
+check IsLess(DistanceUnitPoint(GetLeader(),80,70.9),8)
+wait 1000
+zone gz21g 0
+waitmenu 20
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+wait 1000
+check IsAlive(GetLeader())
+report
+quit
