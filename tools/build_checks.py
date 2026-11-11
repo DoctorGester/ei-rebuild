@@ -88,7 +88,10 @@ def main(argv):
         if '--times' in argv:
             print(f'build_checks: {name} {seconds:.1f} s')
         if code:
-            failed.append(name)
+            # The flag and exit code too: one tool runs several checks, and a crash prints nothing of its own.
+            flag = next((a for a in cmd[1:] if a.startswith('--')), '')
+            failed.append(f'{name} {flag} (exit {code:#x})'.replace('  ', ' ') if code < 0 or code > 255
+                          else f'{name} {flag} (exit {code})'.replace('  ', ' '))
     if failed:
         print(f'build_checks: failed: {", ".join(failed)}')
         return 1
