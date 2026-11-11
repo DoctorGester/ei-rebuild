@@ -1,0 +1,9 @@
+  Activated!
+  Cannot open file autoexec.cfg for reading
+  Showcase mod: the island loads
+  Saved savea
+  1
+  Saved save1
+  Cannot open file autoexec.cfg for reading
+  Loaded save1
+  1

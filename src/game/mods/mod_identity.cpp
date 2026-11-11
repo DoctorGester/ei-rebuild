@@ -66,6 +66,10 @@ constexpr AddedText kRefused = {"lmp_mod_refused", "Игрок с адреса %
 constexpr AddedText kNoMod = {"lmp_no_mod", "без мода", "no mod"};
 constexpr AddedText kOriginalGame = {"lmp_original_game", "оригинальная игра", "the original game"};
 constexpr AddedText kOtherFiles = {"lmp_mod_other_files", "%s (другие файлы)", "%s (other files)"};
+constexpr AddedText kListed = {"lmp_mod_listed", "Мод: %s", "Mod: %s"};
+constexpr AddedText kCannotJoin = {"lmp_mod_cannot_join", "Не войти: моды разные", "Cannot join: the mods differ"};
+constexpr AddedText kCannotJoinVersion = {"lmp_mod_cannot_join_version", "Не войти: другая версия мода",
+                                          "Cannot join: another version of the mod"};
 
 // The game's text of the key when it has one, else ours.
 std::string Text(const AddedText& text) {
@@ -146,6 +150,15 @@ std::string RefusedLine(std::string_view address, const std::optional<Identity>&
     std::string shown = Shown(theirs);
     if (theirs && !theirs->title.empty() && theirs->title == ours.title) shown = Filled(Text(kOtherFiles), {shown});
     return Filled(Text(kRefused), {address, shown, Shown(ours)});
+}
+
+Listing Listed(const std::optional<Identity>& host) {
+    Listing listing{Filled(Text(kListed), {Shown(host)}), {}};
+    if (!Agrees(host)) {
+        const bool version = host && !host->title.empty() && host->title == Played().title;
+        listing.cannotJoin = Text(version ? kCannotJoinVersion : kCannotJoin);
+    }
+    return listing;
 }
 
 std::string Described(const std::optional<Identity>& mod) {

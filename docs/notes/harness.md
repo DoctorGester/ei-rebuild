@@ -86,7 +86,9 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   works in a network game, where `@` commands do nothing (`net_host_death.txt`, `unit_hit_turning.txt`). `giveitem
   <player> <item>` gives the server world's player (its id: 0 the host's own, 1 a pair's peer once it is in the game
   zone; the multiplayer bases are each game's own) a new item by its database name, as a script's GiveItem
-  (`net_pair_database.txt`). On the base screen: `waitdialogue <seconds> <state>` waits for its
+  (`net_pair_database.txt`). `serverscript <command>` runs a world script command on the server world
+  (`WorldScript(<command>)`), also in a network game where the console's `@` lines do nothing; a script error fails
+  the step (`net_pair_mod_effect.txt`). On the base screen: `waitdialogue <seconds> <state>` waits for its
   dialogue state (1 a person's topics open: `clickregion` picks one), `talk <seconds>` clicks through the dialogue's
   phrases and rewards until it is over, or until the base is left for a battle zone (a cut-scene base whose briefing
   ends in LeaveToZone: `mod_lost_in_astral_cz_ingos.txt`; `net_pair_leave.txt`).
@@ -151,7 +153,8 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   install's by the scenario's own game (the overlay), not by its peer: `net_pair_database.txt`'s host plays with a
   network item database of one item more (`tools/make_extra_item_db.py`). The peer's own overlay is the run folder's
   `peer\harness_saves`, which a prepare tool may fill too (`tools/make_mod_pair.py`: a mod for each game). `netmod`
-  prints the mods the lobby compares (network.md, "Mods"); `originalnet` makes the game's lobby act as the original's
+  prints the mods the lobby compares (network.md, "Mods"), `netlist` the client's listed servers with the mod each
+  one's info answer named and whether this game may join it; `originalnet` makes the game's lobby act as the original's
   (no mod mark, any mod admitted).
 - `secondmaster <host[:port]>` sets NewMaster's second master server for the run, over the settings file's
   `[network]` SecondMaster (rebirth.md, "Settings"). A game's player limit and pause mode are the host's create-server choices:

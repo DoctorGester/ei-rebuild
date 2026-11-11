@@ -1,0 +1,81 @@
+# MF15e: a data effect in a network game (docs/notes/effects.md, "Data effects"). A pair of games playing the showcase
+# mod (each its own copy, tools/make_mod_pair.py), both into the game zone as in net_pair_database (the sheriff's
+# second topic picks z3q2; the bases are each game's own). This game's server then starts the mod's
+# Res\effects\showcase_aura.effect.toml by its name, as a script's CreateParticleSource does ("serverscript": the
+# console's "@" lines do nothing in a network game): the world object's type is the effect's id (0x40000000 | the
+# name's FNV-1a), which travels in the object's delta field like an original type's number; the peer's client finds
+# it by the id in its own registry (Registry::FindById) and runs it. Both clients show it: particles, its stages by
+# their ticks; nothing logged as unknown. An original client never gets such an id: a server that plays a mod refuses
+# it at the join (network.md, "Mods").
+# A clickground lands where the clicked pixel's ray meets the ground (the vanilla runs play in a 4:3 window, the
+# Rebirth runs at the desktop's size; net_pair_leave).
+# prepare: make_mod_pair.py showcase showcase
+rebirth resolution desktop
+timeout 180
+peer net_pair_mod_effect
+mod harness_saves\showcase_mod
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key h
+frames 3
+key o
+frames 3
+key s
+frames 3
+key t
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 mpconnect
+
+clickregion 14
+frames 5
+clickregion 0
+waitwindow 25 briefing
+peersignal hosted
+
+peerwait 90 joined
+frames 20
+
+clickground 63 64 dblclick
+frames 60
+waitunit 10 Nsheriff
+clickunit Nsheriff
+waitdialogue 10 1
+clickregion 1
+talk 30
+
+clickground 61 50 dblclick
+frames 60
+clickground 59 43 dblclick
+waitzone 40 z3q2
+frames 20
+peersignal entered
+peerwait 120 peerin
+frames 20
+
+logmark
+serverscript CreateParticleSource(60,Add(GetX(GetLeader()),3),GetY(GetLeader()),GetZ(GetLeader()),2,"showcase_aura")
+frames 2
+effect showcase_aura check 1 rise
+peersignal started
+wait 1500
+effect showcase_aura check 20 glow
+peerwait 60 seen
+expectnonewlog particles: unknown particle type
+frames 20
+peersignal done
+peerwait 60 leaving
+frames 20
+report
+quit

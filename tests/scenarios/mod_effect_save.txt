@@ -1,0 +1,40 @@
+# MF15e: a data effect saved and loaded back by its id (docs/notes/effects.md, "Data effects"). The showcase mod's
+# showcase_aura started by a script's CreateParticleSource by its name; the game saved while it runs and loaded: the
+# zone's world object keeps the effect's id in the type int an original type's number takes, the loaded client finds
+# the effect by the id (Registry::FindById lists Res\effects through the layers at the first id not met) and runs it
+# again, caught up past its first stage (rise, 18 ticks: a lasting effect catches up 30); nothing logged as unknown.
+# prepare: make_showcase_mod.py
+mod harness_saves\showcase_mod
+reject Script error
+waitmenu
+console thingamabob
+
+newgame
+waitline 20 Showcase mod: the island loads
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @GodMode(0,1)
+console @CreateParticleSource(60,Add(GetX(GetLeader()),3),GetY(GetLeader()),GetZ(GetLeader()),2,"showcase_aura")
+frames 2
+effect showcase_aura check 1 rise
+wait 1500
+effect showcase_aura check 20 glow
+
+key esc
+waitwindow 10 escmenu
+click 395 120
+waitwindow 10 saveload
+clickregion 0
+waitline 15 Saved save1
+wait 300
+logmark
+load save1
+waitwindow 30 battle
+waitfor 20 IsGreater(HP(GetLeader()),0)
+frames 5
+effect showcase_aura check 5 glow
+wait 1000
+effect showcase_aura check 20 glow
+expectnonewlog particles: unknown particle type
+capture loaded
+report
+quit

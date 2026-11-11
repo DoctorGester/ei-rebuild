@@ -1,7 +1,7 @@
 // The client base's lobby: finding servers and joining one, and the server base's half that answers. See
 // net/net_session.h (ClientBase, ServerBase) for the fields. The packets (first byte): 3 ping (the session time),
 // 4 join (magic, id, rate, extra data), 5 info (the echoed time, magic, the server entry), 6 accepted (id), 7
-// refused (id, reason); ours add their mod mark to 4, 6 and 7 (WriteModMark). Plain float maths (rule 7). See
+// refused (id, reason); ours add their mod mark to 4, 5, 6 and 7 (WriteModMark). Plain float maths (rule 7). See
 // docs/notes/network.md. The game announcement record (GameInfoRecord) is at the end.
 
 #include "game/console/console.h"
@@ -208,8 +208,8 @@ void ClientBase::OnRejected(const NetAddress* from, BufferCursor* cursor) {
     }
 }
 
-// Its magic must match in all but the low byte. A new entry reads itself from the packet and gets the sender's
-// address, the ping (now - the echoed time) and when to look again: local servers and those asked directly soon,
+// Its magic must match in all but the low byte. A new entry reads itself from the packet (ours: then the mod mark,
+// none from an original server) and gets the sender's address, the ping (now - the echoed time) and when to look again: local servers and those asked directly soon,
 // others from the list never; unknown servers neither local nor asked are ignored. A known server's entry is
 // replaced (and its reply kept in its query, if asked); a new one is appended.
 void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
@@ -223,6 +223,10 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
     if (!entry) return;
     ServerEntry* e = entry.Get();
     e->Read(cursor);
+    if (!g_originalPeer) {
+        e->mod = ReadModMark(cursor);
+        e->modRead = true;
+    }
     e->address = *from;
     e->foreign = magicNumber != magic;     // another version (low byte differs): Connect refuses it
     bool local = socket.IsLocal(from);
@@ -433,6 +437,7 @@ void ServerBase::SendInfo(const NetAddress* address, std::uint32_t echo) {
         c.Put(magic);
         entry.Get()->Write(&c);
         c.End();
+        if (!g_originalPeer) WriteModMark(&b, modidentity::Played());
         Send(address, &b);
     }
 }

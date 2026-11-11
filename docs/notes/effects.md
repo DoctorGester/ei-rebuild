@@ -18,8 +18,8 @@ effects by family (`particle_casting.cpp`, `particle_marks.cpp`, `particle_blast
   effect shown" once per type and answers `kNoParticleType`, and gets null; `EffectParticle::Spawn` (also a wall's and
   an arrow's trail) then shows nothing. The world object stays, so the server's lifetime (`IsOneShotType`: none for
   an unknown type, the object lives until removed) and replication are unchanged. The original ended the game
-  ("CParticle::Create(). Unknown ETypeID."), so a mod type sent to an original client still does. `ShownParticleType`
-  is where a mod effect's declared fallback goes (MF15e). Check: `ei-convert --lua-check`'s `CheckUnknownParticleType`.
+  ("CParticle::Create(). Unknown ETypeID."), which an original client still would, but none gets a data effect's id
+  ("In multiplayer and saves"). Check: `ei-convert --lua-check`'s `CheckUnknownParticleType`.
 - Each effect is a section of its family's file: its set-up, `Emit*` (fill one particle; 0 returns it to the pool),
   `Update*` (move one; 0 drops it) and `Tick*` (one element of the source's array, or the whole array for Tornado,
   Casting*, Cylinder*, Tendril, Portal and ShapeChange), free functions over the source declared in
@@ -98,12 +98,30 @@ particle side, the inputs). The guide for modders: docs/modding.md, "Effects".
 - Res\effects counts in the mod's content hash (`modhash::Counted`, mods.md "Mods in multiplayer"): peers with other
   effect files are refused, since `[server]` decides when the world objects go.
 
+### In multiplayer and saves
+
+- The id is the only reference: the server's world object carries it in the int an original type's number takes (the
+  delta field of an `EffectParticle`, `EffectWall` and `EffectArrow`, and their saves), and every peer resolves it
+  in its own registry (`FindById`); no name and no format change. A loaded save finds the effect the same way.
+- Every peer has the same effects: Res\effects counts in the mod's content hash, so our peers with other effect files
+  are refused at the join (network.md, "Mods"). An id a peer still does not know (loose effect files in an install
+  without a mod, outside the hash) logs once and shows nothing (`ShownParticleType`).
+- **No fallback for original clients.** An original client cannot receive a data effect's id: a server that plays a mod
+  refuses unmarked clients at the join (network.md, "Mods"), and the original game's own content uses only the
+  original numbers. So effects declare no fallback type and the server writes the same int to every connection (the
+  study's per-connection fallback was dropped, user rule: one uniform path). When the original effects move to data
+  (MF15g) they must keep their 0x2000 numbers as their ids on the wire, since a server without a mod admits original
+  clients.
+- Checks: `net_pair_mod_effect` (both peers on the showcase mod, in z3q2: the host's server starts `showcase_aura` by
+  name with the harness's `serverscript`, both clients run it, stages by ticks, nothing logged unknown; capture
+  `peer_effect`), `mod_effect_save` (started, saved, loaded: the source made again from the id, caught up into glow).
+
 ### The schema
 
 Top level: `texture` (an Effects texture, kind 6), `frames` (16), `columns` (4), `blend` (`alpha` | `additive`),
 `attach` (`free` | `attached_only`), `part` (`effect_point`, `head`, `above_head`, `left_hand`, `right_hand`,
 `left_leg`, `right_leg`, `body`, `body00`..`body04`: the source sits on that part of a unit), `flags`
-(`ticks_while_paused`, `idles_off_screen`), `fallback` (kept for MF15e). Tables: `[server]`, `[source]` (`size`,
+(`ticks_while_paused`, `idles_off_screen`). Tables: `[server]`, `[source]` (`size`,
 `height`, `growth`, `alpha`, `param`, `spread_min`, `spread_max`, `extent`: the source's starting values, which
 `ScaleSize` and the world object scale as an original type's), `[emit]` (`rate`, `chance`, `emitting`, `spacing`,
 `max`, `once`), `[inputs]`, `[vars]`, `[[stage]]`, `[[on]]`, `[[anchor]]`, `[[particle]]`, `[tables]` (name = list of
