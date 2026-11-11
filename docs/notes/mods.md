@@ -401,17 +401,23 @@ armours, 63 weapons, 126 quests).
 The record TOML says what a value means rather than its bits (MF14, user 2026-11-11: the showcase mod's `class_mask =
 0x1`, `key = 0x2890000`, `blood_kind = 8`, unnamed arrays and a 32 x 32 relations matrix could not be written by
 hand). One path: ei-convert writes this form, the game reads only this form. The field helpers are database_toml.h's
-(`dbtoml::Enum`, `Bits`, `Code`, `OtherBits`, `Table`), which mob_toml.cpp uses too:
+(`dbtoml::Enum`, `Bits`, `Code`, `Table`), which mob_toml.cpp uses too:
 - An enum is its name (`natural_weapon = "club"`); a value no name has stays a number (the data's garbage, a code no
   code tests), which the reader also takes.
 - A bit mask is a list of names (`sold_by = ["gipat_smith"]`; a name may stand for several bits: `weapons = ["any"]`
-  is 0x7F). Bits no name covers go to `<key>_other = 0x..`, written only when not zero.
+  is 0x7F). A bit the code reads as a number and no name covers is that number (`weapons = ["axe", 7]`: the weapon
+  bit of type 7; `sold_by = [6]`: a mod's trader class 6). No field holds raw bits: every bit of a key, a mask or a
+  flag word is a name or a number of the code, and the bits nothing reads are cleared where the original is read
+  (an .adb's flags) or kept as an `unread...` field (MF14b, user 2026-11-11).
 - A fixed-meaning array is an inline table by name (`perception = { sight = 8.5, near = 2.8 }`); elements left out
   keep the record's value (0 in a new record).
 - Defaults are left out: `dbtoml::WriteRecords` writes a field only when its text differs from a new record's (the
   key always), the merge fills the rest from the record below or the type's defaults; mob.toml did this already.
-- An unknown name is a load warning with the file, the line and the valid names ("items.idb: <file> line 7: type has
-  a value it does not take (one of: sword, axe, ...)"), as the other TOML errors; the field keeps its value.
+- An unknown name is a load error of its record, as a record without its key: logged with the file, the line and the
+  valid names ("warning: items.idb: <file> line 7: type has a value it does not take (one of: sword, axe, ...); the
+  record is left out") and the record left out whole (a game record keeps what it had, a new one is not added). An
+  unknown key or a value of the wrong type is the same (`dbtoml::MergeRecords`; mob_toml.cpp's `LeftOut` for a map
+  object or weather record). The log is where a modder sees it (docs/modding.md, "Limits and troubleshooting").
 
 Field by field (the names, the code that reads each):
 
@@ -419,8 +425,8 @@ Field by field (the names, the code that reads each):
 |---|---|---|---|
 | items.idb | weapon `type`, `natural_weapon` (udb) | 0..6, 8, 16 | WeaponType: `sword`, `axe`, `dagger`, `spear`, `club`, `bow`, `crossbow`, `none` (8), `spells_only` (16) |
 | items.idb | armor `type` | 0..6 | ArmorType: `helmet`, `body_armor`, `leggings`, `shirt`, `pants`, `boots`, `gloves` |
-| items.idb | quick item / quest item / loot `type` | garbage (stack addresses) | a number, as it was (nothing reads it) |
-| items.idb, spells.sdb | `class_mask` | hex | `sold_by`: the trader class templates (bit class - 1, ClassTemplate::type; the classes by the scripts that open them: `gipat_smith` 1 (basecam "b.smith.constr_1"), `gipat_witch` 2 (bz2g), `ingos_trader` 3 (bz8k Shopper), `suslanger_smith` 4 (bz14h Kuzn), `rick` 5 (bz7g)) |
+| items.idb | quick item / quest item / loot `type` | garbage (stack addresses) | `unread_type`: no code reads it (the readers of ItemRecordHead::type, found by compiling with the field renamed, are all a weapon's or armour's) |
+| items.idb, spells.sdb | `class_mask` | hex | `sold_by`: the trader class templates (bit class - 1, ClassTemplate::type; the classes by the scripts that open them: `gipat_smith` 1 (basecam "b.smith.constr_1"), `gipat_witch` 2 (bz2g), `ingos_trader` 3 (bz8k Shopper), `suslanger_smith` 4 (bz14h Kuzn), `rick` 5 (bz7g)); another class by its number (6..32: a mod's script's class; no file has one) |
 | items.idb | `damage_types`, `absorb_first`, `absorb_others`, material `absorb_factors`; udb `damage_weights`, `protection` | 7-element arrays | tables by damage type (texts "string dmg_0".."dmg_6"): `piercing` (dagger, spear, bows), `slashing` (sword, axe), `crushing` (club), `fire`, `acid`, `lightning`, `general` |
 | items.idb | `buildable`, armor `shows_wounds` | 0 / 1 | true / false |
 | items.idb | quick item `category` | 0, 5, 8 | QuickItemCategory: `danger_sensor`, `consumable`, `wand`, `potion` |
@@ -429,16 +435,16 @@ Field by field (the names, the code that reads each):
 | units.udb | `movement_kind` | 1..3 | `movement`: `walks` (1: the load factor from the legs), `flies` (2), `rooted` (3: Fungus) |
 | units.udb | `mode_speeds` | [4] | `{ run, walk, crawl, lie }` (ModeSpeedOf) |
 | units.udb | `action_speeds` | [6] | `{ attack, cast, hit, death, cross, special }` (Unit::ActionSpeed) |
-| units.udb | `blood_kind` | 0..9 | `blood`: `none`, `red`, `green`, `blue`, `brown` (1..4: a shower and a bloodprints.png decal of that colour), `red_spray`, `green_spray`, `blue_spray`, `brown_spray` (5..8: the shower alone) |
-| units.udb | `footprint_kind` | -1..25 | `footprint`: the footprints texture's tile, named by the game's model that uses it (`none` -1, `human`, `driad`, `cyclope`, `skeleton`, `troll`, `golem`, `elemental`, `goblin`, `toad`, `ogre`, `lizardman`, `zombie`, `unicorn`, `horse`, `scrab`, `orc`, `pig`, `hyena`, `boar`, `cow`, `wolf`, `tiger`, `hare`, `rat`, `deer`, `dog`) |
+| units.udb | `blood_kind` | 0..9 | `blood`: `none`, `red`, `green`, `blue`, `brown` (1..4: a shower and a bloodprints.png decal of that colour), `red_spray`, `green_spray`, `blue_spray`, `brown_spray` (5..8: the shower alone); 9 (Lost in Astral's earth and ice elementals) stays a number: StatChanged and Died, its only readers, do for it what they do for `none` |
+| units.udb | `footprint_kind` | -1..25 | `footprint`: the tile of footprints.png (16 x 16 cells, eight across, a cell the left and the right print; PlayStepSounds, Footprint), each named by the vanilla models whose tile it is: every tile is used, each by the models of its name alone (Human Male and Human Female: `human`, the default) (`none` -1, `human`, `driad`, `cyclope`, `skeleton`, `troll`, `golem`, `elemental`, `goblin`, `toad`, `ogre`, `lizardman`, `zombie`, `unicorn`, `horse`, `scrab`, `orc`, `pig`, `hyena`, `boar`, `cow`, `wolf`, `tiger`, `hare`, `rat`, `deer`, `dog`) |
 | units.udb | `cast_effect`, `swap_feet` | 0 / 1 | true / false |
-| units.udb | model `sounds` | 16 names | `step_sounds`: a table by the ground's surface class (FootstepSound; prints.db's names): `grass`, `ground`, `stone`, `sand`, `rock`, `field`, `water`, `road`, `surface_8`, `snow`, `ice`, `dry_grass`, `snowballs`, `lava`, `swamp`, `high_rock` |
+| units.udb | model `sounds` | 16 names | `step_sounds`: a table by the ground's surface class (FootstepSound; prints.db's names): `grass`, `ground`, `stone`, `sand`, `rock`, `field`, `water`, `road`, `astral` (8: prints.db has no name; Terrain::SurfaceClass's class outside the map and on a tile without a texture, aiinfo tileDesc.reg's "ASTRAL"; every model gives it "steps", a folder without sounds), `snow`, `ice`, `dry_grass`, `snowballs`, `lava`, `swamp`, `high_rock` |
 | units.udb | unit `combat` | [5] | `{ reach, attack, attack_spread, defence, speed }` (CombatIndex) |
-| units.udb | unit `perception`, `conspicuity` | [6] | `{ sight, day_sight, near, hearing, smell, unread }` (Sense; smell: Slot4, raised by the Stench spell) |
-| units.udb | unit `hit_sound_kind` | 8..16 | `hit_sound`: the weapon types (0..6), `none` (8), the sound folders `hands1` 9, `pierce` 10, `crash` 11, `hands4` 12, `slash` 13, `hands6` 14, `hands7` 15, `spells_only` 16 (HitSoundFormat) |
+| units.udb | unit `perception`, `conspicuity` | [6] | `{ sight, day_sight, near, hearing, smell, unread }` (Sense; `smell`: Sense::Smell, read by AIMemory::MeasureExposure, a unit's conspicuity raised by the Stench spell; `unread`: the sixth, copied into the stats and the params (saved, sent) and read by nothing, so kept as data; a prototype's conspicuity `sight` is also its footprints' scale) |
+| units.udb | unit `hit_sound_kind` | 8..16 | `hit_sound`, the sound of its natural attack's hit (HitSoundFormat, its only reader): a weapon type (0..6: that weapon's sound), `none` (8), else by the folder of res\sfx\weapons\ the code picks: `hands1` 9, `pierce` 10, `crash` 11, `hands4` 12, `slash` 13, `hands6` 14, `hands7` 15; `spells_only` 16 (none). hands1 (the humans, skeletons and zombies), hands4 (the ogres), hands6 (the trolls) hold one sound for every material; no install has a hands7 folder (the animals and elementals: they hit silently) |
 | units.udb | npc `stats` | [3] | `{ strength, dexterity, intelligence }` |
-| .adb | `key` | hex | its parts (object3d.h): `kind` (AnimationKind: `special`, `attack`, `cast`, `run`, `walk`, `idle`, `death`, `hit`, `cross`), `weapons` (bits 0..7 by weapon type, `any` 0x7F), `move` (`stop`, `walk`, `crawl`, `lie`), `play` (`once`, `looped`); the number (bits 22..29) by the kind: an attack's or cast's `height` (`high`, `middle`, `low`) and `blow` (true), a death's or hit's `side` (BlowSide: `back`, `front`, `minus_x`, `plus_x`) and `fall` (`walking`, `standing`, `none`: 0x08, 0x10, 0x18), a special's `skill` (SkillAnimation), else `number`; the other variant bits (8..14) `key_other` |
-| .adb | `flags` | hex | `flags = ["arrow", "fits_under_armour", "fits_upper_armour"]` (bit 0: UpdateArrow; 0x10, 0x20: Unit::AcceptsAnimation), `death_side` (0x1C00000, ActionPoint); the bits nothing reads (1..3, 15..21, 25, 26: they mirror the key in most entries) `flags_other` |
+| .adb | `key` | hex | its parts (object3d.h): `kind` (AnimationKind: `special`, `attack`, `cast`, `run`, `walk`, `idle`, `death`, `hit`, `cross`), `weapons` (the variant bits by weapon type, `any` 0x7F), `move` (`stop`, `walk`, `crawl`, `lie`), `play` (`once`, `looped`); the number (bits 22..29) by the kind: an attack's or cast's `height` (`high`, `middle`, `low`) and `blow` (true), a death's or hit's `side` (BlowSide: `back`, `front`, `minus_x`, `plus_x`) and `fall` (UnitServer::BuildDeathAnimation: `running` 0x08, a hero hit while it runs; `moving` 0x10, while it moves otherwise (HitWhileMoving); `none` 0x18, no fall), a special's `skill` (SkillAnimation), else `number`. Every variant bit (0..14) is a weapon bit (AnimationKeyFits; the requests' bits are AnimationWeaponBit of the held or natural weapon's type): `none` is type 8, a type without a name its number (7: the 8 entries of unmoco3 and unmoco4 past their old, shorter entries' end) |
+| .adb | `flags` | hex | `flags = ["arrow", "with_under_armour", "with_outer_armour"]` (AnimationFlag: 0x1 UpdateArrow; 0x10 / 0x20 Unit::AcceptsAnimation: a hero wearing a shirt, pants, boots or gloves / a helmet, body armour or leggings plays only the animations with the bit), `death_side` (0x1C00000, FigureAnimationRecord::Side). The files set other bits too (1..3, 15..21, 25, 26: most entries repeat their key's bits) that nothing reads: compiling with the field renamed finds its only readers (those three, the harness's `anim` check and ei-convert's comparison), so ReadAdbImage keeps kAnimationFlagBits and the TOML has no field for the rest |
 | .adb | `index` | its place | left out when it is its place (a new animation's default) |
 | mob.toml | `parent_id` | 50..60 | `class`: MapObjectType `hero`, `creature`, `animal`, `tree`, `building`, `stone`, `stuff`, `torch`, `magic_trap`, `lever` |
 | mob.toml | `[players]` | 32 names, 32 x 32 matrix | `names = { 3 = "Golems" }` only names other than "Player-n"; `allied`, `neutral`, `hostile`: lists of `[player, other]` pairs whose relation differs from the default (neutral, allied with itself); the data's relations are all 0..2 |
@@ -447,12 +453,16 @@ Kept as numbers (quantities, indexes, a player number): `number`, `variant`, `ma
 unit's `level`, `size_class` (the AI map's size class), `foot_part` (the "ll<n>" part), `side` (the owner's player
 number), `player`, an item's `attack_interval`, a quest item's `id`, a loot record's `index`, the eyes, the chances.
 
-Also by name: spells.sdb's `school`, `target_kind` (`unit`, `point`), `allowed_modifiers` (`{ range, targets, area,
+Also by name: spells.sdb's `school`, `target_kind` (`unit`, `point`; Shapechange's 's' stays the number 115:
+Spell::InitFromPrototype, the only reader, gives it neither target flag, so the interface asks for a point and the
+cast keeps its target object), `allowed_modifiers` (`{ range, targets, area,
 effect, duration }`), a modifier's `kind`, `needs_sight`; map.toml's `classes` (the surfaces, `line` 16).
 
 Left for MF14a: a spell's `cast_type`, quests.qdb, perks.pdb, Levers.ldb, a lever's `lock.mask`, map.toml's
 `[[material]] kind`, config.reg.toml (`Single`, `Multi` as booleans: the registry writer knows no key's meaning), an
-NPC's `attributes` and `skills`, the unit level records, acks.db and prints.db (already names and numbers).
+NPC's `attributes` and `skills`, the unit level records, acks.db and prints.db (already names and numbers). Left for
+MF14c: an .adb key's `number` by kind (the walk's and run's damage levels, the idle's special idle, the crossings),
+mob.toml's `[object.stats]` arrays as named tables.
 
 ## Textures as PNG
 

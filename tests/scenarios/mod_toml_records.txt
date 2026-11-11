@@ -7,7 +7,9 @@
 #   given replaces the game's whole list) and the game's records the mod leaves (HadExpW's s7);
 # - records merge by field (MF3a): the mod gives only the mercenary warrior's attack list (his move list is the game's),
 #   only the stone blood print's wet alpha (its dry look and the rest of its wet look are the game's) and only the
-#   chance of the cow's animation "cidle01" (its frames, key, flags and moment are the game's).
+#   chance of the cow's animation "cidle01" (its frames, key, flags and moment are the game's; its flags 0: the load
+#   keeps the bits the code reads, AnimationFlag);
+# - the cow's "cidle02" names a move no animation has: the record is left out whole (its chance stays 100).
 # prepare: make_mod_s19d.py toml
 mod harness_saves\s19d_mod
 reject Script error
@@ -20,6 +22,7 @@ modack HadExpW s7 Acks\HadExpW\Scenario\HadExpW.wav
 modrecord ack Human Mercenary Warrior/2 = 1 Acks\HMW\Attack\MF3a.wav
 modrecord ack Human Mercenary Warrior/1 = 6 Acks\HMW\Move\1.wav
 modrecord blood stone = dry 0.45 900 150 wet 0.25 225 150
-modrecord anim unanhoco/cidle01 = chance 37 frames 50 key 80590000 flags c moment 23
+modrecord anim unanhoco/cidle01 = chance 37 frames 50 key 80590000 flags 0 moment 23
+modrecord anim unanhoco/cidle02 = chance 100 frames 50 key 80590000 flags 0 moment 19
 report
 quit

@@ -174,8 +174,9 @@ The merge rules, the same for every table:
 - A key the game's table lacks is a new record at the end of its table. Records are never removed or reordered:
   saves, scripts and the network refer to records by their index.
 - A list field (a unit's speech list, an animation's `sounds`) given is the whole list.
-- A record without its key, an unknown key, or a value of the wrong type is logged (`warning: <file> line n: ...`) and
-  left out; a file that is not TOML is logged and not read.
+- A record without its key, with an unknown key, a name its field does not have or a value of the wrong type is
+  logged (`warning: <file> line n: ...; the record is left out`, with the valid names) and left out whole: the game's
+  record keeps what it had, a new one is not added. A file that is not TOML is logged and not read.
 - Several places can have a TOML of the same file (a mod's over an unpacked install's): the bottom one is merged first,
   the mod's last, so the mod's wins.
 - A file with `replace = true` at its top is the whole file: nothing below it (the game's original, lower TOML files) is
@@ -285,46 +286,49 @@ damage_types = { slashing = 1.0 }
 
 ### Values by name
 
-Codes, masks and fixed lists are written by name. A name the field does not know is logged with the valid ones
-(`warning: items.idb: <file> line 9: type has a value it does not take (one of: sword, axe, ...)`) and the field keeps
-its value. The names (docs/notes/mods.md, "Readable values", says which code reads each):
+Codes, masks and fixed lists are written by name. A name the field does not know is an error of its record, logged
+with the valid ones (`warning: items.idb: <file> line 9: type has a value it does not take (one of: sword, axe, ...);
+the record is left out`); the record is not read. The names (docs/notes/mods.md, "Readable values", says which code reads each):
 
 | Field | Names |
 |---|---|
 | weapon `type`, a unit's `natural_weapon` | `sword`, `axe`, `dagger`, `spear`, `club`, `bow`, `crossbow`; `none`, `spells_only` (natural weapons) |
 | armor `type` | `helmet`, `body_armor`, `leggings`, `shirt`, `pants`, `boots`, `gloves` |
-| `sold_by` (items, materials, spells, modifiers, recipes) | the traders that sell it: `gipat_smith`, `gipat_witch`, `ingos_trader`, `suslanger_smith`, `rick` |
+| `sold_by` (items, materials, spells, modifiers, recipes) | the traders that sell it: `gipat_smith`, `gipat_witch`, `ingos_trader`, `suslanger_smith`, `rick`; a trader class of a mod's script by its number (6..32) |
 | `damage_types`, `absorb_first`, `absorb_others`, `absorb_factors`, a model's `damage_weights` and `protection` | a table by damage type: `piercing`, `slashing`, `crushing`, `fire`, `acid`, `lightning`, `general` |
 | quick item `category` | `danger_sensor`, `consumable`, `wand`, `potion` |
 | loot `kind`, `record_type` | `self`, `material`, `record`; `weapon`, `armor`, `quick_item`, `spell`, `modifier`; `none` |
 | model `class` | `hero`, `creature`, `animal` |
 | model `movement` | `walks`, `flies`, `rooted` |
 | model `blood` | `none`, `red`, `green`, `blue`, `brown` (a shower and a stain on the ground), `red_spray`, `green_spray`, `blue_spray`, `brown_spray` (the shower alone) |
-| model `footprint` | the footprint picture of a game creature: `none`, `human`, `driad`, `cyclope`, `skeleton`, `troll`, `golem`, `elemental`, `goblin`, `toad`, `ogre`, `lizardman`, `zombie`, `unicorn`, `horse`, `scrab`, `orc`, `pig`, `hyena`, `boar`, `cow`, `wolf`, `tiger`, `hare`, `rat`, `deer`, `dog` |
-| model `step_sounds` | a table by the ground's surface: `grass`, `ground`, `stone`, `sand`, `rock`, `field`, `water`, `road`, `surface_8`, `snow`, `ice`, `dry_grass`, `snowballs`, `lava`, `swamp`, `high_rock` |
+| model `footprint` | the picture in footprints.png, by the game creature whose footprint it is: `none`, `human`, `driad`, `cyclope`, `skeleton`, `troll`, `golem`, `elemental`, `goblin`, `toad`, `ogre`, `lizardman`, `zombie`, `unicorn`, `horse`, `scrab`, `orc`, `pig`, `hyena`, `boar`, `cow`, `wolf`, `tiger`, `hare`, `rat`, `deer`, `dog` |
+| model `step_sounds` | a table by the ground's surface: `grass`, `ground`, `stone`, `sand`, `rock`, `field`, `water`, `road`, `astral` (outside the map), `snow`, `ice`, `dry_grass`, `snowballs`, `lava`, `swamp`, `high_rock` |
 | model `mode_speeds`, `action_speeds` | `{ run, walk, crawl, lie }`; `{ attack, cast, hit, death, cross, special }` |
 | unit `combat` | `{ reach, attack, attack_spread, defence, speed }` |
-| unit `perception`, `conspicuity` | `{ sight, day_sight, near, hearing, smell, unread }` |
-| unit `hit_sound` | the weapon types, `none`, or a sound folder of `weapons\`: `hands1`, `pierce`, `crash`, `hands4`, `slash`, `hands6`, `hands7`; `spells_only` |
+| unit `perception`, `conspicuity` | `{ sight, day_sight, near, hearing, smell, unread }` (`unread`: no code reads it; a prototype's conspicuity `sight` also scales its footprints) |
+| unit `hit_sound` | the sound of its natural attack's hit: a weapon type (that weapon's sound), `none`, `spells_only` (no sound), or a folder of `Res\sfx\weapons\`: `pierce`, `crash`, `slash`, `hands1` (the humans' unarmed hits), `hands4` (the ogres'), `hands6` (the trolls'), `hands7` (the animals': no install has the folder, so they hit silently; a mod may add `weapons\hands7\<material>\1.wav`) |
 | npc `stats` | `{ strength, dexterity, intelligence }` |
 | spell `school` | `fire`, `lightning`, `acid`, `illusion`, `divination`, `enchantment`, `healing`, `domination`, `none` |
 | spell `target_kind`, `allowed_modifiers`; modifier `kind` | `unit`, `point`; `{ range, targets, area, effect, duration }`; `range`, `targets`, `area`, `effect`, `duration`, `mana`, `filter`, `item` |
 | true / false | `buildable`, `shows_wounds`, `cast_effect`, `swap_feet`, `voiced`, `needs_sight` |
 
 A table gives only the elements it changes (`perception = { sight = 9.0 }`); a long one can be a sub-table of the
-record (`[model.step_sounds]` after the model's other fields). A value without a name (the game data has a few, such
-as the quick items' `type`) is a number. Bits no name covers are kept in `<field>_other = 0x..`.
+record (`[model.step_sounds]` after the model's other fields). A value without a name is a number: the game data has
+two, Shapechange's `target_kind` 115 (neither a unit nor a point: the interface asks for a point) and Lost in Astral's
+`blood = 9` (the same as `none`). A list of bits takes a number where the code gives one and no
+name does: a weapon type in an animation's `weapons`, a trader class in `sold_by`.
 
 ### Animation lists
 
 An `.adb.toml`'s `[[animation]]` says when the game plays it by parts: `kind` (`special`, `attack`, `cast`, `run`,
-`walk`, `idle`, `death`, `hit`, `cross`), `weapons` (the weapon types it is for, `any` for all seven), `move` (`stop`,
-`walk`, `crawl`, `lie`), `play` (`once`, `looped`), and what the kind adds: an attack's or cast's `height` (`high`,
-`middle`, `low`) and `blow = true`, a death's or hit's `side` (`back`, `front`, `minus_x`, `plus_x`) and `fall`
-(`walking`, `standing`, `none`), a special's `skill` (`tame`, `steal`, `use`, `search_body`, `briefing01`, ...), else a
-`number`. `flags` lists `arrow` (a bow shows its arrow from `arrow`'s first frame to its second), `fits_under_armour`,
-`fits_upper_armour` (a hero in those pieces may play it), `death_side` where a dead body lies. `index` is the
-animation's place unless given. Copy the parts from a game creature's animation of the same name.
+`walk`, `idle`, `death`, `hit`, `cross`), `weapons` (the weapon types it is for, `any` for all seven, `none` for the
+unarmed), `move` (`stop`, `walk`, `crawl`, `lie`), `play` (`once`, `looped`), and what the kind adds: an attack's or
+cast's `height` (`high`, `middle`, `low`) and `blow = true`, a death's or hit's `side` (`back`, `front`, `minus_x`,
+`plus_x`) and `fall` (`running`: a hero hit while it runs, `moving`: while it moves otherwise, `none`: no fall), a
+special's `skill` (`tame`, `steal`, `use`, `search_body`, `briefing01`, ...), else a `number`. `flags` lists `arrow` (a
+bow shows its arrow from `arrow`'s first frame to its second), `with_under_armour` (a hero wearing a shirt, pants, boots
+or gloves may play it), `with_outer_armour` (a hero wearing a helmet, body armour or leggings may play it), and
+`death_side` is where a dead body lies. `index` is the animation's place unless given. Copy the parts from a game creature's animation of the same name.
 - A new record comes after every record of the game's table, so the game's indexes (in saves, in the network) do not
   move. Saves made with a mod's new items need the mod to load them.
 

@@ -204,15 +204,12 @@ void ItemDatabase::Read(const RecordFile& file) {
 
 // --- As TOML ---------------------------------------------------------------------------------------
 
-using dbtoml::Bits;
 using dbtoml::Bool;
 using dbtoml::Enum;
 using dbtoml::Hex;
 using dbtoml::Name;
-using dbtoml::OtherBits;
 using dbtoml::Table;
 using recordnames::kDamageTypes;
-using recordnames::kTraders;
 
 namespace {
 
@@ -227,7 +224,6 @@ constexpr Name kLootKinds[] = {{0, "self"}, {1, "material"}, {2, "record"}, {kNo
 constexpr Name kLootRecordTypes[] = {
     {0, "weapon"}, {1, "armor"}, {2, "quick_item"}, {3, "spell"}, {4, "modifier"}, {kNoRecord, "none"},
 };
-constexpr std::uint32_t kTraderBits = dbtoml::NamedBits(kTraders);
 
 template <class T>
 Table<T> DamageTable(T* values) {
@@ -251,8 +247,20 @@ void Fields(MaterialRecordHead& r, Visit& v) {
     v("damage_factor", r.damageFactor);
     v("absorb_factors", DamageTable(r.absorbFactors));
     v("armour_flags", Hex{r.armourFlags});
-    v("sold_by", Bits{r.classMask, kTraders});
-    v("sold_by_other", OtherBits{r.classMask, kTraderBits});
+    v("sold_by", recordnames::SoldBy(r.classMask));
+}
+
+// A quick item's, quest item's or loot item's type field: no code reads it (the data holds garbage there).
+struct UnreadType {
+    int& value;
+};
+template <class Visit, class Type>
+void TypeField(Visit& v, Type&& type) {
+    v("type", type);
+}
+template <class Visit>
+void TypeField(Visit& v, UnreadType type) {
+    v.Unread("unread_type", type.value);
 }
 
 // The head's fields but its category (each kind names that its own way); `type` its type field.
@@ -260,7 +268,7 @@ template <class Visit, class Type>
 void HeadFields(ItemRecordHead& r, Visit& v, Type&& type) {
     v("name", r.name);
     v("family", r.family);
-    v("type", type);
+    TypeField(v, std::forward<Type>(type));
     v("material_class", r.materialClass);
     v.Unread("unread_head", r.unreadHeadField);
     v("number", r.number);
@@ -272,8 +280,7 @@ void HeadFields(ItemRecordHead& r, Visit& v, Type&& type) {
     v("magic_level", r.magicLevel);
     v("condition", r.condition);
     v("material_units", r.materialUnits);
-    v("sold_by", Bits{r.classMask, kTraders});
-    v("sold_by_other", OtherBits{r.classMask, kTraderBits});
+    v("sold_by", recordnames::SoldBy(r.classMask));
     v("buildable", Bool{r.buildable});
 }
 
@@ -307,7 +314,7 @@ void Fields(ArmorRecord& r, Visit& v) {
 
 template <class Visit>
 void Fields(QuickItemRecord& r, Visit& v) {
-    HeadFields(r, v, r.type);
+    HeadFields(r, v, UnreadType{r.type});
     v("category", Enum<std::uint32_t>{r.category, kQuickItemCategories});
     v("action_value", r.actionValue);
     v("spell_text", r.spellText);
@@ -317,14 +324,14 @@ void Fields(QuickItemRecord& r, Visit& v) {
 
 template <class Visit>
 void Fields(QuestItemRecord& r, Visit& v) {
-    HeadFields(r, v, r.type);
+    HeadFields(r, v, UnreadType{r.type});
     v("id", r.category);
     v("zones", r.zones);
 }
 
 template <class Visit>
 void Fields(LootItemRecord& r, Visit& v) {
-    HeadFields(r, v, r.type);
+    HeadFields(r, v, UnreadType{r.type});
     v("kind", Enum<std::uint32_t>{r.category, kLootKinds});
     v("record_type", Enum<std::uint32_t>{r.recordType, kLootRecordTypes});
     v("index", r.index);

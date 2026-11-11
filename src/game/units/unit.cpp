@@ -384,8 +384,8 @@ float Unit::ActionSpeed(const FigureAnimation* entry) {
 bool Unit::AcceptsAnimation(const FigureAnimation* entry) {
     if (MapType() != MapObjectType::Hero) return true;
     std::uint32_t required = 0;
-    if (controller->HasOtherArmour()) required = 0x10;
-    if (controller->HasMainArmour()) required |= 0x20;
+    if (controller->HasOtherArmour()) required = lib::Bits(AnimationFlag::WithUnderArmour);
+    if (controller->HasMainArmour()) required |= AnimationFlag::WithOuterArmour;
     return (entry->flags & required) == required;
 }
 

@@ -125,7 +125,7 @@ void LoadWithinFile(T& out, const std::uint8_t* data, std::uint32_t size, std::s
 
 // The database of an .adb file. Four of the game's (unmozozo, unmoco3, unmoco4, inmm1) are of an older, shorter
 // entry and end before `count` full entries: their entries are read at the current stride, the bytes past the file as
-// zero (the original read past the file).
+// zero (the original read past the file). The flags keep the bits the code reads (kAnimationFlagBits).
 std::unique_ptr<AnimationDatabase> ReadAdbImage(const std::uint8_t* data, std::uint32_t size) {
     AdbHeader header;
     LoadWithinFile(header, data, size, 0);
@@ -138,6 +138,7 @@ std::unique_ptr<AnimationDatabase> ReadAdbImage(const std::uint8_t* data, std::u
     for (std::size_t i = 0; i < header.count; ++i) {
         FigureAnimationRecord record;
         LoadWithinFile(record, data, size, sizeof(AdbHeader) + i * sizeof(FigureAnimationRecord));
+        record.flags &= kAnimationFlagBits;
         database->animations.push_back(FigureAnimation{record, database.get()});
     }
     return database;
@@ -188,11 +189,14 @@ constexpr Name kKinds[] = {
     {0, "none"}, {1, "special"}, {2, "attack"}, {3, "cast"}, {4, "run"},
     {5, "walk"}, {6, "idle"},    {7, "death"},  {8, "hit"},  {9, "cross"},
 };
-// AnimationWeaponBit by weapon type; "any" the seven weapons.
+// The variant bits (0..14) are weapon bits: AnimationWeaponBit by weapon type, as the requests make them (the held
+// weapon's type, the natural weapon); "any" the seven weapons. A type without a name is its number (7: the old short
+// entries of unmoco3 and unmoco4 read at the current stride have it).
 constexpr Name kWeapons[] = {
     {0x7F, "any"}, {0x1, "sword"}, {0x2, "axe"},       {0x4, "dagger"}, {0x8, "spear"},
     {0x10, "club"}, {0x20, "bow"}, {0x40, "crossbow"}, {0x100, "none"},
 };
+constexpr std::string_view kWeaponNumbers = "a weapon type number 0..14";
 constexpr Name kMoves[] = {{1, "stop"}, {2, "walk"}, {4, "crawl"}, {6, "lie"}};   // AnimationMoveBits >> 15
 constexpr Name kPlays[] = {{1, "once"}, {2, "looped"}};                           // AnimationKeyFlag >> 30
 // A Special's number (SkillAnimation).
@@ -205,14 +209,16 @@ constexpr Name kSkills[] = {
 };
 constexpr Name kHeights[] = {{1, "high"}, {2, "middle"}, {3, "low"}};                       // AttackHeight >> 24
 constexpr Name kSides[] = {{1, "back"}, {2, "front"}, {3, "minus_x"}, {4, "plus_x"}};   // BlowSide >> 22
-// A death's or hit's fall bits (bits 25, 26; combat_steps.cpp's kKeyFallWalking, kKeyFall, kKeyDeath).
-constexpr Name kFalls[] = {{1, "walking"}, {2, "standing"}, {3, "none"}};
-constexpr Name kFlagBits[] = {{0x1, "arrow"}, {0x10, "fits_under_armour"}, {0x20, "fits_upper_armour"}};
-
-constexpr std::uint32_t kWeaponBits = dbtoml::NamedBits(kWeapons);
-constexpr std::uint32_t kKnownKeyBits =
-    kWeaponBits | kAnimationMoveMask | kAnimationKindMask | kAnimationNumberMask | 0xC0000000u;
-constexpr std::uint32_t kKnownFlagBits = dbtoml::NamedBits(kFlagBits) | kBlowSideMask;
+// A death's or hit's fall bits (bits 25, 26; UnitServer::BuildDeathAnimation): a hero hit while it runs
+// (kKeyFallWalking), while it moves otherwise (kKeyFall: HitWhileMoving's fall), or no fall (kKeyDeath: a hit
+// standing or turning, a death, a lying hero, every other unit).
+constexpr Name kFalls[] = {{1, "running"}, {2, "moving"}, {3, "none"}};
+// AnimationFlag: the bits the code reads (the others are cleared at the load).
+constexpr Name kFlagBits[] = {
+    {static_cast<std::int64_t>(AnimationFlag::Arrow), "arrow"},
+    {static_cast<std::int64_t>(AnimationFlag::WithUnderArmour), "with_under_armour"},
+    {static_cast<std::int64_t>(AnimationFlag::WithOuterArmour), "with_outer_armour"},
+};
 constexpr std::uint32_t kBlowBit = kAnimationAttackBlow;
 constexpr std::uint32_t kHeightMask = 0x3000000;
 constexpr std::uint32_t kFallMask = 0x6000000;
@@ -276,7 +282,7 @@ void Fields(FigureAnimationRecord& r, Visit& v) {
     v("name", dbtoml::Chars<16>{r.name});
     v("index", r.index);
     v("kind", Code{r.key, kAnimationKindMask, kKinds});
-    v("weapons", dbtoml::Bits{r.key, kWeapons});
+    v("weapons", dbtoml::Bits{r.key, kWeapons, kAnimationVariantBits, 0, kWeaponNumbers});
     v("move", Code{r.key, kAnimationMoveMask, kMoves});
     v("play", Code{r.key, 0xC0000000u, kPlays});
     v("skill", KeyNumber{r.key, NumberPart::Skill});
@@ -285,10 +291,8 @@ void Fields(FigureAnimationRecord& r, Visit& v) {
     v("side", KeyNumber{r.key, NumberPart::Side});
     v("fall", KeyNumber{r.key, NumberPart::Fall});
     v("number", KeyNumber{r.key, NumberPart::Number});
-    v("key_other", dbtoml::OtherBits{r.key, kKnownKeyBits});
     v("flags", dbtoml::Bits{r.flags, kFlagBits});
     v("death_side", Code{r.flags, kBlowSideMask, kSides});
-    v("flags_other", dbtoml::OtherBits{r.flags, kKnownFlagBits});
     v("chance", r.chance);
     v("frames", r.frameCount);
     v("stride", r.stride);

@@ -72,16 +72,16 @@ struct Code {
     std::uint32_t mask = 0;
     Names names;
 };
-// A mask's bits as a list of names. A name stands for the bits of its value (one or several: written when all are
-// set, in the list's order, so "any" = 0x7F before the single weapons). The bits no name covers are OtherBits'.
+// A mask's bits as a list. A name stands for the bits of its value (one or several: written when all are set, in the
+// list's order, so "any" = 0x7F before the single weapons). A bit of `numbered` no name covers is the number the code
+// gives it: bit n is `n + firstNumber` (a weapon type 7 for the weapon bit 1 << 7, a trader class 6 for bit 5),
+// `numbers` saying what the numbers are in the messages. The bits outside the names and `numbered` are other fields'.
 struct Bits {
     std::uint32_t& value;
     Names names;
-};
-// The bits of `value` outside `known` in hexadecimal: the bits no name covers (a field written when not zero).
-struct OtherBits {
-    std::uint32_t& value;
-    std::uint32_t known = 0;
+    std::uint32_t numbered = 0;
+    int firstNumber = 0;
+    std::string_view numbers;
 };
 // A number that holds 0 or 1: false / true (another number stays a number).
 template <class T>
@@ -152,9 +152,11 @@ inline std::string ValueText(Bits field) {
         items.push_back(toml::String(name.name));
         left &= ~bits;
     }
+    left |= field.value & field.numbered & ~NamedBits(field.names);
+    for (int bit = 0; bit < 32; ++bit)
+        if (left & (1u << bit)) items.push_back(toml::Int(bit + field.firstNumber));
     return toml::Array(items);
 }
-inline std::string ValueText(OtherBits field) { return toml::Hex(field.value & ~field.known); }
 template <class T>
 std::string ValueText(Bool<T> field) {
     if (field.value == T{0} || field.value == T{1}) return toml::Bool(field.value != T{0});
@@ -352,17 +354,18 @@ inline bool ReadValue(const toml::Value& value, Bits field) {
     if (!value.IsArray()) return false;
     std::uint32_t bits = 0;
     for (int i = 0; i < value.Size(); ++i) {
+        const toml::Value item = value.At(i);
         std::int64_t named = 0;
-        if (!value.At(i).IsString() || !ValueOf(field.names, value.At(i).String(), named)) return false;
-        bits |= static_cast<std::uint32_t>(named);
+        if (item.IsString()) {
+            if (!ValueOf(field.names, item.String(), named)) return false;
+            bits |= static_cast<std::uint32_t>(named);
+            continue;
+        }
+        const std::int64_t bit = item.IsInt() ? item.Int() - field.firstNumber : -1;
+        if (bit < 0 || bit > 31 || (field.numbered & (1u << bit)) == 0) return false;
+        bits |= 1u << bit;
     }
-    field.value = (field.value & ~NamedBits(field.names)) | bits;
-    return true;
-}
-inline bool ReadValue(const toml::Value& value, OtherBits field) {
-    std::uint32_t read = 0;
-    if (!toml::Read(value, &read)) return false;
-    field.value = (field.value & field.known) | (read & ~field.known);
+    field.value = (field.value & ~(NamedBits(field.names) | field.numbered)) | bits;
     return true;
 }
 template <class T>
@@ -405,7 +408,9 @@ std::string ValidNames(const Enum<T>& field) {
     return NameList(field.names);
 }
 inline std::string ValidNames(const Code& field) { return NameList(field.names); }
-inline std::string ValidNames(const Bits& field) { return NameList(field.names); }
+inline std::string ValidNames(const Bits& field) {
+    return field.numbers.empty() ? NameList(field.names) : NameList(field.names) + "; or " + std::string(field.numbers);
+}
 std::string KeyList(std::span<const std::string_view> names);
 template <class T>
 std::string ValidNames(const Table<T>& field) {
@@ -537,9 +542,11 @@ void WriteRecords(toml::Writer& writer, std::string_view table, const std::vecto
 // Each record of the TOML array of tables `table` merged into `records` by its key (`key`, compared with the record's
 // `keyOf(record)` exactly, as the tables' indexes compare): the first record of the key that this file has not merged
 // yet takes the fields given and keeps the others; a key no record has left is a new record (the type's defaults and
-// the fields given) at the end, so every record keeps its index. `what` names the database in the messages: a record
-// without its key is left out, an unknown key or a value of a type its field does not take is logged and skipped.
-// `onNew(record, index)` finishes a new record before the fields are read (a place that is its own field).
+// the fields given) at the end, so every record keeps its index. A record that fails to load is logged ("<what>:
+// <path> line n: ...") and left out whole (a record of the game's keeps what it had, and counts as merged): one
+// without its key, with an unknown key, a name its field does not have (the message lists the valid ones) or a value
+// of a type the field does not take. `onNew(record, index)` finishes a new record before the fields are read (a place
+// that is its own field).
 template <class Record, class KeyOf, class OnNew = NoNewRecord>
 void MergeRecords(const toml::Value& table, std::vector<Record>& records, const char* key, KeyOf keyOf,
                   const char* what, const std::string& path, OnNew onNew = {}) {
@@ -557,21 +564,33 @@ void MergeRecords(const toml::Value& table, std::vector<Record>& records, const 
         }
         std::size_t index = 0;
         while (index < records.size() && (merged[index] || keyOf(records[index]) != name)) ++index;
-        if (index == records.size()) {
-            records.emplace_back();
-            onNew(records.back(), index);
-            merged.push_back(false);
+        const bool added = index == records.size();
+        // The fields read into a copy first (some record types cannot be assigned): the record changes only when
+        // every field loads, read again into it.
+        auto readInto = [&item](Record& record, std::string& refused, int& line) {
+            for (int k = 0; k < item.Size() && refused.empty(); ++k) {
+                FieldReader reader(item.KeyAt(k), item.ValueAt(k));
+                Fields(record, reader);
+                if (!reader.found) refused = "unknown key " + std::string(item.KeyAt(k));
+                else if (!reader.read) refused = reader.Refused();
+                line = item.ValueAt(k).Line();
+            }
+        };
+        Record copy = added ? Record{} : records[index];
+        if (added) onNew(copy, index);
+        std::string refused;
+        int line = item.Line();
+        readInto(copy, refused, line);
+        if (!added) merged[index] = true;
+        if (!refused.empty()) {
+            game::Warning("%s: %s line %d: %s; the record is left out", what, path, line, refused);
+            continue;
         }
-        merged[index] = true;
-        Record& record = records[index];
-        for (int k = 0; k < item.Size(); ++k) {
-            FieldReader reader(item.KeyAt(k), item.ValueAt(k));
-            Fields(record, reader);
-            if (!reader.found)
-                game::Warning("%s: %s line %d: unknown key %s", what, path, item.ValueAt(k).Line(),
-                              std::string(item.KeyAt(k)));
-            else if (!reader.read)
-                game::Warning("%s: %s line %d: %s", what, path, item.ValueAt(k).Line(), reader.Refused());
+        if (added) {
+            records.push_back(copy);
+            merged.push_back(true);
+        } else {
+            readInto(records[index], refused, line);
         }
     }
 }

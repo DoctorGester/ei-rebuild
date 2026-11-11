@@ -346,8 +346,8 @@ public:
     // divide the entry's frames by it.
     float ActionSpeed(const FigureAnimation* entry);
 
-    // For hero units, whether the animation entry's flags have the bits the controller asks for (0x10 by
-    // HasOtherArmour, 0x20 by HasMainArmour); true for other units.
+    // For hero units, whether the animation entry's flags have the bits the controller asks for
+    // (AnimationFlag::WithUnderArmour by HasOtherArmour, WithOuterArmour by HasMainArmour); true for other units.
     bool AcceptsAnimation(const FigureAnimation* entry) override;
 
     // Ratio of the animation factors of the scale's and the base scale's z.
@@ -534,7 +534,7 @@ public:
 // The slots of Unit::exposure: how near the nearest hostile unit is to sensing this one, as distance / range (at most 3).
 enum class ExposureKind : int {
     Sight = 0,
-    Slot4 = 1,     // the Sense::Slot4 pair
+    Smell = 1,     // the Sense::Smell pair
     Hearing = 2,
     Unused = 3,    // never written: stays 3
     Near = 4,
@@ -622,7 +622,10 @@ enum class Sense : int {
     DaySight = 1,     // perception only: the sight range's percentage by day
     Near = 2,         // the range sensed whatever the light / how near it is sensed
     Hearing = 3,      // perception: hearing; conspicuity: how loud the unit is (the noise it makes)
-    Slot4 = 4,        // read only by AIMemory::MeasureExposure; effect 19 raises its conspicuity
+    // Read only by AIMemory::MeasureExposure; the Stench spell (effect 19) raises its conspicuity.
+    Smell = 4,
+    // The sixth value of the records ("unread" in units.udb.toml) is copied with the others into the stats and the
+    // unit's params (saved and sent) and read by nothing.
 };
 
 // A creature's computed statistics (built from the unit's parameters).

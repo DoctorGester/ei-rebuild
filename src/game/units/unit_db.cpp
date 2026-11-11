@@ -406,7 +406,9 @@ constexpr Name kBlood[] = {
     {0, "none"},      {1, "red"},         {2, "green"},      {3, "blue"},        {4, "brown"},
     {5, "red_spray"}, {6, "green_spray"}, {7, "blue_spray"}, {8, "brown_spray"},
 };
-// UnitModelRecord::footprintKind: the footprints texture's tile, named by the vanilla model that uses it.
+// UnitModelRecord::footprintKind: the tile of footprints.png (a 16 x 16 cell, eight across, the left and the right
+// print side by side; Footprint), named by the vanilla models whose tile it is: each tile is the footprint of
+// exactly the models of its name (Human Male and Human Female the human's).
 constexpr Name kFootprints[] = {
     {-1, "none"},     {0, "human"},  {1, "driad"},     {2, "cyclope"}, {3, "skeleton"}, {4, "troll"},
     {5, "golem"},     {6, "elemental"}, {7, "goblin"}, {8, "toad"},    {9, "ogre"},     {10, "lizardman"},
@@ -414,8 +416,10 @@ constexpr Name kFootprints[] = {
     {17, "hyena"},    {18, "boar"},    {19, "cow"},    {20, "wolf"},   {21, "tiger"},   {22, "hare"},
     {23, "rat"},      {24, "deer"},    {25, "dog"},
 };
-// UnitPrototypeRecord::hitSoundKind: the weapon class of its hits (HitSoundFormat): the weapon types, then the
-// sound folders the natural attacks use ("weapons\<folder>\<material>\1.wav").
+// UnitPrototypeRecord::hitSoundKind: the sound of its natural attack's hit on a unit (HitSoundFormat: what a hit by
+// a weapon of that type sounds like), the weapon types, then by the folder of res\sfx\weapons\ the code picks
+// ("weapons\<folder>\<material>\1.wav"). hands1, hands4 and hands6 hold one sound for all three materials; no
+// install has a hands7 folder, so a unit of kind 15 hits silently unless a mod adds it.
 constexpr Name kHitSounds[] = {
     {0, "sword"},   {1, "axe"},    {2, "dagger"},  {3, "spear"},  {4, "club"},   {5, "bow"},
     {6, "crossbow"}, {8, "none"},  {9, "hands1"},  {10, "pierce"}, {11, "crash"}, {12, "hands4"},
@@ -426,7 +430,8 @@ constexpr std::string_view kModeSpeeds[] = {"run", "walk", "crawl", "lie"};
 constexpr std::string_view kActionSpeeds[] = {"attack", "cast", "hit", "death", "cross", "special"};
 // UnitStats::CombatIndex.
 constexpr std::string_view kCombat[] = {"reach", "attack", "attack_spread", "defence", "speed"};
-// Sense (the perception and conspicuity rows); Sense has no sixth.
+// Sense (the perception and conspicuity rows); the sixth is read by nothing (Sense). A prototype's conspicuity
+// sight is also its footprint scale (UnitClientSpecific::PlayStepSounds).
 constexpr std::string_view kSenses[] = {"sight", "day_sight", "near", "hearing", "smell", "unread"};
 constexpr std::string_view kStats[] = {"strength", "dexterity", "intelligence"};
 
