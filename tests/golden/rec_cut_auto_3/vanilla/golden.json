@@ -2,18 +2,16 @@
   "scenario": "rec_cut_auto_3",
   "install": "vanilla",
   "recorded": "2026-11-11",
-  "commit": "8a7ae7cf0",
+  "commit": "85c555311",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "P12 merged onto L11/MF14b/H70 main: the village camera distance and no far clip, on main's save format",
+  "reason": "MF15a: the particle sources draw g_particleRandom (seeded from the client generator) instead of g_clientRandom, so the client generator in visuals.sav, the scorch marks' angles and the client units' idle picks in the digest follow other draws, and visuals.sav gains the ParticleGenerator section.",
   "source": "image",
   "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save saveq/mission.sav: 153 fields in 1 records differ: obj 153",
-    "  obj: 153 fields in 1 records; first obj1000011214 controller.motion.cells: 100 in the old golden, 136 in the new run; largest numeric d 7.28e+04 at obj1000011214 controller.motion.smoothing: 367624 -> 440439",
-    "save saveq/scenario.sav: differs (decoded 04456cb19e17522d in the old golden, cace910450d36c19 in the new run; the store has no copy of 04456cb19e17522d)",
-    "save saveq/visuals.sav: differs (decoded 730dce0caf7fd6a9 in the old golden, 2adb29d6cd379ddd in the new run; the store has no copy of 730dce0caf7fd6a9)"
+    "save saveq/visuals.sav: 13 fields in 2 records differ: visuals 13",
+    "  visuals: 13 fields in 2 records; first visuals.generator count: 130 in the old golden, 191 in the new run; largest numeric d 9.81e+08 at visuals.generator bb: 3134440882 -> 2153188916"
   ]
 }

@@ -1,0 +1,58 @@
+  Activated!
+  Cannot open file autoexec.cfg for reading
+  0
+  Saved savea
+  1
+  1
+  Unit 1000000399 sees unit 1000011214 from 4m distance
+  Unit 1000000399 new motivation Player with power of 10
+  Unit 1000000400 sees unit 1000011214 from 4m distance
+  Unit 1000000400 new motivation Player with power of 10
+  Unit 1000000401 sees unit 1000011214 from 4m distance
+  Unit 1000000401 new motivation Player with power of 10
+  Unit 1000000402 sees unit 1000011214 from 4m distance
+  Unit 1000000402 new motivation Player with power of 10
+  Unit 1000000403 sees unit 1000011214 from 7.07107m distance
+  Unit 1000000403 new motivation Player with power of 10
+  Unit 1000000404 sees unit 1000011214 from 5.85235m distance
+  Unit 1000000404 new motivation Player with power of 10
+  Unit 1000000405 sees unit 1000011214 from 7.10634m distance
+  Unit 1000000405 new motivation Player with power of 10
+  Unit 1000000406 new motivation Player with power of 10
+  Unit 1000000407 sees unit 1000011214 from 7m distance
+  Unit 1000000407 new motivation Player with power of 10
+  Unit 1000002043 sees unit 1000011214 from 7m distance
+  Unit 1000002043 new motivation Player with power of 10
+  Unit 1000002044 sees unit 1000011214 from 7m distance
+  Unit 1000002044 new motivation Player with power of 10
+  Unit 1000002045 sees unit 1000011214 from 7m distance
+  Unit 1000002045 new motivation Player with power of 10
+  1
+  Unit 1000011214 sees unit 1000002045 from 7m distance
+  Unit 1000011214 sees unit 1000000407 from 7m distance
+  Unit 1000011214 sees unit 1000000403 from 7.07107m distance
+  Unit 1000011214 sees unit 1000002044 from 7m distance
+  Unit 1000011214 sees unit 1000002043 from 7m distance
+  Unit 1000011214 sees unit 1000000404 from 5.85235m distance
+  Unit 1000011214 sees unit 1000000402 from 4m distance
+  Unit 1000011214 sees unit 1000000401 from 4m distance
+  Unit 1000011214 sees unit 1000000400 from 4m distance
+  Unit 1000011214 sees unit 1000000399 from 4m distance
+  Unit 1000011214 sees unit 1000000405 from 6.68851m distance
+  Unit 686200 new motivation Player with power of 10
+  Unit 1000011214 sees unit 1000059185 from 12.9255m distance
+  Unit 1000059185 sees unit 1000011214 from 12.9255m distance
+  Unit 1000063817 sees unit 1000011214 from 5.2767m distance
+  Unit 601927 new motivation Player with power of 10
+  Unit 534153 new motivation Player with power of 10
+  Unit 1000011214 was attacked by 1000000407 skill=3.40282e+038 damage=8.73 destHL=RLeg
+  Unit 1000011214 sees unit 1007671245 from 11.0371m distance
+  Unit 1000011214 was attacked by 1000000399 skill=-3.40282e+038 damage=9.57 destHL=RHand
+  Unit 1000011214 was attacked by 1000000400 skill=-3.40282e+038 damage=12.3 destHL=Body
+  Unit 1000011214 was attacked by 1000000402 skill=-3.40282e+038 damage=11.28 destHL=Body
+  Unit 1000011214 was attacked by 1000000403 skill=3.40282e+038 damage=9.82 destHL=Body
+  Unit 1000011214 was attacked by 1000002043 skill=3.40282e+038 damage=15.68 destHL=LHand
+  Unit 732495 acknowledges with idleSound = AAn4XyU
+  Unit 1000011214 was attacked by 1000000401 skill=3.40282e+038 damage=12.69 destHL=Body
+  Unit 1007671245 sees unit 1000011214 from 7.71474m distance
+  Unit 1000011214 was attacked by 1000059185 skill=3.40282e+038 damage=15.0936 destHL=RHand

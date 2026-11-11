@@ -6381,7 +6381,7 @@ cunit1884 #vitals C3E01DE4
 cunit1000011214 #place DFCF543E
 cunit1000011214 #unit C6081760
 cunit1000011214 #vitals 7D2D89BA
-@ 2 update 60 frame 11 tick 42 zone gz1g hash 43B6A562 n 790
+@ 2 update 60 frame 11 tick 42 zone gz1g hash E42E34B2 n 790
 world tick 42
 world updates 60
 world paused 1
@@ -6443,7 +6443,7 @@ cunit1884 #place AE30F036
 - cunit1000011214
 + cunit1100011214 80 unhuma ""
 cunit1100011214 #place 125B38F9
-cunit1100011214 #unit 7D1B4726
+cunit1100011214 #unit D6CD292B
 cunit1100011214 #vitals 54F14E8E
 @ 3 update 80 frame 15 tick 47 zone gz1g hash 44F7952A n 791
 world tick 47
@@ -6555,7 +6555,7 @@ cunit1804 #place 9BE2C211
 cunit1804 #unit 618078DC
 cunit1000011214 #place 848E9F06
 cunit1000011214 #unit E2B95B34
-@ 5 update 120 frame 23 tick 69 zone gz1g hash D6B0DBA3 n 790
+@ 5 update 120 frame 23 tick 69 zone gz1g hash A8DC6DC3 n 790
 world tick 69
 world updates 120
 world paused 1
@@ -6613,7 +6613,7 @@ cunit1804 #place 6B94A52C
 - cunit1000011214
 + cunit1100011214 80 unhuma ""
 cunit1100011214 #place 125B38F9
-cunit1100011214 #unit FD7845C4
+cunit1100011214 #unit 61476188
 cunit1100011214 #vitals 54F14E8E
 @ 6 update 140 frame 27 tick 84 zone gz1g hash 32FF8C96 n 791
 world tick 84
@@ -6673,7 +6673,7 @@ cunit1000011214 #place CD1C9DE6
 cunit1000011214 #unit 39FEF5A1
 cunit1000011214 #vitals 7D2D89BA
 - cunit1100011214
-@ 7 update 160 frame 31 tick 96 zone gz1g hash FCED532C n 790
+@ 7 update 160 frame 31 tick 96 zone gz1g hash 5326A98B n 790
 world tick 96
 world updates 160
 world paused 1
@@ -6730,7 +6730,7 @@ cunit1804 #place C4CDCD1B
 - cunit1000011214
 + cunit1100011214 80 unhuma ""
 cunit1100011214 #place 125B38F9
-cunit1100011214 #unit 590F81C4
+cunit1100011214 #unit E19A9351
 cunit1100011214 #vitals 54F14E8E
 @ 8 update 180 frame 35 tick 101 zone gz1g hash 94D13D24 n 791
 world tick 101

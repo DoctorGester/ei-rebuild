@@ -1,28 +1,21 @@
 {
   "scenario": "mod_lost_in_astral_gipat_necropolis",
   "install": "rebirth",
-  "recorded": "2026-11-10",
-  "commit": "91b031ae6",
+  "recorded": "2026-11-11",
+  "commit": "85c555311",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "L8c: the loop bindings set the counter global a converted loop names, as the game's loops do, so the digest's script record and the decoded saves compare the loops' counters again (L8a had left them out): the counters' values now recorded (script gobject, saves commands globals).",
+  "reason": "MF15a: the particle sources draw g_particleRandom (seeded from the client generator) instead of g_clientRandom, so the client generator in visuals.sav, the scorch marks' angles and the client units' idle picks in the digest follow other draws, and visuals.sav gains the ParticleGenerator section.",
   "source": "image",
+  "saves": "10 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 4 of 5 records differ, first at record 1 (world update 110, tick 110, frame 22, zone gz13g); outcomes CHANGED: script; no unit position differs",
-    "  first difference at record 1 (world update 110, tick 110, frame 22, zone gz13g): 1 fields",
-    "    script (script) #gobject: C80AC0E1 in the old golden, 8C6C6CE3 in the new run",
-    "  outcomes: CHANGED script; same: zone, deaths, spawns, money, quest variables, party and items, game result",
-    "    script: script #gobject differs (hashes only), from record 1 (+3 more)",
-    "  script: 1 of 1 differ",
-    "    gobject: 1 script, 4 records, from 1; hash only (no numbers kept)",
-    "save LostInAstral/current/gz13g.sav: 2 fields in 1 records differ: commands 2",
-    "  commands: 2 fields in 1 records; first commands globals.objects.1.value: ~loop in the old golden, -1 in the new run",
-    "save LostInAstral/current/gz1g.sav: 1 fields in 1 records differ: commands 1",
-    "  commands: 1 fields in 1 records; first commands globals.objects.2.value: ~loop in the old golden, -1 in the new run",
-    "save LostInAstral/savea/gz13g.sav: 2 fields in 1 records differ: commands 2",
-    "... 3 more lines"
-  ],
-  "saves": "10 decoded saves (tools/savefile.py), the same in 2 runs"
+    "save LostInAstral/current/gz13g.visuals.sav: 13 fields in 1 records differ: visuals 13",
+    "  visuals: 13 fields in 1 records; first visuals.prints blood.print0.position.x: 108.079185 in the old golden, 107.77919 in the new run; largest numeric d 4.71 at visuals.prints blood.print0.uvAngle: 4.71238899 -> 0.0",
+    "save LostInAstral/savea/gz13g.visuals.sav: 13 fields in 1 records differ: visuals 13",
+    "  visuals: 13 fields in 1 records; first visuals.prints blood.print0.position.x: 108.079185 in the old golden, 107.77919 in the new run; largest numeric d 4.71 at visuals.prints blood.print0.uvAngle: 4.71238899 -> 0.0",
+    "save LostInAstral/savea/visuals.sav: 13 fields in 2 records differ: visuals 13",
+    "  visuals: 13 fields in 2 records; first visuals.generator count: 203 in the old golden, 131 in the new run; largest numeric d 2.91e+09 at visuals.generator aa: 4087495656 -> 1174749705"
+  ]
 }

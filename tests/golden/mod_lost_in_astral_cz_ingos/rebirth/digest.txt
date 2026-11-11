@@ -1765,7 +1765,7 @@ cunit1000205 #vitals 42557372
 cunit1000206 #place 0581AB39
 cunit1000206 #unit 39D43514
 cunit1000206 #vitals 75BE0BF3
-@ 1 update 825 frame 165 tick 682 zone cz2k hash B13E6B35 n 2707
+@ 1 update 825 frame 165 tick 682 zone cz2k hash 11FC6E3B n 2707
 world tick 682
 world updates 825
 world timeBase 6.09222221
@@ -20067,7 +20067,7 @@ obj1000011214 pos.y 83.1999969
 obj1000011214 pos.z 0.0
 obj1000011214 #ai 30103981
 obj1000011214 #place 7A14135E
-obj1000011214 #unit 1A8D77CB
+obj1000011214 #unit 71251CDD
 obj1000011214 #vitals 4EA873E1
 + obj1000011359 80 unmodr ""
 obj1000011359 dead 0
@@ -20982,7 +20982,7 @@ cunit44394661 #unit 1D6B45DF
 cunit44394661 #vitals CF285AD1
 + cunit1000011214 80 unhuma ""
 cunit1000011214 #place E493ACE6
-cunit1000011214 #unit A988C017
+cunit1000011214 #unit 55FFCD03
 cunit1000011214 #vitals 4CF313FE
 + cunit1000011359 80 unmodr ""
 cunit1000011359 #place A2403A95

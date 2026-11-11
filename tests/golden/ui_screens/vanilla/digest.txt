@@ -602,7 +602,7 @@ cunit148 #vitals C17C1FEE
 cunit187 #place F3DF9084
 cunit187 #unit D3B5CFA9
 cunit187 #vitals 1DDF30F4
-@ 1 update 40 frame 7 tick 20 zone - hash 781E4671 n 69
+@ 1 update 40 frame 7 tick 20 zone - hash 3B421C83 n 69
 world updates 40
 world paused 1
 client tick 21
@@ -618,12 +618,12 @@ cunit148 #unit 381DC2F0
 cunit187 #place B7CE4832
 + cunit1000011214 80 unhuma ""
 cunit1000011214 #place 125B38F9
-cunit1000011214 #unit 6FD576D8
+cunit1000011214 #unit CB34250C
 cunit1000011214 #vitals 68D49C6E
-@ 2 update 60 frame 11 tick 20 zone - hash 471B0DA7 n 69
+@ 2 update 60 frame 11 tick 20 zone - hash 04475755 n 69
 world updates 60
 client ticksRun 57
-@ 3 update 80 frame 15 tick 20 zone - hash 835D5D4B n 69
+@ 3 update 80 frame 15 tick 20 zone - hash C00107B9 n 69
 world updates 80
 client ticksRun 77
 @ 4 update 100 frame 19 tick 30 zone - hash E5A6092D n 68

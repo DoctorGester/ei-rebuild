@@ -1752,7 +1752,7 @@ obj1000011214 #vitals 8EAE9912
 aievents tick 1180
 client tick 1180
 client ticksRun 1152
-@ 59 update 1200 frame 239 tick 1197 zone gz1g hash 6A3CF6D8 n 9
+@ 59 update 1200 frame 239 tick 1197 zone gz1g hash D5DDF281 n 9
 world tick 1197
 world updates 1200
 world paused 1
@@ -1780,14 +1780,14 @@ cunit4001 #unit 184EF469
 - cunit1000011214
 + cunit1100011214 80 unhuma ""
 cunit1100011214 #place 125B38F9
-cunit1100011214 #unit 2078AC2C
+cunit1100011214 #unit CC40DF2C
 cunit1100011214 #vitals FBF38A0F
-@ 60 update 1220 frame 243 tick 1197 zone gz1g hash 9CAE1516 n 9
+@ 60 update 1220 frame 243 tick 1197 zone gz1g hash 234F114F n 9
 world updates 1220
 client ticksRun 1192
-@ 61 update 1240 frame 247 tick 1197 zone gz1g hash 89A90052 n 9
+@ 61 update 1240 frame 247 tick 1197 zone gz1g hash 3648040B n 9
 world updates 1240
 client ticksRun 1212
-@ 62 update 1260 frame 251 tick 1197 zone gz1g hash 2E1850CE n 9
+@ 62 update 1260 frame 251 tick 1197 zone gz1g hash 91F95497 n 9
 world updates 1260
 client ticksRun 1232

@@ -1,0 +1,12 @@
+{
+  "scenario": "mod_zip_menu",
+  "install": "vanilla",
+  "recorded": "2026-11-11",
+  "commit": "85c555311",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "MF15a: the particle sources draw g_particleRandom (seeded from the client generator) instead of g_clientRandom, so the client generator in visuals.sav, the scorch marks' angles and the client units' idle picks in the digest follow other draws, and visuals.sav gains the ParticleGenerator section.",
+  "source": "image"
+}

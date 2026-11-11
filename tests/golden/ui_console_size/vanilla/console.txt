@@ -1,0 +1,22 @@
+  Activated!
+  Commands are:
+  HELP
+    show this screen
+  CONSOLE [pos]
+    change console position; <pos> = l<eft>, r<ight>, t<op>, b<ottom>, c<enter>, f<ullscreen>
+  HISTORY [N lines]
+    change console history depth
+  FILTER <[type] [1|on|0|off]]>
+    filter system messages; [type] = none, ai, event, graphics, rpg, net, unitacks, all
+  LISTVAR [N player] <[output file name]>
+    dump list of global script variables to console and to file if needed
+  LOADVAR [N player] [input file name]
+    load previously dumped list of global script variables from file
+  LASTFPS
+    show last fps
+  EXEC<UTE> [input file name]
+    execute text file with console commands
+  QUIT, EXIT
+    exit game
+  ADDON [command]
+  addon-specific commands
