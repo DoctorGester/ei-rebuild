@@ -1,0 +1,13 @@
+# A figure alone (FigureInstance, engine/models/figure_instance.h; docs/notes/map_objects.md, "Figures"): a hero's
+# figure built by the client world's figure manager without a game object, dressed, an attack played on it and its
+# right hand's point read at rest and 8 frames in. Checked: the figure built with its parts, the animation and the
+# part found, the animation at the frame asked for and the hand moved.
+# installs: vanilla
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+figurealone unhuma uattack01 rh3 8
+report
+quit

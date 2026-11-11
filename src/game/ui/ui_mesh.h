@@ -1,7 +1,9 @@
 #pragma once
 
-// The interface's sprite mesh: UiMesh, the figure factory's class 0x43, and the sizes the dialog pieces share.
+// The interface's sprite mesh: UiMesh, the figure factory's class 0x43 (the game's figure manager makes it), and the
+// sizes the dialog pieces share.
 
+#include "engine/models/figure_manager.h"
 #include "engine/models/figure_mesh.h"
 #include "game/ui/ui.h"
 
@@ -102,3 +104,16 @@ public:
     Material* material = nullptr;   // the window's black material
     Texture* texture = nullptr;     // one of the window's referenced textures
 };
+
+// The world's figure manager in the game (World::figureManager): the engine's, which also makes the interface's
+// sprites (FigureObjectType::UiMesh).
+class InterfaceFigureManager final : public FigureManager {
+public:
+    EngineObject* NewObject(int type) override;
+};
+
+// (The interface's model manager.) A sprite of `manager` loaded from "<name>.fig" (released and null when the file is
+// missing).
+UiMesh* NewFigureSprite(FigureManager* manager, std::string_view name);
+// An empty sprite of `manager` (no file read).
+UiMesh* NewBlankSprite(FigureManager* manager);

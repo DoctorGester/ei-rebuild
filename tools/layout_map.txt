@@ -437,6 +437,10 @@ map_object_animation.h      models/animation.h                # figure animation
 map_object_animation.cpp    models/animation.cpp            # with models/animation.h
 map_object_animation_bones.cpp models/animation_bones.cpp   # FigureAnimationState's skeleton and FigureBone
 figure_bones.cpp            models/animation_bones.cpp  fold  # FigureBone::Place (57 lines): FigureBone's other members are there
+animation_db.h              models/animation_db.h       new   # the .adb database and the animation keys, out of object3d.h and map_object_manager.cpp (MF15k3)
+animation_db.cpp            models/animation_db.cpp     new
+figure_instance.h           models/figure_instance.h    new   # FigureInstance: a figure in the scene, Object3D's base, drawn alone too (MF15k3)
+figure_instance.cpp         models/figure_instance.cpp  new
 link_figure.h               models/link_figure.h
 link_figure.cpp             models/link_figure.cpp
 link_loader.h               models/link_loader.h        new   # LinkArchive, FigureModel, Morph, LinkFigureLoader out of model.h

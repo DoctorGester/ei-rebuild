@@ -3,12 +3,14 @@
 Code: `map_object.h/.cpp` (MapObject, MapEffect), `map_object_companion.cpp` (MapObjectServer /
 MapObjectClientSpecific), `map_object_client_effects.cpp`, `map_object_manager.cpp`, `object3d.*`,
 `object3d_parts.cpp` (Object3D parts, scale, bounds), `object3d_client.cpp`, `map_object_shadow.*`,
-`map_object_draw.cpp`, `map_object_animation*.cpp`, `models/animation_bones.cpp`. Scenarios: `map_objects.txt`,
-`unit_create.txt` (also world_load, models and every spawn).
+`map_object_draw.cpp`, the engine's `models/figure_instance.*` (FigureInstance), `models/animation*.cpp` (the
+skeleton and tracks) and `models/animation_db.*` (the .adb database and the animation keys). Scenarios:
+`map_objects.txt`, `unit_create.txt` (also world_load, models and every spawn), `figure_alone.txt` (a figure alone).
 
 ## Classes
 
-- `MapObject` (under `Object3D`, under `EngineObject`) is every object on a map; `Unit` derives from it. Its side
+- `MapObject` (under `Object3D`, under the engine's `FigureInstance`, a `TransformObject`) is every object on a map;
+  `Unit` derives from it. Its side
   halves: a companion (`MapObjectServer` on the server: the statistics block, hit points; the client's
   `MapObjectClientSpecific`: looping effect sounds, effect particles, the light, the end sound) and the 3D object's
   side half (`Object3DSpecific`: `Object3DClientSpecific` draws, `Object3DServer` is all stubs; GetScale gives the
@@ -55,11 +57,32 @@ reloaded unless its .mmp extra block is unchanged, drawn with a two-stage materi
 
 ## Figures
 
+`FigureInstance` (engine/models/figure_instance.h) is the figure in the scene: the model's name and morph (`scale`),
+the link figure, the parts, the animation state (its `owner`) and database, `defaultScale`, the world matrix the
+draw built and the drawn step (drawn_motion.h). The engine's skeleton, part draw and drawn motion know only it;
+`Object3D` derives from it and adds the side half, bounds, part boxes and effect sources. `AnimationFactor` is its one
+virtual: 1 for a figure alone, a unit's from its database (below). The bits of `flags` the engine reads are
+`FigureFlag` (NoEdgeFade, Preview), which MapObjectFlag names too.
+- **A figure alone** (the figure factory's class 0x300E, ClassId 0x100, ours): `Build(model, size, parts)` makes it as
+  MakeFigure makes a unit's (an animation state of the figure manager, Rescale and SetModel, the link figure of the
+  parts or every bone, a part per piece with TakePiece / AddPart, the rest pose); a model the figure manager lacks
+  gives false (the skeleton's load would end the game). `Dress(skin)` gives each part a look: the texture `skin` of
+  its kind (TextureManager::FindOrLoad) and a material of its kind (MaterialManager::NewMaterial); `Draw(context,
+  coefficient)` places the skeleton for the draw and draws each dressed, shown part near enough with DrawLit under
+  the world stack, lit by `FigureLighting` (the scene's sun and ambient), at the figure's own pose (no drawn step).
+  Its part points: `PartPoint(part, scale)`; animations: `animations` set by the caller, PlayAnimation and the
+  state's Advance. Its parts get drawers from the context's specific manager (FigureManager::CreateObject), and the
+  texture and material managers are ManagerContext's getters (the client world's): a program without the world gives
+  it a context with those (the effect viewer's own exe, MF15k4). Checked by `figure_alone` (harness `figurealone`:
+  a hero built and dressed, uattack01 played 8 frames, the right hand's point moved); the draw is not run by a
+  scenario yet.
+
 LoadFigures reads the model named by the object through the figure manager; SetFigureScale rebuilds the figure only
 when the scale changes. The figure is a `LinkMesh` (link_figure.h, models.md) whose piece map is `headers`
 (map<string, LinkPartHeader>). Part lookups: FindPartByPrefix (strstr at the name's start, case-sensitive), FindPart
 (strcmp), FindPartIndex (_mbscmp). Animations come from "<name>.adb" on first use:
-`MapObjectManager::AnimationDatabaseOf` reads the file into an `AnimationDatabase` (its header's time factor and the
+`MapObjectManager::AnimationDatabaseOf` reads the file (`ReadAnimationDatabase`, engine/models/animation_db.cpp, with
+any TOML over it) into an `AnimationDatabase` (its header's time factor and the
 0x58-byte entries, each a `FigureAnimation` that points back at its database) and keeps it by file name until the
 manager's Destroy, so Object3D::animations, FindAnimation and FindFigureAnimation share one database per name. What
 an object plays need not come from its own database (UiModel's and the main menu stones' rest pose come from

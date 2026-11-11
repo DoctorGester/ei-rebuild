@@ -22,10 +22,6 @@
 #include <string>
 #include <vector>
 
-// The world matrix of a 3D object or a figure part as the draws build it: the rotation of `orientation`,
-// `position` as column 3, the last row (0, 0, 0, 1).
-void ObjectWorldMatrix(const Quaternion* orientation, const Vector3& position, Matrix4* out);
-
 // The parts of a figure drawn with one material (a part set's group). The parts are released before the material.
 struct PartGroup {
     Ref<Material> material;

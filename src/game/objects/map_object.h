@@ -77,7 +77,7 @@ enum class MapObjectFlag : std::uint32_t {
     Stationary = 0x200,         // client objects but units: the figure's parts are FigureMeshFlag::Stationary; only
                                 // such objects are drawn static and have their models kept loaded
     Static = 0x400,             // client: drawn static (every part kept its lighting; no object matrix pushed)
-    NoEdgeFade = 0x800,         // client: drawn at full light, not darkened by the terrain's edge fade (the
+    NoEdgeFade = static_cast<std::uint32_t>(FigureFlag::NoEdgeFade),   // client: drawn at full light, not darkened by the terrain's edge fade (the
                                 // interface's figures)
     Detached = 0x1000,          // its parts are passed to the figure manager
     InSectorMap = 0x8000,       // placed in the sector map (set when it is placed or moves; a unit's update clears it; the
@@ -96,7 +96,7 @@ enum class MapObjectFlag : std::uint32_t {
     Frozen = 0x1000000,         // units: no updates of orders and animation
     SeeAll = 0x2000000,         // units: sees every unit once
     ChoosingTarget = 0x4000000, // server units: while a player's unit chooses its target (ScaledValue caps the range)
-    Preview = 0x4000000,        // client units: an interface figure (CreatePartyUnits, UiModel), not moved along
+    Preview = static_cast<std::uint32_t>(FigureFlag::Preview),   // client units: an interface figure (CreatePartyUnits, UiModel), not moved along
                                 // its path
     Planned = 0x8000000,        // units: set on the target while a cast is planned
     NoCasting = 0x10000000,     // units: no spells; the client turns such a unit at once along its path

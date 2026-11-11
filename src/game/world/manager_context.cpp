@@ -50,6 +50,11 @@ TextureManager* ManagerContext::GetTextureManager() {
     return client ? client->textureManager.get() : nullptr;
 }
 
+MaterialManager* ManagerContext::GetMaterialManager() {
+    WorldClient* client = ThisClientWorld();
+    return client ? client->materialManager.get() : nullptr;
+}
+
 LightFactory* ManagerContext::GetLightFactory() {
     WorldClient* client = ThisClientWorld();
     return client ? client->lightFactory.get() : nullptr;

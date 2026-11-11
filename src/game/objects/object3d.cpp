@@ -207,11 +207,7 @@ void Object3D::AttachObject(EngineObject* object) {
 bool Object3D::InvisibleSlot() { return false; }
 void Object3D::AdvanceTime(float) {}
 
-// --- The attached half and animation state, and the setters that reach every part --------------------
-
-namespace {
-constexpr float kFirstFrame = 0.0f;
-} // namespace
+// --- The attached half ---------------------------------------------------------------------------------
 
 void Object3D::SetHalf(Object3DSpecific* half) {
     if (attached) attached->object = nullptr;
@@ -219,42 +215,6 @@ void Object3D::SetHalf(Object3DSpecific* half) {
     if (half) half->object = this;
 }
 
-void Object3D::SetPartFlags(std::uint32_t mask) {
-    for (FigureMesh* part : parts) part->flags |= mask;
-}
-
-void Object3D::ClearPartFlags(std::uint32_t mask) {
-    for (FigureMesh* part : parts) part->flags &= ~mask;
-}
-
-void Object3D::SetPartsFlatColour(std::uint32_t value) {
-    for (FigureMesh* part : parts) part->flatColour = value;
-}
-
-void Object3D::SetPartsFlatSpecular(std::uint32_t value) {
-    for (FigureMesh* part : parts) part->flatSpecular = value;
-}
-
-void Object3D::SetAnimationState(FigureAnimationState* state) {
-    if (animation) animation->owner = nullptr;
-    animation.Assign(state);
-    if (state) state->owner = this;
-}
-
-void Object3D::PlayAnimation(FigureAnimation* figureAnimation) {
-    if (animation) animation->Play(figureAnimation);
-}
-
-int Object3D::AttachPartMesh(FigureMesh* part) {
-    if (!animation) return 0;
-    return animation->AttachMesh(part);
-}
-
-void Object3D::RestartPose() {
-    if (!animation) return;
-    animation->SetTime(kFirstFrame);
-    animation->PlaceIfChanged();
-}
 
 // --- Random animations -------------------------------------------------------------------------------
 
@@ -317,12 +277,6 @@ FigureAnimation* Object3D::RandomAnimationOfKind(std::uint32_t key, AnimationRan
     return picked;
 }
 
-FigureMesh* Object3D::FindPartOfType(int partType) {
-    for (int i = 0; i < std::ssize(parts); ++i)
-        if (parts[i]->type == partType) return parts[i];
-    return nullptr;
-}
-
 // --- The figure of a model with an animation state ---------------------------------------------------
 
 // Object3D::SetUpAnimatedFigure: the figure of a model with an animation state (units,
@@ -363,10 +317,7 @@ void Object3D::SetUpAnimatedFigure(std::string_view model) {
             high = MaxKeepB(high, box->pivot + box->bounds.boxMax + box->bounds.center);
             low = MinKeepA(box->pivot + box->bounds.boxMin + box->bounds.center, low);
 
-            const std::string_view partName = bone->GetName();
-            if (text::CompareIgnoringCase(partName.substr(0, 4), "BASE") == 0) box->bounds.flags |= BoundsFlag::Base;
-            if (text::CompareIgnoringCase(partName.substr(0, 5), "CROWN") == 0) box->bounds.flags |= BoundsFlag::Crown;
-            if (text::CompareIgnoringCase(partName.substr(0, 5), "EMPTY") == 0) box->bounds.flags |= BoundsFlag::NoFootprint | BoundsFlag::Crown;
+            MarkPartBox(&box->bounds, bone->GetName());
             ++index;
         }
         animation->bones.clear();
@@ -407,20 +358,6 @@ void Object3D::UpdatePartBounds() {
     bounds.center = centre - localPosition;
 }
 
-// --- Parts by name prefix -----------------------------------------------------------------------
-
-std::vector<FigureMesh*> Object3D::CollectPartsByPrefix(std::string_view prefix) {
-    std::vector<FigureMesh*> found;
-    // The game asks each part for its name twice; parts return the same string both times.
-    auto startsWith = [prefix](FigureMesh* part) { return std::string_view(part->GetName()).starts_with(prefix); };
-    for (int i = 0; i < std::ssize(parts); ++i) {
-        FigureMesh* part = parts[i];
-        if (!startsWith(part)) continue;
-        found.push_back(part);
-    }
-    return found;
-}
-
 // --- Loading single parts ---------------------------------------------------------------------
 
 FigureMesh* Object3D::LoadPart(std::string_view partName) {
@@ -430,33 +367,12 @@ FigureMesh* Object3D::LoadPart(std::string_view partName) {
         game::DebugLog(kCantLoadPart, std::string(partName), name);
         return nullptr;
     }
-    if (LinkMesh* current = figure) {
-        // The figure gets the piece (it loads it unless it has it).
-        if (!current->loader->LoadPartInto(current, std::string(partName))) {
-            manager->ReleaseObject(part);
-            return nullptr;
-        }
-        const LinkPartHeader& piece = current->headers.find(partName)->second;
-        part->materialValue = piece.materialValue;
-        part->meshType = piece.meshType;
-        // The box and the pivot.
-        part->box = piece.box;
+    if (figure && !TakePiece(part, partName)) {
+        manager->ReleaseObject(part);
+        return nullptr;
     }
-    if (text::CompareIgnoringCase(partName.substr(0, 4), "BASE") == 0) part->box.bounds.flags |= BoundsFlag::Base;
-    if (text::CompareIgnoringCase(partName.substr(0, 5), "CROWN") == 0) part->box.bounds.flags |= BoundsFlag::Crown;
-    if (text::CompareIgnoringCase(partName.substr(0, 5), "EMPTY") == 0) {
-        part->box.bounds.flags |= BoundsFlag::NoFootprint;
-        part->box.bounds.flags |= BoundsFlag::Crown;
-    }
-    // Joins the parts unless it is there (appended).
-    bool present = false;
-    for (int i = 0; i < std::ssize(parts) && !present; ++i) present = parts[i] == part;
-    if (!present) {
-        parts.push_back(part);
-        part->SetObject(this);
-        if (animation) animation->AttachMesh(part);
-        if (attached) attached->OnPartAdded(part);
-    }
+    MarkPartBox(&part->box.bounds, partName);
+    if (AddPart(part) && attached) attached->OnPartAdded(part);
     part->box.pivot = part->localPosition;
     part->box.bounds.flags |= BoundsFlag::Loaded;
     return part;

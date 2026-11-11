@@ -252,6 +252,13 @@ themselves). Includes name the tree: `#include "engine/core/ref.h"`, `#include "
   and lookups, the material stages, the sun (AddDefaultLight), the animated sheets' and the sky's clock. The present
   (`present_window::Present`) and a print's texture bound by name (ground_print.cpp) are the game's. These getters
   are among the seams MF15k2's host interface takes for a program without the world.
+- **The engine has the figure, the game its objects (MF15k3).** `FigureInstance` (models/figure_instance.h) is the
+  figure in the scene (model, morph, link figure, parts, animation state and database, the drawn step) and Object3D's
+  base; the skeleton (models/animation.h), the .adb database and the animation keys (models/animation_db.h), the part
+  draw and drawn motion know only it, and the flag bits they read are `FigureFlag`. A figure alone (Build, Dress,
+  Draw, PartPoint) is the effect viewer's carrier (map_objects.md, "Figures"). The interface's sprite (UiMesh, class
+  0x43) is the game's: the world's figure manager is game/ui/ui_mesh.h's InterfaceFigureManager, which makes it, and
+  NewFigureSprite / NewBlankSprite load one. ManagerContext's `GetMaterialManager` joins the scene getters.
 - The check reads includes only. Code of the engine that calls a function defined in ei_game links only because both
   are in the same programs today; such calls are the seams MF15k2 turns into a host interface.
 

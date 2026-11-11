@@ -12,16 +12,6 @@
 #include <string>
 
 namespace {
-// The first of `parts` that `matches`, or null.
-template <typename Parts, typename Match>
-FigureMesh* FirstPart(const Parts& parts, Match matches) {
-    for (int i = 0; i < std::ssize(parts); ++i) {
-        FigureMesh* part = parts[i];
-        if (matches(part)) return part;
-    }
-    return nullptr;
-}
-
 // Removes entry `index`, moving the ones after it down.
 template <typename Parts>
 void RemoveAt(Parts& parts, int index) { parts.erase(parts.begin() + index); }
@@ -33,17 +23,6 @@ int IndexOf(const Parts& parts, const FigureMesh* part) {
     return -1;
 }
 } // namespace
-
-FigureMesh* Object3D::FindPartByPrefix(std::string_view prefix) {
-    // The original asks for the name twice; the parts return the same string both times.
-    auto startsWith = [prefix](FigureMesh* part) { return std::string_view(part->GetName()).starts_with(prefix); };
-    return FirstPart(parts, startsWith);
-}
-
-FigureMesh* Object3D::FindPart(std::string_view partName) {
-    auto named = [partName](FigureMesh* part) { return str::Compare(part->GetName(), partName) == 0; };
-    return FirstPart(parts, named);
-}
 
 int Object3D::RemovePart(FigureMesh* part) {
     if (attached) attached->OnPartRemoved(part);
@@ -64,12 +43,7 @@ FigureMesh* Object3D::RemovePartNamed(std::string_view partName) {
     return part;
 }
 
-Vector3 Object3D::PartWorldPosition(const FigureMesh* part) {
-    const Vector3 figureScale = attached->GetScale();
-    const float scaleX = figureScale.x, scaleY = figureScale.y, scaleZ = figureScale.z;
-    const Vector3 v = localRotation.Rotate(part->localPosition);
-    return {v.x * scaleX + localPosition.x, v.y * scaleY + localPosition.y, v.z * scaleZ + localPosition.z};
-}
+Vector3 Object3D::PartWorldPosition(const FigureMesh* part) { return PartPoint(part, attached->GetScale()); }
 
 // --- The animation database -------------------------------------------------------------------
 
