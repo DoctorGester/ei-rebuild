@@ -5,4 +5,4 @@ size = 2
 model = "opus"
 depends = ["MF15i"]
 note = "From MF15i: the viewer (src/tools/effect_viewer*.cpp) shows a code type's values as made but cannot write it as data. Add 'Convert to data': write a starting .effect.toml from the type's spec values (texture, frames, emission, sizes, spread) for the types still in C++, checked with ei-convert --effect-check where the reference covers the type; and 'New effect' from a small template (EffectDocument::Start exists, no UI yet)."
-order = 1373
+order = 1376

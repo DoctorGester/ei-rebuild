@@ -331,31 +331,31 @@ Risks:
 | Folder | Files | Lines today | Move batch |
 |---|---|---|---|
 | `ai/` | 28 | 12552 | C168f |
-| `app/` | 23 | 6950 | C168e |
-| `combat/` | 13 | 6390 | C168f |
+| `app/` | 24 | 6987 | C168e |
+| `combat/` | 13 | 6383 | C168f |
 | `console/` | 5 | 2038 | C168e |
 | `core/` | 27 | 3881 | C168d |
-| `data/` | 16 | 5799 | C168d |
-| `effects/` | 30 | 13372 | C168g |
+| `data/` | 16 | 5803 | C168d |
+| `effects/` | 30 | 12026 | C168g |
 | `items/` | 10 | 2958 | C168g |
 | `map/` | 15 | 4292 | C168e |
 | `models/` | 25 | 8219 | C168g |
 | `mods/` | 10 | 971 | C168d |
 | `net/` | 21 | 8194 | C168h |
-| `objects/` | 23 | 8166 | C168f |
+| `objects/` | 23 | 8214 | C168f |
 | `players/` | 24 | 5473 | C168e |
 | `saves/` | 7 | 848 | C168d |
 | `scene/` | 30 | 4397 | C168g |
-| `script/` | 33 | 10577 | C168h |
+| `script/` | 33 | 11379 | C168h |
 | `sound/` | 3 | 1679 | C168e |
-| `spells/` | 9 | 2641 | C168g |
-| `terrain/` | 12 | 3559 | C168g |
+| `spells/` | 9 | 2576 | C168g |
+| `terrain/` | 12 | 3560 | C168g |
 | `ui/` | 97 | 33143 | C168h |
 | `units/` | 27 | 9839 | C168f |
-| `world/` | 35 | 10289 | C168e |
-| all | 523 | 166227 | |
+| `world/` | 35 | 10290 | C168e |
+| all | 524 | 165702 | |
 
-570 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
+571 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
 
 ### Every file
 
@@ -433,6 +433,7 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | settings_catalog.inc | app/settings_catalog.inc |  |  |
 | settings_document.cpp | app/settings_document.cpp |  |  |
 | game_singletons.h | app/singletons.h |  | the game's global objects; "game" says nothing inside src/game |
+| tool_hooks.h | app/tool_hooks.h |  |  |
 
 #### `combat/` (C168f)
 
