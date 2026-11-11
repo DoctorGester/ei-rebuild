@@ -228,7 +228,9 @@ Timing runs go through `work.py test ID --quiet ...` (H64: each game alone, no b
 build measured 9.1 ms in R37e3's runs and 11.7 ms in its own on a busy machine). `EI_PROFILE=1` samples the main thread into the run's `profile.txt` (`python tools\profile_report.py <run
 folder>`: time per function between harness steps; names from the x64 `.map`; the log's stamps move to the run's zone,
 EET-2, once the harness sets TZ, and the report takes them back by whole hours). The stack is scanned, not walked, so a
-stretch's "total" list holds stale return addresses (free_base, string constructors at 80%): read "self" first.
+stretch's "total" list holds stale return addresses (free_base, string constructors at 80%): read "self" first. The sampler
+stops in an exit function (after the game's, before the runtime's end) and closes the file; one still sampling into
+the runtime's end ended runs with exit code E06D7363 after the quit (H70a).
 
 Save and load cost (PF4, `zone_gz19h_save_load`: the Portal zone gz19h, zone19, the largest map and .mob; wall time
 from the log, 2026-11-04, vanilla / Rebirth data): entering the zone 0.94 / 1.04 s, the F5 save 0.11 s (about 70% in
