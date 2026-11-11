@@ -319,8 +319,8 @@ cast of one starts them).
   `Damage` fire, area, split by the duration, the credit every pulse (no caster; the C++ never set flags bit 0).
   OnResume: the point is `cast.from` (the C++'s position), the schedule from `old.ticks` (the C++'s count at the
   next update). Its use row is its record's fields (none, not offensive or fighting, no damage type: the C++ row's).
-  Cost: a timer call every 4 ticks and the host's table walk on every tick (entry, module, OnTick looked up, the end
-  test), per campfire. Measured (2026-11-11, `--quiet`, `EI_PROFILE=1`, a scratch scenario standing 1000 frames in
+  Cost: a timer call every 4 ticks; the ticks between touch no Lua ("Scripted spells", the idle ticks). Before that
+  (MF17g4a), the host walked the entry on every tick (entry, module, OnTick looked up, the end test). Measured (2026-11-11, `--quiet`, `EI_PROFILE=1`, a scratch scenario standing 1000 frames in
   Lost in Astral's gz10g, 31 campfires): `SpellEffect::Update` took 3.3-4.0% of the main thread on the script against
   0.1% on the C++, about 0.1 ms a world update, some 3 us per campfire a tick, mostly the walk on the ticks without a
   timer (MF17g4b would skip those).
@@ -425,6 +425,15 @@ zone's server state that Eris saves. Only the server runs it; clients see what i
   skipped), the tick cap (the spell's `duration`, else 600 ticks), or nothing pending (no timer, no owned object with
   ticks left, no missile in flight and no OnTick: "idle"; the record's `max_ticks` replaces the cap, 0 none); a hook's Lua error goes to the console (`Script error: <file>:<line>: <message>`), then OnEnd(cast,
   "error"). The effect then ends as any spell does (state 3, removed at its next update).
+- **Idle ticks** (MF17g4b): the host keeps each live cast's `Clock` in C++ (its tick count, its earliest timer's due
+  tick, its module's registry reference), filled by Settle after every hook. A tick with no missile arrived, no timer
+  due, no OnTick in the module (a plain table, looked up there each tick: a hook may add one), below the cap and
+  something pending (a timer or an owned object) only counts the tick and the owned objects' lives in C++: nothing
+  else would have run. The entry's `tick` is written back before any Lua reads it (the next hooked tick, `After` on
+  that cast from another's hook, the host's Save and so a script reset's carry-over); `After` lowers the clock's due
+  tick, `Finish` and a restore make the clock unknown, so that the next tick takes the whole walk. `--lua-check`'s
+  waiter / poker casts check another cast's After and Finish between a cast's idle ticks; the saved-at-every-tick
+  pulse checks the write-back.
 - **Hooks are not coroutines**: they run with `lua_pcall` on the state's main thread, so `Sleep` and the other waits
   raise an error (no yield outside a coroutine). Timers and OnTick do the pacing (user 2026-11-11). The bindings work
   in them; their commands run in a run of the host's own.
