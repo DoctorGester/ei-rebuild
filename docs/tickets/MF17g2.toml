@@ -5,5 +5,5 @@ size = 3
 depends = ["MF17g"]
 note = "Pattern of MF17g (assets/spells/Lightning.lua, docs/notes/items_spells.md 'The game's spells on scripts'): script + record fields in assets/spells/spells.sdb.toml (per_target, ends_with_target, the use fields), the same objects in the same order and the same ticks; delete the Start/Update/DamageKindOf cases and the kGameSpells rows. Goldens: only the missile record form and saves mid-cast may change (golden.py explain), re-record those by name from two agreeing passes. Lua numbers are doubles: pass floats on or one operation, never a chain; float constants need a binding value or an exact literal. arrow, rick_magic, acid_ray (StartFireArrow/StartAcidRay, MissileImpact). Missing: the splash point (target ground height GridHeightAt + the unit's ModeSpeed: a binding), particle and light scales (kSplashScale, kAcidRayScale, kRiseScale: exact values on the cast or binding options), the missile's 150-tick limit (a timer), the arrow's looping sound name (Missile has it), Effect attached at the target with size; old saves with an arrow in flight (state 1) lose its hit under the MF17g default end: adopt them into the script (an OnResume-like path) or accept and say so."
 order = 1367
-status = "running"
+status = "review"
 started = "2026-11-11"

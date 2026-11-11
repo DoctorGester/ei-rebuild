@@ -2,21 +2,20 @@
   "scenario": "net_zone_vars",
   "install": "vanilla",
   "recorded": "2026-11-11",
-  "commit": "85c555311",
+  "commit": "c496dfe62",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MF15a: the particle sources draw g_particleRandom (seeded from the client generator) instead of g_clientRandom, so the client generator in visuals.sav, the scorch marks' angles and the client units' idle picks in the digest follow other draws, and visuals.sav gains the ParticleGenerator section.",
+  "reason": "The fire arrow, Rick magic and the acid ray run on Missile.lua (MF17g2): only the missile record differs (state 4, owned objects instead of the C++ visual and light); outcomes, units and timed objects the same.",
   "source": "image",
   "change": [
-    "digest: 16 of 416 records differ, first at record 1 (world update 40, tick 20, frame 7, zone -); outcomes the same; no unit position differs",
-    "  first difference at record 1 (world update 40, tick 20, frame 7, zone -): 1 fields",
-    "    cunit1000011214 (80 unhuma \"host\") #unit: 4D66B22E in the old golden, 3C61455D in the new run",
+    "digest: 96 of 416 records differ, first at record 152 (world update 3060, tick 2837, frame 611, zone z6q3); outcomes the same; no unit position differs",
+    "  first difference at record 152 (world update 3060, tick 2837, frame 611, zone z6q3): 2 fields",
+    "    missile2 (spell 2) #: 45357564 in the old golden, 8D04AD93 in the new run",
+    "    missile3 (spell 0) #: 1B6FFD8A in the old golden, 59639C15 in the new run",
     "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  client units: 2 of 101 differ",
-    "    #unit: 2 client units, 16 records, from 1; hash only (no numbers kept)",
-    "  units: 2 of 153 differ",
-    "    #unit: 2 units, 5 records, from 36; hash only (no numbers kept)"
+    "  missiles: 2 of 5 differ",
+    "    #: 2 missiles, 96 records, from 152; hash only (no numbers kept)"
   ]
 }

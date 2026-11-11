@@ -160,7 +160,8 @@ other record after them (a mod's: the showcase's "spark", 42) `SpellType::None`,
   `fighting` (`UnitServer::IsFighting`: the battle music), and `effect`, the behaviour the AI's curse, protect and
   enhance options look for on a unit (`HasEffect`: "has it already"; the record's `aiEffect`). The game's spells still
   in code have one row each (`kGameSpells`, with Rebirth's FixPlaingBattleMusicFromAntimagic in it) and look for their
-  own behaviour; those on scripts have an empty row (Rebirth's FixSpellSelfCasting is in their records' `offensive`). A Scripted or None record reads its TOML
+  own behaviour; those on scripts have an empty row (Rebirth's FixSpellSelfCasting is in their records' `offensive`).
+  A Scripted or None record reads its TOML
   fields `ai`, `damage_type`, `offensive`, `turns_victim` and `fighting` (the last two as `offensive` when not given:
   -1 in the record) and `ai_effect`: the code of the spell whose effect it gives (a scripted spell applying the game's
   slow says `ai_effect = "slow"`), resolved by the load (`SetBehaviours`) to that record's behaviour; without it, or
@@ -181,7 +182,8 @@ The game's own spells move onto the scripted path family by family (MF17g; user 
 what modders get), so the code they ran and the switches and table rows that keyed on them go. On it now: the
 lightning arc and curse magic (assets/spells/Lightning.lua), the missiles: fire arrow, Rick magic and acid ray
 (Missile.lua). Still in code: the fireball and the area strikes (light strike, acid column), the walls and the poison
-cloud, the buffs, and the rest (fireworks, clairvoyance, vision fog, healing, teleport, campfire; possession, link and charm are cut).
+cloud, the buffs, and the rest (fireworks, clairvoyance, vision fog, healing, teleport, campfire; possession, link
+and charm are cut).
 
 - **Built in.** `assets/spells/` holds the scripts (CamelCase, by the spell they run) and `spells.sdb.toml`, the
   fields the game's records get: `script`, the use fields (`ai`, `damage_type`, `offensive`, `turns_victim`,
@@ -231,7 +233,9 @@ cloud, the buffs, and the rest (fireworks, clairvoyance, vision fog, healing, te
   fields it lacks.
 - Checked by `spells`, `combat_skills` and the other lightning and missile scenarios (the digest's missile records
   differ, all else the same), `spells_old_save` (tests/saves/lightning_old, made by the C++ build: both casts end at
-  the load) and `--lua-check` (handles, SetVelocity, Eye, a demon bolt, the timer-paced cap, IsUnit, HitPoint, a free
+  the load), `spells_old_missile` (tests/saves/missile_old, made by the C++ build: an acid ray lasting, a fire arrow in
+  flight; both resume and the arrow kills its wolf; against the C++ build's run of it only the missile records
+  differ) and `--lua-check` (handles, SetVelocity, Eye, a demon bolt, the timer-paced cap, IsUnit, HitPoint, a free
   effect, OnResume of a C++ missile with bindings off and its hit).
 
 ## Scripted spells
