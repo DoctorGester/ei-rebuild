@@ -372,7 +372,13 @@ std::string Utf8(const fs::path& path) {
     return std::string(text.begin(), text.end());
 }
 
-fs::path PathOf(const std::string& utf8) { return fs::path(std::u8string(utf8.begin(), utf8.end())); }
+// A path from the game's names, which join folders with '\': as '/' so a Linux or macOS build makes folders too.
+fs::path PathOf(const std::string& utf8) {
+    std::u8string text(utf8.begin(), utf8.end());
+    for (char8_t& c : text)
+        if (c == u8'\\') c = u8'/';
+    return fs::path(text);
+}
 
 bool ReadFile(const fs::path& path, std::string* bytes) {
     std::ifstream file(path, std::ios::binary);
