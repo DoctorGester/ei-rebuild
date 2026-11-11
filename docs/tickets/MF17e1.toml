@@ -4,3 +4,5 @@ group = "mods"
 size = 1
 note = "MF17e (2026-11-11): mod_showcase_spell gives the hero the elemental skill and intelligence because a new game's hero cannot put on the quest's spell; a player on the island hits the same wall. Have the quest give what is needed or lower the record's skill; drop the scenario's setup lines; re-record mod_showcase_spell by name."
 order = 1372
+status = "review"
+started = "2026-11-11"

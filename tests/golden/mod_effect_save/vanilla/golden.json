@@ -2,27 +2,18 @@
   "scenario": "mod_effect_save",
   "install": "vanilla",
   "recorded": "2026-11-11",
-  "commit": "7cfdeedc3",
+  "commit": "be5200ba4",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MF17e: the showcase mod's Chain Spark: mod_showcase_spell new (three strikes 12 / 7.2 / 4.32, saved and loaded mid-chain); the island gains two golem shards and the quest a Chain Spark spell container (mod_showcase, mod_effect_save start there); net_pair_mod_spell's spell blow 20 so the peer's client sees the target hurt (clienthurt)",
+  "reason": "MF17d1: mod_spell_hero casts at once (Ctrl + 3) at a wolf made an enemy by SetPlayer; MF17e1: the showcase's Chain Spark record has skill 0, so mod_showcase_spell puts it on the new game's hero without GiveSkill / GiveIntelligence, and the saves holding the spell container have skillNeeded 0",
   "source": "image",
   "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "console: differs from line 4: the old golden 'Saved savea', the new run 'Showcase mod: the party has the Chain Spark'",
-    "digest: 10 of 11 records differ, first at record 1 (world update 40, tick 40, frame 7, zone gz1g); outcomes CHANGED: spawns, party and items; max unit move 11 (obj4001, record 10)",
-    "  first difference at record 1 (world update 40, tick 40, frame 7, zone gz1g): 13 fields",
-    "    world (world) objects: 2 in the old golden, 4 in the new run (d 2)",
-    "    world (world) mapObjects: 2 in the old golden, 4 in the new run (d 2)",
-    "    world (world) updateMap: 2 in the old golden, 4 in the new run (d 2)",
-    "    ... 10 more",
-    "  outcomes: CHANGED spawns, party and items; same: zone, deaths, money, quest variables, game result, script",
-    "    spawns: obj4002 (80 scgolem \"\") only in the new run, from record 1 (+19 more)",
-    "    party and items: player0 items: 0 in the old golden, 1 in the new run, from record 1 (+18 more)",
-    "  world: 1 of 1 differ",
-    "    mapObjects: 1 world, 10 records, from 1; max |d| 2 at world mapObjects, record 1: 2 -> 4",
-    "... 37 more lines"
+    "save showcase_mod/save1/mission.sav: 1 fields in 1 records differ: spell 1",
+    "  spell: 1 fields in 1 records; first spell10 skillNeeded: 1 in the old golden, 0 in the new run (d 1)",
+    "save showcase_mod/savea/mission.sav: 1 fields in 1 records differ: spell 1",
+    "  spell: 1 fields in 1 records; first spell10 skillNeeded: 1 in the old golden, 0 in the new run (d 1)"
   ]
 }

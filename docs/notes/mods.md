@@ -1335,7 +1335,11 @@ Notes from making it:
   golem and the shards stood up to 2.5 from their posts. The shards keep a radius of 2, so the Chain Spark's 5 still
   reaches from one to the next.
 - A spell given as `spell container[<code>]` goes on a hero in the camp's magic page only with the school's skill
-  (`skill` in the record; mod_showcase_spell gives the hero the skill first). A hero's own auto-attack and the
+  (`skill` in the record: the school's skill plus intelligence over 25, `HeroCanUseSpell`) and the mana (its `mana`
+  within the hero's, about 50 at a new game's start). A new game's hero has no elemental skill, so Chain Spark's
+  record has `skill = 0` (MF17e1): the quest's spell is usable on the island at once, and its runes' skills still
+  raise the need, as the game's spells' do; the quest giving the skill instead would hand out a skill the game sells
+  for experience. A hero's own auto-attack and the
   golem's guard end a scripted chain early when they kill its next victim first: the scenario clears the units' AI
   modes (UMClear).
 
@@ -1347,8 +1351,8 @@ Notes from making it:
   message log's lines), the party has the hammer at granite's damage (`modweapon showcase hammer 14.4 21.6`); captures
   of the fight, the broken golem and the camp's inventory with both items; the trace has each kind of file read from
   the mod, and the game's zone1.mob read, its zone1.mpr not. The shards join the fight and fall.
-- `mod_showcase_spell` (both installs): the quest's spell container put on the hero in the camp (the mod's picture
-  read), the hero casts Chain Spark at the golem from the HUD; three strikes, 12 / 7.2 / 4.32 in the game variables
+- `mod_showcase_spell` (both installs): the quest's spell container put on the new game's hero, its skills and
+  attributes as they start, in the camp (the mod's picture read), the hero casts Chain Spark at the golem from the HUD; three strikes, 12 / 7.2 / 4.32 in the game variables
   (and so in the digest), golem, shard 4002, shard 4003; saved after the first strike and loaded: the chain goes on
   from the save to the same strikes. Captures: the spark in flight, the first strike and its arc, the leaps.
 
