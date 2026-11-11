@@ -1,0 +1,8 @@
+id = "MF15l2"
+title = "Effect files rewritten in the new form (vectors, one field form, no age guards)"
+group = "mods"
+size = 3
+depends = ["MF15l1"]
+files = ["assets/effects"]
+note = "MF15l's proposal 6, in batches of ~20 files each checked by effect_check's coarse compare (tests/effects/coarse.txt) and by eye (before/after viewer captures in build/captures/mf15l/, JPEG over ~300 KB): origin.x/y/z triples to vectors, var triples (px py pz, vx vy vz) to vector vars, 1 / sqrt(x*x + y*y + z*z) to normalize/length, ball_x/y/z to ball(), start equal to tick to tick alone, the p.age == <end> guards and lifetime = 1000000000 + kill on age to plain lifetimes (after MF15l1 dropped the update after death), spawn tables to spawn expressions, speed/drag/gravity/wind to velocity ticks, anchor x/y/z and radius/angle to position. Re-record tests/effects/reference.txt once a batch passes coarse. Measure effect_check --coarse time before/after (MF15l: v4 engine +17% on the old files)."
+order = 1403
