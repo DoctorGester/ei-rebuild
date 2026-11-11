@@ -1,0 +1,22 @@
+# A save from before the game's spell missiles moved onto their script (MF17g2; docs/notes/items_spells.md, "The game's
+# spells on scripts"). tests/saves/missile_old was made on vanilla data by a build from before the port: a new game, two
+# WolfTutor wolves added 70 and 3 squares from the god-mode hero, CastSpellUnit "acid_ray" at the near one and
+# "arrow{e2}" at the far one, six frames, then F5: the acid ray in the C++'s lasting state (it hit; its light rising,
+# 3 ticks left on its count), the arrow in flight (state 1, 115 ticks left). Loaded now, both go on through
+# Missile.lua's OnResume: the acid ray's light goes when the C++ would have ended it, the arrow lands and kills the far
+# wolf, with its splash, end sound and light, as the C++ build's run of this scenario did.
+# prepare: copy_save.py tests/saves/missile_old save2
+reject Script error
+waitmenu
+console thingamabob
+load save2
+waitwindow 30 battle
+check IsAlive(GetObjectByName("FlyWolf"))
+dump loaded
+waitfor 20 Not(IsAlive(GetObjectByName("FlyWolf")))
+dump hit
+frames 20
+dump after
+check IsAlive(GetLeader())
+report
+quit

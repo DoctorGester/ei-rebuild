@@ -12,6 +12,7 @@
 #include "game/scene/camera.h"
 #include "game/script/script.h"
 #include "game/spells/spell.h"
+#include "game/spells/spell_effect_internal.h"
 #include "game/script/script_lua.h"
 #include "game/script/script_lua_scheduler.h"
 #include "game/script/script_lua_number.h"
@@ -776,6 +777,22 @@ return {
     {"sleepy.lua", "return {\n  OnCast = function(cast) Sleep(1) end,\n  OnEnd = function(cast, reason) _G.spellEnd = reason end,\n}"},
     {"world.lua", "local id = GetObjectID(nil)\nreturn {}"},
     {"timerless.lua", "return { OnCast = function(cast) cast:After(1, 'Missing') end }"},
+    {"resume.lua", R"lua(
+-- A cast of a save from before its spell's script: its missile flies on, OnHit when it lands, its old count's end.
+return {
+    OnResume = function(cast, old)
+        cast.data.old = old.state .. " " .. old.ticks
+        cast.data.off = not pcall(cast.Eye, cast, cast.target)
+        cast:After(old.ticks + 2, "Expire")
+    end,
+    Expire = function(cast) cast:Finish() end,
+    OnHit = function(cast, target, payload)
+        _G.resumed = string.format("%s hit at %d%s%s", cast.data.old, cast.tick, payload == nil and " nil" or "",
+                                   cast.data.off and " off" or "")
+    end,
+    OnEnd = function(cast, reason) _G.spellEnd = reason .. " at " .. cast.tick end,
+}
+)lua"},
     {"api.lua", R"lua(
 -- The world methods on a stone in a world without a map (no units, no ground): what each takes, gives and owns.
 local spell = {}
@@ -805,8 +822,13 @@ function spell.OnCast(cast)
           "SetVelocity: the cast's object of the handle, else false")
     local eye = cast:Eye(stone)
     check(type(eye.x) == "number" and type(eye.z) == "number" and not pcall(cast.Eye, cast, nil), "Eye: an object's")
-    check(cast.lightRise == 0, "the cast's light rise (a record without a light)")
+    check(cast.lightRise == 0 and cast.lightRange == 0, "the cast's light rise and range (a record without a light)")
+    check(not cast:IsUnit(stone) and not cast:IsUnit(nil), "IsUnit: a stone is none")
+    local hit = cast:HitPoint(stone)
+    check(hit.x == GetX(stone) and hit.y == GetY(stone) and not pcall(cast.HitPoint, cast, nil),
+          "HitPoint: another object's position")
     cast:Effect("sparks", { at = here, lifetime = 4 })
+    cast:Effect("sparks", { at = here, free = true })
     check(not pcall(cast.Effect, cast, "NoSuchEffect"), "Effect: an unknown name")
     cast:Sound("magic\\x.wav", here)
     cast:Missile { to = stone, from = { x = 5, y = 0, z = 0 }, payload = { n = 7 } }
@@ -1007,6 +1029,36 @@ void CheckSpellHost(TestWorld& world) {
                "OnHit for each missile, with its payload and where it ended");
         lua_pop(L, 1);
         Expect(stone->effects.empty(), "the stone's effects removed");
+
+        // A save's cast in the C++'s missile state: OnResume takes it with its missile, which lands at tick 3.
+        SpellEffect resumed;
+        cast(resumed, "resume.lua", 0);
+        resumed.world = &g_serverWorld;
+        resumed.state = spellfx::kStateMissile;
+        resumed.timer = 3;
+        EffectArrow* arrow = resumed.NewArrow({}, stone, static_cast<int>(ParticleType::FireArrow), 1.0f, "", {}, 0.0f,
+                                              nullptr);
+        g_serverWorld.AddTimedObject(arrow);
+        resumed.visual.Assign(arrow);
+        Expect(host.Resume(resumed) && resumed.state == spellfx::kStateScripted && !resumed.visual &&
+                   resumed.owned.size() == 1 && resumed.owned[0].payload != 0,
+               "an old save's missile cast resumes on its script, its missile the cast's");
+        host.Tick(resumed);
+        host.Tick(resumed);
+        arrow->arrived = 1;
+        Expect(host.Tick(resumed) && resumed.owned.empty(), "the resumed missile lands at tick 3");
+        lua_getglobal(L, "resumed");
+        Expect(lua_isstring(L, -1) && std::string(lua_tostring(L, -1)) == "missile 3 hit at 3 nil off",
+               "OnHit for the resumed missile; OnResume ran with the bindings off");
+        lua_pop(L, 1);
+        Expect(host.Tick(resumed) && !host.Tick(resumed) && SpellEnd(scheduler) == "finished at 5",
+               "the resumed cast ends at its old count's end");
+        SpellEffect plain;
+        cast(plain, "pulse.lua", 0);
+        plain.world = &g_serverWorld;
+        plain.state = spellfx::kStateLasting;
+        Expect(!host.Resume(plain) && plain.state == spellfx::kStateLasting && !plain.host,
+               "a script without OnResume leaves an old cast as it was");
 
         for (const auto& node : std::vector(g_serverWorld.timedObjects.map.begin(), g_serverWorld.timedObjects.map.end()))
             if (std::ranges::find(before, node.first) == before.end()) g_serverWorld.RemoveTimedObject(node.first);

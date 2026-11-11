@@ -1,4 +1,4 @@
-// A spell effect's later states: the per-tick dispatch, the missiles' flight and impact (state 1) and the
+// A spell effect's later states: the per-tick dispatch, the fireball's flight and blast (state 1) and the
 // lasting effects (state 2), plus the release helpers. See docs/notes/items_spells.md.
 #include "game/ai/ai_map.h"
 #include "game/objects/map_object.h"
@@ -29,44 +29,6 @@ int Tick(SpellEffect* e) {
 }
 
 // --- State 1 -------------------------------------------------------------------------------------
-
-// FireArrow / RickMagic (the fire arrow) and AcidRay: the effect follows its missile; when the missile
-// reports a hit the target takes the damage, the missile, sound and light go, and a
-// splash, an end sound and a rising light appear at the target's height.
-void MissileImpact(SpellEffect* e, ParticleType particleType, const char* sound) {
-    auto* missile = e->Visual<EffectMissile>();
-    if (!missile) return;
-    e->position = missile->localPosition;
-    if (missile->arrived == 0) return;
-
-    e->HitTarget();
-    e->ReleaseVisual();
-    e->ReleaseSound();
-    e->ReleaseLight();
-
-    // The splash, the sound and the light at the target, a unit (the fire arrow and the acid ray are cast at
-    // units); without one the effect ends.
-    Unit* target = UnitOrNull(e->target);
-    if (!target) {
-        e->state = kStateEnded;
-        return;
-    }
-    e->targetPoint = target->localPosition;
-    Vector3 at;
-    at = target->localPosition;
-    at.z = target->ModeSpeed();
-    at.z = e->world->GridHeightAt(e->targetPoint.x, e->targetPoint.y) + at.z;
-    float size = Power(e) * kSplashScale;
-    e->CreateParticle(0, particleType, kZeroVector, size, 1.0f, kZeroVector, e->target);
-    e->CreateSound(sound, at, kZeroVector, kVolume, kHearing);
-
-    Vector3 velocity{0.0f, 0.0f, LightRise(e) * kRiseScale};
-    float range = Prototype(e)->lightRange;
-    Vector3 color = Prototype(e)->lightColor;
-    e->CreatePointLight(at, color, range * kRiseScale, velocity);
-    e->timer = 35;
-    e->state = kStateLasting;
-}
 
 // Fireball: the ball explodes when its timer runs out: everything in the radius is hit, a blast
 // (the larger of the area curve and the power), an end sound, a rising light and, with a unit
@@ -363,15 +325,6 @@ int SpellEffect::Update() {
 
 void SpellEffect::UpdateMissile(SpellType type) {
     switch (type) {
-    case SpellType::FireArrow:
-    case SpellType::RickMagic:
-        MissileImpact(this, ParticleType::FireStar, "magic\\Firearrow\\end.wav");
-        CountDown(this);
-        break;
-    case SpellType::AcidRay:
-        MissileImpact(this, ParticleType::AcidStar, "magic\\Acidray\\end.wav");
-        CountDown(this);
-        break;
     case SpellType::Fireball: FireballFlight(this); break;
     default: state = kStateEnded; break;   // a save's cast of a spell that runs on its script now
     }
@@ -379,11 +332,8 @@ void SpellEffect::UpdateMissile(SpellType type) {
 
 void SpellEffect::UpdateLasting(SpellType type) {
     switch (type) {
-    case SpellType::FireArrow:
-    case SpellType::AcidRay:
     case SpellType::Fireball:
-    case SpellType::Healing:
-    case SpellType::RickMagic: CountDown(this); break;
+    case SpellType::Healing: CountDown(this); break;
     case SpellType::InvokeLightning: LightStrikeEcho(this); break;
     case SpellType::AcidColumn: AcidColumn(this); break;
     case SpellType::FireWall: FireWall(this); break;

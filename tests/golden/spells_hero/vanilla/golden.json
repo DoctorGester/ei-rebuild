@@ -2,22 +2,20 @@
   "scenario": "spells_hero",
   "install": "vanilla",
   "recorded": "2026-11-11",
-  "commit": "85c555311",
+  "commit": "c496dfe62",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MF15a: the particle sources draw g_particleRandom (seeded from the client generator) instead of g_clientRandom, so the client generator in visuals.sav, the scorch marks' angles and the client units' idle picks in the digest follow other draws, and visuals.sav gains the ParticleGenerator section.",
+  "reason": "The fire arrow, Rick magic and the acid ray run on Missile.lua (MF17g2): only the missile record differs (state 4, owned objects instead of the C++ visual and light); outcomes, units and timed objects the same.",
   "source": "image",
   "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 2 of 24 records differ, first at record 5 (world update 120, tick 102, frame 23, zone gz1g); outcomes the same; no unit position differs",
-    "  first difference at record 5 (world update 120, tick 102, frame 23, zone gz1g): 1 fields",
-    "    cunit1100011214 (80 unhuma \"\") #unit: 048C2FA7 in the old golden, A07606FE in the new run",
+    "digest: 2 of 24 records differ, first at record 14 (world update 300, tick 262, frame 59, zone gz1g); outcomes the same; no unit position differs",
+    "  first difference at record 14 (world update 300, tick 262, frame 59, zone gz1g): 1 fields",
+    "    missile2 (spell 0) #: 69FFCFA7 in the old golden, 29E4ED1C in the new run",
     "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  client units: 1 of 12 differ",
-    "    #unit: 1 client unit, 2 records, from 5; hash only (no numbers kept)",
-    "save savea/visuals.sav: 13 fields in 2 records differ: visuals 13",
-    "  visuals: 13 fields in 2 records; first visuals.generator count: 129 in the old golden, 31 in the new run; largest numeric d 1.14e+09 at visuals.generator aa: 4236839942 -> 3094433132"
+    "  missiles: 1 of 3 differ",
+    "    #: 1 missile, 2 records, from 14; hash only (no numbers kept)"
   ]
 }

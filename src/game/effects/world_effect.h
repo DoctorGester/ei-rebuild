@@ -251,7 +251,7 @@ public:
 };
 
 // A spell missile: a particle source, a light and a looping sound flying together (class id 0x4E; created by
-// SpellEffect::CreateArrow).
+// SpellEffect::NewArrow).
 class EffectArrow final : public EffectMissile {
 public:
     const char* ClassName() override;

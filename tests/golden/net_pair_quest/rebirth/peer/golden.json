@@ -2,12 +2,12 @@
   "scenario": "net_pair_quest",
   "install": "rebirth",
   "recorded": "2026-11-11",
-  "commit": "b0dc7478e",
+  "commit": "c496dfe62",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MF15a's particle generator on MF16's net_pair_mod goldens and net_pair_quest Rebirth's visuals.sav",
+  "reason": "The fire arrow, Rick magic and the acid ray run on Missile.lua (MF17g2): only the missile record differs (state 4, owned objects instead of the C++ visual and light); outcomes, units and timed objects the same.",
   "side": "peer",
   "source": "image"
 }

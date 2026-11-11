@@ -43,12 +43,6 @@ void SpellEffect::HitUnit(DamageInfo* hit, MapObject* unit) {
     unit->ReceiveHit(hit, attacker, caster);
 }
 
-void SpellEffect::HitTarget() {
-    DamageInfo hit;
-    GetDamage(&hit);
-    if (spellfx::IsUnit(target)) HitUnit(&hit, target);
-}
-
 void SpellEffect::HitUnitsInRadius() {
     DamageInfo hit;
     GetDamage(&hit);
@@ -92,7 +86,6 @@ struct SpellDamageKind {
 
 constexpr SpellDamageKind kFireHit{DamageType::Fire, 0};
 constexpr SpellDamageKind kLightningHit{DamageType::Lightning, 0};
-constexpr SpellDamageKind kAcidHit{DamageType::Acid, 0};
 constexpr SpellDamageKind kFireArea{DamageType::Fire, 1};
 constexpr SpellDamageKind kLightningArea{DamageType::Lightning, 1};
 constexpr SpellDamageKind kAcidArea{DamageType::Acid, 1};
@@ -100,9 +93,8 @@ constexpr SpellDamageKind kAcidArea{DamageType::Acid, 1};
 // The damage kind of the behaviour `type`; null for the spells that deal no damage.
 const SpellDamageKind* DamageKindOf(SpellType type) {
     switch (type) {
-    case SpellType::FireArrow: case SpellType::Fireball: case SpellType::RickMagic: return &kFireHit;
+    case SpellType::Fireball: return &kFireHit;
     case SpellType::InvokeLightning: return &kLightningHit;
-    case SpellType::AcidRay: return &kAcidHit;
     case SpellType::AcidColumn: case SpellType::AcidFog: return &kAcidArea;
     case SpellType::FireWall: case SpellType::Campfire: return &kFireArea;
     case SpellType::LightningWall: return &kLightningArea;
@@ -221,7 +213,12 @@ void SpellEffect::Save(ByteStream* stream) {
 }
 
 void SpellEffect::ResumeScripted() {
-    if (state != spellfx::kStateScripted || world->MainScript()->Runner().spells.Adopt(*this)) return;
+    ScriptSpellHost& spells = world->MainScript()->Runner().spells;
+    if (state == spellfx::kStateMissile || state == spellfx::kStateLasting) {
+        if (HeldSpell()->Behaviour() == SpellType::Scripted) spells.Resume(*this);
+        return;
+    }
+    if (state != spellfx::kStateScripted || spells.Adopt(*this)) return;
     console::EndLine(console::g_consoleOut << "Script error: the save's Lua state has no cast " << castKey << " of "
                                            << HeldSpell()->GetPrototype()->script << "; it ends");
     state = spellfx::kStateEnded;
@@ -230,9 +227,9 @@ void SpellEffect::ResumeScripted() {
 // --- The casting state -------------------------------------------------------------------------------
 
 // A spell effect's casting state (SpellEffect::Update state 0) and the helpers that create its effect
-// objects. Every spell type starts differently: missiles get a EffectArrow or a particle source and go to
-// state 1, the lasting spells get particles, lights and sound sequences and go to state 2, the instant ones
-// (the light strike, buffs, charm) deal or apply their effect here; a scripted spell's cast starts its script. Also the cast spell's
+// objects. Every spell type starts differently: the fireball gets a particle source and goes to state 1, the
+// lasting spells get particles, lights and sound sequences and go to state 2, the instant ones (the light strike,
+// buffs, charm) deal or apply their effect here; a scripted spell's cast starts its script. Also the cast spell's
 // lifetime. See docs/notes/items_spells.md.
 
 using namespace spellfx;
@@ -240,38 +237,6 @@ using namespace spellfx;
 namespace {
 
 // --- The spell types ----------------------------------------------------------------------------
-
-// FireArrow (particle FireArrow) and RickMagic (RikArrowSmoke): the fire arrow, a missile at a unit target.
-void StartFireArrow(SpellEffect* e, SpellType type, const Vector3& from) {
-    if (!IsUnit(e->target)) {
-        e->state = kStateEnded;
-        return;
-    }
-    e->timer = 150;
-    float range = Prototype(e)->lightRange;
-    Vector3 color = Prototype(e)->lightColor;
-    float power = Power(e);
-    ParticleType trail = type == SpellType::FireArrow ? ParticleType::FireArrow : ParticleType::RikArrowSmoke;
-    e->CreateArrow(from, e->target, trail, power, "magic\\Firearrow\\circle.wav", color, range);
-    e->CreateSound("magic\\Firearrow\\start.wav", e->position, kZeroVector, kVolume, kHearing);
-    e->state = kStateMissile;
-}
-
-// AcidRay: a missile (power x 0.4).
-void StartAcidRay(SpellEffect* e, const Vector3& from) {
-    if (!IsUnit(e->target)) {
-        e->state = kStateEnded;
-        return;
-    }
-    e->timer = 150;
-    float range = Prototype(e)->lightRange;
-    Vector3 color = Prototype(e)->lightColor;
-    float power = Power(e) * kAcidRayScale;
-    e->CreateArrow(from, e->target, ParticleType::AcidRay, power, "magic\\Acidray\\circle.wav", color,
-                   range);
-    e->CreateSound("magic\\Acidray\\start.wav", e->position, kZeroVector, kVolume, kHearing);
-    e->state = kStateMissile;
-}
 
 // Fireball: a particle source flying at the target point; it explodes in state 1.
 void StartFireball(SpellEffect* e, const Vector3& from) {
@@ -569,9 +534,6 @@ void SpellEffect::Start(SpellType type) {
 
     // Every case sets the state itself: the missile, the lasting one or the end.
     switch (type) {
-    case SpellType::FireArrow:
-    case SpellType::RickMagic: StartFireArrow(this, type, from); break;
-    case SpellType::AcidRay: StartAcidRay(this, from); break;
     case SpellType::Fireball: StartFireball(this, from); break;
     case SpellType::InvokeLightning: StartLightStrike(this); break;
     case SpellType::AcidColumn: StartAcidColumn(this); break;
@@ -631,13 +593,6 @@ void SpellEffect::UpdateFootprint(SpellType type, int stamp) {
         aiMap->ClearFootprint(&g_spellFootprint);
         footprintStamped = 0;
     }
-}
-
-void SpellEffect::CreateArrow(const Vector3& from, EngineObject* missileTarget, ParticleType particleType, float power,
-                               const char* soundName, const Vector3& color, float range) {
-    EffectArrow* arrow =
-        NewArrow(from, missileTarget, static_cast<int>(particleType), power, soundName, color, range, caster);
-    if (arrow) SetVisual(arrow);
 }
 
 EffectArrow* SpellEffect::NewArrow(const Vector3& from, EngineObject* missileTarget, int particleType, float size,

@@ -35,7 +35,6 @@ constexpr float kHearing = 50.0f;
 constexpr float kLoud = 1000.0f;
 
 constexpr float kDefaultSpeed = 5.0f;           // the fireball's speed when the spell has none
-constexpr float kAcidRayScale = 0.4f;           // the acid ray's missile size per power
 constexpr float kFireballScale = 0.3f;          // the fireball's particle size per power
 constexpr float kFireballNear = 1.25f;          // a fireball within speed x this plays one sound, not the sequence
 constexpr float kStrikeDepth = 3.0f;            // the light strike's point below the surface
@@ -46,8 +45,7 @@ constexpr float kBoltWidthScale = 5.0f;         // a lightning's width per power
 constexpr float kTargetHeight = 1.2f;           // a lightning ends at the target's top x this above the ground
 constexpr float kTeleportDepth = 0.2f;          // the teleport's arrival particle below the ground
 constexpr float kBuffScale = 16.0f;             // a buff's strength per power
-constexpr float kSplashScale = 0.7f;            // the impact particle's size per power
-constexpr float kRiseScale = 1.5f;              // impact lights rise faster and reach further
+constexpr float kRiseScale = 1.5f;              // the fireball's impact light rises faster and reaches further
 constexpr float kImpactWakeMargin = 5.0f;       // fireworks and clairvoyance wake the units this far past the radius
 constexpr float kPossessWake = 2.0f;            // possession wakes the units within reach x this + kPossessWakeBase
 constexpr float kPossessWakeBase = 20.0f;

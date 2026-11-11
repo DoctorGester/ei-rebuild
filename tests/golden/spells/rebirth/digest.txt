@@ -7613,7 +7613,7 @@ cunit1804 #place 0B0BC947
 cunit1000066549 #place C650838A
 cunit1000066549 #unit EC370154
 cunit1000066549 #vitals F4C997B8
-@ 5 update 120 frame 23 tick 120 zone gz1g hash 8F135166 n 840
+@ 5 update 120 frame 23 tick 120 zone gz1g hash 1A68876F n 840
 world tick 120
 world updates 120
 world objects 817
@@ -7668,7 +7668,7 @@ timed5147057 # 331FDE45
 missile0 # BEA945FF
 missile1 # 4C94D2FF
 + missile3 spell 0
-missile3 # 99E2BE1E
+missile3 # 0314A0EA
 aievents tick 120
 client tick 120
 client ticksRun 92
@@ -7681,7 +7681,7 @@ cunit1000066549 #place B3D01634
 cunit1000066550 #place D0774779
 cunit1000066550 #unit 4AAA4796
 cunit1000066550 #vitals 8FC93AF9
-@ 6 update 140 frame 27 tick 140 zone gz1g hash E664338F n 843
+@ 6 update 140 frame 27 tick 140 zone gz1g hash 1152E9F7 n 843
 world tick 140
 world updates 140
 world objects 818
@@ -7739,7 +7739,6 @@ timed5147059 # 6D1C015A
 timed5147061 # 7C729FA1
 missile0 # 5292DB60
 missile1 # A0AF4C60
-missile3 # 97D02535
 aievents tick 140
 client tick 140
 client ticksRun 112
@@ -7753,7 +7752,7 @@ cunit1000066550 #vitals F4C997B8
 cunit1000066551 #place 8012B760
 cunit1000066551 #unit 5ACEED81
 cunit1000066551 #vitals 8FC93AF9
-@ 7 update 160 frame 31 tick 160 zone gz1g hash C5A9BB11 n 846
+@ 7 update 160 frame 31 tick 160 zone gz1g hash 1026F4FC n 846
 world tick 160
 world updates 160
 world timedObjects 9
@@ -7798,16 +7797,16 @@ timed5147064 # 2C0DA4AA
 timed5147066 # 9A2DF62F
 missile0 # BBA3087E
 missile1 # 499E9F7E
-missile3 # A2DAFDC9
+missile3 # 54CE9F22
 + missile4 spell 2
-missile4 # 79BAC3AB
+missile4 # 9575CB4C
 aievents tick 160
 client tick 160
 client ticksRun 132
 cunit1000066551 #place B9186DC9
 cunit1000066551 #unit 45CEA0EE
 cunit1000066551 #vitals F4C997B8
-@ 8 update 180 frame 35 tick 180 zone gz1g hash C9BF1CBC n 849
+@ 8 update 180 frame 35 tick 180 zone gz1g hash 696D0956 n 849
 world tick 180
 world updates 180
 world objects 819
@@ -7861,7 +7860,7 @@ timed5147069 # 55FA2339
 missile0 # 6039A705
 missile1 # 92043005
 + missile3 spell 2
-missile3 # 95815D34
+missile3 # 9575CB4C
 + missile4 spell 3
 missile4 # 31D7DAEB
 aievents tick 180

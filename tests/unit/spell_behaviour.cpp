@@ -50,10 +50,9 @@ int RunSpellBehaviourChecks() {
     Expect("stun: a curse that turns the victim, no damage, not fighting",
            stun.ai == SpellAi::Curse && stun.damageType == DamageType::Other && stun.offensive && stun.turnsVictim &&
                !stun.fighting);
-    const itemdb::SpellUse rick = UseOf(records[static_cast<int>(SpellType::RickMagic)]);
-    Expect("rick magic: offensive fire, not fighting", rick.ai == SpellAi::Attack &&
-                                                           rick.damageType == DamageType::Fire && rick.offensive &&
-                                                           !rick.fighting);
+    const itemdb::SpellUse antimagic = UseOf(records[static_cast<int>(SpellType::Antimagic)]);
+    Expect("antimagic: a protection, not fighting", antimagic.ai == SpellAi::Protect && !antimagic.offensive &&
+                                                        !antimagic.fighting);
     const itemdb::SpellUse fireworks = UseOf(records[static_cast<int>(SpellType::Fireworks)]);
     Expect("fireworks: nothing", fireworks.ai == SpellAi::None && !fireworks.offensive && !fireworks.fighting);
 

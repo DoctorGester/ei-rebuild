@@ -1,0 +1,13 @@
+{
+  "scenario": "spells_old_missile",
+  "install": "vanilla",
+  "recorded": "2026-11-11",
+  "commit": "c496dfe62",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "The fire arrow, Rick magic and the acid ray run on Missile.lua (MF17g2): only the missile record differs (state 4, owned objects instead of the C++ visual and light); outcomes, units and timed objects the same.",
+  "source": "image",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+}

@@ -207,7 +207,7 @@ ScriptSpellHost::ScriptSpellHost(ScriptLuaScheduler& owner)
     modules = luaL_ref(L, LUA_REGISTRYINDEX);
     // The cast values' metatable and its methods, permanents: a cast value a script keeps in its data persists.
     lua_createtable(L, 0, 1);
-    lua_createtable(L, 0, 15);
+    lua_createtable(L, 0, 19);
     const int methods = lua_gettop(L);
     const auto method = [this, methods](const char* name, lua_CFunction function) {
         lua_pushlightuserdata(L, this);
@@ -233,6 +233,8 @@ ScriptSpellHost::ScriptSpellHost(ScriptLuaScheduler& owner)
     method("Light", Light);
     method("SetVelocity", SetVelocity);
     method("Eye", Eye);
+    method("HitPoint", HitPoint);
+    method("IsUnit", IsUnit);
     lua_pushvalue(L, methods);
     scheduler.lua.AddPermanent("ei.cast.methods");
     lua_setfield(L, -2, "__index");
@@ -248,8 +250,7 @@ ScriptSpellHost::~ScriptSpellHost() {
     luaL_unref(L, LUA_REGISTRYINDEX, castMeta);
 }
 
-bool ScriptSpellHost::Cast(SpellEffect& effect) {
-    const int key = nextCast++;
+void ScriptSpellHost::NewEntry(SpellEffect& effect, int key) {
     effect.castKey = key;
     effect.host = this;
     live[key] = &effect;
@@ -264,7 +265,10 @@ bool ScriptSpellHost::Cast(SpellEffect& effect) {
     SetInteger(L, entry, "seq", 0);
     lua_rawseti(L, -2, key);
     lua_pop(L, 1);
+}
 
+bool ScriptSpellHost::Cast(SpellEffect& effect) {
+    NewEntry(effect, nextCast++);
     PushModule(effect);
     const bool loaded = lua_istable(L, -1);
     lua_pop(L, 1);
@@ -387,6 +391,54 @@ bool ScriptSpellHost::Adopt(SpellEffect& effect) {
     effect.host = this;
     live[effect.castKey] = &effect;
     nextCast = std::max(nextCast, effect.castKey + 1);
+    return true;
+}
+
+bool ScriptSpellHost::Resume(SpellEffect& effect) {
+    const int base = lua_gettop(L);
+    PushModule(effect);
+    const bool resumes = lua_istable(L, -1) && lua_getfield(L, -1, "OnResume") == LUA_TFUNCTION;
+    lua_settop(L, base);
+    if (!resumes) return false;
+    NewEntry(effect, nextCast++);
+
+    // The C++'s objects become the cast's, in their slots' order: a missile flies on under a payload key (nil).
+    PushEntry(L, effect.castKey);
+    const int entry = lua_gettop(L);
+    lua_newtable(L);
+    const int missiles = lua_gettop(L);
+    const auto adopt = [&](::Effect* object) {
+        if (!object) return;
+        int payload = 0;
+        if (object->GetClassId() == ClassId::EffectArrow) {
+            payload = static_cast<int>(IntegerField(L, entry, "seq") + 1);
+            SetInteger(L, entry, "seq", payload);
+            lua_createtable(L, 1, 0);
+            lua_rawseti(L, missiles, payload);
+        }
+        SpellOwned& owned = effect.owned.emplace_back();
+        owned.object.Assign(object);
+        owned.payload = payload;
+    };
+    adopt(effect.visual.Get());
+    adopt(effect.sound.Get());
+    adopt(effect.light.Get());
+    effect.visual.Reset();
+    effect.sound.Reset();
+    effect.light.Reset();
+    lua_setfield(L, entry, "missiles");
+    lua_settop(L, base);
+
+    lua_createtable(L, 0, 2);
+    const int old = lua_gettop(L);
+    lua_pushstring(L, effect.state == spellfx::kStateMissile ? "missile" : "lasting");
+    lua_setfield(L, old, "state");
+    SetInteger(L, old, "ticks", effect.timer);
+    const bool worldWasOff = scheduler.lua.worldOff;
+    scheduler.lua.worldOff = true;
+    const bool lives = Settle(effect, Call(effect, "OnResume", 1));
+    scheduler.lua.worldOff = worldWasOff;
+    effect.state = lives ? spellfx::kStateScripted : spellfx::kStateEnded;
     return true;
 }
 
@@ -699,10 +751,11 @@ int ScriptSpellHost::Missile(lua_State* L) {
     return PushHandle(L, arrow);
 }
 
-// cast:Effect(name [, {at, attach, size, alpha, velocity, lifetime}]): a particle effect (a data effect of
+// cast:Effect(name [, {at, attach, size, alpha, velocity, lifetime, free}]): a particle effect (a data effect of
 // Res\effects, or a game's type by the scripts' name: Sparks, LightningBlast, ...) at `at` (default the cast's point;
 // attached to the object `attach`, at its own place), size and alpha 1, moving by `velocity` ({x, y, z} a tick); it
-// lasts `lifetime` ticks, else as long as the cast (or as its type's own life, when shorter). Its handle.
+// lasts `lifetime` ticks, else as long as the cast (or as its type's own life, when shorter). A `free` one is not the
+// cast's: it lives its type's own life (a one-shot's) past the cast's end. Its handle.
 int ScriptSpellHost::Effect(lua_State* L) {
     SpellEffect& effect = Self(L, "Effect");
     const int particleType = CheckParticleType(L, 2, "Effect");
@@ -721,8 +774,10 @@ int ScriptSpellHost::Effect(lua_State* L) {
     const float size = FloatField(L, 3, "size", 1.0f);
     const float alpha = FloatField(L, 3, "alpha", 1.0f);
     const int lifetime = std::max(IntField(L, 3, "lifetime", 0), 0);
+    const bool free = BoolField(L, 3, "free", false);
     EffectParticle* particle = effect.NewParticle(particleType, at, size, alpha, velocity, attach);
-    effect.Own(particle, lifetime, 0);
+    if (free) effect.world->AddTimedObject(particle);
+    else effect.Own(particle, lifetime, 0);
     return PushHandle(L, particle);
 }
 
@@ -794,6 +849,25 @@ int ScriptSpellHost::Eye(lua_State* L) {
     return 1;
 }
 
+// cast:HitPoint(object): the point {x, y, z} where a hit on a unit shows, as the game's missiles splash: the ground
+// below it plus its height in its stance (lower crawling, lying or dead: ask after the hit). Another object's position.
+int ScriptSpellHost::HitPoint(lua_State* L) {
+    SpellEffect& effect = Self(L, "HitPoint");
+    MapObject* object = OptObject(L, 2);
+    if (!object) return luaL_error(L, "HitPoint: an object expected, got nil or one that is gone");
+    Vector3 at = object->localPosition;
+    if (Unit* unit = UnitOrNull(object)) at.z = effect.world->GridHeightAt(at.x, at.y) + unit->ModeSpeed();
+    PushPoint(L, at);
+    return 1;
+}
+
+// cast:IsUnit(object): the object is a unit (false for nil, one that is gone, or another object).
+int ScriptSpellHost::IsUnit(lua_State* L) {
+    Self(L, "IsUnit");
+    lua_pushboolean(L, spellfx::IsUnit(OptObject(L, 2)));
+    return 1;
+}
+
 void ScriptSpellHost::PushModule(const SpellEffect& effect) {
     const std::string& file = ScriptOf(effect);
     std::string key = file;
@@ -856,7 +930,7 @@ void ScriptSpellHost::PushEntry(lua_State* state, int key) {
 }
 
 void ScriptSpellHost::PushCast(const SpellEffect& effect, int entry) {
-    lua_createtable(L, 0, 16);
+    lua_createtable(L, 0, 22);
     const int cast = lua_gettop(L);
     const Spell& spell = *effect.HeldSpell();
     const itemdb::SpellRecord* record = spell.GetPrototype();
@@ -881,6 +955,7 @@ void ScriptSpellHost::PushCast(const SpellEffect& effect, int entry) {
     SetNumber(L, cast, "mana", spell.manaCost);
     SetNumber(L, cast, "power", spellfx::Power(&effect));
     SetNumber(L, cast, "lightRise", record ? spellfx::LightRise(&effect) : 0.0f);
+    SetNumber(L, cast, "lightRange", record ? record->lightRange : 0.0f);
     const auto school = static_cast<std::size_t>(record ? record->school : SpellSchool::None);
     lua_pushstring(L, school < std::size(recordnames::kSpellSchools) ? recordnames::kSpellSchools[school].data() : "");
     lua_setfield(L, cast, "school");
