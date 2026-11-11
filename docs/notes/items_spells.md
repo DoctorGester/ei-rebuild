@@ -161,17 +161,17 @@ after them (a mod's without a script) `SpellType::None`, which starts nothing.
   the record's place, so they read the same whatever its `effect` says. What an effect does to the stats is its kind's
   OnStats, how it shows its kind's look fields ("Active effects on scripts").
 - What the tables say of a spell is `itemdb::UseOf(record)` (`Spell::Use()`, spell_behaviour.cpp): the AI's option
-  kind (`ai`), the damage type of the AI's estimate (`GetSpellDamage`), `offensive` (the HUD's use at once aims at the
-  nearest enemy), `turnsVictim` (`CreateMissile`: the victim sees the caster, diplomacy counts an attack) and
+  kind (`ai`), the damage type of the AI's estimate (`GetSpellDamage`), `offensive` (the HUD's use at once aims at
+  the nearest enemy), `turnsVictim` (`CreateMissile`: the victim sees the caster, diplomacy counts an attack) and
   `fighting` (`UnitServer::IsFighting`: the battle music), and `effect`, the behaviour the AI's curse, protect and
-  enhance options look for on a unit (`HasEffect`: "has it already"; the record's `aiEffect`). The spells still in code
-  (the cut possession, link and charm, shapechange and comprehend) have one row each in `kGameSpells` and look for their own behaviour; the others have an
-  empty row and read their TOML fields `ai`, `damage_type`, `offensive`, `turns_victim` and `fighting` (the last two as
-  `offensive` when not given: -1 in the record) and `ai_effect`: the code of the spell whose effect it gives (a scripted
-  spell applying the game's slow says `ai_effect = "slow"`), resolved by the load (`SetBehaviours`) to that record's
-  `activeEffect`; without it, or naming no spell (a load warning), its own `activeEffect` (a buff's `effect`).
-  Rebirth's FixSpellSelfCasting is in the game's records' `offensive`, FixPlaingBattleMusicFromAntimagic in
-  antimagic's `fighting`.
+  enhance options look for on a unit (`HasEffect`: "has it already"; the record's `aiEffect`). The spells still in
+  code (the cut possession, link and charm, shapechange and comprehend) have one row each in `kGameSpells` and look
+  for their own behaviour; the others have an empty row and read their TOML fields `ai`, `damage_type`, `offensive`,
+  `turns_victim` and `fighting` (the last two as `offensive` when not given: -1 in the record) and `ai_effect`: the
+  code of the spell whose effect it gives (a scripted spell applying the game's slow says `ai_effect = "slow"`),
+  resolved by the load (`SetBehaviours`) to that record's `activeEffect`; without it, or naming no spell (a load
+  warning), its own `activeEffect` (a buff's `effect`). Rebirth's FixSpellSelfCasting is in the game's records'
+  `offensive`, FixPlaingBattleMusicFromAntimagic in antimagic's `fighting`.
 - `cast_school` (`SpellRecord::castSchool`, None: the record's own school): the school whose casting look the caster
   shows (`FillCastKind` → `OrderPlan::castKind`). The original casts Rick magic (a fire arrow) with lightning's look and
   curse magic (lightning) with fire's, perhaps a swap; assets/spells/spells.sdb.toml keeps it.
@@ -198,15 +198,16 @@ teleport (Teleport.lua), clairvoyance (Clairvoyance.lua), fireworks (Fireworks.l
 campfire (Campfire.lua). Still in code: possession, link and charm (cut from the game, unreached: only a save's cast of
 one starts them; "Unreached in the shipped game").
 
-- **Built in.** `assets/spells/` holds the scripts (CamelCase, by the spell they run) and `spells.sdb.toml`, the fields
-  the game's records get: `script`, the use fields (`ai`, `damage_type`, `offensive`, `turns_victim`, `fighting`),
-  `cast_school`, `per_target`, `ends_with_target`, `max_ticks`, and the schools' `[cast_looks]`. The build writes the
-  folder into the exe (src/engine/particles/embed_effects.cmake, `spell_files/builtin.h`). `SpellDatabase::MergeBuiltin`
-  merges the TOML into the records of its codes right after the binary spells.sdb is read (never adding a record; a
-  database without the code gets nothing), below every TOML layer, so a mod's spells.sdb.toml overrides any field. A
-  whole-file TOML (`replace = true`, ei-convert's dump) stands alone: the dump carries the fields, since ei-convert reads
-  the database the same way. The scripts are the bottom layer of `Res\spells\` (`ScriptSpellHost`'s ReadFromLayers
-  falls back to `itemdb::BuiltinSpellFile`); a mod's `Res\spells\Lightning.lua` replaces the game's for both spells.
+- **Built in.** `assets/spells/` holds the scripts (CamelCase, by the spell they run) and `spells.sdb.toml`, the
+  fields the game's records get: `script`, the use fields (`ai`, `damage_type`, `offensive`, `turns_victim`,
+  `fighting`), `cast_school`, `per_target`, `ends_with_target`, `max_ticks`, and the schools' `[cast_looks]`. The
+  build writes the folder into the exe (src/engine/particles/embed_effects.cmake, `spell_files/builtin.h`).
+  `SpellDatabase::MergeBuiltin` merges the TOML into the records of its codes right after the binary spells.sdb is
+  read (never adding a record; a database without the code gets nothing), below every TOML layer, so a mod's
+  spells.sdb.toml overrides any field. A whole-file TOML (`replace = true`, ei-convert's dump) stands alone: the
+  dump carries the fields, since ei-convert reads the database the same way. The scripts are the bottom layer of
+  `Res\spells\` (`ScriptSpellHost`'s ReadFromLayers falls back to `itemdb::BuiltinSpellFile`); a mod's
+  `Res\spells\Lightning.lua` replaces the game's for both spells.
 - **What keeps them the original's.** `per_target`: CastSpell casts each one once at every target it picks (t runes,
   f-rune filters, sight). `ends_with_target`: the cast goes at once when its target leaves the world (`Forget`). The
   cap does not cut them: a cast paced by timers alone lives up to 600 ticks or its duration (the game's durations of 1
@@ -235,11 +236,11 @@ one starts them; "Unreached in the shipped game").
   after the hit), the blast (`FireBlast`, size the larger of `areaPower` and the power, alpha the power, `param` the
   radius, free), the end sound, a light of `lightRange` x 1.5 rising at `lightRise` x 1.5, the caster's `Noise` (5,
   call delay 4), and `Done` 37 ticks later.
-- **The area strikes** (Strike.lua): the light strike at the water's surface - 3 (`Ground`): a bolt from 30 above, width
-  power x -7 for one tick, the free `LightningBlast` (size the radius, alpha the power), the start sound (volume and
-  hearing 1000), a light 5 above rising at `lightRise`, the hit (lightning, `unsorted`, `split`); a second bolt of width
-  -7 at tick 3 for one tick, `Done` at 9. The acid column at the cast's point: the free `Nuke`, the start sound, a rising
-  light, the hit (acid, `area`) at tick 15, `Done` at 32.
+- **The area strikes** (Strike.lua): the light strike at the water's surface - 3 (`Ground`): a bolt from 30 above,
+  width power x -7 for one tick, the free `LightningBlast` (size the radius, alpha the power), the start sound
+  (volume and hearing 1000), a light 5 above rising at `lightRise`, the hit (lightning, `unsorted`, `split`); a
+  second bolt of width -7 at tick 3 for one tick, `Done` at 9. The acid column at the cast's point: the free `Nuke`,
+  the start sound, a rising light, the hit (acid, `area`) at tick 15, `Done` at 32.
 - **The lasting areas** (LastingArea.lua): OnCast the fire wall (the `Tendril` at the point with `direction` the span,
   `cast:Across` from the caster's eye or the cast's start to the point, the radius long: WallSpan of WallDirection; the
   light the radius + `lightRange` at the ground + 1, then the start / circle `SoundLoop` there), the light wall (a bolt
@@ -314,24 +315,24 @@ one starts them; "Unreached in the shipped game").
   as it was, and it ends at its next update with its objects. The save version stays 0x74.
 - **Checks.** The lightning, missile, area, lasting and buff scenarios (the sections `spells`, `combat`, `units`,
   `world`, `particles`, `map_objects`, `rebirth_fixes`, `unit_ai_cast` (the AI's fireball), `unit_ai_corpse` (its
-  noise), `unit_ai_heal`, `save_flight` (a wall of 750 ticks saved and loaded mid-cast, its footprint stamped again);
-  `combat_skills`, `spells_more` (fireworks by script, the hero's teleport), `spells_hero` (the hero's vision fog)):
-  only the digest's missile records differ from the original's. Every golden has campfires (the base and network
-  zones' too, which load their scripts after their objects: the casts carry over that reset). The old saves in
-  tests/saves were made by the build whose spells were still C++, and each scenario's run compares with that build's
-  run of it (only the missile records differ; spells_old_buff's is the same): `spells_old_save` (lightning_old: both casts end at the load),
-  `spells_old_missile` (missile_old: an acid ray lasting, a fire arrow in flight that kills its wolf), `spells_old_area`
-  (area_old: two fireballs in flight, one with its sound sequence, an acid column before its hit and a light strike
-  with its first bolt; the column and the far fireball kill their wolves), `spells_old_lasting` (lasting_old: a cloud
-  gone out, two walls and a cloud standing; wolves added in them die at their next pulses), `spells_old_buff`
-  (buff_old: five buffs on the hero, four on a wolf), `spells_old_rest` (rest_old: clairvoyance and vision fog
-  lasting, a fireworks gone out and one frightening, a teleport 9 ticks before the hero arrives, a healing's light),
-  `spells_old_campfire` (campfire_old: four campfires at counts in two phases, two with blocked WolfTutor wolves in
-  them, burnt on the same ticks). `--lua-check` covers the methods these files use (handles, SetVelocity, Eye, a demon
-  bolt, the timer-paced cap, IsUnit, HitPoint, a free effect, OnResume of a missile with bindings off; Ground, Flight,
-  SoundLoop, Release, Noise, the Sound / Light / Effect options, FindUnits unsorted and along, Damage split,
-  areaPower, Across, Effect direction, Block and Unblock, Position, IsDead, IsHurt, silent, Shout, Reveal, Wake,
-  Notice, Vision).
+  noise), `unit_ai_heal`, `save_flight` (a wall of 750 ticks saved and loaded mid-cast, its footprint stamped
+  again); `combat_skills`, `spells_more` (fireworks by script, the hero's teleport), `spells_hero` (the hero's
+  vision fog)): only the digest's missile records differ from the original's. Every golden has campfires (the base
+  and network zones' too, which load their scripts after their objects: the casts carry over that reset). The old
+  saves in tests/saves were made by the build whose spells were still C++, and each scenario's run compares with
+  that build's run of it (only the missile records differ; spells_old_buff's is the same): `spells_old_save`
+  (lightning_old: both casts end at the load), `spells_old_missile` (missile_old: an acid ray lasting, a fire arrow
+  in flight that kills its wolf), `spells_old_area` (area_old: two fireballs in flight, one with its sound sequence,
+  an acid column before its hit and a light strike with its first bolt; the column and the far fireball kill their
+  wolves), `spells_old_lasting` (lasting_old: a cloud gone out, two walls and a cloud standing; wolves added in them
+  die at their next pulses), `spells_old_buff` (buff_old: five buffs on the hero, four on a wolf), `spells_old_rest`
+  (rest_old: clairvoyance and vision fog lasting, a fireworks gone out and one frightening, a teleport 9 ticks
+  before the hero arrives, a healing's light), `spells_old_campfire` (campfire_old: four campfires at counts in two
+  phases, two with blocked WolfTutor wolves in them, burnt on the same ticks). `--lua-check` covers the methods
+  these files use (handles, SetVelocity, Eye, a demon bolt, the timer-paced cap, IsUnit, HitPoint, a free effect,
+  OnResume of a missile with bindings off; Ground, Flight, SoundLoop, Release, Noise, the Sound / Light / Effect
+  options, FindUnits unsorted and along, Damage split, areaPower, Across, Effect direction, Block and Unblock,
+  Position, IsDead, IsHurt, silent, Shout, Reveal, Wake, Notice, Vision).
 
 ## Active effects on scripts
 
