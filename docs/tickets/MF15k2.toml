@@ -1,0 +1,6 @@
+id = "MF15k2"
+title = "Particle core behind a host interface (ground, wind, objects, carrier values)"
+group = "mods"
+size = 2
+note = "After MF15k1. The particle core reads g_clientWorld (wind, ground height, object lists, CreateObjectAs) and Unit (the carrier's values, part points). Put those behind a small host interface the world implements; the viewer exe implements it with a stub (flat ground, no wind, its own object list). No behaviour change: effect_check and --golden the same."
+order = 1385
