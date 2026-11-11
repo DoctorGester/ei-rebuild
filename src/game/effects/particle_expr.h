@@ -47,6 +47,9 @@ struct Env {
     void* measureContext = nullptr;
     // The ground's height at (x, y) for `ground(x, y)` (null: 0).
     float (*ground)(float x, float y) = nullptr;
+    // The top platform's plane at (x, y) for `platform_height` and `platform_normal_x/y/z` (`which` 0: its height, 1-3:
+    // its normal; null: height 0 and normal (0, 0, 1), as off every platform).
+    float (*platform)(float x, float y, int which) = nullptr;
 };
 
 // What a name means where an expression is compiled.
@@ -91,6 +94,8 @@ enum class Function : std::uint8_t {
     Chance,     // chance(percent): 1 when Next() % 100 is below it
     Pick,       // pick(n): Next() % n, 0 for n below 1
     Ground,     // ground(x, y): the ground's height there (Env::ground)
+    // platform_height(x, y), platform_normal_x / _y / _z(x, y): the plane of the top platform there (Env::platform)
+    PlatformHeight, PlatformNormalX, PlatformNormalY, PlatformNormalZ,
 };
 
 struct Instruction {

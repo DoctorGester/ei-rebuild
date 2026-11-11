@@ -86,6 +86,7 @@ enum class SourceValue : std::uint16_t {
     CarrierBoundsRadius,
     CarrierLeftFootX, CarrierLeftFootY, CarrierLeftFootZ,
     CarrierRightFootX, CarrierRightFootY, CarrierRightFootZ,
+    CarrierAxisYX, CarrierAxisYY, CarrierAxisYZ,    // its own y axis (0 when free)
     Values
 };
 inline constexpr int kSourceValues = static_cast<int>(SourceValue::Values);
@@ -154,10 +155,13 @@ struct Action {
         StopEmitting,   // the source's emission flag cleared, nothing else (the game may set it again)
         LetGo,      // the source lets go of its carrier (stays where it is; its flags unchanged)
         AddAnchor,  // `count` anchors of group `anchor` made now
+        Shake,      // the camera shakes from the source's origin: `value` its strength, `time` its length in seconds,
+                    // `decay` its fall per step (Camera::Shake)
     };
     Kind kind = Kind::Emit;
     Expr count;
     Expr value;
+    Expr time, decay;   // a shake's
     int target = -1;
     int particleKind = -1;
     int anchor = -1;
@@ -345,6 +349,13 @@ struct Queued {
     Vector3 place;
 };
 
+// A camera shake an action asked for (particle_data.cpp shakes the camera from the source's origin).
+struct ShakeRequest {
+    float strength = 0.0f;
+    float time = 0.0f;
+    float decay = 0.0f;
+};
+
 // An effect an action started: at the source's origin, or at `place` (a dying particle's).
 struct Started {
     std::string name;
@@ -386,6 +397,8 @@ public:
     bool measured = false;
     // The ground's height at a point (`ground(x, y)`; null: 0, as in the unit checks).
     float (*ground)(float x, float y) = nullptr;
+    // The top platform's plane at a point (`platform_height`, `platform_normal_x/y/z`; Env::platform).
+    float (*platform)(float x, float y, int which) = nullptr;
 
     // The Env of the source's scopes (an anchor's and a particle's are added by the caller).
     Env SourceEnv(IsaacRandom* random) const;
@@ -418,6 +431,7 @@ public:
     int burst = 0;                  // regular tries added this tick
     std::vector<Queued> queue;
     std::vector<Started> effects;
+    std::vector<ShakeRequest> shakes;
 
 private:
     void Start(IsaacRandom& random);

@@ -5,8 +5,10 @@
 #include "game/effects/effects.h"
 #include "game/effects/particle_common.h"
 
+#include "game/app/singletons.h"
 #include "game/core/random.h"
 #include "game/data/resource.h"
+#include "game/scene/camera.h"
 #include "game/objects/map_object.h"
 #include "game/units/unit.h"
 #include "game/world/world.h"
@@ -210,6 +212,17 @@ void MeasureCarrier(void* context) {
 // The ground's height for `ground(x, y)` (State::ground).
 float GroundHeight(float x, float y) { return g_clientWorld.RawSurfaceHeightAt(x, y); }
 
+// The top platform's plane for `platform_height` and `platform_normal_x/y/z` (State::platform).
+float PlatformPlane(float x, float y, int which) {
+    const PlatformSet::SurfacePlaneResult plane = g_clientWorld.platforms.SurfacePlane(x, y);
+    switch (which) {
+    case 0: return plane.height;
+    case 1: return plane.normal.x;
+    case 2: return plane.normal.y;
+    default: return plane.normal.z;
+    }
+}
+
 // The carrier's unit values (SourceValue::CarrierUnit...): its feet as ParticleSource::PartPoint finds a part.
 void WriteCarrier(ParticleSource& s, std::vector<float>& v) {
     MapObject* carrier = s.attachedTo;
@@ -222,6 +235,10 @@ void WriteCarrier(ParticleSource& s, std::vector<float>& v) {
     Value(v, SourceValue::CarrierAxisY) = axis.y;
     Value(v, SourceValue::CarrierAxisZ) = axis.z;
     Value(v, SourceValue::CarrierBoundsRadius) = carrier ? carrier->bounds.radius : 0.0f;
+    const Vector3 axisY = carrier ? carrier->localRotation.AxisY() : Vector3{};
+    Value(v, SourceValue::CarrierAxisYX) = axisY.x;
+    Value(v, SourceValue::CarrierAxisYY) = axisY.y;
+    Value(v, SourceValue::CarrierAxisYZ) = axisY.z;
     const Vector3 left = unit ? s.PartPoint(unit, "ll3") : s.origin;
     const Vector3 right = unit ? s.PartPoint(unit, "rl3") : s.origin;
     Value(v, SourceValue::CarrierLeftFootX) = left.x;
@@ -242,7 +259,8 @@ void WriteAttachment(ParticleSource& s, State& state) {
     if (state.record->readsUnit) WriteCarrier(s, v);
 }
 
-// A source value (SourceValue: size, height, growth, alpha, param) written back to the source.
+// A source value (SourceValue: size, height, growth, alpha, param, the spread box, the extent) written back to the
+// source.
 void WriteBack(ParticleSource& s, int which, float value) {
     switch (static_cast<SourceValue>(which)) {
     case SourceValue::Size: s.size = value; break;
@@ -250,16 +268,27 @@ void WriteBack(ParticleSource& s, int which, float value) {
     case SourceValue::Growth: s.growth = value; break;
     case SourceValue::Alpha: s.alpha = value; break;
     case SourceValue::Param: s.typeParam = value; break;
+    case SourceValue::SpreadMinX: s.spreadMin.x = value; break;
+    case SourceValue::SpreadMinY: s.spreadMin.y = value; break;
+    case SourceValue::SpreadMinZ: s.spreadMin.z = value; break;
+    case SourceValue::SpreadMaxX: s.spreadMax.x = value; break;
+    case SourceValue::SpreadMaxY: s.spreadMax.y = value; break;
+    case SourceValue::SpreadMaxZ: s.spreadMax.z = value; break;
+    case SourceValue::ExtentX: s.extent.x = value; break;
+    case SourceValue::ExtentY: s.extent.y = value; break;
+    case SourceValue::ExtentZ: s.extent.z = value; break;
     default: break;
     }
 }
 
-// What the actions of a step or of an "emit" reaction did to the source: the `set` source values written back, a
-// `stop`'s Stop, a `stop_emitting`, a `let_go`; after a Stop or a let go the attachment's values are written again,
-// so the rest of the tick (the particles' updates, the emission) sees the source free.
+// What the actions of a step or of an "emit" reaction did to the source: the `set` source values written back, the
+// camera's shakes, a `stop`'s Stop, a `stop_emitting`, a `let_go`; after a Stop or a let go the attachment's values
+// are written again, so the rest of the tick (the particles' updates, the emission) sees the source free.
 void ApplyActions(ParticleSource& s, State& state) {
     for (const int written : state.sourceWrites) WriteBack(s, written, state.source[written]);
     state.sourceWrites.clear();
+    for (const ShakeRequest& shake : state.shakes) g_camera.Shake(s.origin, shake.time, shake.strength, shake.decay);
+    state.shakes.clear();
     const bool detached = state.stopRequested || state.letGo;
     if (state.stopRequested) {
         state.stopRequested = false;
@@ -481,7 +510,8 @@ Emitted EmitKind(ParticleSource& s, Particle& p, int kindIndex, int anchor, int 
     p.size = kind.sizeStart.Run(env, s.size);
     const std::uint32_t alpha = Channel(kind.alphaStart.Run(env, 255.0f));
     p.color = alpha << 24 | Rgb(kind, env, kind.rgb);
-    p.frame = Truncated(kind.frameStart.Run(env, 0.0f), 0, s.frameCount - 1);
+    // Past the grid it stays (the update's step wraps or holds it by the mode; drawn as the first frame meanwhile).
+    p.frame = Truncated(kind.frameStart.Run(env, 0.0f), 0, std::numeric_limits<int>::max());
     p.frameTimer = Truncated(kind.frameDelay.Run(env, 0.0f), 0, std::numeric_limits<int>::max());
     if (!kind.drop.Empty() && kind.drop.Run(env) != 0.0f) return Emitted::Dropped;
     ++state.total;
@@ -503,10 +533,30 @@ void BeforeEmission(ParticleSource& s, State& state) {
     ApplyEmissionActions(s, state);
 }
 
-// After a particle of the emission: the "emit" reactions.
+// The particles an "emit" reaction asked for, made at once (before the emission's next try) without reactions of
+// their own, so a reaction never feeds itself; `p.index` counts them.
+void EmitReactionParticles(ParticleSource& s, State& state) {
+    if (state.queue.empty()) return;
+    const std::vector<Queued> queued = std::move(state.queue);
+    state.queue.clear();
+    ParticleManager* pool = s.Manager();
+    int index = 0;
+    for (const Queued& entry : queued) {
+        if (std::ssize(s.particles) >= s.maxParticles) break;
+        Particle* p = pool->AcquireParticle();
+        Value(state.source, SourceValue::Particles) = static_cast<float>(s.particles.size());
+        Value(state.source, SourceValue::Total) = static_cast<float>(state.total);
+        const Emitted made = EmitKind(s, *p, entry.kind, entry.anchor, index++, entry.placed ? &entry.place : nullptr);
+        if (made == Emitted::Kept) s.AddParticle(p);
+        else pool->ReleaseParticle(p);
+    }
+}
+
+// After a particle of the emission: the "emit" reactions, then the particles they asked for.
 void AfterEmission(ParticleSource& s, State& state) {
     state.Emitted(g_particleRandom);
     ApplyEmissionActions(s, state);
+    EmitReactionParticles(s, state);
 }
 
 // The effects the actions started: free sources of their own, at the source's origin or at their place.
@@ -559,6 +609,7 @@ void SetUp(ParticleSource& s, std::shared_ptr<const Record> record) {
     s.data->measure = MeasureCarrier;
     s.data->measureContext = &s;
     s.data->ground = GroundHeight;
+    s.data->platform = PlatformPlane;
     if (std::any_of(r.vars.begin(), r.vars.end(), [](const Var& var) { return var.atCreate; })) {
         WriteSource(s, *s.data);
         s.data->Create(g_particleRandom);
@@ -600,7 +651,10 @@ void EmitQueued(ParticleSource& s) {
     State& state = *s.data;
     ParticleManager* pool = s.Manager();
     int index = 0;
-    for (const Queued& queued : state.queue) {
+    // Moved out first: the "emit" reactions of these particles queue their own (EmitReactionParticles).
+    const std::vector<Queued> queue = std::move(state.queue);
+    state.queue.clear();
+    for (const Queued& queued : queue) {
         if (std::ssize(s.particles) >= s.maxParticles) break;
         Particle* p = pool->AcquireParticle();
         Value(state.source, SourceValue::Particles) = static_cast<float>(s.particles.size());
@@ -611,7 +665,6 @@ void EmitQueued(ParticleSource& s) {
         else pool->ReleaseParticle(p);
         if (made != Emitted::None) AfterEmission(s, state);
     }
-    state.queue.clear();
 }
 
 namespace {

@@ -192,17 +192,6 @@ struct ParticleElement {
             Vector3 base;       // pos as placed
             std::int32_t emitted;   // point 0: particles emitted along the bolt
         } bolt;
-        // Modifier1-12 (EmitModifier): a point of the ring around the carrier.
-        struct {
-            Vector3 start;      // pos as placed (TickModifier: the last position)
-            Vector3 offset;     // from the emission point
-        } ring;
-        // GroundDust1 / 2 (TickGroundPlane, PlatformSet::SurfacePlane): the ground plane under the source.
-        struct {
-            float height;
-            Vector3 normal;     // its z replaced by its reciprocal when not 0
-            std::uint32_t color;    // the dust's colour
-        } plane;
         // CastingFire ... CastingDivination: element 0 the effect's state (pos.x 1 once set up, ticks the countdown
         // the alpha follows), elements 1.. the swirls.
         struct {
@@ -222,15 +211,6 @@ struct ParticleElement {
             float rise;         // per tick
             Vector3 centre;     // its starting centre
         } flames;
-        // Link: element 0 the beam's length and its inverse (ticks the alpha cap); elements 1-3 the beam's frame
-        // (direction, side, their cross product).
-        struct {
-            float length;
-            float inverseLength;
-        } link;
-        struct {
-            Vector3 axis;       // a unit vector
-        } linkAxis;
         // Geyser (the fireworks): a vent (ticks the eruption's remaining ticks).
         struct {
             float yaw;          // the jet's direction (radians)
@@ -244,12 +224,6 @@ struct ParticleElement {
             Vector3 velocity;
             std::int32_t age;   // its kind, then its age (indexes the sizes)
         } ball;
-        // Mushroom and Transform.
-        struct {
-            float spread;       // the puffs'
-            float capHeight;
-            Vector3 stem;       // the stem's foot
-        } mushroom;
         // Tornado and CurseHolder: a ring of the funnel (pos its centre); element 0 also holds the funnel's own
         // values.
         struct {
@@ -257,26 +231,13 @@ struct ParticleElement {
             float bend;         // 0: the rings sway with the source's motion, else they lean
             float damping;      // the particles' spin damping
         } funnel;
-        // Cylinder1 / 2: a star (pos relative to the source, ticks its countdown).
-        struct {
-            Vector3 step;       // its last step
-            float rotation[2];  // the cosine and sine of its turn per tick
-            float inverseOrbit;
-            float orbit;        // the orbit radius
-            float rise;         // per tick
-        } star;
-        // ClayRing: a point on the ground (pos; ticks the countdown).
-        struct {
-            Vector3 previous;   // its previous position
-            Vector3 direction;  // turning a little each tick
-        } clay;
         // ShapeChange: element 0.
         struct {
             Vector3 mark;       // the last point glowed at
             std::uint32_t color;    // by the source's glowKind
         } glow;
     };
-    int ticks = 0;              // (LightningBlast point 0: the bursts; Modifier point 0: the fade step)
+    int ticks = 0;              // (LightningBlast point 0: the bursts)
 };
 static_assert(sizeof(ParticleElement) == sizeof(Vector3) + sizeof(ParticleElement::fragment) + sizeof(int),
               "the first view is the largest: its initialiser zeroes every view");
