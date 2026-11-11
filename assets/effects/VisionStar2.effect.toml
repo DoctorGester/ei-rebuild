@@ -3,34 +3,22 @@
 # by 0.07 radians a tick, following the source; frame 1. Its size eases (by 0.95) towards a random 0.1-1.9 of 0.17 *
 # 0.05 of the source's size. Once the source stops emitting or loses its carrier, the size shrinks a further 0.95 a
 # tick, the source's size is zeroed (the stars after it this tick read 0) and a star below 0.03 is gone.
+# VisionStar1's star (VisionStar1.effect.toml) with the satellites.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
-texture = "Stun"
-blend = "additive"
-attach = "attached_only"
-part = "above_head"
-
-[emit]
-rate = 3
+like = "VisionStar1"
 
 [[particle]]
 name = "star"
 when = "count <= 4"
-lifetime = 1000000000                           # it lasts until it fades
-alpha = { start = 0, tick = 255 }
 frame = 1
-size = { start = 0, tick = "p.eased" }
-kill = "!(emitting && attached) && p.eased < 0.03"
 
 [particle.vars]
+eased = { tick = "emitting && attached ? range(0.1, 1.9) * size * 0.17 * 0.05 + p.size * 0.95 : (range(0.1, 1.9) * size * 0.17 * 0.05 + p.size * 0.95) * 0.95" }
 last_x = { start = 0, tick = "p.off_x" }        # the offset before this tick's turn
 off_x = { start = "count == 0 ? cos(0) * 0.5 : cos(6.2831855 * (count == 1 ? 0.2 : (count == 2 ? 0.4 : (count == 3 ? 0.6 : 0.8)))) * 0.5", tick = "cos(0.07) * p.off_x + p.off_y * sin(0.07)" }
 off_y = { start = "count == 0 ? sin(0) * 0.5 : sin(6.2831855 * (count == 1 ? 0.2 : (count == 2 ? 0.4 : (count == 3 ? 0.6 : 0.8)))) * 0.5", tick = "p.off_y * cos(0.07) - p.last_x * sin(0.07)" }
-eased = { start = 0, tick = "emitting && attached ? range(0.1, 1.9) * size * 0.17 * 0.05 + p.size * 0.95 : (range(0.1, 1.9) * size * 0.17 * 0.05 + p.size * 0.95) * 0.95" }
 
 [particle.position]
 start = ["origin.x + p.off_x", "origin.y + p.off_y", "origin.z + 0"]
 tick = ["origin.x + p.off_x", "origin.y + p.off_y", "origin.z + 0"]
-
-[particle.source]
-size = "emitting && attached ? size : 0"

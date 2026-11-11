@@ -2,6 +2,7 @@
 // emitters (effect_check.h; docs/notes/effects.md, "Checks").
 #include "effect_check.h"
 
+#include "effect_files/coarse.h"
 #include "effect_files/reference.h"
 #include "game/app/singletons.h"
 #include "engine/core/random.h"
@@ -19,7 +20,10 @@
 #include "lib/bit_flags.h"
 #include "lib/maths.h"
 
+#include <algorithm>
 #include <bit>
+#include <charconv>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <format>
@@ -328,13 +332,27 @@ std::string Hex(const Vector3& v) { return Hex(v.x) + " " + Hex(v.y) + " " + Hex
 Vector3 g_calmDirection;
 float g_calmStrength = 0.0f;
 
-// One case run: its header line and one line per tick; `dump` (when not null) gets every particle.
-std::vector<std::string> Run(const Case& c, int index, std::ofstream* dump) {
+// What the coarse compare measures of a case: per quarter of its ticks the live particles, their size, colour and
+// place against the source's origin (sums and sums of squares, for the mean and the spread); over the case the
+// particles made and their ages at death.
+struct Quarter {
+    double ticks = 0.0, particles = 0.0, size = 0.0, color[4] = {}, place[3] = {}, squares[3] = {};
+};
+struct Coarse {
+    Quarter quarters[4];
+    double births = 0.0, deaths = 0.0, deathAge = 0.0;
+};
+
+// One case run: its header line and one line per tick; `dump` (when not null) gets every particle, `coarse` (when not
+// null) its measures. `seed` > 0 runs it on another seed of the generator (the coarse compare's).
+std::vector<std::string> Run(const Case& c, int index, std::ofstream* dump, Coarse* coarse = nullptr, int seedRun = 0) {
     std::vector<std::string> lines;
     g_clientWorld.windDirection = g_calmDirection;
     g_clientWorld.windStrength = g_calmStrength;
     IsaacRandom seed;
-    for (int i = 0; i < 256; ++i) seed.memory[i] = static_cast<std::uint32_t>(i) * 0x9E3779B9u + static_cast<std::uint32_t>(index);
+    for (int i = 0; i < 256; ++i)
+        seed.memory[i] = static_cast<std::uint32_t>(i) * 0x9E3779B9u + static_cast<std::uint32_t>(index) +
+                         static_cast<std::uint32_t>(seedRun) * 0x01000193u;
     g_particleRandom = IsaacRandom();
     g_particleRandom.InitFrom(seed);
 
@@ -437,6 +455,28 @@ std::vector<std::string> Run(const Case& c, int index, std::ofstream* dump) {
             hash.Add(s->clip.center);
             hash.Add(s->clip.boxMin);
             hash.Add(s->clip.boxMax);
+            if (coarse) {
+                Quarter& q = coarse->quarters[std::min(3, (tick - 1) * 4 / c.ticks)];
+                q.ticks += 1.0;
+                for (const Particle* p : s->particles) {
+                    if (p->dead) {
+                        coarse->deaths += 1.0;
+                        coarse->deathAge += p->age;
+                        continue;
+                    }
+                    if (p->age == 0) coarse->births += 1.0;
+                    q.particles += 1.0;
+                    q.size += p->size;
+                    constexpr int kShifts[4] = {16, 8, 0, 24};   // r, g, b, a of ARGB
+                    for (int k = 0; k < 4; ++k) q.color[k] += static_cast<double>((p->color >> kShifts[k]) & 0xFF);
+                    const Vector3 at = p->pos - s->origin;
+                    const double axes[3] = {at.x, at.y, at.z};
+                    for (int k = 0; k < 3; ++k) {
+                        q.place[k] += axes[k];
+                        q.squares[k] += axes[k] * axes[k];
+                    }
+                }
+            }
             lines.push_back(std::format("{} {} flags {:X} {} particles {} draws {} hash {:016X}", tick,
                                         alive ? "alive" : "done", s->flags & kSourceFlags,
                                         s->attachedTo ? "attached" : "free", s->particles.size(), g_draws, hash.value));
@@ -473,9 +513,142 @@ std::vector<std::string> Lines(std::string_view text) {
     return lines;
 }
 
+// The coarse compare runs each case on this many other seeds and averages them.
+constexpr int kCoarseSeeds = 8;
+
+// Every case's coarse measures: a line per case (particles made and dead per run, their mean age at death), then one
+// per quarter of its ticks (live particles per tick, their mean size, colour r g b a, and the mean and the standard
+// deviation of their places about the origin).
+std::vector<std::string> CoarseLines() {
+    std::vector<std::string> lines;
+    const std::vector<Case>& cases = Cases();
+    for (std::size_t i = 0; i < cases.size(); ++i) {
+        Coarse sum;
+        for (int seed = 1; seed <= kCoarseSeeds; ++seed) Run(cases[i], static_cast<int>(i), nullptr, &sum, seed);
+        lines.push_back(std::format("coarse {}: births {:.2f} deaths {:.2f} life {:.2f}", cases[i].name,
+                                    sum.births / kCoarseSeeds, sum.deaths / kCoarseSeeds,
+                                    sum.deaths > 0.0 ? sum.deathAge / sum.deaths : 0.0));
+        for (int k = 0; k < 4; ++k) {
+            const Quarter& q = sum.quarters[k];
+            if (q.particles == 0.0) {
+                lines.push_back(std::format("  q{} particles 0", k));
+                continue;
+            }
+            double centre[3], spread[3];
+            for (int a = 0; a < 3; ++a) {
+                centre[a] = q.place[a] / q.particles;
+                spread[a] = std::sqrt(std::max(0.0, q.squares[a] / q.particles - centre[a] * centre[a]));
+            }
+            lines.push_back(std::format("  q{} particles {:.2f} size {:.4f} color {:.1f} {:.1f} {:.1f} {:.1f} centre {:.3f} "
+                                        "{:.3f} {:.3f} spread {:.3f} {:.3f} {:.3f}",
+                                        k, q.particles / q.ticks, q.size / q.particles, q.color[0] / q.particles,
+                                        q.color[1] / q.particles, q.color[2] / q.particles, q.color[3] / q.particles,
+                                        centre[0], centre[1], centre[2], spread[0], spread[1], spread[2]));
+        }
+    }
+    return lines;
+}
+
+// How far a coarse measure may move: the larger of `absolute` and `relative` times the larger value (a centre's: times
+// the larger spread of its axis). Calibrated on the same build's runs on 8 other seeds; a quarter with less than one
+// particle a tick compares only its count.
+struct Tolerance {
+    std::string_view label;
+    double absolute, relative;
+};
+constexpr Tolerance kTolerances[] = {
+    {"births", 2.0, 0.25}, {"deaths", 2.0, 0.25}, {"life", 1.5, 0.2},     {"particles", 2.0, 0.25},
+    {"size", 0.005, 0.2},  {"color", 24.0, 0.0},  {"centre", 0.1, 0.6}, {"spread", 0.05, 0.3},
+};
+
+// A coarse line's numbers by their label, in order (`q0`, `particles 9.67`, `centre -0.1 0.2 0.3` ...).
+struct Measures {
+    std::vector<std::pair<std::string_view, std::vector<double>>> labels;
+    const std::vector<double>* Find(std::string_view label) const {
+        for (const auto& [name, values] : labels)
+            if (name == label) return &values;
+        return nullptr;
+    }
+};
+
+Measures Parse(std::string_view line) {
+    Measures measures;
+    std::size_t at = 0;
+    while (at < line.size()) {
+        const std::size_t end = std::min(line.find(' ', at), line.size());
+        const std::string_view word = line.substr(at, end - at);
+        at = end + 1;
+        if (word.empty()) continue;
+        double value = 0.0;
+        if (!measures.labels.empty() && std::from_chars(word.data(), word.data() + word.size(), value).ec == std::errc())
+            measures.labels.back().second.push_back(value);
+        else
+            measures.labels.push_back({word, {}});
+    }
+    return measures;
+}
+
+// Whether the coarse lines `got` and `want` agree: the same labels, and each number within its label's tolerance;
+// `why` names the first that does not.
+bool CoarseAgrees(const std::string& got, const std::string& want, std::string* why) {
+    const Measures a = Parse(got), b = Parse(want);
+    const bool shaped = a.labels.size() == b.labels.size() &&
+                        std::equal(a.labels.begin(), a.labels.end(), b.labels.begin(), [](const auto& x, const auto& y) {
+                            return x.first == y.first && x.second.size() == y.second.size();
+                        });
+    if (!shaped) {
+        *why = "particles where there were none, or none where there were";
+        return false;
+    }
+    const std::vector<double>* countA = a.Find("particles");
+    const std::vector<double>* countB = b.Find("particles");
+    const bool few = countA && countB && !countA->empty() && (*countA)[0] < 1.0 && (*countB)[0] < 1.0;
+    const std::vector<double>* spreadA = a.Find("spread");
+    const std::vector<double>* spreadB = b.Find("spread");
+    for (std::size_t l = 0; l < a.labels.size(); ++l) {
+        const Tolerance* tolerance = nullptr;
+        for (const Tolerance& t : kTolerances)
+            if (t.label == a.labels[l].first) tolerance = &t;
+        if (!tolerance || (few && tolerance->label != "particles")) continue;
+        const std::vector<double>& x = a.labels[l].second;
+        const std::vector<double>& y = b.labels[l].second;
+        for (std::size_t i = 0; i < x.size(); ++i) {
+            double scale = std::max(std::fabs(x[i]), std::fabs(y[i]));
+            if (tolerance->label == "centre" && spreadA && spreadB && i < spreadA->size())
+                scale = std::max((*spreadA)[i], (*spreadB)[i]);
+            if (std::fabs(x[i] - y[i]) > std::max(tolerance->absolute, tolerance->relative * scale)) {
+                *why = std::format("{} {:g} against {:g}", tolerance->label, x[i], y[i]);
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+// The coarse compare: every case's measures against the recorded ones (tests/effects/coarse.txt).
+int CompareCoarse(const std::vector<std::string>& output) {
+    const std::vector<std::string> reference =
+        Lines(std::string_view(reinterpret_cast<const char*>(kCoarse), sizeof(kCoarse)));
+    int failures = 0;
+    std::string current, failedCase;
+    for (std::size_t i = 0; i < output.size() || i < reference.size(); ++i) {
+        const std::string& got = i < output.size() ? output[i] : std::string("(none)");
+        const std::string& want = i < reference.size() ? reference[i] : std::string("(none)");
+        if (got.starts_with("coarse ")) current = got.substr(0, got.find(':'));
+        std::string why;
+        if (current == failedCase || CoarseAgrees(got, want, &why)) continue;
+        std::printf("effect_check: %s: %s\n  reference: %s\n  this build: %s\n", current.c_str(), why.c_str(),
+                    want.c_str(), got.c_str());
+        failedCase = current;
+        ++failures;
+    }
+    std::printf("effect_check: coarse: %zu cases, %d outside the tolerance\n", Cases().size(), failures);
+    return failures ? 1 : 0;
+}
+
 } // namespace
 
-int Main(const std::string& record, const std::string& dump) {
+int Main(const Options& options) {
     effectdata::g_effects.Reset();
     // The sources take their textures by name (no archive opened: the check reads no game data).
     g_clientWorld.textureManager = std::make_unique<TextureManager>();
@@ -494,14 +667,17 @@ int Main(const std::string& record, const std::string& dump) {
     g_calmStrength = g_clientWorld.windStrength;
     IsaacRandom::SetDrawObserver(CountDraw);
     std::ofstream dumpFile;
-    if (!dump.empty()) dumpFile.open(dump, std::ios::binary);
+    if (!options.dump.empty()) dumpFile.open(options.dump, std::ios::binary);
 
-    std::vector<std::string> output;
+    std::vector<std::string> exact, coarse;
     const std::vector<Case>& cases = Cases();
-    for (std::size_t i = 0; i < cases.size(); ++i) {
-        std::vector<std::string> lines = Run(cases[i], static_cast<int>(i), dumpFile.is_open() ? &dumpFile : nullptr);
-        output.insert(output.end(), lines.begin(), lines.end());
+    if (!options.coarse && options.recordCoarse.empty()) {
+        for (std::size_t i = 0; i < cases.size(); ++i) {
+            std::vector<std::string> lines = Run(cases[i], static_cast<int>(i), dumpFile.is_open() ? &dumpFile : nullptr);
+            exact.insert(exact.end(), lines.begin(), lines.end());
+        }
     }
+    if (options.record.empty()) coarse = CoarseLines();
     IsaacRandom::SetDrawObserver(nullptr);
     g_sceneRenderer.sun.Take();
     delete sun;
@@ -512,39 +688,49 @@ int Main(const std::string& record, const std::string& dump) {
     g_clientWorld.windDirection = g_calmDirection;
     g_clientWorld.windStrength = g_calmStrength;
 
-    if (!record.empty()) {
-        std::ofstream file(record, std::ios::binary);
-        file << "# ei-convert --effect-check's reference (tools/convert/effect_check.h): each case's ticks as the type's C++\n"
-                "# emitter ran them. Recorded once per type, before the type moved to data; never rewritten for a type\n"
-                "# already on data.\n";
-        for (const std::string& line : output) file << line << "\n";
-        std::printf("effect_check: %zu cases recorded into %s\n", cases.size(), record.c_str());
+    if (!options.record.empty() || !options.recordCoarse.empty()) {
+        const bool exactOne = !options.record.empty();
+        std::ofstream file(exactOne ? options.record : options.recordCoarse, std::ios::binary);
+        if (exactOne)
+            file << "# ei-convert --effect-check's reference (tools/convert/effect_check.h): each case's ticks as the build\n"
+                    "# that recorded it ran them. Recorded again where an effect changes on purpose, once the coarse compare\n"
+                    "# and the viewer show it looks the same.\n";
+        else
+            file << "# ei-convert --effect-check's coarse reference (tools/convert/effect_check.h): each case's measures\n"
+                    "# over 8 seeds. Recorded before the format review (MF15l) changed the effects; recorded again only\n"
+                    "# where an effect's look changes on purpose.\n";
+        for (const std::string& line : exactOne ? exact : coarse) file << line << "\n";
+        std::printf("effect_check: %zu cases recorded into %s\n", cases.size(),
+                    (exactOne ? options.record : options.recordCoarse).c_str());
         return file ? 0 : 1;
     }
 
-    const std::vector<std::string> reference =
-        Lines(std::string_view(reinterpret_cast<const char*>(kReference), sizeof(kReference)));
     int failures = 0;
-    std::string current;
-    std::string failedCase;
-    std::size_t matched = 0;
-    for (std::size_t i = 0; i < output.size() || i < reference.size(); ++i) {
-        const std::string& got = i < output.size() ? output[i] : std::string("(none)");
-        const std::string& want = i < reference.size() ? reference[i] : std::string("(none)");
-        if (got.starts_with("case ")) current = got;
-        if (got == want) {
-            ++matched;
-            continue;
+    if (!options.coarse) {
+        const std::vector<std::string> reference =
+            Lines(std::string_view(reinterpret_cast<const char*>(kReference), sizeof(kReference)));
+        std::string current;
+        std::string failedCase;
+        std::size_t matched = 0;
+        for (std::size_t i = 0; i < exact.size() || i < reference.size(); ++i) {
+            const std::string& got = i < exact.size() ? exact[i] : std::string("(none)");
+            const std::string& want = i < reference.size() ? reference[i] : std::string("(none)");
+            if (got.starts_with("case ")) current = got;
+            if (got == want) {
+                ++matched;
+                continue;
+            }
+            if (current != failedCase) {
+                std::printf("effect_check: %s\n  reference: %s\n  this build: %s\n", current.c_str(), want.c_str(),
+                            got.c_str());
+                failedCase = current;
+                ++failures;
+            }
         }
-        if (current != failedCase) {
-            std::printf("effect_check: %s\n  reference: %s\n  this build: %s\n", current.c_str(), want.c_str(), got.c_str());
-            failedCase = current;
-            ++failures;
-        }
+        std::printf("effect_check: %zu cases, %zu of %zu lines as the reference, %d cases differ\n", cases.size(), matched,
+                    reference.size(), failures);
     }
-    std::printf("effect_check: %zu cases, %zu of %zu lines as the reference, %d cases differ\n", cases.size(), matched,
-                reference.size(), failures);
-    return failures ? 1 : 0;
+    return CompareCoarse(coarse) || failures ? 1 : 0;
 }
 
 }   // namespace effect_check

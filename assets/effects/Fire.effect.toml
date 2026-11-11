@@ -2,6 +2,7 @@
 # points of the spread box (two in five half the size and spread wider by 0.3 of it), half of their offset taken at once
 # and the other half over their first two frames, at a random height up to the source's height, rising by that height
 # a tick, growing by the source's growth to frame 7, then by 1.06 in the wind. A frame a tick.
+# CampFire is built on it (like = "Fire"): what changes here changes it too.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
 texture = "TendriSmoke"

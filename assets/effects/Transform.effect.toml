@@ -1,63 +1,12 @@
-# Transform (0x2052, the ChangeHero texture): Mushroom's cloud without the camera's shake (a unit changing shape). 10
-# puffs a tick for 30 ticks from the source, each in a random upward direction from the stem's foot (where the source
-# was at its first particle), the cloud's spread growing with ln(ticks) times the size and its cap rising by 0.12 of
-# the size a tick; a puff's size grows with the cloud's age. A puff fades in by 64 a tick and out over its last 4,
-# steps a frame a tick from its second tick up to frame 14 (its start from the cloud's age), swells by 1.1 a tick
-# before frame 8, drifts out slowing by 0.7, and while below the cap's height is pulled in towards the stem. It lives
-# 15 to 18 ticks.
-# A puff's end is a `kill` at its own age (the update the original still gives it after its end moves it:
-# docs/notes/effects.md, "Kept"), its velocity and frame timer left alone at that update.
+# Transform (0x2052, the ChangeHero texture): Mushroom's cloud without the camera's shake (a unit changing shape),
+# and no world object of its own lifetime.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
-texture = "ChangeHero"
+like = "Mushroom"
 
 [server]
-script_lifetime = 200
-
-[source]
-height = 1
-
-[emit]
-rate = 10
-max = 4000
-
-[vars]
-made = 0                                        # 1 from the first particle on (the stem placed)
-ticks = { start = 0, tick = "made ? ticks + 1 : ticks" }
-spread = { start = 0, tick = "made ? log(ticks + 1) * size * 0.2 : spread" }
-cap = { start = 0, tick = "made ? size * 0.12 + cap : cap" }
-stem_x = 0
-stem_y = 0
-stem_z = 0
+one_shot = 0
 
 [[on]]
-event = "emit"
-when = "!made"
-do = [{ set = "stem_x", value = "origin.x" }, { set = "stem_y", value = "origin.y" }, { set = "stem_z", value = "origin.z" }, { set = "made", value = 1 }]
-
-[[on]]
-event = "tick"
-when = "made && ticks == 30"
-do = [{ stop_emitting = true }]
-
-[[particle]]
-name = "puff"
-lifetime = 1000000000                           # its own life below
-position = ["1 / sqrt(p.dx * p.dx + p.dy * p.dy + p.dz * p.dz) * p.dx * p.sp + origin.x", "1 / sqrt(p.dx * p.dx + p.dy * p.dy + p.dz * p.dz) * p.dy * p.sp + origin.y", "(1 / sqrt(p.dx * p.dx + p.dy * p.dy + p.dz * p.dz) * p.dz + 0.12) * p.sp + origin.z + cap"]
-velocity = ["1 / sqrt(p.dx * p.dx + p.dy * p.dy + p.dz * p.dz) * p.dx * size * 0.06", "1 / sqrt(p.dx * p.dx + p.dy * p.dy + p.dz * p.dz) * p.dy * size * 0.06", "(1 / sqrt(p.dx * p.dx + p.dy * p.dy + p.dz * p.dz) * p.dz + 0.12) * size * 0.06"]
-drag = "p.age == p.l ? 1 : 0.7"
-gravity = ["p.age == p.l ? 0 : (cap > p.z + p.vz - stem_z ? -((p.x + p.vx - stem_x) * size * 0.02 / sqrt((p.y + p.vy - stem_y) * (p.y + p.vy - stem_y) + (p.x + p.vx - stem_x) * (p.x + p.vx - stem_x))) : 0)", "p.age == p.l ? 0 : (cap > p.z + p.vz - stem_z ? -((p.y + p.vy - stem_y) * size * 0.02 / sqrt((p.y + p.vy - stem_y) * (p.y + p.vy - stem_y) + (p.x + p.vx - stem_x) * (p.x + p.vx - stem_x))) : 0)", 0]
-size = { start = "size * (ticks * 0.008 + 0.1)", tick = "p.frame < 14 && p.frame + p.step < 8 ? p.size * 1.1 : p.size" }
-alpha = { start = 64, tick = "p.l - p.age > 4 ? min(p.alpha + 64, 255) : (p.alpha + 192) % 256" }
-frame = { start = "max(floor(ticks / 10) + p.bump - 1, 0)", tick = "p.frame < 14 && p.timer == 1 ? p.frame + 1 : p.frame" }
-kill = "p.age == p.l"
-
-[particle.vars]
-sp = "(below(0.4) + 0.8) * spread"
-dx = "range(-1, 1)"
-dy = "range(-1, 1)"
-dz = "range(0.1, 1)"
-l = "pick(4) + 16"                              # its life
-bump = "pick(3)"
-step = { start = 0, tick = "p.frame < 14 && p.timer == 1" }   # a frame stepped this tick
-timer = { start = 2, tick = "p.age == p.l ? p.timer : (p.frame < 14 ? max(p.timer - 1, 1) : p.timer)" }
+name = "shake"
+remove = true

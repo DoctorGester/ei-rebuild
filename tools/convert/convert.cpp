@@ -7,9 +7,9 @@
 //        ei-convert --lua-api <file>                        the Lua API's LuaLS definition file (lua_api.h)
 //        ei-convert --lua-api-docs <repository> [--check]   the same and docs/modding.md's API tables written into the
 //                                                           repository, or compared with it (lua_api.h)
-//        ei-convert --effect-check [--record <file>] [--dump <file>]
-//                                                           the original particle types against their recorded C++
-//                                                           (effect_check.h)
+//        ei-convert --effect-check [--record <file>] [--dump <file>] [--coarse] [--record-coarse <file>]
+//                                                           the original particle types against their recorded runs,
+//                                                           exactly or by how they look (effect_check.h)
 //        ei-convert --example-mod <game folder> [<mods folder>] the example mod made from the install (example_mod.h),
 //                                                           into <game folder>\starter\Mods by default
 // An install is walked for its archives (Res\<name>.res, or the folder of an unpacked one under a Res folder) and its
@@ -684,13 +684,15 @@ int main(int argc, char** argv) {
     if (argc >= 2 && std::strcmp(argv[1], "--lua-api") == 0) return lua_api::WriteDefinitions({argv + 2, argv + argc});
     if (argc >= 2 && std::strcmp(argv[1], "--lua-api-docs") == 0) return lua_api::WriteDocs({argv + 2, argv + argc});
     if (argc >= 2 && std::strcmp(argv[1], "--effect-check") == 0) {
-        std::string record, dump;
+        effect_check::Options options;
         for (int i = 2; i < argc; ++i) {
-            if (i + 1 < argc && std::strcmp(argv[i], "--record") == 0) record = argv[++i];
-            else if (i + 1 < argc && std::strcmp(argv[i], "--dump") == 0) dump = argv[++i];
+            if (i + 1 < argc && std::strcmp(argv[i], "--record") == 0) options.record = argv[++i];
+            else if (i + 1 < argc && std::strcmp(argv[i], "--dump") == 0) options.dump = argv[++i];
+            else if (std::strcmp(argv[i], "--coarse") == 0) options.coarse = true;
+            else if (i + 1 < argc && std::strcmp(argv[i], "--record-coarse") == 0) options.recordCoarse = argv[++i];
             else return Usage();
         }
-        return effect_check::Main(record, dump);
+        return effect_check::Main(options);
     }
     if ((argc == 3 || argc == 4) && std::strcmp(argv[1], "--example-mod") == 0) {
         const fs::path install = fs::absolute(argv[2]);

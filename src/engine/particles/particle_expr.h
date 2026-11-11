@@ -1,10 +1,12 @@
 #pragma once
 
-// The data effects' expressions (docs/notes/effects.md, "Data effects"): a small fixed grammar, compiled once when an
-// effect loads into a stack program over floats and run every tick. Numbers, names, + - * / %, comparisons, ! && ||
-// (both short), a ? b : c, calls of the functions below or of a curve, a table's entry `name[i]` and an anchor's field by
-// its number `group.field[i]`. Every operation is a float operation in the order written, operands left to right, so the
-// random draws come in that order too.
+// The data effects' expressions (docs/notes/effects.md, "Expressions"): a small fixed grammar, compiled once when an
+// effect loads into a stack program and run every tick. Every value is four floats (Lanes: x y z w). A scalar holds its
+// number in every lane, so it combines lane by lane with a vector of any width; the compiler knows each value's width
+// (1 to 4), so a random draw draws once per lane it fills and a scalar context reads lane x. Numbers, names, swizzles
+// (`.x`, `.xy`, `.rgb`), + - * / %, comparisons, ! && || (both short), a ? b : c, calls of the functions below or of a
+// curve, a table's entry `name[i]`, a list's point `name[i]` and an anchor's field by its number `group.field[i]`. The
+// operations run in the order written, operands left to right, so the random draws come in that order too.
 
 #include <cstdint>
 #include <functional>
@@ -29,6 +31,16 @@ enum class Scope : std::uint8_t {
 };
 inline constexpr int kScopes = 7;
 
+// One value: four lanes (a scalar repeated in all four; a vector's unused lanes 0).
+struct Lanes {
+    float v[4] = {};
+    float X() const { return v[0]; }
+};
+// `value`'s first `width` lanes written to `to`.
+inline void Store(float* to, int width, const Lanes& value) {
+    for (int k = 0; k < width; ++k) to[k] = value.v[k];
+}
+
 // A piecewise linear curve over sorted x (the value at the ends held beyond them).
 struct Curve {
     std::vector<float> x;
@@ -47,11 +59,11 @@ struct Env {
     // Called before a LoadMeasured: fills the values measured at their first read (null: they stand as they are).
     void (*measure)(void* context) = nullptr;
     void* measureContext = nullptr;
-    // The ground's height at (x, y) for `ground(x, y)` (null: 0).
+    // The ground's height at (x, y) for `ground` (null: 0).
     float (*ground)(float x, float y) = nullptr;
-    // The top platform's plane at (x, y) for `platform_height` and `platform_normal_x/y/z` (`which` 0: its height, 1-3:
-    // its normal; null: height 0 and normal (0, 0, 1), as off every platform), and `surface` (`which` 4: the ground's
-    // height or the platforms' above it, the higher; null: the ground's).
+    // The top platform's plane at (x, y) for `platform_height` and `platform_normal` (`which` 0: its height, 1-3: its
+    // normal; null: height 0 and normal (0, 0, 1), as off every platform), and `surface` (`which` 4: the ground's height
+    // or the platforms' above it, the higher; null: the ground's).
     float (*platform)(float x, float y, int which) = nullptr;
     // A field of an anchor group's anchor by its number (`<group>.<field>[i]`): `scope` Anchor (its own values) or
     // AnchorVar (its vars) (null: 0).
@@ -65,6 +77,7 @@ struct Env {
 struct Resolved {
     enum class Kind : std::uint8_t {
         None, Value, Constant, Table, Curve,
+        List,       // a list input's points, read by index as vectors
         ListAxis,   // one axis (`axis`) of a list input's points, read as a table
         AnchorAt,   // a field (`index`, of `scope` Anchor or AnchorVar) of anchor group `group`'s anchor by number
     };
@@ -74,8 +87,10 @@ struct Resolved {
     float constant = 0.0f;
     std::uint8_t axis = 0;      // a list axis's: 0, 1, 2 for x, y, z
     std::uint8_t group = 0;     // an AnchorAt's anchor group
+    std::uint8_t width = 1;     // a Value's, List's or AnchorAt's lanes (a vector's 3)
 };
-// The names of the context an expression is compiled in: a dotted name (`p.size`, `stage.glow`) to its meaning.
+// The names of the context an expression is compiled in: a dotted name (`p.size`, `stage.glow`) to its meaning. A name
+// it does not know whose last part is a swizzle (`origin.x`, `sun.rgb`) is its first part's lanes.
 using Resolver = std::function<Resolved(std::string_view name)>;
 
 // One instruction of a compiled expression.
@@ -85,41 +100,50 @@ enum class Op : std::uint8_t {
     Negate, Not, Add, Subtract, Multiply, Divide, Modulo,
     Less, LessEqual, Greater, GreaterEqual, Equal, NotEqual,
     Truth,          // the top as 0 or 1
-    Jump,           // to `target`
-    JumpIfFalse,    // pops; jumps when it was 0 (or NaN)
-    AndJump,        // the top 0: it stays and the run jumps; else it is popped
-    OrJump,         // the top not 0: it becomes 1 and the run jumps; else it is popped
-    Call,           // a Function with `count` arguments
+    Jump,           // to `index`
+    JumpIfFalse,    // pops; jumps when its x was 0 (or NaN)
+    AndJump,        // the top's x 0: it stays (as 0) and the run jumps; else it is popped
+    OrJump,         // the top's x not 0: it becomes 1 and the run jumps; else it is popped
+    Call,           // a Function (`index`) with `count` arguments of `argument` lanes
     Index,          // a table's entry by the top
     CurveAt,        // a curve's value at the top
-    ListAt,         // a list input's point by the top, its axis `count`
+    ListAt,         // a list input's point by the top (`width` 1: its axis `count` alone)
     AnchorAt,       // a field (`index` of `scope`) of anchor group `count`'s anchor by the top
+    Swizzle,        // the top's lanes picked: lane k from lane (index >> 2k) & 3, `width` of them
+    Construct,      // `count` values joined into one of `width` lanes (vec3(a, b, c)); `index` holds their widths,
+                    // 4 bits each
 };
 
-// The functions an expression can call (`range` and `below` draw the effect's generator once, `chance` and `pick`
-// once per call).
+// The functions an expression can call (the random ones draw the effect's generator in order, once per lane they fill).
 enum class Function : std::uint8_t {
     Sin, Cos, Atan2, Sqrt, Abs, Floor, Ceil, Round, Min, Max, Clamp, Lerp, Pow,
     Exp, Log,   // e^x and the natural logarithm
-    Range,      // range(lo, hi): IsaacRandom::Range
-    Below,      // below(k): IsaacRandom::Below
+    Range,      // range(lo, hi): IsaacRandom::Range per lane
+    Below,      // below(k): IsaacRandom::Below per lane
     Chance,     // chance(percent): 1 when Next() % 100 is below it
     Pick,       // pick(n): Next() % n, 0 for n below 1
-    Ground,     // ground(x, y): the ground's height there (Env::ground)
-    // platform_height(x, y), platform_normal_x / _y / _z(x, y): the plane of the top platform there (Env::platform)
-    PlatformHeight, PlatformNormalX, PlatformNormalY, PlatformNormalZ,
-    // surface(x, y): what stands there: the ground's height or a platform's above it, the higher (Env::platform 4)
-    Surface,
-    // ball_x(): a point drawn in the unit ball (RandomInBall: ten tries of the cube, the last kept), its x;
-    // ball_y(), ball_z(): the same point's y and z (no draw)
+    Ground,     // ground(point) or ground(x, y): the ground's height there (Env::ground)
+    PlatformHeight,     // platform_height(point): the top platform's height there (Env::platform)
+    PlatformNormal,     // platform_normal(point): its normal
+    Surface,    // surface(point): what stands there: the ground's height or a platform's above it, the higher
+    OnGround,   // on_ground(point, height): the point with z the ground's height there plus `height`
+    Dot, Length, Normalize, Cross, Distance,
+    Ball,       // ball(): a point in the unit ball (RandomInBall: ten tries of the cube, the last kept)
+    Shell,      // shell(): a point of the unit sphere (a ball's point scaled out to it)
+    Disc,       // disc(): a point in the unit disc of the x y plane (an angle, then the root of a fraction of 1)
+    Circle,     // circle(angle): (cos, sin, 0) of the angle
+    // ball_x(): a point drawn in the unit ball, its x; ball_y(), ball_z(): the same point's y and z (no draw)
     BallX, BallY, BallZ,
+    PlatformNormalX, PlatformNormalY, PlatformNormalZ,
 };
 
 struct Instruction {
     Op op = Op::Constant;
     Scope scope = Scope::Source;
-    std::uint8_t count = 0;     // a call's arguments, a list's axis
-    std::uint16_t index = 0;    // a load's place, a function, a table, a curve or a jump's target
+    std::uint8_t count = 0;     // a call's arguments, a list's axis, an AnchorAt's group, a Construct's values
+    std::uint8_t width = 1;     // the lanes the result fills
+    std::uint8_t argument = 1;  // a call's: the lanes of its arguments
+    std::uint16_t index = 0;    // a load's place, a function, a table, a curve, a jump's target, a swizzle's lanes
     float value = 0.0f;         // a constant's
 };
 
@@ -129,10 +153,15 @@ public:
     bool Empty() const { return code.empty(); }
     // Whether it is one number (a constant folded by the compiler or written as one).
     bool IsConstant() const { return code.size() == 1 && code[0].op == Op::Constant; }
+    // Its lane x (a scalar's value).
     float Run(const Env& env, float fallback = 0.0f) const;
+    // Its x y z (a scalar in all three).
+    Vector3 RunVector(const Env& env, const Vector3& fallback) const;
+    Lanes RunLanes(const Env& env) const;
 
     std::string text;
     std::vector<Instruction> code;
+    int width = 1;              // its value's lanes
 };
 
 // A random point of the cube [-1, 1)^3, drawn x, y, z.
@@ -148,5 +177,8 @@ Vector3 RandomInBall(IsaacRandom& random, float* lengthSquared = nullptr, int tr
 Expr Compile(std::string_view text, const Resolver& resolve, std::string* error);
 // The number `value` as an expression.
 Expr ConstantExpr(float value);
+// The expressions `parts` (each given) joined into one vector, lane by lane in order (vec3(a, b, c)); `error` set when
+// they have more than four lanes between them.
+Expr Joined(const std::vector<Expr>& parts, std::string* error);
 
 } // namespace effectdata

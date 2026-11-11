@@ -1,0 +1,733 @@
+# ei-convert --effect-check's coarse reference (tools/convert/effect_check.h): each case's measures
+# over 8 seeds. Recorded before the format review (MF15l) changed the effects; recorded again only
+# where an effect's look changes on purpose.
+coarse FireStar on a unit: births 1.00 deaths 1.00 life 3.00
+  q0 particles 1.00 size 0.6250 color 255.0 255.0 255.0 127.5 centre 0.000 0.000 0.000 spread 0.000 0.000 0.000
+  q1 particles 0.50 size 1.1250 color 255.0 255.0 255.0 255.0 centre 0.000 0.000 0.000 spread 0.000 0.000 0.000
+  q2 particles 0
+  q3 particles 0
+coarse FireStar on a fast unit: births 2.00 deaths 2.00 life 3.00
+  q0 particles 2.00 size 0.5000 color 255.0 255.0 255.0 127.5 centre -800.000 0.000 0.000 spread 800.000 0.000 0.000
+  q1 particles 1.00 size 0.9000 color 255.0 255.0 255.0 255.0 centre -1600.000 0.000 0.000 spread 0.000 0.000 0.000
+  q2 particles 0
+  q3 particles 0
+coarse FireStar free: births 0.00 deaths 0.00 life 0.00
+  q0 particles 0
+  q1 particles 0
+  q2 particles 0
+  q3 particles 0
+coarse FireStar started again: births 2.00 deaths 2.00 life 3.00
+  q0 particles 1.00 size 0.5067 color 255.0 255.0 255.0 170.0 centre 0.000 0.000 0.000 spread 0.000 0.000 0.000
+  q1 particles 0.67 size 0.4000 color 255.0 255.0 255.0 127.5 centre 0.000 0.000 0.000 spread 0.000 0.000 0.000
+  q2 particles 0.33 size 0.7200 color 255.0 255.0 255.0 255.0 centre 0.000 0.000 0.000 spread 0.000 0.000 0.000
+  q3 particles 0
+coarse AcidStar on a unit: births 1.00 deaths 1.00 life 3.00
+  q0 particles 1.00 size 0.3500 color 255.0 255.0 255.0 127.5 centre 0.000 0.000 0.000 spread 0.000 0.000 0.000
+  q1 particles 1.00 size 0.6300 color 255.0 255.0 255.0 255.0 centre 0.000 0.000 0.000 spread 0.000 0.000 0.000
+  q2 particles 0
+  q3 particles 0
+coarse CurseStars on a walking unit: births 232.00 deaths 232.00 life 21.00
+  q0 particles 64.00 size 0.0285 color 255.0 255.0 255.0 223.1 centre -0.237 -0.116 -0.023 spread 0.663 0.645 0.673
+  q1 particles 159.47 size 0.0249 color 255.0 255.0 255.0 213.1 centre -0.482 -0.217 -0.001 spread 0.838 0.777 0.790
+  q2 particles 96.00 size 0.0213 color 255.0 255.0 255.0 188.7 centre -0.669 -0.247 -0.021 spread 0.914 0.874 0.855
+  q3 particles 5.33 size 0.0156 color 255.0 255.0 255.0 35.2 centre -0.865 -0.355 0.042 spread 0.980 0.923 0.911
+coarse CurseStars rescaled: births 272.00 deaths 272.00 life 21.00
+  q0 particles 76.00 size 0.0509 color 255.0 255.0 255.0 227.4 centre -0.070 -0.035 0.066 spread 1.288 1.320 1.302
+  q1 particles 145.41 size 0.0593 color 255.0 255.0 255.0 203.7 centre -0.042 0.048 0.032 spread 1.861 1.893 1.929
+  q2 particles 94.67 size 0.0705 color 255.0 255.0 255.0 201.6 centre -0.059 0.078 -0.033 spread 2.495 2.418 2.460
+  q3 particles 9.88 size 0.0491 color 255.0 255.0 255.0 74.5 centre 0.054 -0.045 -0.092 spread 2.735 2.798 2.806
+coarse CurseStars free, then carried: births 296.00 deaths 128.00 life 21.00
+  q0 particles 33.85 size 0.0288 color 255.0 255.0 255.0 208.6 centre 0.108 -0.169 -0.065 spread 0.604 0.612 0.583
+  q1 particles 117.33 size 0.0262 color 255.0 255.0 255.0 231.7 centre -0.723 0.183 -0.460 spread 3.385 1.940 1.383
+  q2 particles 91.69 size 0.0220 color 255.0 255.0 255.0 173.1 centre -7.946 4.081 -2.953 spread 5.363 2.895 2.103
+  q3 particles 124.67 size 0.0265 color 255.0 255.0 255.0 227.7 centre 0.188 -0.287 -0.114 spread 1.132 0.900 0.794
+coarse CurseStars stopped, let go, carried again: births 280.00 deaths 112.00 life 21.00
+  q0 particles 56.00 size 0.0415 color 255.0 255.0 255.0 235.8 centre 0.014 -0.041 -0.044 spread 1.092 1.071 1.068
+  q1 particles 29.65 size 0.0274 color 255.0 255.0 255.0 143.3 centre 0.073 -0.022 -0.115 spread 1.376 1.343 1.379
+  q2 particles 20.00 size 0.0431 color 255.0 255.0 255.0 204.0 centre 0.085 -0.007 -0.026 spread 0.865 0.881 0.875
+  q3 particles 136.94 size 0.0388 color 255.0 255.0 255.0 220.3 centre 0.024 0.022 -0.045 spread 1.133 1.159 1.122
+coarse PortalStar free: births 2.00 deaths 2.00 life 7.50
+  q0 particles 1.00 size 0.8342 color 255.0 255.0 255.0 218.6 centre 0.000 0.000 0.000 spread 0.000 0.000 0.000
+  q1 particles 0.33 size 1.0175 color 255.0 255.0 255.0 255.0 centre 0.000 0.000 0.000 spread 0.000 0.000 0.000
+  q2 particles 0.86 size 1.4967 color 255.0 255.0 255.0 212.5 centre 0.000 0.000 0.000 spread 0.000 0.000 0.000
+  q3 particles 0
+coarse PortalStar on a moving carrier: births 1.00 deaths 0.00 life 0.00
+  q0 particles 1.00 size 0.4408 color 255.0 255.0 255.0 191.2 centre -0.300 0.150 0.000 spread 0.224 0.112 0.000
+  q1 particles 1.00 size 0.6070 color 255.0 255.0 255.0 255.0 centre -1.100 0.550 0.000 spread 0.224 0.112 0.000
+  q2 particles 1.00 size 0.6167 color 255.0 255.0 255.0 255.0 centre -1.900 0.950 0.000 spread 0.224 0.112 0.000
+  q3 particles 1.00 size 0.5946 color 255.0 255.0 255.0 255.0 centre -2.700 1.350 0.000 spread 0.224 0.112 0.000
+coarse Sparks on a unit: births 10.00 deaths 10.00 life 6.50
+  q0 particles 9.67 size 0.2235 color 255.0 255.0 255.0 255.0 centre 0.004 -0.047 0.015 spread 0.287 0.262 0.259
+  q1 particles 9.00 size 0.1648 color 255.0 255.0 255.0 191.5 centre 0.013 -0.085 0.032 spread 0.496 0.453 0.448
+  q2 particles 6.00 size 0.1335 color 255.0 255.0 255.0 32.0 centre 0.015 -0.093 0.035 spread 0.548 0.501 0.495
+  q3 particles 0
+coarse Sparks on a moving unit, started again: births 30.00 deaths 21.00 life 6.52
+  q0 particles 14.50 size 0.1622 color 255.0 255.0 255.0 255.0 centre -1.190 -0.334 0.001 spread 1.346 0.438 0.201
+  q1 particles 16.75 size 0.1167 color 255.0 255.0 255.0 130.6 centre -1.204 -0.328 -0.015 spread 1.518 0.567 0.348
+  q2 particles 7.50 size 0.1511 color 255.0 255.0 255.0 170.0 centre 0.023 0.022 -0.027 spread 0.259 0.261 0.254
+  q3 particles 9.00 size 0.1252 color 255.0 255.0 255.0 175.5 centre 0.069 0.046 -0.063 spread 0.372 0.368 0.316
+coarse Sparks let go: births 10.00 deaths 10.00 life 6.50
+  q0 particles 9.67 size 0.1864 color 255.0 255.0 255.0 255.0 centre -0.027 0.020 -0.003 spread 0.204 0.211 0.240
+  q1 particles 9.00 size 0.1379 color 255.0 255.0 255.0 191.5 centre -0.049 0.038 -0.010 spread 0.357 0.368 0.418
+  q2 particles 6.00 size 0.1117 color 255.0 255.0 255.0 32.0 centre -0.054 0.042 -0.011 spread 0.396 0.407 0.463
+  q3 particles 0
+coarse FeebleMind on a unit: births 83.00 deaths 41.00 life 21.00
+  q0 particles 14.00 size 0.0330 color 255.0 255.0 255.0 213.1 centre -0.000 0.003 0.166 spread 0.051 0.053 0.131
+  q1 particles 34.00 size 0.0452 color 255.0 255.0 255.0 229.4 centre 0.002 0.003 0.407 spread 0.094 0.100 0.258
+  q2 particles 42.30 size 0.0497 color 255.0 255.0 255.0 203.5 centre 0.002 0.002 0.504 spread 0.123 0.126 0.305
+  q3 particles 42.00 size 0.0497 color 255.0 255.0 255.0 205.0 centre 0.003 -0.004 0.500 spread 0.124 0.123 0.303
+coarse FeebleMind rescaled: births 116.00 deaths 116.00 life 21.00
+  q0 particles 23.80 size 0.0523 color 255.0 255.0 255.0 223.6 centre -0.001 0.003 0.249 spread 0.065 0.066 0.192
+  q1 particles 52.60 size 0.0793 color 255.0 255.0 255.0 212.3 centre 0.005 0.003 0.501 spread 0.124 0.117 0.290
+  q2 particles 58.00 size 0.0963 color 255.0 255.0 255.0 213.2 centre -0.002 0.005 0.466 spread 0.117 0.115 0.292
+  q3 particles 28.00 size 0.1257 color 255.0 255.0 255.0 158.3 centre 0.009 0.005 0.783 spread 0.179 0.165 0.170
+coarse FeebleMind on a walking unit, let go: births 43.00 deaths 23.00 life 21.00
+  q0 particles 10.50 size 0.0251 color 255.0 255.0 255.0 222.6 centre -0.223 0.137 0.218 spread 0.173 0.116 0.163
+  q1 particles 20.09 size 0.0352 color 255.0 255.0 255.0 217.2 centre -0.510 0.317 0.507 spread 0.301 0.216 0.280
+  q2 particles 15.09 size 0.0368 color 255.0 255.0 255.0 188.4 centre -8.025 4.689 -1.537 spread 7.065 4.119 1.740
+  q3 particles 16.36 size 0.0320 color 255.0 255.0 255.0 217.3 centre -1.560 0.922 0.091 spread 3.968 2.306 0.945
+coarse ZoneExit: births 155.00 deaths 75.00 life 16.00
+  q0 particles 27.50 size 0.0476 color 255.0 255.0 255.0 147.9 centre 0.027 0.009 -0.273 spread 1.538 1.272 0.104
+  q1 particles 65.00 size 0.0570 color 255.0 255.0 255.0 209.2 centre 0.031 -0.065 -0.096 spread 1.476 1.263 0.195
+  q2 particles 80.62 size 0.0593 color 255.0 255.0 255.0 202.4 centre 0.034 -0.100 -0.022 spread 1.423 1.247 0.232
+  q3 particles 80.00 size 0.0591 color 255.0 255.0 255.0 203.3 centre -0.005 -0.068 -0.025 spread 1.421 1.226 0.230
+coarse ZoneExit red, resized: births 778.00 deaths 578.00 life 16.00
+  q0 particles 46.00 size 0.0504 color 255.0 96.0 96.0 160.6 centre 0.049 -0.066 -0.247 spread 2.034 1.579 0.124
+  q1 particles 232.40 size 0.0522 color 255.0 96.0 96.0 173.4 centre -0.034 0.031 -0.168 spread 3.407 3.247 0.205
+  q2 particles 470.40 size 0.0587 color 255.0 96.0 96.0 219.5 centre -0.032 0.027 -0.028 spread 3.884 3.781 0.204
+  q3 particles 356.00 size 0.0590 color 255.0 96.0 96.0 200.9 centre -0.044 0.079 0.016 spread 3.972 3.804 0.238
+coarse ZoneExit as made: births 485.00 deaths 85.00 life 16.00
+  q0 particles 60.00 size 0.0389 color 255.0 255.0 255.0 82.0 centre 0.000 0.000 -0.342 spread 0.000 0.000 0.057
+  q1 particles 185.00 size 0.0523 color 255.0 255.0 255.0 177.6 centre 0.000 0.000 -0.232 spread 0.000 0.000 0.118
+  q2 particles 310.00 size 0.0557 color 255.0 255.0 255.0 208.3 centre 0.000 0.000 -0.110 spread 0.000 0.000 0.186
+  q3 particles 397.00 size 0.0569 color 255.0 255.0 255.0 204.2 centre 0.000 0.000 -0.028 spread 0.000 0.000 0.229
+coarse FireBall flying: births 77.12 deaths 52.38 life 15.00
+  q0 particles 15.44 size 0.3995 color 255.0 255.0 255.0 255.0 centre -0.828 -0.226 0.082 spread 0.622 0.322 0.304
+  q1 particles 41.61 size 0.3183 color 255.0 255.0 255.0 255.0 centre -1.794 -0.585 0.143 spread 1.141 0.436 0.275
+  q2 particles 49.38 size 0.2883 color 255.0 255.0 255.0 255.0 centre -1.983 -0.652 0.150 spread 1.238 0.476 0.257
+  q3 particles 32.52 size 0.2755 color 255.0 255.0 255.0 255.0 centre -0.839 -0.270 0.066 spread 0.802 0.315 0.186
+coarse FireBall on a fast unit, rescaled: births 216.38 deaths 96.88 life 15.00
+  q0 particles 23.34 size 0.5740 color 255.0 255.0 255.0 255.0 centre 1.672 -1.223 -0.126 spread 1.234 0.972 0.473
+  q1 particles 75.68 size 0.3673 color 255.0 255.0 255.0 255.0 centre 3.267 -2.449 -0.260 spread 2.255 1.686 0.379
+  q2 particles 99.94 size 0.2462 color 255.0 255.0 255.0 255.0 centre 4.439 -3.335 -0.364 spread 2.551 1.918 0.306
+  q3 particles 111.52 size 0.2168 color 255.0 255.0 255.0 255.0 centre 4.093 -3.077 -0.344 spread 2.563 1.924 0.285
+coarse FireBall still: births 20.00 deaths 5.00 life 15.00
+  q0 particles 3.00 size 0.4826 color 255.0 255.0 255.0 255.0 centre 0.000 0.000 0.000 spread 0.000 0.000 0.000
+  q1 particles 8.00 size 0.3585 color 255.0 255.0 255.0 255.0 centre 0.000 0.000 0.000 spread 0.000 0.000 0.000
+  q2 particles 13.00 size 0.3008 color 255.0 255.0 255.0 255.0 centre 0.000 0.000 0.000 spread 0.000 0.000 0.000
+  q3 particles 15.00 size 0.2836 color 255.0 255.0 255.0 255.0 centre 0.000 0.000 0.000 spread 0.000 0.000 0.000
+coarse FireArrow flying: births 234.00 deaths 135.00 life 12.53
+  q0 particles 40.50 size 0.1107 color 255.0 255.0 255.0 255.0 centre -1.359 0.539 -0.139 spread 1.025 0.421 0.162
+  q1 particles 102.68 size 0.1374 color 255.0 255.0 255.0 255.0 centre -2.827 1.127 -0.290 spread 1.732 0.708 0.250
+  q2 particles 83.23 size 0.1489 color 255.0 255.0 255.0 255.0 centre -3.636 1.448 -0.375 spread 1.745 0.722 0.278
+  q3 particles 82.45 size 0.1326 color 255.0 255.0 255.0 255.0 centre -2.578 1.029 -0.257 spread 1.729 0.709 0.243
+coarse FireArrow still, then flying: births 73.00 deaths 58.25 life 12.55
+  q0 particles 6.57 size 0.0898 color 255.0 255.0 255.0 255.0 centre -0.007 -0.245 0.006 spread 0.069 0.308 0.064
+  q1 particles 43.50 size 0.1184 color 255.0 255.0 255.0 255.0 centre -0.004 -1.265 0.006 spread 0.115 0.864 0.109
+  q2 particles 64.77 size 0.1613 color 255.0 255.0 255.0 255.0 centre -0.002 -2.628 0.010 spread 0.189 1.269 0.188
+  q3 particles 32.90 size 0.2199 color 255.0 255.0 255.0 255.0 centre 0.003 -3.775 0.019 spread 0.298 0.903 0.309
+coarse RikArrowSmoke flying: births 300.00 deaths 149.88 life 12.50
+  q0 particles 48.00 size 0.0742 color 255.0 255.0 255.0 255.0 centre 0.847 0.851 -0.242 spread 0.627 0.633 0.195
+  q1 particles 125.00 size 0.0944 color 255.0 255.0 255.0 255.0 centre 1.838 1.843 -0.522 spread 1.135 1.136 0.345
+  q2 particles 151.42 size 0.0990 color 255.0 255.0 255.0 255.0 centre 2.179 2.186 -0.617 spread 1.291 1.291 0.389
+  q3 particles 151.06 size 0.0988 color 255.0 255.0 255.0 255.0 centre 2.171 2.176 -0.617 spread 1.284 1.291 0.386
+coarse AcidRay flying: births 126.00 deaths 95.38 life 14.47
+  q0 particles 31.50 size 0.2878 color 255.0 255.0 255.0 255.0 centre -0.709 -0.848 -0.003 spread 0.507 0.608 0.142
+  q1 particles 79.16 size 0.3066 color 255.0 255.0 255.0 255.0 centre -1.599 -1.899 -0.001 spread 0.910 1.095 0.174
+  q2 particles 74.61 size 0.2906 color 255.0 255.0 255.0 255.0 centre -1.993 -2.375 -0.000 spread 1.040 1.237 0.171
+  q3 particles 40.96 size 0.2672 color 255.0 255.0 255.0 255.0 centre -0.992 -1.201 0.008 spread 0.824 0.966 0.137
+coarse AcidRay on a rising unit: births 120.00 deaths 33.50 life 14.40
+  q0 particles 18.00 size 0.1759 color 255.0 255.0 255.0 255.0 centre 0.001 -0.000 -0.370 spread 0.076 0.076 0.258
+  q1 particles 48.00 size 0.1660 color 255.0 255.0 255.0 255.0 centre 0.005 -0.003 -0.827 spread 0.088 0.085 0.503
+  q2 particles 77.25 size 0.1396 color 255.0 255.0 255.0 255.0 centre 0.005 -0.005 -1.303 spread 0.078 0.078 0.763
+  q3 particles 86.70 size 0.1284 color 255.0 255.0 255.0 255.0 centre -0.001 -0.004 -1.449 spread 0.074 0.074 0.837
+coarse CampFire in the wind: births 236.88 deaths 142.75 life 15.37
+  q0 particles 32.91 size 0.4134 color 255.0 255.0 255.0 255.0 centre 0.002 0.013 1.168 spread 0.175 0.169 0.786
+  q1 particles 74.59 size 0.3768 color 255.0 255.0 255.0 255.0 centre 0.044 0.066 2.004 spread 0.191 0.197 1.104
+  q2 particles 91.88 size 0.4286 color 255.0 255.0 255.0 255.0 centre 0.107 0.145 2.478 spread 0.249 0.291 1.438
+  q3 particles 93.39 size 0.4396 color 255.0 255.0 255.0 255.0 centre 0.117 0.161 2.523 spread 0.255 0.306 1.473
+coarse CampFire rescaled, stopped: births 180.75 deaths 167.12 life 16.97
+  q0 particles 40.03 size 0.5148 color 255.0 255.0 255.0 255.0 centre -0.018 0.014 1.938 spread 0.256 0.248 1.384
+  q1 particles 69.80 size 0.4017 color 255.0 255.0 255.0 255.0 centre -0.048 0.071 2.706 spread 0.202 0.219 2.082
+  q2 particles 75.12 size 0.3577 color 255.0 255.0 255.0 255.0 centre -0.051 0.068 2.219 spread 0.177 0.206 1.766
+  q3 particles 28.34 size 0.3926 color 255.0 255.0 255.0 255.0 centre -0.087 0.115 3.003 spread 0.154 0.169 0.676
+coarse CampFire on a moving carrier: births 215.12 deaths 118.00 life 14.97
+  q0 particles 29.31 size 0.3509 color 255.0 255.0 255.0 255.0 centre -0.283 -0.143 0.808 spread 0.273 0.177 0.560
+  q1 particles 70.46 size 0.2990 color 255.0 255.0 255.0 255.0 centre -0.648 -0.325 1.488 spread 0.469 0.259 0.810
+  q2 particles 91.08 size 0.3326 color 255.0 255.0 255.0 255.0 centre -0.951 -0.469 1.896 spread 0.703 0.370 1.064
+  q3 particles 98.90 size 0.3584 color 255.0 255.0 255.0 255.0 centre -1.089 -0.540 2.082 spread 0.839 0.438 1.206
+coarse Fire in the wind: births 158.25 deaths 116.50 life 8.00
+  q0 particles 23.27 size 0.4559 color 255.0 255.0 255.0 255.0 centre -0.010 -0.003 0.844 spread 0.171 0.157 0.594
+  q1 particles 42.73 size 0.4943 color 255.0 255.0 255.0 255.0 centre 0.005 -0.004 1.278 spread 0.200 0.219 0.663
+  q2 particles 42.64 size 0.7677 color 255.0 255.0 255.0 255.0 centre 0.020 0.043 2.220 spread 0.330 0.343 1.272
+  q3 particles 41.50 size 0.7902 color 255.0 255.0 255.0 255.0 centre -0.007 0.016 2.368 spread 0.357 0.356 1.388
+coarse Fire on a moving carrier: births 46.62 deaths 46.62 life 8.00
+  q0 particles 20.84 size 0.5572 color 255.0 255.0 255.0 255.0 centre 0.394 -0.211 0.861 spread 0.403 0.268 0.600
+  q1 particles 32.62 size 0.4114 color 255.0 255.0 255.0 255.0 centre 0.819 -0.429 1.593 spread 0.468 0.300 0.712
+  q2 particles 5.23 size 0.3005 color 255.0 255.0 255.0 255.0 centre 1.291 -0.659 2.329 spread 0.286 0.229 0.281
+  q3 particles 0
+coarse Smoke in the wind: births 153.75 deaths 151.12 life 10.49
+  q0 particles 25.17 size 0.7715 color 255.0 255.0 255.0 255.0 centre 0.128 -0.118 1.125 spread 0.168 0.168 0.884
+  q1 particles 51.65 size 1.0013 color 255.0 255.0 255.0 255.0 centre 0.339 -0.330 2.228 spread 0.362 0.359 1.665
+  q2 particles 44.12 size 1.2599 color 255.0 255.0 255.0 255.0 centre 0.588 -0.584 3.332 spread 0.549 0.543 1.978
+  q3 particles 10.64 size 1.8449 color 255.0 255.0 255.0 255.0 centre 1.137 -1.143 5.696 spread 0.533 0.528 1.146
+coarse Tendril along a wall: births 1579.00 deaths 1263.12 life 8.00
+  q0 particles 206.66 size 0.4414 color 255.0 255.0 255.0 255.0 centre -0.024 -0.001 0.461 spread 1.706 0.592 0.650
+  q1 particles 314.09 size 0.3950 color 255.0 255.0 255.0 255.0 centre 0.036 0.014 0.702 spread 1.745 0.600 0.694
+  q2 particles 315.64 size 0.3959 color 255.0 255.0 255.0 255.0 centre 0.004 0.006 0.697 spread 1.716 0.600 0.693
+  q3 particles 316.25 size 0.3942 color 255.0 255.0 255.0 255.0 centre -0.008 -0.002 0.702 spread 1.727 0.598 0.693
+coarse Tendril lengthened: births 1916.50 deaths 1261.88 life 8.00
+  q0 particles 32.98 size 0.3587 color 255.0 255.0 255.0 255.0 centre 0.059 -0.024 -0.052 spread 2.859 1.277 0.419
+  q1 particles 423.84 size 0.3209 color 255.0 255.0 255.0 255.0 centre -0.002 0.000 0.132 spread 5.021 2.234 0.426
+  q2 particles 652.27 size 0.3826 color 255.0 255.0 255.0 255.0 centre -0.030 0.012 0.557 spread 5.225 2.324 0.582
+  q3 particles 657.23 size 0.4142 color 255.0 255.0 255.0 255.0 centre 0.077 -0.031 0.759 spread 5.230 2.331 0.726
+coarse Tendril as made: births 61.88 deaths 21.50 life 8.00
+  q0 particles 11.00 size 0.5390 color 255.0 255.0 255.0 255.0 centre 0.006 0.006 -0.148 spread 0.151 0.160 0.237
+  q1 particles 26.46 size 0.4531 color 255.0 255.0 255.0 255.0 centre 0.009 0.006 0.287 spread 0.178 0.178 0.466
+  q2 particles 40.08 size 0.3893 color 255.0 255.0 255.0 255.0 centre 0.011 0.011 0.668 spread 0.181 0.179 0.676
+  q3 particles 40.62 size 0.3952 color 255.0 255.0 255.0 255.0 centre 0.016 0.009 0.714 spread 0.178 0.176 0.687
+coarse VulcanSmoke: births 176.62 deaths 67.75 life 75.57
+  q0 particles 31.87 size 1.7100 color 255.0 255.0 255.0 255.0 centre -0.008 0.004 2.635 spread 1.059 1.149 1.652
+  q1 particles 93.58 size 1.6909 color 255.0 255.0 255.0 255.0 centre 0.014 0.067 3.040 spread 1.831 1.906 1.326
+  q2 particles 138.23 size 1.6109 color 255.0 255.0 255.0 255.0 centre 0.002 0.063 3.333 spread 2.417 2.457 1.157
+  q3 particles 131.38 size 1.3927 color 255.0 255.0 255.0 255.0 centre -0.046 0.083 3.711 spread 3.129 3.151 0.686
+coarse VulcanSmoke rescaled: births 50.50 deaths 0.00 life 0.00
+  q0 particles 9.06 size 1.0712 color 255.0 255.0 255.0 255.0 centre 0.034 -0.033 1.473 spread 0.232 0.236 1.172
+  q1 particles 25.57 size 1.4499 color 255.0 255.0 255.0 255.0 centre 0.036 -0.090 2.075 spread 0.549 0.564 1.752
+  q2 particles 32.15 size 1.5230 color 255.0 255.0 255.0 255.0 centre 0.043 -0.157 2.394 spread 1.070 1.090 1.683
+  q3 particles 42.65 size 1.6569 color 255.0 255.0 255.0 255.0 centre 0.034 -0.170 2.727 spread 1.407 1.420 1.686
+coarse Portal: births 600.00 deaths 238.62 life 36.12
+  q0 particles 80.00 size 0.4264 color 255.0 255.0 255.0 59.6 centre -0.036 -0.045 0.758 spread 0.902 0.887 0.853
+  q1 particles 230.00 size 0.4590 color 255.0 255.0 255.0 51.5 centre -0.023 0.022 1.955 spread 0.896 0.891 1.455
+  q2 particles 351.47 size 0.4534 color 255.0 255.0 255.0 42.9 centre 0.002 -0.027 3.280 spread 0.899 0.916 2.327
+  q3 particles 363.11 size 0.4480 color 255.0 255.0 255.0 41.9 centre 0.027 -0.031 3.418 spread 0.926 0.906 2.414
+coarse Portal small, stopped, moving: births 357.00 deaths 83.50 life 36.50
+  q0 particles 42.00 size 0.3978 color 255.0 255.0 255.0 62.6 centre 0.029 -0.002 0.410 spread 0.863 0.907 0.945
+  q1 particles 88.08 size 0.4609 color 255.0 255.0 255.0 57.8 centre 0.033 0.050 0.899 spread 0.900 0.903 0.564
+  q2 particles 180.15 size 0.4424 color 255.0 255.0 255.0 51.4 centre -0.012 0.005 1.925 spread 0.905 0.902 1.720
+  q3 particles 291.26 size 0.4482 color 255.0 255.0 255.0 45.2 centre 0.014 -0.015 2.870 spread 0.912 0.933 2.147
+coarse TeleportRing on a unit: births 500.00 deaths 175.00 life 13.00
+  q0 particles 75.00 size 0.2430 color 255.0 255.0 255.0 255.0 centre -0.011 0.005 -1.155 spread 0.712 0.703 0.110
+  q1 particles 200.00 size 0.2271 color 255.0 255.0 255.0 250.2 centre 0.006 0.006 -0.896 spread 0.712 0.704 0.307
+  q2 particles 310.00 size 0.2130 color 255.0 255.0 255.0 207.8 centre 0.017 0.007 -0.605 spread 0.708 0.707 0.508
+  q3 particles 325.00 size 0.2105 color 255.0 255.0 255.0 199.6 centre 0.025 0.002 -0.567 spread 0.708 0.710 0.529
+coarse TeleportRing carried late, let go: births 350.00 deaths 300.00 life 13.00
+  q0 particles 65.62 size 0.3117 color 255.0 255.0 255.0 255.0 centre -0.011 0.007 -1.121 spread 0.696 0.719 0.144
+  q1 particles 246.43 size 0.2379 color 255.0 255.0 255.0 230.7 centre 0.007 0.003 -0.745 spread 0.705 0.711 0.426
+  q2 particles 209.38 size 0.1663 color 255.0 255.0 255.0 169.7 centre -0.003 0.004 -0.347 spread 0.711 0.705 0.504
+  q3 particles 71.43 size 0.1272 color 255.0 255.0 255.0 171.0 centre -0.033 -0.005 -0.321 spread 0.697 0.714 0.463
+coarse Teleport out: births 700.00 deaths 620.00 life 14.00
+  q0 particles 130.00 size 0.2677 color 255.0 255.0 255.0 185.3 centre -0.023 -0.003 0.921 spread 0.357 0.366 0.762
+  q1 particles 278.18 size 0.2730 color 255.0 255.0 255.0 132.3 centre -0.008 -0.005 1.948 spread 0.357 0.365 1.584
+  q2 particles 280.00 size 0.2714 color 255.0 255.0 255.0 131.5 centre -0.000 -0.007 1.975 spread 0.356 0.362 1.605
+  q3 particles 180.00 size 0.2786 color 255.0 255.0 255.0 94.6 centre 0.006 0.000 2.662 spread 0.355 0.360 1.582
+coarse Teleport in, started again: births 700.00 deaths 620.00 life 14.00
+  q0 particles 130.00 size 0.2664 color 255.0 255.0 255.0 69.7 centre -0.000 0.003 4.376 spread 0.362 0.368 2.189
+  q1 particles 278.18 size 0.2728 color 255.0 255.0 255.0 122.7 centre 0.004 0.010 2.898 spread 0.363 0.357 2.245
+  q2 particles 280.00 size 0.2705 color 255.0 255.0 255.0 123.5 centre 0.010 -0.000 2.882 spread 0.361 0.363 2.249
+  q3 particles 180.00 size 0.2786 color 255.0 255.0 255.0 160.4 centre 0.001 -0.003 1.818 spread 0.356 0.362 1.523
+coarse Teleport moving, rescaled: births 380.00 deaths 320.00 life 14.00
+  q0 particles 90.00 size 0.2440 color 255.0 255.0 255.0 210.7 centre -0.224 -0.005 0.463 spread 0.351 0.291 0.288
+  q1 particles 237.14 size 0.2802 color 255.0 255.0 255.0 149.2 centre -0.552 -0.008 1.278 spread 0.491 0.339 0.995
+  q2 particles 255.00 size 0.2775 color 255.0 255.0 255.0 121.3 centre -0.695 -0.002 2.122 spread 0.556 0.413 1.408
+  q3 particles 120.00 size 0.2620 color 255.0 255.0 255.0 61.8 centre -1.002 0.013 4.061 spread 0.486 0.451 1.645
+coarse Banshee on a unit: births 572.00 deaths 572.00 life 6.51
+  q0 particles 500.00 size 0.1500 color 255.0 255.0 255.0 255.0 centre -0.007 0.001 0.825 spread 0.189 0.188 0.000
+  q1 particles 393.69 size 0.1500 color 255.0 255.0 255.0 255.0 centre -0.007 0.001 0.825 spread 0.232 0.227 0.000
+  q2 particles 37.41 size 0.1500 color 255.0 255.0 255.0 255.0 centre -0.024 0.023 0.825 spread 0.654 0.628 0.000
+  q3 particles 0
+coarse Banshee carried late, rescaled: births 572.00 deaths 572.00 life 6.50
+  q0 particles 250.00 size 0.2100 color 255.0 255.0 255.0 255.0 centre -0.005 -0.003 0.825 spread 0.184 0.186 0.000
+  q1 particles 500.00 size 0.2100 color 255.0 255.0 255.0 255.0 centre -0.005 -0.003 0.825 spread 0.184 0.186 0.000
+  q2 particles 173.59 size 0.1808 color 255.0 255.0 255.0 255.0 centre -0.125 0.002 0.825 spread 0.243 0.236 0.000
+  q3 particles 6.31 size 0.1050 color 255.0 255.0 255.0 255.0 centre -0.276 0.040 0.825 spread 0.342 0.318 0.000
+coarse BlueGas on a unit: births 239.75 deaths 60.12 life 45.00
+  q0 particles 32.36 size 0.1211 color 255.0 255.0 255.0 255.0 centre -0.003 0.000 1.039 spread 0.069 0.068 0.118
+  q1 particles 91.53 size 0.1298 color 255.0 255.0 255.0 255.0 centre 0.001 -0.003 1.272 spread 0.068 0.069 0.267
+  q2 particles 151.78 size 0.1401 color 255.0 255.0 255.0 250.1 centre -0.001 0.002 1.573 spread 0.068 0.068 0.482
+  q3 particles 179.24 size 0.1449 color 255.0 255.0 255.0 235.2 centre 0.000 -0.001 1.721 spread 0.068 0.068 0.573
+coarse BlueGas on a walking unit, let go: births 346.25 deaths 195.00 life 45.00
+  q0 particles 70.26 size 0.1221 color 255.0 255.0 255.0 255.0 centre -0.273 -0.165 1.064 spread 0.222 0.142 0.136
+  q1 particles 201.61 size 0.1327 color 255.0 255.0 255.0 255.0 centre -1.623 0.006 1.149 spread 3.638 1.524 0.749
+  q2 particles 293.19 size 0.1450 color 255.0 255.0 255.0 241.1 centre -11.460 3.882 -0.472 spread 6.800 2.494 1.025
+  q3 particles 216.40 size 0.1534 color 255.0 255.0 255.0 222.1 centre -7.814 1.976 0.612 spread 7.506 2.845 1.118
+coarse Nuke: births 184.00 deaths 184.00 life 30.95
+  q0 particles 146.13 size 0.2007 color 255.0 255.0 255.0 239.3 centre 0.001 0.000 2.527 spread 0.084 0.085 1.092
+  q1 particles 175.28 size 0.3100 color 255.0 255.0 255.0 209.4 centre -0.001 0.016 0.802 spread 0.583 0.584 0.740
+  q2 particles 58.19 size 0.7673 color 255.0 255.0 255.0 83.9 centre 0.004 -0.007 0.333 spread 1.308 1.328 0.093
+  q3 particles 0
+coarse Nuke rescaled, started again: births 248.00 deaths 248.00 life 28.11
+  q0 particles 140.31 size 0.4808 color 255.0 255.0 255.0 236.5 centre 0.008 0.001 7.508 spread 0.199 0.190 3.687
+  q1 particles 196.92 size 0.4954 color 255.0 255.0 255.0 247.6 centre 0.008 0.006 7.006 spread 0.487 0.462 4.382
+  q2 particles 192.32 size 0.5872 color 255.0 255.0 255.0 229.3 centre -0.021 -0.052 4.181 spread 1.941 1.894 3.463
+  q3 particles 23.76 size 0.6225 color 255.0 255.0 255.0 231.4 centre 0.005 0.000 3.354 spread 0.604 0.544 1.914
+coarse VisionStar1 on a unit, stopped: births 1.00 deaths 1.00 life 36.75
+  q0 particles 1.00 size 0.0577 color 255.0 255.0 255.0 229.5 centre 0.000 0.000 0.000 spread 0.000 0.000 0.000
+  q1 particles 1.00 size 0.1524 color 255.0 255.0 255.0 255.0 centre 0.000 0.000 0.000 spread 0.000 0.000 0.000
+  q2 particles 1.00 size 0.1053 color 255.0 255.0 255.0 255.0 centre 0.000 0.000 0.000 spread 0.000 0.000 0.000
+  q3 particles 0.68 size 0.0437 color 255.0 255.0 255.0 255.0 centre 0.000 0.000 0.000 spread 0.000 0.000 0.000
+coarse VisionStar2 on a walking unit, stopped, started again: births 5.12 deaths 0.12 life 27.00
+  q0 particles 4.83 size 0.0472 color 255.0 255.0 255.0 233.0 centre 0.012 0.007 0.000 spread 0.352 0.355 0.000
+  q1 particles 5.00 size 0.1038 color 255.0 255.0 255.0 255.0 centre 0.001 -0.011 0.000 spread 0.353 0.354 0.000
+  q2 particles 4.99 size 0.0490 color 255.0 255.0 255.0 254.4 centre 0.001 -0.015 0.000 spread 0.352 0.355 0.000
+  q3 particles 5.00 size 0.0253 color 255.0 255.0 255.0 255.0 centre -0.007 -0.021 0.000 spread 0.351 0.355 0.000
+coarse VisionStar3 let go, carried again: births 1.00 deaths 0.00 life 0.00
+  q0 particles 1.00 size 0.0437 color 255.0 255.0 255.0 229.5 centre 0.000 0.000 0.000 spread 0.000 0.000 0.000
+  q1 particles 1.00 size 0.0683 color 255.0 255.0 255.0 255.0 centre 0.000 0.000 0.000 spread 0.000 0.000 0.000
+  q2 particles 1.00 size 0.0335 color 255.0 255.0 255.0 255.0 centre 0.000 0.000 0.000 spread 0.000 0.000 0.000
+  q3 particles 1.00 size 0.0201 color 255.0 255.0 255.0 255.0 centre 0.000 0.000 0.000 spread 0.000 0.000 0.000
+coarse VisionStar4 rescaled, stopped: births 1.00 deaths 0.00 life 0.00
+  q0 particles 1.00 size 0.0624 color 255.0 255.0 255.0 223.1 centre 0.000 0.000 0.612 spread 0.000 0.000 0.232
+  q1 particles 1.00 size 0.2292 color 255.0 255.0 255.0 255.0 centre 0.000 0.000 0.700 spread 0.000 0.000 0.000
+  q2 particles 1.00 size 0.1804 color 255.0 255.0 255.0 255.0 centre 0.000 0.000 0.700 spread 0.000 0.000 0.000
+  q3 particles 1.00 size 0.0831 color 255.0 255.0 255.0 255.0 centre 0.000 0.000 0.700 spread 0.000 0.000 0.000
+coarse Regeneration on a unit, stopped: births 2.00 deaths 2.00 life 20.50
+  q0 particles 2.00 size 0.2221 color 255.0 255.0 255.0 226.7 centre -0.000 0.000 0.859 spread 0.254 0.000 0.403
+  q1 particles 2.00 size 0.1776 color 255.0 255.0 255.0 255.0 centre -0.000 0.000 1.115 spread 0.352 0.000 0.261
+  q2 particles 0.56 size 0.0111 color 255.0 255.0 255.0 255.0 centre -0.071 0.000 0.352 spread 0.350 0.000 0.077
+  q3 particles 0
+coarse Regeneration on a turning stone, let go: births 2.00 deaths 2.00 life 27.00
+  q0 particles 2.00 size 0.3121 color 255.0 255.0 255.0 229.5 centre -0.000 -0.000 1.262 spread 0.163 0.152 0.563
+  q1 particles 2.00 size 0.0973 color 255.0 255.0 255.0 255.0 centre -2.426 1.407 0.129 spread 2.954 1.717 1.310
+  q2 particles 1.40 size 0.0261 color 255.0 255.0 255.0 255.0 centre -0.643 0.373 -0.002 spread 0.489 0.303 0.095
+  q3 particles 0
+coarse Stun on a unit that runs, then dies: births 55.00 deaths 42.00 life 7.43
+  q0 particles 6.75 size 0.7137 color 255.0 255.0 255.0 174.7 centre -0.028 0.007 -0.016 spread 0.201 0.198 0.188
+  q1 particles 22.71 size 0.8614 color 255.0 255.0 255.0 219.7 centre -0.003 0.014 -0.013 spread 0.201 0.188 0.204
+  q2 particles 25.62 size 0.9179 color 255.0 255.0 255.0 235.1 centre -0.007 -0.008 -0.007 spread 0.196 0.196 0.203
+  q3 particles 13.14 size 0.9880 color 255.0 255.0 255.0 255.0 centre 0.006 -0.002 0.004 spread 0.201 0.181 0.209
+coarse Stun on a stone: births 0.00 deaths 0.00 life 0.00
+  q0 particles 0
+  q1 particles 0
+  q2 particles 0
+  q3 particles 0
+coarse Stun on a unit, let go: births 19.00 deaths 17.00 life 6.00
+  q0 particles 4.80 size 0.6876 color 255.0 255.0 255.0 138.1 centre -0.002 0.005 -0.013 spread 0.178 0.200 0.197
+  q1 particles 17.00 size 1.1697 color 255.0 255.0 255.0 231.0 centre -0.011 0.006 -0.015 spread 0.189 0.206 0.196
+  q2 particles 4.40 size 1.2917 color 255.0 255.0 255.0 255.0 centre -0.008 0.006 -0.020 spread 0.188 0.198 0.214
+  q3 particles 2.00 size 1.2060 color 255.0 255.0 255.0 255.0 centre -0.018 -0.008 -0.035 spread 0.172 0.182 0.225
+coarse Stun carried late, rescaled: births 11.00 deaths 0.00 life 0.00
+  q0 particles 1.20 size 0.4939 color 255.0 255.0 255.0 127.5 centre -0.024 -0.029 0.008 spread 0.204 0.166 0.224
+  q1 particles 6.00 size 1.4223 color 255.0 255.0 255.0 212.5 centre -0.010 -0.015 0.052 spread 0.192 0.162 0.200
+  q2 particles 10.40 size 1.8775 color 255.0 255.0 255.0 240.3 centre -0.014 -0.021 0.055 spread 0.201 0.174 0.191
+  q3 particles 11.00 size 1.9875 color 255.0 255.0 255.0 255.0 centre -0.013 -0.018 0.056 spread 0.202 0.175 0.191
+coarse FeetCloud1 on a walking unit, stopped: births 152.00 deaths 152.00 life 10.95
+  q0 particles 40.00 size 0.1142 color 51.0 51.0 255.0 194.1 centre -0.001 -0.001 0.953 spread 0.077 0.079 0.106
+  q1 particles 87.11 size 0.0899 color 23.4 23.4 255.0 161.1 centre -0.003 0.001 0.924 spread 0.116 0.116 0.076
+  q2 particles 56.00 size 0.0732 color 4.0 4.0 255.0 135.7 centre -0.012 0.005 0.904 spread 0.134 0.134 0.033
+  q3 particles 2.00 size 0.0332 color 0.0 0.0 255.0 0.0 centre -0.022 0.019 0.900 spread 0.164 0.169 0.000
+coarse FeetCloud2 on a stone, rescaled, let go: births 340.00 deaths 208.00 life 10.94
+  q0 particles 44.44 size 0.1381 color 255.0 56.1 56.1 190.0 centre -0.000 0.003 0.077 spread 0.080 0.082 0.147
+  q1 particles 108.44 size 0.1331 color 255.0 15.7 15.7 168.9 centre -0.001 0.000 0.024 spread 0.161 0.165 0.095
+  q2 particles 74.67 size 0.1379 color 255.0 36.4 36.4 148.6 centre -0.165 0.091 0.017 spread 0.505 0.318 0.192
+  q3 particles 127.50 size 0.1369 color 255.0 24.0 24.0 164.7 centre -0.004 -0.006 0.037 spread 0.168 0.171 0.116
+coarse StartTrans on a unit: births 190.00 deaths 190.00 life 13.78
+  q0 particles 20.77 size 0.0455 color 255.0 255.0 255.0 189.0 centre 0.030 -0.002 -0.004 spread 0.465 0.467 0.483
+  q1 particles 89.92 size 0.0495 color 255.0 255.0 255.0 206.1 centre 0.011 -0.010 0.007 spread 0.398 0.401 0.407
+  q2 particles 97.69 size 0.0511 color 255.0 255.0 255.0 178.2 centre -0.002 -0.028 0.005 spread 0.355 0.342 0.351
+  q3 particles 0
+coarse StartTrans rescaled, let go: births 27.00 deaths 27.00 life 9.00
+  q0 particles 10.25 size 0.0635 color 255.0 255.0 255.0 160.3 centre -0.021 -0.082 0.019 spread 0.879 0.846 0.876
+  q1 particles 23.00 size 0.0905 color 255.0 255.0 255.0 158.6 centre -0.019 -0.077 0.009 spread 0.800 0.762 0.816
+  q2 particles 0
+  q3 particles 0
+coarse Shower1 on a unit: births 300.00 deaths 300.00 life 6.00
+  q0 particles 130.00 size 0.8629 color 255.0 255.0 255.0 253.8 centre -0.037 -0.003 -0.018 spread 0.156 0.129 0.161
+  q1 particles 275.00 size 0.5409 color 255.0 255.0 255.0 180.0 centre -0.088 -0.011 -0.193 spread 0.351 0.300 0.389
+  q2 particles 45.00 size 0.3504 color 255.0 255.0 255.0 81.8 centre -0.133 -0.033 -0.404 spread 0.472 0.399 0.490
+  q3 particles 0
+coarse Shower2 with few rays: births 110.00 deaths 110.00 life 6.00
+  q0 particles 40.00 size 0.8395 color 255.0 255.0 255.0 251.1 centre 0.051 -0.001 -0.062 spread 0.142 0.105 0.156
+  q1 particles 95.00 size 0.5927 color 255.0 255.0 255.0 193.2 centre 0.112 -0.000 -0.215 spread 0.262 0.190 0.311
+  q2 particles 30.00 size 0.3857 color 255.0 255.0 255.0 106.7 centre 0.171 -0.005 -0.407 spread 0.341 0.256 0.374
+  q3 particles 0
+coarse Shower3 carried late, rescaled: births 300.00 deaths 300.00 life 6.00
+  q0 particles 54.00 size 0.9200 color 255.0 255.0 255.0 255.0 centre 0.020 -0.014 0.016 spread 0.132 0.126 0.116
+  q1 particles 270.00 size 0.5891 color 255.0 255.0 255.0 193.4 centre 0.092 -0.064 -0.219 spread 0.572 0.538 0.571
+  q2 particles 36.00 size 0.3504 color 255.0 255.0 255.0 81.8 centre 0.141 -0.132 -0.683 spread 0.966 0.913 0.855
+  q3 particles 0
+coarse Shower4 on a fast unit, started again: births 300.00 deaths 300.00 life 6.00
+  q0 particles 130.00 size 0.8629 color 255.0 255.0 255.0 253.8 centre -0.864 -0.034 -0.255 spread 0.974 0.156 0.320
+  q1 particles 275.00 size 0.5409 color 255.0 255.0 255.0 180.0 centre -3.534 -0.088 -1.134 spread 1.680 0.355 0.675
+  q2 particles 45.00 size 0.3504 color 255.0 255.0 255.0 81.8 centre -5.613 -0.149 -1.913 spread 0.682 0.465 0.505
+  q3 particles 0
+coarse Falling1 on a unit: births 45.00 deaths 45.00 life 14.74
+  q0 particles 45.00 size 0.1506 color 255.0 255.0 255.0 255.0 centre -0.123 0.033 -0.999 spread 0.796 0.929 0.940
+  q1 particles 20.91 size 0.1500 color 255.0 255.0 255.0 255.0 centre -0.243 0.041 -3.270 spread 1.957 2.238 0.644
+  q2 particles 0.40 size 0.1367 color 255.0 255.0 255.0 255.0 centre 0.013 -1.667 -3.937 spread 3.472 3.007 0.127
+  q3 particles 0
+coarse Falling2 on a stone, started again: births 45.00 deaths 45.00 life 14.55
+  q0 particles 45.00 size 0.1521 color 255.0 255.0 255.0 255.0 centre -0.135 -0.062 -1.014 spread 0.823 0.650 0.955
+  q1 particles 20.23 size 0.1523 color 255.0 255.0 255.0 255.0 centre -0.467 -0.204 -3.288 spread 1.980 1.588 0.638
+  q2 particles 0.25 size 0.1516 color 255.0 255.0 255.0 255.0 centre -0.143 -1.489 -3.967 spread 2.219 2.388 0.081
+  q3 particles 0
+coarse Falling3 on a fast stone: births 45.00 deaths 45.00 life 14.55
+  q0 particles 45.00 size 0.1469 color 255.0 255.0 255.0 255.0 centre 0.170 -0.101 -1.007 spread 0.816 0.749 0.947
+  q1 particles 20.15 size 0.1465 color 255.0 255.0 255.0 255.0 centre 0.509 -0.445 -3.281 spread 1.919 1.783 0.634
+  q2 particles 0.31 size 0.1365 color 255.0 255.0 255.0 255.0 centre 0.873 -1.831 -3.961 spread 3.142 2.614 0.121
+  q3 particles 0
+coarse Falling4 large: births 45.00 deaths 45.00 life 14.38
+  q0 particles 45.00 size 0.1485 color 255.0 255.0 255.0 255.0 centre -0.008 -0.102 -1.026 spread 0.713 0.864 0.963
+  q1 particles 19.50 size 0.1478 color 255.0 255.0 255.0 255.0 centre -0.041 -0.364 -3.332 spread 1.737 2.072 0.629
+  q2 particles 0.19 size 0.1569 color 255.0 255.0 255.0 255.0 centre -0.150 -0.947 -3.942 spread 3.086 2.546 0.126
+  q3 particles 0
+coarse SphereAcid on a unit: births 158.00 deaths 76.75 life 15.00
+  q0 particles 19.91 size 0.0283 color 255.0 255.0 255.0 255.0 centre -0.018 0.023 0.917 spread 0.235 0.247 0.258
+  q1 particles 60.70 size 0.0358 color 255.0 255.0 255.0 255.0 centre -0.014 0.022 0.906 spread 0.245 0.246 0.251
+  q2 particles 81.16 size 0.0360 color 255.0 255.0 255.0 255.0 centre -0.013 0.013 0.891 spread 0.244 0.246 0.252
+  q3 particles 81.21 size 0.0355 color 255.0 255.0 255.0 255.0 centre -0.012 0.002 0.888 spread 0.241 0.246 0.256
+coarse SphereElectricity on a walking unit: births 210.25 deaths 129.88 life 15.00
+  q0 particles 25.44 size 0.0227 color 255.0 255.0 255.0 255.0 centre -0.033 0.010 0.884 spread 0.266 0.252 0.245
+  q1 particles 72.83 size 0.0247 color 255.0 255.0 255.0 255.0 centre -0.030 -0.006 0.888 spread 0.270 0.249 0.248
+  q2 particles 80.54 size 0.0257 color 255.0 255.0 255.0 255.0 centre -0.003 -0.010 0.903 spread 0.262 0.244 0.253
+  q3 particles 81.08 size 0.0256 color 255.0 255.0 255.0 255.0 centre 0.002 0.004 0.908 spread 0.252 0.237 0.254
+coarse SphereFire rescaled, let go: births 104.25 deaths 73.62 life 15.00
+  q0 particles 22.57 size 0.0378 color 255.0 255.0 255.0 255.0 centre -0.003 0.029 0.907 spread 0.256 0.244 0.242
+  q1 particles 58.11 size 0.0461 color 255.0 255.0 255.0 255.0 centre 0.002 0.002 0.896 spread 0.254 0.244 0.245
+  q2 particles 37.78 size 0.0442 color 255.0 255.0 255.0 255.0 centre -0.159 0.082 0.855 spread 0.810 0.521 0.310
+  q3 particles 27.70 size 0.0413 color 255.0 255.0 255.0 255.0 centre -0.219 0.123 0.845 spread 0.593 0.412 0.283
+coarse Antimagic on a fast unit, stopped, started again: births 518.25 deaths 431.38 life 4.00
+  q0 particles 59.41 size 0.0157 color 255.0 255.0 255.0 255.0 centre -0.088 0.053 0.901 spread 0.339 0.262 0.254
+  q1 particles 82.43 size 0.0159 color 255.0 255.0 255.0 255.0 centre -0.100 0.027 0.897 spread 0.366 0.263 0.249
+  q2 particles 35.27 size 0.0149 color 255.0 255.0 255.0 255.0 centre -0.071 0.020 0.896 spread 0.355 0.265 0.252
+  q3 particles 86.82 size 0.0154 color 255.0 255.0 255.0 255.0 centre -0.090 0.030 0.893 spread 0.369 0.265 0.250
+coarse SphereAcid small: births 1.00 deaths 0.00 life 0.00
+  q0 particles 1.00 size 0.0259 color 255.0 255.0 255.0 255.0 centre 0.045 -0.099 0.899 spread 0.289 0.206 0.216
+  q1 particles 1.00 size 0.0382 color 255.0 255.0 255.0 255.0 centre 0.049 -0.097 0.899 spread 0.291 0.203 0.216
+  q2 particles 1.00 size 0.0382 color 255.0 255.0 255.0 255.0 centre 0.052 -0.095 0.899 spread 0.293 0.200 0.216
+  q3 particles 1.00 size 0.0309 color 255.0 255.0 255.0 255.0 centre 0.056 -0.093 0.899 spread 0.294 0.198 0.216
+coarse PoisonFog fading, laid again: births 41.75 deaths 20.88 life 43.62
+  q0 particles 19.27 size 1.0054 color 255.0 255.0 255.0 157.0 centre -0.015 -0.012 0.505 spread 1.278 1.259 0.135
+  q1 particles 20.88 size 1.0029 color 255.0 255.0 255.0 95.0 centre -0.017 -0.013 0.503 spread 1.279 1.259 0.135
+  q2 particles 11.60 size 1.0029 color 255.0 255.0 255.0 27.5 centre -0.017 -0.013 0.503 spread 1.279 1.259 0.135
+  q3 particles 17.83 size 1.0016 color 255.0 255.0 255.0 160.0 centre 0.012 -0.002 0.502 spread 1.283 1.277 0.142
+coarse PoisonFog strong, wrapping: births 4.12 deaths 0.00 life 0.00
+  q0 particles 3.94 size 1.0268 color 255.0 255.0 255.0 197.0 centre -0.040 -0.101 0.527 spread 0.596 0.622 0.141
+  q1 particles 4.12 size 1.0263 color 255.0 255.0 255.0 135.0 centre -0.039 -0.104 0.526 spread 0.594 0.622 0.141
+  q2 particles 4.12 size 1.0263 color 255.0 255.0 255.0 122.1 centre -0.039 -0.104 0.526 spread 0.594 0.622 0.141
+  q3 particles 4.12 size 1.0263 color 255.0 255.0 255.0 119.0 centre -0.039 -0.104 0.526 spread 0.594 0.622 0.141
+coarse PoisonFog moving fast: births 3.12 deaths 0.00 life 0.00
+  q0 particles 2.96 size 1.0228 color 255.0 255.0 255.0 160.0 centre -946.479 -0.129 0.523 spread 786.466 0.524 0.141
+  q1 particles 3.12 size 1.0181 color 255.0 255.0 255.0 160.0 centre -1344.004 -0.136 0.518 spread 586.543 0.520 0.139
+  q2 particles 3.12 size 1.0181 color 255.0 255.0 255.0 160.0 centre -1344.004 -0.136 0.518 spread 586.543 0.520 0.139
+  q3 particles 3.12 size 1.0181 color 255.0 255.0 255.0 160.0 centre -1344.004 -0.136 0.518 spread 586.543 0.520 0.139
+coarse PoisonCloud stopped, rescaled: births 11.75 deaths 0.00 life 0.00
+  q0 particles 9.54 size 0.9998 color 255.0 175.0 127.0 255.0 centre 0.026 0.015 0.500 spread 0.963 0.971 0.142
+  q1 particles 11.75 size 1.0000 color 255.0 175.0 127.0 232.5 centre 0.032 0.006 0.500 spread 0.965 0.973 0.143
+  q2 particles 11.75 size 1.0000 color 255.0 175.0 127.0 182.5 centre 0.032 0.006 0.500 spread 0.965 0.973 0.143
+  q3 particles 11.75 size 1.0000 color 255.0 175.0 127.0 132.5 centre 0.032 0.006 0.500 spread 0.965 0.973 0.143
+coarse GroundDust1: births 128.00 deaths 128.00 life 7.00
+  q0 particles 128.00 size 0.0467 color 64.0 255.0 64.0 170.0 centre -0.000 0.000 -0.267 spread 0.093 0.093 0.189
+  q1 particles 128.00 size 0.0700 color 64.0 255.0 64.0 154.3 centre -0.000 0.000 -0.400 spread 0.314 0.314 0.000
+  q2 particles 42.67 size 0.0700 color 64.0 255.0 64.0 0.0 centre -0.000 0.001 -0.400 spread 0.481 0.481 0.000
+  q3 particles 0
+coarse GroundDust2 on a moving carrier: births 256.00 deaths 256.00 life 7.00
+  q0 particles 256.00 size 0.0467 color 255.0 64.0 64.0 170.0 centre -0.100 0.000 -1.933 spread 0.112 0.076 1.367
+  q1 particles 256.00 size 0.0700 color 255.0 64.0 64.0 154.3 centre -0.400 0.000 -2.900 spread 0.269 0.257 0.000
+  q2 particles 85.33 size 0.0700 color 255.0 64.0 64.0 0.0 centre -0.600 0.000 -2.900 spread 0.393 0.394 0.000
+  q3 particles 0
+coarse GroundDust1 moving, started again: births 128.00 deaths 128.00 life 7.00
+  q0 particles 128.00 size 0.0525 color 64.0 255.0 64.0 191.2 centre -0.000 0.300 -0.300 spread 0.137 0.263 0.173
+  q1 particles 128.00 size 0.0700 color 64.0 255.0 64.0 69.3 centre -0.000 1.001 -0.400 spread 0.398 0.431 0.000
+  q2 particles 0
+  q3 particles 0
+coarse Mushroom: births 300.00 deaths 300.00 life 17.50
+  q0 particles 70.00 size 0.1898 color 255.0 255.0 255.0 203.1 centre 0.002 -0.003 0.751 spread 0.202 0.207 0.466
+  q1 particles 168.27 size 0.3114 color 255.0 255.0 255.0 213.0 centre 0.005 0.001 1.704 spread 0.269 0.272 0.759
+  q2 particles 147.07 size 0.4566 color 255.0 255.0 255.0 217.8 centre 0.001 0.007 3.053 spread 0.318 0.316 0.669
+  q3 particles 33.97 size 0.5548 color 255.0 255.0 255.0 190.6 centre 0.000 -0.002 3.770 spread 0.203 0.198 0.337
+coarse Mushroom rescaled, started again: births 410.00 deaths 274.62 life 17.45
+  q0 particles 65.00 size 0.2457 color 255.0 255.0 255.0 199.6 centre 0.005 0.011 0.956 spread 0.262 0.263 0.528
+  q1 particles 163.67 size 0.2855 color 255.0 255.0 255.0 214.1 centre 0.001 0.009 1.697 spread 0.239 0.241 0.591
+  q2 particles 165.08 size 0.3198 color 255.0 255.0 255.0 215.6 centre 0.002 0.004 2.651 spread 0.243 0.239 0.528
+  q3 particles 135.07 size 0.3991 color 255.0 255.0 255.0 201.9 centre 0.005 0.004 3.715 spread 0.273 0.267 0.631
+coarse Mushroom on a moving carrier: births 300.00 deaths 125.25 life 17.41
+  q0 particles 45.00 size 0.1490 color 255.0 255.0 255.0 177.4 centre -0.238 -0.118 0.485 spread 0.258 0.192 0.321
+  q1 particles 120.00 size 0.2290 color 255.0 255.0 255.0 220.7 centre -0.624 -0.311 1.010 spread 0.483 0.318 0.520
+  q2 particles 172.08 size 0.3088 color 255.0 255.0 255.0 211.4 centre -0.964 -0.482 1.666 spread 0.704 0.431 0.718
+  q3 particles 174.79 size 0.4015 color 255.0 255.0 255.0 211.2 centre -1.019 -0.516 2.630 spread 0.814 0.507 0.702
+coarse Transform on a unit: births 300.00 deaths 224.12 life 17.44
+  q0 particles 55.00 size 0.1658 color 255.0 255.0 255.0 190.3 centre -0.001 0.009 0.592 spread 0.181 0.181 0.382
+  q1 particles 149.94 size 0.2677 color 255.0 255.0 255.0 216.1 centre -0.001 0.002 1.309 spread 0.247 0.243 0.663
+  q2 particles 174.56 size 0.3819 color 255.0 255.0 255.0 211.6 centre -0.002 0.007 2.446 spread 0.310 0.300 0.740
+  q3 particles 120.35 size 0.4989 color 255.0 255.0 255.0 220.8 centre 0.007 0.010 3.328 spread 0.309 0.297 0.537
+coarse Link: births 155.50 deaths 0.00 life 0.00
+  q0 particles 36.02 size 0.0460 color 255.0 255.0 255.0 46.9 centre -0.467 -0.005 0.391 spread 0.427 0.116 0.350
+  q1 particles 97.32 size 0.0465 color 255.0 255.0 255.0 112.7 centre -1.140 -0.003 0.859 spread 0.794 0.114 0.544
+  q2 particles 149.25 size 0.0463 color 255.0 255.0 255.0 162.2 centre -2.012 0.002 1.320 spread 1.197 0.115 0.637
+  q3 particles 155.50 size 0.0462 color 255.0 255.0 255.0 124.8 centre -3.451 -0.002 1.879 spread 1.316 0.116 0.395
+coarse Link along a slope, rescaled: births 134.25 deaths 5.00 life 22.85
+  q0 particles 31.29 size 0.0460 color 255.0 255.0 255.0 76.1 centre 0.234 0.298 0.468 spread 0.234 0.298 0.416
+  q1 particles 82.79 size 0.0525 color 255.0 255.0 255.0 156.7 centre 0.551 0.734 1.015 spread 0.413 0.535 0.634
+  q2 particles 126.56 size 0.0640 color 255.0 255.0 255.0 193.1 centre 0.915 1.223 1.455 spread 0.591 0.777 0.737
+  q3 particles 132.77 size 0.0655 color 255.0 255.0 255.0 161.2 centre 1.513 2.027 2.015 spread 0.645 0.842 0.464
+coarse Link straight up, carried: births 110.75 deaths 0.00 life 0.00
+  q0 particles 23.82 size 0.0366 color 255.0 255.0 255.0 44.6 centre -0.005 0.002 0.488 spread 0.091 0.092 0.472
+  q1 particles 63.92 size 0.0358 color 255.0 255.0 255.0 119.0 centre -0.004 -0.002 1.268 spread 0.091 0.095 0.871
+  q2 particles 101.47 size 0.0357 color 255.0 255.0 255.0 171.5 centre 0.001 -0.001 2.065 spread 0.093 0.093 1.204
+  q3 particles 110.75 size 0.0358 color 255.0 255.0 255.0 180.1 centre 0.001 0.001 3.270 spread 0.095 0.091 1.145
+coarse Modifier1 on a stone: births 880.00 deaths 880.00 life 5.23
+  q0 particles 303.75 size 0.0545 color 255.0 255.0 255.0 69.1 centre 0.025 0.007 0.550 spread 0.628 0.534 0.016
+  q1 particles 295.71 size 0.0545 color 255.0 255.0 255.0 19.4 centre 0.008 0.001 0.550 spread 0.145 0.125 0.016
+  q2 particles 10.00 size 0.4423 color 255.0 255.0 255.0 0.0 centre 0.003 -0.000 0.550 spread 0.040 0.035 0.000
+  q3 particles 2.86 size 0.6133 color 255.0 255.0 255.0 0.0 centre 0.003 -0.000 0.550 spread 0.040 0.035 0.000
+coarse Modifier3 inwards on a unit: births 880.00 deaths 880.00 life 5.18
+  q0 particles 303.00 size 0.0538 color 255.0 255.0 255.0 69.6 centre -0.001 0.003 0.990 spread 0.079 0.077 0.016
+  q1 particles 293.71 size 0.0484 color 255.0 255.0 255.0 16.8 centre 0.002 0.017 0.990 spread 0.376 0.371 0.017
+  q2 particles 8.00 size 0.0579 color 255.0 255.0 255.0 0.0 centre -0.008 0.043 0.990 spread 0.709 0.687 0.000
+  q3 particles 2.29 size 0.0408 color 255.0 255.0 255.0 0.0 centre -0.008 0.043 0.990 spread 0.709 0.687 0.000
+coarse Modifier4 on a unit, stopped: births 560.00 deaths 547.00 life 5.00
+  q0 particles 289.43 size 0.0559 color 255.0 255.0 255.0 65.5 centre 0.026 0.010 0.110 spread 0.627 0.618 0.015
+  q1 particles 146.33 size 0.0613 color 255.0 255.0 255.0 67.3 centre 0.003 0.006 0.110 spread 0.269 0.260 0.016
+  q2 particles 13.00 size 0.3591 color 255.0 255.0 255.0 0.0 centre 0.001 0.001 0.110 spread 0.038 0.037 0.000
+  q3 particles 13.00 size 0.5390 color 255.0 255.0 255.0 0.0 centre 0.001 0.001 0.110 spread 0.038 0.037 0.000
+coarse Modifier5 on a turned stone: births 880.00 deaths 870.00 life 5.00
+  q0 particles 288.57 size 0.0548 color 255.0 255.0 255.0 64.2 centre -0.003 -0.003 0.442 spread 0.446 0.375 0.656
+  q1 particles 370.00 size 0.0533 color 255.0 255.0 255.0 35.2 centre -0.000 -0.000 0.526 spread 0.131 0.110 0.191
+  q2 particles 50.00 size 0.1045 color 255.0 255.0 255.0 0.0 centre 0.000 -0.000 0.544 spread 0.038 0.033 0.054
+  q3 particles 10.00 size 0.5390 color 255.0 255.0 255.0 0.0 centre -0.000 -0.000 0.544 spread 0.027 0.023 0.039
+coarse Modifier9 small: births 880.00 deaths 875.00 life 5.00
+  q0 particles 287.14 size 0.0530 color 255.0 255.0 255.0 62.1 centre 0.035 -0.189 0.599 spread 0.490 0.463 0.547
+  q1 particles 365.00 size 0.0508 color 255.0 255.0 255.0 33.1 centre 0.011 -0.053 0.561 spread 0.142 0.139 0.157
+  q2 particles 45.00 size 0.0762 color 255.0 255.0 255.0 0.0 centre 0.002 -0.017 0.554 spread 0.042 0.039 0.046
+  q3 particles 5.00 size 0.5390 color 255.0 255.0 255.0 0.0 centre 0.002 -0.013 0.553 spread 0.029 0.028 0.032
+coarse Modifier12 carried late: births 880.00 deaths 870.00 life 5.00
+  q0 particles 171.43 size 0.0565 color 255.0 255.0 255.0 42.3 centre -0.040 0.043 0.568 spread 0.590 0.577 0.560
+  q1 particles 410.00 size 0.0530 color 255.0 255.0 255.0 63.4 centre -0.008 0.007 0.560 spread 0.273 0.269 0.257
+  q2 particles 143.33 size 0.0628 color 255.0 255.0 255.0 1.5 centre -0.002 0.002 0.553 spread 0.061 0.060 0.057
+  q3 particles 10.00 size 0.4707 color 255.0 255.0 255.0 0.0 centre -0.002 0.001 0.551 spread 0.031 0.031 0.030
+coarse ClayRing: births 1120.00 deaths 1120.00 life 5.09
+  q0 particles 288.57 size 0.0894 color 255.0 255.0 255.0 51.3 centre 0.001 -0.003 0.500 spread 0.167 0.165 0.039
+  q1 particles 410.00 size 0.0848 color 255.0 255.0 255.0 149.5 centre -0.024 -0.010 0.500 spread 0.719 0.721 0.040
+  q2 particles 203.33 size 0.0782 color 255.0 255.0 255.0 44.7 centre -0.001 0.022 0.500 spread 1.302 1.306 0.041
+  q3 particles 0
+coarse ClayRing inwards: births 1120.00 deaths 1120.00 life 5.09
+  q0 particles 288.57 size 0.0894 color 255.0 255.0 255.0 51.3 centre -0.029 -0.007 0.500 spread 0.904 0.892 0.039
+  q1 particles 410.00 size 0.0848 color 255.0 255.0 255.0 149.5 centre -0.002 0.004 0.500 spread 0.355 0.346 0.040
+  q2 particles 203.33 size 0.0782 color 255.0 255.0 255.0 44.7 centre -0.002 0.003 0.499 spread 0.086 0.087 0.041
+  q3 particles 0
+coarse ClayRing on a moving carrier: births 1120.00 deaths 1120.00 life 5.09
+  q0 particles 288.57 size 0.0894 color 255.0 255.0 255.0 51.3 centre -0.205 -0.205 -2.000 spread 0.155 0.156 0.038
+  q1 particles 410.00 size 0.0848 color 255.0 255.0 255.0 149.5 centre -0.256 -0.249 -2.001 spread 0.385 0.389 0.040
+  q2 particles 203.33 size 0.0782 color 255.0 255.0 255.0 44.7 centre -0.291 -0.311 -2.000 spread 0.661 0.669 0.042
+  q3 particles 0
+coarse Silence on a unit, stopped: births 96.00 deaths 96.00 life 7.60
+  q0 particles 22.46 size 0.0567 color 255.0 255.0 255.0 253.3 centre 0.009 0.002 0.122 spread 0.230 0.132 0.107
+  q1 particles 29.67 size 0.0545 color 255.0 255.0 255.0 255.0 centre -0.007 0.004 0.137 spread 0.126 0.244 0.137
+  q2 particles 6.31 size 0.0373 color 255.0 255.0 255.0 255.0 centre 0.009 0.011 0.137 spread 0.180 0.229 0.105
+  q3 particles 0
+coarse Silence let go, carried again: births 168.00 deaths 138.00 life 7.00
+  q0 particles 21.83 size 0.0858 color 255.0 255.0 255.0 253.1 centre -0.018 -0.020 0.128 spread 0.258 0.153 0.126
+  q1 particles 22.36 size 0.0593 color 255.0 255.0 255.0 255.0 centre -1.904 1.111 -0.461 spread 4.220 2.465 1.324
+  q2 particles 30.00 size 0.0305 color 255.0 255.0 255.0 255.0 centre -0.072 0.040 0.109 spread 0.896 0.539 0.283
+  q3 particles 30.00 size 0.0308 color 255.0 255.0 255.0 255.0 centre 0.008 0.004 0.141 spread 0.235 0.121 0.108
+coarse Silence carried late, moving: births 112.00 deaths 82.00 life 7.00
+  q0 particles 10.50 size 0.0633 color 255.0 255.0 255.0 248.9 centre -0.059 0.006 0.109 spread 0.251 0.082 0.091
+  q1 particles 29.71 size 0.0543 color 255.0 255.0 255.0 255.0 centre -0.156 0.000 0.141 spread 0.260 0.148 0.107
+  q2 particles 30.00 size 0.0546 color 255.0 255.0 255.0 255.0 centre -0.164 -0.004 0.131 spread 0.171 0.237 0.136
+  q3 particles 30.00 size 0.0546 color 255.0 255.0 255.0 255.0 centre -0.160 0.011 0.145 spread 0.183 0.235 0.116
+coarse Bag on a unit: births 3000.00 deaths 2600.62 life 3.86
+  q0 particles 405.00 size 0.0784 color 251.7 170.8 176.8 143.7 centre 0.002 0.005 0.009 spread 0.324 0.326 0.319
+  q1 particles 435.54 size 0.0840 color 251.1 179.1 172.6 146.1 centre -0.011 0.005 -0.007 spread 0.333 0.331 0.328
+  q2 particles 456.92 size 0.0806 color 250.5 173.5 178.9 139.1 centre 0.005 0.011 -0.017 spread 0.376 0.363 0.375
+  q3 particles 461.34 size 0.0793 color 250.3 170.9 181.5 134.5 centre -0.001 0.007 0.009 spread 0.387 0.385 0.399
+coarse Bag let go: births 1100.00 deaths 1100.00 life 5.04
+  q0 particles 380.00 size 0.0811 color 252.6 175.8 170.5 151.6 centre 0.007 0.001 0.018 spread 0.284 0.284 0.295
+  q1 particles 369.65 size 0.0818 color 249.4 176.0 184.0 140.9 centre 0.002 -0.002 0.014 spread 0.416 0.411 0.417
+  q2 particles 110.17 size 0.0902 color 249.1 172.5 187.2 185.2 centre -0.033 -0.001 -0.018 spread 0.449 0.445 0.430
+  q3 particles 1.73 size 0.0725 color 239.0 144.0 249.0 255.0 centre 0.036 0.071 0.011 spread 0.754 0.803 0.805
+coarse Bag on a moving stone, rescaled: births 3000.00 deaths 2597.50 life 3.87
+  q0 particles 405.00 size 0.0473 color 251.8 171.9 175.8 144.0 centre -0.232 -0.219 0.003 spread 0.220 0.214 0.199
+  q1 particles 435.00 size 0.0904 color 251.1 178.3 173.1 145.7 centre -0.218 -0.205 -0.001 spread 0.285 0.286 0.252
+  q2 particles 458.27 size 0.0971 color 250.5 174.1 178.4 139.3 centre -0.246 -0.245 -0.009 spread 0.419 0.428 0.400
+  q3 particles 463.61 size 0.0948 color 250.2 170.4 182.1 134.2 centre -0.233 -0.254 0.032 spread 0.472 0.480 0.459
+coarse Cylinder1 on a unit: births 272.00 deaths 272.00 life 13.28
+  q0 particles 88.75 size 0.0856 color 255.0 255.0 255.0 195.7 centre -0.009 0.003 0.123 spread 0.302 0.238 0.008
+  q1 particles 221.86 size 0.0592 color 255.0 255.0 255.0 223.3 centre -0.004 0.003 0.153 spread 0.261 0.282 0.039
+  q2 particles 159.38 size 0.0449 color 255.0 255.0 255.0 169.4 centre -0.000 0.004 0.245 spread 0.265 0.279 0.124
+  q3 particles 10.57 size 0.0351 color 255.0 255.0 255.0 32.0 centre -0.005 0.014 0.371 spread 0.250 0.293 0.152
+coarse Cylinder2 on a moving stone: births 272.00 deaths 272.00 life 13.28
+  q0 particles 88.75 size 0.0856 color 255.0 255.0 255.0 195.7 centre -0.006 -0.002 0.123 spread 0.330 0.197 0.008
+  q1 particles 221.86 size 0.0592 color 255.0 255.0 255.0 223.3 centre -0.001 -0.007 0.153 spread 0.303 0.237 0.039
+  q2 particles 159.38 size 0.0449 color 255.0 255.0 255.0 169.4 centre -0.001 -0.015 0.245 spread 0.265 0.279 0.123
+  q3 particles 10.57 size 0.0351 color 255.0 255.0 255.0 32.0 centre -0.007 -0.018 0.370 spread 0.301 0.240 0.151
+coarse Casting on a unit: births 1787.25 deaths 1787.25 life 6.87
+  q0 particles 285.33 size 0.0990 color 255.0 255.0 255.0 255.0 centre 0.001 0.001 0.414 spread 0.104 0.103 0.127
+  q1 particles 192.00 size 0.0985 color 255.0 255.0 255.0 255.0 centre -0.005 0.001 0.914 spread 0.335 0.341 0.149
+  q2 particles 273.35 size 0.0990 color 255.0 255.0 255.0 254.4 centre 0.004 -0.004 1.380 spread 0.300 0.309 0.102
+  q3 particles 67.78 size 0.1000 color 255.0 255.0 255.0 255.0 centre 0.005 -0.018 1.450 spread 0.439 0.453 0.000
+coarse Casting on a moving stone, let go: births 1067.00 deaths 1067.00 life 7.10
+  q0 particles 292.00 size 0.1287 color 255.0 255.0 255.0 255.0 centre -0.140 -0.057 0.397 spread 0.133 0.098 0.113
+  q1 particles 192.00 size 0.1280 color 255.0 255.0 255.0 255.0 centre -0.148 -0.048 0.865 spread 0.359 0.345 0.140
+  q2 particles 57.00 size 0.1232 color 255.0 255.0 255.0 253.3 centre -0.195 -0.067 1.141 spread 0.252 0.241 0.078
+  q3 particles 0.46 size 0.0004 color 255.0 255.0 255.0 53.5 centre -0.375 -0.150 1.420 spread 0.034 0.026 0.002
+coarse Casting carried late, stopped, started again: births 2209.88 deaths 1709.88 life 6.66
+  q0 particles 261.53 size 0.0990 color 255.0 255.0 255.0 255.0 centre 0.000 -0.001 0.363 spread 0.074 0.074 0.103
+  q1 particles 127.20 size 0.0977 color 255.0 255.0 255.0 255.0 centre -0.002 0.002 0.815 spread 0.309 0.307 0.172
+  q2 particles 237.00 size 0.0987 color 255.0 255.0 255.0 254.5 centre -0.001 -0.001 1.330 spread 0.258 0.258 0.132
+  q3 particles 376.10 size 0.0999 color 255.0 255.0 255.0 254.9 centre -0.003 -0.002 1.450 spread 0.462 0.463 0.001
+coarse Healing on a unit: births 905.00 deaths 905.00 life 8.20
+  q0 particles 303.93 size 0.1069 color 255.0 255.0 255.0 255.0 centre 0.000 -0.000 0.369 spread 0.062 0.061 0.092
+  q1 particles 121.79 size 0.1129 color 255.0 255.0 255.0 255.0 centre 0.004 0.013 0.847 spread 0.343 0.348 0.140
+  q2 particles 102.50 size 0.1087 color 255.0 255.0 255.0 253.4 centre 0.008 0.009 1.240 spread 0.177 0.176 0.123
+  q3 particles 1.92 size 0.1272 color 255.0 255.0 255.0 174.4 centre -0.001 -0.002 1.418 spread 0.024 0.024 0.002
+coarse Healing large on a stone, let go: births 740.00 deaths 740.00 life 8.39
+  q0 particles 329.23 size 0.1435 color 255.0 255.0 255.0 255.0 centre -0.000 -0.001 0.368 spread 0.063 0.062 0.098
+  q1 particles 146.00 size 0.1547 color 255.0 255.0 255.0 255.0 centre -0.007 0.000 0.748 spread 0.340 0.342 0.098
+  q2 particles 9.85 size 0.2478 color 255.0 255.0 255.0 253.1 centre -0.008 -0.002 1.207 spread 0.236 0.223 0.198
+  q3 particles 4.00 size 0.2139 color 255.0 255.0 255.0 115.5 centre 0.000 0.000 1.419 spread 0.024 0.024 0.002
+coarse Healing rescaled, started again: births 1076.00 deaths 980.00 life 8.15
+  q0 particles 285.33 size 0.0937 color 255.0 255.0 255.0 255.0 centre 0.001 -0.001 0.360 spread 0.115 0.116 0.098
+  q1 particles 99.20 size 0.1175 color 255.0 255.0 255.0 255.0 centre -0.006 0.003 0.856 spread 0.614 0.603 0.164
+  q2 particles 81.33 size 0.1137 color 255.0 255.0 255.0 252.2 centre -0.002 0.003 1.333 spread 0.244 0.241 0.168
+  q3 particles 95.20 size 0.1120 color 255.0 255.0 255.0 255.0 centre 0.015 0.016 1.873 spread 0.665 0.673 0.179
+coarse CastingFire on a unit, stopped: births 380.00 deaths 380.00 life 11.53
+  q0 particles 110.00 size 0.1340 color 255.0 255.0 255.0 118.5 centre 0.181 -0.037 -0.007 spread 0.713 0.554 0.542
+  q1 particles 252.00 size 0.1659 color 255.0 255.0 255.0 183.7 centre 0.135 0.015 0.001 spread 0.558 0.424 0.420
+  q2 particles 76.00 size 0.1860 color 255.0 255.0 255.0 94.3 centre 0.129 0.025 -0.001 spread 0.424 0.314 0.310
+  q3 particles 0
+coarse CastingElectricity on a stone, let go: births 280.00 deaths 280.00 life 11.00
+  q0 particles 100.00 size 0.0762 color 255.0 255.0 255.0 108.0 centre 0.096 -0.015 -0.022 spread 0.420 0.319 0.355
+  q1 particles 224.44 size 0.0987 color 255.0 255.0 255.0 158.4 centre 0.066 -0.005 -0.027 spread 0.302 0.237 0.254
+  q2 particles 17.78 size 0.1146 color 255.0 255.0 255.0 32.0 centre 0.042 -0.004 -0.023 spread 0.197 0.160 0.167
+  q3 particles 0
+coarse CastingAcid carried late, moving: births 440.00 deaths 440.00 life 11.73
+  q0 particles 62.22 size 0.1246 color 255.0 255.0 255.0 82.2 centre 0.330 0.065 0.021 spread 0.728 0.564 0.613
+  q1 particles 226.67 size 0.1593 color 255.0 255.0 255.0 176.5 centre 0.220 0.035 -0.003 spread 0.563 0.437 0.458
+  q2 particles 246.67 size 0.1705 color 255.0 255.0 255.0 174.6 centre 0.152 0.032 -0.007 spread 0.504 0.410 0.426
+  q3 particles 42.50 size 0.1906 color 255.0 255.0 255.0 48.9 centre 0.098 0.027 -0.006 spread 0.349 0.292 0.305
+coarse CastingDivination on a unit, stopped, started again: births 156.00 deaths 156.00 life 11.00
+  q0 particles 39.00 size 0.0850 color 255.0 255.0 255.0 126.1 centre 0.036 0.020 -0.042 spread 0.488 0.393 0.446
+  q1 particles 65.82 size 0.0938 color 255.0 255.0 255.0 102.6 centre 0.028 -0.007 -0.025 spread 0.445 0.345 0.384
+  q2 particles 47.64 size 0.0895 color 255.0 255.0 255.0 73.5 centre 0.033 -0.049 -0.020 spread 0.461 0.363 0.402
+  q3 particles 0
+coarse CastingDivination on a stone, let go: births 66.00 deaths 66.00 life 10.50
+  q0 particles 27.00 size 0.0481 color 255.0 255.0 255.0 98.9 centre 0.078 0.019 0.021 spread 0.302 0.257 0.246
+  q1 particles 61.14 size 0.0531 color 255.0 255.0 255.0 127.7 centre 0.059 0.018 0.026 spread 0.262 0.224 0.210
+  q2 particles 6.12 size 0.0600 color 255.0 255.0 255.0 32.0 centre 0.048 0.015 0.024 spread 0.227 0.196 0.181
+  q3 particles 0
+coarse CastingFire rescaled on a stone, stopped: births 420.00 deaths 420.00 life 11.67
+  q0 particles 110.00 size 0.0789 color 255.0 255.0 255.0 118.5 centre 0.041 -0.002 0.027 spread 0.381 0.349 0.352
+  q1 particles 254.00 size 0.0973 color 255.0 255.0 255.0 184.9 centre 0.026 -0.010 0.019 spread 0.300 0.282 0.262
+  q2 particles 126.00 size 0.1046 color 255.0 255.0 255.0 128.4 centre -0.000 -0.009 0.009 spread 0.254 0.244 0.209
+  q3 particles 0
+coarse CastingIllusion on a unit, stopped: births 240.00 deaths 170.00 life 28.04
+  q0 particles 65.00 size 0.1876 color 255.0 255.0 255.0 255.0 centre 0.015 0.000 0.269 spread 0.206 0.180 0.057
+  q1 particles 180.00 size 0.1590 color 255.0 255.0 255.0 254.8 centre 0.004 0.005 0.373 spread 0.199 0.189 0.125
+  q2 particles 221.45 size 0.1298 color 255.0 255.0 255.0 221.0 centre 0.000 0.005 0.532 spread 0.201 0.187 0.181
+  q3 particles 120.00 size 0.1057 color 255.0 255.0 255.0 175.5 centre -0.004 0.008 0.683 spread 0.208 0.180 0.132
+coarse CastingDomination on a moving stone, let go: births 190.00 deaths 120.00 life 27.98
+  q0 particles 55.00 size 0.1857 color 255.0 255.0 255.0 255.0 centre -0.105 -0.016 0.842 spread 0.185 0.140 0.047
+  q1 particles 154.00 size 0.1619 color 255.0 255.0 255.0 255.0 centre -0.372 0.210 0.753 spread 0.294 0.199 0.105
+  q2 particles 186.80 size 0.1283 color 255.0 255.0 255.0 230.9 centre -0.762 0.417 0.572 spread 0.348 0.259 0.161
+  q3 particles 115.00 size 0.1046 color 255.0 255.0 255.0 172.0 centre -1.073 0.627 0.409 spread 0.274 0.268 0.128
+coarse CastingEnchantment carried late, rescaled: births 270.00 deaths 100.00 life 28.12
+  q0 particles 36.00 size 0.2017 color 255.0 255.0 255.0 255.0 centre 0.023 -0.011 0.244 spread 0.218 0.166 0.038
+  q1 particles 135.00 size 0.2601 color 255.0 255.0 255.0 255.0 centre 0.012 -0.007 0.322 spread 0.201 0.190 0.094
+  q2 particles 234.00 size 0.2599 color 255.0 255.0 255.0 244.7 centre 0.009 -0.001 0.436 spread 0.200 0.193 0.168
+  q3 particles 216.20 size 0.2406 color 255.0 255.0 255.0 210.0 centre 0.005 0.002 0.563 spread 0.198 0.196 0.181
+coarse CastingHealing on a unit, stopped, started again: births 300.00 deaths 170.00 life 28.05
+  q0 particles 65.00 size 0.1469 color 255.0 255.0 255.0 255.0 centre 0.040 -0.088 0.271 spread 0.203 0.153 0.055
+  q1 particles 170.91 size 0.1241 color 255.0 255.0 255.0 254.6 centre 0.031 -0.037 0.383 spread 0.193 0.185 0.122
+  q2 particles 231.45 size 0.1085 color 255.0 255.0 255.0 222.2 centre 0.034 -0.034 0.508 spread 0.187 0.191 0.199
+  q3 particles 180.27 size 0.1013 color 255.0 255.0 255.0 206.5 centre 0.024 -0.051 0.548 spread 0.191 0.185 0.192
+coarse FireBlast: births 360.00 deaths 360.00 life 8.94
+  q0 particles 234.84 size 0.1319 color 255.0 255.0 255.0 217.3 centre -0.014 0.050 0.105 spread 0.581 0.606 0.531
+  q1 particles 163.84 size 0.3191 color 255.0 255.0 255.0 147.9 centre -0.006 0.033 0.021 spread 0.529 0.550 0.486
+  q2 particles 23.67 size 0.4710 color 255.0 255.0 255.0 83.0 centre 0.015 0.020 -0.000 spread 0.372 0.400 0.392
+  q3 particles 0.32 size 0.6008 color 255.0 255.0 255.0 16.0 centre 0.081 0.135 0.043 spread 0.373 0.471 0.309
+coarse FireBlast large, moving, started again: births 360.00 deaths 360.00 life 9.13
+  q0 particles 236.19 size 0.2757 color 255.0 255.0 255.0 216.5 centre -0.632 0.182 0.244 spread 1.407 1.427 1.104
+  q1 particles 168.43 size 0.5758 color 255.0 255.0 255.0 148.0 centre -1.530 0.675 0.098 spread 1.205 1.156 0.949
+  q2 particles 27.03 size 0.7855 color 255.0 255.0 255.0 84.7 centre -2.668 1.222 0.029 spread 0.792 0.661 0.712
+  q3 particles 0.36 size 0.8903 color 255.0 255.0 255.0 44.8 centre -3.925 1.919 0.105 spread 0.622 0.584 0.677
+coarse FireBlast on a carrier, let go: births 360.00 deaths 359.75 life 8.90
+  q0 particles 226.46 size 0.0947 color 255.0 255.0 255.0 222.1 centre -0.088 -0.085 0.106 spread 0.452 0.500 0.388
+  q1 particles 210.33 size 0.2134 color 255.0 255.0 255.0 167.2 centre -0.281 -0.296 0.054 spread 0.479 0.523 0.407
+  q2 particles 55.21 size 0.3518 color 255.0 255.0 255.0 94.5 centre -0.558 -0.593 -0.014 spread 0.314 0.319 0.309
+  q3 particles 4.56 size 0.4092 color 255.0 255.0 255.0 47.3 centre -0.783 -0.829 0.022 spread 0.299 0.318 0.337
+coarse LightningBlast: births 614.00 deaths 614.00 life 7.25
+  q0 particles 343.25 size 0.0805 color 255.0 255.0 255.0 84.2 centre 0.023 -0.004 0.093 spread 0.565 0.574 0.418
+  q1 particles 298.44 size 0.0580 color 255.0 255.0 255.0 57.5 centre 0.090 0.012 0.658 spread 1.328 1.361 0.603
+  q2 particles 42.94 size 0.0476 color 255.0 255.0 255.0 13.9 centre 0.147 0.035 0.712 spread 1.828 1.906 0.712
+  q3 particles 0
+coarse LightningBlast large, moving: births 616.50 deaths 616.50 life 7.25
+  q0 particles 345.29 size 0.1365 color 255.0 255.0 255.0 84.0 centre -0.334 -0.139 0.097 spread 0.839 0.861 0.403
+  q1 particles 298.33 size 0.0674 color 255.0 255.0 255.0 57.8 centre -0.858 -0.324 0.621 spread 1.460 1.557 0.640
+  q2 particles 43.46 size 0.0475 color 255.0 255.0 255.0 13.9 centre -1.269 -0.419 0.664 spread 1.979 2.048 0.816
+  q3 particles 0
+coarse LightningBlast stopped before its bolt, started again: births 615.38 deaths 615.38 life 7.25
+  q0 particles 159.14 size 0.0867 color 255.0 255.0 255.0 98.0 centre -0.005 0.002 -0.052 spread 0.381 0.390 0.258
+  q1 particles 402.42 size 0.0676 color 255.0 255.0 255.0 70.0 centre -0.029 -0.008 0.351 spread 0.970 0.993 0.552
+  q2 particles 155.27 size 0.0540 color 255.0 255.0 255.0 33.6 centre -0.088 -0.023 0.702 spread 1.729 1.767 0.685
+  q3 particles 0
+coarse LightningBlast carried, rescaled: births 613.88 deaths 613.88 life 7.23
+  q0 particles 340.79 size 0.0914 color 255.0 255.0 255.0 83.9 centre 0.030 -0.003 -2.407 spread 0.642 0.593 0.420
+  q1 particles 298.17 size 0.0595 color 255.0 255.0 255.0 58.3 centre 0.105 0.020 -1.850 spread 1.480 1.310 0.617
+  q2 particles 44.17 size 0.0477 color 255.0 255.0 255.0 13.9 centre 0.193 0.028 -1.831 spread 2.039 1.805 0.750
+  q3 particles 0
+coarse Geyser: births 1406.75 deaths 1282.00 life 4.72
+  q0 particles 74.49 size 0.0711 color 255.0 255.0 255.0 194.6 centre 0.011 -0.000 0.808 spread 0.197 0.182 0.713
+  q1 particles 94.49 size 0.0520 color 255.0 255.0 255.0 146.0 centre -0.005 0.004 0.561 spread 0.338 0.325 0.951
+  q2 particles 106.04 size 0.0535 color 255.0 255.0 255.0 148.7 centre -0.045 0.006 0.598 spread 0.291 0.312 0.894
+  q3 particles 118.36 size 0.0565 color 255.0 255.0 255.0 150.1 centre -0.025 0.006 0.552 spread 0.308 0.266 1.009
+coarse Geyser rescaled, stopped, started again: births 830.38 deaths 768.50 life 5.06
+  q0 particles 77.86 size 0.1114 color 255.0 255.0 255.0 200.7 centre 0.029 -0.009 1.346 spread 0.281 0.252 1.168
+  q1 particles 95.43 size 0.0427 color 255.0 255.0 255.0 122.2 centre 0.067 -0.003 1.806 spread 0.567 0.519 1.700
+  q2 particles 60.39 size 0.0382 color 255.0 255.0 255.0 146.8 centre 0.010 0.031 0.432 spread 0.260 0.278 0.723
+  q3 particles 66.38 size 0.0408 color 255.0 255.0 255.0 141.4 centre 0.049 0.006 0.497 spread 0.216 0.213 0.748
+coarse Geyser on a moving carrier: births 697.38 deaths 599.38 life 4.73
+  q0 particles 69.12 size 0.1012 color 255.0 255.0 255.0 227.5 centre -0.164 -0.054 0.479 spread 0.177 0.108 0.445
+  q1 particles 108.80 size 0.0625 color 255.0 255.0 255.0 173.8 centre -0.476 -0.155 0.819 spread 0.389 0.236 0.744
+  q2 particles 134.15 size 0.0420 color 255.0 255.0 255.0 121.5 centre -0.780 -0.264 0.332 spread 0.613 0.368 1.192
+  q3 particles 99.80 size 0.0534 color 255.0 255.0 255.0 146.4 centre -0.637 -0.259 0.422 spread 0.594 0.356 1.076
+coarse Tornado moving: births 520.00 deaths 179.25 life 72.15
+  q0 particles 67.50 size 0.9090 color 204.0 178.0 140.0 127.4 centre -0.098 -0.068 6.636 spread 0.853 0.833 3.330
+  q1 particles 190.51 size 0.8382 color 204.0 178.0 140.0 149.8 centre -0.211 -0.094 6.810 spread 0.794 0.772 3.300
+  q2 particles 292.75 size 0.7978 color 204.0 178.0 140.0 148.8 centre -0.299 -0.159 7.199 spread 0.743 0.717 3.211
+  q3 particles 340.12 size 0.7874 color 204.0 178.0 140.0 147.1 centre -0.410 -0.220 7.380 spread 0.764 0.719 3.161
+coarse Tornado turning, stopped: births 236.00 deaths 182.00 life 81.33
+  q0 particles 71.61 size 1.3467 color 204.0 178.0 140.0 131.2 centre 0.111 -0.132 6.478 spread 0.904 0.914 3.490
+  q1 particles 195.22 size 1.1981 color 204.0 178.0 140.0 154.4 centre 0.043 -0.147 6.589 spread 0.773 0.782 3.336
+  q2 particles 192.31 size 0.8393 color 204.0 178.0 140.0 156.2 centre -0.042 -0.087 7.030 spread 0.617 0.614 2.975
+  q3 particles 105.99 size 0.5017 color 204.0 178.0 140.0 140.4 centre -0.004 0.004 7.991 spread 0.509 0.507 2.431
+coarse Tornado on a carrier, let go: births 240.00 deaths 13.12 life 32.55
+  q0 particles 32.00 size 0.7748 color 204.0 178.0 140.0 90.8 centre 0.012 0.010 4.193 spread 0.911 0.900 3.390
+  q1 particles 91.45 size 0.7365 color 204.0 178.0 140.0 134.2 centre -0.052 0.014 4.244 spread 0.844 0.835 3.354
+  q2 particles 148.92 size 0.6848 color 204.0 178.0 140.0 144.7 centre -0.066 0.003 4.342 spread 0.806 0.802 3.368
+  q3 particles 202.78 size 0.6666 color 204.0 178.0 140.0 149.1 centre -0.079 -0.017 4.398 spread 0.773 0.773 3.338
+coarse CurseHolder on a unit: births 480.00 deaths 135.62 life 68.42
+  q0 particles 61.50 size 1.0225 color 0.0 0.0 0.0 126.4 centre -0.083 0.065 -0.534 spread 0.989 0.998 1.366
+  q1 particles 175.49 size 0.9644 color 0.0 0.0 0.0 150.5 centre -0.434 0.255 -0.428 spread 0.957 0.943 1.328
+  q2 particles 275.01 size 0.9472 color 0.0 0.0 0.0 151.5 centre -0.367 0.221 -0.298 spread 0.951 0.929 1.285
+  q3 particles 337.35 size 0.9504 color 0.0 0.0 0.0 148.1 centre -0.084 0.049 -0.158 spread 0.915 0.917 1.254
+coarse CurseHolder on a stone, let go: births 76.00 deaths 7.25 life 28.33
+  q0 particles 27.98 size 1.2849 color 0.0 0.0 0.0 83.4 centre -0.134 -0.084 -0.457 spread 0.999 0.982 1.449
+  q1 particles 70.51 size 1.2246 color 0.0 0.0 0.0 136.7 centre -0.153 -0.130 -0.420 spread 0.943 0.952 1.405
+  q2 particles 73.87 size 1.2035 color 0.0 0.0 0.0 165.0 centre -0.201 -0.133 -0.375 spread 0.893 0.946 1.379
+  q3 particles 70.51 size 1.1926 color 0.0 0.0 0.0 163.3 centre -0.156 -0.205 -0.315 spread 0.917 0.891 1.322
+coarse CurseHolder carried late, rescaled, stopped: births 140.00 deaths 9.50 life 30.08
+  q0 particles 17.60 size 1.1223 color 0.0 0.0 0.0 72.5 centre -1.272 -1.676 -0.918 spread 1.107 1.297 1.381
+  q1 particles 75.23 size 1.3115 color 0.0 0.0 0.0 130.2 centre -0.723 -0.919 -1.021 spread 1.067 1.079 1.390
+  q2 particles 103.06 size 1.2927 color 0.0 0.0 0.0 159.1 centre -0.312 -0.448 -0.974 spread 0.951 0.989 1.361
+  q3 particles 131.65 size 1.2817 color 0.0 0.0 0.0 156.9 centre -0.159 -0.230 -0.919 spread 0.934 0.956 1.327
+coarse ShapeChange green: births 14.00 deaths 7.00 life 12.71
+  q0 particles 14.00 size 0.0700 color 64.0 255.0 64.0 196.2 centre 2.275 0.124 -2.850 spread 1.411 1.447 0.000
+  q1 particles 13.40 size 0.0700 color 64.0 255.0 64.0 214.9 centre 2.372 0.118 -2.850 spread 1.364 1.476 0.000
+  q2 particles 10.60 size 0.0700 color 64.0 255.0 64.0 201.4 centre 2.853 -0.126 -2.850 spread 1.095 1.533 0.000
+  q3 particles 7.80 size 0.0700 color 64.0 255.0 64.0 179.5 centre 3.347 -0.812 -2.850 spread 0.804 1.180 0.000
+coarse ShapeChange grey, short: births 2.00 deaths 1.00 life 8.00
+  q0 particles 2.00 size 0.0700 color 176.0 176.0 176.0 167.4 centre 0.175 0.389 -2.850 spread 0.175 0.389 0.000
+  q1 particles 2.00 size 0.0700 color 176.0 176.0 176.0 156.2 centre 0.175 0.389 -2.850 spread 0.175 0.389 0.000
+  q2 particles 1.00 size 0.0700 color 176.0 176.0 176.0 255.0 centre 0.350 0.779 -2.850 spread 0.000 0.000 0.000
+  q3 particles 1.00 size 0.0700 color 176.0 176.0 176.0 207.2 centre 0.350 0.779 -2.850 spread 0.000 0.000 0.000
+coarse ShapeChange orange, long: births 101.00 deaths 51.00 life 13.43
+  q0 particles 101.00 size 0.0700 color 255.0 128.0 40.0 198.3 centre 2.772 0.089 -2.850 spread 1.700 1.417 0.000
+  q1 particles 98.20 size 0.0700 color 255.0 128.0 40.0 218.6 centre 2.819 0.059 -2.850 spread 1.696 1.420 0.000
+  q2 particles 79.40 size 0.0700 color 255.0 128.0 40.0 203.1 centre 2.869 0.058 -2.850 spread 1.704 1.422 0.000
+  q3 particles 58.40 size 0.0700 color 255.0 128.0 40.0 184.4 centre 2.858 0.083 -2.850 spread 1.691 1.428 0.000
+coarse ShapeChange free: births 0.00 deaths 0.00 life 0.00
+  q0 particles 0
+  q1 particles 0
+  q2 particles 0
+  q3 particles 0
