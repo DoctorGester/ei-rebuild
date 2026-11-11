@@ -3,4 +3,4 @@ title = "Port Shower1-4 to data (the rays chosen at the first emission)"
 group = "mods"
 depends = ["MF15g3"]
 note = "MF15g3 recorded Shower1-4's effect_check cases (4 cases in tests/effects/reference.txt) from their C++. Shower chooses alpha * 8 random unit directions (RandomInBall, v / sqrt(length2)) inside its first emission, after that try's roll; the sparks then jitter (3 draws) before picking a ray (Next() % rays) and add a random part of the first step; the life table reads index -1 (ByLife). Needs, generally for modders: anchors made at the first emission (an action or reaction that runs before a particle, or anchors made lazily), a ball draw for an anchor's position or vars, and the anchor pick after the vars (anchor_index exists: MF15g3). Then delete its C++ (EmitShower, UpdateShower, TickShower, SetupShower, kShower, rayCount), its OneShotTicks case (60 ticks: [server] one_shot) and its kSpecs entries."
-order = 1372
+order = 1373

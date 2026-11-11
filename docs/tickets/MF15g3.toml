@@ -7,5 +7,6 @@ depends = ["MF15g"]
 files = ["assets/effects", "src/game/effects/particle_marks.cpp", "src/game/effects/particle_casting.cpp", "tools/convert/effect_check.cpp"]
 note = "MF15g's workflow. These read the carrier beyond its radius: Stun the unit's run state and death (source values for a unit carrier; effect_check needs a Unit carrier, today a CStone), Regeneration the carrier's x axis and shrinks the source's size in its update, FeetCloud the feet parts' points, the Spheres the smoothed carrier centre / radius and the shell squashed against the motion; VisionStar fixed particles turning; StartTrans, Shower and Falling elements that become source vars or anchors. Each engine feature added generally for modders (user rule 2026-11-11)."
 order = 1364
-status = "running"
+status = "done"
 started = "2026-11-11"
+done = "2026-11-11"

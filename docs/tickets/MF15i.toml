@@ -6,3 +6,5 @@ model = "opus"
 depends = ["MF15c"]
 note = "User 2026-11-11: a small particle editor/viewer with a dear imgui UI. Our own build runs the game's renderer and particle runtime in a viewer mode: pick any of the 83 built-in types (the C++ code itself, with its spec-table values shown) or a data effect; play, pause, step, scrub; drive its typed inputs; attach to a unit figure; edit a data effect's fields live and save the TOML; 'convert to data' for types the equivalence check covers. Textures and figures come from the player's install at run time (nothing of the game committed). Vendor dear imgui unmodified, pinned (library downloads OK) on our SDL_GPU backend."
 order = 1350
+status = "running"
+started = "2026-11-11"
