@@ -1,0 +1,13 @@
+{
+  "scenario": "spells_old_save",
+  "install": "vanilla",
+  "recorded": "2026-11-11",
+  "commit": "fbff8ffd2",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "New (MF17g): a save from the C++ spells' build with a lightning and a curse magic bolt in their lasting state loads, both end at the next update, a new lightning runs on its script",
+  "source": "image",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+}

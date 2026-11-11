@@ -6474,7 +6474,7 @@ cunit1804 #place DF969219
 cunit1804 #unit 618078DC
 cunit1000011214 #unit FB683ED0
 cunit1000011214 #vitals 60FFF36F
-@ 4 update 100 frame 19 tick 100 zone gz1g hash 1E250F78 n 797
+@ 4 update 100 frame 19 tick 100 zone gz1g hash 8E43D666 n 797
 world tick 100
 world updates 100
 world objects 779
@@ -6532,7 +6532,7 @@ timed266 # 720B4B0A
 missile0 # C71EB81A
 missile1 # A3A9771F
 + missile2 spell 1
-missile2 # 3079B1F2
+missile2 # A1537E13
 aievents tick 100
 client tick 100
 client ticksRun 72
@@ -6544,7 +6544,7 @@ cunit1804 #place 0B0BC947
 cunit1000066549 #place C650838A
 cunit1000066549 #unit EC370154
 cunit1000066549 #vitals F4C997B8
-@ 5 update 120 frame 23 tick 120 zone gz1g hash BF753648 n 799
+@ 5 update 120 frame 23 tick 120 zone gz1g hash F25B5EA5 n 799
 world tick 120
 world updates 120
 world objects 780
@@ -6594,7 +6594,6 @@ timed266 # AC31F535
 timed267 # 331FDE45
 missile0 # 28231DFA
 missile1 # 4C94D2FF
-missile2 # E08CA964
 + missile3 spell 0
 missile3 # 24300996
 aievents tick 120
@@ -6609,7 +6608,7 @@ cunit1000066549 #place B3D01634
 cunit1000066550 #place D0774779
 cunit1000066550 #unit 4A3CD042
 cunit1000066550 #vitals 8FC93AF9
-@ 6 update 140 frame 27 tick 140 zone gz1g hash 377CD245 n 802
+@ 6 update 140 frame 27 tick 140 zone gz1g hash C4100C99 n 802
 world tick 140
 world updates 140
 world objects 781
@@ -6670,7 +6669,6 @@ timed269 # 6D1C015A
 timed271 # 7C729FA1
 missile0 # C4188365
 missile1 # A0AF4C60
-missile2 # 0CB737FB
 missile3 # 91E9E2DF
 aievents tick 140
 client tick 140
@@ -6685,7 +6683,7 @@ cunit1000066550 #vitals F4C997B8
 cunit1000066551 #place 8012B760
 cunit1000066551 #unit 70C5D16A
 cunit1000066551 #vitals 8FC93AF9
-@ 7 update 160 frame 31 tick 160 zone gz1g hash 5FB6E39F n 805
+@ 7 update 160 frame 31 tick 160 zone gz1g hash 195BF5DF n 805
 world tick 160
 world updates 160
 world timedObjects 5
@@ -6724,7 +6722,6 @@ timed274 # 2C0DA4AA
 timed276 # 9A2DF62F
 missile0 # 2D29507B
 missile1 # 499E9F7E
-missile2 # E38A921B
 missile3 # A4E33A23
 + missile4 spell 2
 missile4 # C2EDFB8A
@@ -6734,7 +6731,7 @@ client ticksRun 132
 cunit1000066551 #place B9186DC9
 cunit1000066551 #unit 42B6640D
 cunit1000066551 #vitals F4C997B8
-@ 8 update 180 frame 35 tick 180 zone gz1g hash 4724F14D n 808
+@ 8 update 180 frame 35 tick 180 zone gz1g hash 833B1248 n 808
 world tick 180
 world updates 180
 world objects 782
@@ -6791,7 +6788,6 @@ timed277 # 3EE15C69
 timed279 # 55FA2339
 missile0 # F6B3FF00
 missile1 # 92043005
-missile2 # 0FB10C84
 + missile3 spell 2
 missile3 # 2ED66515
 + missile4 spell 3

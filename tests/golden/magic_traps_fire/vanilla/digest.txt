@@ -6381,7 +6381,7 @@ cunit1884 #vitals C3E01DE4
 cunit1000011214 #place DFCF543E
 cunit1000011214 #unit C6081760
 cunit1000011214 #vitals 7D2D89BA
-@ 2 update 60 frame 11 tick 60 zone gz1g hash C579BAD8 n 807
+@ 2 update 60 frame 11 tick 60 zone gz1g hash 7F958EAC n 807
 world tick 60
 world updates 60
 world objects 780
@@ -6451,15 +6451,15 @@ timed275 # DBF68E0B
 missile0 # 90E33CB5
 missile1 # F454F3B0
 + missile2 spell 1
-missile2 # 658F2365
+missile2 # 8ACAED9D
 + missile3 spell 1
-missile3 # 42F26EFB
+missile3 # 8ACAED9D
 + missile4 spell 1
-missile4 # 4F8B381A
+missile4 # 8ACAED9D
 + missile5 spell 1
-missile5 # 11645904
+missile5 # 8ACAED9D
 + missile6 spell 1
-missile6 # A30CEEC9
+missile6 # 8ACAED9D
 aievents tick 60
 script #files E84C6350
 client tick 60
@@ -6469,7 +6469,7 @@ cunit1804 #place C2A14CCD
 cunit1804 #unit D72CA4CA
 cunit1884 #place AE30F036
 cunit1000011214 #place FF01FC81
-@ 3 update 80 frame 15 tick 80 zone gz1g hash 14606D93 n 817
+@ 3 update 80 frame 15 tick 80 zone gz1g hash 46AD92C9 n 817
 world tick 80
 world updates 80
 world timedObjects 13
@@ -6529,29 +6529,24 @@ timed291 # 40876375
 timed293 # FA215574
 missile0 # 2B252685
 missile1 # 4F92E980
-missile2 # 62D502C2
-missile3 # 7545C1CC
-missile4 # 194BD16A
-missile5 # 234EB84D
-missile6 # 2199FDB8
 + missile7 spell 1
-missile7 # E4DAF412
+missile7 # 8ACAED9D
 + missile8 spell 1
-missile8 # 885B2550
+missile8 # 8ACAED9D
 + missile9 spell 1
-missile9 # 36C40ECF
+missile9 # 8ACAED9D
 + missile10 spell 1
-missile10 # EC686438
+missile10 # 8ACAED9D
 + missile11 spell 1
-missile11 # EB99C26E
+missile11 # 8ACAED9D
 + missile12 spell 1
-missile12 # 543D64B1
+missile12 # 8ACAED9D
 aievents tick 80
 client tick 80
 client ticksRun 52
 cunit1804 #place DF969219
 cunit1804 #unit 618078DC
-@ 4 update 100 frame 19 tick 100 zone gz1g hash 85C16396 n 838
+@ 4 update 100 frame 19 tick 100 zone gz1g hash E58DA28C n 838
 world tick 100
 world updates 100
 world objects 781
@@ -6639,33 +6634,22 @@ timed316 # 873CB50E
 timed317 # D4A5A452
 missile0 # C71EB81A
 missile1 # A3A9771F
-missile2 # 8DE8A722
-missile3 # 9A78642C
-missile4 # F5704FF5
-missile5 # CF7526D2
-missile6 # CDA26327
-missile7 # 08E16A8D
-missile8 # DD7FC9B5
-missile9 # 530D6CBA
-missile10 # 99FA7C3D
-missile11 # BFC5F47E
-missile12 # CFF105BC
 + missile13 spell 1
-missile13 # F15AD331
+missile13 # 8ACAED9D
 + missile14 spell 1
-missile14 # 30E57A0F
+missile14 # 8ACAED9D
 + missile15 spell 1
-missile15 # F0731D01
+missile15 # 8ACAED9D
 + missile16 spell 1
-missile16 # DDDB85C4
+missile16 # 8ACAED9D
 + missile17 spell 1
-missile17 # D194C4B4
+missile17 # 8ACAED9D
 + missile18 spell 1
-missile18 # C81B981C
+missile18 # 49A017A8
 + missile19 spell 1
-missile19 # A5B06577
+missile19 # 8ACAED9D
 + missile20 spell 1
-missile20 # 088C4171
+missile20 # 8ACAED9D
 aievents tick 100
 client tick 100
 client ticksRun 72
@@ -6677,7 +6661,7 @@ cunit1804 #place 0B0BC947
 cunit1008110175 #place 8979414D
 cunit1008110175 #unit 252809EB
 cunit1008110175 #vitals F4C997B8
-@ 5 update 120 frame 23 tick 120 zone gz1g hash E85CDBD9 n 851
+@ 5 update 120 frame 23 tick 120 zone gz1g hash 8C200966 n 851
 world tick 120
 world updates 120
 world timedObjects 30
@@ -6753,46 +6737,27 @@ timed337 # B7615350
 timed338 # F2F4D9B7
 missile0 # 28231DFA
 missile1 # 4C94D2FF
-missile2 # 61D339BD
-missile3 # 7643FAB3
-missile4 # 1A4DEA15
-missile5 # 20488332
-missile6 # 229FC6C7
-missile7 # E7DCCF6D
-missile8 # 32426C55
-missile9 # BC30C95A
-missile10 # 76C7D9DD
-missile11 # 53FE6AE1
-missile12 # 23CA9B23
-missile13 # 1D614DAE
-missile14 # 9D54C397
-missile15 # 9B401340
-missile16 # 999756B5
-missile17 # 5CD45F1F
-missile18 # E0374CEB
-missile19 # D80CEC3A
-missile20 # FA4E36FE
 + missile21 spell 1
-missile21 # 132CE588
+missile21 # 8ACAED9D
 + missile22 spell 1
-missile22 # 166CA312
+missile22 # 8ACAED9D
 + missile23 spell 1
-missile23 # FA85A38B
+missile23 # 8ACAED9D
 + missile24 spell 1
-missile24 # BA3960AA
+missile24 # 8ACAED9D
 + missile25 spell 1
-missile25 # 7D2559D4
+missile25 # 8ACAED9D
 + missile26 spell 1
-missile26 # 20704BF9
+missile26 # 8ACAED9D
 + missile27 spell 1
-missile27 # 3581C23D
+missile27 # 8ACAED9D
 aievents tick 120
 client tick 120
 client ticksRun 92
 cunit1804 #place 5D944E41
 cunit1008110175 #place 283B5795
 cunit1008110175 #unit 474D219E
-@ 6 update 140 frame 27 tick 140 zone gz1g hash 8EB3156D n 861
+@ 6 update 140 frame 27 tick 140 zone gz1g hash A8041197 n 861
 world tick 140
 world updates 140
 world timedObjects 34
@@ -6873,49 +6838,25 @@ timed354 # 60E9DB16
 timed356 # D32302C8
 missile0 # C4188365
 missile1 # A0AF4C60
-missile2 # B91ADA9C
-missile3 # AE8A1992
-missile4 # F676748A
-missile5 # CC731DAD
-missile6 # CEA45858
-missile7 # 0BE751F2
-missile8 # DE79F2CA
-missile9 # 500B57C5
-missile10 # 9AFC4742
-missile11 # BCC3CF01
-missile12 # CCF73EC3
-missile13 # F25CE84E
-missile14 # 72696677
-missile15 # 747DB6A0
-missile16 # 76AAF355
-missile17 # B3E9FAFF
-missile18 # 0C0CD274
-missile19 # 343772A5
-missile20 # 1675A861
-missile21 # FF177B17
-missile22 # A45FB538
-missile23 # 785B3B31
-missile24 # 69D16BA0
-missile25 # 9493A3F5
-missile26 # 74EBBE84
-missile27 # 591D7D6D
+missile2 # 384000E9
+missile3 # 384000E9
 + missile28 spell 1
-missile28 # 01088773
+missile28 # 8ACAED9D
 + missile29 spell 1
-missile29 # 755B1C98
+missile29 # 8ACAED9D
 + missile30 spell 1
-missile30 # 4742BC2C
+missile30 # 8ACAED9D
 + missile31 spell 1
-missile31 # B55AB295
+missile31 # 8ACAED9D
 + missile32 spell 1
-missile32 # 57AFDC53
+missile32 # 8ACAED9D
 + missile33 spell 1
-missile33 # 74208CCD
+missile33 # 8ACAED9D
 aievents tick 140
 client tick 140
 client ticksRun 112
 cunit1008110175 #place 33929874
-@ 7 update 160 frame 31 tick 160 zone gz1g hash 0C6A79BB n 861
+@ 7 update 160 frame 31 tick 160 zone gz1g hash C733E758 n 861
 world tick 160
 world updates 160
 world timedObjects 35
@@ -7000,42 +6941,15 @@ timed376 # 0398350E
 timed377 # 008DA444
 missile0 # 2D29507B
 missile1 # 499E9F7E
-missile2 # 73CD945C
-missile3 # 50F8519E
-missile4 # 20CCA05C
-missile5 # 1E6776D1
-missile6 # 9E52F8E8
-missile7 # 9846283F
-missile8 # 9A916DCA
-missile9 # 5FD26460
-missile10 # E3317794
-missile11 # DB0AD745
-missile12 # F9480D81
-missile13 # 102ADEF7
-missile14 # 4B6210D8
-missile15 # 97669ED1
-missile16 # 86ECCE40
-missile17 # 78A83D6A
-missile18 # 98D0201B
-missile19 # B526E3F2
-missile20 # ED3319EC
-missile21 # 483D830E
-missile22 # 6A7F59CA
-missile23 # 31C491BE
-missile24 # 86B7C10E
-missile25 # 5AB34F07
-missile26 # 4B391F96
-missile27 # CFBB960C
-missile28 # 00BC564D
-missile29 # 63EE55B4
-missile30 # 81F0CA9D
-missile31 # 5FDABD3A
-missile32 # F2E6993C
+missile2 # 8ACAED9D
+missile3 # 8ACAED9D
+missile10 # 49A017A8
+missile18 # 8ACAED9D
 - missile33
 aievents tick 160
 client tick 160
 client ticksRun 132
-@ 8 update 180 frame 35 tick 180 zone gz1g hash 60C4AFCB n 861
+@ 8 update 180 frame 35 tick 180 zone gz1g hash F68C4FB0 n 861
 world tick 180
 world updates 180
 random isaac.count 142
@@ -7124,43 +7038,20 @@ timed397 # 997B7BB8
 timed398 # 8AD04265
 missile0 # F6B3FF00
 missile1 # 92043005
-missile2 # B6E3B77E
-missile3 # 0F0AE90B
-missile4 # 373149DA
-missile5 # 1573931E
-missile6 # FC114068
-missile7 # A7598E47
-missile8 # 7B5D004E
-missile9 # 6AD750DF
-missile10 # 9795988A
-missile11 # 77ED85FB
-missile12 # 5A1B4612
-missile13 # 020EBC0C
-missile14 # A70026EE
-missile15 # 8542FC2A
-missile16 # DEF9345E
-missile17 # 6A8C5F91
-missile18 # B688D198
-missile19 # A7028109
-missile20 # 04A2CCC1
-missile21 # E4DAD1B0
-missile22 # C92C1259
-missile23 # 9D23C300
-missile24 # D416C77D
-missile25 # F6541DB9
-missile26 # 07029841
-missile27 # 78247156
-missile28 # 1CBB925B
-missile29 # 6A687B26
-missile30 # C884FAB8
-missile31 # 009D06F3
-missile32 # E9351585
+missile3 # 49A017A8
+missile10 # 8ACAED9D
+missile27 # 64449A0C
+missile28 # A80103FC
+missile29 # BD8A952B
+missile30 # FD1BFE35
+missile31 # F7DB9FC5
+missile32 # 502504B7
 aievents tick 180
 client tick 180
 client ticksRun 152
 cunit1000011214 #place 3B48CC22
 cunit1000011214 #unit 958D97A3
-@ 9 update 200 frame 39 tick 200 zone gz1g hash 91EB4427 n 857
+@ 9 update 200 frame 39 tick 200 zone gz1g hash 0FB82938 n 857
 world tick 200
 world updates 200
 world timedObjects 32
@@ -7244,43 +7135,27 @@ timed414 # 602AFC63
 timed416 # 410FC491
 missile0 # 1A88619F
 missile1 # 7E3FAE9A
-missile2 # B21EB3FE
-missile3 # 7BAE0615
-missile4 # 9BD61B64
-missile5 # B620D88D
-missile6 # EE352293
-missile7 # 4B3BB871
-missile8 # 697962B5
-missile9 # 32C2AAC1
-missile10 # 85B1FA71
-missile11 # 59B57478
-missile12 # 483F24E9
-missile13 # EB9F6921
-missile14 # 0BE77450
-missile15 # 2611B7B9
-missile16 # 721E66E0
-missile17 # 382D59E2
-missile18 # 1A6F8326
-missile19 # EB3906DE
-missile20 # D5807863
-missile21 # FE6ED7D4
-missile22 # 8D0FF5B0
-missile23 # DDB5AAF3
-missile24 # 99893F01
-missile25 # 91EC77D2
-missile26 # 8F0F403B
-missile27 # EF748C99
-missile28 # 9CDE1224
-missile29 # 063DD778
-missile30 # D4495693
-missile31 # 06846409
+missile2 # 384000E9
+missile3 # 8ACAED9D
+missile20 # 64449A0C
+missile21 # A80103FC
+missile22 # BD8A952B
+missile23 # FD1BFE35
+missile24 # F7DB9FC5
+missile25 # 502504B7
+missile26 # 75AC515C
+missile27 # 19169983
+missile28 # C006A930
+missile29 # 11E475DF
+missile30 # 038CBAF6
+missile31 # 27F0170F
 - missile32
 aievents tick 200
 client tick 200
 client ticksRun 172
 cunit1000011214 #place 90FAF503
 cunit1000011214 #unit C4113F8B
-@ 10 update 220 frame 43 tick 220 zone gz1g hash BEEC5EE5 n 859
+@ 10 update 220 frame 43 tick 220 zone gz1g hash ECDD504D n 859
 world tick 220
 world updates 220
 world timedObjects 34
@@ -7360,42 +7235,32 @@ timed436 # F9DCB15B
 timed437 # 0CD4B5C5
 missile0 # F5B5C47F
 missile1 # 91020B7A
-missile2 # DBF379DF
-missile3 # 698A64EE
-missile4 # B58EEAE7
-missile5 # A404BA76
-missile6 # 07A4F7BE
-missile7 # E7DCEACF
-missile8 # CA2A2926
-missile9 # 9E25F87F
-missile10 # D710FC02
-missile11 # F55226C6
-missile12 # 0404A33E
-missile13 # 3ABDDD83
-missile14 # 11537234
-missile15 # 62325050
-missile16 # 318E346C
-missile17 # 75B2A19E
-missile18 # 7DD7E94D
-missile19 # 6334DEA4
-missile20 # 3FA09C08
-missile21 # 647F4D56
-missile22 # EFCC681E
-missile23 # 878E7551
-missile24 # 5C167D23
-missile25 # 7BC0480D
-missile26 # 213A130F
-missile27 # 9FD61424
-missile28 # CB95566D
-missile29 # 3BD0F415
-missile30 # 36116EBC
-missile31 # B282F800
+missile2 # 8ACAED9D
+missile13 # 64449A0C
+missile14 # A80103FC
+missile15 # BD8A952B
+missile16 # FD1BFE35
+missile17 # F7DB9FC5
+missile18 # 502504B7
+missile19 # 75AC515C
+missile20 # 19169983
+missile21 # C006A930
+missile22 # 11E475DF
+missile23 # 038CBAF6
+missile24 # 27F0170F
+missile25 # 01458E0F
+missile26 # C7853B3A
+missile27 # 15E242B3
+missile28 # CFC50045
+missile29 # B52A58C7
+missile30 # FDFA27EF
+missile31 # 1983E303
 aievents tick 220
 client tick 220
 client ticksRun 192
 cunit1000011214 #place 1CBEB07D
 cunit1000011214 #unit EAAF995F
-@ 11 update 240 frame 47 tick 240 zone gz1g hash 05BA9BE8 n 847
+@ 11 update 240 frame 47 tick 240 zone gz1g hash 095EA839 n 847
 world tick 240
 world updates 240
 world timedObjects 26
@@ -7458,32 +7323,28 @@ timed443 # 02DC75AA
 timed446 # 01427DE3
 missile0 # 198E5AE0
 missile1 # 7D3995E5
-missile2 # 77142B61
-missile3 # 3B2B629D
-missile4 # 1969B859
-missile5 # E83F3DA1
-missile6 # D686431C
-missile7 # FD68ECAB
-missile8 # 8E09CECF
-missile9 # DEB3918C
-missile10 # 9A8F047E
-missile11 # 92EA4CAD
-missile12 # 8C097B44
-missile13 # D09D39E8
-missile14 # 8B42E8B6
-missile15 # 00F1CDFE
-missile16 # 6BB5EBCE
-missile17 # B02DE3BC
-missile18 # 97FBD692
-missile19 # 9D451CFE
-missile20 # D02B620E
-missile21 # 368B032A
-missile22 # E4247849
-missile23 # 4A7ABADE
-missile24 # 43A5953A
-missile25 # D1209244
-missile26 # B6254E49
-missile27 # 534E2A83
+missile6 # 64449A0C
+missile7 # A80103FC
+missile8 # BD8A952B
+missile9 # FD1BFE35
+missile10 # F7DB9FC5
+missile11 # 502504B7
+missile12 # 75AC515C
+missile13 # 19169983
+missile14 # C006A930
+missile15 # 11E475DF
+missile16 # 038CBAF6
+missile17 # 27F0170F
+missile18 # 01458E0F
+missile19 # C7853B3A
+missile20 # 15E242B3
+missile21 # CFC50045
+missile22 # B52A58C7
+missile23 # FDFA27EF
+missile24 # 1983E303
+missile25 # 3F8D7C23
+missile26 # DD22D37C
+missile27 # 847C868E
 - missile28
 - missile29
 - missile30
@@ -7494,7 +7355,7 @@ client tick 240
 client ticksRun 212
 cunit1000011214 #place 5D1ACAA8
 cunit1000011214 #unit C2095EAB
-@ 12 update 260 frame 51 tick 260 zone gz1g hash 89DC35C8 n 835
+@ 12 update 260 frame 51 tick 260 zone gz1g hash 73924766 n 835
 world tick 260
 world updates 260
 world timedObjects 20
@@ -7549,26 +7410,26 @@ timed443 # 539083FC
 timed446 # 06D13CF0
 missile0 # F0BF89FE
 missile1 # 940846FB
-missile2 # 8BCAE119
-missile3 # 32880F13
-missile4 # 76B49AE1
-missile5 # 7ED1D232
-missile6 # 6032E5DB
-missile7 # 3CA6A777
-missile8 # 67797629
-missile9 # ECCA5361
-missile10 # 84884E2E
-missile11 # 5F10465C
-missile12 # 78C67372
-missile13 # 7278B91E
-missile14 # 3F16C7EE
-missile15 # D9B6A6CA
-missile16 # 0B19DDA9
-missile17 # A6412441
-missile18 # AF9E0BA5
-missile19 # 3D1B0CDB
-missile20 # 584674A9
-missile21 # 7629788A
+missile2 # 73743080
+missile3 # FD1BFE35
+missile4 # F7DB9FC5
+missile5 # 502504B7
+missile6 # 75AC515C
+missile7 # 19169983
+missile8 # C006A930
+missile9 # 11E475DF
+missile10 # 038CBAF6
+missile11 # 27F0170F
+missile12 # 01458E0F
+missile13 # C7853B3A
+missile14 # 15E242B3
+missile15 # CFC50045
+missile16 # B52A58C7
+missile17 # FDFA27EF
+missile18 # 1983E303
+missile19 # 3F8D7C23
+missile20 # DD22D37C
+missile21 # 847C868E
 - missile22
 - missile23
 - missile24
@@ -7580,7 +7441,7 @@ client tick 260
 client ticksRun 232
 cunit1000011214 #place A8328B77
 cunit1000011214 #unit 9D9202D2
-@ 13 update 280 frame 55 tick 280 zone gz1g hash 273D3C92 n 821
+@ 13 update 280 frame 55 tick 280 zone gz1g hash F1278106 n 821
 world tick 280
 world updates 280
 world timedObjects 13
@@ -7627,19 +7488,19 @@ timed443 # 80FF5310
 timed446 # 48448424
 missile0 # 8BC0F958
 missile1 # EF77365D
-missile2 # 05FB807F
-missile3 # 68B3D0B1
-missile4 # B32BD8C3
-missile5 # 94FDEDED
-missile6 # 9E432781
-missile7 # D32D5971
-missile8 # 358D3855
-missile9 # E7224336
-missile10 # 497C81A1
-missile11 # 40A3AE45
-missile12 # D226A93B
-missile13 # B77BD149
-missile14 # 9914DD6A
+missile2 # 11E475DF
+missile3 # 038CBAF6
+missile4 # 27F0170F
+missile5 # 01458E0F
+missile6 # C7853B3A
+missile7 # 15E242B3
+missile8 # CFC50045
+missile9 # B52A58C7
+missile10 # FDFA27EF
+missile11 # 1983E303
+missile12 # 3F8D7C23
+missile13 # DD22D37C
+missile14 # 847C868E
 - missile15
 - missile16
 - missile17
@@ -7652,7 +7513,7 @@ client tick 280
 client ticksRun 252
 cunit1000011214 #place CE005A55
 cunit1000011214 #unit C2095EAB
-@ 14 update 300 frame 59 tick 300 zone gz1g hash 0EC244CE n 807
+@ 14 update 300 frame 59 tick 300 zone gz1g hash 85A51687 n 807
 world tick 300
 world updates 300
 world timedObjects 6
@@ -7687,12 +7548,12 @@ timed443 # 8C1A6CED
 timed446 # E44A39FE
 missile0 # 67FB67C7
 missile1 # 034CA8C2
-missile2 # 0E139028
-missile3 # A5471F3E
-missile4 # AC9830DA
-missile5 # 3E1D37A4
-missile6 # 5B404FD6
-missile7 # 752F43F5
+missile2 # B52A58C7
+missile3 # FDFA27EF
+missile4 # 1983E303
+missile5 # 3F8D7C23
+missile6 # DD22D37C
+missile7 # 847C868E
 - missile8
 - missile9
 - missile10
@@ -7805,7 +7666,7 @@ client tick 360
 client ticksRun 332
 cunit1000011214 #place 7D60028E
 cunit1000011214 #unit C2095EAB
-@ 18 update 380 frame 75 tick 380 zone gz1g hash DE3F90DA n 803
+@ 18 update 380 frame 75 tick 380 zone gz1g hash 5D881313 n 803
 world tick 380
 world updates 380
 world timedObjects 6
@@ -7838,15 +7699,15 @@ timed452 # 285F51D4
 missile0 # 565620DD
 missile1 # 32E1EFD8
 + missile2 spell 1
-missile2 # 92FC37F5
+missile2 # 46E7E5A8
 + missile3 spell 1
-missile3 # 15D63443
+missile3 # 46E7E5A8
 aievents tick 380
 client tick 380
 client ticksRun 352
 cunit1000011214 #place 4719CD70
 cunit1000011214 #unit B803751E
-@ 19 update 400 frame 79 tick 400 zone gz1g hash 4D16C630 n 813
+@ 19 update 400 frame 79 tick 400 zone gz1g hash 6056AA07 n 813
 world tick 400
 world updates 400
 world timedObjects 10
@@ -7896,26 +7757,24 @@ timed468 # FA024D55
 timed470 # 8F75714D
 missile0 # BA6DBE42
 missile1 # DEDA7147
-missile2 # 4D865567
-missile3 # 2180952D
 + missile4 spell 1
-missile4 # FEAEB16D
+missile4 # 38E6E5FD
 + missile5 spell 1
-missile5 # 4E53919F
+missile5 # 6DFF632C
 + missile6 spell 1
-missile6 # 4AF36BB2
+missile6 # 4A157A95
 + missile7 spell 1
-missile7 # 02C8CAE8
+missile7 # BA4EAB71
 + missile8 spell 1
-missile8 # CA7EB858
+missile8 # 5FAC7AEE
 + missile9 spell 1
-missile9 # 8EB4E83E
+missile9 # 1486125C
 aievents tick 400
 client tick 400
 client ticksRun 372
 cunit1000011214 #place FF781E75
 cunit1000011214 #unit 9D9202D2
-@ 20 update 420 frame 83 tick 420 zone gz1g hash EE427983 n 829
+@ 20 update 420 frame 83 tick 420 zone gz1g hash 4B9DB926 n 829
 world tick 420
 world updates 420
 world timedObjects 19
@@ -7967,34 +7826,26 @@ timed490 # 2AA69CBA
 timed491 # 094C68AE
 missile0 # 55501BA2
 missile1 # 31E7D4A7
-missile2 # A1BDCBF8
-missile3 # CDBB0BB2
-missile4 # 12952FF2
-missile5 # D6621E20
-missile6 # 7DC5565E
-missile7 # 1FC70E47
-missile8 # EA058A06
-missile9 # 4DD9B129
 + missile10 spell 1
-missile10 # 073DAB66
+missile10 # 09D16F2F
 + missile11 spell 1
-missile11 # 9BCAAA51
+missile11 # E69D97AA
 + missile12 spell 1
-missile12 # 1903D179
+missile12 # B9011F84
 + missile13 spell 1
-missile13 # 611FB255
+missile13 # 0EF9A407
 + missile14 spell 1
-missile14 # 14522A84
+missile14 # 967E5224
 + missile15 spell 1
-missile15 # B951D70B
+missile15 # 5A6D2DB4
 + missile16 spell 1
-missile16 # 675A017E
+missile16 # 85E4A9F7
 aievents tick 420
 client tick 420
 client ticksRun 392
 cunit1000011214 #place E1FB66D4
 cunit1000011214 #unit 34BDC84C
-@ 21 update 440 frame 87 tick 440 zone gz1g hash 3C148B10 n 838
+@ 21 update 440 frame 87 tick 440 zone gz1g hash 2D2C14C7 n 838
 world tick 440
 world updates 440
 world objects 782
@@ -8070,31 +7921,16 @@ timed504 # 5CE8481D
 timed506 # 9BB5E64C
 missile0 # B96B853D
 missile1 # DDDC4A38
-missile2 # 4E806E18
-missile3 # 2286AE52
-missile4 # FDA88A12
-missile5 # 395FBBC0
-missile6 # 92F8F3BE
-missile7 # F0FAABA7
-missile8 # 063E1499
-missile9 # A1E22FB6
-missile10 # EB0635F9
-missile11 # 112C90B4
-missile12 # C5779A82
-missile13 # 1E233150
-missile14 # 947B3419
-missile15 # 77C9F6AD
-missile16 # 542DB115
 + missile17 spell 1
-missile17 # 2B1C68E3
+missile17 # 0860625E
 + missile18 spell 1
-missile18 # 5E61DF1F
+missile18 # EDC32DD9
 + missile19 spell 1
-missile19 # 511A13A2
+missile19 # 262D4DCF
 + missile20 spell 1
-missile20 # F8FE082A
+missile20 # D8EB386D
 + missile21 spell 1
-missile21 # 122135DE
+missile21 # 5C215890
 aievents tick 440
 client tick 440
 client ticksRun 412
@@ -8107,7 +7943,7 @@ cunit1000011214 #unit 9D9202D2
 cunit1040550925 #place 9968C201
 cunit1040550925 #unit 95A201DC
 cunit1040550925 #vitals 8FC93AF9
-@ 22 update 460 frame 91 tick 460 zone gz1g hash F8046AA7 n 837
+@ 22 update 460 frame 91 tick 460 zone gz1g hash AA5B823D n 837
 world tick 460
 world updates 460
 world timedObjects 20
@@ -8154,26 +7990,6 @@ timed503 # 864FD616
 timed506 # 9DFD110D
 missile0 # 505A5623
 missile1 # 34ED9926
-missile2 # A2BBF087
-missile3 # CEBD30CD
-missile4 # 1193148D
-missile5 # D564255F
-missile6 # 7EC36D21
-missile7 # 1CC13538
-missile8 # E903B179
-missile9 # 4EDF8A56
-missile10 # 043B9019
-missile11 # FE113554
-missile12 # 2A4A3F62
-missile13 # F11E94B0
-missile14 # 7B4691F9
-missile15 # 9BF26832
-missile16 # B8162F8A
-missile17 # C727F67C
-missile18 # DAA6C4F9
-missile19 # 3A423CED
-missile20 # 842B2FE8
-missile21 # 37686A06
 aievents tick 460
 client tick 460
 client ticksRun 432
@@ -8181,7 +7997,7 @@ cunit1000011214 #place 253B646F
 cunit1000011214 #unit 142B492F
 cunit1040550925 #place 3E5B09A6
 cunit1040550925 #unit 6C566BBF
-@ 23 update 480 frame 95 tick 480 zone gz1g hash B48DF17A n 827
+@ 23 update 480 frame 95 tick 480 zone gz1g hash 59CD46B7 n 827
 world tick 480
 world updates 480
 world timedObjects 15
@@ -8224,21 +8040,21 @@ timed503 # 3C3CC67D
 timed506 # 542740E6
 missile0 # EB9C4C13
 missile1 # 8F2B8316
-missile2 # F5F0E626
-missile3 # 05382FE6
-missile4 # A2E414C9
-missile5 # E8000E86
-missile6 # 122AABCB
-missile7 # C671A1FD
-missile8 # 1D250A2F
-missile9 # 977D0F66
-missile10 # 74CFCDD2
-missile11 # 572B8A6A
-missile12 # 281A539C
-missile13 # 359B6119
-missile14 # D57F990D
-missile15 # 6B168A08
-missile16 # DB53F499
+missile2 # BA4EAB71
+missile3 # 5FAC7AEE
+missile4 # 1486125C
+missile5 # 09D16F2F
+missile6 # E69D97AA
+missile7 # B9011F84
+missile8 # 0EF9A407
+missile9 # 967E5224
+missile10 # 5A6D2DB4
+missile11 # 85E4A9F7
+missile12 # 0860625E
+missile13 # EDC32DD9
+missile14 # 262D4DCF
+missile15 # D8EB386D
+missile16 # 5C215890
 - missile17
 - missile18
 - missile19

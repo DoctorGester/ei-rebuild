@@ -36465,7 +36465,7 @@ cunit1020001 #unit C57A5185
 cunit1020001 #vitals BE358F3D
 cunit1000011214 #place 0652CD50
 cunit1000011214 #unit FAB198C5
-@ 3 update 80 frame 15 tick 80 zone gz1h hash 9F0EFAB2 n 3905
+@ 3 update 80 frame 15 tick 80 zone gz1h hash B767FC2F n 3905
 world tick 80
 world updates 80
 world timedObjects 198
@@ -36708,7 +36708,7 @@ missile6 # 6F88EDF4
 missile7 # AB3796D6
 missile8 # 7E2CC032
 + missile9 spell 41
-missile9 # 3E0E6285
+missile9 # 4E34C481
 aievents tick 80
 script #run 1AC859A1
 client tick 80
