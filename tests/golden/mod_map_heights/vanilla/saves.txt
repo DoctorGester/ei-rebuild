@@ -1,4 +1,4 @@
 s19d_mod/savea/info.sav 1a6467a48a11b9cd
-s19d_mod/savea/mission.sav 3d8cec2e9f9bcb2a
+s19d_mod/savea/mission.sav 77ecb37b536b1025
 s19d_mod/savea/scenario.sav 84889297446d64b6
 s19d_mod/savea/visuals.sav b30527aee23aefec

@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash BDD77397 n 236
+@ 0 update 20 frame 3 tick 20 zone - hash 5923E0E6 n 236
 + world world
 world tick 20
 world updates 20
@@ -292,11 +292,11 @@ obj30907 #vitals 3D0998BF
 obj30908 dead 0
 obj30908 hp 100.0
 obj30908 mana 35.0
-obj30908 pos.x 59.4438858
-obj30908 pos.y 14.8877726
+obj30908 pos.x 60.1115036
+obj30908 pos.y 14.2038345
 obj30908 pos.z 0.0
 obj30908 #ai 7D03AD2B
-obj30908 #place B7CE08EE
+obj30908 #place E6D6F92E
 obj30908 #unit 1D390365
 obj30908 #vitals 3D0998BF
 + obj736256 84 stst113
@@ -1754,8 +1754,8 @@ cunit30907 #place 2BC6D4B1
 cunit30907 #unit 442EF48A
 cunit30907 #vitals 42557372
 + cunit30908 80 unmozo1 ""
-cunit30908 #place 6510FDAE
-cunit30908 #unit 31A5D813
+cunit30908 #place E20933B8
+cunit30908 #unit B70D9319
 cunit30908 #vitals 42557372
 + cunit1000205 80 unmozo1 ""
 cunit1000205 #place 189535C6
@@ -1765,7 +1765,7 @@ cunit1000205 #vitals 42557372
 cunit1000206 #place 0581AB39
 cunit1000206 #unit 39D43514
 cunit1000206 #vitals 75BE0BF3
-@ 1 update 85 frame 17 tick 85 zone cz2j hash EB3A05AC n 535
+@ 1 update 85 frame 17 tick 85 zone cz2j hash C080FA90 n 535
 world tick 85
 world updates 85
 world timeBase 5.96444464
@@ -5693,7 +5693,7 @@ obj1000010798 pos.y 173.972519
 obj1000010798 pos.z 0.0
 obj1000010798 #ai 790FADC8
 obj1000010798 #place F3F9BB84
-obj1000010798 #unit B90897E7
+obj1000010798 #unit 4AD93903
 obj1000010798 #vitals ED91BFD0
 + obj1000011214 80 unhuma ""
 obj1000011214 dead 0
@@ -5737,7 +5737,7 @@ client synchronised 4
 - cunit1000206
 + cunit1000010798 80 unhuma ""
 cunit1000010798 #place 8656DDDF
-cunit1000010798 #unit 923481D1
+cunit1000010798 #unit 5CB1E98A
 cunit1000010798 #vitals 8FC93AF9
 + cunit1000011214 80 unhuma ""
 cunit1000011214 #place 43F757BA

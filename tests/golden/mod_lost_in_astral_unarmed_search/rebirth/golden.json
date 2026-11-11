@@ -2,22 +2,26 @@
   "scenario": "mod_lost_in_astral_unarmed_search",
   "install": "rebirth",
   "recorded": "2026-11-11",
-  "commit": "da6e624e0",
+  "commit": "47f780a83",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MF17g4a: the campfire runs on Campfire.lua (its missile records are the scripted cast's, its entry in the Lua state's casts), the casts carry over a base's script reset; outcomes and units the same.",
+  "reason": "MF13d: a zone graph whose block grid is not the map's size is none, so the graph is built: Lost in Astral's main menu map is 24 x 24 blocks but its zonemainmenunew.mob carries a 16 x 16 graph (the game's menu's), and its suslanger zone a misfit too. Before, LoadBlocks sized the region grids 16 x 16 for the 24 x 24 map (region reads past the grid for units beyond 64 units); now the menu has its own graph, so the menu units' first steps differ (record 0, about 0.9 units) and the client particles and saved visuals with them; outcomes the same.",
   "source": "image",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 1 of 1 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; no unit position differs",
-    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 3 fields",
-    "    missile0 (spell 39) #: E4EA997E in the old golden, 66CE7CBB in the new run",
-    "    missile1 (spell 39) #: DF14DF95 in the old golden, 064B8A45 in the new run",
-    "    missile2 (spell 39) #: EEA7987F in the old golden, 8B3E34C3 in the new run",
+    "digest: 1 of 1 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; max unit move 0.956 (obj30908, record 0)",
+    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 5 fields",
+    "    obj30908 (80 unmozo1 \"\") pos.x: 59.4438858 in the old golden, 60.1115036 in the new run (d 0.668)",
+    "    obj30908 (80 unmozo1 \"\") pos.y: 14.8877726 in the old golden, 14.2038345 in the new run (d 0.684)",
+    "    obj30908 (80 unmozo1 \"\") #place: B7CE08EE in the old golden, E6D6F92E in the new run",
+    "    ... 2 more",
     "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  missiles: 3 of 3 differ",
-    "    #: 3 missiles, 1 record, from 0; hash only (no numbers kept)"
-  ],
-  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+    "  units: 1 of 6 differ",
+    "    pos: 1 unit, 1 record, from 0; moved 0.956 at obj30908 80 unmozo1 \"\", record 0",
+    "  client units: 1 of 6 differ",
+    "    #place: 1 client unit, 1 record, from 0; hash only (no numbers kept)",
+    "    #unit: 1 client unit, 1 record, from 0; hash only (no numbers kept)"
+  ]
 }

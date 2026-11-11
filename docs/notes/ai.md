@@ -45,7 +45,10 @@ grid is not the map's size counts as none) and `LoadMap` loads it (`RegionMap::L
   `MappedResource::MapFolderPlace`: the folder the highest of the folder's files came from, `<place>\Maps\<zone>`) and
   that place has no graph beside the folder (`GraphBesideGround`: `<place>\Maps\<zone>.mob` or `<map>.grp`): a mod's
   map folder over the game's .mob (the showcase island, painted heights);
-- or no graph is found (the original ended the game with "Can't load AIGraph").
+- or no graph is found (the original ended the game with "Can't load AIGraph"), or none of the map's size: Lost in
+  Astral's main menu map is 24 x 24 blocks but its zonemainmenunew.mob carries the game's 16 x 16 menu graph (one of its
+  zones, 24 x 32, has a misfit too); `LoadBlocks` used to size the region grids by the graph, and region reads for
+  units past the 16th block went beyond the grid.
 
 Then the graph is built: `AIMap::BuildRegionGraph`, after `EndRefresh` (the objects' footprints stamped, the cells
 refreshed) and before `refreshUnits` goes on: the region map reset and attached blank, every unit lifted from the

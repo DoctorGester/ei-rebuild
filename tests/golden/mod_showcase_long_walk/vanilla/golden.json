@@ -1,0 +1,13 @@
+{
+  "scenario": "mod_showcase_long_walk",
+  "install": "vanilla",
+  "recorded": "2026-11-11",
+  "commit": "47f780a83",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "MF13d: the showcase island's AI region graph is now its own, built from its ground at the zone's load (the mod ships no zone1.mob beside its map folder), not zone 1's from the game's zone1.mob: the golem and the shards walk other paths to the hero, so the fight and the quest's end come at other times; mod_showcase_long_walk is new (a long walk over the island on that graph, through a save).",
+  "source": "image",
+  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs"
+}

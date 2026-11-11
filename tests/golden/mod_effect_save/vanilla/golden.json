@@ -2,20 +2,18 @@
   "scenario": "mod_effect_save",
   "install": "vanilla",
   "recorded": "2026-11-11",
-  "commit": "da6e624e0",
+  "commit": "47f780a83",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MF17g4a: the campfire runs on Campfire.lua (its missile records are the scripted cast's, its entry in the Lua state's casts), the casts carry over a base's script reset; outcomes and units the same.",
+  "reason": "MF13d: a mod's map folder over the game's .mob (the showcase island, mod_map_heights' painted plateau) now gets its region graph built at the zone's load; the saves hold it as their difference from zone 1's graph (ReadGraphBase), so the saves' aigraph record differs while the play (every digest record) is the same. mod_showcase_buff's save1 visuals also re-recorded: its particle generator count (124 -> 241), whose golden predates MF15l1's saved-generator re-record.",
   "source": "image",
+  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 1 of 11 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; no unit position differs",
-    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 1 fields",
-    "    missile0 (spell 39) #: FEC14634 in the old golden, 32FA1123 in the new run",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  missiles: 1 of 1 differ",
-    "    #: 1 missile, 1 record, from 0; hash only (no numbers kept)"
-  ],
-  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs"
+    "save showcase_mod/save1/mission.sav: 99705 fields in 1 records differ: aigraph 99705",
+    "  aigraph: 99705 fields in 1 records; first aigraph diff.+22: (none) in the old golden, 5a in the new run",
+    "save showcase_mod/savea/mission.sav: 99705 fields in 1 records differ: aigraph 99705",
+    "  aigraph: 99705 fields in 1 records; first aigraph diff.+22: (none) in the old golden, 5a in the new run"
+  ]
 }

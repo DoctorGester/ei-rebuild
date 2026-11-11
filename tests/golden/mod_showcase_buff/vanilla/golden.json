@@ -2,12 +2,21 @@
   "scenario": "mod_showcase_buff",
   "install": "vanilla",
   "recorded": "2026-11-11",
-  "commit": "e89ed308e",
+  "commit": "47f780a83",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "New scenario: the showcase mod's Ember Brand (MF17h3 stats, MF17h1a one-shot hooks).",
+  "reason": "MF13d: a mod's map folder over the game's .mob (the showcase island, mod_map_heights' painted plateau) now gets its region graph built at the zone's load; the saves hold it as their difference from zone 1's graph (ReadGraphBase), so the saves' aigraph record differs while the play (every digest record) is the same. mod_showcase_buff's save1 visuals also re-recorded: its particle generator count (124 -> 241), whose golden predates MF15l1's saved-generator re-record.",
   "source": "image",
-  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs"
+  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "save showcase_mod/save1/mission.sav: 99705 fields in 1 records differ: aigraph 99705",
+    "  aigraph: 99705 fields in 1 records; first aigraph diff.+22: (none) in the old golden, 5a in the new run",
+    "save showcase_mod/save1/visuals.sav: 1 fields in 1 records differ: visuals 1",
+    "  visuals: 1 fields in 1 records; first visuals.particleGenerator count: 124 in the old golden, 241 in the new run (d 117)",
+    "save showcase_mod/savea/mission.sav: 99705 fields in 1 records differ: aigraph 99705",
+    "  aigraph: 99705 fields in 1 records; first aigraph diff.+22: (none) in the old golden, 5a in the new run",
+    "save showcase_mod/savea/visuals.sav: differs (decoded 0537f256cb25c742 in the old golden, 0050b57d60563964 in the new run; the store has no copy of 0537f256cb25c742)"
+  ]
 }
