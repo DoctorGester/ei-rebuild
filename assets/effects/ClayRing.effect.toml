@@ -5,8 +5,6 @@
 # after it 80 clods a tick start at a random point's last place, between it and its place, scatter out slowing by
 # 0.9, fade by 48 and shrink by 0.9 a tick, stepping a frame every other tick. The markers' and clods' alpha at their
 # start (the markers' all along) follows the points' countdown. A marker lives 14 ticks, a clod 4.
-# A marker's and a clod's end is a `kill` at its own age: the update the original still gives them after their end
-# moves them (docs/notes/effects.md, "Kept"), so a clod's velocity is left alone at that update.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
 texture = "ClayRing"
@@ -31,60 +29,35 @@ event = "tick"
 when = "cd < 0"
 do = [{ stop_emitting = true }]
 
-# A point's place (p*), its last place (q*) and its direction (d*) in the world; o*: the place before this tick's.
+# A point's place (p), its last place (q) and its direction (dir) in the world; last: the place before this tick's.
 [[anchor]]
 name = "point"
 count = 10
 
 [anchor.vars]
-ox = { start = 0, tick = "a.px" }
-oy = { start = 0, tick = "a.py" }
-oz = { start = 0, tick = "a.pz" }
-px = { start = "size * sin(a.index * 0.62832) * (size >= 0 ? reach[14 - cd] : reach[cd]) + origin.x", tick = "cd < 0 ? a.px : size * a.dx * (size >= 0 ? reach[14 - cd] : reach[cd]) + origin.x" }
-py = { start = "size * cos(a.index * 0.62832) * (size >= 0 ? reach[14 - cd] : reach[cd]) + origin.y", tick = "cd < 0 ? a.py : size * a.dy * (size >= 0 ? reach[14 - cd] : reach[cd]) + origin.y" }
-pz = { start = "ground(a.px, a.py) + 1", tick = "cd < 0 ? a.pz : ground(a.px, a.py) + 1" }
-qx = { start = "a.px", tick = "cd < 0 ? a.qx : (a.ox == 0 && a.oy == 0 ? a.px : a.ox)" }
-qy = { start = "a.py", tick = "cd < 0 ? a.qy : (a.ox == 0 && a.oy == 0 ? a.py : a.oy)" }
-qz = { start = "a.pz", tick = "cd < 0 ? a.qz : (a.ox == 0 && a.oy == 0 ? a.pz : a.oz)" }
-odx = { start = 0, tick = "a.dx" }
-dx = { start = "sin(a.index * 0.62832) * 0.95 + cos(a.index * 0.62832) * 0.31225", tick = "cd < 0 ? a.dx : a.dx * 0.95 + a.dy * 0.31225" }
-dy = { start = "cos(a.index * 0.62832) * 0.95 - sin(a.index * 0.62832) * 0.31225", tick = "cd < 0 ? a.dy : a.dy * 0.95 - a.odx * 0.31225" }
+last = { start = 0, tick = "a.p" }
+dir = { start = "vec3(sin(a.index * 0.62832), cos(a.index * 0.62832), 0)", tick = "cd < 0 ? a.dir : vec3(a.dir.x * 0.95 + a.dir.y * 0.31225, a.dir.y * 0.95 - a.dir.x * 0.31225, 0)" }
+p = { tick = "cd < 0 ? a.p : on_ground(origin + a.dir * (size * (size >= 0 ? reach[14 - cd] : reach[cd])), 1)" }
+q = { start = "a.p", tick = "cd < 0 ? a.q : a.last" }
 
 [[particle]]
 name = "marker"
 when = "cd == 13 && index < 10"
 at = "point"
 anchor_index = "index"
-lifetime = 1000000000
-size = { start = 0.2, tick = 0.2 }
-alpha = { start = "cd < 0 ? 0 : clay_alpha[cd]", tick = "cd < 0 ? 0 : clay_alpha[cd]" }
-kill = "p.age == 15"
-
-[particle.position]
-start = ["a.px", "a.py", "a.pz"]
-tick = ["a.px", "a.py", "a.pz"]
+lifetime = 15
+position = { tick = "a.p" }
+size = 0.2
+alpha = { tick = "cd < 0 ? 0 : clay_alpha[cd]" }
 
 [[particle]]
 name = "clod"
 at = "point"
 pick = "random"
-lifetime = 1000000000
-velocity = ["p.sy", "p.sx", "p.sz"]             # the scatter (its x and y drawn the other way round)
-drag = "p.age == 5 ? 1 : 0.9"
-size = { start = 0.1, growth = 0.9 }
+lifetime = 5
+vars = { base = "lerp(a.q, a.p, range(0, 1))" }   # between the point's places
+position = { start = "a.q", tick = "p.base + p.velocity * 0.9" }
+velocity = { start = "range(vec3(-0.1), vec3(0.1))", tick = "p.velocity * 0.9" }   # the scatter
+size = { start = 0.1, tick = "p.size * 0.9" }
 alpha = { start = "cd < 0 ? 0 : clay_alpha[cd]", tick = "max(p.alpha - 48, 0)" }
-frame = { start = 1, tick = "p.age % 2 == 0 && p.age < 5 ? p.frame + 1 : p.frame" }
-kill = "p.age == 5"
-
-[particle.position]
-start = ["a.qx", "a.qy", "a.qz"]
-tick = ["p.bx + p.vx * 0.9", "p.by + p.vy * 0.9", "p.bz + p.vz * 0.9"]
-
-[particle.vars]
-f = "range(0, 1)"
-bx = "p.f * a.px + (1 - p.f) * a.qx"           # its base between the point's places
-by = "p.f * a.py + (1 - p.f) * a.qy"
-bz = "p.f * a.pz + (1 - p.f) * a.qz"
-sx = "range(-0.1, 0.1)"
-sy = "range(-0.1, 0.1)"
-sz = "range(-0.1, 0.1)"
+frame = { start = 1, tick = "p.age % 2 == 0 ? p.frame + 1 : p.frame" }

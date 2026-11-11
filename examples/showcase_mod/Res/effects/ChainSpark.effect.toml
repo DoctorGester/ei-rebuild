@@ -22,10 +22,9 @@ kill = "!emitting"
 [[particle]]
 name = "spark"
 lifetime = "range(6, 12)"
-spawn = { shape = "ball", radius = "size * 0.2" }
-speed = "range(0.01, 0.04)"
-drag = 0.85
-size = { start = "range(0.25, 0.4) * size", growth = 0.9 }
+spawn = "ball() * (size * 0.2)"                 # a point near the missile
+velocity = { start = "normalize(p.spawn) * range(0.01, 0.04)", tick = "p.velocity * 0.85" }   # out, slowing down
+size = { start = "range(0.25, 0.4) * size", tick = "p.size * 0.9" }
 color = "70B8FF"
 alpha = { tick = "255 * (1 - p.t)" }
 frame = { start = "pick(16)", delay = 1 }

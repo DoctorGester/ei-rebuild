@@ -11,11 +11,11 @@ next_tries = { start = "follow ? round(size * 24) : 1", tick = "follow ? round(s
 
 [[particle]]
 name = "spark"
-size = { start = "by_life[4] * p.big * sphere_radius", tick = "(p.l < 0 ? 0.01 : by_life[p.l]) * p.big * last_radius" }
+lifetime = 4
+size = { start = "by_life[p.life] * p.big * sphere_radius", tick = "by_life[p.life] * p.big * last_radius" }
 
 [particle.vars]
 big = "pick(11) == 0 ? range(0, 1) + 2.5 : below(0.6) + 0.7"
-l = { start = 4, tick = "p.l - 1" }
 
 [tables]
-by_life = [0.01, 0.015, 0.02, 0.03, 0.015, 0.01]   # before it (its update after its end): 0.01
+by_life = [0.01, 0.015, 0.02, 0.03, 0.015]

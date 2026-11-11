@@ -58,9 +58,9 @@ rate = "2 + charge * 6"       # particles per tick: any value can be an expressi
 [[particle]]
 name = "spark"
 lifetime = "range(10, 20)"    # ticks; range() draws a random number
-spawn = { shape = "disc", radius = "size", on_ground = 0.05 }
-velocity = [0, 0, 0.03]
-size = { start = 0.2, growth = 0.95 }
+position = "on_ground(origin + disc() * size, 0.05)"   # a random point of a disc round the source, on the ground
+velocity = "vec3(0, 0, 0.03)"
+size = { start = 0.2, tick = "p.size * 0.95" }   # its start, then each tick from its last value
 color = "FFD890"
 alpha = { tick = "255 * (1 - p.t)" }   # p.t: the particle's age, 0 to 1
 frame = { start = "pick(16)", delay = 1 }

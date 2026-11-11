@@ -1,11 +1,11 @@
 # FireBlast (0x2002, the Explosion texture): the fireball's blast. Fifteen fragments fly out from the centre, each in a
-# random direction (a point of the unit ball, its draws shifted up by 0.7) at a random speed, slowing to 3/4 a tick and
-# falling by 0.03; the flames' radius grows by 0.4, its growth falling to 0.7 a tick. For six ticks the blast emits 60
-# a tick, each of a random kind: the first is the core flash (it grows once to 2.3 times the size and goes after the
-# third tick); about half are flames inside the radius, moving outwards, swelling, stepping through their frames
-# faster and faster (the earlier and the further out, the more they skip) and fading by the frame; the others are smoke
-# along a random fragment's last step, drifting and shrinking until their frame reaches 7 (mod 8). When the world's
-# effect object makes it, a scorch mark as wide as its param is left on the ground.
+# random direction (mostly upwards) at a random speed, slowing to 3/4 a tick and falling by 0.03; the flames' radius
+# grows by 0.4, its growth falling to 0.7 a tick. For six ticks the blast emits 60 a tick, each of a random kind: the
+# first is the core flash (2.3 times the size for one tick); about half are flames inside the radius, moving outwards,
+# swelling, stepping through their frames faster and faster (the earlier and the further out, the more they skip) and
+# fading by the frame; the others are smoke along a random fragment's last step, drifting and shrinking until their
+# frame reaches 7 (mod 8). When the world's effect object makes it, a scorch mark as wide as its param is left on the
+# ground.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
 texture = "Explosion"
@@ -50,74 +50,62 @@ do = [{ stop_emitting = true }]
 event = "before_emit"
 do = [{ set = "k", value = "pick(29) - 14" }]
 
-# A fragment: its place (p*) and velocity (v*) relative to the centre, its frame (fr: 0 makes its smoke start at
-# frame 8) and whether its smoke shows (sf).
+# A fragment: its place (p) and velocity (v) relative to the centre, its direction a point of the ball turned up where
+# it points well down, its frame (fr: 0 makes its smoke start at frame 8) and whether its smoke shows (sf).
 [[anchor]]
 name = "fragment"
 count = 15
 at_create = true
-spawn = { shape = "ball", shift = [0, 0, 0.7] }
-x = "a.px"
-y = "a.py"
-z = "a.pz"
+spawn = "ball()"
 
 [anchor.vars]
-px = { start = 0, tick = "a.px + size * a.vx" }
-py = { start = 0, tick = "a.py + size * a.vy" }
-pz = { start = 0, tick = "a.pz + size * a.vz" }
-len = "sqrt(a.spawn.x * a.spawn.x + a.spawn.y * a.spawn.y + a.spawn.z * a.spawn.z)"
-sp = "below(0.4) + 0.8"
-vx = { start = "a.spawn.x / a.len * a.sp * 0.8", tick = "a.vx * 0.75" }
-vy = { start = "a.spawn.y / a.len * a.sp * 0.8", tick = "a.vy * 0.75" }
-vz = { start = "a.spawn.z / a.len * a.sp * 0.8", tick = "a.vz * 0.75 - 0.03" }
+p = { start = 0, tick = "a.p + a.v * size" }
+v = { start = "normalize(vec3(a.spawn.xy, a.spawn.z < -0.3 ? -a.spawn.z : a.spawn.z)) * (below(0.4) + 0.8) * 0.8", tick = "a.v * 0.75 - vec3(0, 0, 0.03)" }
 fr = "pick(6)"
 sf = "pick(2)"
 
 [[particle]]
 name = "core"
 when = "count == 0 && fage == 1"
-lifetime = 1000000000
+lifetime = 2
 frame = 15
-size = { start = 0, tick = "p.size == 0 ? size * 2.3 : 0" }
-kill = "fage >= 3"
+size = { start = 0, tick = "size * 2.3" }
 
-# A flame: out, how far inside the ball its draw was (1 - its length squared) against th, the blast's age's threshold;
+# A flame: out, how far inside the ball its point is (1 - its length squared) against th, the blast's age's threshold;
 # its size (fs), frame position (fp) and the position's step (st).
 [[particle]]
 name = "flame"
 when = "k < 0"
-lifetime = 1000000000
-spawn = { shape = "ball" }
-position = ["p.spawn.x * size * rad + origin.x", "p.spawn.y * size * rad + origin.y", "p.spawn.z * size * rad + origin.z"]
-velocity = ["p.spawn.x * size * gr", "p.spawn.y * size * gr", "p.spawn.z * size * gr"]
-drag = "0.7 - 0.03"
+lifetime = 1000000000                           # until its frames run out
+spawn = "ball()"
+position = "origin + p.spawn * (size * rad)"
+velocity = { start = "p.spawn * (size * gr)", tick = "p.velocity * 0.67" }
 size = { start = 0, tick = "p.fs" }
 alpha = { start = 255, tick = "blast_alpha[round(p.fp)]" }
 frame = { start = "p.f0", tick = "round(p.fp + p.st)", mode = "free" }
 kill = "p.frame >= 14"
 
 [particle.vars]
-out = { start = "1 - (p.spawn.x * p.spawn.x + p.spawn.y * p.spawn.y + p.spawn.z * p.spawn.z)", after_spawn = true }
-th = { start = "floor(fage / 7) + 0.2", after_spawn = true }
-f0 = { start = "p.out < p.th ? 8 : pick(3)", after_spawn = true }
-fs = { start = "rad * size * (below(0.4) + 0.8) * 0.6", tick = "p.fs * (p.frame > 7 ? 1.03 : 1.01)", after_spawn = true }
-fp = { start = "p.f0", tick = "p.fp + p.st", after_spawn = true }
-st = { start = "p.out < p.th ? range(0.35, 0.7) : range(0, 0.35) * 0.5 + p.out * 0.35 / p.th + 0.175", tick = "p.st * 1.02", after_spawn = true }
+out = "1 - dot(p.spawn, p.spawn)"
+th = "floor(fage / 7) + 0.2"
+f0 = "p.out < p.th ? 8 : pick(3)"
+fs = { start = "rad * size * (below(0.4) + 0.8) * 0.6", tick = "p.fs * (p.frame > 7 ? 1.03 : 1.01)" }
+fp = { start = "p.f0", tick = "p.fp + p.st" }
+st = { start = "p.out < p.th ? range(0.35, 0.7) : range(0, 0.35) * 0.5 + p.out * 0.35 / p.th + 0.175", tick = "p.st * 1.02" }
 
 # Smoke: at a random part (u) of its fragment's last step, sized by a random factor (g).
 [[particle]]
 name = "smoke"
 at = "fragment"
 anchor_index = "k"
-lifetime = 1000000000
-position = ["a.px + origin.x - p.u * a.vx * size", "a.py + origin.y - p.u * a.vy * size", "a.pz + origin.z - p.u * a.vz * size"]
-velocity = ["a.vx * size", "a.vy * size", "a.vz * size"]
-drag = 0.7
-size = { start = "p.g * (0.3 - p.u * 0.15) * (rad * 0.14285715 + 0.3) * a.sf * size", growth = 0.8 }
+lifetime = 1000000000                           # until its frames reach 7
+position = "origin + a.p - a.v * (p.u * size)"
+velocity = { start = "a.v * size", tick = "p.velocity * 0.7" }
+size = { start = "p.g * (0.3 - p.u * 0.15) * (rad * 0.14285715 + 0.3) * a.sf * size", tick = "p.size * 0.8" }
 frame = { start = "a.fr == 0 ? 8 : p.f3", tick = "p.frame + 1" }
 kill = "(p.frame + 1) % 8 == 7"
 
 [particle.vars]
 f3 = "pick(3)"
-u = { start = "range(0, 1)", after_spawn = true }
-g = { start = "range(0.7, 1.5)", after_spawn = true }
+u = "range(0, 1)"
+g = "range(0.7, 1.5)"

@@ -175,12 +175,12 @@ only while it has some, as every original type). Tables: `[server]`, `[source]` 
 `max`, `once`), `[inputs]`, `[vars]`, `[[stage]]`, `[[on]]`, `[[anchor]]`, `[[particle]]`, `[tables]` (name = list of
 numbers), `[curves]` (name = `[[t, value], ...]`, linear, held at the ends).
 
-- **Inputs** (`name = { type, default, values }`): `float`, `vector` (read as `name.x`, `.y`, `.z`), `bool` (0 / 1),
+- **Inputs** (`name = { type, default, values }`): `float`, `vector` (a vector `name`), `bool` (0 / 1),
   `event` (its value is the times it fired before this tick, for one tick), `enum` (`values` listed; its value is
   the index, `name.value` the constants). Game code: `effectdata::SetInput(source, name, float | Vector3 | value
   name)`, `effectdata::Fire(source, event)` (particle_data.h); the harness's `effect` step does the same. `list`:
-  points (`default = [[x, y, z], ...]`, empty without one), read as `name.count` and `name.x[i]`, `.y[i]`, `.z[i]`
-  (truncated, held to the ends as a table's entries; 0 while empty); `SetInput(source, name, std::vector<Vector3>)`.
+  points (`default = [[x, y, z], ...]`, empty without one), read as `name.count` and `name[i]`, a point (truncated,
+  held to the ends as a table's entries; 0 while empty); `SetInput(source, name, std::vector<Vector3>)`.
 - **Fields** (a var, a particle's `position`, `velocity`, `size`, `alpha`, `frame`, an anchor's `position`): a value
   (its start) or `{ start, tick }`; a `tick` alone starts too, with the same expression. A particle's start reads its
   defaults as `p.*` (`p.position` the centre plus `p.spawn`, `p.velocity` 0, `p.size` the source's, `p.alpha` 255,
@@ -221,55 +221,40 @@ numbers), `[curves]` (name = `[[t, value], ...]`, linear, held at the ends).
   turned by a draw of the client's own generator, `g_clientRandom`, and its alpha held to 1). After a stop or a
   let go the source's `attached`, `origin` and carrier values are written again, so the tick's particle updates and
   emission see the source free. `set` names an input, a var or one of the source's values `size`, `height`, `growth`,
-  `alpha`, `param`, `spread_min.x/y/z`, `spread_max.x/y/z`, `extent.x/y/z` (written back to the source after the step,
+  `alpha`, `param`, `spread_min`, `spread_max`, `extent` or one lane of them (`extent.z`) (written back to the source after the step,
   so the next tick, ScaleSize and the particles' fields see it; Banshee keeps its ring's speed in `height`).
 - **Anchors** (`[[anchor]]`): a group of points the source owns (rings, orbs, bolt points, swirls), `count` of them
   made at the start (0: only `add_anchor` makes them; `at_create = true`: when the source is made, before the first
-  tick, which then steps them: FireBlast's fragments, drawn as the original's set-up drew them): `spawn` (a point
-  expression or a shape as a particle's, below, drawn first when one is made: `a.spawn`), `ticks` (each one's life;
-  none: it lasts), `vars` (per anchor, started after the spawn), and its `position` relative to the source's origin, a
-  field (its start by default `a.spawn`; without a tick it stays), or each tick `x`, `y`, `z` or `radius`, `angle` (x =
-  cos(angle) * radius, y = sin(angle) * radius), `z`.
+  tick, which then steps them: FireBlast's fragments): `spawn` (a point expression, drawn first when one is made:
+  `a.spawn`; none: 0), `ticks` (each one's life; none: it lasts), `vars` (per anchor, started after the spawn), and
+  its `position` relative to the source's origin, a field (its start by default `a.spawn`; without a tick it stays).
   `a.index` is its number in the group, `a.count` the group's anchors made so far (all of the group's are told when
   more are added). An anchor that ends stays readable (its last values) for the particles it carries.
 - **Particle kinds** (`[[particle]]`): the regular emission takes the first kind whose `when` holds (none: always;
-  `false`: only by actions). `lifetime`, `spawn` (one point expression, `p.spawn`, drawn after the lifetime and before
-  the vars: `spawn = "ball() * size"`; none: 0), `vars` (at most 8 floats; the ticks run in the file's order, each
-  seeing the ones before it already changed), `at` (an anchor group: it starts at one of its live anchors, `pick =
-  "cycle" | "random" | "first"`, or `anchor_index` (an expression: the live anchor of that number, wrapped, chosen after
-  the vars and before a spawn shape; the lifetime, a spawn expression and the vars before a shape may not read
-  `a.*`)), `space` (`world`: moves on its own; `source`: its offset rides the source; `anchor`: rides its anchor),
-  `position` (a field in its space: the world's place, or in `source` and `anchor` space the offset from the source's
-  origin or the anchor's place; by default it starts at the centre (the anchor's place, the source's origin, a dying
-  particle's place) plus `p.spawn` and moves by its velocity each tick; its start and tick read this tick's values
-  before any changes), `velocity` (a field: its start, 0 without one, and its tick after the move, which reads
-  `p.velocity` from before it, so drag, gravity and wind are written in it: `{ tick = "p.velocity * 0.9 + vec3(0, 0,
-  -0.01)" }`), `size = value | { start, tick }`, `color = "RRGGBB" | [r, g, b]`. Still read until MF15l3 (MF15l2
-  rewrites the files): `spawn = { shape = point | box | ball | shell | disc | ring | flat_ball | segment, radius, min,
-  max (a box's; else the source's spread), from, to (a segment's; else 0 and the source's extent: one draw t, from +
-  (to - from) * t), offset = [x, y, z], on_ground (z = the ground's height plus it) }`, drawn after the vars (those
-  before it may not read `p.spawn`; `after_spawn = true` vars start after it), `speed` (outward from the spawn's centre:
-  offset * speed / its length, added to the velocity's start), `drag` (a factor per tick), `gravity = [x, y, z]`,
-  `wind` (times the world's wind; after the move: drag, then gravity, then wind change the velocity, the originals'
-  order; refused beside a velocity tick), `size`'s `growth` (a factor per tick),
-  (expressions, each tick), `alpha = value | { start, tick }` (0..255), `frame = value | { start, delay (ticks per
-  frame, 0 or none: still), mode = loop | hold | die | free, tick }` (a start past the grid stays: the update's step
-  wraps or holds it by the mode, `free` keeps it, and it draws as the first frame meanwhile, as Link's `pick(16)` of
-  15; until MF15g4 the start was held to the last frame, a change of the schema's behaviour), `kill` (it dies once
-  this holds), `drop` (it holds at the end of the emission: the particle is not kept, its draws made; the "emit"
-  reactions still run), `source = { size =
-  ..., ... }` (each update sets these source values after the colour and before `kill`, in order; the particles after it
-  and the emission read them: Regeneration's shrinking source; an effect var by its name, and `a.<var>` a var of the
-  particle's anchor: Silence's orb size), `jump = "<when>" | { when, size }` (after the update, where it holds, the
-  previous place and colour are the new ones and the previous size `size`'s value, else the size: the particle is
-  drawn at its new place, not moving from the old; Bag's thrown balls), `on_death` (actions at its death; `{ emit = n,
-  kind = ... }` queues n particles of the kind whose
-  spawn's centre is its place, emitted at this tick's emission, emitting or not; `{ effect = ... }` starts one there at
-  once; `set` an input or a var; the counts and values may read `p.*`; nothing else). `flat_ball` draws x and y in [-1,
-  1) until y * y + x * x < 1 (ten tries, the last kept), z 0, times `radius`. `ball` and `shell` take `tries` (10: the
-  draws of the cube before the last is kept; 0: until 0 < length squared <= 1, CastingFire's) and `shift = [x, y, z]`
-  (added to each draw of the cube before its test, so the ball is the shifted one: FireBlast's fragments, up 0.7; an
-  anchor's spawn takes it too).
+  `false`: only by actions). `lifetime` (ticks, at least 1: it dies at that age, before its update), `spawn` (a point
+  expression, `p.spawn`, drawn after the lifetime and before the vars: `spawn = "ball() * size"`; none: 0), `vars` (at
+  most 8 floats; the ticks run in the file's order, each seeing the ones before it already changed), `at` (an anchor
+  group: it starts at one of its live anchors, `pick = "cycle" | "random" | "first"`, or `anchor_index` (an
+  expression: the live anchor of that number, wrapped, chosen after the vars; the lifetime, the spawn and the vars may
+  not read `a.*`)), `space` (`world`: moves on its own; `source`: its offset rides the source; `anchor`: rides its
+  anchor), `position` (a field in its space: the world's place, or in `source` and `anchor` space the offset from the
+  source's origin or the anchor's place; by default it starts at the centre (the anchor's place, the source's origin,
+  a dying particle's place) plus `p.spawn` and moves by its velocity each tick; its start and tick read this tick's
+  values before any changes), `velocity` (a field: its start, 0 without one, and its tick after the move, which reads
+  `p.velocity` from before it, so a slowing, a fall or the wind is written in it: `{ tick = "p.velocity * 0.9 +
+  vec3(0, 0, -0.01)" }`), `size = value | { start, tick }`, `color = "RRGGBB"` or a vector expression (0..255 a lane,
+  run at the start and each tick), `alpha = value | { start, tick }` (0..255), `frame = value | { start, delay (ticks
+  per frame, 0 or none: still), mode = loop | hold | die | free, tick }` (a start past the grid stays: the update's
+  step wraps or holds it by the mode, `free` keeps it, and it draws as the first frame meanwhile, as Link's `pick(16)`
+  of 15), `kill` (it dies once this holds), `drop` (it holds at the end of the emission: the particle is not kept, its
+  draws made; the "emit" reactions still run), `source = { size = ..., ... }` (each update sets these source values
+  after the colour and before `kill`, in order; the particles after it and the emission read them: Regeneration's
+  shrinking source; an effect var by its name, and `a.<var>` a var of the particle's anchor: Silence's orb size),
+  `jump = "<when>" | { when, size }` (after the update, where it holds, the previous place and colour are the new ones
+  and the previous size `size`'s value, else the size: the particle is drawn at its new place, not moving from the
+  old; Bag's thrown balls), `on_death` (actions at its death; `{ emit = n, kind = ... }` queues n particles of the kind
+  whose spawn's centre is its place, emitted at this tick's emission, emitting or not; `{ effect = ... }` starts one
+  there at once; `set` an input or a var; the counts and values may read `p.*`; nothing else).
 
 ### Expressions
 
@@ -280,50 +265,52 @@ reads lane x; a random draw draws once per lane it fills. A swizzle on a name or
 `(a + b).xy`, `aim.yx.x`) picks lanes, and on a name it narrows the load (`origin.x` compiles to the one float, as the
 scalar names did). `vec2/3/4(...)` join values (`Op::Construct`; one scalar repeats); `dot length normalize cross
 distance` (normalize as `v * (1 / length)`), `ball()` (`RandomInBall`, ten tries), `shell()` (the ball's point scaled
-to length 1), `disc()` (an angle, then `sqrt(below(1))`), `circle(angle)`, `platform_normal(point)`, `on_ground(point,
-height)`; the maths functions and `range`, `below` work per lane. A var takes the widest width of its start and tick
-(the reader reads the record again while a var widens, since a var may read one declared after it); vars sit one after
-another in their scope's floats (`Var::slot`), a particle's in its eight.
+to length 1), `disc()` (an angle, then `sqrt(below(1))`), `circle(angle)`; the maths functions and `range`, `below`
+work per lane. A var takes the widest width of its start and tick
+(the reader reads the record again while a var widens, since a var may read one declared after it; those reads take a
+swizzle past a value's lanes as its last lane, so a var whose expression swizzles itself still widens, and one strict
+read then refuses a swizzle past a value that stayed narrow); vars sit one after another in their scope's floats
+(`Var::slot`), a particle's in its eight.
 Fast forms (`Classify`): a program whose every value is a scalar runs on one float a value (`Expr::scalar`), and `[x,
 y, z]` of scalars the same way, its three read off the stack (`Expr::scalarParts`); the scalar functions (`sin` to
 `pick`, `ScalarCall`) take floats. Each gives the four-lane run's lane x and draws (a unit check runs both). The v4
 stack alone had made effect_check's coarse run (146 cases, 8 seeds) 17% slower; release builds on one machine
-(MF15l1): 1.57 s after MF15l, 1.55 s with MF15l1's field forms and no update after death, 1.26 s with the fast forms.
+(MF15l1): 1.57 s after MF15l, 1.55 s with MF15l1's field forms and no update after death, 1.26 s with the fast forms;
+MF15l2's files (vectors, plain lifetimes, velocity ticks): 1.37 s before, 1.11 s after (the least of 8 runs each,
+interleaved).
 Numbers, names, `+ - * / %`,
 comparisons, `!`, `&&`, `||` (both short), `a ? b : c`, functions `sin cos atan2 sqrt abs floor ceil round min max clamp
-lerp pow exp log`, `ground(x, y)` (the ground's height there, as `on_ground` reads it; 0 in the unit checks and in
-effect_check's empty terrain), `platform_height(x, y)`, `platform_normal_x(x, y)`, `_y`, `_z` (the plane of a platform
-there, `PlatformSet::SurfacePlane`: 0 and the normal (0, 0, 1) where there is none; GroundDust), `surface(x, y)` (the
-height of what stands there, a platform over the ground or the ground, `PlatformSet::SurfaceHeight`: ShapeChange's
-glows; the ground without a platform in the unit checks), random `range(lo, hi)`
+lerp pow exp log`; of a point (its x and y): `ground(point)` (the ground's height there; 0 in the unit checks and in
+effect_check's empty terrain), `on_ground(point, height)` (the point with z that height over the ground),
+`platform_height(point)`, `platform_normal(point)` (the plane of a platform there, `PlatformSet::SurfacePlane`: 0 and
+the normal (0, 0, 1) where there is none; GroundDust), `surface(point)` (the height of what stands there, a platform
+over the ground or the ground, `PlatformSet::SurfaceHeight`: ShapeChange's glows; the ground without a platform in
+the unit checks); random `range(lo, hi)`
 (IsaacRandom::Range), `below(k)`, `chance(percent)`, `pick(n)` (Next() % n), a curve `name(t)`, a table `name[i]`
-(truncated, held to the ends), a list input's `name.x[i]`, an anchor group's values `<group>.<var>[i]`,
-`<group>.x[i]`, `<group>.age[i]` ... (its anchor number i in the order made, truncated and held to the ends; 0 without
-one), `ball_x()` (a point drawn in the unit ball, `effectdata::RandomInBall`; its x) with `ball_y()`, `ball_z()` (the
-last drawn point's y and z). Constants `pi`, `deg`. Names, by where the expression runs:
+(truncated, held to the ends), a list input's point `name[i]`, an anchor group's values `<group>.<var>[i]`,
+`<group>.position[i]`, `<group>.age[i]` ... (its anchor number i in the order made, truncated and held to the ends; 0
+without one). Constants `pi`, `deg`. Names, by where the expression runs:
 - everywhere: the inputs, the vars, the source's values (`size`, `height`, `growth`, `alpha`, `param`, `base_size`,
-  `age`, `stage_age`, `stage`, `carrier_radius`, `carrier_z`, `attached`, `distance`, `motion.x/y/z`, `origin.x/y/z`,
-  `count`, `index`, `total`, `wind.x/y/z`, `wind_strength`, `extent.x/y/z` (each `name.x/y/z` here a vector `name`),
-  `turn_cos`, `turn_sin`, `emitting`: the
-  source's emission flag, which the game's StopEmitting and Stop and an effect's `once` clear, `spread_min.x/y/z`,
-  `spread_max.x/y/z` (the spread box, scaled by ScaleSize), `sun.r/g/b` (the scene's sun colour, 0..1; 0 without a
-  sun), `side.x/y/z`, `up.x/y/z` (the motion's side and up axes this
-  tick, zero while the source moves 0.001 or less: the trails' across directions), the carrier as a unit:
-  `carrier_unit`, `carrier_running`, `carrier_dead` (0 / 1), `carrier_unit_radius` (the unit's own radius, 0 else), `carrier_axis.x/y/z`, `carrier_axis_y.x/y/z` (its own x and
-  y axes; 0 when free), `carrier_bounds_radius` (its bounds' radius as it stands, not measured again),
-  `carrier_left_foot.x/y/z`, `carrier_right_foot.x/y/z` (its "ll3" / "rl3" parts, else its body, else its position
-  raised by its bounds' top, as the host's DescribeCarrier finds a part; the origin without a unit carrier); written at the tick's
-  start only for an effect that reads one of them), `anchors.<group>` (live count), `stage.<name>`;
-- in an anchor's and its particles' fields: `a.index`, `a.count`, `a.age`, `a.ticks` (left), `a.position` (`a.x/y/z`
-  its lanes), `a.spawn`, `a.<var>`;
-- in a particle's: `p.age`, `p.life`, `p.t` (age / (age + life)), `p.position` (`p.x/y/z`), `p.velocity`
-  (`p.vx/vy/vz`), `p.size`, `p.alpha`, `p.color` (0..255 a lane), `p.frame`, `p.anchor`, `p.index` (the values before
-  this tick's update), `p.spawn` (at the emission; 0 in the update), `p.<var>` (as the vars' ticks left them). A
-  particle var may not take one of these names (`age`, `x`, `life`...): a load error, since `p.life` would read the
-  var.
+  `age`, `stage_age`, `stage`, `carrier_radius`, `carrier_z`, `attached`, `distance`, the vectors `motion`, `origin`,
+  `wind`, `extent`, `count`, `index`, `total`, `wind_strength`, `turn_cos`, `turn_sin`, `emitting`: the source's
+  emission flag, which the game's StopEmitting and Stop and an effect's `once` clear, `spread_min`, `spread_max` (the
+  spread box, scaled by ScaleSize), `sun` (the scene's sun colour, r g b 0..1; 0 without a sun), `side`, `up` (the
+  motion's side and up axes this tick, zero while the source moves 0.001 or less: the trails' across directions), the
+  carrier as a unit: `carrier_unit`, `carrier_running`, `carrier_dead` (0 / 1), `carrier_unit_radius` (the unit's own
+  radius, 0 else), `carrier_axis`, `carrier_axis_y` (its own x and y axes; 0 when free), `carrier_bounds_radius` (its
+  bounds' radius as it stands, not measured again), `carrier_left_foot`, `carrier_right_foot` (its "ll3" / "rl3"
+  parts, else its body, else its position raised by its bounds' top, as the host's DescribeCarrier finds a part; the
+  origin without a unit carrier); written at the tick's start only for an effect that reads one of them),
+  `anchors.<group>` (live count), `stage.<name>`;
+- in an anchor's and its particles' fields: `a.index`, `a.count`, `a.age`, `a.ticks` (left), `a.position`, `a.spawn`,
+  `a.<var>`;
+- in a particle's: `p.age`, `p.life` (lifetime - age), `p.t` (age / (age + life)), `p.position`, `p.velocity`,
+  `p.size`, `p.alpha`, `p.color` (0..255 a lane), `p.frame`, `p.anchor`, `p.index` (the values before this tick's
+  update), `p.spawn` (at the emission; 0 in the update), `p.<var>` (as the vars' ticks left them). A particle var may
+  not take one of these names (`age`, `life`, `t`...): a load error, since `p.life` would read the var.
 A name the context lacks is a load error. Every operation runs lane by lane in the written order, so the draws come
-in the written order too; an emission's parts draw in the order lifetime, the spawn expression, vars, a spawn shape,
-the vars after it, the offset or position, velocity, size, colour, frame. Every draw is `g_particleRandom`'s.
+in the written order too; an emission's parts draw in the order lifetime, spawn, vars, position, velocity, size,
+colour, frame. Every draw is `g_particleRandom`'s.
 
 ### One tick
 
@@ -335,8 +322,8 @@ chance / emitting), the `set` source values written back, a `stop` action's Stop
 (`ApplyActions`), then the source's `emitCount` and `emitChance` set for the generic
 emission (not emitting: no tries, none from the movement either; the spacing is the source's, `[emit] spacing` scaled
 by ScaleSize as an original type's) and the started sub-effects made. `UpdateParticles` → `UpdateData` per live
-particle (life, frame, vars, the move, then the velocity's tick and change, size, colour, the `source` writes, kill; a
-particle that died at the last tick is pooled without one, "Kept" above). A `die` particle past its last frame ends
+particle (life, frame, vars, the move, then the velocity's tick, size, colour, the `source` writes, kill; a particle
+whose life ran out at the last tick is drawn once more where it was and pooled without an update). A `die` particle past its last frame ends
 at the frame step, before it moves, as the originals'. `Emit` → `EmitQueued` (the actions'
 particles, emitting or not), then the generic tries → `EmitData` (with `once`, the first particle clears the
 emission flag; the game may set it again; after each particle kept or dropped the "emit" reactions and
@@ -373,112 +360,28 @@ C++ emitters, the spec table (`kSpecs`), the per-type dispatch and the elements'
   the script table `kScriptParticleTypes` is gone, and CreateParticleSource finds the name in the registry), the spec's
   texture, flags, part, rates, limits and starting values (`[source]`: ZoneExit's alpha and param 5, the trails' size,
   growth and spread).
-- **Moving a type** (MF15e-g): first add its cases to `tools/convert/effect_check.cpp` and record them from the C++
-  (`ei-convert --effect-check --record tests/effects/reference.txt`: only the new cases' lines may change in the diff);
-  then write its file, run the check until it holds (`--dump <file>` writes every tick's particles; dump both builds
-  and diff), delete its C++ and spec entry, and move its server and script values as above. Where the data needs an
-  engine feature to match, it is added to the runtime generally (MF15d's four needed `[[on]] event = "tick"` with
-  `when`, the `stop` action, `emitting`, `once` clearing the flag, `keep_alive` off by default, the move before the
-  drag, `speed` scaled as `offset * speed / length`, no additions of zero to a still or unplaced particle; MF15g's
-  seven `position` start and tick, vars `after_spawn` with `p.spawn.*`, 8 vars, the spread and the side / up axes as
-  source values, the frame step first with a `die` particle's timer left run out; MF15g2's `wind.z`, `exp` and `log`,
-  `set` on the source's values, `stop_emitting`, the carrier measured at its first read, the shadowing var names
-  refused; MF15g3's carrier unit values, particle `source` writes, "emit" reactions, `set` on a var, `let_go`,
-  `drop`, `anchor_index`, `flat_ball`, `at_create` vars, the attachment's values written again after a stop; MF15j's
-  "before_emit" reactions, `add_anchor`, an anchor's `spawn` with `a.spawn.*`, and the shared ball draw
-  `effectdata::RandomInBall`, for Shower; MF15g4's kinds emitted by "emit" reactions, the `shake` action, the
-  `platform_*` functions, `carrier_axis_y`, the spread and extent settable, the frame start past the grid, and TOML
-  integers read exactly, so `max = 2147483647` is not rounded through a float; MF15g5's `ball_x()` / `ball_y()` /
-  `ball_z()`, a spawn's `tries`, an anchor group's values by number `<group>.<var>[i]`, particle `source` writes to
-  effect vars and to the anchor's vars `a.<var>`, a kind's `jump` and `carrier_unit_radius`; MF15g6's "spawn" reaction
-  and `scorch` action (MF15j1's rest), `at_create` anchors, a ball's `shift`, `surface(x, y)`, `sun.r/g/b` and the
-  frame mode `free`).
-- **Exactness rules found**: an expression's operations are float operations in the written order, so
-  `(below(0.4) + 0.8) * size * 0.04` is the C++'s `(Below(0.4f) + 0.8f) * s.size * 0.04f` bit for bit; a draw the C++
-  makes before the position goes into a var (vars draw before the position: CurseStars's `cell = "pick(16)"`, which
-  is `Next() & 15`); a C++ update that returns before drawing when it drops a particle needs the draw behind a
-  condition (`emitting ? ... : p.size`) and the drop as `kill`; a C++ life that dies below 0 is `lifetime + 1` with its
-  table read at `p.life - 1`. A draw the C++ makes after the spawn shape's (Sparks's part of the first step after its
-  direction) is an `after_spawn` var. C++ arithmetic on the position (`pos -= v; v *= 0.95f; pos += v`) is a `position`
-  tick written as that sum (`p.x - p.vx + p.vx * 0.95`, with `drag = 0.95` for the velocity), and a place built in
-  another order (ZoneExit's ellipse, the trails' `origin + t * motion + velocity`) a `position` start. A count the C++
-  sets in its emission (`s.emitCount = ...`) is the count of the last tick that emitted: a var `tries` taken when
-  `total > seen`, from the values `seen_*` vars kept at that tick (FeebleMind, ZoneExit). A test the C++ makes on the
-  stepped frame is `p.frame + 1` where the delay is 1 (the arrows' swelling); the first-ever particle is
-  `total == 0`, a tick's first `index == 0`. A draw the C++ makes only on one path goes behind the same condition
-  (`moving ? range(...) : 0`).
-- **MF15g2's rules**: a C++ particle that dies by `--life == 0` but whose update in the tick after its death still
-  moved it is a long `lifetime` with `kill = "p.age == <its end>"` and every change of state that update must not see
-  (a var's step, TeleportRing's `drag = "p.age == 13 ? 1 : 1.05"`) guarded on that age (the smoke family,
-  TeleportRing, Teleport); since MF15l1 no such update runs, so the guards are dead weight MF15l2 removes. The vars tick in file order and the frame tick before
-  them, so a var that must read another's old value comes first. Velocity changed by `drag` after the move is
-  per-particle storage that grows by a factor (Portal's rise, `drag = 1.03`). A C++ effect that sets itself up at its
-  first emitting tick (Banshee, TeleportRing, BlueGas) is vars `first` and `set_up` with the carrier read only behind
-  `first`; a C++ try that is rejected but draws is a `pick(1)` (one draw, value 0) in a var on that tick. Two kinds
-  by a chance are `when = "chance(60)"` on the first (VulcanSmoke). A C++ count set in its tick (Nuke's tries, halved to 8) is
-  a var, a power (Nuke's alpha start, 4 to the tick) `exp(log(4) * ticks)`, and the C++'s own end of its emission a
-  `stop_emitting` reaction (Teleport, Banshee, Nuke).
-- **MF15g3's rules**: a count the C++ sets in its emission is a var `set` by an "emit" reaction (Stun's 4 or 1,
-  FeetCloud's size * 8); a C++ emission that draws and then refuses is a `drop` (Stun without a unit), and its Stop
-  there an "emit" reaction's `stop`. A C++ update that writes the source (VisionStar's zeroed size, Regeneration's
-  shrink) is a particle `source` write, computed into a var first when the particle's own size or kill needs it.
-  Work the C++ does once a tick at its first emission and that draws nothing (the spheres' follow) moves into the
-  tick's vars under the condition that a try is made (`emitting && attached && tries > 0`: a source above 50%
-  emits at least once when it tries), the particles' updates reading the values from before it (`last_*` vars).
-  The C++'s per-particle values beyond the eight vars go into `velocity` (FeetCloud's spread, slowed by `drag`; a
-  `position` tick leaves the velocity unused). A part of the way kept a tick is a var that holds the factor for this
-  tick (`p.age == 1 ? p.ease : p.ease * 0.98`). A C++ update that returns before a change on its last tick
-  but makes it in the update after its end needs the change guarded on that tick (the spheres' turn,
-  `p.l == 0 ? p.shell_x : ...`). A C++ draw made when the source is made (SetupFalling's gust count) is an
-  `at_create` var.
-- **MF15g3b's rules** (Shower): state the C++ makes inside its first emission, after that try's roll (the rays), is a
-  "before_emit" reaction under the condition that it is not made yet (`anchors.ray == 0`), here an `add_anchor` whose
-  anchors draw their `spawn` ball; directions kept as `v / sqrt(lengthSquared)` are `a.spawn.x / sqrt(a.spawn.x *
-  a.spawn.x + ...)`, the same float operations as `LengthSquared`. A C++ element age that counts every tick and is
-  reset there is a var (`ray_age`, set to 0 by the reaction). The per-particle values beyond the vars' order are split
-  by when they draw: the jitter before the anchor pick (plain vars), the direction, the speed's one-in-eight and the
-  first step's part after it (`after_spawn` vars, which may read `a.*`).
-- **MF15g4's rules**: a C++ emission that lays out a whole grid at its first particle (PoisonFog's width x width
-  puffs) is an "emit" reaction with `when = "count == 0"` emitting that many of a kind, which reads its cell from
-  `p.index`; the first particle itself a kind that is dropped. The C++'s element state (Modifier's ring points,
-  ClayRing's ground points, Cylinder's stars, Link's beam frame) is anchor vars or effect vars; a value two vars need
-  in its old form is kept first in a helper var (`ox`, `odx`, `or0`), since the ticks run in order, each seeing the
-  ones before it changed. State the C++ sets up at the first particle (Link's frame, Cylinder's stars) is a
-  "before_emit" reaction under `made == 0` or `anchors.<group> == 0`. A countdown the C++ keeps in element 0 and that
-  drives the whole effect (ClayRing's, Cylinder's) is one effect var; a table index the C++ reads past its end (the
-  value of the table after it) is the value it gives (0 alpha). Modifier's retry of a projection of length zero is
-  left out (it practically never happens); PoisonFog's grid is laid about the origin where the C++ took the local
-  position, the same for the free source the spell makes.
-- **MF15g5's rules**: state the C++ keeps per element and a particle reads from another element (the swirl a
-  CastingFire spark is pulled by, the first light's orbit a later CastingIllusion light takes, the Bag ball a spark
-  sits on) is anchor vars read by number, `swirl.px[k]`, `orb.rx[0]`. A C++ ball draw whose three values feed three
-  places (Bag's kick, CastingFire's swirls) is `ball_x()` (the draw) then `ball_y()`, `ball_z()` (its other two); an
-  unbounded draw loop is `tries = 0`. A C++ update that writes its element (Silence's orb size, which the wisps read)
-  is a `source` write to `a.<var>`; one that writes the effect's state (Casting's emission phase) an effect var. A
-  particle the C++ moves without a trail (Bag's balls thrown again) is a `jump` with the previous size it shows. A
-  carrier's own radius the C++ asks of a unit (CastingFire's three times it) is `carrier_unit_radius`, 0 for a stone.
-  Two changes: Casting's restarted close sparks wrap their frame at 16 where the C++'s grew without a bound (past 15
-  updates of a restart, which no script makes); Silence's wisps read their orb's last
-  step, which the original read from the particle's pool slot before the orb had made one (a stale value of whatever
-  used the slot before): a new orb's step is zero here, a fix by judgement (MF15g5; unseen in effect_check, whose
-  pool is fresh).
-- **MF15g6's rules**: what the world object did once it made a source of one type (FireBlast's and LightningBlast's
-  scorch mark, the lightning's shake) is the file's "spawn" reaction, which draws the mark's turn from the client's
-  generator where the old code drew it; elements the C++ set up when the source was made (FireBlast's fragments) are
-  `at_create` anchors, a ball draw it shifted before the test (`p + {0, 0, 0.7}`) a spawn `shift`. A value game code
-  set on the source for one type (ShapeChange's colour in `glowKind`, the path in `typeParam` and the walker's future
-  places read by the emitter) is an input the game sets (`kind`, an enum; `path`, a list of the points:
-  `PlayerClient::OnPathMarker`); a colour the C++ read when the source was made (the Tornado's, the sun's) an
-  `at_create` var on `sun.r/g/b`. The funnels' per-particle state takes all eight vars, every tick guarded at the
-  death age ("Kept": `p.age == p.l0 ? p.ang : p.ang + p.sp`); their rings are anchors whose vars read the previous
-  tick's ring 0 (`ring.rx[0]`). `min(a, b)` is the C++'s `b < a ? b : a` and `max(a, b)` `b > a ? b : a`, so a C++
-  `std::min` / `std::max` keeps its operands' order in the expression. A C++ integer division (ShapeChange's `order * 8
-  / count`) is `floor(...)` of the float one. A frame the C++ stepped past the grid in a particle's last update
-  (FireBlast's flames, 13 to 16) is `mode = "free"`. One change, by judgement: ShapeChange's glow read its alpha table
-  at its life left, which a path with repeated points (counted in the order, no glow made) takes past the table's 16
-  entries; the original read the data after it and our C++ whatever the compiler put there, so the file holds the last
-  entry (fully lit). Its three cases with repeats were recorded from the data build after `--dump` showed the only
-  differences were those glows' alpha (`effect_check`'s PathStone repeats every point three times).
+- **Written to say what they mean** (MF15l, MF15l2): the files once matched their C++ run for run; since the format
+  review they say what the effect does (vectors, plain lifetimes, velocity ticks, variants) and may drift where it
+  still looks the same: effect_check's exact reference is recorded from the data, and its coarse compare
+  (tests/effects/coarse.txt, recorded before the review) holds the look ("Checks" below).
+- **Changes by judgement**: Silence's wisps read their orb's last step, which the original read from the particle's
+  pool slot before the orb had made one (a stale value of whatever used the slot before): a new orb's step is zero
+  here. ShapeChange's glow reads its alpha table at its life left, which a path with repeated points (counted in the
+  order, no glow made) takes past the table's 16 entries; the original read the data after it, the file holds the
+  last entry (fully lit). Casting's close sparks of a restart past the close live one tick where the original's
+  (a life of 0 or below) never died. Modifier's retry of a projection of length zero is left out (it practically
+  never happens); PoisonFog's grid is laid about the origin where the C++ took the local position, the same for the
+  free source the spell makes. FireBlast's fragments fly in a ball's direction turned up where it points well down
+  (the original drew a ball shifted up by 0.7); the Tornado's and CurseHolder's pieces start between the two rings
+  about their height as they move (the original rounded the height at the start).
+- **Writing an effect from C++ arithmetic**: an expression's operations are float operations in the written order
+  (`(below(0.4) + 0.8) * size * 0.04` is `(Below(0.4f) + 0.8f) * s.size * 0.04f`); `pos -= v; v *= f; pos += v` is a
+  velocity start `v * (f - 1)` and tick `p.velocity * f`; `min(a, b)` is `b < a ? b : a` and `max(a, b)` `b > a ? b
+  : a`; an integer division (ShapeChange's `order * 8 / count`) is `floor(...)` of the float one. Work done once at the
+  first particle is a "before_emit" reaction under `made == 0` or `anchors.<group> == 0`; element state (rings, orbs,
+  swirls, ground points) is anchor vars, read by number from another element (`swirl.p[k]`, `orb.r[0].x`); a C++ count
+  set in the emission is a var `set` by an "emit" reaction; a draw made when the source is made is an `at_create` var
+  or anchor group; what the world object did when it made a source (a scorch, a shake) is a "spawn" reaction.
 
 ### The original state machines on inputs (MF15g's path)
 
@@ -499,69 +402,30 @@ The others, by what drives them:
 | Silence, Bag | on data (MF15g5): orb anchors on a tilted circle; 80 ball anchors kicked (vars), colour by tables | |
 | FireBlast, LightningBlast | on data (MF15g6): 15 fragment anchors made with the source; ten bolt-point anchors added at the first particle; the scorch and shake a "spawn" reaction | |
 | ClayRing, Geyser | on data: ten ground-point anchors on `ground` (MF15g4); three vent anchors with eruption / pause vars (MF15g6) | |
-| Tornado, CurseHolder | on data (MF15g6): 6 funnel-ring anchors leaning with `motion.x/y`; the colour `at_create` vars from `sun.r/g/b` | |
+| Tornado, CurseHolder | on data (MF15g6): 6 funnel-ring anchors leaning with the motion; the colour an `at_create` var from `sun` | |
 | ShapeChange | on data (MF15g6): one glow per path point | `path` (a list input), `kind` (an enum: green, grey, orange) |
 
-The runtime has what they need from MF15j: `ground(x, y)` (anchors on the ground, kill planes), `add_anchor` (with
+The runtime has what they need from MF15j: `ground` (anchors on the ground, kill planes), `add_anchor` (with
 "before_emit", CastSwirl's orbiters), `pick = "first"` and `anchor_index`, a `list` input (ShapeChange's path),
-`on_death` (a particle's sub-emission or sub-effect), the `segment` shape (Link). `shake` came with Mushroom (MF15g4).
+`on_death` (a particle's sub-emission or sub-effect). `shake` came with Mushroom (MF15g4).
 Still to add: inputs the server sets and every client replicates (today only the client's sources take SetInput /
 Fire; MF15j2). No original type needs them.
 
 ### The format review (MF15l)
 
-Found in the 83 files (user 2026-11-11: exactness dropped, an effect may drift if it looks the same overall):
-- **Vectors written as three floats**: `origin.x` 100 times in 45 files, 29 `position` start / tick pairs of three
-  strings, var triples (`px py pz`, `vx vy vz`, `dx dy dz`), 22 normalisations spelt `1 / sqrt(x * x + y * y + z * z)`,
-  `ball_x() / ball_y() / ball_z()`, `platform_normal_x / _y / _z`, `path.x[i]`, three `at_create` vars for the sun.
-- **Start equal to tick**: 36 vars and 8 positions repeat one expression as both.
-- **The kept update after death** ("Kept" above): 72 guards `p.age == <end> ? old : new` in 24 files, and 35 kinds with
-  `lifetime = 1000000000` or `2147483647` plus a `kill` on their age, only so the update a dead particle still got
-  matched the original's.
-- **Spawn shapes as a special table** (`shape`, `radius`, `min`, `max`, `from`, `to`, `tries`, `shift`, `offset`,
-  `on_ground`) and the motion fields `speed`, `drag`, `gravity`, `wind`, `growth`: each a fixed formula the
-  expression language can say; `after_spawn` only orders vars around the shape's draw.
-- **Anchors placed two ways** (`x / y / z` or `radius / angle`).
-- **Whole files that are variants but for order**: CastingDivination (a kind before the base's), VisionStar2 and
-  CampFire (vars before the base's), Transform (a reaction less).
-
-Proposals (in this order; each step re-records effect_check's reference where effects move, checked by the coarse
-compare and the viewer's captures). In: 1, 2 and 5 (the files unchanged in effect, effect_check exact), 3 and 4 on
-the engine's side (MF15l1; the old fields still read until MF15l3). Left: 6, the files rewritten (MF15l2).
-1. (In) effect_check's coarse mode: per case and quarter of its ticks, particle counts, lifetimes, bounds, average
-   size and colour, within a tolerance (tests/effects/coarse.txt, recorded before any change).
-2. (In; the files still use the scalar names) Vector values ("Expressions" above): every value is four floats (a v4
-   stack, scalars broadcast to all lanes; the compiler knows each value's width, so a random draw draws once per lane
-   it fills and a scalar context reads `.x`). Swizzles (`.x`, `.xy`, `.rgb`) on any name or `(...)` / `[...]`;
-   `vec2() vec3() vec4()`; `dot length normalize cross distance`; math functions per lane; `range(lo, hi)` on vectors
-   draws each lane; `ball() shell() disc()` and `circle(angle)` return points; `ground surface platform_height
-   platform_normal on_ground` take a point. Names: `origin`, `motion`, `wind`, `extent`, `spread_min / max`, `side`,
-   `up`, `sun`, the carrier's axes and feet, `p.position`, `p.velocity`, `p.color`, `p.spawn`, `a.position`,
-   `a.spawn`, a vector input, `path[i]`, `group.var[i]`; vars take the width of their expressions (a particle's eight
-   floats hold its vars, a vector three). A field of three is one vector expression or `[x, y, z]`; `color` takes a
-   vector expression and an anchor `position` (beside `x / y / z` and `radius / angle`, until step 3).
-3. (In, MF15l1: "The schema" above; the files keep the old fields until MF15l2) One field form: a field is a value
-   (its start) or `{ start, tick }`; `tick` alone starts with the same expression. `spawn` is one point expression (the default `0`), drawn before the vars; `position` defaults to the
-   centre plus `p.spawn` and to moving by the velocity; `velocity = { start, tick }` replaces `speed`, `drag`,
-   `gravity`, `wind`; `size`'s `growth` is a tick; an anchor's `position` replaces `x / y / z / radius / angle`.
-   `after_spawn`, `tries`, `shift`, `offset`, `on_ground`, `ball_x/y/z`, `platform_normal_x/y/z` and the scalar
-   `p.x / p.vx / a.x` names go.
-4. (In, MF15l1) The update after death goes: a dead particle is drawn once more where it was and then pooled without
-   an update, so the age guards can go and those kinds take a plain `lifetime` (MF15l2). It moved every case's bounds
-   (127 of 146 cases' exact lines) and the particles of CampFire alone (its roll's draws in that update); with step 3
-   FireArrow and RikArrowSmoke (the head's `frame = { tick = "pick(3)" }` now draws at the start) and Regeneration
-   (its position's tick alone now starts it, one step from the source). VisionStar4, TeleportRing and GroundDust1 got
-   an explicit start where the tick alone would have started otherwise. The coarse compare passes; captures:
-   build/captures/mf15l1/.
-5. (In) Variants: a new keyed element (`[[particle]]`, `[[anchor]]`, `[[stage]]`, `[[on]]` with a `name`) or var takes
-   `before = "<name>"`, and `remove = true` takes the base's out: the four whole files are variants.
-6. (Left) The files rewritten in the new form (shorter, saying what they mean); the showcase mod and docs/modding.md
-   "Effects" to match, with a migration note for older mod files.
+The 83 files say each thing one way (MF15l-MF15l3, user 2026-11-11: an effect may drift if it looks the same
+overall): vector values and vars (`origin + p.spawn * 0.5`, `normalize`, `length`, swizzles), one field form (a value
+or `{ start, tick }`, a tick alone starting too), the spawn as one point expression drawn before the vars, the
+velocity's tick for every change of speed, a plain `lifetime` (a dead particle is drawn once more where it was and
+pooled without an update), an anchor placed by its `position`, and variants (`like`, `before`, `remove`) for the
+families. Each step was checked by effect_check's coarse compare and the viewer's captures (build/captures/mf15l1/,
+build/captures/mf15l2/), then the exact reference recorded again.
 
 ### Checks
 
 - `ei-convert --effect-check` (build checks; ctest `port_effects`; tools/convert/effect_check.cpp): every original type
-  on data against the run recorded from its C++ (tests/effects/reference.txt, built into the tool): 146 cases, 5539
+  against its recorded run (tests/effects/reference.txt, built into the tool; recorded from the data again when an
+  effect changes on purpose): 146 cases, 5539
   lines (carried, free, a fast carrier's distance tries, rescaled, StopEmitting / StartEmitting / Stop, the carrier
   removed and back, the world's wind, a sun; the carrier a stone, a stone with a path (`PathStone`, ShapeChange's
   points as OnPathMarker reads them), or a hero that runs, walks, dies and turns), each tick's
@@ -578,12 +442,12 @@ the engine's side (MF15l1; the old fields still read until MF15l3). Left: 6, the
   enter and event actions; anchors; `next = "end"`), a tick reaction's `when` and the stop action, `exp` / `log`, a
   source value `set`, `stop_emitting`, the carrier measured once and only when read, `set` on a var, `let_go`, "emit"
   reactions and their refused actions, `at_create` vars, `anchor_index` and the vars it refuses, MF15j's "before_emit"
-  reactions adding anchors with a ball spawn (their draws in turn), `ground(x, y)`, a list input by default and set,
-  `pick = "first"`, the segment's one draw, `on_death` queueing placed particles and an effect, the actions refused in
+  reactions adding anchors with a ball spawn (their draws in turn), `ground` of a point, a list input by default and
+  set, `pick = "first"`, a spawn between two points, `on_death` queueing placed particles and an effect, the actions refused in
   `on_death` and "before_emit", MF15g4's "emit" reactions queueing a kind (and refused a kindless emit), the `shake`
-  action and its form refused without a time, the `platform_*` functions, MF15g5's `ball_x/y/z`, a spawn's `tries`,
+  action and its form refused without a time, the `platform_*` functions, MF15g5's `ball()`,
   `<group>.<var>[i]`, the particle writes to vars and anchor vars and `jump`, MF15g6's "spawn" reaction with its
-  scorches and shake (and a refused emit), `at_create` anchors, a ball's `shift`, `surface(x, y)`, `sun.r/g/b` and the
+  scorches and shake (and a refused emit), `at_create` anchors and their spawns, `surface` of a point, `sun` and the
   frame mode `free`, and every whole effect written out in
   docs/modding.md (and in this file, which has none now) read without a problem (EI_SOURCE_DIR); MF15g5a's `like`:
   a variant over its base (a var and the texture replaced, a kind merged by name and one appended, a number array and
@@ -591,10 +455,10 @@ the engine's side (MF15l1; the old fields still read until MF15l3). Left: 6, the
   missing base, a `like` to itself, a circle of two and a `like` that is no name refused with file and line, a var and
   a kind put `before` the base's and a var, a kind and an `[[on]]` taken out by `remove`; MF15l's vectors (a vector
   input, `normalize`, `length`, `dot`, `cross`, chained swizzles, `ball()`, a per-lane `lerp`, a var reading a later
-  vector var, vectors of two widths refused, a particle's vars over eight floats refused); MF15l1's field forms (a
-  tick alone starting a source var, a particle's var, size, alpha and frame and an anchor's position; a spawn
-  expression read by a var; an anchor at its spawn's point by default and its position's start and tick; a velocity
-  tick, refused beside drag). The POSIX port check (`port_platform`) runs the same checks.
+  vector var, a var swizzling itself, vectors of two widths and a swizzle past a scalar var refused, a particle's vars
+  over eight floats refused); MF15l1's field forms (a tick alone starting a source var, a particle's var, size, alpha
+  and frame and an anchor's position; a spawn expression read by a var; an anchor at its spawn's point by default and
+  its position's start and tick; a velocity tick). The POSIX port check (`port_platform`) runs the same checks.
 - `mod_effect` (both installs; the showcase mod's `Res\effects\showcase_aura.effect.toml`): CreateParticleSource by
   name, the client's source and its stages (`effect ... check`), inputs set by value and by enum name, the burst's
   `set` seen (`effect ... value`), an event fired; captures `calm`, `storm`; an unknown name makes nothing.

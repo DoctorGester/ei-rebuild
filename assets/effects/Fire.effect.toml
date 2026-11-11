@@ -1,8 +1,8 @@
-# Fire (0x2003): the smoke of a fire. CampFire's puffs (CampFire.effect.toml) that end at their eighth frame: at random
-# points of the spread box (two in five half the size and spread wider by 0.3 of it), half of their offset taken at once
-# and the other half over their first two frames, at a random height up to the source's height, rising by that height
-# a tick, growing by the source's growth to frame 7, then by 1.06 in the wind. A frame a tick.
-# CampFire is built on it (like = "Fire"): what changes here changes it too.
+# Fire (0x2003): the smoke of a fire. Puffs at random points of the spread box (two in five half the size and spread
+# wider by 0.3 of it), half of their offset taken at once and the other half at their first tick, at a random height
+# up to the source's height, rising by that height a tick, growing by the source's growth to their seventh tick, then
+# by 1.06 in the wind; a frame a tick, 8 ticks.
+# CampFire and Tendril are built on it (like = "Fire"): what changes here changes them too.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
 texture = "TendriSmoke"
@@ -21,23 +21,15 @@ chance = 88
 
 [[particle]]
 name = "puff"
-lifetime = 2147483647                           # 32 ticks by its age (kill)
-size = { start = "p.small ? size * 0.5 : size", tick = "(p.stepped ? p.frame + 1 : p.frame) < 7 ? growth * p.size : p.size * 1.06" }
-frame = { start = 0, tick = "p.age != 32 && p.timer == 1 ? p.frame + 1 : p.frame" }
-kill = "p.age == 32 || (p.stepped && p.frame + 1 > 7)"
+lifetime = 8
+size = { start = "p.small ? size * 0.5 : size", tick = "p.age < 7 ? p.size * growth : p.size * 1.06" }
+frame = { start = 0, delay = 1 }
 
 [particle.vars]
 small = "chance(40)"
-sx = "range(spread_min.x - (p.small ? size * 0.3 : 0), (p.small ? size * 0.3 : 0) + spread_max.x) * 0.5"
-sy = "range(spread_min.y - (p.small ? size * 0.3 : 0), (p.small ? size * 0.3 : 0) + spread_max.y) * 0.5"
-stepped = { start = 0, tick = "p.age != 32 && p.timer == 1" }          # the frame steps this tick
-timer = { start = 1, tick = "p.age == 32 ? p.timer : (p.stepped ? (p.frame + 1 >= 15 ? 0 : 1) : p.timer - 1)" }
+half = "vec3(range(spread_min.xy - (p.small ? size * 0.3 : 0), spread_max.xy + (p.small ? size * 0.3 : 0)) * 0.5, 0)"
 rise = "height"
 
 [particle.position]
-start = ["origin.x + p.sx", "origin.y + p.sy", "range(0, height) + origin.z"]
-tick = [
-    "(p.stepped ? p.frame + 1 : p.frame) < 2 ? p.x + p.sx : ((p.stepped ? p.frame + 1 : p.frame) < 7 ? p.x : p.x + p.size * 1.06 * wind_strength * 0.15 * wind.x)",
-    "(p.stepped ? p.frame + 1 : p.frame) < 2 ? p.y + p.sy : ((p.stepped ? p.frame + 1 : p.frame) < 7 ? p.y : p.y + p.size * 1.06 * wind_strength * 0.15 * wind.y)",
-    "(p.stepped ? p.frame + 1 : p.frame) < 2 ? p.z + p.rise + 0 : ((p.stepped ? p.frame + 1 : p.frame) < 7 ? p.z + p.rise : p.z + p.rise + p.size * 1.06 * wind_strength * 0.15 * wind.z)",
-]
+start = "origin + p.half + vec3(0, 0, range(0, height))"
+tick = "p.position + vec3(0, 0, p.rise) + (p.age < 2 ? p.half : (p.age < 7 ? 0 : p.size * 1.06 * wind_strength * 0.15 * wind))"

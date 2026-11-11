@@ -35,8 +35,8 @@ do = [{ stop = true }]
 [[particle]]
 name = "star"
 lifetime = "carrier_running ? 6 : 21"           # 5 or 20 shown, as the original counts down past 0
-spawn = { shape = "ball", radius = "carrier_radius * 0.8" }
-vars = { factor = { start = "below(0.6) + 0.7", after_spawn = true } }
+spawn = "ball() * (carrier_radius * 0.8)"
+vars = { factor = "below(0.6) + 0.7" }
 alpha = { start = 0, tick = 255 }
 frame = 3
 size = { start = 0, tick = "(below(0.4) + 0.8) * size * p.factor" }

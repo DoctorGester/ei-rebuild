@@ -35,23 +35,10 @@ vars.direction = "range(0, 6)"
 [[particle]]
 name = "leaf"
 at = "gust"
-anchor_index = "p.gust"
+pick = "random"
 lifetime = 1000000000                           # until it is below the ground's 0
-velocity = ["sin(p.angle) * p.reach", "cos(p.angle) * p.reach", 0]
-size = "p.leaf_size"
+vars = { gravity = "range(-0.18, -0.06)", terminal = "below(0.4) - 0.6" }   # the fall's change a tick, its least
+velocity = { start = "vec3(sin(a.direction), cos(a.direction), 0) * (a.reach * range(0.5, 1.5))", tick = "vec3(p.velocity.xy, max(p.velocity.z + p.gravity, p.terminal))" }
+size = "range(0.1, 0.2)"
 frame = 12
-kill = "p.z < 0"
-
-[particle.vars]
-leaf_size = "range(0.1, 0.2)"
-gust = "pick(anchors.gust)"
-z_step = { start = 0, tick = "p.fall" }        # the fall before this tick's change
-fall = { start = 0, tick = "max(p.gravity + p.fall, p.terminal)" }
-reach = { start = "range(0, a.reach * 0.5 - -(a.reach * 0.5)) + a.reach + -(a.reach * 0.5)", after_spawn = true }
-angle = { start = "range(0, 0 * a.direction - -(0 * a.direction)) + a.direction + -(0 * a.direction)", after_spawn = true }
-gravity = { start = "range(0, 0.12) + -0.12 - 0.06", after_spawn = true }
-terminal = { start = "below(0.4) - 0.6", after_spawn = true }
-
-[particle.position]
-start = ["origin.x", "origin.y", "origin.z"]
-tick = ["p.x + p.vx", "p.y + p.vy", "p.z + p.z_step"]
+kill = "p.position.z < 0"

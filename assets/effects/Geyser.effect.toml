@@ -53,14 +53,12 @@ kill = "!emitting"
 [[particle]]
 name = "drop"
 when = "vents.t[v] > 0"
-lifetime = 1000000000
-position = ["range(0, spread_max.x - spread_min.x) + origin.x + spread_min.x", "range(0, spread_max.y - spread_min.y) + origin.y + spread_min.y", "range(0, spread_max.z - spread_min.z) + origin.z + spread_min.z"]
-velocity = ["sin(p.yw) * sin(p.tl) * p.pw * height", "cos(p.yw) * sin(p.tl) * p.pw * height", "cos(p.tl) * p.pw * height"]
-gravity = [0, 0, "-(height * 0.06)"]
+lifetime = 28
+position = "origin + range(spread_min, spread_max)"
+velocity = { start = "vec3(sin(p.yw) * sin(p.tl), cos(p.yw) * sin(p.tl), cos(p.tl)) * (p.pw * height)", tick = "p.velocity - vec3(0, 0, height * 0.06)" }
 size = { start = 0, tick = "p.age == 1 ? p.ds * 0.9 : p.size * 0.9" }
 alpha = { start = 255, tick = "p.alpha - 9" }
 frame = { start = "p.fr", tick = "p.frame - p.frame % 4 + (p.frame + 1) % 4" }
-kill = "p.alpha <= 9"
 
 [particle.vars]
 fr = "pick(12)"
@@ -72,7 +70,7 @@ ds = "size * 0.2"
 [[particle]]
 name = "mist"
 lifetime = 1
-position = ["range(0, spread_max.x * 0.5 - spread_min.x * 0.5) + origin.x + spread_min.x * 0.5", "range(0, spread_max.y * 0.5 - spread_min.y * 0.5) + origin.y + spread_min.y * 0.5", "origin.z"]
+position = "origin + vec3(range(spread_min.xy, spread_max.xy) * 0.5, 0)"
 size = "size * 0.01"
 frame = "p.fr"
 vars.fr = "pick(12)"

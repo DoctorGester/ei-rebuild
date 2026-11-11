@@ -20,31 +20,21 @@ green = [254, 227, 201, 176, 155, 152, 150, 149, 147, 144, 144, 144]
 blue = [143, 149, 154, 154, 163, 176, 195, 212, 237, 249, 249, 249]
 fade = [0, 64, 112, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255]
 
-# A ball: its countdown (cd: -13 while gone), its place (p*), velocity (v*) and last step (s*). A tick counts it down;
-# past 0 it is thrown again (attached) or gone; else it ages, may be kicked and moves. The starts are the first tick's
-# throw.
+# A ball: its countdown (cd: -13 while gone), its velocity (v), place (p) and last step (s). A tick counts it down;
+# past 0 it is thrown again (attached) or gone; else it ages, may be kicked and moves. The first tick throws it.
 [[anchor]]
 name = "ball"
 count = 80
 
 [anchor.vars]
-n = { start = -1, tick = "a.cd - 1" }
-thrown = { start = "attached", tick = "a.n < 0 && attached" }
-grown = { start = "attached ? pick(3) : 0", tick = "a.thrown ? pick(3) : a.n < 0 ? a.grown : a.grown + 1" }
-kick = { start = 0, tick = "a.n >= 0 && pick(6) == 0" }
-rx = { start = "attached ? range(0, size * 0.2 - size * -0.2) + origin.x + size * -0.2 : 0", tick = "a.thrown ? range(0, size * 0.2 - size * -0.2) + origin.x + size * -0.2 : 0" }
-ry = { start = "attached ? range(0, size * 0.2 - size * -0.2) + size * -0.2 + origin.y : 0", tick = "a.thrown ? range(0, size * 0.2 - size * -0.2) + size * -0.2 + origin.y : 0" }
-rz = { start = "attached ? range(0, size * 0.2 - size * -0.2) + origin.z + size * -0.2 : 0", tick = "a.thrown ? range(0, size * 0.2 - size * -0.2) + origin.z + size * -0.2 : 0" }
-vx = { start = "attached ? ball_x() * size * 0.2 : 0", tick = "a.thrown ? ball_x() * size * 0.2 : a.kick ? a.vx + ball_x() * size * 0.05 : a.vx" }
-vy = { start = "attached ? ball_y() * size * 0.2 : 0", tick = "a.thrown ? ball_y() * size * 0.2 : a.kick ? a.vy + ball_y() * size * 0.05 : a.vy" }
-vz = { start = "attached ? ball_z() * size * 0.2 : 0", tick = "a.thrown ? ball_z() * size * 0.2 : a.kick ? a.vz + ball_z() * size * 0.05 : a.vz" }
-cd = { start = "attached ? pick(3) + 7 : -13", tick = "a.thrown ? pick(3) + 7 : a.n < 0 ? -13 : a.n" }
-px = { start = "a.rx", tick = "a.thrown ? a.rx : a.n < 0 ? a.px : a.px + a.vx" }
-py = { start = "a.ry", tick = "a.thrown ? a.ry : a.n < 0 ? a.py : a.py + a.vy" }
-pz = { start = "a.rz", tick = "a.thrown ? a.rz : a.n < 0 ? a.pz : a.pz + a.vz" }
-sx = { start = 0, tick = "a.thrown ? 0 : a.n < 0 ? a.sx : a.vx" }
-sy = { start = 0, tick = "a.thrown ? 0 : a.n < 0 ? a.sy : a.vy" }
-sz = { start = 0, tick = "a.thrown ? 0 : a.n < 0 ? a.sz : a.vz" }
+n = { tick = "a.cd - 1" }
+thrown = { tick = "a.n < 0 && attached" }
+grown = { tick = "a.thrown ? pick(3) : a.n < 0 ? a.grown : a.grown + 1" }
+kick = { tick = "a.n >= 0 && pick(6) == 0" }
+v = { tick = "a.thrown ? ball() * (size * 0.2) : a.kick ? a.v + ball() * (size * 0.05) : a.v" }
+cd = { tick = "a.thrown ? pick(3) + 7 : a.n < 0 ? -13 : a.n" }
+p = { tick = "a.thrown ? origin + range(vec3(-0.2), vec3(0.2)) * size : a.n < 0 ? a.p : a.p + a.v" }
+s = { tick = "a.thrown ? vec3(0) : a.n < 0 ? a.s : a.v" }
 
 # A ball rides its anchor, cycling four frames; on the tick it is thrown it jumps there (not drawn flying from its old
 # place), drawn at 0.15 of the size from its age's.
@@ -53,33 +43,27 @@ name = "ball"
 when = "count < 80"
 at = "ball"
 anchor_index = "count"
-lifetime = 1000000000
+lifetime = 1000000000                           # while its anchor flies
+position = { start = "origin", tick = "a.p" }
 frame = { start = "pick(4)", tick = "(p.frame + 1) % 4" }
-size = { start = 0, tick = "a.sx == 0 && a.sy == 0 && a.sz == 0 ? size * 0.15 : sizes[a.grown] * size * 0.15" }
-color = ["p.age == 0 ? 255 : red[a.grown]", "p.age == 0 ? 255 : green[a.grown]", "p.age == 0 ? 255 : blue[a.grown]"]
+size = { start = 0, tick = "length(a.s) == 0 ? size * 0.15 : sizes[a.grown] * size * 0.15" }
+color = "p.age == 0 ? vec3(255) : vec3(red[a.grown], green[a.grown], blue[a.grown])"
 alpha = { start = 0, tick = 255 }
 kill = "a.cd == -13"
-jump = { when = "a.sx == 0 && a.sy == 0 && a.sz == 0", size = "sizes[a.grown] * size * 0.15" }
-
-[particle.position]
-start = ["origin.x", "origin.y", "origin.z"]
-tick = ["a.px", "a.py", "a.pz"]
+jump = { when = "length(a.s) == 0", size = "sizes[a.grown] * size * 0.15" }
 
 # A spark: at most 5 ticks (fewer as its ball's flight ends), still, stepping a frame a tick.
 [[particle]]
 name = "spark"
 at = "ball"
-anchor_index = "p.which"
-lifetime = 100
-position = ["p.u * a.sx + a.px", "p.u * a.sy + a.py", "p.u * a.sz + a.pz"]
+pick = "random"
+lifetime = "min(a.cd + 1, 5)"
+position = "a.p + p.u * a.s"
 size = "sizes[p.shade] * size * 0.1"
-color = ["red[p.shade]", "green[p.shade]", "blue[p.shade]"]
-alpha = { start = 0, tick = "fade[p.l]" }
+color = "vec3(red[p.shade], green[p.shade], blue[p.shade])"
+alpha = { start = 0, tick = "fade[p.life]" }
 frame = { start = 4, tick = "p.frame + 1" }
-kill = "p.l <= 0"
 
 [particle.vars]
-which = "pick(80)"
-l = { start = "min(a.cd + 1, 5)", tick = "p.l - 1", after_spawn = true }
-shade = { start = "a.grown", after_spawn = true }
-u = { start = "range(-1, 0)", after_spawn = true }
+shade = "a.grown"
+u = "range(-1, 0)"

@@ -21,13 +21,11 @@ do = [{ stop = true }]
 [[particle]]
 name = "star"
 lifetime = 21                                   # 20 shown, as the original counts down past 0
-vars = { cell = "pick(16)" }                    # the frame is drawn first
-spawn = { shape = "ball", radius = "size" }
-speed = "size * 0.1"
-drag = 0.9
+spawn = "ball() * size"
+velocity = { start = "normalize(p.spawn) * (size * 0.1)", tick = "p.velocity * 0.9" }
 size = { start = 0, tick = "p.size == 0 ? (below(0.4) + 0.8) * size * 0.04 : p.size * 0.95" }
 alpha = { start = 0, tick = "fade[p.life - 1]" }
-frame = "p.cell"
+frame = "pick(16)"
 
 [tables]
 fade = [0, 32, 64, 128, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255]

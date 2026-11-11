@@ -25,28 +25,25 @@ do = [{ set = "tries", value = "round(size * 8)" }]
 
 [[particle]]
 name = "puff"
-lifetime = 1000000000                           # its own life below
-spawn = { shape = "flat_ball" }
-velocity = ["p.spawn.x * 0.1 * carrier_radius * size", "p.spawn.y * 0.1 * carrier_radius * size", 0]   # the offset's step
-drag = 0.9
+lifetime = 11                                   # or 8 more once the source stops (kill)
+spawn = "disc()"
+velocity = { start = "p.spawn * (0.1 * carrier_radius * size)", tick = "p.velocity * 0.9" }   # the offset's step
 size = { start = 0, tick = "p.age == 1 ? p.puff : p.size * 0.8" }
-color = ["p.age == 0 ? 255 : 0", "p.age == 0 ? 255 : 0", 255]
+color = "p.age == 0 ? 255 : vec3(0, 0, 255)"
 alpha = { start = 0, tick = "fade[p.l]" }
-frame = "p.cell"
+frame = "pick(16)"
 kill = "p.l < 0"
 
 [particle.vars]
-cell = "pick(16)"
 foot = "pick(2)"                                # 1: the left
 puff = "size * carrier_radius * 0.4"
-l = { start = 10, tick = "emitting && attached ? p.l - 1 : min(p.l - 1, 8)" }
-off_x = { start = 0, tick = "p.off_x + p.vx" }
-off_y = { start = 0, tick = "p.off_y + p.vy" }
+l = { start = 10, tick = "emitting && attached ? p.l - 1 : min(p.l - 1, 8)" }   # the life left
+off = { start = 0, tick = "p.off + p.velocity" }
 ease = { start = 1, tick = "p.age == 1 ? p.ease : p.ease * 0.98" }   # the part of the way this tick
 
 [particle.position]
-start = ["p.foot ? carrier_left_foot.x : carrier_right_foot.x", "p.foot ? carrier_left_foot.y : carrier_right_foot.y", "p.puff * 1.2 + (p.foot ? carrier_left_foot.z : carrier_right_foot.z)"]
-tick = ["p.x * (1 - p.ease) + (p.off_x + (p.foot ? carrier_left_foot.x : carrier_right_foot.x)) * p.ease", "p.y * (1 - p.ease) + (p.off_y + (p.foot ? carrier_left_foot.y : carrier_right_foot.y)) * p.ease", "p.z * (1 - p.ease) + (0 + (p.foot ? carrier_left_foot.z : carrier_right_foot.z)) * p.ease"]
+start = "(p.foot ? carrier_left_foot : carrier_right_foot) + vec3(0, 0, p.puff * 1.2)"
+tick = "p.position * (1 - p.ease) + (p.off + (p.foot ? carrier_left_foot : carrier_right_foot)) * p.ease"
 
 [tables]
 fade = [0, 32, 64, 128, 255, 255, 255, 255, 255, 255, 255]

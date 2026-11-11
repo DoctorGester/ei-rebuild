@@ -1,7 +1,7 @@
-# Smoke (0x2004): smoke that drifts on. CampFire's puffs (CampFire.effect.toml) from their eighth frame: at random points
-# of the spread box (two in five half the size and spread wider by 0.3 of it; half of the offset taken), at a random
-# height up to the source's height, rising by that height a tick and growing by 1.06 while the wind carries them. A
-# frame every four ticks after the first, each with a chance of one in four to end the puff; 32 ticks at most.
+# Smoke (0x2004): smoke that drifts on. CampFire's puffs (CampFire.effect.toml) from their eighth frame: at random
+# points of the spread box (two in five half the size and spread wider by 0.3 of it; half of the offset taken), at a
+# random height up to the source's height, rising by that height a tick and growing by 1.06 while the wind carries them.
+# A frame at the first tick and then every four ticks, each with a chance of one in four to end the puff, to the last.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
 texture = "TendriSmoke"
@@ -20,24 +20,10 @@ chance = 88
 
 [[particle]]
 name = "puff"
-lifetime = 2147483647                           # 32 ticks by its age (kill)
+lifetime = 25                                   # frame 8 to the last
+vars = { small = "chance(40)" }
+position = "origin + vec3(range(spread_min.xy - (p.small ? size * 0.3 : 0), spread_max.xy + (p.small ? size * 0.3 : 0)) * 0.5, range(0, height))"
+velocity = { tick = "vec3(0, 0, height) + p.size * 1.06 * wind_strength * 0.15 * wind" }
 size = { start = "p.small ? size * 0.5 : size", tick = "p.size * 1.06" }
-frame = { start = 8, tick = "p.age != 32 && p.timer == 1 ? p.frame + 1 : p.frame" }
-kill = "p.age == 32 || (p.stepped && (p.frame + 1 >= 15 || p.roll == 0))"
-
-[particle.vars]
-small = "chance(40)"
-sx = "range(spread_min.x - (p.small ? size * 0.3 : 0), (p.small ? size * 0.3 : 0) + spread_max.x) * 0.5"
-sy = "range(spread_min.y - (p.small ? size * 0.3 : 0), (p.small ? size * 0.3 : 0) + spread_max.y) * 0.5"
-stepped = { start = 0, tick = "p.age != 32 && p.timer == 1" }          # the frame steps this tick
-timer = { start = 1, tick = "p.age == 32 ? p.timer : (p.stepped ? (p.frame + 1 >= 15 ? 0 : 4) : p.timer - 1)" }
-roll = { start = 1, tick = "p.stepped && p.frame + 1 < 15 ? pick(4) : 1" }   # 0 ends the puff
-rise = "height"
-
-[particle.position]
-start = ["origin.x + p.sx", "origin.y + p.sy", "range(0, height) + origin.z"]
-tick = [
-    "p.x + p.size * 1.06 * wind_strength * 0.15 * wind.x",
-    "p.y + p.size * 1.06 * wind_strength * 0.15 * wind.y",
-    "p.z + p.rise + p.size * 1.06 * wind_strength * 0.15 * wind.z",
-]
+frame = { start = 8, delay = "p.age == 0 ? 1 : 4" }
+kill = "(p.age - 1) % 4 == 0 && pick(4) == 0"

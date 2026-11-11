@@ -14,62 +14,43 @@ height = 0.2
 rate = 4
 max = 800
 
-# The funnel's height (fh) and the particles' colour (the sun's as the source is made). Each tick: the bottom ring's
-# height over the source (z0), the lean's direction (n*, u*: made unit) and size (lean), and the point the rings are
-# laid along (g*).
+# The funnel's height (fh) and the particles' colour (tint, the sun's as the source is made). Each tick: the bottom
+# ring's height over the source (z0), the lean's direction (n) and size (lean), and the point the rings are laid
+# along (g).
 [vars]
 fh = 12
-tr = { start = "sun.r * 255", at_create = true }
-tg = { start = "sun.g * 255", at_create = true }
-tb = { start = "sun.b * 255", at_create = true }
-z0 = { start = "ground(origin.x, origin.y) - origin.z + 1", tick = "ground(origin.x, origin.y) - origin.z + 1" }
-nx = { start = "(motion.x * 20 + ring.rx[0]) * -1", tick = "(motion.x * 20 + ring.rx[0]) * -1" }
-ny = { start = "(motion.y * 20 + ring.ry[0]) * -1", tick = "(motion.y * 20 + ring.ry[0]) * -1" }
-nz = { start = "(motion.z * 20 + z0) * -1", tick = "(motion.z * 20 + z0) * -1" }
-ln = { start = "sqrt(nx * nx + ny * ny + nz * nz)", tick = "sqrt(nx * nx + ny * ny + nz * nz)" }
-ux = { start = "ln != 0 ? nx * (1 / ln) : nx", tick = "ln != 0 ? nx * (1 / ln) : nx" }
-uy = { start = "ln != 0 ? ny * (1 / ln) : ny", tick = "ln != 0 ? ny * (1 / ln) : ny" }
-uz = { start = "ln != 0 ? nz * (1 / ln) : nz", tick = "ln != 0 ? nz * (1 / ln) : nz" }
-lean = { start = "ln * 0.5 > 0.01 ? 0.01 : ln * 0.5", tick = "ln * 0.5 > 0.01 ? 0.01 : ln * 0.5" }
-gx = { start = "ux * lean + ring.rx[0]", tick = "ux * lean + ring.rx[0]" }
-gy = { start = "uy * lean + ring.ry[0]", tick = "uy * lean + ring.ry[0]" }
-gz = { start = "uz * lean + z0", tick = "uz * lean + z0" }
+tint = { start = "sun * 255", at_create = true }
+z0 = { tick = "ground(origin) - origin.z + 1" }
+n = { tick = "-(motion * 20 + vec3(ring.r[0].xy, z0))" }
+lean = { tick = "min(length(n) * 0.5, 0.01)" }
+g = { tick = "normalize(n) * lean + vec3(ring.r[0].xy, z0)" }
 
 # The rings, bottom to top: the point g scaled by the funnel's bend at their height.
 [[anchor]]
 name = "ring"
 count = 6
-x = "a.rx"
-y = "a.ry"
-z = "a.rz"
 
 [anchor.vars]
-rx = { start = "gx * ((cos(a.index / 5 * pi) + (1 - a.index / 5) * 0.5 + 1) * 0.4)", tick = "gx * ((cos(a.index / 5 * pi) + (1 - a.index / 5) * 0.5 + 1) * 0.4)" }
-ry = { start = "gy * ((cos(a.index / 5 * pi) + (1 - a.index / 5) * 0.5 + 1) * 0.4)", tick = "gy * ((cos(a.index / 5 * pi) + (1 - a.index / 5) * 0.5 + 1) * 0.4)" }
-rz = { start = "gz * ((cos(a.index / 5 * pi) + (1 - a.index / 5) * 0.5 + 1) * 0.4)", tick = "gz * ((cos(a.index / 5 * pi) + (1 - a.index / 5) * 0.5 + 1) * 0.4)" }
+r = { tick = "g * ((cos(a.index / 5 * pi) + (1 - a.index / 5) * 0.5 + 1) * 0.4)" }
 
-# A particle: its height up the funnel (lv, 0..1) and its climb (cl), debris or dust (st), its life (l0), its turn
-# about the funnel's centre (ang) and the turn's step (sp), its distance (rad) and opacity (op). At the end of its life
-# it stays as it was for the one update the original still gives it (docs/notes/effects.md, "Kept").
+# A particle: its height up the funnel (lv, 0..1) and its climb (cl), debris or dust (st), its turn about the funnel's
+# centre (ang) and the turn's step (sp), its distance (rad) and opacity (op); placed between the two rings about its
+# height.
 [[particle]]
 name = "piece"
-lifetime = 1000000000
+lifetime = "pick(9) + 100"
+position = { tick = "origin + vec3(circle(p.ang).yx * p.rad + lerp(ring.r[min(floor(p.lv * 5), 4)].xy, ring.r[min(floor(p.lv * 5), 4) + 1].xy, min(p.lv * 5 - min(floor(p.lv * 5), 4), 1)), p.lv * fh + ring.r[0].z)" }
 size = { start = "p.st != 0 ? (p.rad + 0.3) * size : size * 0.15", tick = "p.st != 0 ? (p.rad + 0.3) * size : p.size" }
-color = ["tr", "tg", "tb"]
+color = "tint"
 alpha = { start = 25, tick = "round(sqrt(1 - p.lv) * p.op * 255)" }
 frame = { start = "p.st != 0 ? pick(12) : pick(4) + 12", tick = "p.st != 0 ? (p.frame + 1) % 12 : (p.frame + 1) % 4 + 12" }
-kill = "p.age == p.l0 || p.lv > 1"
-
-[particle.position]
-start = ["sin(p.ang) * p.rad + origin.x + (min(p.lv * 5 - min(round(p.lv * 5), 4), 1) * ring.rx[min(round(p.lv * 5), 4) + 1] + (1 - min(p.lv * 5 - min(round(p.lv * 5), 4), 1)) * ring.rx[min(round(p.lv * 5), 4)])", "cos(p.ang) * p.rad + (min(p.lv * 5 - min(round(p.lv * 5), 4), 1) * ring.ry[min(round(p.lv * 5), 4) + 1] + (1 - min(p.lv * 5 - min(round(p.lv * 5), 4), 1)) * ring.ry[min(round(p.lv * 5), 4)]) + origin.y", "p.lv * fh + (origin.z + ring.rz[0])"]
-tick = ["sin(p.ang) * p.rad + origin.x + (min(p.lv * 5 - min(floor(p.lv * 5), 4), 1) * ring.rx[min(floor(p.lv * 5), 4) + 1] + (1 - min(p.lv * 5 - min(floor(p.lv * 5), 4), 1)) * ring.rx[min(floor(p.lv * 5), 4)])", "cos(p.ang) * p.rad + origin.y + (min(p.lv * 5 - min(floor(p.lv * 5), 4), 1) * ring.ry[min(floor(p.lv * 5), 4) + 1] + (1 - min(p.lv * 5 - min(floor(p.lv * 5), 4), 1)) * ring.ry[min(floor(p.lv * 5), 4)])", "fh * p.lv + (ring.rz[0] + origin.z)"]
+kill = "p.lv > 1"
 
 [particle.vars]
-lv = { start = "range(0, 1)", tick = "p.age == p.l0 ? p.lv : p.lv + p.cl" }
+lv = { start = "range(0, 1)", tick = "p.lv + p.cl" }
 st = "pick(3)"
-l0 = "pick(9) + 100"
-ang = { start = "range(-pi, pi)", tick = "p.age == p.l0 ? p.ang : p.ang + p.sp" }
-rad = { start = "range(0.8, 2) * ((1 - p.lv) * (1 - p.lv) * ((1 - p.lv) * (1 - p.lv)) + 0.2) * 2", tick = "p.age == p.l0 ? p.rad : 0.99 * p.rad" }
-sp = { start = "range(pi * 0.06, pi * 0.07) * (1.1 - (1 - p.lv) * (1 - p.lv)) * 1.5", tick = "p.age == p.l0 ? p.sp : p.sp * 1.01" }
-op = { start = 0.1, tick = "p.age == p.l0 ? p.op : (p.l0 - p.age > 8 ? min(p.op + 0.1, 1) : max(0.1, p.op))" }
-cl = { start = 0, tick = "p.age == p.l0 ? p.cl : p.cl + 0.0001" }
+ang = { start = "range(-pi, pi)", tick = "p.ang + p.sp" }
+rad = { start = "range(0.8, 2) * ((1 - p.lv) * (1 - p.lv) * ((1 - p.lv) * (1 - p.lv)) + 0.2) * 2", tick = "0.99 * p.rad" }
+sp = { start = "range(pi * 0.06, pi * 0.07) * (1.1 - (1 - p.lv) * (1 - p.lv)) * 1.5", tick = "p.sp * 1.01" }
+op = { start = 0.1, tick = "p.life > 8 ? min(p.op + 0.1, 1) : max(0.1, p.op)" }
+cl = { start = 0, tick = "p.cl + 0.0001" }

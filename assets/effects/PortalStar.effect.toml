@@ -11,6 +11,6 @@ max = 1
 [[particle]]
 name = "star"
 lifetime = 2147483647                           # lasts while the source emits
-size = { start = 0, tick = "emitting ? (below(0.4) + 0.8) * size : p.size" }
+size = { start = 0, tick = "(below(0.4) + 0.8) * size" }
 alpha = { start = 0, tick = 255 }
 kill = "!emitting"

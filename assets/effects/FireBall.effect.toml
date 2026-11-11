@@ -1,7 +1,9 @@
 # FireBall (0x2000): the fire ball and its trail of smoke. The first particle of each tick is the ball, 1.2 of the
-# size at the source, halved at its first tick; the others are smoke at random points of the last step, thrown across
-# it (the spread box widened by half the size, along the motion's side and up axes) and put one step out. Both run
-# through the frames and die after the last, growing by the source's growth, the smoke slowing by 0.95.
+# size at the source, halved at its first tick; the others are smoke at random points of the last step. Both are
+# thrown across the step (the spread box widened by half the size, along the motion's side and up axes): the ball
+# 0.95 of that at its first tick, the smoke put that far out at once; then each is drawn back towards the step by a
+# twentieth of what is left of that offset a tick, which shrinks by 0.95 a tick. Both run through the frames and die
+# after the last, growing by the source's growth.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
 texture = "FireSmoke"
@@ -18,26 +20,21 @@ rate = 1
 chance = 88
 spacing = 0.09
 
-[vars]
-moving = { start = "!(distance <= 0.00001)", tick = "!(distance <= 0.00001)" }   # a trail has a length
-
 [[particle]]
 name = "ball"
 when = "index == 0"
 lifetime = 15
-vars = { across = "moving ? range(spread_min.x - size * 0.5, size * 0.5 + spread_max.x) : 0", lift = "moving ? range(spread_min.y - size * 0.5, size * 0.5 + spread_max.y) : 0" }
-position = { start = ["moving ? origin.x + 0 * motion.x : origin.x", "moving ? origin.y + 0 * motion.y : origin.y", "moving ? origin.z + 0 * motion.z : origin.z"], tick = ["p.age == 1 ? p.x + p.vx * 0.95 : p.x - p.vx + p.vx * 0.95", "p.age == 1 ? p.y + p.vy * 0.95 : p.y - p.vy + p.vy * 0.95", "p.age == 1 ? p.z + p.vz * 0.95 : p.z - p.vz + p.vz * 0.95"] }
-velocity = ["moving ? p.across * side.x + p.lift * up.x : 0", "moving ? p.across * side.y + p.lift * up.y : 0", "moving ? p.across * side.z + p.lift * up.z : 0"]
-drag = 0.95
-size = { start = "size * 1.2", tick = "p.age == 1 ? growth * p.size * 0.5 : growth * p.size" }
+position = { start = "origin", tick = "p.position + p.velocity * (p.age == 1 ? 0.95 : -0.05)" }
+velocity = { start = "range(spread_min.x - size * 0.5, size * 0.5 + spread_max.x) * side + range(spread_min.y - size * 0.5, size * 0.5 + spread_max.y) * up", tick = "p.velocity * 0.95" }
+size = { start = "size * 1.2", tick = "p.age == 1 ? p.size * growth * 0.5 : p.size * growth" }
 frame = { delay = 1, mode = "die" }
 
 [[particle]]
 name = "smoke"
 lifetime = 15
-vars = { along = "range(-1, 0)", across = "moving ? range(spread_min.x - size * 0.5, size * 0.5 + spread_max.x) : 0", lift = "moving ? range(spread_min.y - size * 0.5, size * 0.5 + spread_max.y) : 0" }
-position = { start = ["moving ? origin.x + p.along * motion.x + (p.across * side.x + p.lift * up.x) : origin.x", "moving ? origin.y + p.along * motion.y + (p.across * side.y + p.lift * up.y) : origin.y", "moving ? origin.z + p.along * motion.z + (p.across * side.z + p.lift * up.z) : origin.z"], tick = ["p.x - p.vx + p.vx * 0.95", "p.y - p.vy + p.vy * 0.95", "p.z - p.vz + p.vz * 0.95"] }
-velocity = ["moving ? p.across * side.x + p.lift * up.x : 0", "moving ? p.across * side.y + p.lift * up.y : 0", "moving ? p.across * side.z + p.lift * up.z : 0"]
-drag = 0.95
-size = { start = "size * 0.5", tick = "growth * p.size" }
+spawn = "range(-1, 0) * motion"
+vars = { out = "range(spread_min.x - size * 0.5, size * 0.5 + spread_max.x) * side + range(spread_min.y - size * 0.5, size * 0.5 + spread_max.y) * up" }
+position = "p.position + p.out"
+velocity = { start = "p.out * -0.05", tick = "p.velocity * 0.95" }
+size = { start = "size * 0.5", tick = "p.size * growth" }
 frame = { delay = 1, mode = "die" }

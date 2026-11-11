@@ -7,9 +7,7 @@
 # alpha by the points' age; after it 80 sparks a tick start between a random point's last and current place, drift
 # out slowing by 0.9, fade by 48 and shrink by 0.9 a tick, frames 12-15 stepping every other tick. A marker lives 24
 # ticks, a spark 4.
-# The ring's lift is the source's spread_min.x (as the original kept it: ScaleSize scales it). A marker's and a spark's
-# end is a `kill` at its own age: the update the original still gives them after their end moves them
-# (docs/notes/effects.md, "Kept"), so a spark's velocity is left alone at that update.
+# The ring's lift is the source's spread_min.x (as the original kept it: ScaleSize scales it).
 # Modifier2, Modifier3, Modifier4, Modifier5 and Modifier9 are built on it (like = "Modifier1"): what changes here
 # changes them too.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
@@ -42,64 +40,39 @@ event = "tick"
 when = "fade >= 11"
 do = [{ stop_emitting = true }]
 
-# A point's place (p*) and its last place (s*) in the world; its offset (o*) from the source.
+# A point's place (p) and its last place (s) in the world; its offset (o) from the source.
 [[anchor]]
 name = "point"
 count = 0                                       # made at the first particle
-spawn = { shape = "box", min = [-1, -1, -1], max = [1, 1, 1] }
+spawn = "range(vec3(-1), vec3(1))"
 
 [anchor.vars]
-vx = "a.spawn.x - 0 * (0 * a.spawn.x + 0 * a.spawn.y + 1 * a.spawn.z)"
-vy = "a.spawn.y - 0 * (0 * a.spawn.x + 0 * a.spawn.y + 1 * a.spawn.z)"
-vz = "a.spawn.z - 1 * (0 * a.spawn.x + 0 * a.spawn.y + 1 * a.spawn.z)"
-k = "size < 0 ? (carrier_radius + carrier_radius) / sqrt(a.vx * a.vx + a.vy * a.vy + a.vz * a.vz) * 0.04347826 : (carrier_radius + carrier_radius) / sqrt(a.vx * a.vx + a.vy * a.vy + a.vz * a.vz)"
-sx = { start = "a.k * a.vx + origin.x", tick = "fade <= 10 ? a.px : a.sx" }
-sy = { start = "a.k * a.vy + origin.y", tick = "fade <= 10 ? a.py : a.sy" }
-sz = { start = "spread_min.x + (a.k * a.vz + origin.z)", tick = "fade <= 10 ? a.pz : a.sz" }
-px = { start = "a.k * a.vx + origin.x", tick = "fade <= 10 ? a.ox + origin.x : a.px" }
-py = { start = "a.k * a.vy + origin.y", tick = "fade <= 10 ? a.oy + origin.y : a.py" }
-pz = { start = "spread_min.x + (a.k * a.vz + origin.z)", tick = "fade <= 10 ? spread_min.x + (a.oz + origin.z) : a.pz" }
-ox = { start = "a.k * a.vx", tick = "fade <= 10 ? a.ox * (size >= 0 ? 0.71428573 : 1.4) : a.ox" }
-oy = { start = "a.k * a.vy", tick = "fade <= 10 ? a.oy * (size >= 0 ? 0.71428573 : 1.4) : a.oy" }
-oz = { start = "a.k * a.vz", tick = "fade <= 10 ? a.oz * (size >= 0 ? 0.71428573 : 1.4) : a.oz" }
+axis = "vec3(0, 0, 1)"                          # the ring's axis, taken out of the direction
+dir = "a.spawn - a.axis * dot(a.axis, a.spawn)"
+k = "(carrier_radius + carrier_radius) / length(a.dir) * (size < 0 ? 0.04347826 : 1)"
+s = { start = "a.dir * a.k + origin + vec3(0, 0, spread_min.x)", tick = "fade <= 10 ? a.p : a.s" }
+p = { start = "a.dir * a.k + origin + vec3(0, 0, spread_min.x)", tick = "fade <= 10 ? a.o + origin + vec3(0, 0, spread_min.x) : a.p" }
+o = { start = "a.dir * a.k", tick = "fade <= 10 ? a.o * (size >= 0 ? 0.71428573 : 1.4) : a.o" }
 
 [[particle]]
 name = "marker"
 when = "fade == 0 && index < anchors.point"
 at = "point"
 anchor_index = "index"
-lifetime = 1000000000
+lifetime = 25
+position = { tick = "a.p" }
 size = { start = "size >= 0 ? 0.125 : 0.2", tick = "size < 0 ? p.size * 0.9345794 : p.size * 1.07" }
 alpha = { start = "fade_alpha[fade]", tick = "size < 0 ? alpha_in[fade] : alpha_out[fade]" }
 frame = 0
-kill = "p.age == 25"
-
-[particle.position]
-start = ["a.px", "a.py", "a.pz"]
-tick = ["a.px", "a.py", "a.pz"]
 
 [[particle]]
 name = "spark"
 at = "point"
 pick = "random"
-lifetime = 1000000000
-velocity = ["p.jx", "p.jy", "p.jz"]             # the scatter
-drag = "p.age == 5 ? 1 : 0.9"
-size = { start = 0.06, growth = 0.9 }
+lifetime = 5
+vars = { base = "lerp(a.s, a.p, range(0, 1))" }   # between the point's places
+position = { start = "a.s", tick = "p.base + p.velocity * 0.9" }
+velocity = { start = "range(vec3(-0.04), vec3(0.04))", tick = "p.velocity * 0.9" }   # the scatter
+size = { start = 0.06, tick = "p.size * 0.9" }
 alpha = { start = "fade_alpha[fade]", tick = "max(p.alpha - 48, 0)" }
-frame = { start = "p.fr + 12", tick = "p.age % 2 == 0 && p.age < 5 ? (p.frame + 1 >= 16 ? 12 : p.frame + 1) : p.frame" }
-kill = "p.age == 5"
-
-[particle.position]
-start = ["a.sx", "a.sy", "a.sz"]
-tick = ["p.vx * 0.9 + p.bx", "p.vy * 0.9 + p.by", "p.vz * 0.9 + p.bz"]
-
-[particle.vars]
-u = "range(0, 1)"
-fr = "pick(4)"
-jz = "range(-0.04, 0.04)"
-jy = "range(-0.04, 0.04)"
-jx = "range(-0.04, 0.04)"
-bx = "p.u * a.px + (1 - p.u) * a.sx"           # its base between the point's places
-by = "p.u * a.py + (1 - p.u) * a.sy"
-bz = "p.u * a.pz + (1 - p.u) * a.sz"
+frame = { start = "pick(4) + 12", tick = "p.age % 2 == 0 ? (p.frame + 1 >= 16 ? 12 : p.frame + 1) : p.frame" }

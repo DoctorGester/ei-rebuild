@@ -26,7 +26,6 @@ swell = 1.07
 inward = 0.07692308
 made = 0
 radius = 0
-r08 = 0
 cd = { start = 6, tick = "made && !(emitting && attached) && cd > 0 ? cd - 1 : cd" }
 cap = { start = 255, tick = "made && !(emitting && attached) ? countdown_alpha[cd] : cap" }
 
@@ -37,42 +36,30 @@ life_alpha = [0, 255, 255, 255, 255, 255, 255, 255, 224, 192, 128, 64, 32, 16]
 [[on]]
 event = "before_emit"
 when = "made == 0"
-do = [{ set = "r08", value = "carrier_radius * 0.8" }, { set = "radius", value = "(carrier_unit ? carrier_unit_radius : r08) * reach" }, { add_anchor = "swirl", count = 5 }, { set = "made", value = 1 }]
+do = [{ set = "radius", value = "(carrier_unit ? carrier_unit_radius : carrier_radius * 0.8) * reach" }, { add_anchor = "swirl", count = 5 }, { set = "made", value = 1 }]
 
+# A swirl: its place (p) and velocity (v) relative to the source.
 [[anchor]]
 name = "swirl"
 count = 0
 
 [anchor.vars]
-px = { start = "ball_x() * 10", tick = "a.px + a.vx" }
-py = { start = "ball_y() * 10", tick = "a.py + a.vy" }
-pz = { start = "ball_z() * 10", tick = "a.pz + a.vz" }
-vx = { start = "ball_x() * 0.1", tick = "range(0, 0.1 - -0.1) + a.vx * 0.95 + -0.1 - a.px * 0.0005" }
-vy = { start = "ball_y() * 0.1", tick = "range(0, 0.1 - -0.1) + a.vy * 0.95 + -0.1 - a.py * 0.0005" }
-vz = { start = "ball_z() * 0.1", tick = "range(0, 0.1 - -0.1) + a.vz * 0.95 + -0.1 - a.pz * 0.0005" }
+p = { start = "ball() * 10", tick = "a.p + a.v" }
+v = { start = "ball() * 0.1", tick = "range(vec3(-0.1), vec3(0.1)) + a.v * 0.95 - a.p * 0.0005" }
 
-# A spark: its direction (d*: a random one, pulled by swirl (pick - 1) % 5, where swirl 0 stands for the effect's own
-# radius and size, as the original read them) and its distance (away), stepping in. It dies at its 13th update; the
-# update after still moves it, so its distance does not change at the 13th.
+# A spark: its direction (d: a random one, pulled by swirl (pick - 1) % 5, where swirl 0 stands for the effect's own
+# radius and size, as the original read them) and its distance (away), stepping in.
 [[particle]]
 name = "spark"
-lifetime = 15
-spawn = { shape = "ball", tries = 0 }
-size = { start = "(below(0.8) + 0.6) * spark_size * p.away", growth = "swell" }
-alpha = { start = 0, tick = "min(life_alpha[13 - p.age], cap)" }
-frame = { start = 14, tick = "p.frame - 1 + ((13 - p.age) % 4 == 0 ? 1 : 0)" }
-kill = "cap == 0 || p.age == 13"
-
-[particle.position]
-start = ["p.away * p.dx + origin.x", "p.away * p.dy + origin.y", "p.away * p.dz + origin.z"]
-tick = ["p.away * p.dx + origin.x", "p.away * p.dy + origin.y", "p.away * p.dz + origin.z"]
+lifetime = 13
+spawn = "ball()"
+position = { tick = "origin + p.d * p.away" }
+size = { start = "(below(0.8) + 0.6) * spark_size * p.away", tick = "p.size * swell" }
+alpha = { start = 0, tick = "min(life_alpha[p.life], cap)" }
+frame = { start = 14, tick = "p.frame - 1 + (p.life % 4 == 0 ? 1 : 0)" }
+kill = "cap == 0"
 
 [particle.vars]
-pk = { start = "pick(picks)", after_spawn = true }
-sx = { start = "p.pk > 0 ? p.spawn.x + ((p.pk - 1) % 5 == 0 ? radius : swirl.px[(p.pk - 1) % 5 - 1]) : p.spawn.x", after_spawn = true }
-sy = { start = "p.pk > 0 ? p.spawn.y + ((p.pk - 1) % 5 == 0 ? spark_size : swirl.py[(p.pk - 1) % 5 - 1]) : p.spawn.y", after_spawn = true }
-sz = { start = "p.pk > 0 ? p.spawn.z + ((p.pk - 1) % 5 == 0 ? 0 : swirl.pz[(p.pk - 1) % 5 - 1]) : p.spawn.z", after_spawn = true }
-dx = { start = "1 / sqrt(p.sx * p.sx + p.sy * p.sy + p.sz * p.sz) * p.sx", after_spawn = true }
-dy = { start = "1 / sqrt(p.sx * p.sx + p.sy * p.sy + p.sz * p.sz) * p.sy", after_spawn = true }
-dz = { start = "1 / sqrt(p.sx * p.sx + p.sy * p.sy + p.sz * p.sz) * p.sz", after_spawn = true }
-away = { start = "radius * 0.6", tick = "p.age == 13 ? p.away : p.away - radius * 0.6 * inward", after_spawn = true }
+pk = "pick(picks)"
+d = "normalize(p.pk == 0 ? p.spawn : p.spawn + ((p.pk - 1) % 5 == 0 ? vec3(radius, spark_size, 0) : swirl.p[(p.pk - 1) % 5 - 1]))"
+away = { start = "radius * 0.6", tick = "p.away - radius * 0.6 * inward" }

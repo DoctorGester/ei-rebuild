@@ -1,8 +1,8 @@
 # FireArrow (0x2011): a fire arrow's head and smoke. The first particle is the head, 0.4 of the size one step ahead
 # of the source, flickering through three frames while the source emits; the others are puffs at random points of the
-# last step, thrown across it (the spread box along the motion's side and up axes) and put one step out, flying out
-# faster (1.1 a tick) and swelling by 1.4 a tick over their first frames, then by the source's growth; three in ten
-# linger in place. They run through the frames and die after the last.
+# last step, thrown across it (the spread box along the motion's side and up axes) and put that far out, flying on
+# faster (a tenth of the offset at first, growing by 1.1 a tick) and swelling by 1.4 a tick over their first frames,
+# then by the source's growth; three in ten linger in place. They run through the frames and die after the last.
 # RikArrowSmoke is built on it (like = "FireArrow"): what changes here changes it too.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
@@ -19,16 +19,11 @@ spread_max = [0.2, 0.2, 0.2]
 rate = 1
 spacing = 0.06
 
-[vars]
-moving = { start = "!(distance <= 0.00001)", tick = "!(distance <= 0.00001)" }   # a trail has a length
-
 [[particle]]
 name = "head"
 when = "total == 0"
 lifetime = 2147483647                           # lasts while the source emits
-vars = { across = "moving ? range(spread_min.x, spread_max.x) : 0", lift = "moving ? range(spread_min.y, spread_max.y) : 0" }
-position = { start = ["moving ? origin.x + 0 * motion.x : origin.x", "moving ? origin.y + 0 * motion.y : origin.y", "moving ? origin.z + 0 * motion.z : origin.z"], tick = ["motion.x + origin.x", "motion.y + origin.y", "motion.z + origin.z"] }
-velocity = ["moving ? p.across * side.x + p.lift * up.x : 0", "moving ? p.across * side.y + p.lift * up.y : 0", "moving ? p.across * side.z + p.lift * up.z : 0"]
+position = { start = "origin", tick = "origin + motion" }
 size = "size * 0.4"
 frame = { tick = "pick(3)" }
 kill = "!emitting"
@@ -36,9 +31,9 @@ kill = "!emitting"
 [[particle]]
 name = "puff"
 lifetime = 15
-vars = { along = "range(-1, 0)", linger = "!chance(71)", cell = "pick(2) + 2", across = "moving ? range(spread_min.x, spread_max.x) : 0", lift = "moving ? range(spread_min.y, spread_max.y) : 0" }
-position = { start = ["moving ? (p.linger ? origin.x + p.along * motion.x : origin.x + p.along * motion.x + (p.across * side.x + p.lift * up.x)) : origin.x", "moving ? (p.linger ? origin.y + p.along * motion.y : origin.y + p.along * motion.y + (p.across * side.y + p.lift * up.y)) : origin.y", "moving ? (p.linger ? origin.z + p.along * motion.z : origin.z + p.along * motion.z + (p.across * side.z + p.lift * up.z)) : origin.z"], tick = ["p.linger ? p.x : p.x - p.vx + p.vx * 1.1", "p.linger ? p.y : p.y - p.vy + p.vy * 1.1", "p.linger ? p.z : p.z - p.vz + p.vz * 1.1"] }
-velocity = ["moving ? p.across * side.x + p.lift * up.x : 0", "moving ? p.across * side.y + p.lift * up.y : 0", "moving ? p.across * side.z + p.lift * up.z : 0"]
-drag = "p.linger ? 0.95 : 1.1"
-size = { start = "size * 0.2", tick = "p.frame + 1 < 6 ? p.size * 1.4 : p.linger ? p.size : growth * p.size" }   # the frame steps every tick
-frame = { start = "p.cell", delay = 1, mode = "die" }
+spawn = "range(-1, 0) * motion"
+vars = { linger = "!chance(71)", out = "p.linger ? 0 : range(spread_min.x, spread_max.x) * side + range(spread_min.y, spread_max.y) * up" }
+position = "p.position + p.out"
+velocity = { start = "p.out * 0.1", tick = "p.velocity * 1.1" }
+size = { start = "size * 0.2", tick = "p.frame + 1 < 6 ? p.size * 1.4 : p.linger ? p.size : p.size * growth" }   # the frame steps every tick
+frame = { start = "pick(2) + 2", delay = 1, mode = "die" }

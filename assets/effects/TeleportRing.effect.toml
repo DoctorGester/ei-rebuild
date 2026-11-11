@@ -3,8 +3,6 @@
 # starts at a random point of the ring of radius 0.9-1.1 at a random height of the spread box above the foot, follows
 # the source at that offset for 12 ticks, rising faster and faster (a random part of a tenth of the height, growing by
 # 1.05 a tick), shrinking by 0.97, a frame a tick, fading in and out by its age. 25 sparks a tick.
-# A spark counts its own ticks: the update the original still gives a spark after its end (effects.md, "Kept") moves
-# it with the source, so the end is a `kill` at age 13 that changes nothing, and that last update runs as the original's.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
 texture = "Teleport"
@@ -20,24 +18,13 @@ set_up = { start = "emitting && attached", tick = "set_up || (emitting && attach
 
 [[particle]]
 name = "spark"
-lifetime = 15                                   # 12 shown, its end at 13 and the original's update after it
-velocity = [0, 0, "p.rise"]                     # the rise a tick (grows by the drag after the move)
-drag = "p.age == 13 ? 1 : 1.05"
+lifetime = 13
+space = "source"
+position = "circle(range(0, 2 * pi)) * (below(0.2) + 0.9) + vec3(0, 0, range(spread_min.z, spread_max.z) + foot)"
+velocity = { start = "vec3(0, 0, (below(0.6) + 0.7) * column_height * 0.1)", tick = "p.velocity * 1.05" }
 size = { start = "(below(0.8) + 0.6) * size * 0.25", tick = "p.size * 0.97" }
 alpha = { start = 255, tick = "fade[p.age]" }
-frame = { start = 1, tick = "p.frame + 1" }
-kill = "p.age == 13"
-
-[particle.vars]
-rise = "(below(0.6) + 0.7) * column_height * 0.1"
-ring = "below(0.2) + 0.9"
-angle = "range(0, 6.28318)"
-at = { start = 0, tick = "p.lift" }             # the offset's z this tick (before it rises)
-lift = { start = "range(spread_min.z, spread_max.z) + foot", tick = "p.age == 13 ? p.lift : p.lift + p.vz" }   # the offset's z
-
-[particle.position]
-start = ["origin.x + sin(p.angle) * p.ring", "origin.y + cos(p.angle) * p.ring", "origin.z + p.lift"]
-tick = ["origin.x + sin(p.angle) * p.ring", "origin.y + cos(p.angle) * p.ring", "origin.z + p.at"]
+frame = { start = 1, delay = 1 }
 
 [tables]
 fade = [0, 255, 255, 255, 255, 255, 255, 255, 207, 159, 111, 63, 15, 0, 0]   # by age

@@ -11,14 +11,9 @@ like = "VisionStar1"
 [[particle]]
 name = "star"
 when = "count <= 4"
+position = { tick = "origin + p.out" }
 frame = 1
 
 [particle.vars]
-eased = { tick = "emitting && attached ? range(0.1, 1.9) * size * 0.17 * 0.05 + p.size * 0.95 : (range(0.1, 1.9) * size * 0.17 * 0.05 + p.size * 0.95) * 0.95" }
-last_x = { start = 0, tick = "p.off_x" }        # the offset before this tick's turn
-off_x = { start = "count == 0 ? cos(0) * 0.5 : cos(6.2831855 * (count == 1 ? 0.2 : (count == 2 ? 0.4 : (count == 3 ? 0.6 : 0.8)))) * 0.5", tick = "cos(0.07) * p.off_x + p.off_y * sin(0.07)" }
-off_y = { start = "count == 0 ? sin(0) * 0.5 : sin(6.2831855 * (count == 1 ? 0.2 : (count == 2 ? 0.4 : (count == 3 ? 0.6 : 0.8)))) * 0.5", tick = "p.off_y * cos(0.07) - p.last_x * sin(0.07)" }
-
-[particle.position]
-start = ["origin.x + p.off_x", "origin.y + p.off_y", "origin.z + 0"]
-tick = ["origin.x + p.off_x", "origin.y + p.off_y", "origin.z + 0"]
+eased = { tick = "(range(0.1, 1.9) * size * 0.17 * 0.05 + p.size * 0.95) * (emitting && attached ? 1 : 0.95)" }
+out = { start = "circle(6.2831855 * min(count, 4) * 0.2) * 0.5", tick = "vec3(p.out.x * cos(0.07) + p.out.y * sin(0.07), p.out.y * cos(0.07) - p.out.x * sin(0.07), 0)" }

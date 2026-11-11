@@ -110,7 +110,7 @@ enum class AnchorValue : std::uint16_t {
     GroupSize,      // the anchors its group made so far
     Age, Ticks,
     PositionX, PositionY, PositionZ,    // `a.position`, relative to the source's origin
-    SpawnX, SpawnY, SpawnZ,     // `a.spawn`: its spawn shape's point, drawn when it is made
+    SpawnX, SpawnY, SpawnZ,     // `a.spawn`: its spawn's point, drawn when it is made
     Values
 };
 inline constexpr int kAnchorValues = static_cast<int>(AnchorValue::Values);
@@ -121,7 +121,7 @@ enum class ParticleValue : std::uint16_t {
     PositionX, PositionY, PositionZ,    // `p.position`
     VelocityX, VelocityY, VelocityZ,    // `p.velocity`
     Size, Alpha, Frame, Anchor, Index,
-    SpawnX, SpawnY, SpawnZ,     // `p.spawn`: the spawn shape's point, at the emission (0 in the update)
+    SpawnX, SpawnY, SpawnZ,     // `p.spawn`: its spawn's point, at the emission (0 in the update)
     ColorR, ColorG, ColorB,     // `p.color` (0..255)
     Values
 };
@@ -157,7 +157,6 @@ struct Var {
     int width = 1;              // its lanes (the widest of its start and tick)
     Expr start;
     Expr tick;
-    bool afterSpawn = false;    // a particle's: its start runs after the spawn shape draws (it reads p.spawn.*)
     bool atCreate = false;      // the effect's: its start runs when the source is made, before the first tick
 };
 
@@ -223,38 +222,17 @@ struct Reaction {
     std::vector<Action> actions;
 };
 
-// FlatBall: x and y drawn in the square [-1, 1) until y * y + x * x < 1 (ten tries, the last kept), z 0: the plane's
-// `ball`. Segment: one draw t in [0, 1), then from + t * (to - from).
-enum class SpawnShape : std::uint8_t { Point, Box, Ball, Shell, Disc, Ring, FlatBall, Segment };
-
-// A random point relative to a centre (a particle's or an anchor's): one point expression, or by shape.
-struct Spawn {
-    Expr point;                 // given: the point (`spawn = "ball() * size"`), a particle's drawn before its vars
-    SpawnShape shape = SpawnShape::Point;
-    Expr radius;
-    Expr boxMin, boxMax;        // the box's corners (empty: the source's spread)
-    Expr from, to;              // the segment's ends (empty: 0 and the source's extent)
-    int tries = 10;             // a ball's and a shell's draws of the cube (RandomInBall; 0: until inside)
-    Expr shift;                 // a ball's and a shell's: added to each draw of the cube before it is tested
-};
-
-// The point of `spawn` in `env`: its point expression, or the shape's expressions and draws in the order x, y, z (the
-// defaults read the source's spread and extent there).
-Vector3 SpawnPoint(const Spawn& spawn, const Env& env, IsaacRandom& random);
-
 // A group of moving points the source owns (rings, orbs, bolt points): made at the effect's start (`count`) or by an
 // `add_anchor` action, each with its own vars and position relative to the source's origin.
 struct Anchor {
     std::string name;
     Expr count;
-    Spawn spawn;        // drawn first when one is made (a.spawn.*)
+    Expr spawn;         // its point (`spawn = "ball()"`), drawn first when one is made (a.spawn; empty: 0)
     Expr ticks;         // each one's life (empty: lasts)
     std::vector<Var> vars;
     int varFloats = 0;  // the floats its vars hold
     Expr position;      // its start, relative to the source's origin (empty: a.spawn)
     Expr positionTick;  // its place each tick (empty: it stays)
-    Expr radius, angle, z;  // cylindrical, each tick: x = cos(angle) * radius, y = sin(angle) * radius, then z
-    bool cylindrical = false;
     bool atCreate = false;  // its `count` anchors are made when the source is made (State::Create), ticked from the
                             // first tick on
 };
@@ -276,18 +254,14 @@ struct ParticleKind {
     AnchorPick pick = AnchorPick::Cycle;
     Expr anchorIndex;       // given: the anchor is the group's live one of this number (wrapped), taken after the vars
     Space space = Space::World;
-    Spawn spawn;
-    Expr offset;
+    Expr spawn;             // its point (`spawn = "ball() * size"`), drawn before its vars (p.spawn; empty: 0)
     // The place in its space (world space: the world's; source and anchor space: the offset from the source's origin
     // or from its anchor's place): the start (empty: the centre plus p.spawn) and each tick (empty: moved by the
     // velocity), from this tick's values before any changes.
     Expr position, positionTick;
-    Expr onGround;          // given: the spawn's z is the ground's height plus it
     Expr velocity;          // its start (empty: 0)
-    Expr velocityTick;      // given: the velocity each tick, after the move (drag, gravity and wind written in it)
-    Expr speed;             // outward from the spawn's centre
-    Expr drag, gravity, wind;
-    Expr sizeStart, sizeTick, growth;
+    Expr velocityTick;      // given: the velocity each tick, after the move (empty: it keeps its velocity)
+    Expr sizeStart, sizeTick;
     std::uint32_t rgb = 0xFFFFFF;
     Expr color;             // given: the colour each tick (0..255 a lane)
     Expr alphaStart, alphaTick;
@@ -447,9 +421,9 @@ public:
     void (*measure)(void* context) = nullptr;
     void* measureContext = nullptr;
     bool measured = false;
-    // The ground's height at a point (`ground(x, y)`; null: 0, as in the unit checks).
+    // The ground's height at a point (`ground(point)`, `on_ground`; null: 0, as in the unit checks).
     float (*ground)(float x, float y) = nullptr;
-    // The top platform's plane at a point (`platform_height`, `platform_normal_x/y/z`; Env::platform).
+    // The top platform's plane at a point (`platform_height`, `platform_normal`, `surface`; Env::platform).
     float (*platform)(float x, float y, int which) = nullptr;
 
     // The Env of the source's scopes (an anchor's and a particle's are added by the caller).
@@ -463,7 +437,6 @@ public:
     std::vector<std::vector<float>> lists;  // the list inputs' points, x y z each
     std::vector<float> vars;
     std::vector<AnchorState> anchors;   // never removed (a particle reads its anchor's last values)
-    mutable Vector3 ball;           // the point the last ball_x() drew (Env::ball)
     int stage = -1;
     int stageAge = 0;               // steps since the current stage began
     int stageTicks = -1;            // the current stage's length (-1: none)

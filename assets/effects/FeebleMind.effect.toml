@@ -15,18 +15,20 @@ max = 300
 
 [vars]
 tries = { start = 5, tick = "total > seen ? round(seen_size + seen_size) : tries" }
-seen = { start = 0, tick = "total" }                    # the particles emitted before this tick
-seen_size = { start = "size", tick = "size" }           # the size those were emitted at
+seen = { tick = "total" }                       # the particles emitted before this tick
+seen_size = { tick = "size" }                   # the size those were emitted at
 
 [[particle]]
 name = "wisp"
 lifetime = 21                                   # 20 shown, as the original counts down past 0
-# The offset's turn reads the last tick's offset (last_x, last_y).
-vars = { cell = "pick(16)", angle = "range(0, 2 * pi)", grow = "(below(0.2) + 0.9) * size * 0.035", last_x = { start = 0, tick = "p.x_out" }, last_y = { start = 0, tick = "p.y_out" }, x_out = { start = "cos(p.angle) * 0.05", tick = "(cos(0.07) * p.last_x + p.last_y * sin(0.07)) * 1.1" }, y_out = { start = "sin(p.angle) * 0.05", tick = "(p.last_y * cos(0.07) - p.last_x * sin(0.07)) * 1.1" } }
-position = { start = ["origin.x + p.x_out", "origin.y + p.y_out", "origin.z + 0"], tick = ["p.x - p.last_x + p.x_out", "p.y - p.last_y + p.y_out", "p.z + 0.05"] }
-size = { start = 0, tick = "p.age == 1 ? p.grow : p.size * 1.04" }
+position = { tick = "p.base + p.out" }
+size = { start = 0, tick = "p.age == 1 ? (below(0.2) + 0.9) * size * 0.035 : p.size * 1.04" }
 alpha = { start = 0, tick = "fade[p.life - 1]" }
-frame = { start = "p.cell", tick = "(p.frame + 1) % 16" }
+frame = { start = "pick(16)", delay = 1 }
+
+[particle.vars]
+base = { start = "origin", tick = "p.base + vec3(0, 0, 0.05)" }   # where it rises from
+out = { start = "circle(range(0, 2 * pi)) * 0.05", tick = "vec3(p.out.x * cos(0.07) + p.out.y * sin(0.07), p.out.y * cos(0.07) - p.out.x * sin(0.07), 0) * 1.1" }
 
 [tables]
 fade = [0, 32, 64, 128, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255]
