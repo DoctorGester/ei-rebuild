@@ -1,0 +1,8 @@
+id = "MF17c"
+title = "Spell bindings: find units, damage by type, heal, apply/remove a modifier, move, bolt, missile with on_hit, effect by name, sound, light"
+group = "mods"
+size = 3
+model = "opus"
+depends = ["MF17b"]
+note = "From build/mf17_spells.md (the MF17 design), section 2.3. cast:find_units (sorted by distance then id; filters enemies/friends/alive/area/sight/affect/exclude), can_affect, damage (HitUnit path, caster credit), heal, apply/remove/has (a vanilla buff by name or the spell own type; new MapObject::RemoveEffects), move, bolt (EffectLightning), missile (EffectArrow, on_hit when it arrives), effect (MF15c registry names, vanilla script names now), sound, light; owned objects with lives in the SpellEffect. docs/modding.md Spells section. Checks: a scenario mod spell using each binding, digest checks."
+order = 1358

@@ -1,0 +1,8 @@
+id = "MF17f"
+title = "Spell cooldowns (optional): a record's cooldown, per-unit ready ticks saved and replicated, HUD greyed slot, AI skips"
+group = "mods"
+size = 2
+depends = ["MF17a"]
+note = "From build/mf17_spells.md (MF17's design), section 2.6. The game has no cooldowns; only if the user wants them."
+order = 1355
+status = "later"
