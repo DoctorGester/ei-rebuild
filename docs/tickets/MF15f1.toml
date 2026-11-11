@@ -4,3 +4,5 @@ group = "mods"
 depends = ["MF15f"]
 note = "MF15f left out: the plan's timing scenario (the bench's numbers in game, --quiet: a scripted effect with on_spawn/on_update at the budget, frame times against the data alone), and the effect viewer reloading an edited Res\\effects\\*.lua (effectlua::PutScript exists; the runtime caches a script at its first use until Registry::Reset)."
 order = 1410
+status = "running"
+started = "2026-11-11"
