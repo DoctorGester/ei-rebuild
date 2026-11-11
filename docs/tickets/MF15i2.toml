@@ -6,5 +6,6 @@ model = "sonnet"
 depends = ["MF15i"]
 note = "From MF15i: effects a data effect starts itself (its effects actions, EffectParticle::Spawn) are held by the particle manager and tick with the world, so they neither pause nor scrub with the viewer (docs/notes/effects.md, 'The effect viewer', Limits). Give them ParticleSourceFlag::OwnClock and tick them from the viewer's Step with its generator, released on Restart."
 order = 1377
-status = "running"
+status = "done"
 started = "2026-11-11"
+done = "2026-11-11"
