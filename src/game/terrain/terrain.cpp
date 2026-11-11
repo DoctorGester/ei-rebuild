@@ -107,7 +107,6 @@ constexpr float kFullTurn = kPi + kPi;
 constexpr float kSineIndex = 256.0f / 3.14159265f;   // sine table entries per radian
 constexpr float kQuarterTurn = 0.785398126f;         // between the circling's columns (and rows)
 constexpr float kTimeScale = 0.05f;                  // the circling's speed per world tick
-constexpr float kGlowScale = 50.0f;
 constexpr float kRiseScale = 0.25f;
 constexpr float kCircleScale = 3.0f;
 
@@ -178,14 +177,6 @@ const Vector3* Terrain::VertexAt(int ix, int iy, Layer layer) {
     if (layer == Layer::Ground) return &sector->vertices[index];
     if (!sector->hasWater) return nullptr;
     return &sector->vertices[index + kSectorVertices];
-}
-
-Terrain::MaterialWaves Terrain::WavesOf(int material) const {
-    const TerrainMaterial& m = materials[material];
-    const float glow = waveGlow * m.priority * kGlowScale;
-    return {std::fmod(wavePhase * m.priority, kFullTurn), waveHeight * m.priority,
-            {glow * m.waveColour.x, glow * m.waveColour.y, glow * m.waveColour.z},
-            m.kind == TerrainMaterial::kKeepsGroundXY};
 }
 
 Vector3 Terrain::WaterVertex(const SectorData& sector, int index) const {

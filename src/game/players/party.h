@@ -51,6 +51,7 @@ public:
     SpellConstructor* GetSpellConstructor() override;
     ItemManager* ItemFactory() override;
     SpellManager* GetSpellManager() override;
+    Item* DuplicateItem(Item* item) override { return MakeCopyOf(item); }
     // The item factory under the party's name.
     // A new item made like `item` (DuplicateItem: MakeCopyOf).
     Item* CopyItem(Item* item) { return DuplicateItem(item); }

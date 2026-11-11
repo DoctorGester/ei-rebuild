@@ -11,6 +11,7 @@
 
 #include "lib/vecmath.h"
 
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <string_view>
@@ -173,5 +174,19 @@ struct TerrainMaterial {
     float priority = 0.0f;              // lowest wins where water materials meet; also scales the waves
     float level = 0.0f;                 // water level offset
 };
+
+// Terrain's two members the renderer's terrain pass calls (src/render/render_terrain.cpp), defined here so that a
+// program with the renderer but without the game's terrain (ei-effects) links.
+inline int Terrain::LayerPages() const { return pages + kExtraPages; }
+
+inline Terrain::MaterialWaves Terrain::WavesOf(int material) const {
+    constexpr float kFullTurn = kPi + kPi;
+    constexpr float kGlowScale = 50.0f;
+    const TerrainMaterial& m = materials[material];
+    const float glow = waveGlow * m.priority * kGlowScale;
+    return {std::fmod(wavePhase * m.priority, kFullTurn), waveHeight * m.priority,
+            {glow * m.waveColour.x, glow * m.waveColour.y, glow * m.waveColour.z},
+            m.kind == TerrainMaterial::kKeepsGroundXY};
+}
 
 } // namespace terrain

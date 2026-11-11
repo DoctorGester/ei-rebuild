@@ -302,7 +302,7 @@ void ChunkArchive::Open(ByteStream* stream, int newLoading, int newVersion) {
         std::uint32_t key = 0;
         index->ReadValue(classId);
         index->ReadValue(key);
-        RefCounted* object = CreateArchived(static_cast<ArchiveClass>(classId));
+        RefCounted* object = g_createArchived ? g_createArchived(static_cast<ArchiveClass>(classId)) : nullptr;
         saved.push_back(object);
         loaded[key] = object;
     }

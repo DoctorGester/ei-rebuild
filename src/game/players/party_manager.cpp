@@ -143,6 +143,8 @@ void NamedPartyRecords::Serialize(ChunkArchive* ar) {
 
 // ---- The archived objects (Serialize) ---------------------------------------------------
 
+namespace {
+
 RefCounted* CreateArchived(ArchiveClass type) {
     switch (type) {
     case ArchiveClass::ClassTemplate: return new ClassTemplate();
@@ -150,6 +152,11 @@ RefCounted* CreateArchived(ArchiveClass type) {
     default: return nullptr;
     }
 }
+
+// The engine's archives make the game's classes (core_refcount.h) in every program that links the game.
+[[maybe_unused]] const bool g_archivedClasses = (g_createArchived = &CreateArchived, true);
+
+} // namespace
 
 void PartyRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(1, &name);

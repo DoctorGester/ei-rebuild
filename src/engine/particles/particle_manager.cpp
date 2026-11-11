@@ -109,10 +109,9 @@ constexpr const char* kParticleManagerClassName = "CParticleManager";
 const char* ParticleManager::ClassName() { return kParticleManagerClassName; }
 ClassId ParticleManager::GetClassId() { return ClassId::ParticleManager; }
 
-// The manager's own part of its constructor (the client world's manager set-up calls it after the base
-// manager's): quietStart cleared.
-void ParticleManagerClearQuietStart(ParticleManager* manager) {
-    manager->quietStart = 0;
+ParticleManager::~ParticleManager() {
+    ParticleManager::Destroy();
+    freeParticles.clear();
 }
 
 // --- Particle attach ---------------------------------------------------------------------------------

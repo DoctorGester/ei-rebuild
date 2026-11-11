@@ -97,6 +97,9 @@ enum class ClassId : int {
     EffectMoshka = 0x64,
     EffectTornado = 0x65,
     FigureInstance = 0x100,   // ours: a figure alone (models/figure_instance.h)
+    ViewerScene = 0x101,      // ours: the effect viewer's world and its managers (ei-effects)
+    PartDrawers = 0x102,
+    ViewerDatabase = 0x103,
 };
 
 class BaseManager;
@@ -129,7 +132,8 @@ public:
     void ForgetReference() { --refCount; }
 
     ManagerContext* GetManagerContext() const;
-    // The world the object belongs to, or null without a context (a party's items have the party instead).
+    // The world the object belongs to, or null without a context (a party's items have the party instead). The
+    // game's (world/manager_context.cpp), as the worlds are.
     World* OwningWorld() const;
     // The same as the server's or the client's world: null in the other one.
     WorldServer* ServerWorld() const;

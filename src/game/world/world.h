@@ -130,6 +130,10 @@ public:
     ItemManager* ItemFactory() override { return itemManager.get(); }
     PlayerManager* PlayerList() override { return players.get(); }
     SpellManager* GetSpellManager() override { return spellManager.get(); }
+    FigureManager* GetFigureManager() override { return figureManager.get(); }
+    BaseManager* SpecificManager() override { return specificManager.get(); }
+    LinkFigureLoader* FigureLoader() override { return figureLoader.Get(); }
+    Item* DuplicateItem(Item* item) override { return MakeCopyOf(item); }
 
     // The world's own virtuals; docs/notes/map_objects.md, "Virtual slot names".
     bool IsServer() const { return contextKind == ContextKind::Server; }
@@ -828,6 +832,10 @@ public:
     float GroundHeightAt(float x, float y) override;
     float SurfaceHeightAt(float x, float y) override;
     void MoveObject(MapObject* object, const float* position) override;
+    TextureManager* GetTextureManager() override { return textureManager.get(); }
+    MaterialManager* GetMaterialManager() override { return materialManager.get(); }
+    LightFactory* GetLightFactory() override { return lightFactory.get(); }
+    float SceneTime() override { return static_cast<float>(tick) + tickFraction; }
 
     void BuildUnitSkins(std::vector<FiguredUnitRecord>* others, std::vector<DressedUnitRecord>* dressed);
     // Draws the world view, the whole map's terrain clip-tested.
