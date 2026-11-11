@@ -43,10 +43,10 @@ constexpr FunctionName kFunctions[] = {
     {"log", Function::Log, 1, 1},          {"range", Function::Range, 2, 2},
     {"below", Function::Below, 1, 1},      {"chance", Function::Chance, 1, 1, Answer::Scalar},
     {"pick", Function::Pick, 1, 1, Answer::Scalar},
-    {"ground", Function::Ground, 1, 2, Answer::Scalar},
-    {"platform_height", Function::PlatformHeight, 1, 2, Answer::Scalar},
+    {"ground", Function::Ground, 1, 1, Answer::Scalar},
+    {"platform_height", Function::PlatformHeight, 1, 1, Answer::Scalar},
     {"platform_normal", Function::PlatformNormal, 1, 1, Answer::Point},
-    {"surface", Function::Surface, 1, 2, Answer::Scalar},
+    {"surface", Function::Surface, 1, 1, Answer::Scalar},
     {"on_ground", Function::OnGround, 2, 2, Answer::Point},
     {"dot", Function::Dot, 2, 2, Answer::Scalar},
     {"length", Function::Length, 1, 1, Answer::Scalar},
@@ -57,12 +57,6 @@ constexpr FunctionName kFunctions[] = {
     {"shell", Function::Shell, 0, 0, Answer::Point},
     {"disc", Function::Disc, 0, 0, Answer::Point},
     {"circle", Function::Circle, 1, 1, Answer::Point},
-    {"ball_x", Function::BallX, 0, 0, Answer::Scalar},
-    {"ball_y", Function::BallY, 0, 0, Answer::Scalar},
-    {"ball_z", Function::BallZ, 0, 0, Answer::Scalar},
-    {"platform_normal_x", Function::PlatformNormalX, 2, 2, Answer::Scalar},
-    {"platform_normal_y", Function::PlatformNormalY, 2, 2, Answer::Scalar},
-    {"platform_normal_z", Function::PlatformNormalZ, 2, 2, Answer::Scalar},
 };
 
 bool IsNameStart(char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'; }
@@ -353,7 +347,7 @@ private:
         }
         if (Take("[")) {
             if (meaning.kind != Resolved::Kind::Table && meaning.kind != Resolved::Kind::List &&
-                meaning.kind != Resolved::Kind::ListAxis && meaning.kind != Resolved::Kind::AnchorAt) {
+                meaning.kind != Resolved::Kind::AnchorAt) {
                 Fail("'" + std::string(name) + "' is no table");
                 return 1;
             }
@@ -368,10 +362,6 @@ private:
             case Resolved::Kind::List:
                 width = 3;
                 i = &Emit(Op::ListAt, meaning.index, 3);
-                break;
-            case Resolved::Kind::ListAxis:
-                i = &Emit(Op::ListAt, meaning.index, 1);
-                i->count = meaning.axis;
                 break;
             case Resolved::Kind::AnchorAt:
                 width = meaning.width;
@@ -408,7 +398,6 @@ private:
             Fail("curve '" + std::string(name) + "' needs a value: " + std::string(name) + "(t)");
             return 1;
         case Resolved::Kind::List:
-        case Resolved::Kind::ListAxis:
             Fail("list '" + std::string(name) + "' needs an index: " + std::string(name) + "[i]");
             return 1;
         case Resolved::Kind::AnchorAt:
@@ -572,9 +561,9 @@ bool IsScalarCall(Function f) { return f <= Function::Pick; }
 Lanes CallFunction(const Instruction& i, const Lanes* a, const Env& env) {
     IsaacRandom* random = env.random;
     const int width = i.width;
-    // A point argument: one vector's x and y, or two scalars.
+    // A point argument's x and y.
     const float px = a[0].v[0];
-    const float py = i.count >= 2 ? a[1].v[0] : a[0].v[1];
+    const float py = a[0].v[1];
     const Function f = static_cast<Function>(i.index);
     if (f == Function::Chance || f == Function::Pick) return Splat(ScalarCall(f, &px, random));
     if (IsScalarCall(f)) {
@@ -590,10 +579,7 @@ Lanes CallFunction(const Instruction& i, const Lanes* a, const Env& env) {
     case Function::PlatformNormal:
         return {{PlatformAt(env, px, py, 1), PlatformAt(env, px, py, 2), PlatformAt(env, px, py, 3), 0.0f}};
     case Function::Surface: return Splat(PlatformAt(env, px, py, 4));
-    case Function::OnGround: return {{px, a[0].v[1], GroundAt(env, px, a[0].v[1]) + a[1].v[0], 0.0f}};
-    case Function::PlatformNormalX: return Splat(PlatformAt(env, px, py, 1));
-    case Function::PlatformNormalY: return Splat(PlatformAt(env, px, py, 2));
-    case Function::PlatformNormalZ: return Splat(PlatformAt(env, px, py, 3));
+    case Function::OnGround: return {{px, py, GroundAt(env, px, py) + a[1].v[0], 0.0f}};
     case Function::Dot: return Splat(Dot(a[0], a[1], i.argument));
     case Function::Length: return Splat(std::sqrt(Dot(a[0], a[0], i.argument)));
     case Function::Distance: {
@@ -625,13 +611,6 @@ Lanes CallFunction(const Instruction& i, const Lanes* a, const Env& env) {
         return {{lib::Cos(angle) * reach, lib::Sin(angle) * reach, 0.0f, 0.0f}};
     }
     case Function::Circle: return {{lib::Cos(px), lib::Sin(px), 0.0f, 0.0f}};
-    case Function::BallX: {
-        const Vector3 v = random ? RandomInBall(*random) : Vector3{};
-        if (env.ball) *env.ball = v;
-        return Splat(v.x);
-    }
-    case Function::BallY: return Splat(env.ball ? env.ball->y : 0.0f);
-    case Function::BallZ: return Splat(env.ball ? env.ball->z : 0.0f);
     default: break;   // the scalar kind, above
     }
     return Splat(0.0f);
@@ -762,11 +741,6 @@ int RunScalars(const std::vector<Instruction>& code, std::size_t end, const Env&
         case Op::CurveAt:
             stack[top] = env.curves && i.index < env.curves->size() ? (*env.curves)[i.index].At(stack[top]) : 0.0f;
             break;
-        case Op::ListAt:
-            stack[top] = env.lists && i.index < env.lists->size()
-                             ? ListAt((*env.lists)[i.index], stack[top]).v[i.count]
-                             : 0.0f;
-            break;
         case Op::AnchorAt:
             stack[top] = env.anchorAt ? env.anchorAt(env.anchorContext, i.count, i.scope, i.index, stack[top]) : 0.0f;
             break;
@@ -785,26 +759,13 @@ Vector3 RandomInCube(IsaacRandom& random) {
     return {x, y, random.Range(-1.0f, 1.0f)};
 }
 
-Vector3 RandomInBall(IsaacRandom& random, float* lengthSquared, int tries, const Vector3* shift) {
+Vector3 RandomInBall(IsaacRandom& random) {
     Vector3 v;
-    float length2 = 0.0f;
-    if (tries <= 0) {
-        for (;;) {
-            v = RandomInCube(random);
-            if (shift) v = v + *shift;
-            length2 = LengthSquared(v);
-            if (length2 <= 1.0f && length2 > 0.0f) break;   // random: never NaN
-        }
-    } else {
-        for (;;) {
-            v = RandomInCube(random);
-            if (shift) v = v + *shift;
-            length2 = LengthSquared(v);
-            if (length2 < 1.0f) break;   // random: never NaN
-            if (!(--tries > 0)) break;
-        }
+    for (int tries = 10;;) {
+        v = RandomInCube(random);
+        if (LengthSquared(v) < 1.0f) break;   // random: never NaN
+        if (!(--tries > 0)) break;
     }
-    if (lengthSquared) *lengthSquared = length2;
     return v;
 }
 
@@ -904,12 +865,10 @@ Lanes Expr::RunLanes(const Env& env) const {
             stack[top] =
                 Splat(env.curves && i.index < env.curves->size() ? (*env.curves)[i.index].At(stack[top].v[0]) : 0.0f);
             break;
-        case Op::ListAt: {
-            const Lanes point =
+        case Op::ListAt:
+            stack[top] =
                 env.lists && i.index < env.lists->size() ? ListAt((*env.lists)[i.index], stack[top].v[0]) : Splat(0.0f);
-            stack[top] = i.width == 1 ? Splat(point.v[i.count]) : point;
             break;
-        }
         case Op::AnchorAt: {
             const float number = stack[top].v[0];
             stack[top] = PerLane(i.width, [&](int k) {

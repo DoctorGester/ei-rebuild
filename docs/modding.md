@@ -1032,29 +1032,40 @@ rate = "2 + charge * 6"       # particles per tick: any value can be an expressi
 [[particle]]
 name = "spark"
 lifetime = "range(10, 20)"    # ticks; range() draws a random number
-spawn = { shape = "disc", radius = "size", on_ground = 0.05 }
-velocity = [0, 0, 0.03]
-size = { start = 0.2, growth = 0.95 }
+position = "on_ground(origin + disc() * size, 0.05)"   # a random point of a disc round the source, on the ground
+velocity = "vec3(0, 0, 0.03)"
+size = { start = 0.2, tick = "p.size * 0.95" }   # its start, then each tick from its last value
 color = "FFD890"
 alpha = { tick = "255 * (1 - p.t)" }   # p.t: the particle's age, 0 to 1
 frame = { start = "pick(16)", delay = 1 }
 ```
 
+- **Fields**: a particle's `position`, `velocity`, `size`, `alpha` and `frame`, an anchor's `position` and a var are a
+  value (its start) or `{ start, tick }`: the tick runs at each tick after the first and reads the last values
+  (`p.size`, `p.velocity`); a tick alone also starts it. A particle without a `position` starts at the source (or its
+  anchor) plus its `spawn` and moves by its velocity; the velocity's tick changes it after each move, so `velocity = {
+  start = "normalize(p.spawn) * 0.1", tick = "p.velocity * 0.9 + vec3(0, 0, -0.005)" }` flies out, slows down and
+  falls. It lives `lifetime` ticks; `kill = "<condition>"` ends it sooner.
+- **Spawn**: `spawn = "<point>"` is a random point drawn first, before the vars (`p.spawn`, which they can read):
+  `"ball() * 0.2"` in a small ball, `"shell()"` a direction, `"disc() * size"` a point of a flat disc,
+  `"circle(range(0, 2 * pi)) * size"` one of a ring, `"lerp(vec3(0), extent, range(0, 1))"` one along the source's
+  extent (a beam's or a wall's length).
 - **Stages** (`[[stage]]`) make it change over time: each lasts `ticks` or `until` a condition holds, then goes to its
   `next` (`"end"` ends the effect), with its own `rate`, and `enter` actions (a burst of particles, an input set,
   another effect started).
-- **Anchors** (`[[anchor]]`) are moving points it owns (orbs, rings); a particle kind with `at = "<anchor>"` starts at
-  them, and with `space = "anchor"` rides them.
+- **Anchors** (`[[anchor]]`) are moving points it owns (orbs, rings), placed by their `position` relative to the
+  source (`position = { tick = "circle(spin + a.index * 2.0944) * size" }`: three orbs turning round it); a particle
+  kind with `at = "<anchor>"` starts at them, and with `space = "anchor"` rides them.
 - **Inputs**: `float`, `vector`, `bool`, `enum` (named values) and `event` (fired; `[[on]] event = "..."` reacts).
 - **Expressions**: arithmetic, comparisons, `? :`, `sin`, `cos`, `min`, `max`, `clamp`, `lerp`, `pow`, `exp`, `log`,
   random `range`, `chance`, `pick`; tables (`fade[p.age]`) and curves (`glow(p.t)`) from `[tables]` and `[curves]`;
-  the world's wind (`wind.x/y/z`, `wind_strength`) and the carrier's `carrier_radius` and `carrier_z`; when it is a
-  unit, `carrier_unit` (1), `carrier_unit_radius` (its own radius), `carrier_running`, `carrier_dead`, its own x and y axes `carrier_axis.x/y/z` and
-  `carrier_axis_y.x/y/z`, its feet
-  `carrier_left_foot.x/y/z` and `carrier_right_foot.x/y/z`. A particle's own vars may not reuse the built-in names
-  (`p.age`, `p.life`, `p.x`...). A var with `at_create = true` starts when the source is made (a random count drawn
-  once, before the first tick); so does an anchor group with `at_create = true` (the fireball's fragments). The
-  scene's sun colour is `sun.r/g/b` (0..1: the tornado takes its colour from it).
+  the world's wind (`wind`, `wind_strength`) and the carrier's `carrier_radius` and `carrier_z`; when it is a unit,
+  `carrier_unit` (1), `carrier_unit_radius` (its own radius), `carrier_running`, `carrier_dead`, its own x and y axes
+  `carrier_axis` and `carrier_axis_y`, its feet `carrier_left_foot` and `carrier_right_foot`. A particle's own vars
+  may not reuse the built-in names (`p.age`, `p.life`, `p.t`...). A var with `at_create = true` starts when the
+  source is made (a random count drawn once, before the first tick); so does an anchor group with `at_create = true`
+  (the fireball's fragments). The scene's sun colour is `sun` (r, g, b from 0 to 1: the tornado takes its colour
+  from it).
 - **Vectors**: a value can be a vector of up to four numbers. `origin`, `motion`, `wind`, `extent`, `spread_min`,
   `spread_max`, `side`, `up`, `sun`, `carrier_axis`, `carrier_axis_y`, the feet, a `vector` input, a list's point
   `path[i]`, `p.position`, `p.velocity`, `p.spawn`, `p.color` (0..255), `a.position` and `a.spawn` are vectors;
@@ -1063,11 +1074,10 @@ frame = { start = "pick(16)", delay = 1 }
   for every one (`origin + p.spawn * 0.5`); `dot`, `length`, `normalize`, `cross` and `distance` are the usual ones;
   `ball()` is a random point in the unit ball, `shell()` one on its surface, `disc()` one in the unit circle on the
   ground, `circle(angle)` the circle's point at that angle, and `range(lo, hi)` of vectors draws each number;
-  `platform_normal(point)` is a platform's slope there and `on_ground(point, height)` the point moved to that height
-  over the ground (`ground`, `surface` and `platform_height` take a point too). A var is as wide as its value (`dir =
+  `on_ground(point, height)` is the point moved to that height over the ground. A var is as wide as its value (`dir =
   "normalize(p.spawn)"`, read as `p.dir` or `p.dir.z`); a particle's vars hold eight numbers between them. A field of
-  three (`position`, `velocity`, `gravity`, `color`, a spawn's `min`, `max`, `from`, `to`, an anchor's `position`) is
-  one vector expression or `[x, y, z]`.
+  three (`position`, `velocity`, `spawn`, `color`, an anchor's `position`) is one vector expression (`[x, y, z]` of
+  numbers for a fixed one).
 - **Reactions** (`[[on]] event = "tick"`, with a `when` condition) run actions each tick: `{ set = "height", value =
   ... }` changes an input, a var or the source's own `size`, `height`, `growth`, `alpha` or `param`, `{ stop_emitting =
   true }` ends the emission (the particles live on), `{ stop = true }` stops the source, `{ let_go = true }` lets go
@@ -1082,29 +1092,24 @@ frame = { start = "pick(16)", delay = 1 }
 - **Particles that change the source**: `source = { size = "..." }` in a particle kind sets the source's value at
   each of its updates (the particles after it read the new value), as a fading mark that shrinks its source; `drop =
   "..."` throws a particle away once it is made (its random draws stay drawn); `anchor_index = "p.gust"` starts it at
-  the anchor of that number, chosen after its vars, and `pick = "first"` at the group's first live one; the spawn
-  shape `flat_ball` draws a point of the flat disc as `ball` draws one of the ball, `segment` a point between `from`
-  and `to` (by default the source's extent: a beam's or a wall's length). `source` also writes an effect var by its
+  the anchor of that number, chosen after its vars (which then cannot read `a.*`), `pick = "random"` at a random live
+  one and `pick = "first"` at the group's first. `source` also writes an effect var by its
   name and the particle's anchor's vars (`source = { a.size = "p.drawn" }`: the wisps of an orb read how big
   the orb is). `jump = "<condition>"` makes a particle jump: on an update where it holds, its previous place, size and colour
   are its new ones (drawn there, not moving there from the old place); `jump = { when = "...", size = "..." }` also
   gives the previous size (a ball thrown back to its start).
-- **More than one anchor's values**: `swirl.px[2]` reads the var `px` of the group `swirl`'s anchor number 2 (counted
-  from 0 in the order they were made, held to the first and last), `swirl.x[0]` its place; a light that takes the
-  first light's orbit, a spark pulled towards a random swirl.
-- **Random points**: `ball_x()` draws a random point in the unit ball and gives its x, then `ball_y()` and `ball_z()`
-  the same point's y and z (a random direction for three vars). The `ball` and `shell` spawns take `tries` (10: the
-  draws before the last is kept; 0: draw until the point is inside) and `shift = [x, y, z]` (the ball moved by it, so
-  more points fall on that side: the fireball's fragments fly upwards).
+- **More than one anchor's values**: `swirl.p[2]` reads the var `p` of the group `swirl`'s anchor number 2 (counted
+  from 0 in the order they were made, held to the first and last; `swirl.p[2].z` one of its numbers),
+  `swirl.position[0]` its place; a light that takes the first light's orbit, a spark pulled towards a random swirl.
 - **Anchors made as it goes**: `{ add_anchor = "orb", count = 3 }` makes anchors at any time (`count = 0` in the
-  `[[anchor]]` makes none at the start), and an anchor's own `spawn = { shape = "ball" }` gives each a random point
-  (`a.spawn.x/y/z`) to place it by; `[[on]] event = "before_emit"` runs before each particle is made, so the first
+  `[[anchor]]` makes none at the start), and an anchor's own `spawn = "ball()"` gives each a random point (`a.spawn`)
+  to place it by; `[[on]] event = "before_emit"` runs before each particle is made, so the first
   particle can find its anchors ready (`when = "anchors.orb == 0"`).
-- **The ground and lists**: `ground(x, y)` is the ground's height there (a kill plane: `kill = "p.z < ground(p.x,
-  p.y)"`), `platform_height(x, y)` the height of a platform (a bridge, a floor) there and `platform_normal_x(x, y)`,
-  `_y`, `_z` its slope (0 and an upright normal where there is none), `surface(x, y)` the top of what stands there
-  (the platform, else the ground: the path markers' glows); an input `{ type = "list" }` holds points the
-  game gives (`path.count`, `path.x[i]`, `path.y[i]`, `path.z[i]`), with a `default = [[x, y, z], ...]`.
+- **The ground and lists**: `ground(point)` is the ground's height there (a kill plane: `kill = "p.position.z <
+  ground(p.position)"`), `platform_height(point)` the height of a platform (a bridge, a floor) there and
+  `platform_normal(point)` its slope (0 and an upright normal where there is none), `surface(point)` the top of what
+  stands there (the platform, else the ground: the path markers' glows); an input `{ type = "list" }` holds points the
+  game gives (`path.count`, and `path[i]` a point), with a `default = [[x, y, z], ...]`.
 - **When a particle dies**: `on_death = [{ emit = 4, kind = "ember" }, { effect = "Sparks" }]` emits particles of
   another kind where it died, at once, or starts an effect there.
 - **Layers**: a mod's file of the name merges over a lower one field by field, by the rule of variants below;
@@ -1138,9 +1143,9 @@ frame = { start = "pick(16)", delay = 1 }
   that field. A missing base, or a chain that comes back to itself, is a problem: the effect shows nothing. The game's
   own families are written this way (CastingDomination, CastingEnchantment and CastingHealing on CastingIllusion,
   Shower2-4 on Shower1, the Modifier rings).
-- **Placing a particle yourself**: `position = [x, y, z]` starts it where the expressions say (`origin.x`, the
-  source's motion, its `side` and `up` axes), and `position = { tick = [...] }` moves it each tick by your own sum
-  instead of its velocity.
+- **Placing a particle yourself**: `position = "..."` starts it where the expression says (`origin`, the source's
+  `motion`, its `side` and `up` axes), and `position = { tick = "..." }` moves it each tick by your own sum instead of
+  its velocity.
 - **Frames**: `frame = { start, delay, mode, tick }`; past the texture's last frame `mode = "loop"` (the default)
   starts again, `"hold"` stays on the last, `"die"` ends the particle and `"free"` keeps the number (drawn as the first
   frame; a table read by it sees the real count).

@@ -183,9 +183,7 @@ do = [{ emit = 2 }]
 [[anchor]]
 name = "orb"
 count = 3
-radius = 2
-angle = "a.index * pi / 2"
-z = "aim.z"
+position = { tick = "circle(a.index * pi / 2) * 2 + vec3(0, 0, aim.z)" }
 
 [[particle]]
 name = "mote"
@@ -362,18 +360,9 @@ texture = "Stun"
 [[particle]]
 name = "spark"
 lifetime = 7
-vars = { a = 1, b = 2, c = 3, d = 4, e = 5, f = 6, speed = "below(0.6)", dx = { start = "p.spawn.x * p.speed", after_spawn = true } }
-spawn = { shape = "ball" }
-position = { start = ["origin.x + p.dx", "origin.y", "origin.z"], tick = ["p.x + side.x * spread_min.x", "p.y + up.y", "p.z + spread_max.z"] }
-)toml";
-
-constexpr const char* kEarly = R"toml(
-texture = "Stun"
-[[particle]]
-name = "spark"
-lifetime = 2
-spawn = { shape = "ball" }
-vars = { dx = "p.spawn.x" }
+vars = { a = 1, b = 2, c = 3, d = 4, e = 5, f = 6, reach = "below(0.6)", dx = "p.spawn.x * p.reach" }
+spawn = "ball()"
+position = { start = "origin + vec3(p.dx, 0, 0)", tick = "p.position + side * spread_min.x + vec3(0, up.y, spread_max.z)" }
 )toml";
 
 void CheckPlacement() {
@@ -382,19 +371,15 @@ void CheckPlacement() {
     for (const std::string& error : errors) std::printf("ei_unit_check: particle record: unexpected: %s\n", error.c_str());
     if (!record) return Expect("the placed record reads", false);
     const ParticleKind& kind = record->particles[0];
-    Expect("eight vars, the last after the spawn", kind.vars.size() == 8 && !kind.vars[6].afterSpawn && kind.vars[7].afterSpawn);
-    Expect("the position's start and tick", kind.position.text == "[origin.x + p.dx, origin.y, origin.z]" &&
+    Expect("eight vars", kind.vars.size() == 8 && record->particles[0].vars[7].start.text == "p.spawn.x * p.reach");
+    Expect("the position's start and tick", kind.position.text == "origin + vec3(p.dx, 0, 0)" &&
                                                 kind.position.width == 3 && kind.positionTick.width == 3 &&
                                                 kind.positionTick.text ==
-                                                    "[p.x + side.x * spread_min.x, p.y + up.y, p.z + spread_max.z]");
-    errors.clear();
-    Expect("a var that reads the spawn before it draws refuses the effect",
-           Read(Parse(kEarly, "early.effect.toml"), "Early", &errors) == nullptr && errors.size() == 1 &&
-               errors[0].find("after_spawn") != std::string::npos);
+                                                    "p.position + side * spread_min.x + vec3(0, up.y, spread_max.z)");
 }
 
 // MF15g3's features: a var set by an "emit" reaction, let_go, at_create, a numbered anchor, a particle's source writes,
-// drop and the flat ball, the carrier's unit values.
+// drop, the carrier's unit values.
 constexpr const char* kCarrierReader = R"toml(
 texture = "Stun"
 [vars]
@@ -413,11 +398,11 @@ name = "leaf"
 at = "gust"
 anchor_index = "p.gust"
 lifetime = 5
-vars = { gust = "pick(anchors.gust)", reach = { start = "a.reach", after_spawn = true } }
-spawn = { shape = "flat_ball" }
+vars = { gust = "pick(anchors.gust)" }
+spawn = "disc()"
 drop = "!carrier_unit"
 source = { size = "size * 0.75", alpha = 0 }
-position = { tick = ["carrier_left_foot.x", "carrier_axis.y", "carrier_bounds_radius + carrier_dead"] }
+position = { tick = "vec3(carrier_left_foot.x, carrier_axis.y, carrier_bounds_radius + carrier_dead)" }
 )toml";
 
 constexpr const char* kEmitsInEmit = R"toml(
@@ -451,8 +436,8 @@ void CheckCarrierReaders() {
     if (!record) return Expect("the carrier reader reads", false);
     const ParticleKind& kind = record->particles[0];
     Expect("the carrier's unit values noted", record->readsUnit && !record->readsCarrier);
-    Expect("a numbered anchor, a drop, the flat ball and two source writes",
-           !kind.anchorIndex.Empty() && !kind.drop.Empty() && kind.spawn.shape == SpawnShape::FlatBall &&
+    Expect("a numbered anchor, a drop, a spawn and two source writes",
+           !kind.anchorIndex.Empty() && !kind.drop.Empty() && kind.spawn.width == 3 &&
                kind.writes.size() == 2 && kind.writes[0].index == static_cast<int>(SourceValue::Size) &&
                kind.writes[1].index == static_cast<int>(SourceValue::Alpha));
     Expect("an at_create var", record->vars.size() == 2 && record->vars[0].atCreate && !record->vars[1].atCreate);
@@ -477,8 +462,8 @@ void CheckCarrierReaders() {
                errors.size() == 1 && errors[0].find("anchor_index") != std::string::npos);
 }
 
-// MF15j's extensions: anchors added by a "before_emit" reaction with a ball spawn, `ground(x, y)`, a list input,
-// `pick = "first"`, the segment shape, on_death actions.
+// MF15j's extensions: anchors added by a "before_emit" reaction with a ball spawn, `ground` of a point, a list input,
+// `pick = "first"`, a spawn between two points, on_death actions.
 constexpr const char* kExtended = R"toml(
 texture = "Stun"
 [inputs]
@@ -489,20 +474,18 @@ deaths = 0
 [[on]]
 event = "before_emit"
 when = "anchors.ray == 0"
-do = [{ add_anchor = "ray", count = "path.count + 1" }, { set = "made", value = "ground(path.x[1], path.y[9])" }]
+do = [{ add_anchor = "ray", count = "path.count + 1" }, { set = "made", value = "ground(vec2(path[1].x, path[9].y))" }]
 [[anchor]]
 name = "ray"
 count = 0
-spawn = { shape = "ball" }
-x = "a.spawn.x / sqrt(a.spawn.x * a.spawn.x + a.spawn.y * a.spawn.y + a.spawn.z * a.spawn.z)"
-y = "a.index"
-z = "a.count"
+spawn = "ball()"
+position = "vec3(normalize(a.spawn).x, a.index, a.count)"
 [[particle]]
 name = "spark"
 at = "ray"
 pick = "first"
 lifetime = 4
-spawn = { shape = "segment", from = [1, 0, 0], to = ["path.z[0]", 0, 0] }
+spawn = "lerp(vec3(1, 0, 0), vec3(path[0].z, 0, 0), range(0, 1))"
 on_death = [{ emit = "p.age + 1", kind = "ember" }, { effect = "Sparks" }, { set = "deaths", value = "deaths + 1" }]
 [[particle]]
 name = "ember"
@@ -536,8 +519,8 @@ void CheckExtensions() {
     for (const std::string& error : errors) std::printf("ei_unit_check: particle record: unexpected: %s\n", error.c_str());
     if (!record) return Expect("the extended record reads", false);
     const ParticleKind& spark = record->particles[0];
-    Expect("before_emit noted, pick first, the segment, three on_death actions",
-           record->beforeEmit && spark.pick == AnchorPick::First && spark.spawn.shape == SpawnShape::Segment &&
+    Expect("before_emit noted, pick first, a spawn, three on_death actions",
+           record->beforeEmit && spark.pick == AnchorPick::First && spark.spawn.width == 3 &&
                spark.onDeath.size() == 3 && record->lists == 1);
     State state(record);
     state.ground = Ground;
@@ -547,15 +530,14 @@ void CheckExtensions() {
     IsaacRandom expected = random;
     state.BeforeEmission(random);
     Expect("before_emit adds path.count + 1 anchors", state.anchors.size() == 3 && state.source[kSourceValues] == 3.0f);
-    Expect("ground(x, y) over the list's held points (x[1] = 4, y[9] = 5)", state.vars[0] == 45.0f);
+    Expect("ground of a point over the list's held points (path[1].x = 4, path[9].y = 5)", state.vars[0] == 45.0f);
     bool drawn = true;
     for (const AnchorState& anchor : state.anchors) {
-        float length2 = 0.0f;
-        const Vector3 v = RandomInBall(expected, &length2);
+        const Vector3 v = RandomInBall(expected);
         const float* values = anchor.values;
         drawn = drawn && values[static_cast<int>(AnchorValue::SpawnX)] == v.x &&
                 values[static_cast<int>(AnchorValue::SpawnZ)] == v.z &&
-                values[static_cast<int>(AnchorValue::PositionX)] == v.x / std::sqrt(length2);
+                std::fabs(values[static_cast<int>(AnchorValue::PositionX)] - v.x / Length(v)) < 1e-6f;
     }
     Expect("each added anchor draws its ball in turn, its x reads a.spawn", drawn && random.Next() == expected.Next());
     Expect("a.index counts the group, a.count is its size",
@@ -566,11 +548,11 @@ void CheckExtensions() {
     Expect("a list input set from game code", state.SetList("path", {{7.0f, 8.0f, 9.0f}}) && !state.SetList("made", {}) &&
                                                   state.inputs[record->FindInput("path")->slot] == 1.0f);
 
-    // The segment: one draw between its ends.
+    // The spawn: one draw between two points.
     IsaacRandom a, b;
-    const Vector3 point = SpawnPoint(spark.spawn, state.SourceEnv(&a), a);
+    const Vector3 point = spark.spawn.RunVector(state.SourceEnv(&a), {});
     const float t = b.Range(0.0f, 1.0f);
-    Expect("the segment from 1 to path.z[0] (9)", point.x == 1.0f + 8.0f * t && point.y == 0.0f && a.Next() == b.Next());
+    Expect("a spawn from 1 to path[0].z (9)", point.x == 1.0f + 8.0f * t && point.y == 0.0f && a.Next() == b.Next());
 
     // A death: the particle's age in its count, the ember queued at its place, the effect there, the var set.
     float particle[kParticleValues] = {};
@@ -597,7 +579,7 @@ void CheckExtensions() {
 constexpr const char* kReactionEmits = R"toml(
 texture = "Stun"
 [vars]
-plane = "platform_height(1, 2) + platform_normal_z(1, 2) * 10 + platform_normal_x(1, 2) * 100"
+plane = "platform_height(vec2(1, 2)) + platform_normal(vec2(1, 2)).z * 10 + platform_normal(vec2(1, 2)).x * 100"
 [[on]]
 event = "emit"
 when = "count == 0"
@@ -647,7 +629,7 @@ void CheckReactionParticles() {
     state.platform = Platform;
     state.source[static_cast<int>(SourceValue::Size)] = 1.5f;
     state.Step(random);
-    Expect("platform_height and platform_normal_* through State::platform", state.vars[0] == 8.0f);
+    Expect("platform_height and platform_normal through State::platform", state.vars[0] == 8.0f);
     state.Emitted(random);
     Expect("an \"emit\" reaction queues its kind and a shake",
            state.queue.size() == 3 && state.queue[0].kind == 1 && state.queue[0].anchor == -1 &&
@@ -665,14 +647,12 @@ void CheckReactionParticles() {
            Read(Parse(kShakeWithoutTime, "shake.effect.toml"), "Shake", &errors) == nullptr && errors.size() == 1);
 }
 
-// The casting family's: the ball functions, a spawn's tries, an anchor group's values by number, a particle's writes to an effect
-// var and its anchor's vars, a jump, carrier_unit_radius.
+// The casting family's: ball(), an anchor group's values by number, a particle's writes to an effect var and its
+// anchor's vars, a jump, carrier_unit_radius.
 constexpr const char* kCastFeatures = R"toml(
 texture = "Stun"
 [vars]
-bx = "ball_x()"
-by = "ball_y()"
-bz = "ball_z()"
+b = "ball()"
 seen = 0
 radius = "carrier_unit_radius * 2"
 [[on]]
@@ -681,13 +661,13 @@ do = [{ set = "seen", value = "orb.v[1] + orb.v[9] * 10 + orb.index[-3] * 100" }
 [[anchor]]
 name = "orb"
 count = 3
-spawn = { shape = "ball", tries = 0 }
+spawn = "ball()"
 vars.v = "a.index * 2 + 1"
 [[particle]]
 name = "wisp"
 at = "orb"
 lifetime = 4
-spawn = { shape = "shell" }
+spawn = "shell()"
 source = { size = 2, seen = "p.age", a.v = 7 }
 jump = { when = "p.age == 1", size = 3 }
 [[particle]]
@@ -738,7 +718,6 @@ void CheckCastFeatures() {
     if (!record) return Expect("the cast features record reads", false);
     const ParticleKind& wisp = record->particles[0];
     using To = ParticleKind::Write::To;
-    Expect("tries read (0) and by default (10)", record->anchors[0].spawn.tries == 0 && wisp.spawn.tries == 10);
     Expect("source writes to the source, an effect var and an anchor var, in the file's order",
            wisp.writes.size() == 3 && wisp.writes[0].to == To::Source &&
                wisp.writes[0].index == static_cast<int>(SourceValue::Size) && wisp.writes[1].to == To::Var &&
@@ -753,17 +732,10 @@ void CheckCastFeatures() {
     IsaacRandom expected = random;
     state.Step(random);
     const Vector3 ball = RandomInBall(expected);
-    Expect("ball_x() draws a point in the ball, ball_y() and ball_z() read the same point",
-           state.vars[0] == ball.x && state.vars[1] == ball.y && state.vars[2] == ball.z);
+    Expect("ball() draws a point in the ball", state.vars[0] == ball.x && state.vars[1] == ball.y && state.vars[2] == ball.z);
     Expect("carrier_unit_radius reads the source's value", state.vars[4] == 2.5f);
     state.Step(random);
     Expect("orb.v[i] by the anchor's number, held to the group's ends (3 + 5 * 10 + 0 * 100)", state.vars[3] == 53.0f);
-
-    // A ball with tries 0 draws until the point is inside: the same draws as RandomInBall's.
-    IsaacRandom a, b;
-    const Vector3 point = SpawnPoint(record->anchors[0].spawn, state.SourceEnv(&a), a);
-    const Vector3 inside = RandomInBall(b, nullptr, 0);
-    Expect("a ball spawn of tries 0 draws until inside", point.x == inside.x && point.z == inside.z && a.Next() == b.Next());
 
     errors.clear();
     Expect("a group's var without the anchor's number refuses the effect",
@@ -777,12 +749,12 @@ void CheckCastFeatures() {
            Read(Parse(kJumpWithoutWhen, "jump.effect.toml"), "Jump", &errors) == nullptr && errors.size() == 1);
 }
 
-// MF15g6's: a "spawn" reaction with a scorch and a shake, anchors made with the source (at_create), a ball's shift,
-// surface(x, y), the sun's colour, the frame mode `free`.
+// MF15g6's: a "spawn" reaction with a scorch and a shake, anchors made with the source (at_create) and their spawns,
+// `surface` of a point, the sun's colour, the frame mode `free`.
 constexpr const char* kBlastFeatures = R"toml(
 texture = "Stun"
 [vars]
-stand = "surface(3, 4)"
+stand = "surface(vec2(3, 4))"
 light = "sun.r + sun.g * 10"
 [[on]]
 event = "spawn"
@@ -791,7 +763,7 @@ do = [{ scorch = "param * 2", alpha = "alpha * 0.5" }, { shake = 2, time = "base
 name = "fragment"
 count = 4
 at_create = true
-spawn = { shape = "ball", shift = [0, 0, 0.7] }
+spawn = "ball()"
 vars.n = { start = 0, tick = "a.n + 1" }
 [[particle]]
 name = "flame"
@@ -831,9 +803,8 @@ void CheckBlastFeatures() {
     IsaacRandom expected = random;
     state.Create(random);
     Expect("at_create anchors are made with the source", state.anchors.size() == 4);
-    const Vector3 shift = {0.0f, 0.0f, 0.7f};
-    const Vector3 first = RandomInBall(expected, nullptr, 10, &shift);
-    Expect("a ball's shift moves each draw of the cube before its test",
+    const Vector3 first = RandomInBall(expected);
+    Expect("an at_create anchor draws its spawn when the source is made",
            state.anchors[0].values[static_cast<int>(AnchorValue::SpawnZ)] == first.z &&
                state.anchors[0].values[static_cast<int>(AnchorValue::SpawnX)] == first.x);
     state.Spawned(random);
@@ -846,12 +817,12 @@ void CheckBlastFeatures() {
     Expect("anchors made with the source tick at the first step",
            state.anchors.size() == 4 && state.anchors[3].vars[0] == 1.0f &&
                state.anchors[0].values[static_cast<int>(AnchorValue::Age)] == 1.0f);
-    Expect("surface(x, y) is the ground without a platform callback", state.vars[0] == 7.0f);
+    Expect("surface of a point is the ground without a platform callback", state.vars[0] == 7.0f);
     Expect("sun.r, sun.g read the source's values", state.vars[1] == 3.0f);
     State standing(record);
     standing.platform = Standing;
     standing.Step(random);
-    Expect("surface(x, y) through State::platform (4)", standing.vars[0] == 9.0f);
+    Expect("surface of a point through State::platform (4)", standing.vars[0] == 9.0f);
 
     errors.clear();
     Expect("a spawn reaction that emits refuses the effect",
@@ -1168,15 +1139,6 @@ alpha = { tick = "255 * (1 - p.t)" }
 frame = { tick = "p.frame + 1", mode = "hold" }
 )toml";
 
-constexpr const char* kVelocityTwice = R"toml(
-texture = "Stun"
-[[particle]]
-name = "spark"
-lifetime = 4
-velocity = { tick = "p.velocity * 0.9" }
-drag = 0.9
-)toml";
-
 void CheckFieldForms() {
     std::vector<std::string> errors;
     const std::shared_ptr<const Record> record = Read(Parse(kFieldForms, "forms.effect.toml"), "Forms", &errors);
@@ -1184,8 +1146,8 @@ void CheckFieldForms() {
     if (!record) return Expect("the field forms record reads", false);
     const ParticleKind& kind = record->particles[0];
     Expect("a var's tick alone starts it", record->vars[0].start.text == "steps + 1" &&
-                                               kind.vars[1].start.text == "p.fade + 2" && !kind.vars[1].afterSpawn);
-    Expect("the spawn is one point expression", kind.spawn.point.width == 3 && kind.spawn.shape == SpawnShape::Point);
+                                               kind.vars[1].start.text == "p.fade + 2");
+    Expect("the spawn is one point expression", kind.spawn.width == 3);
     Expect("the velocity's start and tick", kind.velocity.text == "p.out * 0.1" && !kind.velocityTick.Empty());
     Expect("size, alpha and frame ticks alone start them", kind.sizeStart.text == "p.size * 0.9" &&
                                                                kind.alphaStart.text == kind.alphaTick.text &&
@@ -1205,11 +1167,6 @@ void CheckFieldForms() {
     Expect("then the var ticks", state.vars[0] == 2.0f);
     Expect("an anchor without a tick stays", at(0, 0) == 1.0f && at(1, 0) == 2.0f);
     Expect("an anchor's position ticks", at(2, 0) == 1.0f && at(2, 2) == 2.0f && at(3, 1) == 1.0f);
-
-    errors.clear();
-    Expect("a velocity tick and drag refuse the effect",
-           Read(Parse(kVelocityTwice, "twice.effect.toml"), "Twice", &errors) == nullptr && errors.size() == 1 &&
-               errors[0].find("not both") != std::string::npos);
 }
 
 } // namespace

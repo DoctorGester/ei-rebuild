@@ -197,8 +197,8 @@ rate = 1
 [[particle]]
 name = "spark"
 lifetime = 20
-spawn = { shape = "disc", radius = 0.5 }
-velocity = [0, 0, 0.03]
+spawn = "disc() * 0.5"
+velocity = "vec3(0, 0, 0.03)"
 size = 0.2
 color = "80C0FF"
 frame = { start = "pick(16)", delay = 1 }

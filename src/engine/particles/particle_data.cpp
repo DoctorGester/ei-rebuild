@@ -445,10 +445,9 @@ int NumberedAnchor(const State& state, int group, float number) {
     return live[at < 0 ? at + n : at];
 }
 
-// A new particle's vars started: those after its spawn's draw (`afterSpawn`) or those before.
-void StartVars(const ParticleKind& kind, const Env& env, Particle& p, bool afterSpawn) {
-    for (const Var& var : kind.vars)
-        if (var.afterSpawn == afterSpawn) Store(p.vars + var.slot, var.width, var.start.RunLanes(env));
+// A new particle's vars started, in order.
+void StartVars(const ParticleKind& kind, const Env& env, Particle& p) {
+    for (const Var& var : kind.vars) Store(p.vars + var.slot, var.width, var.start.RunLanes(env));
 }
 
 // What EmitKind made.
@@ -470,8 +469,7 @@ Vector3 SpaceOrigin(const ParticleSource& s, const State& state, const ParticleK
 
 // A particle of kind `kindIndex` (-1: the regular choice) at anchor `anchor` (-1: chosen by the kind) into `p`, its
 // spawn's centre `place` when given (a dying particle's); the order of its parts is the order of its draws: lifetime,
-// the spawn's point, vars, the anchor by its number, the spawn shape, the vars after it, position, velocity, size,
-// colour, frame, then `drop`.
+// the spawn's point, vars, the anchor by its number, position, velocity, size, colour, frame, then `drop`.
 Emitted EmitKind(ParticleSource& s, Particle& p, int kindIndex, int anchor, int index, const Vector3* place = nullptr) {
     State& state = *s.data;
     if (kindIndex < 0) kindIndex = ChooseKind(state);
@@ -502,13 +500,9 @@ Emitted EmitKind(ParticleSource& s, Particle& p, int kindIndex, int anchor, int 
     Env env = ParticleEnv(state, p, values);
     p.life = Truncated(kind.lifetime.Run(env, 1.0f), 1, std::numeric_limits<int>::max());
     values[ParticleValue::Life] = static_cast<float>(p.life);
-    Vector3 offset;
-    const bool pointFirst = !kind.spawn.point.Empty();
-    if (pointFirst) {
-        offset = kind.spawn.point.RunVector(env, {});
-        WriteSpawn(offset, values);
-    }
-    StartVars(kind, env, p, false);
+    const Vector3 offset = kind.spawn.RunVector(env, {});
+    WriteSpawn(offset, values);
+    StartVars(kind, env, p);
     if (numbered) {
         anchor = NumberedAnchor(state, kind.anchor, kind.anchorIndex.Run(env));
         if (anchor < 0) return Emitted::None;
@@ -518,12 +512,6 @@ Emitted EmitKind(ParticleSource& s, Particle& p, int kindIndex, int anchor, int 
     }
 
     const Vector3 centre = place ? *place : anchor >= 0 ? s.origin + AnchorPosition(state, anchor) : s.origin;
-    if (!pointFirst) {
-        offset = SpawnPoint(kind.spawn, env, g_particleRandom);
-        WriteSpawn(offset, values);
-    }
-    StartVars(kind, env, p, true);
-    if (!kind.offset.Empty()) offset = offset + kind.offset.RunVector(env, {});
     // The default place first: a position's start reads it as p.position (a tick alone then starts by one step from it).
     p.pos = offset + centre;
     const Vector3 origin = kind.space == Space::World ? Vector3{} : SpaceOrigin(s, state, kind, anchor);
@@ -532,21 +520,10 @@ Emitted EmitKind(ParticleSource& s, Particle& p, int kindIndex, int anchor, int 
         const Vector3 at = kind.position.RunVector(env, {});
         p.pos = kind.space == Space::World ? at : origin + at;
     }
-    if (!kind.onGround.Empty())
-        p.pos.z = particlehost::Current().GroundHeight(p.pos.x, p.pos.y) + kind.onGround.Run(env);
     if (kind.space != Space::World) p.drift = p.pos - origin;
     WriteParticle(p, values);
 
-    const bool velocityGiven = !kind.velocity.Empty();
     p.velocity = kind.velocity.RunVector(env, {});
-    if (!kind.speed.Empty()) {
-        const float length = Length(offset);
-        const float speed = kind.speed.Run(env);
-        if (length > 0.0f) {
-            const Vector3 outward = offset * speed / length;
-            p.velocity = velocityGiven ? p.velocity + outward : outward;
-        }
-    }
     WriteParticle(p, values);
 
     p.size = kind.sizeStart.Run(env, s.size);
@@ -766,12 +743,8 @@ int UpdateKind(ParticleSource& s, State& state, const ParticleKind& kind, Partic
         break;
     }
     if (!kind.velocityTick.Empty()) p.velocity = kind.velocityTick.RunVector(env, {});
-    if (!kind.drag.Empty()) p.velocity = p.velocity * kind.drag.Run(env);
-    if (!kind.gravity.Empty()) p.velocity = p.velocity + kind.gravity.RunVector(env, {});
-    if (!kind.wind.Empty()) p.velocity = p.velocity + s.windDirection * (s.windStrength * kind.wind.Run(env));
 
     if (!kind.sizeTick.Empty()) p.size = kind.sizeTick.Run(env);
-    else if (!kind.growth.Empty()) p.size = p.size * kind.growth.Run(env);
     const std::uint32_t alpha = kind.alphaTick.Empty() ? p.color >> 24 : Channel(kind.alphaTick.Run(env));
     p.color = alpha << 24 | Rgb(kind, env, p.color);
     // The values this particle sets (the source's, the effect's vars, its anchor's): the next particles' updates and the

@@ -19,7 +19,7 @@ name = "flash"
 when = "count == 0"
 lifetime = 6
 space = "source"
-size = { start = "size * 1.6", growth = 0.8 }
+size = { start = "size * 1.6", tick = "p.size * 0.8" }
 color = "FFFFFF"
 alpha = { tick = "255 * (1 - p.t)" }
 frame = { start = "pick(16)", delay = 1 }
@@ -27,11 +27,9 @@ frame = { start = "pick(16)", delay = 1 }
 [[particle]]
 name = "spark"
 lifetime = "range(12, 20)"
-spawn = { shape = "ring", radius = "size * 0.3" }
-speed = "range(0.08, 0.14) * size"
-drag = 0.88
-gravity = [0, 0, -0.002]
-size = { start = "range(0.2, 0.32) * size", growth = 0.95 }
+spawn = "circle(range(0, 2 * pi)) * (size * 0.3)"   # a point of a level ring round the body
+velocity = { start = "normalize(p.spawn) * (range(0.08, 0.14) * size)", tick = "p.velocity * 0.88 + vec3(0, 0, -0.002)" }
+size = { start = "range(0.2, 0.32) * size", tick = "p.size * 0.95" }
 color = "90D0FF"
 alpha = { tick = "255 * (1 - p.t)" }
 frame = { start = "pick(16)", delay = 1 }

@@ -40,20 +40,19 @@ enter = [{ emit = 12, kind = "spark", at = "orb" }, { set = "charge", value = 0 
 event = "pulse"
 do = [{ emit = 8, kind = "spark", at = "orb" }]
 
+# The orbs circle the source a third of a turn apart, the circle widening for the first 18 ticks, each bobbing.
 [[anchor]]
 name = "orb"
 count = 3
-radius = "size * (age < 18 ? age / 18 : 1)"
-angle = "spin + a.index * 2.0944"
-z = "1.0 + sin(age * 0.15 + a.index * 2) * 0.25"
+position = { tick = "circle(spin + a.index * 2.0944) * (size * min(age / 18, 1)) + vec3(0, 0, 1 + sin(age * 0.15 + a.index * 2) * 0.25)" }
 
 [[particle]]
 name = "mote"
 when = "chance(40)"
 lifetime = 30
-spawn = { shape = "disc", radius = "size * 1.4", on_ground = 0.05 }
-velocity = [0, 0, "range(0.02, 0.05)"]
-size = { start = "range(0.08, 0.16) * size", growth = 0.98 }
+position = "on_ground(origin + disc() * (size * 1.4), 0.05)"
+velocity = "vec3(0, 0, range(0.02, 0.05))"
+size = { start = "range(0.08, 0.16) * size", tick = "p.size * 0.98" }
 color = "80C0FF"
 alpha = { start = 0, tick = "glow(p.t)" }
 frame = { start = "pick(16)", delay = 2 }
@@ -62,9 +61,9 @@ frame = { start = "pick(16)", delay = 2 }
 name = "trail"
 at = "orb"
 lifetime = 14
-spawn = { shape = "ball", radius = 0.06 }
-velocity = [0, 0, "range(0.005, 0.02)"]
-size = { start = "range(0.14, 0.22) * size", growth = 0.92 }
+spawn = "ball() * 0.06"
+velocity = "vec3(0, 0, range(0.005, 0.02))"
+size = { start = "range(0.14, 0.22) * size", tick = "p.size * 0.92" }
 color = "FFD890"
 alpha = { start = 0, tick = "fade[p.age]" }
 frame = { start = "pick(16)", delay = 1 }
@@ -74,11 +73,9 @@ name = "spark"
 when = false
 at = "orb"
 lifetime = "range(10, 16)"
-spawn = { shape = "shell", radius = 0.05 }
-speed = "range(0.06, 0.14)"
-drag = 0.88
-gravity = [0, 0, -0.004]
-size = { start = "0.2 * size", growth = 0.93 }
+spawn = "shell() * 0.05"
+velocity = { start = "normalize(p.spawn) * range(0.06, 0.14)", tick = "p.velocity * 0.88 + vec3(0, 0, -0.004)" }
+size = { start = "0.2 * size", tick = "p.size * 0.93" }
 color = "FFF0C0"
 alpha = { tick = "255 * (1 - p.t)" }
 frame = { start = "pick(16)", delay = 1 }

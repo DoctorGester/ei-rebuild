@@ -14,10 +14,9 @@ max = 40
 [[particle]]
 name = "crackle"
 lifetime = "range(6, 12)"
-spawn = { shape = "ring", radius = "size * 0.35" }
-speed = "range(0.02, 0.05) * size"
-gravity = [0, 0, -0.003]
-size = { start = "range(0.12, 0.22) * size", growth = 0.9 }
+spawn = "circle(range(0, 2 * pi)) * (size * 0.35)"
+velocity = { start = "normalize(p.spawn) * (range(0.02, 0.05) * size)", tick = "p.velocity + vec3(0, 0, -0.003)" }
+size = { start = "range(0.12, 0.22) * size", tick = "p.size * 0.9" }
 color = "A0D8FF"
 alpha = { tick = "255 * (1 - p.t)" }
 frame = { start = "pick(16)", delay = 1 }
