@@ -3,16 +3,13 @@
 Maths and transforms, reference counting, the object manager, streams and chunked files, the camera, strings and
 containers. Network code is in `network.md`, the application layer in `app.md`, float rules in `float-maths.md`.
 
-The original: `starter\Engine\game.exe` (1.06, Russian, VC6, 2001), MFC 4.2 and STLport linked in, no RTTI. The GOG
-copy differs from the Rebirth one only in the Large-Address-Aware flag and a disabled CD check; ours has no disc
-check (`app.md`).
+The original: game.exe 1.06 (Russian, VC6, 2001), MFC 4.2 and STLport linked in, no RTTI (standalone.md section 1).
 
 ## Transforms
 
-- `TransformObject` (EngineObject plus local / world position and rotation): CombineRotation,
-  UpdateWorld, WorldMatrix (row vectors), TiltTowards (the down
-  axis a tenth of the way to a target), TurnTowards, RollTowards, Rotate(axis, angle), TurnUpTowards, SetHeading
-  (atan2 about +Z). The unit classes override CombineRotation (world rotation only).
+- `TransformObject` (EngineObject plus local / world position and rotation): CombineRotation, UpdateWorld,
+  WorldMatrix (row vectors), TiltTowards (the down axis a tenth of the way to a target), TurnTowards, RollTowards,
+  Rotate(axis, angle), TurnUpTowards, SetHeading (atan2 about +Z). The unit classes override CombineRotation (world rotation only).
 - `ClampUnit` gives -1 for NaN. The camera's quaternion products in `ApplyView` and `Update` add their terms in
   different orders; each is written out.
 
@@ -29,11 +26,11 @@ check (`app.md`).
   The server-side effect objects keep `g_random` where the world's tick decides the draws (weather's strikes, rain
   and the rain bolts' positions, a tornado's launch speed); what the client does with an effect it unpacks (sound
   sequence choosers, the scorch mark's angle of a FireBlast / LightningBlast particle, the bird's perch) and the main
-  menu's bolt choices (`ShowBolt`'s `picks`) draw `g_clientRandom` (R34b).
+  menu's bolt choices (`ShowBolt`'s `picks`) draw `g_clientRandom`.
 - `g_particleRandom` is a third ISAAC, the particle sources' own (every draw in `particle_*.cpp`), that `World::Create`
   seeds from `g_clientRandom`'s memory right after it (`InitFrom`; the harness's `ReseedRandom` the same way). So a
   change to a particle effect moves only the particles: not the client units' idle picks, the scorch marks' angles
-  or the sounds that share `g_clientRandom` (MF15a). It is kept in visuals.sav as the client one is (renderer.md,
+  or the sounds that share `g_clientRandom`. It is kept in visuals.sav as the client one is (renderer.md,
   "What a save keeps of the picture": ParticleGenerator).
 
 ## Reference counting
@@ -64,8 +61,9 @@ check (`app.md`).
 - Ids in saves: `stream->WriteId(object)` writes the id (kNoObjectId, -1: none), `LoadRef(ref, stream, world)` looks it
   up.
 - A side half is held by its owner's Ref and points back at it; one setter per owner swaps it (`Object3D::SetHalf`,
-  `MapObject::SetCompanion`, `Unit::SetController`, `TorchObject::SetSpec`, `Object3D::SetAnimationState`, `FigureMesh::SetDrawer`): the old half's back pointer
-  is cleared before its release, the new one's set after it is taken.
+  `MapObject::SetCompanion`, `Unit::SetController`, `TorchObject::SetSpec`, `Object3D::SetAnimationState`,
+  `FigureMesh::SetDrawer`): the old half's back pointer is cleared before its release, the new one's set after it is
+  taken.
 
 ## Object manager
 
@@ -111,8 +109,7 @@ Every Windows build is x64; formats are 32-bit.
   no pointer, no integer wider than 32 bits. `ReadValue / WriteValue`, `platform::File`'s, `ChunkArchive::Field<T>`,
   `lib::Load / Store`, the network cursors' `Put / Get / Take` and the figure readers assert it.
 - No padding (`lib::kNoPadding`): a struct copied whole writes every byte, and padding holds whatever the memory held
-  (C158: MoveModeState's two padding bytes differed in mission.sav between Linux and Windows once allocations were
-  no longer zeroed). Integer-only structs pass the standard `has_unique_object_representations`; a struct with a
+  (MoveModeState's two padding bytes once differed in mission.sav between Linux and Windows). Integer-only structs pass the standard `has_unique_object_representations`; a struct with a
   float (which that trait rejects) declares its fields beside its definition, in its own namespace:
   `constexpr bool NoPadding(const Vector3*) { return lib::FieldsFill<&Vector3::x, &Vector3::y, &Vector3::z>(); }`.
   FieldsFill fails to compile unless the listed fields (each once, each padding-free) add up to the struct's size, so
@@ -125,7 +122,7 @@ Every Windows build is x64; formats are 32-bit.
 - A read or write spanning several members (`Read(&panVelocity, 0x1C)`) holds only while no pointer sits between them,
   and never across a base class's end: a base with a vtable or pointer is 8-byte aligned, so its last 4-byte member may
   be followed by padding (ArmorRecord's field 0x15 read 0x24 bytes across it and shifted every absorption; it goes
-  through `AbsorbRow` now). Grep `Read(&x, <number>)` and literal-size `memset` / `memcpy` near a class before
+  through `AbsorbRow`). Grep `Read(&x, <number>)` and literal-size `memset` / `memcpy` near a class before
   changing its members.
 - A pointer kept as an integer is `std::uintptr_t`, a socket `platform::net::Socket`, never `std::uint32_t` (a vtable
   key and a socket were once cut to 32 bits; the image sits above 4 GB).
@@ -150,7 +147,7 @@ the camera without clearing the playing flag; `Update` tracks a target only with
 the script commands SetCameraPosition / SetCameraOrientation do nothing; `OpenFile` renames an existing
 camera.cam to the next number after the highest camera0*.cam (read from the last four characters of the title).
 
-The limits (settings_catalog.inc's defaults since P12; app.md, "Options") let the pitch go from -45 (looking up) to 90
+The limits (settings_catalog.inc's defaults; app.md, "Options") let the pitch go from -45 (looking up) to 90
 (straight down) and the distance from 3 to 50 (hard limits 3 and 70), on the maps and the village screens. What copes
 with them:
 - `Pan` moves along the ground by the camera's X axis turned a quarter about Z. The camera's own Y axis, which the
@@ -163,33 +160,32 @@ with them:
   the camera's point (near 1, the field of view over the window's 4:3 part widened by the axis swap: 1.17 at 4:3,
   1.24 at 16:9). The original kept only the point clear (3 over the ground, near 2 inside it): with a clearance of 0
   the near plane's lower edge cut up to 0.6 into a slope in front of a camera looking up, and the view showed the
-  ground's underside (a sweep of zone1 at pitch -45, distance 20: 287 of 677 views). A shake's offset is followed by
-  the clamp again, so a shake down stops there too.
+  ground's underside. A shake's offset is followed by the clamp again, so a shake down stops there too.
 - The least distance 3: the focus is 2 over a hero's place (its bounds: 1.78 tall, the top 1.2 under the focus, a
   footprint of radius 0.97); at pitch -45 and distance 3 the near plane's nearest point stays 1.16 from the hero's axis,
-  outside it, and at any pitch from 0 up the camera is above the hero. (The original's hard limit was 3 too.)
-- Panning scales with the distance's place between the least and the most, so with the least at 3 (10 before) the
-  same keys pan about 10% faster at distance 30; recorded inputs that click the ground after a pan land elsewhere.
+  outside it, and at any pitch from 0 up the camera is above the hero.
+- Panning scales with the distance's place between the least and the most, so a change of the least distance changes
+  the pan speed at every distance; recorded inputs that click the ground after a pan then land elsewhere.
 - When the least and the hard least distance are equal the limits' easing (`Update`) never divides by their
   difference: it runs only between them.
 - Clicking the sky picks a ground point along the ray behind the camera (`PickPoint`'s bounded iteration), as the
   original did.
 - Check: scenario `camera_limits` (`camrange` steps: pitch 90 / -45 by the keys, the zoom keys and the wheel to 3 and
   out, the up key's pan at pitch 45 and -30 in the same direction, `camrange ground 0 ...` standing and panning on
-  slopes looking up; frames for the captures page's P12).
+  slopes looking up).
 
 ## Strings
 
 - The game's text is `std::string`, UTF-8 inside the game (`standalone.md`, "UTF-8"). What CString did that
   std::string has no member for is `src/lib/str.h`, with CString's answers: `str::Find` / `ReverseFind` / `FindOneOf`
-  (int, -1 when absent), `Mid` / `Left` / `Right` (clamped, never a throw), `Format` (the game CRT's vsprintf,
-  crt_format.cpp: "1.#INF", three-digit exponents), `MakeLower`, `Remove`, the trims (ASCII white space), `MbsLess`
+  (int, -1 when absent), `Mid` / `Left` / `Right` (clamped, never a throw), `Format` (the game CRT's vsprintf:
+  standalone.md, "The CRT"), `MakeLower`, `Remove`, the trims (ASCII white space), `MbsLess`
   (`_mbscmp` order: the maps keyed by name), `Buffer` / `CutAtNull` / `SetLength`.
 - The game's line files (keyboard.ini, tutorial.ini, the console's loadvar and exec files, sysmsg.txt, 2utoexec.cfg)
   are read whole and cut by `str::Lines` (at '\n', a '\r' before it dropped) and written with `File::WriteLine`
   ("\r\n").
-- The game CRT's `tolower` / `strnicmp` use its locale tables (Cyrillic archive names): a replacement must give the same
-  results for bytes 0x80-0xFF. A name hashed for a table hashes its bytes up to the first zero byte.
+- Case and character classes past ASCII: standalone.md section 4 ("Text as bytes"). A name hashed for a table hashes
+  its bytes up to the first zero byte.
 - Rules from real bugs:
   - A `const char*` given to a std::string parameter must not be null: CString took null as "" (crashes in
     `GameFlow::SetNetworkZone`, the credits' tokenizer, `SetSkins`). A crash there is the first place to look.
