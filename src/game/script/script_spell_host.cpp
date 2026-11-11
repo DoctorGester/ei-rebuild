@@ -21,6 +21,8 @@
 #include <climits>
 #include <cmath>
 #include <format>
+#include <limits>
+#include <optional>
 #include <vector>
 
 namespace {
@@ -175,6 +177,60 @@ int PushHandle(lua_State* L, const Effect* object) {
     return 1;
 }
 
+// The upright plane through `at` along `direction` (the walls' hit): s = 2 / sqrt(x^2 + y^2) (a float), the normal
+// (s * -y, s * x, 0) is 2 long, so |d . n| <= 1 holds the points within 0.5 of the plane.
+class WallPlane {
+public:
+    WallPlane(const Vector3& origin, const Vector3& direction) : at(origin) {
+        const float x = direction.x;
+        const float minusY = -direction.y;
+        const float scale = 2.0f / std::sqrt(x * x + minusY * minusY);
+        normal = {scale * minusY, scale * x, 0.0f};
+    }
+    bool Holds(const Vector3& point) const { return !(AbsBits(Dot(point - at, normal)) > kHalfWidth); }
+
+private:
+    static constexpr float kHalfWidth = 1.0f;   // in the normal's units: 0.5
+    Vector3 at;
+    Vector3 normal;
+};
+
+// A cast's footprint as its entry keeps it: {at = {x, y, z}, along = {x, y, z}} or {at = {x, y, z}, radius = r}.
+void PushFootprint(lua_State* L, const SpellFootprint& footprint) {
+    lua_createtable(L, 0, 2);
+    const int table = lua_gettop(L);
+    PushPoint(L, footprint.at);
+    lua_setfield(L, table, "at");
+    if (footprint.disc) {
+        SetNumber(L, table, "radius", footprint.radius);
+    } else {
+        PushPoint(L, footprint.along);
+        lua_setfield(L, table, "along");
+    }
+}
+
+// A point field {x, y, z} of the table at `table` (0s when it is not a table).
+Vector3 PointField(lua_State* L, int table, const char* name) {
+    lua_getfield(L, table, name);
+    const int point = lua_gettop(L);
+    Vector3 value;
+    if (lua_istable(L, point))
+        value = {FloatField(L, point, "x", 0.0f), FloatField(L, point, "y", 0.0f), FloatField(L, point, "z", 0.0f)};
+    lua_pop(L, 1);
+    return value;
+}
+
+SpellFootprint ReadFootprint(lua_State* L, int table) {
+    SpellFootprint footprint;
+    footprint.at = PointField(L, table, "at");
+    lua_getfield(L, table, "radius");
+    footprint.disc = !lua_isnil(L, -1);
+    lua_pop(L, 1);
+    if (footprint.disc) footprint.radius = FloatField(L, table, "radius", 0.0f);
+    else footprint.along = PointField(L, table, "along");
+    return footprint;
+}
+
 // The cast's hits would affect `object` (SpellEffect::HitUnit's test).
 bool Affects(const SpellEffect& effect, MapObject* object) {
     return !effect.caster || effect.HeldSpell()->CanAffect(effect.caster, object);
@@ -209,7 +265,7 @@ ScriptSpellHost::ScriptSpellHost(ScriptLuaScheduler& owner)
     modules = luaL_ref(L, LUA_REGISTRYINDEX);
     // The cast values' metatable and its methods, permanents: a cast value a script keeps in its data persists.
     lua_createtable(L, 0, 1);
-    lua_createtable(L, 0, 24);
+    lua_createtable(L, 0, 27);
     const int methods = lua_gettop(L);
     const auto method = [this, methods](const char* name, lua_CFunction function) {
         lua_pushlightuserdata(L, this);
@@ -242,6 +298,9 @@ ScriptSpellHost::ScriptSpellHost(ScriptLuaScheduler& owner)
     method("SoundLoop", SoundLoop);
     method("Release", Release);
     method("Noise", Noise);
+    method("Across", Across);
+    method("Block", Block);
+    method("Unblock", Unblock);
     lua_pushvalue(L, methods);
     scheduler.lua.AddPermanent("ei.cast.methods");
     lua_setfield(L, -2, "__index");
@@ -398,6 +457,10 @@ bool ScriptSpellHost::Adopt(SpellEffect& effect) {
     effect.host = this;
     live[effect.castKey] = &effect;
     nextCast = std::max(nextCast, effect.castKey + 1);
+    // The footprint the cast blocked (the AI map is not saved).
+    PushEntry(L, effect.castKey);
+    if (lua_getfield(L, -1, "block") == LUA_TTABLE) effect.Block(ReadFootprint(L, lua_gettop(L)));
+    lua_pop(L, 2);
     return true;
 }
 
@@ -442,12 +505,24 @@ bool ScriptSpellHost::Resume(SpellEffect& effect) {
     if (effect.visual) SetInteger(L, old, "visual", effect.visual->id);
     if (effect.sound) SetInteger(L, old, "sound", effect.sound->id);
     if (effect.light) SetInteger(L, old, "light", effect.light->id);
+    if (::Effect* visual = effect.visual.Get()) {
+        if (visual->GetClassId() == ClassId::EffectWall) {
+            PushPoint(L, static_cast<EffectWall*>(visual)->direction);
+            lua_setfield(L, old, "direction");
+        } else if (visual->GetClassId() == ClassId::EffectLightning) {
+            const auto* bolt = static_cast<EffectLightning*>(visual);
+            PushPoint(L, bolt->to - bolt->from);
+            lua_setfield(L, old, "direction");
+        }
+    }
     effect.visual.Reset();
     effect.sound.Reset();
     effect.light.Reset();
     const bool worldWasOff = scheduler.lua.worldOff;
     scheduler.lua.worldOff = true;
+    resuming = true;
     const bool lives = Settle(effect, Call(effect, "OnResume", 1));
+    resuming = false;
     scheduler.lua.worldOff = worldWasOff;
     effect.state = lives ? spellfx::kStateScripted : spellfx::kStateEnded;
     return true;
@@ -505,9 +580,10 @@ int ScriptSpellHost::Finish(lua_State* L) {
     return 0;
 }
 
-SpellEffect& ScriptSpellHost::Self(lua_State* L, const char* method) {
+SpellEffect& ScriptSpellHost::Self(lua_State* L, const char* method, bool inResume) {
     auto* host = static_cast<ScriptSpellHost*>(lua_touserdata(L, lua_upvalueindex(1)));
-    if (host->scheduler.lua.worldOff) luaL_error(L, "%s: no bindings at a spell file's top level", method);
+    if (host->scheduler.lua.worldOff && !(inResume && host->resuming))
+        luaL_error(L, "%s: no bindings at a spell file's top level or in OnResume", method);
     luaL_checktype(L, 1, LUA_TTABLE);
     lua_getfield(L, 1, "id");
     const lua_Integer key = lua_isinteger(L, -1) ? lua_tointeger(L, -1) : 0;
@@ -520,7 +596,8 @@ SpellEffect& ScriptSpellHost::Self(lua_State* L, const char* method) {
 // cast:FindUnits(at, radius [, filter]): the units within `radius` of `at`, nearest first (then by id), that pass
 // every key the filter sets: enemies / friends (of the caster: either regards the other's side as hostile; with no
 // caster every unit is an enemy), alive, area (those area spells hit), sight (the line of sight the spell needs, from
-// `at`), affect (the spell's target flags let it hit them), exclude (a set of ids: {[id] = true}). `unsorted`: in the
+// `at`), affect (the spell's target flags let it hit them), exclude (a set of ids: {[id] = true}), along (a direction
+// {x, y, z}: those within 0.5 of the upright plane through `at` along it, as the game's walls hit). `unsorted`: in the
 // sector map's order instead, the order the game's area spells hit in.
 int ScriptSpellHost::FindUnits(lua_State* L) {
     SpellEffect& effect = Self(L, "FindUnits");
@@ -537,14 +614,21 @@ int ScriptSpellHost::FindUnits(lua_State* L) {
     const bool affect = BoolField(L, 4, "affect", false);
     const bool unsorted = BoolField(L, 4, "unsorted", false);
     lua_settop(L, 4);
+    lua_getfield(L, 4, "along");
+    Vector3 along;
+    MapObject* alongObject = nullptr;
+    const bool plane = OptPosition(L, 5, &along, &alongObject);
     lua_getfield(L, 4, "exclude");
-    const bool excludes = lua_istable(L, 5);
+    const bool excludes = lua_istable(L, 6);
 
     lua_newtable(L);
     const int result = lua_gettop(L);
     Unit* const caster = effect.caster;
     std::vector<Unit*> units = effect.world->aiMap.sectorMap.FindUnitsInRadius(at, radius);
+    std::optional<WallPlane> wall;
+    if (plane) wall.emplace(at, along);
     std::erase_if(units, [&](Unit* unit) {
+        if (wall && !wall->Holds(unit->localPosition)) return true;
         if (enemies || friends) {
             const bool hostile = !caster || SpellHostile(caster, unit);
             if ((enemies && !hostile) || (friends && hostile)) return true;
@@ -555,7 +639,7 @@ int ScriptSpellHost::FindUnits(lua_State* L) {
             return true;
         if (affect && !Affects(effect, unit)) return true;
         if (excludes) {
-            lua_rawgeti(L, 5, unit->id);
+            lua_rawgeti(L, 6, unit->id);
             const bool excluded = lua_toboolean(L, -1) != 0;
             lua_pop(L, 1);
             if (excluded) return true;
@@ -769,23 +853,25 @@ int ScriptSpellHost::Missile(lua_State* L) {
     return PushHandle(L, arrow);
 }
 
-// cast:Effect(name [, {at, attach, size, alpha, param, velocity, target, unit, lifetime, free}]): a particle effect (a
-// data effect of Res\effects, or a game's type by the scripts' name: Sparks, LightningBlast, ...) at `at` (default the
-// cast's point; attached to the object `attach`, at its own place), size, alpha and param (its source's parameter: the
-// fire blast's spread) 1, moving by `velocity` ({x, y, z} a tick) towards `target` (a point: where a flying one, the
-// fire ball, ends), started on the clients at the unit `unit`'s hand; it lasts `lifetime` ticks, else as long as the
-// cast (or as its type's own life, when shorter). A `free` one is not the cast's: it lives its type's own life (a
-// one-shot's) past the cast's end. Its handle.
+// cast:Effect(name [, {at, attach, size, alpha, param, velocity, target, unit, direction, lifetime, free}]): a particle
+// effect (a data effect of Res\effects, or a game's type by the scripts' name: Sparks, LightningBlast, ...) at `at`
+// (default the cast's point; attached to the object `attach`, at its own place), size, alpha and param (its source's
+// parameter: the fire blast's spread) 1, moving by `velocity` ({x, y, z} a tick) towards `target` (a point: where a
+// flying one, the fire ball, ends), started on the clients at the unit `unit`'s hand, a wall's (Tendril, Link) extent
+// `direction` ({x, y, z}: from its middle to an end); it lasts `lifetime` ticks, else as long as the cast (or as its
+// type's own life, when shorter). A `free` one is not the cast's: it lives its type's own life (a one-shot's) past the
+// cast's end. Its handle.
 int ScriptSpellHost::Effect(lua_State* L) {
     SpellEffect& effect = Self(L, "Effect");
     const int particleType = CheckParticleType(L, 2, "Effect");
     CheckOptions(L, 3);
-    lua_settop(L, 8);
+    lua_settop(L, 9);
     FieldTo(L, 3, "at", 4);
     FieldTo(L, 3, "attach", 5);
     FieldTo(L, 3, "velocity", 6);
     FieldTo(L, 3, "target", 7);
     FieldTo(L, 3, "unit", 8);
+    FieldTo(L, 3, "direction", 9);
     MapObject* attach = OptObject(L, 5);
     Vector3 at = attach ? spellfx::kZeroVector : effect.targetPoint;
     MapObject* atObject = nullptr;
@@ -797,6 +883,10 @@ int ScriptSpellHost::Effect(lua_State* L) {
     MapObject* targetObject = nullptr;
     const bool aims = OptPosition(L, 7, &target, &targetObject);
     const Unit* unit = UnitOrNull(OptObject(L, 8));
+    Vector3 direction;
+    MapObject* directionObject = nullptr;
+    const bool walls = OptPosition(L, 9, &direction, &directionObject);
+    if (walls && !SpellEffect::WallParticle(particleType)) luaL_error(L, "Effect: a direction only for a wall effect");
     const float size = FloatField(L, 3, "size", 1.0f);
     const float alpha = FloatField(L, 3, "alpha", 1.0f);
     const float param = FloatField(L, 3, "param", 1.0f);
@@ -806,6 +896,7 @@ int ScriptSpellHost::Effect(lua_State* L) {
     particle->typeParam = param;
     if (aims) particle->target = target;
     if (unit) particle->unitId = unit->id;
+    if (walls) static_cast<EffectWall*>(particle)->SetDirection(direction);
     if (free) effect.world->AddTimedObject(particle);
     else effect.Own(particle, lifetime, 0);
     return PushHandle(L, particle);
@@ -1040,6 +1131,60 @@ int ScriptSpellHost::Noise(lua_State* L) {
     return 0;
 }
 
+// cast:Across(from, to, length): the vector {x, y, 0} `length` long square to the ground line from `from` to `to` (to
+// its left), as the game's walls stand across the line from their caster to their point; along x when the two have
+// the same x and y.
+int ScriptSpellHost::Across(lua_State* L) {
+    Self(L, "Across");
+    Vector3 from, to;
+    MapObject* object = nullptr;
+    CheckPosition(L, 2, &from, &object, "Across");
+    CheckPosition(L, 3, &to, &object, "Across");
+    const float length = scriptlua::FromLuaNumber(luaL_checknumber(L, 4));
+    PushPoint(L, spellfx::WallSpan(spellfx::WallDirection(to, from), length));
+    return 1;
+}
+
+// cast:Block(at, {along} or {radius}): the AI map's cells under a wall from at - along to at + along (a half width of
+// 0.5), or a disc of `radius` around `at`, count as a spell's (units path around them, as around the game's walls and
+// clouds) until cast:Unblock() or the cast's end; a second Block replaces the first. It also works in OnResume (a
+// resumed wall blocks again, as the game's load did).
+int ScriptSpellHost::Block(lua_State* L) {
+    SpellEffect& effect = Self(L, "Block", true);
+    SpellFootprint footprint;
+    MapObject* object = nullptr;
+    CheckPosition(L, 2, &footprint.at, &object, "Block");
+    CheckOptions(L, 3);
+    lua_settop(L, 4);
+    FieldTo(L, 3, "along", 4);
+    footprint.disc = !OptPosition(L, 4, &footprint.along, &object);
+    if (footprint.disc) {
+        lua_getfield(L, 3, "radius");
+        if (!lua_isnumber(L, -1)) luaL_error(L, "Block: along {x, y, z} or a radius expected");
+        lua_pop(L, 1);
+        footprint.radius = FloatField(L, 3, "radius", 0.0f);
+    }
+    auto* host = static_cast<ScriptSpellHost*>(lua_touserdata(L, lua_upvalueindex(1)));
+    const int entry = CheckEntry(L, host->casts, "Block");
+    PushFootprint(L, footprint);
+    lua_setfield(L, entry, "block");
+    effect.Block(footprint);
+    return 0;
+}
+
+// cast:Unblock(): the cells cast:Block blocked are free again; false when it blocks none.
+int ScriptSpellHost::Unblock(lua_State* L) {
+    SpellEffect& effect = Self(L, "Unblock");
+    auto* host = static_cast<ScriptSpellHost*>(lua_touserdata(L, lua_upvalueindex(1)));
+    const int entry = CheckEntry(L, host->casts, "Unblock");
+    lua_pushnil(L);
+    lua_setfield(L, entry, "block");
+    const bool blocked = effect.footprintStamped != 0;
+    if (blocked) effect.Unblock();
+    lua_pushboolean(L, blocked);
+    return 1;
+}
+
 void ScriptSpellHost::PushModule(const SpellEffect& effect) {
     const std::string& file = ScriptOf(effect);
     std::string key = file;
@@ -1198,9 +1343,12 @@ bool ScriptSpellHost::Settle(SpellEffect& effect, Hook result) {
     lua_settop(L, entry - 1);
     // A cast with OnTick lives at most its spell's duration; one paced by its timers alone at most kDefaultTickCap
     // ticks, or its duration when that is longer (the game's spells' durations are target counts or the ticks of
-    // what they leave behind, which their timers outlast).
+    // what they leave behind, which their timers outlast); unless the record's max_ticks says (0: no limit).
     const auto duration = static_cast<lua_Integer>(effect.HeldSpell()->duration);
-    const lua_Integer cap = ticks ? (duration > 0 ? duration : kDefaultTickCap) : std::max(duration, kDefaultTickCap);
+    const itemdb::SpellRecord* record = effect.HeldSpell()->GetPrototype();
+    const int maxTicks = record ? record->maxTicks : -1;
+    lua_Integer cap = ticks ? (duration > 0 ? duration : kDefaultTickCap) : std::max(duration, kDefaultTickCap);
+    if (maxTicks >= 0) cap = maxTicks > 0 ? maxTicks : std::numeric_limits<lua_Integer>::max();
 
     const char* reason = nullptr;
     if (finished) {

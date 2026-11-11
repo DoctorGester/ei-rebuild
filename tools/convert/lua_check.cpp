@@ -783,12 +783,15 @@ return {
     OnResume = function(cast, old)
         cast.data.old = old.state .. " " .. old.ticks .. (old.visual and " visual" or "") .. (old.light and " light" or "")
         cast.data.off = not pcall(cast.Eye, cast, cast.target)
+        -- Block works here (its own argument error, not the bindings'); a world without a map is not stamped.
+        local blocks, message = pcall(cast.Block, cast, { x = 0, y = 0, z = 0 })
+        cast.data.block = not blocks and message:find("a radius expected") ~= nil and not old.direction
         cast:After(old.ticks + 2, "Expire")
     end,
     Expire = function(cast) cast:Finish() end,
     OnHit = function(cast, target, payload)
-        _G.resumed = string.format("%s hit at %d%s%s", cast.data.old, cast.tick, payload == nil and " nil" or "",
-                                   cast.data.off and " off" or "")
+        _G.resumed = string.format("%s hit at %d%s%s%s", cast.data.old, cast.tick, payload == nil and " nil" or "",
+                                   cast.data.off and " off" or "", cast.data.block and " block" or "")
     end,
     OnEnd = function(cast, reason) _G.spellEnd = reason .. " at " .. cast.tick end,
 }
@@ -851,6 +854,15 @@ function spell.OnCast(cast)
     check(#cast:FindUnits(here, 5, { unsorted = true }) == 0 and cast:Damage(stone, 3, "fire", { split = 3 }) == 0,
           "FindUnits unsorted, Damage split")
     cast:Noise(here, 5, 4)
+    local span = cast:Across(here, { x = 0, y = 4, z = 9 }, 2)
+    check(span.x == -2 and span.y == 0 and span.z == 0, "Across: square to the ground line, to its left, so long")
+    local along = cast:Across(here, { x = 0, y = 0, z = 3 }, 3)
+    check(along.x == 0 and along.y == 3, "Across: along x for two points of the same x and y")
+    check(#cast:FindUnits(here, 5, { along = span, area = true }) == 0, "FindUnits along a wall's plane")
+    check(cast:Release(cast:Effect("Tendril", { at = here, direction = span })), "Effect: a wall's direction")
+    check(not pcall(cast.Effect, cast, "sparks", { direction = span }), "Effect: a direction only for a wall")
+    check(not pcall(cast.Block, cast, here) and not cast:Unblock(),
+          "Block: along or a radius expected; Unblock: none held")
     check(not pcall(cast.Noise, cast, here), "Noise: a loudness expected (nothing without a unit caster)")
     check(type(cast.areaPower) == "number", "the cast's area power")
     cast:Missile { to = stone, from = { x = 5, y = 0, z = 0 }, payload = { n = 7 } }
@@ -1070,8 +1082,8 @@ void CheckSpellHost(TestWorld& world) {
         arrow->arrived = 1;
         Expect(host.Tick(resumed) && resumed.owned.empty(), "the resumed missile lands at tick 3");
         lua_getglobal(L, "resumed");
-        Expect(lua_isstring(L, -1) && std::string(lua_tostring(L, -1)) == "missile 3 visual hit at 3 nil off",
-               "OnHit for the resumed missile; OnResume ran with the bindings off, the old visual's handle");
+        Expect(lua_isstring(L, -1) && std::string(lua_tostring(L, -1)) == "missile 3 visual hit at 3 nil off block",
+               "OnHit for the resumed missile; OnResume ran with the bindings off but Block, the old visual's handle");
         lua_pop(L, 1);
         Expect(host.Tick(resumed) && !host.Tick(resumed) && SpellEnd(scheduler) == "finished at 5",
                "the resumed cast ends at its old count's end");

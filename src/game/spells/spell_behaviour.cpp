@@ -24,9 +24,9 @@ constexpr SpellUse kGameSpells[kGameSpellCount] = {
     {},                                                                   // Fireball: Fireball.lua
     {},                                                                   // InvokeLightning: Strike.lua
     {},                                                                   // AcidColumn: Strike.lua
-    {SpellAi::LastingArea, DamageType::Fire, true, false, true},          // FireWall
-    {SpellAi::LastingArea, DamageType::Lightning, true, false, true},     // LightningWall
-    {SpellAi::LastingArea, DamageType::Acid, true, false, true},          // AcidFog
+    {},                                                                   // FireWall: LastingArea.lua
+    {},                                                                   // LightningWall: LastingArea.lua
+    {},                                                                   // AcidFog: LastingArea.lua
     {SpellAi::Protect, kNoDamage, false, false, false},                   // ProtectionFromFire
     {SpellAi::Protect, kNoDamage, false, false, false},                   // ProtectionFromLightning
     {SpellAi::Protect, kNoDamage, false, false, false},                   // ProtectionFromAcid

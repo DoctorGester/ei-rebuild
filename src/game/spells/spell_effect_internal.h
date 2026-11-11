@@ -43,8 +43,8 @@ constexpr float kImpactWakeMargin = 5.0f;       // fireworks and clairvoyance wa
 constexpr float kPossessWake = 2.0f;            // possession wakes the units within reach x this + kPossessWakeBase
 constexpr float kPossessWakeBase = 20.0f;
 
-// Footprints of the walls and clouds, along a direction or a disc, then stamped into / cleared from the AI
-// map.
+// The cells of a cast's footprint (SpellEffect::Block), along a direction or a disc, then stamped into / cleared from
+// the AI map.
 extern FootprintCellSet g_spellFootprint;
 
 // --- Maths ---------------------------------------------------------------------------------------
@@ -83,6 +83,13 @@ inline Vector3 ScaledToSpeed(Vector3 v, float speed) {
 
 // (distance / speed) * 15 rounded to nearest: the missile's flight time in ticks.
 inline int FlightTicks(float distance, float speed) { return lib::RoundEven(distance / speed * 15.0f); }
+
+// The direction from `from` to a wall's centre; straight along x when it has no ground part (both 0).
+inline Vector3 WallDirection(const Vector3& centre, const Vector3& from) {
+    Vector3 d = centre - from;
+    if (XY(d) == Vector2{0.0f, 0.0f}) d.x = 1.0f;
+    return d;
+}
 
 // The walls' extent: the normal (-d.y, d.x, 0) in the ground plane scaled to length `radius` (each component times
 // radius / |n|).

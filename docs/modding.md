@@ -713,7 +713,8 @@ A spell of your own is a record and a Lua file: the record (`Res\database\spells
 names the file with `script`, and the file below `Res\spells\` runs every cast of it, on the server. The game's own
 spells are moving onto the same path: the lightning arc and curse magic are `Res\spells\Lightning.lua`, the fire
 arrow, Rick magic and the acid ray `Res\spells\Missile.lua`, the fireball `Res\spells\Fireball.lua`, the light strike
-and the acid column `Res\spells\Strike.lua` (built into the game; the source's `assets/spells/` has them and the
+and the acid column `Res\spells\Strike.lua`, the fire wall, the light wall and the poison cloud
+`Res\spells\LastingArea.lua` (built into the game; the source's `assets/spells/` has them and the
 fields the game's records get), which a mod's file of that name replaces.
 The showcase mod's Chain Spark ([The showcase mod](#the-showcase-mod)) is this example: a spark that strikes its
 target, then leaps to the nearest enemy it has not struck, each strike 0.6 of the one before, each slowing its victim.
@@ -748,7 +749,9 @@ offensive = true
   picks its targets. `per_target = true` has the game pick them as for its own attack spells (the unit aimed at, then
   those nearest the aim within range that the runes and the line of sight allow, up to the target count) and cast it
   once at each. `ends_with_target = true` ends a cast at once, with no hook, when its target leaves the world (as the
-  game's spells do); without it the cast goes on with `cast.target` nil.
+  game's spells do); without it the cast goes on with `cast.target` nil. `max_ticks = n` sets the ticks a cast lives
+  at most (see "How long a cast lives"); `max_ticks = 0` lifts the limit, for a spell whose script always ends it (the
+  game's walls, whose light lingers after their duration).
 
 ```lua
 -- Res\spells\chain_spark.lua (the showcase mod's, without its game variables)
@@ -802,8 +805,9 @@ return spell
   - `OnResume(cast, old)` for a save made before a game's spell moved onto this file, when it held a cast of it in
     flight (`old.state` `"missile"`) or lingering (`"lasting"`), `old.ticks` left on the game's own count: the cast's
     objects are already its own (a missile still lands in `OnHit`, with a nil payload; `old.visual`, `old.sound` and
-    `old.light` are their handles, for `cast:Release` later); set its timers and data here (the world methods are off
-    in this hook). Without it such a cast ends at once;
+    `old.light` are their handles, for `cast:Release` later; `old.direction` the direction of its wall or bolt); set
+    its timers and data here (the world methods are off in this hook, but `cast:Block`). Without it such a cast ends at
+    once;
   - a function you name in `cast:After(ticks, "Name", payload)`: `spell.Name(cast, payload)` that many ticks later.
 - **No waits.** `Sleep` and the other waits are errors in a hook; pace the spell with `cast:After` and `OnTick`.
 - **The cast value**: `cast.id`, `cast.code`, `cast.caster` and `cast.target` (units or nil), `cast.from` and
@@ -820,7 +824,7 @@ return spell
 
 | Method | What it does |
 |---|---|
-| `cast:FindUnits(at, radius, filter)` | the units within `radius` of `at`, nearest first. `filter` keys: `enemies` / `friends` (of the caster; with no caster every unit is an enemy), `alive`, `area` (those area spells hit), `sight` (in the line of sight the spell needs from `at`), `affect` (the rune filters let the spell hit them), `exclude` (a set of ids: `{[GetObjectID(unit)] = true}`), `unsorted` (in the map's own order, the order the game's area spells hit in, not nearest first) |
+| `cast:FindUnits(at, radius, filter)` | the units within `radius` of `at`, nearest first. `filter` keys: `enemies` / `friends` (of the caster; with no caster every unit is an enemy), `alive`, `area` (those area spells hit), `sight` (in the line of sight the spell needs from `at`), `affect` (the rune filters let the spell hit them), `exclude` (a set of ids: `{[GetObjectID(unit)] = true}`), `along` (a direction `{x, y, z}`: only those within 0.5 of the upright plane through `at` along it, as the game's walls hit), `unsorted` (in the map's own order, the order the game's area spells hit in, not nearest first) |
 | `cast:CanAffect(unit)` | the spell's hits would hit the unit (its rune filters) |
 | `cast:Damage(unit, amount, type, {area, noCredit, split})` | a spell's hit of `amount` of a damage type (`fire`, `lightning`, `acid`, `piercing`, `slashing`, `crushing`, `general`) on a unit (other objects are not hit): armour and protections count, the caster is the attacker unless `noCredit`; `area` hits have no direction, as the walls' and clouds'; `split = n` shares the hit between n targets as the game's area spells do (n above 1: the amount and the hit's strength x 4 / n; they pass `cast.duration`). Gives the hit points lost |
 | `cast:Heal(unit, amount)` | heals as the healing spell does; gives the hit points gained |
@@ -829,7 +833,7 @@ return spell
 | `cast:Move(unit, to, {check = true})` | the unit moved to the point (at its own height) unless it cannot stand there; true when it moved. A push is a small move each tick |
 | `cast:Bolt(from, to, {width, lifetime, demon})` | a lightning bolt; an end that is a unit follows it; `demon` the curse magic's look |
 | `cast:Missile{to, from, effect, size, sound, payload}` | a spell missile flying at the unit `to` (at the game's missile speed) from `from` (default the caster), showing `effect` (default `FireArrow`) with the spell's light; `OnHit` runs when it lands |
-| `cast:Effect(name, {at, attach, size, alpha, param, velocity, target, unit, lifetime, free})` | a particle effect: one of yours (`Res\effects`, [Effects](#effects)) or a game's by its script name (`Sparks`, `LightningBlast`, `FireBlast`, `FireBall`, `Nuke`, `Healing`, ...); at `at` (default the cast's point) or on the unit `attach`; `param` its source's parameter (the fire blast's spread: the fireball passes its radius); one flying by `velocity` heads for the point `target` and starts on the players' screens at the hand of the unit `unit` (the fireball). A `free` one (a flash that plays once) is not the cast's: it lives its own life, also after the cast ends |
+| `cast:Effect(name, {at, attach, size, alpha, param, velocity, target, unit, direction, lifetime, free})` | a particle effect: one of yours (`Res\effects`, [Effects](#effects)) or a game's by its script name (`Sparks`, `LightningBlast`, `FireBlast`, `FireBall`, `Nuke`, `Healing`, ...); at `at` (default the cast's point) or on the unit `attach`; `param` its source's parameter (the fire blast's spread: the fireball passes its radius); one flying by `velocity` heads for the point `target` and starts on the players' screens at the hand of the unit `unit` (the fireball); a wall's (`Tendril`, `Link`) `direction` is its extent from its middle to an end (the fire wall's). A `free` one (a flash that plays once) is not the cast's: it lives its own life, also after the cast ends |
 | `cast:Sound(name, at, volume, hearing)`, `cast:Sound(name, at, {volume, hearing, velocity})` | a sound played once (`magic\...\x.wav`), moving with `velocity` |
 | `cast:SoundLoop(at, loop, {first, volume, hearing, velocity, lifetime})` | sounds that go on while the cast holds them: `first` once, then `loop` (a name, or a list played in random order) over and over, as the fireball's flight and the walls sound. Gives a handle |
 | `cast:Light(at, {color, range, rise, velocity, lifetime})` | a point light, by default in the record's `light_color` and `light_range`, rising by `rise` a tick or moving by `velocity` |
@@ -841,6 +845,8 @@ return spell
 | `cast:Flight(from, to, speed)` | a flight along the ground at `speed` a second (default the spell's; 5 without one): `{ticks, distance, speed, velocity}`, the ticks it takes and the velocity a tick for `Effect`'s `velocity` |
 | `cast:Release(handle)` | the cast's bolt, missile, effect, light or sound loop of that handle goes now (a missile's `OnHit` never runs); false when it is gone or the handle is nil |
 | `cast:Noise(at, loudness, delay)` | the caster (a unit; nothing otherwise) makes a noise there that hostile units near it hear and come looking for the caster, as the fireball's blast does (`delay` the AI's call delay, 26 unless given) |
+| `cast:Across(from, to, length)` | the vector `{x, y, 0}` `length` long square to the ground line from `from` to `to` (to its left; along x when the two stand on one spot), as the game's walls stand across the line from their caster to their point: the wall's half from its middle to an end |
+| `cast:Block(at, {along})`, `cast:Block(at, {radius})`, `cast:Unblock()` | the ground under a wall from `at - along` to `at + along`, or a disc of `radius` around `at`, counts as blocked for the units' paths (they go round it, as round the game's walls and clouds) until `Unblock` or the cast's end; one at a time (a second `Block` replaces the first). `Block` also works in `OnResume` |
 | `cast:After(ticks, "Name", payload)`, `cast:Finish()` | a timer; the end of the cast after this hook |
 
 - **Handles.** `Bolt`, `Missile`, `Effect`, `Light` and `SoundLoop` give a handle (a number) for `SetVelocity` and
@@ -854,7 +860,8 @@ return spell
   given no `lifetime` lasts as long as the cast. The cast ends after a hook calls `cast:Finish()` (its bolts, effects
   and lights go with it), when nothing is left (no timer, no missile in flight, nothing with a lifetime, no `OnTick`:
   `"idle"`), or at its limit: for a file with `OnTick` the record's `duration` in ticks (600 without one), for one paced
-  by its timers alone 600 ticks or the `duration` when longer.
+  by its timers alone 600 ticks or the `duration` when longer; the record's `max_ticks` instead, when it has one (0:
+  none).
 - **Randomness**: `Random(n)`, the game's generator, as in mission scripts. The game's script functions
   (`GetObjectID`, `IsAlive`, `GetX`, `SetGameVar`, ...) work in the hooks too; the file's top level runs before any
   cast and cannot reach the world.

@@ -102,3 +102,43 @@ damage_type = "acid"
 offensive = true
 turns_victim = false
 fighting = true
+
+# The fire wall: a wall at each target point it picks, across the line from the caster, burning every 4th tick. Its
+# cast outlasts its duration (its light rises for 80 ticks after), so it has no tick limit: its script ends it.
+[[spell]]
+code = "firewall"
+script = "LastingArea.lua"
+per_target = true
+ends_with_target = true
+max_ticks = 0
+ai = "lasting_area"
+damage_type = "fire"
+offensive = true
+turns_victim = false
+fighting = true
+
+# The light wall: a bolt across the line from the caster, striking every 4th tick.
+[[spell]]
+code = "litnwall"
+script = "LastingArea.lua"
+per_target = true
+ends_with_target = true
+max_ticks = 0
+ai = "lasting_area"
+damage_type = "lightning"
+offensive = true
+turns_victim = false
+fighting = true
+
+# The poison cloud: a disc of acid fog at the point, burning every 4th tick.
+[[spell]]
+code = "acid_fog"
+script = "LastingArea.lua"
+per_target = true
+ends_with_target = true
+max_ticks = 0
+ai = "lasting_area"
+damage_type = "acid"
+offensive = true
+turns_victim = false
+fighting = true

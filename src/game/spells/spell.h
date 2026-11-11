@@ -159,6 +159,14 @@ struct SpellOwned {
     int ticks = 0;      // the ticks it has left; 0: it lasts as long as the cast
     int payload = 0;    // a missile's key in its cast's missiles (its OnHit payload); 0 for the others
 };
+// The AI map's cells a cast blocks (SpellEffect::Block): a disc of `radius` around `at`, or a wall from at - along to
+// at + along (AlongDirection: a half width of 0.5).
+struct SpellFootprint {
+    Vector3 at;
+    Vector3 along;
+    float radius = 0.0f;
+    bool disc = false;
+};
 // A scripted cast's missile that arrived: its payload key, the object it flew at (-1: gone) and where it ended.
 struct SpellArrival {
     int payload = 0;
@@ -190,18 +198,17 @@ public:
     // prototype's height is below 0.5 or NaN) and the spell may affect.
     void HitUnitsInRadius();
 
-    // The units within `radius` that lie within 1 of the vertical plane through `position` along
-    // `direction` (only x and y are used): the wall spells.
-    void HitUnitsAlong(const Vector3& direction);
-
     // The casting state of the behaviour `type` (Spell::Behaviour()): its effect objects, the instant hits, the
     // next state (2 lasting, 3 done, 4 scripted; some failed casts leave it at 0) and the timer.
     void Start(SpellType type);
     // The old visual leaves the world's timed objects and is released.
     void SetVisual(Effect* visual);
-    // The walls (FireWall, LightningWall) and the areas (AcidFog, Campfire) block the AI map while they last.
-    // Nothing without a visual or for other behaviours.
-    void UpdateFootprint(SpellType type, int stamp);
+    // The AI map's cells of `shape` blocked (a scripted cast's cast:Block, as the walls and the poison cloud block
+    // theirs while they stand), the footprint held before cleared first; Unblock clears the one held.
+    void Block(const SpellFootprint& shape);
+    void Unblock();
+    // A particle effect of this type is a wall (EffectWall, with a direction): Tendril, Link.
+    static bool WallParticle(int particleType);
     // A spell missile homing on `target` (its particle `particleType`, an original type or a data effect's id), not yet
     // in the world; with a `launcher` the client starts it at the launcher's effect point. Null when the manager makes
     // none.
@@ -249,7 +256,8 @@ public:
 
     // One tick. Returns 0 when the effect has ended (the world then removes it) or without a world.
     int Update();
-    // State 2: walls and clouds hit every 4th tick; every case counts the timer down and ends the effect.
+    // State 2: the lasting spells still in code (the campfire hits every 4th tick); every case counts the timer and
+    // ends the effect.
     void UpdateLasting(SpellType type);
     void ReleaseVisual();
     void ReleaseSound();
@@ -263,7 +271,7 @@ public:
     // The position, caster and target ids, the target point, the state, the spell, the packed id, the visual
     // / sound / light ids (-1 for none), the timer, the flags and the position again; a scripted cast then its key
     // and its owned objects (a count, then each one's id, ticks and payload key). Load finds the objects in
-    // g_loadingProjectileWorld and stamps the footprint.
+    // g_loadingProjectileWorld; a scripted cast's footprint is in its Lua entry (stamped again by Adopt).
     void Load(ByteStream* stream);
     void Save(ByteStream* stream);
     // After the world's script state loaded: a scripted cast goes on in the restored state's entry of its key, else
@@ -283,6 +291,7 @@ public:
     Ref<Effect> visual;              // particle source, wall, lightning or missile
     Ref<Effect> sound;               // a sound or a sound sequence
     Ref<EffectPointLight> light;
+    SpellFootprint footprint;           // the cells it blocks while footprintStamped
     std::uint8_t footprintStamped = 0;
     int timer = 0;                        // ticks left in the next state
     std::uint8_t silentEnd = 0;           // copied into the buff record; healing: skip when at full health

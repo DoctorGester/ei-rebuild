@@ -221,6 +221,7 @@ void Fields(SpellRecord& r, Visit& v) {
     v("cast_school", Enum<SpellSchool>{r.castSchool, kSchools});
     v("per_target", dbtoml::Bool{r.perTarget});
     v("ends_with_target", dbtoml::Bool{r.endsWithTarget});
+    v("max_ticks", r.maxTicks);
 }
 
 template <class Visit>
