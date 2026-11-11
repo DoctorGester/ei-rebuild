@@ -37,6 +37,10 @@ One file per ticket, `docs/tickets/<ID>.toml`; the live status is in the shared 
 - Games only through `python tools/work.py test <ID> [run_all args]` (scenario names for a subset,
   `--rebirth-only`, `--golden`, at most `--jobs 4`): it queues on the machine's 16 game slots. Never call
   `tools/run_all.py` directly, never leave a game running. Equivalence sweeps stay under about 5 minutes per run.
+- Without scenario names `work.py test` plays the smoke tier (`config/smoke_scenarios.csv`: the runs that reach the
+  most code, both installs; H74). `--full` plays the whole image suite (and `--full --rebirth-only` the Rebirth set),
+  as the coordinator's merge runs always do. `--converted` without names plays only when a file the converted installs
+  read changed against main (`run_all.CONVERTED_PATHS`; it says so and stops otherwise).
 - Timing runs (frame times, profiles, any number compared across builds) pass `--quiet`: each game then runs alone,
   with no other game and no build on the machine (builds wait for it). Keep them to the few scenarios measured: the
   whole machine waits on a quiet batch (`docs/notes/work-board.md`, "Scheduler").
@@ -46,8 +50,9 @@ One file per ticket, `docs/tickets/<ID>.toml`; the live status is in the shared 
   goldens and says why in the commit (`docs/notes/standalone-verification.md`, "Recording goldens").
 - Say how each change is checked: the scenario with a golden that reaches it, or the unit check (`tests/unit`).
 - Keep the waits short (the work board's Waits tab measures them): while iterating, build verify only and run the
-  scenarios that reach the change by name; build release and run the full image and Rebirth suites once, when the work
-  is done (again only if a fix follows). Read a failed build's first errors and fix them all before building again.
+  scenarios that reach the change by name, then the smoke tier; build release and run the full image and Rebirth
+  suites (`--full --golden`, `--full --rebirth-only --golden`) once, when the work is done (again only if a fix
+  follows). Read a failed build's first errors and fix them all before building again.
 - Long commands (builds, suites) run in the background under `python tools/limit.py SECONDS -- COMMAND...` (build
   900, `work.py test` 5400, else 600); wait for the completion notice, never poll. A timeout is a result: find out
   why.

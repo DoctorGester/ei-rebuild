@@ -1,6 +1,0 @@
-  Activated!
-  Cannot open file autoexec.cfg for reading
-  Saved savea
-  1
-  Saved saveq
-  1

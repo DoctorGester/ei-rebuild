@@ -15,6 +15,8 @@
 # picture read without the margin) and a right-button drag turning it (the drag's motion scaled
 # without the margin). Not captured: its scene is lit by the world's time, which differs between
 # the runs.
+# Only on the vanilla data: the Rebirth run reaches no code and checks nothing the vanilla run does not.
+# installs: vanilla
 deterministic
 # Beside 15 other games (on our renderer it no longer runs alone, R10) it took up to 50 s.
 timeout 90

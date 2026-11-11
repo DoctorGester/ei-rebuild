@@ -1,4 +1,6 @@
 # Smoke test: start the game, sit in the main menu, then quit cleanly.
+# Out of the suite: harness.cmd's example and the CI workflows' smoke lists play it by name.
+# suite: named
 waitmenu
 wait 1000
 report

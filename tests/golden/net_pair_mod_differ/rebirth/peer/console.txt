@@ -1,4 +1,0 @@
-  netmod: this game plays "Showcase mod"
-  netmod: the client's join state 0, refusal 4, the host's mod "Showcase mod" (other files)
-  netmod: this game plays "Showcase mod"
-  netmod: the client's join state 0, refusal 4, the host's mod no mark

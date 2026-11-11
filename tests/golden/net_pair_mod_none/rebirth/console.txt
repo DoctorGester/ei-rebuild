@@ -1,8 +1,0 @@
-  netmod: this game plays "Showcase mod"
-  netmod: the client's join state 2, refusal 0, the host's mod "Showcase mod" (this game's files)
-  netmod: the server refused 1 joins for their mod, the last playing no mod
-  netmod: this game plays "Showcase mod"
-  netmod: the client's join state 2, refusal 0, the host's mod "Showcase mod" (this game's files)
-  netmod: the server refused 2 joins for their mod, the last playing no mark
-  netstate: the server has 1 connections
-  netstate: the client's join state 2, 0 servers listed

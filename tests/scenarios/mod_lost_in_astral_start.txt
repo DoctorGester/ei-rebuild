@@ -7,6 +7,8 @@
 # The walks: the hero walks to the first area and to the camp; the quest areas, the levers' ground and the portal's
 # platform are reached with SetCPFast (on the way a flying creature attacks and holds the hero in a fight; GodMode).
 # On the vanilla data (no starter\Mods) only the menu runs: every later step is Rebirth's.
+# Only on Rebirth's data: the vanilla run checks nothing another scenario does not.
+# installs: rebirth
 mod starter\Mods\LostInAstral
 reject Script error
 waitmenu

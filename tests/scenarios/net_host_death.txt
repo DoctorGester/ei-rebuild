@@ -1,6 +1,6 @@
 # A multiplayer hero's death and the game zone saved and loaded with what it left (H43c1, H43e1). This game hosts
 # alone (its own client joins its server, as in every hosted game) with a new hero, takes the sheriff's second topic
-# (z3q2, as net_pair_zone) and walks out through the base's gate into the zone.
+# (z3q2, as net_pair_speed) and walks out through the base's gate into the zone.
 # - The death: the console's "@" commands do nothing in a network game, so the harness's "hit" step deals the leader a
 #   killing blow. PlayerServer::LeaderDied's multiplayer branch (src/game/players/player_server_handlers.cpp): the hero's
 #   speech stopped (StopSpeech to its client, UnitClientSpecific::StopSpeech), part of its money and all its items
@@ -41,7 +41,7 @@ clickregion 0
 waitwindow 25 briefing
 frames 20
 
-# The sheriff's second topic picks the map (as in net_pair_zone).
+# The sheriff's second topic picks the map (as in net_pair_speed).
 clickground 63 64 dblclick
 frames 60
 waitunit 10 Nsheriff

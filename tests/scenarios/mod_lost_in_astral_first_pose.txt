@@ -7,6 +7,8 @@
 # frames' HUD figure must match one 40 frames on (the world stays paused), and no world figure may begin a blend in
 # either span (4 after the load, 5 in the menu before R65). On the vanilla data only the menu runs.
 # prepare: copy_save.py tests/saves/lia_astral_paused LostInAstral/save1
+# Only on Rebirth's data: the vanilla run checks nothing another scenario does not.
+# installs: rebirth
 mod starter\Mods\LostInAstral
 reject Script error
 waitmenu

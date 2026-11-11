@@ -1,4 +1,0 @@
-example_mod/savea/info.sav 1a6467a48a11b9cd
-example_mod/savea/mission.sav 7d82088002ef3e79
-example_mod/savea/scenario.sav 0697dcde51cdcbb2
-example_mod/savea/visuals.sav 198ca2376b9e60bb

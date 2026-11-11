@@ -170,12 +170,11 @@ doing the same; the frames are not in the golden: compare them with `tools/compa
 | `ui_gallery_game` | hud, quest_notice, top_page2, hud_tip, console, objectives, help, escmenu, save, load, view | the HUD (unit panel, map marker, top / movement / weapon panels, the FPS surface); the message log with a quest line; a HUD tooltip; console window (lines, typed line, 2-px caret); objectives; help from the objectives; escape menu over the greyed backdrop; save window (list, picture, name edit) and load window with two saves; the debug view (screen 7) |
 | `ui_gallery_camp` | camp_items, camp_stats, camp_levelup, camp_trade, camp_trade4, camp_spells, camp_makeitem, map, map_escmenu | camp; item strip; item description; trade panel rows and hero statistics; trader class 1's trade pages 2 and 4; class 3's spell and item makers; global map with a quest title, and the escape menu over it |
 | `ui_gallery_mp` (timeout 120) | hero_stats, connect, briefing, chat_typed, chat_sent | a made hero's statistics page; the connection screen's game list; the hosted game's base screen with the player list; the chat line (typed text, caret) and a sent line |
-| `ui_gallery_base` | base, base_topics, base_phrase, base_rewards | bz1g's base screen: Smith's topic list, a dialogue phrase with the shown items, the rewards |
 | `ui_gallery_deals` (timeout 120) | heroes_tip, camp_bought, camp_undone, camp_repair, camp_spell_parts, camp_spell_made, camp_item_finished, camp_item_parts, map_zone_tip, map_ways | the hero list's region 0 tooltip; the trade panel after a bought school level and after undo; the empty repair grid; the spell maker with a spell and two runes, then the made container; the item maker with a finished weapon, then its parts; the global map's zone tip and the objectives window a zone click opens |
 
 Not captured: the status surface ("saving" / "loading": drawn and gone inside one frame); the repair grid with an item in it
 (no script command or key wears one; ui.md section 5); a global-map link (travels at once); the exchange window (needs a
-second player; `net_pair_zone` reaches it). Rebirth's layout is covered by the WideScreen frames (`run_all --widescreen`).
+second player; `net_pair_companion` reaches it). Rebirth's layout is covered by the WideScreen frames (`run_all --widescreen`).
 
 ### The drop-down list
 
@@ -239,9 +238,8 @@ px lines instead of 49 at 192 DPI). Bold widens each glyph by max(1, (pixels + 1
 
 **Scale.** Twips and points go to pixels at a DPI taken from the window, not the system's: `TitlesDpi` = 96 * (screen width /
 800) * (0.01 / `screen_layout::FontScale`), the scale the interface's fonts get. The titles grow with the window like the
-rest of the interface and do not move with the system DPI. Scenarios `ui_titles_size_small` (800x600) and
-`ui_titles_size_large` (1600x900) capture the titles (the same line is 400 pixels wide at 800 and 789 at 1600);
-`ui_titles_scroll` scrolls them to their end. `ei_text_check --titles` streams the file into a real RichEdit and compares each
+rest of the interface and do not move with the system DPI. No scenario captures them
+(H74: the titles' code runs in every menu scenario). `ei_text_check --titles` streams the file into a real RichEdit and compares each
 line's bottom (by EM_FORMATRANGE) and the height that fits the whole text with ours, at several widths: 0 differ.
 
 ### Justified scroll text and the help page's block

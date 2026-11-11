@@ -223,10 +223,8 @@ Classes are ordinary C++: constructors, virtual destructors, virtual overrides w
   - **Checked by:** five scenarios, each with a mod written into the run's `harness_saves\s19b_mod` / `s19d_mod` at
     prepare time from the vanilla install's own files (copies, repacked archives, made-up bytes; nothing committed):
     `rebirth_mod_folders` (`tools/make_test_mod.py`: one override archive, the MapPath site, CameraPatch),
-    `rebirth_mod_stream_movies` (StreamPatch, MoviesPatch), `rebirth_mod_archives` (arrays of mod archives, a `-` entry,
-    extra figure and texture archives, ListFiles), `rebirth_mod_maps` (the new zone's map and mob, the client's zone
-    load, MapFileExists), `rebirth_mod_zone_table` (the zone table and the quest files, in a hosted
-    game); the last four are `tools/make_mod_s19d.py stream|archives|maps`. Each file a scenario's mod holds is
+    `rebirth_mod_stream_movies` (StreamPatch, MoviesPatch), `rebirth_mod_maps` (the new zone's map and mob, the client's
+    zone load, MapFileExists); the last two are `tools/make_mod_s19d.py stream|maps`. Each file a scenario's mod holds is
     asked for with the steps `read` / `wrote` / `waitread` (the files the game touched: `tests/verify/harness_modtrace.h`),
     `modfile` / `modlist` / `modarchive` and `mapfile` (harness.cpp's header); "playstream" asks the music stream for
     a track at the main menu (its steps follow the virtual clock, so the wait is the same every run).
@@ -333,7 +331,7 @@ writes the registry.
 - **Checks:**
   - tests/unit/settings_file.cpp (in `ei_unit_check` and Linux's ei_port_check) covers the format and the defaults
     (the new file byte for byte against tests/unit/settings_defaults.ini).
-  - `settingsfile writable` (settings_save.txt) runs the game's exit save for real.
+  - `settingsfile writable` (mod_menu_list.txt, Rebirth) runs the game's exit save for real.
   - `settingsfile defaults` (settings_defaults.txt) starts with no file and a 1280x720 desktop.
 
   run_all compares the file after the game with the scenario's `# settings-file: settings/<name>.ini` and fails on a
@@ -497,7 +495,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   dispatcher passes the interface each character's code point.
 - **The editors:** the caret stays a byte offset at a character's start. They are the message box's edit field (its
   letter class past ASCII is `platform::IsLetter`), the console line, the chat line and the save window's name.
-- **Check:** tests/scenarios/utf8_typing.txt.
+- **Check:** the utf8_typing section of tests/scenarios/batch_menus_heroes.txt.
   - `typeunicode` types Cyrillic and a character past U+FFFF, and `consoleline` checks the line's bytes and caret after
     editing keys.
   - `diffcapture` checks that "λ" draws differently from "?".

@@ -1,0 +1,273 @@
+# A merged run (H74): the options compared, heroes deleted, renamed and shown, UTF-8 typing. Each section below was a scenario of its own that started the same way
+# (section names as before: the notes name them); a section after the first starts again from the main menu.
+# Sections: ui_compare, ui_hero_delete, ui_hero_rename, ui_hero_screen, utf8_typing.
+# installs: vanilla
+timeout 60
+reject Script error
+waitmenu
+
+# ---- section ui_compare
+# The interface's canvases (docs/notes/ui-native.md, section 3): every window surface draws on its GPU canvas.
+# The options window, and the help over it (backdrop mode 3: the options' greyed backdrop put away by
+# SwapContents after the frame blitted it, a new one copied from that frame), each opened twice with the mouse
+# at the same place: the frames must be the same both times (a backdrop or text left over from the first
+# opening, or a copy of the wrong frame, differs).
+
+# The options window and the help over it, the first time.
+clickregion 3
+waitwindow 10 options
+move 20 20
+frames 5
+freeze
+capture options
+unfreeze
+key h
+waitwindow 10 help
+move 20 20
+frames 10
+freeze
+capture help
+unfreeze
+clickregion 1
+waitwindow 10 options
+
+# The second time: the same frames.
+move 20 20
+frames 5
+freeze
+capture options_again
+unfreeze
+samecapture options options_again 0 0
+key h
+waitwindow 10 help
+move 20 20
+frames 10
+freeze
+capture help_again
+unfreeze
+samecapture help help_again 0 0
+clickregion 1
+waitwindow 10 options
+
+clickregion 1
+waitwindow 10 menu
+frames 3
+
+# ---- section ui_hero_delete
+# The multiplayer hero screen's delete path (docs/notes/ui.md, section 5): a hero is made (name
+# typed, the default attributes, create 006186F0, the statistics page's next 00617A50 writes
+# <n>.mp into the run's overlay and selects it in the list), then region 7 asks "lmp_deletepers"
+# and Enter answers OK: the screen's slot 27 (00615940) deletes it (00617E40; the records move
+# down with 0061A350). The defaults button (region 4) empties the name field, so the name is typed after it;
+# the create button (region 1) wants a name and attributes that add up to the points. The run reaches
+# CMpHeroScreen::CreateHero, AddNewHero, MpHeroRecord::WriteFile, the message box and DeleteHero.
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+# Back to the defaults first (region 4 also empties the name field), then the name.
+clickregion 4
+frames 5
+key t
+frames 3
+key e
+frames 3
+key s
+frames 3
+key t
+frames 5
+# Create (the statistics page), then its next button writes the hero and selects it in the list.
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+# Delete asks first; Enter answers OK.
+clickregion 7
+waitwindow 10 msgbox
+key enter
+frames 10
+key esc
+waitmenu
+
+# ---- section ui_hero_rename
+# H43h: renaming a multiplayer hero (MpHeroScreen::Rename, FinishRename, CloseRenameEdit, BackToNewHero;
+# ui_hero_delete makes and deletes one). A hero is made as there, but its statistics page is left once with the back
+# button (region 0: BackToNewHero, the name field kept) before it is made. Then region 6 renames it: the edit field
+# takes a suffix and Enter writes it after a bar ("test | a", the field is short, FinishRename -> MpHeroRecord::WriteFile). Rename again
+# with Esc: CloseRenameEdit, the name unchanged. A third time, the old suffix is the field's text, kept by Enter.
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key t
+frames 3
+key e
+frames 3
+key s
+frames 3
+key t
+frames 5
+clickregion 1
+frames 10
+# Back to the new hero page, and on again to the statistics page.
+clickregion 0
+frames 10
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+
+# Rename: the field is empty (no bar yet), " ace" typed, Enter.
+clickregion 6
+frames 10
+key space
+key a
+key c
+key e
+frames 5
+key enter
+frames 10
+
+# Esc leaves the field.
+clickregion 6
+frames 10
+key x
+frames 5
+key esc
+frames 10
+
+# The suffix is now the field's text; Enter keeps it.
+clickregion 6
+frames 10
+key enter
+frames 10
+key esc
+waitmenu
+
+# ---- section ui_hero_screen
+# The multiplayer hero screen's left button (00617050; docs/notes/ui.md, "Camp, global map, hero
+# screens"): the hero
+# list's rotate arrows, a new hero (mode 10) and its voice rows, arrows and defaults, then back
+# to the list and the main menu. The hero is never created (that writes <n>.mp files) and nothing
+# touches the network. Regions are clicked by number (the harness finds them on the top window).
+waitmenu
+
+# Main menu region 5: Multiplayer -> the hero list (mode 9).
+clickregion 5
+waitwindow 15 heroes
+wait 1000
+# Regions 2/3 rotate the preview while held (the button-up handler 006177D0 stops it).
+clickregion 2
+frames 5
+clickregion 3
+frames 5
+# Region 5: a new hero (mode 10, the preview's turn reset).
+clickregion 5
+frames 10
+# Voice rows (regions 9..19): the hero takes the voice's file and it plays.
+clickregion 9
+frames 5
+clickregion 10
+frames 5
+clickregion 2
+frames 5
+# The two figure strips (top: the defaults, bottom: the names; 00629DB0): a figure in each.
+click 250 50
+frames 5
+click 250 550
+frames 5
+# Region 4: the attributes back to their defaults.
+clickregion 4
+frames 5
+# The voice keys (00618A10, mode 10): Down / PgDn / Up move the voice, each played.
+key down
+frames 5
+key pgdn
+frames 5
+key up
+frames 5
+# Region 0: back to the list (mode 9); a new hero again and Esc back (00618A10); PgUp / PgDn on the
+# list; Esc leaves for the main menu.
+clickregion 0
+wait 1000
+clickregion 5
+frames 10
+key esc
+frames 20
+key pgdn
+frames 5
+key pgup
+frames 5
+key esc
+waitwindow 15 menu
+wait 500
+
+# ---- section utf8_typing
+# The image's UTF-8 text (docs/notes/standalone.md section 4). File names (U2): "utf8files" makes, lists, reads
+# back and removes a folder and a file with Cyrillic names through the game's file calls. Typing (U4): characters
+# typed into the console's line arrive as the platform's UTF-8 text ("typeunicode" hands each in as a Text event, a
+# character past U+FFFF too), are stored as UTF-8, and the caret, Backspace and Delete go by character ("consoleline" checks the line's bytes
+# and the caret's place). The line is drawn and measured with the wide GDI calls (U3): a Greek letter (outside
+# the assets' code page 1251) draws as itself, not as the '?' an ANSI call would make of it ("diffcapture": the
+# frames of the line "λ" and the line "?", the caret after either and the menu's scene frozen, differ only by
+# the glyph). The text audit (U5): "utf8text" checks Cyrillic case-insensitive compares and case changes by the
+# UTF-8 case table and the player name filter; "chatwrap" adds a long Cyrillic chat line (a word wider than a
+# line among them) to the chat overlay and requires valid UTF-8 lines that join back to it.
+waitmenu
+utf8files
+utf8text
+chatwrap Длинная строка чата для проверки переноса по словам и внутри длинного слова: ШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШ конец
+key grave
+frames 2
+typeunicode Жук
+frames 2
+consoleline 3 Жук
+key left
+frames 2
+consoleline 2 Жук
+key backspace
+frames 2
+consoleline 1 Жк
+typeunicode ё😀
+frames 2
+consoleline 3 Жё😀к
+key left
+key delete
+frames 2
+consoleline 2 Жёк
+key home
+key right
+frames 2
+consoleline 1 Жёк
+key end
+frames 2
+consoleline 3 Жёк
+key esc
+frames 2
+consoleline 0
+freeze
+typeunicode λ
+frames 2
+consoleline 1 λ
+capture console_greek
+key backspace
+frames 2
+typeunicode ?
+frames 2
+consoleline 1 ?
+capture console_question
+diffcapture console_greek console_question 0.000002 0.0005 0
+unfreeze
+key esc
+frames 2
+key grave
+frames 2
+
+report
+quit

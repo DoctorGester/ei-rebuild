@@ -15,11 +15,9 @@ Files: `net/net_session.h` (sessions, lobby, message base), `net_session*.cpp`, 
   compresses, decompresses the result and compares; a checksum above save version 0x6B).
 - Multiplayer: the server / client sessions, the lobby, the master server, `DriverLink`s (remote players only), trades,
   kick / ban, zone commands, awards, shared files. Scenarios: `net_lobby` (the host's client joins its own server over
-  loopback), the pairs (`peer` in harness.md): `net_pair_join` (find in the lobby, join, chat, leave), `net_pair_zone`
-  (an exchange, the map choice, both into the zone), `net_pair_kick` (kick by serial, ban by name, a refused join),
+  loopback), the pairs (`peer` in harness.md): `net_pair_kick` (kick by serial, ban by name, a refused join),
   `net_pair_leave` (shared files, a peer lost in the zone, LeaveZone), `net_pair_quest` (a quest done, CompleteZone and
-  its awards, a fake master), `net_pair_master` (the master's server list, a bad update), `net_second_master`, `net_pair_lobby` (direct queries, the address book), `net_pair_password` (a refused and an admitted join)
-and `net_pair_party` (an exchange offered, withdrawn, answered, left);
+  its awards, a fake master), `net_pair_master` (the master's server list, a bad update), `net_second_master`, `net_pair_lobby` (direct queries, the address book), `net_pair_password` (a refused and an admitted join);
   `net_host_death` (one hosted game: its hero killed in the game zone, the zone saved and entered again);
   `net_zone_vars` (one hosted game: z6q3's script raises server variables), `net_zone_leader` (z7q3's script asks for the leader)
   and `net_pair_companion` (ours: a companion picked in the base, fighting, dying, written back, restored in the next

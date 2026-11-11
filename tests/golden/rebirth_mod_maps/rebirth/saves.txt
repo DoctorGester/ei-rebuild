@@ -1,8 +1,0 @@
-s19d_mod/current/gz1g.sav fad6673eb13ea8b2
-s19d_mod/current/gz1g.visuals.sav 112f87df41f28685
-s19d_mod/savea/gz1g.sav fad6673eb13ea8b2
-s19d_mod/savea/gz1g.visuals.sav 112f87df41f28685
-s19d_mod/savea/info.sav 2f43b0bb5bd744bb
-s19d_mod/savea/mission.sav 366fa2402a0f0a41
-s19d_mod/savea/scenario.sav 567d4392462ccdd0
-s19d_mod/savea/visuals.sav b89d4d98632c09e9

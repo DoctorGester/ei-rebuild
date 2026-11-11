@@ -4,6 +4,8 @@
 # then cz1j for cz4k, with the movie between, and gz31j for cz1j); the briefing's variable is checked there. The bases
 # before them are mod_lost_in_astral_cz_ingos (H70). One digest record, on arrival in bz21k (a small zone; the others
 # are checked by their variables). On the vanilla data only the menu runs.
+# Only on Rebirth's data: the vanilla run checks nothing another scenario does not.
+# installs: rebirth
 mod starter\Mods\LostInAstral
 reject Script error
 waitmenu

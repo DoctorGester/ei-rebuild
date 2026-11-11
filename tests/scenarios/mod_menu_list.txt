@@ -7,6 +7,8 @@
 # the game's own files and then Lost in Astral again, so the last pick is the one the file keeps. The vanilla data has
 # no starter\Mods: the menu has no list, the run only reaches the menu.
 # settings-file: settings/mod_menu_list.ini
+# Only on Rebirth's data: the vanilla run checks nothing another scenario does not.
+# installs: rebirth
 timeout 60
 settingsfile writable
 resolution 1280x720

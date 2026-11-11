@@ -1,8 +1,10 @@
 # Rebirth's MPSpeedControl (ui_battle.cpp, ui_hud.cpp; always since C68): the game speed keys work for a
-# network client too. The flow of net_pair_zone (the exchange on the base, both games into the zone, peer/
+# network client too. The flow of the zone pairs (the exchange on the base, both games into the zone, peer/
 # net_pair_speed.txt the joiner); in the zone this game (the host) presses keypad + and the peer then does, each
 # checking its update period (27 ms fast, 55 normal); both games keep signalling each other to the end. On the host the period is
 # the server's (it runs the world everyone plays); on the peer it is its own client's only.
+# Only on the vanilla data: the Rebirth run reaches no code and checks nothing the vanilla run does not.
+# installs: vanilla
 rebirth resolution desktop
 timeout 240
 peer net_pair_speed

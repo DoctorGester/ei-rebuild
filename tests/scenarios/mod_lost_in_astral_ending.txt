@@ -3,6 +3,8 @@
 # (1022101 to 1022104, each clicked from where it stands), the zone's last enemy (object 666666) is killed, q22j
 # ends and the zone's LeaveToZone EndofGame ends the campaign on the credits (the "titles" window). On the vanilla
 # data only the menu runs.
+# Only on Rebirth's data: the vanilla run checks nothing another scenario does not.
+# installs: rebirth
 mod starter\Mods\LostInAstral
 reject Script error
 waitmenu

@@ -12,6 +12,8 @@
 #   handler asks it), not for a .mob of that name.
 # On an unpacked install (run_all.py --unpacked) the game's files come from its folders: the same answers.
 # prepare: make_mod_s19d.py loose
+# Only on Rebirth's data: the vanilla run checks nothing another scenario does not.
+# installs: rebirth
 mod harness_saves\s19d_mod
 reject Script error
 waitmenu

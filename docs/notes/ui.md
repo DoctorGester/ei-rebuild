@@ -196,14 +196,14 @@ clone of a weapon put on, so checks compare counts, not identity.
 ## 5. Camp, global map, hero screens and the camp's panels
 
 Scenarios `ui_screens`, `ui_camp`, `ui_camp_deals`, `ui_camp_make`, `ui_describe`, `ui_hero_screen`, `ui_hero_stats`,
-`ui_hero_delete`, `ui_trade_restore`, `ui_trade_hold`, `ui_gallery_deals`.
+`ui_hero_delete`, `ui_trade_hold` (Rebirth), `ui_gallery_deals`.
 
 **Reaching them.** `screen 5` opens the camp as the global map's camp button does ("constr.current" 0, no constructor);
 regions 5-10 and 4 ask for pages 1-6 and 0 (2-6 not offered: fall back), regions 1 / 0 the hero arrows, 2 / 3 turn the hero;
 Esc (page 7) leaves; `screen 4` opens the global map (regions 0 / 1 turn it, Esc the escape menu). Constructor pages need a
 constructor record, which only a base's dialogue ("constrN" answers -> screen 5) or `screen 5 <N>` provides; setting
 "i.onspellconstr" / "i.onitemconstr" without one crashes in `RebuildList` (the original too: the lists stay null). In
-ui_trade_restore and ui_gallery_deals vanilla buys only with "give 0 exp" typed while the camp is open (given in the battle
+ui_gallery_deals vanilla buys only with "give 0 exp" typed while the camp is open (given in the battle
 it did not show in the camp). FindPaths: ui_gallery_deals sets "z.gz1g" / "z.gz2g" to 2 before `screen 4`, then a click on
 gz2g's area at (140, 277) opens the objectives window with the ways. Not reached: a link click (regions 3 and up: a
 "z.<way>" = 2 way of kind 2 with a figure; it travels at once), the repair grid with an item in it (only a worn item is
@@ -290,8 +290,8 @@ puts the "pers <name>" texts into a map.
 ### Briefing / base screen (`ui_briefing*.cpp`, `ui_briefing.h`, `ui/ui_briefing.cpp`)
 
 Screen 3 of a "brief" zone. States: 0 walking, 1 topic choice, 2 dialogue starting, 3 phrases, 4 rewards. Scenario
-`ui_base_dialogue` (sets "b.Smith.M4" first: Smith has no topic after a new game): the leader walks to Smith, `clickunit
-Smith`, region 0 (the first topic), waits 4 s, clicks through the phrases, Esc, a second Esc takes the rewards. A person
+`ui_base_hide` (Smith's topic M6): the leader walks to Smith, `clickunit Smith`, region 0 (the first topic), clicks
+through the phrases, Esc, a second Esc takes the rewards. A person
 can talk when its server controller's command is 0 or 0xB and the next one 9 (or it has none).
 
 `ShowBriefing` is "briefing <name>"; `SaveState` writes one zero dword; `OpenTopics` makes five rows 210..570 x 440.. with
@@ -312,7 +312,7 @@ the topics' frame inside the text's).
 ## 6. Battle screen: update, selection, orders, pending actions
 
 Files `ui_battle.cpp`, `ui_hud_slots.cpp`; scenarios `ui_hud`, `ui_battle_commands`,
-`ui_battle_spells`, `ui_order_move`, `ui_quick_items`, `ui_quest_notice`. The key handler runs the key table's actions (1
+`ui_battle_spells`, `ui_quick_items`, `ui_quest_notice`. The key handler runs the key table's actions (1
 pause, 2 / 3 game speed, 4 objectives, 0x17-0x1A movement modes, ...; Esc cancels a targeting mode or opens the escape
 menu); the full list is in section 11, "BattleScreen::KeyDown". `UnitJoined` places a unit by the local player's record
 order. `KeyUp` releases the order key of actions 0x11..0x16; `Wheel` offers the event to the map, unit panel, message log and
@@ -409,12 +409,9 @@ Rectangles from `menus.reg`: save/load OK 163..237, Cancel 563..637, Delete 363.
 in 24 steps; options OK 213..287, Cancel 513..587, groups 100..250 x 156.. in 24 steps, rows x 250..520.
 
 Scenarios: save / load (`SaveLoadWindow`, `ui_saveload.cpp`) ui_hud, ui_saveload, ui_saveload_delete; options
-(`OptionsWindow`, `ui_options.cpp`) ui_hud (also clicks group 2), ui_main_menu (OK = Apply), key remapping ui_options_bind
-(Enter, a taken key's box, cancelled), ui_options_remap (Enter, `dblclickregion`, a taken key's box, OK, then the keys used
-in the game, the hero's moveMode in the digest), the graphics rows ui_options_graphics and ui_options_remap_load (the keyboard.ini ui_options_remap saves, written by
-`tools/make_keyboard_ini.py` into the overlay, loaded at start); objectives ui_hud's TAB, ui_objectives; help ui_help with
-F1. `UiEditField::KeyDown` has no scenario that types into one. The titles' RTF text is drawn as glyph runs
-(`UiScrollingSurface::RenderText`, render_rich_text; ui_main_menu, render_titles_present, ui_titles_scroll).
+(`OptionsWindow`, `ui_options.cpp`) ui_hud (also clicks group 2), ui_main_menu (OK = Apply), key remapping ui_options_remap (Enter, `dblclickregion`, a taken key's box, OK, then the keys used
+in the game, the hero's moveMode in the digest), the graphics rows ui_options_graphics; objectives ui_hud's TAB (Rebirth), ui_base_objectives. `UiEditField::KeyDown` has no scenario that types into one. The titles' RTF text is drawn as glyph runs
+(`UiScrollingSurface::RenderText`, render_rich_text; ui_main_menu).
 
 - Save entries' titles: `ZoneTitle` / `AllodTitle` ("zone " / "allod " with the space; else "save_camp" / "Unknown").
   `QuickLoad` loads newgame's savea. A save window edits the name; the first edit of an entry other than "saveq" / "savea" /
@@ -480,8 +477,7 @@ The steps added for UI work (`screen`, `clickregion` / `moveregion`, `wheel`, `d
   finer test), sorts them by depth and takes the first unit, which must have flag 0x400000. The step tries a 9x9 grid inside
   the unit's rectangle until the game's own pick answers with that unit, so the click cannot land on a unit in front; it
   fails when the unit is off screen or hidden. Modifier words (`ctrl`, `shift`, `alt`) after a key or mouse step hold those
-  keys around it (Ctrl + a unit orders an attack), and `hold` / `release` keep them across steps (`ui_modifier_keys`: Shift +
-  portrait = ToggleMember's toggle, Ctrl / Alt + spell key 1 / quick item keys). They are posted as key events, the only way
+  keys around it (Ctrl + a unit orders an attack), and `hold` / `release` keep them across steps (`camera_limits`). They are posted as key events, the only way
   the game learns them; the harness cannot drag.
 - **Zone steps**: `zone` calls `LeaveToZone` on the local player's connection, as the zone exit handler and the script
   command do; it needs state 1, and in campaign mode 1 or 3 a dead or missing leader loses the game instead. `waitzone`
@@ -498,7 +494,7 @@ The steps added for UI work (`screen`, `clickregion` / `moveregion`, `wheel`, `d
 Scenario lessons:
 - **Race with a zone's intro script.** The server drops a hero blocked by script (BlockUnit / IsUnitBlocked, flag
   0x800000), and gz1g's intro script blocks the hero for about 37 s with its first tick unordered against the hero's
-  creation: `ui_order_move` waits for the block (`waitfor 15 IsUnitBlocked(GetLeader())`) before lifting it and checks the
+  creation: a scenario that orders the hero waits for the block (`waitfor 15 IsUnitBlocked(GetLeader())`) before lifting it and checks the
   hero is not blocked before each click (scripted moves ignore the flag).
 - **Armed traps.** gz2g starts its magic traps armed (its scripts disarm them from triggers), so MTF4 strikes a placed wolf
   at the next world update: the scenario disarms it before placing the wolf, checks the wolf alive, arms it and waits for it

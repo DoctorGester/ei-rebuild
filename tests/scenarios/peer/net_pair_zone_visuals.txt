@@ -1,4 +1,4 @@
-# The peer of net_pair_zone_visuals: joins the host's game (as in net_pair_join); once the host has entered z3q2 it
+# The peer of net_pair_zone_visuals: joins the host's game (as in net_pair_kick); once the host has entered z3q2 it
 # walks out of its own base the same way into the host's zone, walks towards exit 1 (footprints), leaves through it
 # back to its own base (the leave box's Enter: the zone change keeps its picture of z3q2 in its own saves\current) and
 # walks out through the gate again: the zone's load restores its prints from that side file.

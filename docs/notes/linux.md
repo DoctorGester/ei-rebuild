@@ -163,8 +163,9 @@ lib/maths.h (float-maths.md, "Maths functions"). What still differs, and why:
 - render_present_window: `windowsize` resized asynchronously under X11 (SDL_SetWindowSize returns before the window
   has its size; SDL_SyncWindow does not wait there either), so the clicks after it aimed at a window that had not
   changed yet. The step (harnessplatform::ResizeClient) now pumps events until the window has the size, at most 2 s.
-- Over 60 s on llvmpipe, left out: camera_smooth, camera_spin, render_stats, zone_gz15h_tornado (not run in H47d). On
-  dzn they take 7 to 22 s and are the same as their goldens. CI run 41857898300 (8 shards, 2026-11-04) also cut
+- Over 60 s on llvmpipe, left out: camera_smooth, camera_spin, render_stats, zone_gz15h_tornado (not run in H47d;
+  since H74 the camera ones and render_terrain_seams are sections of camera_batch and render_batch, which
+  LINUX_LEFT_OUT names). On dzn they take 7 to 22 s and are the same as their goldens. CI run 41857898300 (8 shards, 2026-11-04) also cut
   camera_drawn and render_shadows_outside (frame waits), spells_more and levers_key (Rebirth) at their limit: all
   six were in LINUX_SKIP (H58 took them out under EI_TIME_SCALE). render_stats's run there also differed from record 63 on (an attack's skill +3.4e38 against
   -3.4e38): only a consequence of its cut (H56). A `frames` step has a real-time limit, 10 s plus 100 ms a frame (16 s

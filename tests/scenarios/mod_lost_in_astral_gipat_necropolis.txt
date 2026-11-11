@@ -4,6 +4,8 @@
 # gives the golem centre's key, which opens the key levers 1712 and 57 the same way (57's use spot is outside its
 # wall, west of it: the hero is put there; MOD2b). Each quest's end is checked (and gz14g's exit opened). On the
 # vanilla data only the menu runs.
+# Only on Rebirth's data: the vanilla run checks nothing another scenario does not.
+# installs: rebirth
 mod starter\Mods\LostInAstral
 reject Script error
 waitmenu

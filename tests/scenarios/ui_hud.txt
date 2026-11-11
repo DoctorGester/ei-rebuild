@@ -5,6 +5,8 @@
 # original game (see docs/notes/ui.md, "Battle HUD"). Nothing here saves, loads, quits or plays a
 # movie; spell, action and quick-item buttons only get mouse moves (a click there would start a
 # targeting mode that the Esc key would then cancel instead of opening the menu).
+# Only on Rebirth's data: the vanilla run checks nothing another scenario does not.
+# installs: rebirth
 reject Script error
 waitmenu
 console thingamabob

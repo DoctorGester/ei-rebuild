@@ -1,12 +1,13 @@
 """Runs every harness scenario on the vanilla install's data and on Rebirth's and prints a summary.
 
-usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only | --all-rebirth]
+usage: python tools/run_all.py [scenario names... | --smoke | --full] [--rebirth | --rebirth-only | --all-rebirth]
                                [--jobs N] [--retries N] [--clock virtual|real[,...]] [--golden] [--unpacked | --converted]
                                [--dzn | --lavapipe]
        python tools/run_all.py --widescreen [scenario names...]
   scenario names   e.g. combat items (default: every tests/scenarios/*.txt but the screenshots_* ones, which take
-                   the README's pictures and run by name only; on Linux less those its driver cannot match,
-                   LINUX_LEFT_OUT)
+                   the README's pictures and run by name only, and those with a line "# suite: named" (in_suite());
+                   on Linux less those its driver cannot match, LINUX_LEFT_OUT). A line "# installs: vanilla" or
+                   "# installs: rebirth" keeps a scenario's runs to that install, named or not (scenario_installs())
   default          the image, build\\verify\\ei-rebuild.exe (the game and the harness linked in), started by this
                    tool (launch()) on an install's data: EI_GAME_ROOT names the install, each run takes the
                    install folder's own EI_Plugin values as a player's exe does. Installs: "standalone" the vanilla data (vanilla goldens), "standalone-rebirth" Rebirth's
@@ -19,6 +20,9 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
   renderers        The image draws with our renderer (no DirectDraw device, its own swap chain, no display mode
                    change), so its runs never need the machine to themselves. EI_RENDER reaches no run: a scenario's
                    "render" step sets the image's renderer options (EI_RENDER_EXTRA adds words to them).
+  --smoke          the smoke tier (H74): config/smoke_scenarios.csv's runs (scenario, install: the most coverage per
+                   run, tools/suite_coverage.py --smoke-file), less those --vanilla-only / --rebirth-only leave out;
+                   `work.py test` without names plays it unless --full. --full: the whole suite (run_all's default)
   --widescreen     Rebirth's WideScreen against our rewrite of it (docs/notes/rebirth.md, "WideScreen"): the
                    scenarios (default ui_widescreen, ui_widescreen_more, ui_widescreen_hud,
                    ui_widescreen_screens and ui_widescreen_dialogue; they set the desktop's mode and WideScreen with the harness's
@@ -44,6 +48,8 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
   --converted      the runs play the unpacked copies' converted copies (use_converted(), tools/convert_install.py:
                    the record files as TOML, the originals gone), made when missing or made by another ei-convert;
                    every golden must stay the same
+  --converted      (through work.py test without names: only when a file under CONVERTED_PATHS changed against main,
+                   converted_changes(); H74)
   --golden         runs the games with a state digest (EI_DIGEST, the goldens' period) and afterwards compares
                    every run that has a golden (tests/golden/<scenario>/<install>, tools/golden.py) with it:
                    the console, the digest records, the dumps and the saves. The image's runs on the vanilla data
@@ -326,6 +332,37 @@ def scenario_arguments(scenario):
                 if text.startswith(ARGUMENTS_PREFIX):
                     return text[len(ARGUMENTS_PREFIX):].split()
     return []
+
+
+INSTALLS_PREFIX = '# installs:'
+SUITE_PREFIX = '# suite:'
+
+
+def header_value(scenario, prefix):
+    """The rest of a scenario's first line that starts with prefix ("# installs:", "# suite:"), stripped, or None."""
+    with contextlib.suppress(OSError):
+        with open(scenario, encoding='utf-8', errors='replace') as f:
+            for text in f:
+                if text.startswith(prefix):
+                    return text[len(prefix):].strip()
+    return None
+
+
+def scenario_installs(name, root=ROOT):
+    """The installs a scenario's line "# installs: vanilla" or "# installs: rebirth" (H74) restricts it to: its runs on
+    any other are never made, named or not (a scenario whose steps are all for Rebirth's data, a Rebirth run whose code
+    and checks the vanilla run already covers); None without one. --widescreen plays its scenarios on Rebirth's data
+    whatever the line says (that comparison needs addon's WideScreen)."""
+    value = header_value(os.path.join(root, 'tests', 'scenarios', name + '.txt'), INSTALLS_PREFIX)
+    return set(value.split()) if value else None
+
+
+def in_suite(name, root=ROOT):
+    """Whether the suite plays the scenario when no names are given: not the screenshots_ ones, nor one with a line
+    "# suite: named" (H74: kept for a tool or a workflow that names it, e.g. the CI gate boot, --widescreen's)."""
+    if name.startswith(SCREENSHOT_PREFIX):
+        return False
+    return header_value(os.path.join(root, 'tests', 'scenarios', name + '.txt'), SUITE_PREFIX) != 'named'
 
 
 def expected_result(scenario):
@@ -1141,6 +1178,11 @@ def rebirth_scenarios(names, root=ROOT, goldens=True):
                 marked.add(parts[0])
     smoke = set()
     for n in names:
+        installs = scenario_installs(n, root)
+        if installs is not None:
+            if 'rebirth' in installs:
+                smoke.add(n)
+            continue
         if n in marked or (goldens and has_golden(n, 'rebirth', root)):
             smoke.add(n)
             continue
@@ -1161,6 +1203,9 @@ def parse_args(argv=None):
     ap.add_argument('--standalone', action='store_true')
     ap.add_argument('--widescreen', action='store_true')
     ap.add_argument('--golden', action='store_true')
+    tier = ap.add_mutually_exclusive_group()
+    tier.add_argument('--smoke', action='store_true')   # the smoke tier (H74); work.py test's default without names
+    tier.add_argument('--full', action='store_true')    # the whole suite (run_all's default; work.py test's choice)
     copies = ap.add_mutually_exclusive_group()
     copies.add_argument('--unpacked', action='store_true')
     copies.add_argument('--converted', action='store_true')
@@ -1185,14 +1230,72 @@ def has_golden(name, install, root=ROOT):
 SCREENSHOT_PREFIX = 'screenshots_'
 
 
+def suite_names(root=ROOT, left_out=()):
+    """The scenarios a run without names plays: every tests/scenarios/*.txt in the suite (in_suite()) but left_out."""
+    return sorted(n for p in glob.glob(os.path.join(root, 'tests', 'scenarios', '*.txt'))
+                  if (n := os.path.splitext(os.path.basename(p))[0]) not in left_out and in_suite(n, root))
+
+
+def allowed(name, install, root=ROOT):
+    """Whether the scenario runs on install (standalone or standalone-rebirth) at all (scenario_installs())."""
+    installs = scenario_installs(name, root)
+    return installs is None or ('rebirth' if install == 'standalone-rebirth' else 'vanilla') in installs
+
+
+# What the converted installs (--converted) read that the others do not (H74: the converted pass runs only when one
+# of these changed): the converter and its install copies, the loaders of the converted formats (TOML records and
+# maps' objects, PNG textures and heights, glTF figures and animations, Lua scripts, map folders, zips) and the
+# repository's own content (assets: vanilla content through the modders' path).
+CONVERTED_PATHS = ('tools/convert/', 'tools/convert_install.py', 'tools/unpack_install.py', 'src/engine/data/',
+                   'src/engine/models/figure_gltf', 'src/engine/models/texture_png', 'src/engine/mods/',
+                   'src/game/map/mob_', 'src/game/script/script_lua', 'src/lib/json', 'src/lib/png', 'src/lib/toml',
+                   'src/platform/zip_folders', 'assets/')
+
+
+def git_lines(root, *command):
+    result = subprocess.run(['git', *command], cwd=root, capture_output=True, text=True)
+    return result.stdout.split() if result.returncode == 0 else None
+
+
+def converted_base(root=ROOT):
+    """What a checkout's changes are counted against: main's previous commit on main (the merge just made), else the
+    branch's merge base with main."""
+    branch = git_lines(root, 'rev-parse', '--abbrev-ref', 'HEAD')
+    if branch == ['main']:
+        return 'HEAD^1'
+    base = git_lines(root, 'merge-base', 'HEAD', 'main')
+    return base[0] if base else 'HEAD'
+
+
+def converted_changes(root=ROOT):
+    """The changed files (committed or not, against converted_base()) under CONVERTED_PATHS."""
+    changed = git_lines(root, 'diff', '--name-only', converted_base(root)) or []
+    return [f for f in changed if f.startswith(CONVERTED_PATHS)]
+
+
+SMOKE_FILE = os.path.join('config', 'smoke_scenarios.csv')
+
+
+def smoke_runs(root=ROOT):
+    """The smoke tier's runs (H74; config/smoke_scenarios.csv, written by tools/suite_coverage.py --smoke-file: the
+    runs with the most coverage per run): [(scenario, install)], install standalone or standalone-rebirth."""
+    runs = []
+    with open(os.path.join(root, SMOKE_FILE), encoding='utf-8') as f:
+        for line in f:
+            parts = line.strip().split(',')
+            if len(parts) >= 2 and not line.startswith('#') and parts[0] != 'scenario':
+                runs.append((parts[0], 'standalone-rebirth' if parts[1] == 'rebirth' else 'standalone'))
+    return runs
+
+
 def plan(args, root=ROOT, left_out=()):
     """The runs args ask for: (scenario, install) pairs in the summary's order. install is standalone (the vanilla
     data) or standalone-rebirth; the run folder is <scenario>-<install>. Also used by tools/work_sched.py
     (`work.py test`), so a batch holds the runs run_all would make. left_out: scenarios that no names given means
     leaving out (linux_left_out())."""
-    names = args.scenarios or sorted(n for p in glob.glob(os.path.join(root, 'tests', 'scenarios', '*.txt'))
-                                     if (n := os.path.splitext(os.path.basename(p))[0]) not in left_out
-                                     and not n.startswith(SCREENSHOT_PREFIX))
+    names = args.scenarios or suite_names(root, left_out)
+    if args.smoke and args.scenarios:
+        sys.exit('--smoke plays the smoke tier\'s list (config/smoke_scenarios.csv): not with scenario names')
     if args.widescreen and args.vanilla_only:
         sys.exit("--widescreen compares the image on the Rebirth install with addon's recorded frames: not with "
                  '--vanilla-only')
@@ -1208,7 +1311,10 @@ def plan(args, root=ROOT, left_out=()):
     if args.rebirth_only:
         names = [n for n in names if n in rebirth]
     jobs = [(name, install) for name in names for install in installs
-            if install != 'standalone-rebirth' or name in rebirth]
+            if (install != 'standalone-rebirth' or name in rebirth) and allowed(name, install, root)]
+    if args.smoke:
+        # The smoke tier (H74): its list's runs, on the installs asked for (--vanilla-only, --rebirth-only)
+        jobs = [(name, install) for name, install in smoke_runs(root) if install in installs and allowed(name, install, root)]
     if args.widescreen:
         # addon's WideScreen exists on the Rebirth install only
         names = args.scenarios or WIDESCREEN_SCENARIOS
@@ -1427,15 +1533,15 @@ DZN_ICD = os.path.join('~', 'mesa-dzn', 'share', 'vulkan', 'icd.d', 'dzn_icd.x86
 
 # Linux, no scenario names given: the scenarios left out (docs/notes/linux.md, "The harness" and "The GPU under WSL").
 # On the system's driver (lavapipe, the CPU): CI's LINUX_SKIP (.github/workflows/suites-linux.yml) and a few more
-# that pass 60 s on llvmpipe. render_terrain_seams (the level steps) is lavapipe's own difference; it passes on a GPU.
+# that pass 60 s on llvmpipe. render_batch's render_terrain_seams (the level steps) is lavapipe's own difference; it
+# passes on a GPU.
 # On a GPU (dzn): net_pair_master, whose peer list shows the server one poll sooner on any Linux.
 # The losedevice scenarios (D7a) remove the Direct3D 12 device, which Linux has no way to; left out on every Linux run.
 D3D12_ONLY_PREFIX = 'render_device_lost_'
 
 LINUX_LEFT_OUT = {
-    'system': ('net_pair_join', 'net_pair_kick', 'net_pair_leave', 'net_pair_master', 'net_pair_quest', 'net_pair_speed',
-               'net_pair_zone', 'render_terrain_seams', 'camera_drag_rate', 'camera_smooth',
-               'camera_spin', 'render_stats', 'zone_gz15h_tornado'),
+    'system': ('net_pair_kick', 'net_pair_leave', 'net_pair_master', 'net_pair_quest', 'net_pair_speed',
+               'render_batch', 'camera_batch', 'render_stats', 'zone_gz15h_tornado'),
     'gpu': ('net_pair_master',),
 }
 

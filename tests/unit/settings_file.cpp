@@ -2,7 +2,7 @@
 // format's rules (case, quotes, comments, bad lines, a file of another format) and the defaults a missing file is
 // written with (byte for byte: settings_defaults.ini). ei_unit_check (unit_check.cpp) and Linux's ei_port_check run these and count their failures. The file
 // save (.tmp, then moved) and the defaults in a running game are the harness scenarios
-// settings_save and settings_defaults (tests/scenarios).
+// mod_menu_list and settings_defaults (tests/scenarios).
 #include "engine/data/settings.h"
 #include "platform/platform.h"
 

@@ -1,4 +1,4 @@
-# The peer of net_pair_quest: makes a new hero, joins the host's game (as in net_pair_join) and waits on the
+# The peer of net_pair_quest: makes a new hero, joins the host's game (as in net_pair_kick) and waits on the
 # base while the host plays the zone and completes it; it gets its share of the zone's awards (waitaward).
 # A clickground lands where the clicked pixel's ray meets the ground and the leader walks to that exact point, so
 # the walk follows the frame's pixel grid. The vanilla runs play in the image's 4:3 window (harness_starter.h), the

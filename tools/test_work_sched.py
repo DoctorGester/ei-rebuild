@@ -983,6 +983,30 @@ class SchedTest(unittest.TestCase):
         stepped = self.scenario('stepped', 'waitmenu\nrebirth click 1 1\n')
         self.assertEqual(run_all.plan(run_all.parse_args(['--rebirth-only']), root=self.tmp), [('stepped', 'standalone-rebirth')])
         os.remove(stepped)
+        # "# installs:" keeps a scenario to one install, named or not; "# suite: named" leaves it out of the suite (H74)
+        only = self.scenario('only', '# installs: rebirth\nwaitmenu\nquit\n')
+        plain = self.scenario('plain', '# installs: vanilla\nwaitmenu\nrebirth click 1 1\n')
+        named = self.scenario('named', '# suite: named\nwaitmenu\nquit\n')
+        self.assertEqual(run_all.plan(run_all.parse_args(['--rebirth']), root=self.tmp),
+                         [('boot', 'standalone'), ('only', 'standalone-rebirth'), ('plain', 'standalone'),
+                          ('wide', 'standalone')])
+        self.assertEqual(run_all.plan(run_all.parse_args(['--all-rebirth', 'only', 'plain']), root=self.tmp),
+                         [('only', 'standalone-rebirth'), ('plain', 'standalone')])
+        self.assertEqual(run_all.plan(run_all.parse_args(['named']), root=self.tmp), [('named', 'standalone')])
+        # --smoke: config/smoke_scenarios.csv's runs, less what the install options and headers leave out (H74)
+        with open(os.path.join(self.tmp, 'config', 'smoke_scenarios.csv'), 'w') as f:
+            f.write('# the smoke tier\nscenario,install\nplain,vanilla\nonly,rebirth\nplain,rebirth\n')
+        self.assertEqual(run_all.plan(run_all.parse_args(['--smoke']), root=self.tmp),
+                         [('plain', 'standalone'), ('only', 'standalone-rebirth')])
+        self.assertEqual(run_all.plan(run_all.parse_args(['--smoke', '--rebirth-only']), root=self.tmp),
+                         [('only', 'standalone-rebirth')])
+        with self.assertRaises(SystemExit):
+            run_all.plan(run_all.parse_args(['--smoke', 'plain']), root=self.tmp)
+        with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
+            run_all.parse_args(['--smoke', '--full'])
+        os.remove(os.path.join(self.tmp, 'config', 'smoke_scenarios.csv'))
+        for path in (only, plain, named):
+            os.remove(path)
         # and every scenario with a Rebirth golden (H51a)
         os.makedirs(os.path.join(self.tmp, 'tests', 'golden', 'boot', 'rebirth'))
         with open(os.path.join(self.tmp, 'tests', 'golden', 'boot', 'rebirth', 'golden.json'), 'w') as f:
@@ -1017,6 +1041,38 @@ class SchedTest(unittest.TestCase):
             self.assertEqual(run_all.install_dir('rebirth', {}), run_all.DEFAULT_INSTALLS['rebirth'])
             self.assertEqual(run_all.install_environment(), {'EI_GAME_VANILLA': 'V'})
 
+    def test_converted_changes(self):
+        """H74: the converted pass plays only when a file the converted installs read changed: a branch against its
+        merge base with main, main against its previous commit."""
+        repo = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, repo, True)
+
+        def git(*command):
+            subprocess.run(['git', '-c', 'user.name=t', '-c', 'user.email=t@t', *command], cwd=repo, check=True,
+                           capture_output=True)
+
+        def commit(path, text):
+            os.makedirs(os.path.dirname(os.path.join(repo, path)), exist_ok=True)
+            with open(os.path.join(repo, path), 'w') as f:
+                f.write(text)
+            git('add', path)
+            git('commit', '-q', '-m', path)
+        git('init', '-q', '-b', 'main')
+        commit('src/game/a.cpp', '1')
+        commit('src/engine/data/b.cpp', '1')
+        self.assertEqual(run_all.converted_base(repo), 'HEAD^1')
+        self.assertEqual(run_all.converted_changes(repo), ['src/engine/data/b.cpp'])
+        commit('src/game/a.cpp', '2')
+        self.assertEqual(run_all.converted_changes(repo), [])
+        git('checkout', '-q', '-b', 'work')
+        commit('docs/c.md', '1')
+        self.assertEqual(run_all.converted_changes(repo), [])
+        os.makedirs(os.path.join(repo, 'tools'))
+        with open(os.path.join(repo, 'tools', 'convert_install.py'), 'w') as f:     # staged, not committed
+            f.write('1')
+        git('add', 'tools/convert_install.py')
+        self.assertEqual(run_all.converted_changes(repo), ['tools/convert_install.py'])
+
     def test_linux_vulkan_driver(self):
         """H50a: dzn the default under WSL when installed, the system's (lavapipe) elsewhere or when asked; the
         scenarios left out without names follow the driver."""
@@ -1032,8 +1088,8 @@ class SchedTest(unittest.TestCase):
                 self.assertNotIn('VK_DRIVER_FILES', env)
             self.assertEqual(run_all.vulkan_driver('dzn', {}, wsl=False), manifest)
             self.assertIn('net_pair_master', run_all.linux_left_out(manifest))
-            self.assertNotIn('camera_smooth', run_all.linux_left_out(manifest))
-            self.assertIn('camera_smooth', run_all.linux_left_out(None))
+            self.assertNotIn('camera_batch', run_all.linux_left_out(manifest))
+            self.assertIn('camera_batch', run_all.linux_left_out(None))
         with mock.patch.object(run_all, 'DZN_ICD', manifest), quiet:
             self.assertIsNone(run_all.vulkan_driver(None, {}, wsl=True))      # not Linux: nothing to choose
             self.assertEqual(run_all.linux_left_out(None), ())

@@ -1,4 +1,4 @@
-# The peer of net_pair_speed: joins and plays into the zone as net_pair_zone's peer, then presses keypad + once the
+# The peer of net_pair_speed: joins and plays into the zone as the zone pairs' peers do, then presses keypad + once the
 # host has gone fast (MPSpeedControl) and checks its own update period.
 rebirth resolution desktop
 timeout 240

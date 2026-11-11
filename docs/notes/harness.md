@@ -10,10 +10,10 @@ references) is in `standalone-verification.md`.
 (`build\verify\runs\<name>-standalone\harness_report.txt`) holds everything the game console printed, and any failed
 checks. Scenarios live in `tests/scenarios/`; the steps are listed at the top of `tests/verify/harness.cpp`.
 
-    harness.cmd tests\scenarios\sandbox_actions.txt
+    harness.cmd tests\scenarios\batch_combat.txt
 
 `python tools\run_all.py` runs every scenario on the vanilla install's data, several games at once (`--jobs N`,
-default 16; the whole suite takes about 2 minutes); workers run it through `python tools/work.py test <ID> [run_all
+default 16; the whole suite, 190 runs, takes about 75 s and the Rebirth set, 43, about 30 s since H74); workers run it through `python tools/work.py test <ID> [run_all
 args]` (work-board.md). Each run writes to its own folder, `build\verify\runs\<scenario>-<install>` (`EI_OUT_DIR`): its
 `ei-rebuild.log`, report and `harness_saves`, emptied first. A folder that cannot be emptied (a file in it still open) fails the run; a run that passes in digest mode
 (`EI_DIGEST`, `--golden`) without a `digest.txt` fails too, and a digest the game cannot create fails its report (H54; a rerun by name that empties a suite's run folder before the suite's comparison waits in the scheduler, work-board.md). Installs: `standalone` (the vanilla data) and
@@ -22,7 +22,12 @@ args]` (work-board.md). Each run writes to its own folder, `build\verify\runs\<s
 marks, the scenarios with Rebirth-specific steps and every scenario with a Rebirth golden (run_all.rebirth_scenarios),
 so main's `--rebirth-only --golden` after each merge compares every Rebirth golden there is: one outside the set went
 stale unseen after golden-moving merges (H51a found 66 of 102 behind C84b, H47c, C81 and C84d). A scenario gets a
-Rebirth golden only to be checked on Rebirth's data after every merge; 102 runs take about a minute on 16 slots. The
+Rebirth golden only to be checked on Rebirth's data after every merge; 102 runs take about a minute on 16 slots. A
+line `# installs: vanilla` or `# installs: rebirth` keeps a scenario's runs to that install, named or not, and decides
+its place in the Rebirth set (H74: Rebirth runs that reach no code and check nothing their vanilla twin does not, and
+vanilla runs of scenarios whose steps are all Rebirth's); `--widescreen` plays its scenarios on Rebirth's data
+whatever the line says. A line `# suite: named` leaves a scenario out of the suite but lets it run by name (the CI
+gate `boot`, `smoke`, `--widescreen`'s `ui_widescreen_dialogue`), as the `screenshots_*` ones. The
 Linux runner (linux.md) plays only the marked and stepped part (`rebirth_scenarios(goldens=False)`). The installs' folders are `EI_GAME_VANILLA` and `EI_GAME_REBIRTH` (default
 `F:\games\EvilIslands`, `F:\games\Evil Islands (Rebirth)`; run_all.install_dir, also the tools that read
 game.exe, tools/exe_path.py); a `work.py test` batch carries the submitter's two, so a suite on the stub data
@@ -30,6 +35,23 @@ game.exe, tools/exe_path.py); a `work.py test` batch carries the submitter's two
 (every archive replaced by its folder of loose files; mods.md, "Unpacked installs"), `--converted` to those copies'
 converted copies (the record files as TOML; mods.md, "Converted installs"). `EI_BUILD_DIR` points run_all at
 another verify build.
+
+Tiers (H74). `--smoke` plays `config/smoke_scenarios.csv`'s runs (a scenario and an install per line), the few that
+reach the most code between them: `tools/suite_coverage.py --smoke-file` picks them greedily from a coverage pass's
+per-run functions (below, "Source coverage"): 60 runs (50 vanilla, 10 Rebirth; about 8 game-minutes of the suite's
+25) reach 99% of the functions and 97% of the edge flags the whole suite reaches (2026-11-11). `work.py test`
+without names plays the smoke tier for every ticket but MAIN; `--full` (run_all's own default) the whole suite, which
+the merge runs always play (`work.py test MAIN --golden` and `--rebirth-only --golden`). `--converted` through `work.py
+test` without names plays only when a file under `run_all.CONVERTED_PATHS` (the converter, the install copies, the
+loaders of the converted formats, `assets/`) changed against `converted_base()`: a branch's merge base with main, or on
+main the commit before the merge. Merged scenarios (`batch_*.txt`, and `render_batch` / `camera_batch`, whose names
+keep the Linux workflow's render_ and camera_ filter on their sections; H74) play several former scenarios as sections
+in one game: each section after the first undoes what the ones before set (`frametime 0`, `speed 0`, `unfreeze`), goes
+back to the main menu (Esc unless the escape menu is up already, its exit, Enter) and starts its own new game (or, for
+the menu ones, starts at the main menu); a `# ---- section <name>` line keeps the old name, which the notes still use,
+and its `reject` lines start with the section (sections that allow script errors come first). The smoke list of
+2026-11-11 counts a merged run as reaching what its sections reached as scenarios; the next coverage pass
+(`coverage.py run`, then `suite_coverage.py --smoke-file config/smoke_scenarios.csv`) measures them.
 
 How a run starts (run_all.launch, tools/game_process.py): the exe itself, with the working directory and `EI_GAME_ROOT`
 the install, `EI_HARNESS` the scenario, `EI_OUT_DIR` the run folder and `EI_INSTALL_ROOTS` both installs. The game prints into the run folder's
@@ -100,10 +122,10 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   `ui_gallery_menus` help_tip); a capture taken after a region click shows the hover of the button clicked, and a window
   resize keeps the cursor's pixel (`render_resize_windows` moves off the page first). `hold <mods>` / `release <mods>` press and release Ctrl / Shift / Alt (`ctrl shift alt`), and the
   same words after a key or mouse step's arguments (`click 400 560 shift`, `key 1 ctrl`) hold them around that step
-  (`ui_modifier_keys.txt`). `clickunit <name> [l|r|move|dbl] [mods]` clicks the unit with that script name where the
+  (`camera_limits.txt`). `clickunit <name> [l|r|move|dbl] [mods]` clicks the unit with that script name where the
   game's own picking finds it this frame (`dbl` sends only a double click's second half); `clickunit #<id>` picks a map
   object by id (a lever, `levers_key.txt`). `clickground <x> <y> [click|dblclick|rclick|move]` does that mouse step
-  where the game's ground pick finds map point (x, y) (`net_pair_zone.txt`). `layout <mouse step> <x> <y>` aims at the
+  where the game's ground pick finds map point (x, y) (`net_pair_companion.txt`). `layout <mouse step> <x> <y>` aims at the
   800x600 layout's point in the window's centred 4:3 part (the plain mouse steps spread their points over the whole
   window); `checksave ... centre` takes the save picture's 4:3 part in a wider window.
 - `camera <x> <y> [<heading> [<distance> [<pitch>]]]` places the view camera to look at map point (x, y) at once
@@ -111,17 +133,17 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   and stops its pan; heading in degrees about z (0 the camera's north, 90 screen right = +y), distance in units,
   pitch in degrees, each kept when left out; `camera` alone logs the pose. It aims a frame capture by map point on any
   install and window size, where `lookat`'s minimap clicks (`minimap` numbers per install, kept for `walkto`'s player
-  input) did not hold: on Rebirth's zone1 at 1440x1080 they moved the camera erratically (render_water_looks).
+  input) did not hold: on Rebirth's zone1 at 1440x1080 they moved the camera erratically.
   `camrange pitch|distance|x|y|ground <least> <most>` requires the camera's pitch (degrees), distance, focus x / y or
   its near plane's lowest height above the ground (the drawn view's, 9 x 9 points of the plane worked out from the
   projection's sizes apart from the camera code) within the range and logs its pose (`camera_limits.txt`).
   `climate <n>` sets the server world's climate (WorldServer::SetClimate: 0 none, 1 rain, 2 snow, 3 storms; a change
   of climate clears the weather). A dry capture scene says `climate 0`: `@SetWeather("clear")` only stops the rain now, and on
   zone1 (climate rain) UpdateRain rolls one in 101 every 64 ticks to start it again, which Rebirth's random stream hit
-  during render_water_looks's views (`weathercheck 0 0` before each view checks the ground dry).
+  during a capture scene's views (`weathercheck 0 0` before each view checks the ground dry).
 - `screen <id>` asks the server for interface screen `<id>` as the global map's buttons do (4 the global map, 5 the
   camp); the camp's Esc returns to the game. `screen 5 <n>` opens the camp with constructor / trader class `<n>` as a
-  base dialogue's "constrN" answer does (1, 3, 4, 5 after a new game; `trader_stock.txt`). `campstock <n>
+  base dialogue's "constrN" answer does (1, 3, 4, 5 after a new game; `ui_camp_deals.txt`). `campstock <n>
   scroll|prototype <spell code> <least>` requires that many scrolls (or prototype loot items) of the spell in trader
   class `<n>`'s magic stock, made when its camp opened, and logs the stock (`mod_spell_hero`).
 - `zone <name> [exit]` leaves the running zone as its exits do for map.txt zone `<name>` (`gz2g`, `bz1g`, ...), the
@@ -146,7 +168,7 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   two captures or two runs' frames with a tolerance (`--mask` restricts it to where two other frames differ). A
   finished run's frames are stored packed (`<name>.bmp.z`, tools/frame_store.py). `render <spec>` sets the renderer's
   options for the run (renderer.md).
-- `peer <name>` makes a pair (`tests/verify/harness_pair.h`, `net_pair_join.txt`): run_all starts a second game on
+- `peer <name>` makes a pair (`tests/verify/harness_pair.h`, `net_pair_kick.txt`): run_all starts a second game on
   `tests\scenarios\peer\<name>.txt` beside this one, the two in lockstep on a network of their own (the second joins the
   first's hosted game over virtual UDP ports); `peersignal <tag>` / `peerwait <seconds> <tag>` order the two scenarios.
   The peer's report and logs are in the run folder's `peer\`; a pair takes two of run_all's slots. `netcut` cuts one
@@ -296,7 +318,7 @@ run after a build also plays the part before (up to a run's 60 s more, outside t
 holds for the run being prepared (`EI_PREPARE_IN_SLOT`, set by `prepare_scenario.prepare(in_slot=True)`; never a game beyond
 the machine's 16); called by hand the tool waits for a slot of its own. What a cut does
 not carry: console state (an unlocked script console), the camera and anything else a save does not hold; the driven
-check (cut.txt, 2 parts, `rec_cut_1`, `rec_cut_2`; cut_auto.txt, `recordinput cut 100`, 3 parts, `rec_cut_auto_1` to `_3`)
+check (H44a: cut.txt in 2 parts; cut_auto.txt, `recordinput cut 100`, in 3)
 found a part's replay equal to its recording from the cut on in every record's players, objects, timed, missiles, events,
 script and client hashes (not in the world hash, which holds the update counter, nor in `crt.rand`, whose draws only
 client code makes).
@@ -304,17 +326,18 @@ client code makes).
 **Movies**: a recording and a recorded scenario's run play none. PlayMovie (the new game's intro, the exit's, a
 script's) times its frames by the wall clock in a loop where the steps do not run, so the player's Esc would reach
 nothing and the replay would wait for the whole movie: their files read as missing there (harness.cpp PlayedMovie);
-the loading screen's movie (app::g_loadingMovieName) is drawn by the load's progress and stays. Other runs play them
-(render_movie_present); on the virtual clock each frame as soon as the one before it (`SetPlayedMoviesPaced(false)`,
+the loading screen's movie (app::g_loadingMovieName) is drawn by the load's progress and stays. Other runs play them;
+on the virtual clock each frame as soon as the one before it (`SetPlayedMoviesPaced(false)`,
 H70: Lost in Astral's teleport movie in cz4k's briefing held mod_lost_in_astral_cz_ingos 9 s of wall time). The movie's
 loop moves no game clock either way, so the frames shown and the game after them are the same.
 
 The recordings in the suite and their sources (`python tools\recorded.py take <run folder> <name>` turns a run's
 recording into `rec_<name>.txt`): `rec_menu_newgame` (the main menu's clicks into a new game, a walk, camera keys and
-wheel, the escape menu), `rec_save_load` (a save and its load through the escape menu's windows), `rec_real_input`
-(`realinput` keys, text and clicks, the console, `focus off` / `on`), `rec_cut_*` (a recording cut in parts, above), recorded
-from `tests/scenarios/record/*.txt`
-(not in the suite; run by name, `record/<name>`). A change that moves a recording's game re-records its golden as any
+wheel, the escape menu), `rec_save_load` (a save and its load through the escape menu's windows), `rec_cut_auto_1` (the first part of a
+recording cut in parts, above), recorded from `tests/scenarios/record/*.txt` (not in the suite; run by name,
+`record/<name>`). `record/real_input.txt` (`realinput` keys, text and clicks, the console, `focus off` / `on`) and
+`record/cut.txt` (the driven cut) have no recording in the suite (H74: the other runs reach the same code): record them
+again to check those paths. A change that moves a recording's game re-records its golden as any
 other; when the menus or the windows' timing change, the recording may miss what it clicked: record it again from
 its source.
 
@@ -329,13 +352,13 @@ stack or global block, a new / delete mismatch) ends the game with its report, s
 the run with the error and its first frames. For a flaky heap crash this finds the cause in one run: a freed block stays
 poisoned in the quarantine, so the write that only sometimes hit live memory always reports. The whole suite takes
 about 6 to 8 minutes at `--jobs 4`; the scenarios that wait on real time (frame counts, `render_stats`, `camera_smooth`,
-`app_record`, `ui_compare`, the cursor and device-removed renders, the long pairs) run out of time there: judge those by
+`ui_compare`, the cursor and device-removed renders, the long pairs) run out of time there: judge those by
 their `asan.*` files, not their result.
 
 ## Source coverage
 
 `python tools\coverage.py run <ticket>` builds `build.cmd coverage`, plays the image and Rebirth suites on it (`work.py
-test <ticket> --rebirth --golden`, with `EI_BUILD_DIR` at `build\coverage`; more run_all arguments pass through) and
+test <ticket> --full --rebirth --golden`, with `EI_BUILD_DIR` at `build\coverage`; more run_all arguments pass through) and
 writes `build\coverage\report.md` (totals, a table per area with gameplay first, the ranked gaps, the biggest unreached
 functions, every file), the HTML view `build\coverage\html\index.html` (a page per file, its lines marked) and
 `coverage.json`. `python tools\coverage.py report` rewrites them from the runs already there. Not part of the merge
@@ -363,6 +386,14 @@ routine: run it when wanted.
   their function, so the line numbers are an upper bound and the function numbers exact. Only src/ counts, by the part of
   the PDB's path from `src/` on (the compiler cache's objects name the checkout that compiled them first); functions
   marked inline are inlined at `/Ob1` and count in their callers. `static.pickle` keeps the exe's analysis.
+- **Per scenario (H74):** `coverage.py scenarios` (also the end of `run`) writes `build\coverage\scenarios.json`: per
+  run folder (a pair's peer folded in, retried attempts left out) the functions it reached and its set flags.
+  `python tools\suite_coverage.py` reads it with the scenarios, the goldens and the runs' times and writes
+  `build\h74\report.md`: the runs that reach no function the others miss and check nothing of their own (drop
+  candidates), the families of scenarios with the same start that could share a run, a smoke set (the most functions
+  per run) and the counts before and after; its docstring says how each is decided. The mod scenarios' prepare tools
+  run `EI_BUILD_DIR`'s `ei-convert.exe`, which the coverage build does not make: `run` copies the checkout's verify
+  (else release) one into `build\coverage`, so build one of those first.
 - **Measured (H43, 2026-11-04):** the 258 runs (270 games with the pairs' peers) took 68 s, as on the verify
   build (the `_penter` patch), with every golden the same (252 the same, 6 without one); functions 7973 of 12292
   reached (64.9%), lines 66862 of 76533 (87.4%). The report itself takes under 10 s (dumpbin and dbghelp; then
@@ -380,10 +411,9 @@ routine: run it when wanted.
 - **Gap scenarios (H43g, H43h):** pairs `net_pair_lobby` (the peer asks the host's address in the connection screen's
   address box: ClientBase::Ask; the same button on an asked row forgets it; Esc saves the address book, the next visit
   reads it; a double click on the row joins), `net_pair_password` (a password on the hosted game: a wrong one is refused
-  with the refusal box, the right one joins; Connect's own first join goes out with no password and is refused unseen) and `net_pair_party` (an exchange
-  offer withdrawn by a second click on the face, offered again, answered, accepted, taken back, accepted, left); single
+  with the refusal box, the right one joins; Connect's own first join goes out with no password and is refused unseen); single
   games `ui_base_hide` (Smith's topic M6: HideSpeaker), `ui_base_objectives` (TAB on the base screen),
-  `ui_minimap_edges` (the camera at each side of zone1: the visible area clipped against the world), `ui_hero_rename`
+  `ui_hero_rename`
   (MpHeroScreen::Rename; the edit field is short, so the suffix is cut) and `ui_camp_spells` (trader class 3 has the spell
   trade page; class 1 shows the item page). Not reachable by play (H43g1): GiveBriefingRewards (`CompleteBriefing` returns
   early in every network game, and the briefing records exist only after hosting, when the quit to the menu has dropped
@@ -522,9 +552,9 @@ differ from the desktop's.
   build check with the exe linked is a warning, so the smoke still runs. The input `builds_only` stops there.
 - **Smoke**: the stub data fetched and unpacked as in the Linux and macOS jobs (same variable and secrets), vanilla only.
   `boot` alone first as a gate (the `gpu:` lines and logs are printed when it does not pass); then the `scenarios` input
-  or `SMOKE_LIST` (the macOS list less render_stats: boot, smoke, settings_defaults, ui_main_menu, ui_screens, ui_hud,
-  ui_saveload, rec_save_load, save_flight, world_load, zone_gz3g, render_scene, render_present, render_water,
-  render_shadows, units, items), one game at a time, `--vanilla-only --golden`, EI_TIME_SCALE 8. All of them passed
+  or `SMOKE_LIST` (the macOS list less render_stats: boot, smoke, settings_defaults, batch_menus, ui_screens, ui_hud,
+  batch_items_saves, rec_save_load, batch_scripts, world_load, zone_gz3g, render_scene, render_present_shot,
+  render_water, render_shadows; H74 merged and dropped some of the names the timings below are for), one game at a time, `--vanilla-only --golden`, EI_TIME_SCALE 8. All of them passed
   on the runner with none of their goldens differing (run 42124917682: 5 to 197 s each, about 15 minutes together; render_stats
   alone 616 s); the first run of the smoke job itself (42149539900) passed: builds 9 minutes, the smoke job 18 (17 games
   and the gate, all the same). The summary has the goldens block and the device line; `tools/ci_details.py` prints the runs that did
@@ -585,9 +615,9 @@ job, never Release, nothing published or uploaded:
   `EI_STUB_DATA_TOKEN` / `EI_STUB_DATA_KEY`), vanilla only.
 - **Gate**: `boot` alone first. When it does not pass (no Metal device, or it cannot draw) the step prints the `gpu:`
   lines, the run's launch.txt and ei-rebuild.log, and the job stops: that is the answer then.
-- **Smoke**: `SMOKE_LIST` (boot, smoke, settings_defaults, ui_main_menu, ui_screens, ui_hud, ui_saveload, rec_save_load,
-  save_flight, world_load, zone_gz3g, render_scene, render_present, render_water, render_shadows, render_stats, units,
-  items; seconds each on a desktop), one game at a time, `--vanilla-only --golden`, `EI_TIME_SCALE` 3. The summary has the
+- **Smoke**: `SMOKE_LIST` (boot, smoke, settings_defaults, batch_menus, ui_screens, ui_hud, batch_items_saves,
+  rec_save_load, batch_scripts, world_load, zone_gz3g, render_scene, render_present_shot, render_water, render_shadows,
+  render_stats; seconds each on a desktop), one game at a time, `--vanilla-only --golden`, `EI_TIME_SCALE` 3. The summary has the
   goldens block, the GPU device line and each run's `TIMING: median frame` (harness_report.txt). Goldens that differ on
   Metal are listed, not excused: no check is widened for it.
 - **Differences in detail** (always runs; `tools/ci_details.py`): for each scenario that did not pass or differs (run

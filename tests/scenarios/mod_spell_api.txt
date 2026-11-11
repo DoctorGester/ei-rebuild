@@ -1,6 +1,6 @@
 # A scripted spell's world bindings (docs/modding.md, "Spells"; docs/notes/items_spells.md, "Scripted spells"):
 # tools/make_lua_mod.py spellapi adds the spell "mf17c_storm", a point spell whose Res\spells\mf17c_storm.lua uses each
-# method of the cast value. Zone1's wolf 1804 (as unit_cast_at.txt) gets the spell and casts it (Cast) at a wolf spawned
+# method of the cast value. Zone1's wolf 1804 gets the spell and casts it (Cast) at a wolf spawned
 # next to the hero. OnCast finds that wolf as the unit nearest the cast's point (the caster left out), damages it
 # without credit, heals it, applies a game buff (slow) and the spell's own effect, moves it a step, puts a bolt from the
 # caster to it, a light and a sound, starts the mod's data effect mf17c_glow on it for 300 ticks and fires a missile at

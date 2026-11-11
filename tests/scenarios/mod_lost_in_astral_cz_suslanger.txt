@@ -5,6 +5,8 @@
 # leaves for its battle zone, cz1h for gz1d2 and cz2h for gz1h; the briefing's variable at 2 is checked there.
 # One digest record, on arrival in gz1d2 (a small zone; the others are checked by their variables). On the vanilla
 # data (no starter\Mods) only the menu runs.
+# Only on Rebirth's data: the vanilla run checks nothing another scenario does not.
+# installs: rebirth
 mod starter\Mods\LostInAstral
 reject Script error
 # AddMob'd scripts that fail to load in the original too (L1a): printed, not this run's failure

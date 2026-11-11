@@ -1,0 +1,293 @@
+# A merged run (H74): fights, the AI's casts and heals, a stolen item. Each section below was a scenario of its own that started the same way
+# (section names as before: the notes name them); a section after the first starts again from the main menu with a new game.
+# Sections: combat_more, unit_ai_cast, unit_ai_heal, unit_steal_item, combat.
+# installs: vanilla
+timeout 75
+reject Script error
+waitmenu
+console thingamabob
+console filter all on
+newgame
+
+# ---- section combat_more
+# Combat, second part (src/game/combat/combat_actions.cpp): the end of an attack order (FinishAction,
+# DeliverAttack), bow missiles, item spell triggers, damage reactions and death (OnDamaged,
+# HitDirection, PropagateHostility, WitnessMurder, SetDead: "Unit 12 damaged to death"), and
+# healing (Heal: "Unit 12 was healed"). Combat log lines go to a console stream that is filtered
+# out by default, so the filter is opened first. Each expect only looks at the output since the
+# previous expect. The skill code (science / stealing, UseSkill) has no script command that
+# reaches it; it runs only from the player's orders.
+#
+# The archer is the unit prototype "Human Gipath Brigand A1" from database.res: a level 1 bandit
+# whose first weapon is "bone short bow.decayed bones", so its attacks go through the missile
+# branch of DeliverAttack. WolfTutor dies to the first hit (as in combat.txt).
+waitfor 15 IsGreater(HP(GetLeader()),0)
+# The level intro keeps the hero blocked; unblock it instead of waiting.
+console @BlockUnit(GetLeader(),0)
+
+# A death: the hero kills a wolf.
+console @AddUnitToServer("Wolf1","WolfTutor","Wolf1",Add(GetX(GetLeader()),3),GetY(GetLeader()),0)
+waitfor 10 IsAlive(GetObjectByName("Wolf1"))
+console @SetPlayer(GetObjectByName("Wolf1"),6)
+check IsEnemy(GetObjectByName("Wolf1"),0)
+console @Attack(GetLeader(),GetObjectByName("Wolf1"))
+waitfor 20 Not(IsAlive(GetObjectByName("Wolf1")))
+expect damaged to death
+check IsAlive(GetLeader())
+
+# A second enemy attacks the hero until the hero is hurt. (The planned archer, "Human Gipath
+# Brigand A1", neither attacked nor died within 20 s on the original game either, so a ranged
+# attack is not covered yet; DeliverAttack's melee path is.)
+console @AddUnitToServer("Archer1","WolfGreyF1","Archer1",Add(GetX(GetLeader()),3),GetY(GetLeader()),0)
+waitfor 10 IsAlive(GetObjectByName("Archer1"))
+console @SetPlayer(GetObjectByName("Archer1"),6)
+check IsEnemy(GetObjectByName("Archer1"),0)
+console #HP(GetLeader())
+console @GSSetVar(0,"hp0",HP(GetLeader()))
+# An order given right after the spawn is sometimes lost (about 1 run in 30 under 16 parallel
+# games, on the original too): the attacker never swings. Give the new unit a moment, then
+# repeat the order once; a repeated order on the same target only renews it.
+wait 1000
+console @Attack(GetObjectByName("Archer1"),GetLeader())
+wait 1000
+console @Attack(GetObjectByName("Archer1"),GetLeader())
+waitfor 20 IsLess(HP(GetLeader()),GSGetVar(0,"hp0"))
+expect was attacked by
+console #HP(GetLeader())
+
+# Healing: the healing spell reaches CUnitServer slot 21 (Heal), which logs it.
+console @CastSpellUnit("healing{e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+waitexpect 10 was healed
+console #HP(GetLeader())
+
+# The hero fights back until the archer is dead.
+console @Attack(GetLeader(),GetObjectByName("Archer1"))
+waitfor 20 Not(IsAlive(GetObjectByName("Archer1")))
+expect damaged to death
+check IsAlive(GetLeader())
+
+# An attack that ends before it lands (CUnitServer::EndOrder, 00549690: UpdateState finds the acting
+# unit's target out of reach): the hero attacks wolves that are put down 14 units away a few world
+# updates later (wait 55 is one update); the right moment differs with the wolf's turn and step, so
+# four tries, the delays 3, 4, 6 and 8 updates.
+console @GodMode(0,1)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+console @AddUnitToServer("Far0","WolfTutor","Far0",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("Far0"))
+console @SetPlayer(GetObjectByName("Far0"),6)
+console @UMClear(GetObjectByName("Far0"))
+console @Attack(GetLeader(),GetObjectByName("Far0"))
+wait 165
+console @SetCPFast(GetObjectByName("Far0"),Add(GSGetVar(0,"hx"),14),Add(GSGetVar(0,"hy"),0),GetZValue(Add(GSGetVar(0,"hx"),14),Add(GSGetVar(0,"hy"),0)))
+wait 300
+console @AddUnitToServer("Far1","WolfTutor","Far1",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("Far1"))
+console @SetPlayer(GetObjectByName("Far1"),6)
+console @UMClear(GetObjectByName("Far1"))
+console @Attack(GetLeader(),GetObjectByName("Far1"))
+wait 220
+console @SetCPFast(GetObjectByName("Far1"),Add(GSGetVar(0,"hx"),14),Add(GSGetVar(0,"hy"),2),GetZValue(Add(GSGetVar(0,"hx"),14),Add(GSGetVar(0,"hy"),2)))
+wait 300
+console @AddUnitToServer("Far2","WolfTutor","Far2",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("Far2"))
+console @SetPlayer(GetObjectByName("Far2"),6)
+console @UMClear(GetObjectByName("Far2"))
+console @Attack(GetLeader(),GetObjectByName("Far2"))
+wait 330
+console @SetCPFast(GetObjectByName("Far2"),Add(GSGetVar(0,"hx"),14),Add(GSGetVar(0,"hy"),4),GetZValue(Add(GSGetVar(0,"hx"),14),Add(GSGetVar(0,"hy"),4)))
+wait 300
+console @AddUnitToServer("Far3","WolfTutor","Far3",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("Far3"))
+console @SetPlayer(GetObjectByName("Far3"),6)
+console @UMClear(GetObjectByName("Far3"))
+console @Attack(GetLeader(),GetObjectByName("Far3"))
+wait 440
+console @SetCPFast(GetObjectByName("Far3"),Add(GSGetVar(0,"hx"),14),Add(GSGetVar(0,"hy"),6),GetZValue(Add(GSGetVar(0,"hx"),14),Add(GSGetVar(0,"hy"),6)))
+wait 300
+check IsAlive(GetLeader())
+
+# ---- section unit_ai_cast
+# The AI casting (SV5's coverage list: CSpellEffect::UpdateMissile 00681BB0 was reached only by two
+# scenarios without a golden). As in unit_ai_heal, one of zone1's own wolves (1804; units with script
+# ids get no spell options) gets spells and an alarm of slot 0 rebuilds its options: a fireball (type
+# 3, option kind 2: an area around the target) and a poison cloud (acid_fog, type 8, kind 3), with
+# intelligence and the school's skill. The hero (in god mode) walks towards it and stops; the wolf
+# casts the fireball at the hero twice, the second one catches the wolf too and it dies (the original
+# does the same). Not reached yet: OrderCastAt 00554D00 (the wolf's casts are orders on the unit).
+# No `speed`, so a golden can be recorded (standalone-verification.md, SV3).
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 40 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+check IsAlive(GetObject(1804))
+
+console @GiveIntelligence(GetObject(1804),60)
+console @GiveSkill(GetObject(1804),"elemental",5)
+console @GiveUnitSpell(GetObject(1804),"fireball{e2}")
+console @GiveUnitSpell(GetObject(1804),"acid_fog{e2}")
+console @InvokeAlarm(0,GetX(GetObject(1804)),GetY(GetObject(1804)))
+frames 2
+console #Mana(GetObject(1804))
+console @MoveToObject(GetLeader(),GetObject(1804))
+waitfor 40 IsLess(DistanceUnitUnit(GetLeader(),GetObject(1804)),12)
+console @BlockUnit(GetLeader(),1)
+wait 8000
+console #Mana(GetObject(1804))
+check IsAlive(GetLeader())
+
+# ---- section unit_ai_heal
+# The AI's heal option (UnitStats::ReduceKind1 00524020, which no other
+# scenario reached). AIAttention::Build (005CEE80, from AIBrain::ApplyBehaviour 005D6630) turns a
+# healing spell (type 0x18) into an option of kind 7; AIAttention::Choose (005D0030) scores every
+# spell option on the unit itself and its allies in sight, and Score (005CF9A0) reduces a candidate's
+# maximum hit points through ReduceKind1 for kind 7.
+#
+# Build gives units with script ids (1000000000 and up: AddUnitToServer) their weapon only, so the
+# healer is one of zone1's own wolves (1804, which patrols towards the hero's start). GiveUnitSpell
+# puts the spell into its slots; an alarm of slot 0 at the wolf (HearAlarm 005D5940 applies slot 0's
+# behaviour whatever its record says) rebuilds its options. The hero (in god mode) then walks to it,
+# and the wolf's target choice scores the heal on itself on every think. No `speed`: the virtual
+# clock's default update length, so a golden can be recorded (standalone-verification.md, SV3).
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 40 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+check IsAlive(GetObject(1804))
+check IsEnemy(GetObject(1804),0)
+
+console @GiveUnitSpell(GetObject(1804),"healing{e2;e2}")
+console @InvokeAlarm(0,GetX(GetObject(1804)),GetY(GetObject(1804)))
+frames 2
+console @MoveToObject(GetLeader(),GetObject(1804))
+waitfor 40 IsLess(DistanceUnitUnit(GetLeader(),GetObject(1804)),5)
+wait 5000
+console #HP(GetObject(1804))
+console #Mana(GetObject(1804))
+check IsAlive(GetLeader())
+
+# ---- section unit_steal_item
+# Stealing from a unit (src/game/combat/combat_actions.cpp UseSkill, Unit::TakeRandomItem in unit_items.cpp; docs/notes/units.md):
+# with the hero selected, the battle screen's second action button (layout 20, 440: the hero's "science" button, pending
+# action 8) and a click on a unit outside the party order a Use with the stealing skill (message from SendUseOrder,
+# kind 1). The hero walks up to the bandit archer ("Human Gipath Brigand A1", player 6, blocked in place; its
+# attribute is weaker than the hero's), the skill is rolled ("is using skill stealing") and the unit's backpack and
+# quick slots are asked for an item (TakeRandomItem). The archer carries nothing, so none comes ("Item has been stolen
+# from" is not printed) and the order fails. No `speed`, so a golden can be recorded.
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+waitwindow 15 battle
+console @GiveSkill(GetLeader(),"stealing",5)
+console @AddUnitToServer("Mark","Human Gipath Brigand A1","Mark",Add(GetX(GetLeader()),3),GetY(GetLeader()),0)
+waitfor 10 IsAlive(GetObjectByName("Mark"))
+console @SetPlayer(GetObjectByName("Mark"),6)
+console @UMClear(GetObjectByName("Mark"))
+console @BlockUnit(GetObjectByName("Mark"),1)
+waitunit 10 Mark
+expect
+hudstate
+layout click 20 440
+frames 3
+hudstate
+clickunit Mark
+waitexpect 20 is using skill stealing
+wait 1000
+check IsAlive(GetLeader())
+check IsAlive(GetObjectByName("Mark"))
+
+# ---- section combat
+# Combat: start a new game (hero on zone1) and fight two spawned enemies, exercising the rewritten
+# CUnitServer combat code (combat.cpp): attack parameters, attack hit / damage roll, attack roll,
+# hit resolution, TakeHit and its log ("Unit 12 was attacked by 34 skill=... damage=... destHL=Body",
+# printed to the console, so the expects below see it), plus the range and weapon queries the AI
+# uses on the way. Each "check" must print a nonzero value; each "waitfor" waits until its condition
+# holds.
+#
+# WolfTutor dies to the first hit. GoblinF1 (database.res: a level 1 goblin, the same base values
+# as WolfGreyF1, which has 25 where WolfTutor has 20 in its first stat field) is the sturdier enemy:
+# it attacks the hero first until the hero is hurt, then the hero fights back. If the goblin turns
+# out too strong for the starting hero, WolfGreyF1 is the next candidate; OgreTutor (80) is much
+# stronger.
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+# The level intro keeps the hero blocked for ~37 s of real time; unblock it instead of waiting.
+console @BlockUnit(GetLeader(),0)
+
+# A weak enemy: the hero attacks, one or two hits.
+console @AddUnitToServer("Enemy1","WolfTutor","Enemy1",Add(GetX(GetLeader()),3),GetY(GetLeader()),0)
+waitfor 10 IsAlive(GetObjectByName("Enemy1"))
+console @SetPlayer(GetObjectByName("Enemy1"),6)
+check IsEnemy(GetObjectByName("Enemy1"),0)
+console @Attack(GetLeader(),GetObjectByName("Enemy1"))
+waitfor 20 Not(IsAlive(GetObjectByName("Enemy1")))
+# One expect per window: each expect only looks at output since the previous one.
+expect damage=
+check IsAlive(GetLeader())
+
+# A sturdier enemy that fights back.
+console #HP(GetLeader())
+console @AddUnitToServer("Enemy2","GoblinF1","Enemy2",Add(GetX(GetLeader()),3),GetY(GetLeader()),0)
+waitfor 10 IsAlive(GetObjectByName("Enemy2"))
+console #HP(GetObjectByName("Enemy2"))
+console @SetPlayer(GetObjectByName("Enemy2"),6)
+check IsEnemy(GetObjectByName("Enemy2"),0)
+console @GSSetVar(0,"hp0",HP(GetLeader()))
+# The goblin attacks first: wait until it has hurt the hero (its attacks go through TakeHit on the hero).
+# An order given right after the spawn is sometimes lost (about 1 run in 30 under 16 parallel
+# games, on the original too): the attacker never swings. Give the new unit a moment, then
+# repeat the order once; a repeated order on the same target only renews it.
+wait 1000
+console @Attack(GetObjectByName("Enemy2"),GetLeader())
+wait 1000
+console @Attack(GetObjectByName("Enemy2"),GetLeader())
+# The goblin may miss several times in a row (skill=-3.40282e+038 in its log lines: Rebirth's run missed five
+# times in 20 s after R34a's change of the game's draws), so the wait is long.
+waitfor 60 IsLess(HP(GetLeader()),GSGetVar(0,"hp0"))
+expect was attacked by
+console #HP(GetLeader())
+# Heal the hero, then fight back until the goblin is dead.
+console @CastSpellUnit("healing{e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @Attack(GetLeader(),GetObjectByName("Enemy2"))
+waitfor 20 Not(IsAlive(GetObjectByName("Enemy2")))
+console #HP(GetLeader())
+check IsAlive(GetLeader())
+
+report
+quit

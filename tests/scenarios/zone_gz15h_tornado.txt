@@ -4,6 +4,8 @@
 # (class 0x65) is launched towards a point 30 to 70 away (0067DA50) and crosses the map (Tick
 # 0067DBD0), hurting player-owned units near it. The hero is in god mode. No `speed`, so a golden can
 # be recorded (standalone-verification.md, SV3).
+# Only on Rebirth's data: the vanilla run checks nothing another scenario does not.
+# installs: rebirth
 timeout 120
 reject Script error
 waitmenu

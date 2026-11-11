@@ -1,4 +1,4 @@
-# The peer of net_pair_kick: joins (as in net_pair_join), is kicked (the lost server box, back to the main
+# The peer of net_pair_kick: joins (as in the other pairs), is kicked (the lost server box, back to the main
 # menu), joins again with a new hero ("zed"), is banned, and its third join (another new hero) is refused.
 timeout 180
 reject Script error

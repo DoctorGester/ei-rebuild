@@ -181,8 +181,8 @@ texturing. Textures have the .mmp file's own mip levels and no others (section 7
     the bounds of the clipped triangles' points inside every plane; an empty clip kept the last draw's rectangle. Ours is
     the part's box, a little larger than its triangles (the hit order still goes by the triangles under the pixel,
     below), and larger past a screen corner or across an edge: at the bottom edge an ogre's part picks a few 800x600
-    pixels further left or right than in the original. `render_pick_edges` (left and bottom edge
-    clicks where both agree) and `render_pick_edges_rule` (a bottom edge click in the strip only ours picks) check it. The
+    pixels further left or right than in the original. No scenario clicks the edges on purpose (H74: their code is the
+    picking every click runs, which the suite reaches elsewhere). The
     corners are under the battle screen's HUD, so no click reaches a corner's difference.
   - **The order of the hits** (R64, a deviation by the user's choice): `WorldClient::Pick` sorts the objects that pass
     the test front to back, living before dead, each by `Object3DSpecific::PickDepth`: the view depth (the screen
@@ -274,7 +274,7 @@ so a resolution change places them all again (`UiSurface::RelayoutAll`, "Resolut
 picture holders (cursor images) have only a size, the textures section 7's images. A
 The screen's pixel format is `ScreenFormat` (X8R8G8B8). The cursor's mask is built from the .mmp file's
 pixels (`ChannelLayout::ToNative` to the screen's format, ui_cursor.cpp); the renderer keeps the picture as RGBA8
-(`render::PictureFromMmp`). Scenarios: render_present, render_titles_present, render_movie_present, ui_compare,
+(`render::PictureFromMmp`). Scenarios: ui_compare,
 ui_saveload.
 
 **Save / load screen's pictures** (`ui_saveload.cpp`; ui.md, "Save / load window pictures"): the selected save's picture
@@ -391,8 +391,8 @@ go through `ClearUiDepth` (ui.h) to `render::ClearDepth`.
 | `ShowLoadingMovie`: the loading movie (progres*.bik per zone) stretched over the screen; hides the cursor on every call and never shows it again | its last frame blitted and presented as above |
 | The cursor | the system's cursor (section 9, "The cursor") |
 
-The harness's input steps are not posted inside a movie (the harness empties movie.ini's lists). Scenario
-render_movie_present (PlayMovie("crdtfin.bik") after a new game); the loading movie runs in every new game
+The harness's input steps are not posted inside a movie (the harness empties movie.ini's lists). No suite scenario calls
+PlayMovie by script (H74: the code is the loading movie's); the loading movie runs in every new game
 (render_cursor_present: the cursor hidden there).
 
 Images kept across frames (`render_blit.cpp`): a movie keeps one texture per player, written whole (`Discard`) in
@@ -443,9 +443,8 @@ stand-in for any of them:
   cursor, the mouse, the sound and the network; the window stays as it is; active resumes them. Minimised the client area
   is empty: the swap chain gives no texture and nothing is presented.
 - Harness steps: `fullscreen 0|1`, `focus off|on`, `windowsize <w> <h>`, `waitpresent <seconds> [gamma]` (a frame
-  presented on the game window; with gamma, checked against a ramp that is not the identity). Scenarios
-  render_present_window (windowed 800x600: the gamma slider held, the ramp checked; resized to 1600x900, the options
-  reached through the mapped clicks) and render_present_fullscreen (full screen at 800x600 on the desktop's monitor: menus
+  presented on the game window; with gamma, checked against a ramp that is not the identity). Scenario
+  render_present_fullscreen (full screen at 800x600 on the desktop's monitor: menus
   and battle screen, focus lost and given back, the window resized from outside and covering the monitor again).
 
 ### No device-loss recovery
@@ -558,10 +557,9 @@ Scenarios: `render_options_resolution` (zone1 windowed at 800x600: 1280x720 and 
 from the Esc menu), `render_resize_windows` (the Esc menu, the save window, the objectives, a zone tutorial, the camp's
 inventory and trade, the global map, each resized while open; `samecapture` against the window opened at that size,
 the game's clocks held between), `render_resize_menus` (the main menu, the options over it and their help, the same
-way), `render_resize_dialogue` (a base's topics and phrases resized: captures),
-`render_resize_zone` (zone1 windowed at 800x600, 1280x720, 1000x800 under the Esc menu, back to 800x600),
+way), `render_resize_zone` (zone1 windowed at 800x600, 1280x720, 1000x800 under the Esc menu, back to 800x600),
 `render_resize_edgepan` (full screen at 800x600 on a 16:9 monitor: the camera pans at the picture's edges, a click over
-the bar ignored), `render_present_window`, `render_cursor_present`; `ui_resize_text` (the options and the help captured at 800x600, again
+the bar ignored), `render_cursor_present`; `ui_resize_text` (the options and the help captured at 800x600, again
 after several shrinks and grows: the same frames).
 
 ### The cursor
@@ -687,7 +685,7 @@ with the far plane (whose depth differed by the factor far / (far - near) only).
 
 ## 11. Verification and frame capture
 
-- **Frames are checked within one run**, at a frozen moment: `samecapture` (frames_basic, render_scene, render_present, ...: two captures in one frozen moment must match to the pixel); `tools/frame_preview.py` writes a
+- **Frames are checked within one run**, at a frozen moment: `samecapture` (frames_basic, render_scene, ...: two captures in one frozen moment must match to the pixel); `tools/frame_preview.py` writes a
   downscaled side-by-side PNG. Goldens hold no frames: renderer upgrades replace the old look.
 - The water pass writes depth (z-write stays on after the sky): without it the far sea's fully fogged sector ring blended
   over the nearer water at the top of the screen.
@@ -1294,8 +1292,8 @@ passes) and the ground prints sample it (`shaders/shadow_receiver.hlsli`) and da
   tuned on the town gate at 0.025 (its edge about 125 px at 4K), which blurred a tree's crown, 8-12 units above the
   ground, by 20-30 texels: its cut-out leaves merged into one dark mass (the user's "blocky" tree shadows, R47; measured
   in gz2g: the cut-outs are right, a hard filter shows every leaf, no cut-out casts whole quads). A creature's shadow
-  stays sharp at its feet. Check: render_shadows_trees (gz2g's forest at the default and the far zoom, the gate,
-  a point light under the trees at night; flora shadows on; `EI_RESOLUTION=3840x2160` for the user's view).
+  stays sharp at its feet. Check: the render_shadows_* scenarios (gz2g's forest is no longer captured on its own: H74, its code runs in the
+  others).
 - **Casters outside the view** (shadows popped in at the screen's edge with their objects). The world's draw
   (WorldClient::Render, after its object draws; `world_client_shadow_casters.cpp`) walks the objects that can reach the
   map and hands over the meshes the game did not draw, reading the game's objects only (nothing the goldens record
@@ -1861,8 +1859,8 @@ blends the pose last placed into the new one's (models/animation.cpp, models/ani
 - `camera_spin`: the low keyboard spin (`camsteadier`: the drawn height's largest step at most 0.35 of the camera's) and the
   fast drag zoomed out (turn without jumps; `camsame ... reach`: the drawn view's distance from its focus changes as the
   camera's own does, within 3%).
-- `camera_drawn` (golden, vanilla and Rebirth): the hero walks while the camera pans and turns, and clickunit clicks a
-  wolf mid-pan and mid-turn where the drawn frame's picking finds it. What the drawn view feeds (the Shown flags, the
+- No scenario clicks a unit mid-pan on purpose (H74: the camera and picking code runs in the camera scenarios). What
+  the drawn view feeds (the Shown flags, the
   visible and shadow lists, picking) must not reach the world's state.
 - Harness: `keydown` / `keyup` (a key held over frames), `frametime <ms>`, `mousedrag <dx> <dy>`, `camtrace` / `camsame` /
   `camsteadier` / `camsmooth` (tests/verify/harness_camera.h; kinds pan, turn, zoom, height, reach); `objtrace start <who>
@@ -2441,11 +2439,7 @@ medians: the shore 2.63 / 2.08 ms, the sea 2.67 / 2.10, the lake 3.46 / 2.42, th
 less, a noisier round). The copy is general, not the water's: since R17a4a only frames that read it write it (section 11). R17a's look (ripples, depth, glints, foam) added nothing measurable over the game's
 plain water shading. Check: scenario `render_water`
 (frozen moments on zone1: the beach at the west sea, the sea, the lake in the middle, the river with stones, the river
-and the lake at night; samecapture of a frozen moment drawn twice, diffcapture that the ripples move) and
-`render_water_looks` (1440x1080 by day: the beach, a shore across a sector border, the sea, the lake, the swamp, its
-edge and the swamp east of it, where the swamp meets the river at the two bridges, the two swamp views at night, the
-beach's shore line nearer; the camera placed by map point with the harness's `camera` step and the climate held dry,
-so the views are the same on Rebirth's data: zone1.mpr is the same file in both installs). zone1's water materials
+and the lake at night; samecapture of a frozen moment drawn twice, diffcapture that the ripples move). zone1's water materials
 (kind 3): 0 and 2 water (0.19, 0.32, 0.65; 0 the lake and the river, 2 the sea), 1 the swamp; the swamp's tiles lie in
 x 123..193, y 3..93 (the big one around (158, 34), deepest (163, 47); the east one around (172, 70)).
 

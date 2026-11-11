@@ -1,0 +1,355 @@
+# A merged run (H74): spells, the party's leader, levers, Rebirth's fixes. Each section below was a scenario of its own that started the same way
+# (section names as before: the notes name them); a section after the first starts again from the main menu with a new game.
+# Sections: spells, party_leader_switch, levers_key, rebirth_fixes.
+# installs: vanilla
+timeout 71
+reject Script error
+waitmenu
+console thingamabob
+newgame
+
+# ---- section spells
+# Spells (src/game/spells/spell_manager.cpp, src/game/spells/spell_effect.cpp): every CastSpellUnit /
+# CastSpellPoint builds its spell through CSpellConstructor (SetManager, BeginConstruct,
+# AddModifier per modifier -> CSpellContainer::AllowsModifier / AddModifier / Build,
+# EndConstruct, CSpell::Clone -> CopyTo); the effects then deliver damage through
+# CSpellEffect::HitUnit (missiles, lightning), HitUnitsInRadius (fireball) and HitUnitsAlong
+# (the fire wall), and the lasting area spells test IsSpellTarget. The spell strings are taken
+# from the game's own maps. Spells cast by script have no caster, so CanAffect is not consulted
+# and no mana is spent (the script has no mana query); the checks look at hit points.
+#
+# The targets are WolfTutor wolves (one hit kills them, see combat.txt); a dead wolf's HP is
+# also below the stored value, so each waitfor holds whether the spell hurt or killed it.
+waitfor 15 IsGreater(HP(GetLeader()),0)
+# The level intro keeps the hero blocked; unblock it instead of waiting.
+console @BlockUnit(GetLeader(),0)
+
+# Healing with four effect modifiers on a hurt hero.
+console @GSSetVar(0,"hp0",HP(GetLeader()))
+console @InflictDamage(GetLeader(),10)
+waitfor 10 IsLess(HP(GetLeader()),GSGetVar(0,"hp0"))
+console @GSSetVar(0,"hp1",HP(GetLeader()))
+console @CastSpellUnit("healing{e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+waitfor 10 IsGreater(HP(GetLeader()),GSGetVar(0,"hp1"))
+
+# Buffs with duration, effect and cast-flag modifiers (strength, invisibility, infravision,
+# speed, fire protection, eagle sight).
+console @CastSpellUnit("strength{d2;d2;d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("invisibility{d2;d2;d2;d2;d2;d2;d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("infravision{d2;d2;d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("speed{d1}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("prot_fire{e1}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("eagle_sight{ic}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+wait 1000
+check IsAlive(GetLeader())
+
+# Lightning with five effect modifiers (HitUnit).
+console @AddUnitToServer("Wolf1","WolfTutor","Wolf1",Add(GetX(GetLeader()),5),GetY(GetLeader()),0)
+waitfor 10 IsAlive(GetObjectByName("Wolf1"))
+console @GSSetVar(0,"w1",HP(GetObjectByName("Wolf1")))
+console @CastSpellUnit("lightning{e2;e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("Wolf1"))
+waitfor 10 IsLess(HP(GetObjectByName("Wolf1")),GSGetVar(0,"w1"))
+
+# Missiles: an arrow and an acid ray (HitUnit on arrival).
+console @AddUnitToServer("Wolf2","WolfTutor","Wolf2",Add(GetX(GetLeader()),5),Add(GetY(GetLeader()),3),0)
+waitfor 10 IsAlive(GetObjectByName("Wolf2"))
+console @GSSetVar(0,"w2",HP(GetObjectByName("Wolf2")))
+console @CastSpellUnit("arrow{e2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("Wolf2"))
+waitfor 10 IsLess(HP(GetObjectByName("Wolf2")),GSGetVar(0,"w2"))
+
+console @AddUnitToServer("Wolf3","WolfTutor","Wolf3",Add(GetX(GetLeader()),5),Add(GetY(GetLeader()),6),0)
+waitfor 10 IsAlive(GetObjectByName("Wolf3"))
+console @GSSetVar(0,"w3",HP(GetObjectByName("Wolf3")))
+console @CastSpellUnit("acid_ray{ee5}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("Wolf3"))
+waitfor 10 IsLess(HP(GetObjectByName("Wolf3")),GSGetVar(0,"w3"))
+
+# A fireball: the missile explodes and hits the units in its radius (HitUnitsInRadius).
+console @AddUnitToServer("Wolf4","WolfTutor","Wolf4",GetX(GetLeader()),Add(GetY(GetLeader()),10),0)
+waitfor 10 IsAlive(GetObjectByName("Wolf4"))
+console @GSSetVar(0,"w4",HP(GetObjectByName("Wolf4")))
+console @CastSpellUnit("fireball{e2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("Wolf4"))
+waitfor 10 IsLess(HP(GetObjectByName("Wolf4")),GSGetVar(0,"w4"))
+
+# A fire wall along a line through a wolf, 12 units from the hero (duration and effect modifiers; HitUnitsAlong every few ticks).
+console @AddUnitToServer("Wolf5","WolfTutor","Wolf5",Add(GetX(GetLeader()),5),Add(GetY(GetLeader()),12),0)
+waitfor 10 IsAlive(GetObjectByName("Wolf5"))
+console @GSSetVar(0,"w5",HP(GetObjectByName("Wolf5")))
+console @CastSpellPoint("firewall{d2;e2}",GetX(GetObjectByName("Wolf5")),GetY(GetObjectByName("Wolf5")),Add(GetX(GetObjectByName("Wolf5")),4),GetY(GetObjectByName("Wolf5")))
+# The original game does not hurt the wolf here within 10 s either (checked with --no-hooks), so this
+# only lets the wall burn for a while.
+wait 2000
+
+# An acid fog on a point (a lasting area spell: IsSpellTarget and HitUnit), eight modifiers.
+console @AddUnitToServer("Wolf6","WolfTutor","Wolf6",Add(GetX(GetLeader()),12),Add(GetY(GetLeader()),6),0)
+waitfor 10 IsAlive(GetObjectByName("Wolf6"))
+console @CastSpellPoint("acid_fog{ee1;ee1;ee1;ee1;ee1;ee1;ee1;ee1}",GetX(GetObjectByName("Wolf6")),GetY(GetObjectByName("Wolf6")),GetX(GetObjectByName("Wolf6")),GetY(GetObjectByName("Wolf6")))
+# Long enough for the wall and the fog to end (their AI map footprints and occluders removed).
+wait 11000
+
+check IsAlive(GetLeader())
+
+# ---- section party_leader_switch
+# A party of two changes its leader (src/game/ai/unit_ai_modes.cpp, PlayerMode::SetLeader, LeaderOf, CollectParty,
+# StaysWithParty, CommandGoTo; unit_ai_senses.cpp, AIMemory::SeeCorpse; docs/notes/unit_ai.md). A wolf of the hero's
+# player (AddUnitToServer with player 0: a Player mode unit, a second portrait on the battle screen). With the hero
+# selected, the battle screen's first action button (layout 20, 470: "follow") and a click on the wolf make the hero
+# follow the wolf (message 0x39, PlayerServer::OnFollow): when the wolf walks off the hero comes after it. Then the
+# wolf is selected (its portrait, layout 440, 560), "follow" and a click on the hero (by id: its name is empty) make the
+# wolf follow the hero, which closes a ring: the hero stops following the wolf. A ctrl click on the ground
+# with the hero selected is a "go to" (OrderAt with goTo, message 0x3A): the wolf follows the hero and is asked
+# whether it keeps up (StaysWithParty), first close, then after it was sent off far away. A hostile wolf attacks the
+# party (the party walk in UpdateCombat), and then the party's wolf dies: the hero sees its body (SeeCorpse). No
+# `speed`, so a golden can be recorded.
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+waitwindow 15 battle
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+console @AddUnitToServer("Mate","WolfTutor","Mate",Add(GSGetVar(0,"hx"),2),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("Mate"))
+console @AddUnitUnderControl(0,GetObjectByName("Mate"))
+waitunit 10 Mate
+hudstate
+
+# The hero (selected at the start) follows the wolf.
+layout click 20 470
+frames 3
+clickunit Mate
+frames 3
+console @MoveToPoint(GetObjectByName("Mate"),Add(GSGetVar(0,"hx"),14),GSGetVar(0,"hy"))
+waitfor 30 IsGreater(GetX(GetObjectByName("Mate")),Add(GSGetVar(0,"hx"),11))
+waitfor 30 IsGreater(GetX(GetLeader()),Add(GSGetVar(0,"hx"),6))
+check IsLess(DistanceUnitUnit(GetObjectByName("Mate"),GetLeader()),7)
+
+# The wolf follows the hero: the hero's leader (the wolf) is dropped.
+layout click 440 560
+frames 3
+layout click 20 470
+frames 3
+clickunit #1000011214
+frames 3
+hudstate
+console @MoveToPoint(GetLeader(),Add(GSGetVar(0,"hx"),4),GSGetVar(0,"hy"))
+waitfor 30 IsLess(GetX(GetLeader()),Add(GSGetVar(0,"hx"),6))
+waitfor 30 IsLess(DistanceUnitUnit(GetObjectByName("Mate"),GetLeader()),5)
+check IsAlive(GetObjectByName("Mate"))
+
+# A go to with the wolf close.
+layout click 360 560
+frames 3
+console @GSSetVar(0,"gx",GetX(GetLeader()))
+console @GSSetVar(0,"gy",GetY(GetLeader()))
+clickground 60 140 click ctrl
+frames 3
+wait 3000
+# The wolf is sent off far away; a go to with it out of reach.
+console @MoveToPoint(GetObjectByName("Mate"),Add(GetX(GetLeader()),25),Sub(GetY(GetLeader()),10))
+waitfor 30 IsGreater(DistanceUnitUnit(GetObjectByName("Mate"),GetLeader()),16)
+clickground 56 138 click ctrl
+frames 3
+wait 3000
+
+# A hostile wolf attacks the party.
+console @AddUnitToServer("Foe","WolfTutor","Foe",Add(GetX(GetLeader()),3),GetY(GetLeader()),0)
+waitfor 10 IsAlive(GetObjectByName("Foe"))
+console @SetPlayer(GetObjectByName("Foe"),6)
+console @UMClear(GetObjectByName("Foe"))
+console @UMAggression(GetObjectByName("Foe"))
+waitfor 30 Not(IsAlive(GetObjectByName("Foe")))
+
+# The party's wolf dies; the hero sees the body.
+console @GodMode(0,0)
+console @InflictDamage(GetObjectByName("Mate"),100000)
+waitfor 10 Not(IsAlive(GetObjectByName("Mate")))
+wait 1000
+check IsAlive(GetLeader())
+
+# ---- section levers_key
+# Locks and keys (LockKey::Opens 00522A80 through Lever::KeyOpens 0052BBA0 and Lever::ApplyKey 0052BB50;
+# standalone-verification.md, SV5b). zone1's gate lever 1889 gets locks of the three kinds a key can meet:
+# by id (mask 8): the key fits, the id differs, the lever has no lock; the hero is put next to it.
+# The quest item "Palantir" (id 8, the player's list; hudstate prints the id) shows in the quick item
+# panel's top row (region 4, x 670..720, y 500..550; Rebirth's widescreen layout puts it at 700..750) when the leader is selected; picking it starts
+# mode 6 ("use on an object"), whose hover (KeyOpens through the cursor) and click (KeyOpens, then the
+# order whose use action is ApplyKey) are exercised on the lever (clickunit "#1889": a map object by id).
+# (A key's level branch is out of reach: a quest item's key has mask 8 only, and a locked lever refuses
+# the plain click that would carry mask 1.)
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+console @GiveQuestItem(0,"Palantir")
+console @GSSetVar(0,"lx",GetX(GetObject(1889)))
+console @GSSetVar(0,"ly",GetY(GetObject(1889)))
+console @GSSetVar(0,"lv",GetLeverState(GetObject(1889)))
+console @SetCPFast(GetLeader(),Sub(GSGetVar(0,"lx"),3),GSGetVar(0,"ly"),GetZValue(Sub(GSGetVar(0,"lx"),3),GSGetVar(0,"ly")))
+frames 10
+waitwindow 15 battle
+click 400 560
+frames 10
+hudstate
+waitunit 10 #1889
+
+# 1. The lock wants item 8: the cursor over the lever (KeyOpens), the click (KeyOpens, the use order),
+# the hero walks up and uses it (ApplyKey opens it: the lever changes state and is disabled).
+console @SetScience(GetObject(1889),8,0,0,0,0,1)
+vanilla click 695 525
+rebirth click 725 525
+frames 5
+hudstate
+clickunit #1889 move
+frames 5
+clickunit #1889
+waitfor 15 Not(IsEqual(GetLeverState(GetObject(1889)),GSGetVar(0,"lv")))
+check IsAlive(GetLeader())
+
+# 2. Another item id: the cursor over it and a click both refuse (KeyOpens 0, no order).
+console @EnableLever(GetObject(1889),1)
+console @SetScience(GetObject(1889),9,0,0,0,0,1)
+console @GSSetVar(0,"lv2",GetLeverState(GetObject(1889)))
+frames 5
+vanilla click 695 525
+rebirth click 725 525
+frames 5
+clickunit #1889 move
+frames 5
+clickunit #1889
+frames 5
+hudstate
+key esc
+frames 5
+
+# 3. No lock at all: a key opens nothing (the masks do not meet).
+console @SetScience(GetObject(1889),0,0,0,0,0,0)
+frames 5
+vanilla click 695 525
+rebirth click 725 525
+frames 5
+clickunit #1889 move
+frames 5
+clickunit #1889
+frames 5
+key esc
+frames 5
+check IsEqual(GetLeverState(GetObject(1889)),GSGetVar(0,"lv2"))
+check IsAlive(GetLeader())
+
+# 4. Other kinds of lock under the cursor (hover only): by level, by id and level together.
+console @SetScience(GetObject(1889),0,0,1,0,0,0)
+vanilla click 695 525
+rebirth click 725 525
+frames 5
+clickunit #1889 move
+frames 5
+move 400 300
+frames 3
+console @SetScience(GetObject(1889),8,3,0,1,0,0)
+clickunit #1889 move
+frames 5
+move 400 300
+frames 3
+console @SetScience(GetObject(1889),8,0,1,1,1,1)
+clickunit #1889 move
+frames 5
+move 400 300
+frames 3
+console @SetScience(GetObject(1889),9,2,0,0,0,1)
+clickunit #1889 move
+frames 5
+move 400 300
+frames 3
+console @SetScience(GetObject(1889),9,9,0,0,1,1)
+clickunit #1889 move
+frames 5
+key esc
+frames 5
+check IsEqual(GetLeverState(GetObject(1889)),GSGetVar(0,"lv2"))
+check IsAlive(GetLeader())
+
+# ---- section rebirth_fixes
+# Rebirth's bug fixes, the standalone's defaults (docs/notes/rebirth.md, "The patches"),
+# on the vanilla data. The golden came from the original with addon.dll's fixes (harness_addon.h until H40), so
+# what a fix changes here is in it: the same buff cast eight times and three others on the hero
+# (FixSpellEffectsOverflow: each AddEffect drops the older equal effect). The wolf hit by spells and attacked,
+# the items by name (two unknown) and the camp's trade and repair pages run next to FixPlaingBattleMusicFromAntimagic,
+# FixCreateItem and FixRepairPrice without reaching the cases they change (rebirth_fixes_ui.txt and
+# rebirth_fixes_world.txt reach the first two).
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+
+console @CastSpellUnit("strength{d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("strength{d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("strength{d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("strength{d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("strength{d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("strength{d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("strength{d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("strength{d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("speed{d1}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("infravision{d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("prot_fire{e1}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+wait 1000
+check IsAlive(GetLeader())
+dump buffed
+
+console @AddUnitToServer("RWolf","WolfTutor","RWolf",Add(GetX(GetLeader()),4),GetY(GetLeader()),0)
+waitfor 10 IsAlive(GetObjectByName("RWolf"))
+console @CastSpellUnit("strength{d2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("RWolf"))
+console @CastSpellUnit("strength{d2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("RWolf"))
+console @CastSpellUnit("strength{d2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("RWolf"))
+console @Attack(GetLeader(),GetObjectByName("RWolf"))
+wait 3000
+check IsAlive(GetLeader())
+
+console @GiveItem(0,"Axe.steel")
+console @GiveItem(0,"stone battle axe.malachite[firewall{d2;e2}]")
+console @GiveItem(0,"spell container[strength{d2}]")
+console @GiveItem(0,"no such item")
+console @GiveItem(0,"Axe.no such material")
+frames 5
+
+screen 5
+waitwindow 15 camp
+clickregion 5
+wait 500
+clickregion 9
+frames 10
+clickregion 10
+frames 10
+clickregion 4
+frames 10
+key esc
+waitwindow 15 battle
+waitfor 15 IsGreater(HP(GetLeader()),0)
+check IsAlive(GetLeader())
+
+report
+quit

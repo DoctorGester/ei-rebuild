@@ -8,6 +8,8 @@
 # - the hero stands until an idle plays, then sets off (captures idle_run_*: idle, the cross into a walk, the walk;
 #   the hand without a jump).
 # Captures are 5 frames (40 ms) apart.
+# Only on the vanilla data: the Rebirth run reaches no code and checks nothing the vanilla run does not.
+# installs: vanilla
 timeout 60
 reject Script error
 waitmenu

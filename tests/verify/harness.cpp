@@ -2207,7 +2207,7 @@ std::string CampPutOn(const std::string& argument) {
 }
 
 // --- campstock <class> scroll|prototype <spell code> <least> ------------------------------------------------------
-// The magic stock of trader class <class> (its class template's spells party, made when its camp opened; trader_stock):
+// The magic stock of trader class <class> (its class template's spells party, made when its camp opened):
 // logs each item, fails when fewer than <least> are scrolls (or prototype loot items) of the spell <code>.
 std::string CampStock(const std::string& argument) {
     int type = 0, least = 0;
@@ -4188,8 +4188,7 @@ bool Answering() { return g_answering; }
 // scenario's run: a .bik other than the loading screen's (app::g_loadingMovieName). PlayMovie times its frames by the
 // wall clock in a loop of its own, where the steps do not run: the player's skip of a long one (Esc) would reach
 // nothing, and its replay would wait for all of it. So these runs skip them (PlayMovie plays nothing when the file is
-// missing); the loading screen's movie is drawn by the load's progress and stays. Other runs play them
-// (render_movie_present's short one).
+// missing); the loading screen's movie is drawn by the load's progress and stays. Other runs play them.
 bool PlayedMovie(const std::string& path) {
     if (!g_recordedScenario && !record::Asked()) return false;
     if (path.size() < 4 || text::CompareIgnoringCase(path.c_str() + path.size() - 4, ".bik") != 0) return false;

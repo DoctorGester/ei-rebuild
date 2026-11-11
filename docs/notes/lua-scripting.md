@@ -594,7 +594,7 @@ mission script, console_addon.cpp), AddMob'd mobs, the zone's .mob and the engin
   install's (`--converted`) from ei-convert's `.lua` files; both compare with the same goldens (the digest's script
   record and the saves in the game's executor's terms: mods.md, "Scripts in Lua").
 - **Old saves.** The scenarios that load the user's saves (tests/saves: render_load_town, render_shadows_mound,
-  render_shadows_shimmer, render_shore_seams, render_swamp_shore, mod_lost_in_astral_elevator, _first_pose,
+  render_shadows_shimmer, render_shore_seams, mod_lost_in_astral_elevator, _first_pose,
   _unarmed_search) resume old-format saves through the shim.
 - **`--lua-check`** (the build checks): the bindings, the waits, the sandbox, persistence, the short texts through a
   save at every tick, the runtime conversion's cache ("Converted scripts", "Checks").

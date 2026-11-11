@@ -4,6 +4,8 @@
 # same as mod_switch_plain's, the same steps without the switches (tools/golden.py diff of the two dumps). The vanilla
 # data has no such folder: the switch logs it and starts the game again without a mod. Each switch draws the game's
 # loading picture (MOD3c; the log's "loading screen step" lines: the harness cannot capture inside a pass).
+# Only on the vanilla data: the Rebirth run reaches no code and checks nothing the vanilla run does not.
+# installs: vanilla
 reject Script error
 waitmenu
 mod starter\Mods\LostInAstral

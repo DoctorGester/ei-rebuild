@@ -169,8 +169,7 @@ with them:
   footprint of radius 0.97); at pitch -45 and distance 3 the near plane's nearest point stays 1.16 from the hero's axis,
   outside it, and at any pitch from 0 up the camera is above the hero. (The original's hard limit was 3 too.)
 - Panning scales with the distance's place between the least and the most, so with the least at 3 (10 before) the
-  same keys pan about 10% faster at distance 30; recorded inputs (rec_cut_auto_2/3) that click the ground after a pan
-  land elsewhere (their goldens re-recorded in P12).
+  same keys pan about 10% faster at distance 30; recorded inputs that click the ground after a pan land elsewhere.
 - When the least and the hard least distance are equal the limits' easing (`Update`) never divides by their
   difference: it runs only between them.
 - Clicking the sky picks a ground point along the ray behind the camera (`PickPoint`'s bounded iteration), as the

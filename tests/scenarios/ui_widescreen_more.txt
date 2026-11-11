@@ -14,6 +14,8 @@
 # show it (and the verify wrappers retire, S21d). The Save window pauses the world: what moved in
 # save_moving / save_moving_later, captured before it opened, is left out of its frame (run_all); so is
 # the window's picture, a copy of the screen each renderer scales down its own way (WIDESCREEN_AREAS).
+# Only on the vanilla data: the Rebirth run reaches no code and checks nothing the vanilla run does not.
+# installs: vanilla
 deterministic
 # Its 4K captures beside 15 other games (on our renderer it no longer runs alone, R10) took 50-60 s.
 timeout 90

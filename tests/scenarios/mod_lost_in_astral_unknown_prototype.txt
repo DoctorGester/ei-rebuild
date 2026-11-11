@@ -4,6 +4,8 @@
 # ei-rebuild.log; the zone plays on (the hero kept alive by GodMode for half a second of its scripts).
 # docs/notes/rebirth.md, "Fatal errors". The same for a script's AddUnitToServer (no unit at all).
 # On the vanilla data (no starter\Mods) only the menu runs: every later step is Rebirth's.
+# Only on Rebirth's data: the vanilla run checks nothing another scenario does not.
+# installs: rebirth
 mod starter\Mods\LostInAstral
 waitmenu
 rebirth console thingamabob
