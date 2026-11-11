@@ -4,5 +4,6 @@ group = "mods"
 size = 2
 note = "User 2026-11-11 asked why options/settings and the camera are engine-side. MF15k1 moved app's options and settings (options.*, settings.*, settings_document.cpp, settings_catalog.inc) into data/ because engine code reads a few values: texture loading (texture.cpp, texture_load.cpp), renderer_init, device_mesh, camera, mod_folders. Instead: the engine takes a small config (render / texture options, the mods folder) filled by the game at start, and the settings catalog, file, document and options go back to game/app. Camera: the engine needs only a view (position, matrices, frustum, fov) for the particles' facing / culling and the scene renderer; the Camera object (following, terrain samples, limits, shakes, saved views, recording, its settings) is game behaviour and moves to game/ (scene/camera.* + camera_object.cpp). g_camera in engine_globals.h becomes the engine's current view, set by the game each frame. Fold into or run with MF15k1b (the scene's world calls). Goldens and captures the same."
 order = 1400
-status = "review"
+status = "done"
 started = "2026-11-11"
+done = "2026-11-11"
