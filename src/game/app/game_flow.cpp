@@ -443,11 +443,13 @@ int EnterZone(Party* records) {
 // Starts network zone `zone` (a zone record of kind 0): tears the current zone down, restores
 // saves\current\<zone>.sav when there is one (else loads the zone fresh at time 4), copies its exits with
 // every target set to "MPGame1", applies its two settings, marks the game a network one and, on a running
-// game server, announces the host and loads the zone's .mob. Returns 1, 0 on failure.
+// game server, announces the host and loads the zone's .mob. Returns 1; 0 when the zone was torn down and the new one
+// failed to load; -1 when `zone` is no network zone (no record, or not of kind 0: the lobby's "server <map>"), nothing
+// torn down.
 int StartNetworkZone(const std::string& zone) {
     g_interface.closeAll = 1;
     MapRecord* zoneRecord = g_mapDatabase.FindMap(zone);
-    if (!zoneRecord || zoneRecord->kind != 0) return 0;
+    if (!zoneRecord || zoneRecord->kind != 0) return -1;
     g_serverWorld.TeardownZone();
 
     std::string folder;
@@ -1071,7 +1073,7 @@ void GameFlow::ProcessRequest() {
         break;
     }
     case kStateNetworkZone: {
-        if (!StartNetworkZone(requestTarget)) {
+        if (StartNetworkZone(requestTarget) == 0) {
             // The old zone is gone and none came: the sessions closed and the main menu now, not a frame later.
             NetworkZoneNotEntered(requestTarget);
             ProcessRequest();
@@ -1164,7 +1166,7 @@ void GameFlow::SetNetworkZone(const char* zone) {
     folder = str::Format(kCurrentFolder, g_dataFolder);
     ClearSaveFolder(folder);
     multiplayerZone = zone ? zone : "";    // null (LeaveZone): no zone
-    if (IsLive(net::g_gameServer) && !IsLive(net::g_gameClient) && zone && !StartNetworkZone(zone))
+    if (IsLive(net::g_gameServer) && !IsLive(net::g_gameClient) && zone && StartNetworkZone(zone) == 0)
         NetworkZoneNotEntered(zone);
 }
 
