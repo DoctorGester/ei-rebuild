@@ -60,8 +60,8 @@ enum class SourceValue : std::uint16_t {
     Age,            // ticks since the effect started
     StageAge,       // ticks in the current stage
     Stage,          // its index (`stage.<name>` are the constants)
-    CarrierRadius,  // the attached object's radius and its centre's height over the source (0.1 and 0 when free)
-    CarrierZ,
+    CarrierRadius,  // the attached object's radius and its centre's height over the source (0.1 and 0 when free),
+    CarrierZ,       // measured at their first read in a tick (LoadMeasured: measuring recomputes the carrier's bounds)
     Attached,
     Distance,       // the source's movement this tick
     MotionX, MotionY, MotionZ,
@@ -69,7 +69,7 @@ enum class SourceValue : std::uint16_t {
     Particles,      // live particles
     Index,          // the emission's count this tick (while emitting)
     Total,          // particles emitted so far
-    WindX, WindY, WindStrength,
+    WindX, WindY, WindZ, WindStrength,
     ExtentX, ExtentY, ExtentZ,
     TurnCos, TurnSin,
     Emitting,       // the source's emission flag (the game's StopEmitting and Stop, an effect's `once` clear it)
@@ -125,11 +125,13 @@ struct Action {
     enum class Kind : std::uint8_t {
         Emit,       // `count` particles of `particleKind` (-1: the regular choice), at each live anchor of `anchor` (-1: none)
         Set,        // input `target` to `value`
+        SetSource,  // the source's own value `target` (a SourceValue: size, height, growth, alpha, param) to `value`
         Stage,      // stage `target` (-2: the effect ends)
         Effect,     // starts the effect `effect` at the source (a sub-emitter)
         End,        // the effect stops emitting and ends with its particles
         Stop,       // the source stops as the game's Stop stops it (no emission, not kept alive, its carrier let go);
                     // the effect goes on, and the game may start it again
+        StopEmitting,   // the source's emission flag cleared, nothing else (the game may set it again)
     };
     Kind kind = Kind::Emit;
     Expr count;
@@ -233,7 +235,7 @@ struct Record {
     int part = -1;          // an AttachPoint (the source then sits on that part); -1: on top of the bounds
     bool ticksWhilePaused = false, idlesOffScreen = false;
     bool keepAlive = false;     // a free source lasts without particles until it ends (else only while it has some)
-    bool readsCarrier = false;  // an expression reads carrier_radius or carrier_z (the carrier's bounds are measured)
+    bool readsCarrier = false;  // an expression reads carrier_radius or carrier_z
 
     // [server]: read by the server.
     int oneShot = 0;            // the world object lives this many ticks (0: until removed)
@@ -308,6 +310,12 @@ public:
     // effects and ended say what the source does this tick.
     void Step(IsaacRandom& random);
 
+    // The carrier's values (SourceValue::CarrierRadius, CarrierZ): `measure` writes them into `source` at their first
+    // read in a tick (particle_data.cpp; null: they stand, as in the unit checks). `measured` says they are this tick's.
+    void (*measure)(void* context) = nullptr;
+    void* measureContext = nullptr;
+    bool measured = false;
+
     // The Env of the source's scopes (an anchor's and a particle's are added by the caller).
     Env SourceEnv(IsaacRandom* random) const;
     // The Env for anchor `index`.
@@ -326,6 +334,8 @@ public:
     bool started = false;
     bool ended = false;
     bool stopRequested = false;     // a `stop` action ran this tick (particle_data.cpp stops the source)
+    bool stopEmitting = false;      // a `stop_emitting` action ran this tick (particle_data.cpp clears the flag)
+    std::vector<int> sourceWrites;  // the source values `set` this tick (SourceValue; particle_data.cpp writes them)
     bool sawEmitting = true;        // the source's Emitting flag after the last step (particle_data.cpp)
 
     // This tick's emission.

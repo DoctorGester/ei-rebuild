@@ -186,6 +186,18 @@ Vector3 AnchorPosition(const State& state, int anchor) {
             values[static_cast<int>(AnchorValue::Z)]};
 }
 
+// The carrier's radius and centre height, at their first read in a tick (State::measure): AttachmentOffset measures the
+// carrier's bounds again, so only when an expression reads them.
+void MeasureCarrier(void* context) {
+    ParticleSource& s = *static_cast<ParticleSource*>(context);
+    State& state = *s.data;
+    if (state.measured) return;
+    state.measured = true;
+    const ParticleSource::Attachment carrier = s.AttachmentOffset();
+    Value(state.source, SourceValue::CarrierRadius) = carrier.radius;
+    Value(state.source, SourceValue::CarrierZ) = carrier.offset.z;
+}
+
 // The source's values its expressions read, as the tick starts.
 void WriteSource(ParticleSource& s, State& state) {
     std::vector<float>& v = state.source;
@@ -195,12 +207,7 @@ void WriteSource(ParticleSource& s, State& state) {
     Value(v, SourceValue::Alpha) = s.alpha;
     Value(v, SourceValue::Param) = s.typeParam;
     Value(v, SourceValue::BaseSize) = s.baseSize;
-    if (state.record->readsCarrier) {
-        // AttachmentOffset measures the carrier's bounds again: only for the effects that read them.
-        const ParticleSource::Attachment carrier = s.AttachmentOffset();
-        Value(v, SourceValue::CarrierRadius) = carrier.radius;
-        Value(v, SourceValue::CarrierZ) = carrier.offset.z;
-    }
+    state.measured = false;   // the carrier: MeasureCarrier at the first read
     Value(v, SourceValue::Attached) = s.attachedTo ? 1.0f : 0.0f;
     Value(v, SourceValue::Distance) = s.distance;
     Value(v, SourceValue::MotionX) = s.motion.x;
@@ -214,6 +221,7 @@ void WriteSource(ParticleSource& s, State& state) {
     Value(v, SourceValue::Total) = static_cast<float>(state.total);
     Value(v, SourceValue::WindX) = s.windDirection.x;
     Value(v, SourceValue::WindY) = s.windDirection.y;
+    Value(v, SourceValue::WindZ) = s.windDirection.z;
     Value(v, SourceValue::WindStrength) = s.windStrength;
     Value(v, SourceValue::ExtentX) = s.extent.x;
     Value(v, SourceValue::ExtentY) = s.extent.y;
@@ -440,6 +448,8 @@ void SetUp(ParticleSource& s, std::shared_ptr<const Record> record) {
     s.spreadMax = r.spreadMax;
     s.extent = r.extent;
     s.data = std::make_unique<State>(std::move(record));
+    s.data->measure = MeasureCarrier;
+    s.data->measureContext = &s;
 }
 
 void TickData(ParticleSource& s) {
@@ -449,10 +459,22 @@ void TickData(ParticleSource& s) {
     WriteSource(s, state);
     state.Step(g_particleRandom);
 
+    for (const int written : state.sourceWrites) {
+        const float value = state.source[written];
+        switch (static_cast<SourceValue>(written)) {
+        case SourceValue::Size: s.size = value; break;
+        case SourceValue::Height: s.height = value; break;
+        case SourceValue::Growth: s.growth = value; break;
+        case SourceValue::Alpha: s.alpha = value; break;
+        case SourceValue::Param: s.typeParam = value; break;
+        default: break;
+        }
+    }
     if (state.stopRequested) {
         state.stopRequested = false;
         s.Stop();
     }
+    if (state.stopEmitting) s.flags &= ~ParticleSourceFlag::Emitting;
     int tries = state.emitting ? Truncated(state.rate, 0, std::numeric_limits<int>::max() / 2) : 0;
     s.emitCount = tries + state.burst;
     s.emitChance = Truncated(state.chance, 0, 100);

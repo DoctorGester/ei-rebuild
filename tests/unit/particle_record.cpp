@@ -281,11 +281,18 @@ armed = { type = "bool" }
 event = "tick"
 when = "armed && count > 0"
 do = [{ stop = true }]
+[[on]]
+event = "tick"
+when = "age == 1"
+do = [{ set = "height", value = "exp(log(4) * 2) + wind.z" }, { stop_emitting = true }]
 [[particle]]
 name = "star"
 lifetime = 3
 size = "emitting ? carrier_radius : 0"
 )toml";
+
+int g_measures = 0;
+void CountMeasure(void*) { ++g_measures; }
 
 void CheckReactions() {
     std::vector<std::string> errors;
@@ -296,12 +303,23 @@ void CheckReactions() {
     const std::shared_ptr<const Record> original = Read(Parse(kTicking, "ticking.effect.toml"), "Ticking", &errors, 0x2041);
     Expect("an original type's id given", original && original->id == 0x2041);
     State state(record);
+    state.measure = CountMeasure;
     IsaacRandom random;
     state.Step(random);
     Expect("a tick reaction waits for its condition", !state.stopRequested);
+    const Expr& starSize = record->particles[0].sizeStart;
+    Expect("the carrier not measured where it is not read",
+           starSize.Run(state.SourceEnv(&random)) == 0.0f && g_measures == 0);
+    state.source[static_cast<int>(SourceValue::Emitting)] = 1.0f;
+    starSize.Run(state.SourceEnv(&random));
+    Expect("the carrier measured at its read", g_measures == 1);
+    state.source[static_cast<int>(SourceValue::WindZ)] = 0.5f;
     state.SetValue("armed", 1.0f);
     state.Step(random);
     Expect("its condition reads the source's values (no particles yet)", !state.stopRequested);
+    Expect("a source value set (exp, log, wind.z) and the emission flag cleared",
+           state.sourceWrites.size() == 1 && state.sourceWrites[0] == static_cast<int>(SourceValue::Height) &&
+               std::fabs(state.source[static_cast<int>(SourceValue::Height)] - 16.5f) < 0.001f && state.stopEmitting);
     state.source[static_cast<int>(SourceValue::Particles)] = 2.0f;
     state.Step(random);
     Expect("the condition holds: the stop asked for, the effect goes on",
