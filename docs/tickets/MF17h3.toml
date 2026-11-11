@@ -4,5 +4,6 @@ group = "mods"
 size = 2
 note = "After MF17h1. Name every unit stat a modifier can target: strength, dexterity, intelligence, max hit points / mana, regeneration rates, each damage type's protection, each sense's perception and conspicuity, attack / defence / damage, speed and haste, skill levels. Document the list and pass order in docs/modding.md; the showcase mod gets one new buff using a stat no original buff touches."
 order = 1390
-status = "running"
+status = "done"
 started = "2026-11-11"
+done = "2026-11-11"
