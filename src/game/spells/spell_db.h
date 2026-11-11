@@ -193,6 +193,9 @@ struct SpellRecord {
     int effect = kOwnEffect;
     // That, set by the load (SetBehaviours): what MapEffect::Behaviour() gives for an effect of this record.
     SpellType activeEffect = SpellType::None;
+    // Set by the load too: the place of the record whose script's OnStats gives an effect of this record its stats
+    // (MapEffect::Kind(), effect_stats.h): the game's spell its `effect` names, this record for its own, -1 for none.
+    int effectKind = -1;
 };
 
 // How the game's tables use a spell (UseOf).
@@ -211,7 +214,9 @@ struct SpellUse {
 SpellUse UseOf(const SpellRecord& record);
 
 // Each record's behaviour: Scripted with a script, else from its place (the first kGameSpellCount their own, the
-// others None); its activeEffect: the kind its `effect` names, else its behaviour; then each one's aiEffect: a game
+// others None); its activeEffect: the kind its `effect` names, else its behaviour; its effectKind: the place of the
+// game's spell its `effect` names (the game's records have the place of their behaviour), its own, or -1 for none;
+// then each one's aiEffect: a game
 // row's own behaviour, else the activeEffect of the record its aiEffectCode names (its own when empty or unknown).
 // Returns the codes of the records whose aiEffectCode names no record.
 std::vector<std::string> SetBehaviours(std::vector<SpellRecord>& records);
@@ -315,6 +320,11 @@ inline SpellType BehaviourAt(std::uint32_t index) {
 inline SpellType ActiveEffectAt(std::uint32_t index) {
     const SpellRecord* record = SpellAt(index);
     return record ? record->activeEffect : SpellType::None;
+}
+// The kind of an active effect of the record at `index` (its effectKind; -1 out of range).
+inline int EffectKindAt(std::uint32_t index) {
+    const SpellRecord* record = SpellAt(index);
+    return record ? record->effectKind : -1;
 }
 
 } // namespace itemdb

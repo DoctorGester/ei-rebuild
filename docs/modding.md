@@ -783,7 +783,8 @@ offensive = true
 - **What its effect on a unit does**: `effect` names it, for every active effect of the spell (`cast:Apply(unit,
   "own")`, and `cast:Apply(unit, "<this spell's code>")` from any spell): its stat effect, its look and sounds on the
   unit, and what the AI looks for. The kinds are the game's buffs by their codes; `own` (the default) is the spell's own
-  (nothing for a spell of yours), `none` nothing. Several effects of one kind: the strongest counts.
+  (what your script's `OnStats` gives: [Active effects](#active-effects)), `none` nothing. Several effects of one
+  kind: the strongest counts.
 
 | `effect` | What it does while it lasts (`value`: the spell's damage) |
 |---|---|
@@ -934,6 +935,62 @@ return spell
   the load, so a fixed file reaches saved casts. Only the server runs the spell; the players see its bolts, missiles,
   effects, sounds and lights. `Res\spells\` counts in the mod's content hash: every player needs the same files.
 - `tools/make_lua_mod.py spellapi` writes a test mod whose spell uses every method (`tests/scenarios/mod_spell_api.txt`).
+
+### Active effects
+
+What an active effect does to a unit's stats is Lua too: its kind's script (the file of the spell its `effect` names,
+or the spell's own for `own`) has `OnStats(effect, stats)`. The game's buffs are `Res\spells\Buff.lua`'s and the
+teleport's stun `Teleport.lua`'s; a buff of yours gets its own by `effect = "own"` (the default) and the hook in its
+file:
+
+```lua
+-- Res\spells\iron_skin.lua: a buff that hardens the skin against fire and slows the unit a little.
+local spell = {}
+
+function spell.OnCast(cast)
+    if cast.target then cast:Apply(cast.target, "own") end
+    cast:Finish()
+end
+
+function spell.OnStats(effect, stats)
+    stats:Larger("FireProtection", effect.value)
+    stats:Subtract("Haste", 0.5)
+end
+
+return spell
+```
+
+- **When it runs.** Whenever the game works out the unit's stats (after a hit, a heal, its regeneration, an item
+  change, an effect that comes or goes) the effects on it are taken by kind: each kind once, with `effect.kind` its
+  spell's code (lower case) and `effect.value` the strongest value of its effects on the unit (from 0; the value is
+  the spell's damage unless `cast:Apply` gave one). The kinds run in the order of their spells in the database. The
+  result is kept until the kinds or their values change, so the hook sees nothing but the effect: the world's methods
+  and `Random` are errors in it, as at a file's top level. An error ends that kind's part (it adds nothing), says
+  `Script error: ...` on the console, and the game goes on. A file holding several kinds (Buff.lua) looks at
+  `effect.kind`.
+- **The stats** are totals the effects add up to, each starting at 0, that the game then applies where it did for its
+  own buffs. `stats:Add(name, x)`, `stats:Subtract(name, x)`, `stats:Larger(name, x)` (the larger of the total and
+  `x`: how a protection and antimagic's take the larger of the two) and `stats:Multiply(name, x)` are one float
+  operation each on the total, with `x` rounded to a float; as for spells, pass a value on or put it through one
+  operation (`effect.value * 0.009999999776482582`, the float 0.01), never a chain, and the numbers are the game's.
+
+| Stat | What the game does with it |
+|---|---|
+| `FireProtection`, `LightningProtection`, `AcidProtection` | added to the unit's protection from that damage (the protection spells and antimagic: `Larger`) |
+| `Sight` | added to the sight range (eagle sight) |
+| `DaySight` | added to the sight's percentage by day (infravision) |
+| `NearSense` | added to the range sensed whatever the light (detect life) |
+| `SightConspicuity`, `HearingConspicuity`, `NearConspicuity` | added to how visible, how loud, how near sensed the unit is, which stays at least 0 (invisibility subtracts its value in percent, silence and lichdom their value) |
+| `SmellConspicuity` | added to how the unit smells (stench) |
+| `Haste` | added to the action rate, which stays at least 1 (speed adds its value, slow subtracts its) |
+| `Might`, `Frailty` | hit points times (1 + Might x 0.005) / (1 + Frailty x 0.005), at least 1, and the unit's damage the same with 0.003 (strength and weak) |
+| `Regeneration` | while above 0, the hit points regenerate that many times as fast (regeneration) |
+| `Girth`, `Size` | the figure grows by 0.4 a step: with `Size` 0, `Girth` steps wider (for the hero only in width), else `Size` + `Girth` steps on every axis (strength and weak 1 and -1 `Girth`, enlarge and shrink 1 and -1 `Size`) |
+| `Stunned` | while above 0 the unit is stunned: no actions (stun; the teleport's arrival) |
+| `NoCasting` | while above 0 the unit casts no spells, unless its natural weapon is spells only (feeblemind) |
+
+- The effect's look and sounds are still the game's own for its kinds (none for a kind of yours), and a unit's own
+  interface does not yet see a `NoCasting` of yours (it greys the spells under feeblemind only).
 
 ## What stays in the original formats
 

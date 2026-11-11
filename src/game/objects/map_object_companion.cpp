@@ -36,9 +36,9 @@ bool MapObjectServer::RunTick() {
     int i = 0;
     do {
         if (!owner->effects[i].Tick()) {
-            SpellType spellType = owner->effects[i].Behaviour();
+            const bool scales = owner->ScalesWith(owner->effects[i]);
             owner->effects.erase(owner->effects.begin() + i);
-            owner->EffectRemoved(spellType);
+            owner->EffectRemoved(scales);
             --i;
         }
         ++i;

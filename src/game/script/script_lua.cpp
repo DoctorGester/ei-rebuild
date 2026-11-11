@@ -378,7 +378,8 @@ void ReadArguments(lua_State* L, Binding* binding) {
 int CallBinding(lua_State* L) {
     auto* binding = static_cast<Binding*>(lua_touserdata(L, lua_upvalueindex(1)));
     ScriptLua* lua = ScriptLua::Of(L);
-    if (lua->worldOff) return luaL_error(L, "%s: no bindings at a spell file's top level", binding->name);
+    if (lua->worldOff)
+        return luaL_error(L, "%s: no bindings at a spell file's top level or in OnStats", binding->name);
     Script* script = lua->script;
     ReadArguments(L, binding);
     ScriptCall& call = binding->call;

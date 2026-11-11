@@ -300,7 +300,8 @@ int UnitServer::Level() {
 }
 
 void UnitServer::EffectsChanged() {
-    if (unit->HasEffect(SpellType::Feeblemind) && stats.naturalWeapon != WeaponType::SpellsOnly) unit->flags |= MapObjectFlag::NoCasting;
+    if (unit->EffectTotals()[EffectStat::NoCasting] > 0.0f && stats.naturalWeapon != WeaponType::SpellsOnly)
+        unit->flags |= MapObjectFlag::NoCasting;
     else unit->flags &= ~MapObjectFlag::NoCasting;
 }
 

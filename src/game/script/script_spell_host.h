@@ -7,9 +7,11 @@
 // table (its data, timers, missiles' payloads and tick count), which the scheduler's Eris save keeps, and the effect
 // objects it made in the SpellEffect's `owned` list. The modules are loaded from the files in every state (not saved),
 // their top level without the world's bindings. The cast value's methods (the bindings: FindUnits, Damage, Heal,
-// Apply, Missile, ...) are built on the SpellEffect functions the game's own spells call.
+// Apply, Missile, ...) are built on the SpellEffect functions the game's own spells call. A module's OnStats gives the
+// active effects of its spells their stats (EffectTotals).
 
 #include "game/script/script.h"
+#include "game/spells/effect_stats.h"
 
 #include <functional>
 #include <map>
@@ -46,6 +48,12 @@ public:
     // bindings off (but Block), then the end test; the effect's state says how it went. False, the effect left as it
     // was, without the hook.
     bool Resume(SpellEffect& effect);
+
+    // The stat totals of an object's effect kinds (`kinds`, ascending: ActiveEffectStats), from 0: each kind's
+    // OnStats(effect, stats) in the module of its record's script, in that order, with effect = {kind = the record's
+    // code in lower case, value = the kind's strongest value} and the world's bindings off; what each touched is set
+    // in its entry. A kind without the hook adds nothing, nor one whose hook fails (said on the console).
+    void EffectTotals(std::vector<EffectKindStats>& kinds, EffectStats& totals);
 
     // The `casts` table (by key: data, timers, tick, finished) and the key after the live casts' into the scheduler's
     // persisted table at `root`, and back.
@@ -100,7 +108,18 @@ public:
     static int Notice(lua_State* L);
     static int Vision(lua_State* L);
 
+    // The stats value's methods (OnStats; docs/modding.md, "Active effects"): stats:Add(name, x), Subtract, Larger
+    // and Multiply, each one float operation of the total `name` with x rounded to a float.
+    static int StatAdd(lua_State* L);
+    static int StatSubtract(lua_State* L);
+    static int StatLarger(lua_State* L);
+    static int StatMultiply(lua_State* L);
+
 private:
+    enum class StatOperation { Add, Subtract, Larger, Multiply };
+    // A stats method's operation on the totals of the OnStats running; a Lua error outside one or for an unknown name.
+    static int Stat(lua_State* L, StatOperation operation, const char* method);
+
     // The effect of the cast value `self` (argument 1) of a world method; a Lua error when the cast has ended or the
     // bindings are off (`inResume`: a method that also works in OnResume).
     static SpellEffect& Self(lua_State* L, const char* method, bool inResume = false);
@@ -109,8 +128,8 @@ private:
     // A new cast's entry under `key` (its data, timers, tick and seq), the effect live under it.
     void NewEntry(SpellEffect& effect, int key);
 
-    // The module of the effect's spell pushed (nil when its file did not load: said once on the console).
-    void PushModule(const SpellEffect& effect);
+    // The module of the file below Res\spells\ pushed (nil when it did not load: said once on the console).
+    void PushModule(const std::string& file);
     // The entry of `key` pushed on `state`'s stack (nil when there is none).
     void PushEntry(lua_State* state, int key);
     // The cast value of the effect's hooks: its values, objects and points, and its entry's data.
@@ -131,6 +150,10 @@ private:
     int casts = 0;          // the registry's reference of the casts table
     int modules = 0;        // the registry's reference of the loaded modules by file (false: it did not load)
     int castMeta = 0;       // the registry's reference of the cast values' metatable
+    int statsValue = 0;     // the registry's reference of OnStats' stats value (one, reused)
+    int effectValue = 0;    // and of its effect value
+    EffectStats* statsTotals = nullptr;      // while an OnStats runs: the totals it adds to
+    EffectKindStats* statsKind = nullptr;    // and its kind's entry
     int nextCast = 1;
     bool resuming = false;  // OnResume runs (Self lets the methods that work in it through)
     std::map<int, SpellEffect*> live;   // the effects of the live casts by key

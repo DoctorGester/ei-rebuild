@@ -252,8 +252,8 @@ public:
     std::uint32_t MoveModeMask(const MoveModeState* mode);
     // log(experience / considerModifier) / log(considerLogBase), rounded.
     int Level() override;
-    // Sets MapObjectFlag::NoCasting when the unit has the Feeblemind effect and a natural weapon other than
-    // SpellsOnly, else clears it.
+    // Sets MapObjectFlag::NoCasting when the unit's effects give NoCasting (feeblemind's) and its natural weapon is
+    // not SpellsOnly, else clears it.
     void EffectsChanged() override;
     void GetAttackParams(AttackParams* out) override;
     // Random spread + attack, minus a distance penalty, plus a speed ratio unless `backstab`; at least 0.

@@ -156,12 +156,12 @@ after them (a mod's: the showcase's "spark", 42) `SpellType::None`, which starts
   the kind its TOML `effect` names (`SpellRecord::effect`, spell_db.cpp's `kEffectKinds`: the codes of the game's 20
   buffs and `teleport`, the stun without a look its caster gets; `none`: nothing), else (`own`, the default) its
   behaviour, so a game record still in code does what it did and a Scripted record without it nothing. The buffs'
-  records name their own (`effect = "slow"`); a mod's buff names any. What reads it: the effects' stat reads
-  (`HasEffect`, `EffectValue`, `AddEffect`'s scale and stun, unit_vitals' strongest per kind, combat's feeblemind)
-  and the client's looks and sounds (`MergesParticles`, `ParticleSourceType`, `SoundFolder`, the rings, the invisible
+  records name their own (`effect = "slow"`); a mod's buff names any. What reads it: the AI's `HasEffect` and the
+  client's looks and sounds (`MergesParticles`, `ParticleSourceType`, `SoundFolder`, the rings, the invisible
   and stunned flags, map_object_client_effects.cpp; the stench and feeble mind sounds, map_object_companion.cpp). A
   kind without a look (None, Scripted) gets no particle source and no sound. The HUD's buff icons keep the record (its
-  icon). A save's active effects hold the record's place, so they read the same whatever its `effect` says.
+  icon). A save's active effects hold the record's place, so they read the same whatever its `effect` says. What an
+  effect does to the stats is its kind's OnStats ("Active effects on scripts").
 - What the tables say of a spell is `itemdb::UseOf(record)` (`Spell::Use()`, spell_behaviour.cpp): the AI's option
   kind (`ai`), the damage type of the AI's estimate (`GetSpellDamage`), `offensive` (the HUD's use at once aims at the
   nearest enemy), `turnsVictim` (`CreateMissile`: the victim sees the caster, diplomacy counts an attack) and
@@ -354,6 +354,48 @@ cast of one starts them).
   `map_objects`, `rebirth_fixes`, `particles` and the AI's protect / curse casts, and `spells_old_buff`
   (tests/saves/buff_old, made by the C++ build: shrink, speed, protection from fire, invisibility and strengthen on
   the hero, stun, slow, weaken and feeblemind on a wolf; against the C++ build's run of it the same).
+
+## Active effects on scripts
+
+An active effect's stats come from Lua (MF17h1; user 2026-11-11: Lua-first, the game's buffs on the modders' path). A
+record's `effectKind` (SetBehaviours) is the place of the record whose script holds the hook: the game's spell its
+`effect` names (the game's records sit at the place of their behaviour), itself for `own`, none for `none`. The
+twenty buffs' hook is Buff.lua's OnStats (a table by `effect.kind`), teleport's stun Teleport.lua's.
+
+- **The totals** (src/game/spells/effect_stats.h, `EffectStat`, names in `kEffectStatNames`; the table in
+  docs/modding.md, "Active effects"): numbers from 0 that the C++ applies where the original applied its strongest
+  values. `UnitStats::Recompute` adds the three protections, sight, day sight, near sense, the four conspicuities (the
+  sight, hearing and near ones then at least 0, as the original's subtraction was) and the haste to the rate (at least
+  1), every total added even at 0 (the original always added); `EffectScale` (hit points x 0.005, damage x 0.003)
+  reads Might and Frailty; `Regenerate` multiplies by Regeneration above 0; `RecomputeScale` reads Girth and Size (the
+  original's integer levels, as floats); `AddEffect` stuns while Stunned is above 0, `EffectRemoved` unstuns when it
+  is not; `UnitServer::EffectsChanged` sets MapObjectFlag::NoCasting from NoCasting. "Scales" (AddEffect and the
+  removals: RecomputeHitPoints and RecomputeScale) is whether the effect's kind touched Might, Frailty, Girth or Size
+  (`ScalesWith`, asked before a removal).
+- **Bit-exact.** Each kind runs once with its strongest value (MaxKeepB from 0, the original's fold), by ascending
+  kind; each stats call is one float operation with its argument rounded to a float. The protections: `Larger` of
+  the protection's value and antimagic's from 0 is the original's `own >= antimagic ? own : antimagic`; Haste is
+  `0 + speed - slow`; invisibility's `value * 0.01f` is exact in a double and rounds back to the float product, and
+  `c + (0 - t)` is `c - t`. A NaN value differs only for a protection without antimagic (the original's select took
+  0, Larger takes the NaN); no spell's damage is NaN.
+- **Where it runs.** `MapObject::EffectTotals` (map_object.cpp): a server object's `MapObjectServer::effectStats`
+  (`ActiveEffectStats::Of`): the kinds and strongest values worked out from the list each time (cheap), the Lua only
+  when they changed (bitwise), in the server world's main script's state (`ScriptSpellHost::EffectTotals`, the world's
+  bindings off, so the result depends on nothing else). The client has no effect values (the network sends type,
+  power, ticks and the end flag) and no server state: its totals are none, which is what its values of 0 gave the
+  original's client (its only read, the attack display's damage scale, was 1).
+- **Left on SpellType.** The client: the looks, sounds, Silence's mute and `Unit::CanCastSpell`'s feeblemind (the
+  battle interface's spell cursor and caster choice) are MF17h2's; the AI's "has it already" (`HasEffect` of the
+  record's `aiEffect`).
+- **Cost.** Measured (2026-11-11, `--quiet`, a scratch scenario: ten GoblinF1 given buffs by script casts fighting
+  the god-mode hero for some 1200 frames, a timer around `Of` and `Recompute` in a scratch build): 2450 `Of` calls,
+  140 of them running the Lua (2.0 us each, three kinds), the others a cache hit (0.09 us); 0.49 ms in all over the
+  fight. A recompute took 8 us on average with its totals in it.
+- Checked by `--lua-check` (Buff.lua's and Teleport.lua's totals against the C++ formulas: protections with
+  antimagic, invisibility, speed less slow, the steps and the stun, what each kind touched; a test file's float
+  operations in order, a failing hook adding nothing, an unknown stat, a world binding, a missing file, the stats
+  value outside its hook) and the goldens that reach the buffs (`spells`, `map_objects`, `rebirth_fixes`,
+  `particles`, the AI's protect / curse casts, `spells_old_buff`).
 
 ## Scripted spells
 

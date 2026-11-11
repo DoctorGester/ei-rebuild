@@ -7,6 +7,7 @@
 #include "game/core/engine_object.h"
 #include "game/net/net_delta.h"          // DeltaState
 #include "game/objects/object3d.h"   // Object3D, the base
+#include "game/spells/effect_stats.h"
 
 #include "lib/bit_flags.h"
 #include "lib/vecmath.h"
@@ -27,13 +28,15 @@ struct MapEffect {
     std::uint8_t type = 0;          // the place of the spell record that made it (spell_db.h)
     std::uint8_t power = 0;
     int ticksLeft = 0;              // counted down once per world update; removed at 0
-    float value = 0.0f;             // the spell's damage (EffectValue)
+    float value = 0.0f;             // the spell's damage (its kind's OnStats sees the strongest)
     float strength = 0.0f;          // the spell's radius (saved; Rebirth compares it)
     std::uint8_t ending = 0;        // the client plays no end sound when set
 
     // What it does: the activeEffect of the spell record at `type` (its `effect`, else its behaviour;
     // itemdb::ActiveEffectAt).
     SpellType Behaviour() const;
+    // The place of the record whose OnStats gives it its stats (itemdb::EffectKindAt; -1: none).
+    int Kind() const;
 
     // One tick less; whether any are left (0 / 1).
     int Tick();
@@ -153,8 +156,8 @@ public:
     // Object3D's (which takes SideObjectType::Object3D). Units override it.
     void AttachObject(EngineObject* object) override;
     bool InvisibleSlot() override;
-    // Resets the scale and grows or shrinks it by 0.4 per net level of enlarge/shrink (x, y, z) or, without
-    // those, strengthen/weaken (x and, except for heroes, z). Components stay >= 0. Marks part 1 changed.
+    // Resets the scale and grows or shrinks it by 0.4 per step of the effects' Size + Girth (x, y, z) or, with Size
+    // 0, of Girth (x and, except for heroes, z). Components stay >= 0. Marks part 1 changed.
     virtual void RecomputeScale();
     // Empty (units override it).
     virtual void EffectsChanged();
@@ -194,8 +197,8 @@ public:
     // The spots a user of radius `userRadius` may use the object from: none; levers override it.
     virtual std::vector<Vector3> UseSpots(float userRadius);
     // Appends a copy of `effect`, marks part 3 changed and the object dirty, then calls the vitals virtual
-    // (with whether the effect scales the object), SetStunned(1) for the stun types, the effects-changed
-    // virtual and, for a scaling effect, RecomputeScale. An effect lasting more than one tick then removes the older
+    // (with whether the effect scales the object: ScalesWith), SetStunned(1) when the effects stun, the
+    // effects-changed virtual and, for a scaling effect, RecomputeScale. An effect lasting more than one tick then removes the older
     // ones it renews: the same type, end flag and strength (within 0.001), lasting no longer and no stronger. At most
     // 255 effects (the network's count is a byte).
     virtual void AddEffect(const MapEffect* effect);
@@ -236,15 +239,19 @@ public:
     // Removes every effect (frees the array), marks part 3 changed and calls the vitals, stun (0) and scale
     // virtuals.
     void ClearEffects();
-    // After an effect of the behaviour `spellType` left the array (it ran out, or RemoveEffects): the scale recomputed
-    // for a scaling one, part 3 marked changed, the scale and effects-changed virtuals, unstunned without a stun left.
-    void EffectRemoved(SpellType spellType);
+    // After an effect left the array (it ran out, or RemoveEffects; `scales`: ScalesWith it, asked before): the scale
+    // recomputed for a scaling one, part 3 marked changed, the scale and effects-changed virtuals, unstunned when the
+    // effects left do not stun.
+    void EffectRemoved(bool scales);
     // Every effect of the spell record `record` (MapEffect::type) removed, each as one that ran out; how many.
     int RemoveEffects(std::uint8_t record);
 
-    // The largest MapEffect::value (as a float, at least 0) of the effects of the behaviour `type`; 0 without
-    // one. NaN values win the comparison.
-    float EffectValue(SpellType type);
+    // What the active effects add to the object's stats (effect_stats.h): a server object's by its kinds' OnStats,
+    // none on the client.
+    const EffectStats& EffectTotals();
+    // Whether the kind of `effect` (one of the object's) changes its figure or its hit points' factor: its OnStats
+    // touches Might, Frailty, Girth or Size.
+    bool ScalesWith(const MapEffect& effect);
 
     // The point at the object's offset, moved to the ground height there plus the offset's z.
     Vector3 GroundPoint();
@@ -252,7 +259,7 @@ public:
     // A MapObjectServer companion (class 0x39) gets the base of each protection (7 pairs) zeroed.
     void ClearProtectionBases();
 
-    // Bit 18 of flags (stunned: effect 0x19); bit 16 (invisible: set by the client for effect 0x0F) is
+    // Bit 18 of flags (stunned: the effects' Stunned); bit 16 (invisible: set by the client for effect 0x0F) is
     // InvisibleSlot and bit 17 IsSynchronised.
     bool IsStunned();
 
