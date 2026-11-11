@@ -4,5 +4,6 @@ group = "mods"
 size = 2
 note = "MF13 found: a zone's region graph (the long path planner's blocks, RegionMap::LoadBlocks) is read only from the .mob's graph chunk or <map>.grp (WorldServer::ReadAIGraph), and none is a fatal error, so a mod with new ground keeps the game's graph for that zone (the showcase island uses zone 1's: long paths plan around zone 1's water and cliffs, not the island's). Wanted: when the map is assembled from a folder (or no graph is found), build the graph from the AI map at load (RegionMap::UpdateBlocks over every block, the editor's computation) instead; check with a scenario where a unit walks a long way across painted ground."
 order = 1331
-status = "running"
+status = "done"
 started = "2026-11-11"
+done = "2026-11-11"
