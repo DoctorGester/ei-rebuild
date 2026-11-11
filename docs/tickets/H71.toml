@@ -5,5 +5,6 @@ size = 1
 model = "sonnet"
 note = "2026-11-11: golden.py record with no list wrote ~60 new goldens twice (L8c, MF15a; 650k lines). Make record create a golden only for a scenario named on the command line (or --new), re-record existing ones otherwise. Then list every scenario/install without a golden with its reason (Rebirth-only, frame-checked renderer, rule, helper) in docs/notes/standalone-verification.md, and record goldens for the ones that should have one (camera_limits, party_join_skin, ui_tooltip_switch, ui_options_graphics, ...: game-state scenarios), two agreeing passes."
 order = 1352
-status = "running"
+status = "done"
 started = "2026-11-11"
+done = "2026-11-11"
