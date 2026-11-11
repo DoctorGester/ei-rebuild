@@ -3,4 +3,4 @@ title = "Scripted casts: skip the idle ticks' Lua walk"
 group = "mods"
 depends = ["MF17g4a"]
 note = "MF17g4a measured the campfires on Campfire.lua at 3.3-4.0% of the main thread in Lost in Astral's gz10g (31 campfires; the C++ 0.1%): ScriptSpellHost::Tick walks the cast's entry, pushes the module, looks up OnTick and runs Settle on every tick, though a campfire only has a timer every 4th. Keep each cast's next due tick in C++ (After sets it, the timers' walk updates it) and, for a module without OnTick and a cast with no owned objects pending or missiles, count the tick without touching Lua until a timer is due (the cap test as arithmetic). Behaviour the same: goldens unchanged. Measure again with the same --quiet profile (docs/notes/items_spells.md, the campfire's Cost)."
-order = 1383
+order = 1391
