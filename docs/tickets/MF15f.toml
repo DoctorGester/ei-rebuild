@@ -6,3 +6,5 @@ model = "opus"
 depends = ["MF15c"]
 note = "User 2026-11-11 approved MF15's plan (build/mf15_particles.md). on_start/on_tick/on_spawn/on_event drive the typed inputs; a client-only sandboxed Lua state never saved; per-particle Lua opt-in with a budget for catch-up loops."
 order = 1346
+status = "running"
+started = "2026-11-11"
