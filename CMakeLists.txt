@@ -408,7 +408,8 @@ add_executable(ei-convert tools/convert/convert.cpp tools/convert/convert_databa
                tools/convert/convert_textures.cpp tools/convert/convert_mobs.cpp
                tools/convert/convert_models.cpp tools/convert/convert_scripts.cpp tools/convert/lua_check.cpp
                tools/convert/lua_globals.cpp tools/convert/example_mod.cpp tools/convert/effect_check.cpp
-               ${CMAKE_BINARY_DIR}/effect_files/reference.h ${EI_GAME_CALLS} ${EI_SDL_CALLS})
+               ${CMAKE_BINARY_DIR}/effect_files/reference.h ${CMAKE_BINARY_DIR}/effect_files/coarse.h
+               ${EI_GAME_CALLS} ${EI_SDL_CALLS})
 target_include_directories(ei-convert PRIVATE src third_party ${CMAKE_BINARY_DIR})
 # --effect-check's reference (tests/effects/reference.txt, the original particle types' recorded C++ runs) built into
 # the tool as bytes (src/render/embed.cmake).
@@ -417,6 +418,13 @@ add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/effect_files/reference.h
             -DOUT=${CMAKE_BINARY_DIR}/effect_files/reference.h -P ${CMAKE_SOURCE_DIR}/src/render/embed.cmake
     DEPENDS ${CMAKE_SOURCE_DIR}/tests/effects/reference.txt ${CMAKE_SOURCE_DIR}/src/render/embed.cmake
     COMMENT "Writing the effect check's reference as bytes"
+    VERBATIM)
+# --effect-check --coarse's reference (tests/effects/coarse.txt: how each case looks, over 8 seeds).
+add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/effect_files/coarse.h
+    COMMAND ${CMAKE_COMMAND} -DSOURCE=${CMAKE_SOURCE_DIR}/tests/effects/coarse.txt -DNAME=kCoarse
+            -DOUT=${CMAKE_BINARY_DIR}/effect_files/coarse.h -P ${CMAKE_SOURCE_DIR}/src/render/embed.cmake
+    DEPENDS ${CMAKE_SOURCE_DIR}/tests/effects/coarse.txt ${CMAKE_SOURCE_DIR}/src/render/embed.cmake
+    COMMENT "Writing the effect check's coarse reference as bytes"
     VERBATIM)
 target_link_libraries(ei-convert PRIVATE ei_game ei_engine SDL3::SDL3-static)
 # The repository's examples folder copied beside ei-convert, as a release package has it: --example-mod reads its own
