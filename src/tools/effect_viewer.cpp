@@ -13,7 +13,7 @@
 #include "engine/particles/particle_data.h"
 #include "engine/models/texture.h"
 #include "game/objects/map_object.h"
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 #include "game/units/unit.h"
 #include "game/world/world.h"
 

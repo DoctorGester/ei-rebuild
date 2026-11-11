@@ -12,7 +12,7 @@
 #include "engine/scene/scene_renderer.h"
 #include "engine/scene/pipeline.h"
 #include "engine/core/named_floats.h"
-#include "engine/data/options.h"
+#include "game/app/options.h"
 #include "game/players/party.h"
 #include "game/players/player.h"
 #include "engine/scene/sky_object.h"

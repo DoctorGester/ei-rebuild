@@ -5,7 +5,7 @@
 #include "game/effects/effects.h"
 #include "engine/particles/particle_data.h"
 #include "engine/models/texture.h"
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 #include "game/app/singletons.h"
 #include "game/units/unit.h"
 

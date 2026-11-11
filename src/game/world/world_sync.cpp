@@ -6,7 +6,7 @@
 #include "engine/core/core_streams.h"
 #include "game/objects/map_object.h"
 #include "game/world/hoover.h"
-#include "engine/data/options.h"
+#include "game/app/options.h"
 #include "game/players/player_messages.h"
 #include "game/players/player.h"
 #include "game/units/unit.h"

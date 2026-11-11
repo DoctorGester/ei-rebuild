@@ -1,6 +1,6 @@
 // The camera object itself: construction and destruction, its small virtuals, Init, and saving / loading
 // its state with the world. See camera.h and docs/notes/core.md.
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 
 #include "engine/core/core_streams.h"
 #include "engine/data/resource.h"
@@ -9,7 +9,7 @@
 #include "game/app/singletons.h"
 #include "game/objects/object3d.h"
 #include "engine/mods/mod_folders.h"
-#include "engine/data/options.h"
+#include "game/app/options.h"
 #include "game/saves/save_versions.h"
 #include "game/world/world.h"
 #include "lib/bytes.h"
@@ -69,8 +69,8 @@ ClassId Camera::GetClassId() { return ClassId::Camera; }
 
 void Camera::Create() {
     targetId = -1;
-    nearDistance = camera::kDefaultNear;
-    fieldOfView = camera::kDefaultFieldOfView;
+    g_sceneRenderer.view.nearDistance = SceneView::kDefaultNear;
+    g_sceneRenderer.view.fieldOfView = SceneView::kDefaultFieldOfView;
 }
 void Camera::Destroy() { targetId = -1; }
 
@@ -84,8 +84,8 @@ void Camera::Init(options::GameOptions* newSettings, float nearClip, float fov) 
     distance = newSettings->cameraDefaultDistance;
     focus = {newSettings->cameraDefaultXDeploy, newSettings->cameraDefaultYDeploy, newSettings->cameraDefaultHeight};
     localPosition = focus;
-    nearDistance = nearClip;
-    fieldOfView = fov;
+    g_sceneRenderer.view.nearDistance = nearClip;
+    g_sceneRenderer.view.fieldOfView = fov;
     flags |= kFree;
     pitch = kDefaultPitch;
     for (int slot : {6, 7}) {
@@ -308,10 +308,11 @@ void Camera::ClampAboveObjects() {
 }
 
 float Camera::NearPlaneReach() const {
-    const float slope = lib::Tan(fieldOfView * 0.5f);
-    const float across = slope / g_sceneRenderer.axisScale;
-    const float up = slope / (camera::kAspect * g_sceneRenderer.axisScaleY);
-    return nearDistance * std::sqrt(1.0f + across * across + up * up);
+    const SceneView& view = g_sceneRenderer.view;
+    const float slope = lib::Tan(view.fieldOfView * 0.5f);
+    const float across = slope / view.axisScale;
+    const float up = slope / (SceneView::kAspect * view.axisScaleY);
+    return view.nearDistance * std::sqrt(1.0f + across * across + up * up);
 }
 
 // --- Camera path load --------------------------------------------------------------------------------

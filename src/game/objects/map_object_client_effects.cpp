@@ -26,7 +26,7 @@
 #include <utility>
 
 #include "game/app/singletons.h"
-#include "engine/data/options.h"
+#include "game/app/options.h"
 #include "game/world/world.h"
 
 #include <list>

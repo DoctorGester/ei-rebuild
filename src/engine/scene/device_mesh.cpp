@@ -6,7 +6,7 @@
 #include "engine/scene/device_material.h"
 #include "render/render.h"
 #include "render/render_checks.h"
-#include "engine/data/settings.h"
+#include "engine/core/engine_globals.h"
 
 #include <cstdint>
 
@@ -59,41 +59,17 @@ void TextureDevice::DrawFlatBlocks(const VertexPacket* positions, const render::
 // The device object (TextureDevice, texture.h): its constructor and destructor. There is no DirectDraw or Direct3D
 // object: the constructor starts the new renderer (src/render), which draws and presents. See docs/notes/renderer.md (section 9).
 
-namespace {
-
-// The performance overlay's switch (docs/notes/renderer.md section 15): [renderer] PerfOverlay of ei_settings.ini;
-// off without the overlay.
-bool PerfOverlaySetting() {
-    return render::PerfOverlaySupported() && settings::GetBool(settings::kRenderer, "PerfOverlay");
-}
-
-// The vertical blank's switch (docs/notes/renderer.md section 15): [renderer] VSync. Read only in the product, as
-// above.
-bool VsyncSetting() { return settings::GetBool(settings::kRenderer, "VSync"); }
-
-// The render quality (docs/notes/renderer.md section 11, "Render quality"): [renderer] Msaa (the world view's samples:
-// 1 off, 2, 4 or 8) and Anisotropy (its models' anisotropic sampling: 1 off .. 16). A value missing (or not a number)
-// is written with its catalog default, the look the user's dgVoodoo setup gave, so the file shows both. Read only in
-// the product, as above (render::QualitySettingsSupported).
-int QualitySetting(const char* name) {
-    const int value = settings::GetInt(settings::kRenderer, name);
-    settings::SetInt(settings::kRenderer, name, value);
-    return value;
-}
-
-} // namespace
-
 TextureDevice::TextureDevice(platform::NativeWindow newWindow, bool newFullScreen, int width, int height)
     : fullScreen(newFullScreen), screen{0, 0, width, height}, window(newWindow) {
     // (The original required MMX and loaded 2DintMMX.dll, its pixel converter, here; nothing needs it now.)
     // The new renderer presents; when it cannot start, the game ends there (render::Fatal).
+    // The renderer's switches are the engine's config's (docs/notes/renderer.md sections 11 and 15).
     render::StartPresenting();
-    render::SetPerfOverlay(PerfOverlaySetting());
-    if (render::VsyncSwitchSupported()) render::SetVsync(VsyncSetting());
+    render::SetPerfOverlay(g_engineConfig.perfOverlay);
+    if (render::VsyncSwitchSupported()) render::SetVsync(g_engineConfig.vsync);
     if (render::QualitySettingsSupported()) {
-        render::SetMsaa(QualitySetting("Msaa"));
-        render::SetAnisotropy(QualitySetting("Anisotropy"));
-        settings::Save();
+        render::SetMsaa(g_engineConfig.msaa);
+        render::SetAnisotropy(g_engineConfig.anisotropy);
     }
 }
 

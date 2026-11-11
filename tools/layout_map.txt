@@ -109,13 +109,13 @@ game_flow.h                 app/game_flow.h
 world_game.cpp              app/game_flow.cpp                 # GameFlow's members, not World's
 world_briefing.cpp          app/game_flow_briefings.cpp       # GameFlow's briefing variables
 persistent_globals.cpp      app/persistent_globals.cpp        # Rebirth's kept "gvar." variables; game flow clears the tables
-options.h                   data/options.h
-options.cpp                 data/options.cpp
-options_construct.cpp       data/options.cpp             fold  # GameOptions' constructor and global (27 lines)
-settings.h                  data/settings.h
-settings.cpp                data/settings.cpp
-settings_document.cpp       data/settings_document.cpp
-settings_catalog.inc        data/settings_catalog.inc
+options.h                   app/options.h
+options.cpp                 app/options.cpp
+options_construct.cpp       app/options.cpp              fold  # GameOptions' constructor and global (27 lines)
+settings.h                  app/settings.h
+settings.cpp                app/settings.cpp
+settings_document.cpp       app/settings_document.cpp
+settings_catalog.inc        app/settings_catalog.inc
 logic_settings.h            app/logic_settings.h
 logic_settings.cpp          app/logic_settings.cpp
 key_bindings.h              app/key_bindings.h                # gains UiKeyName, g_keyActions and FindCommandByKey from object_tables.h (C168b)
@@ -176,6 +176,9 @@ world_client_lights.cpp     world/world_client_lights.cpp
 world_client_shadow_casters.h world/world_client_shadow_casters.h
 world_client_shadow_casters.cpp world/world_client_shadow_casters.cpp
 frame_lists.h               world/frame_lists.h
+camera.h                    world/camera.h                    # the client world's camera: game behaviour (following, the ground, limits, shakes, saved views); the engine keeps the drawn view (SceneView, MF15k1d)
+camera.cpp                  world/camera.cpp
+camera_object.cpp           world/camera_object.cpp
 
 # ---- players: a player, its party, its connection's halves (PlayerServer, PlayerClient), class templates -----------
 player.h                    players/player.h            new   # Player and its dirty bits, out of player_messages.h (C168i)
@@ -449,7 +452,7 @@ material.cpp                models/material.cpp
 dib.h                       models/dib.h
 dib.cpp                     models/dib.cpp
 
-# ---- scene: the game's draw side over src/render (scene renderer, transform pipeline, device, camera, lights, sky) -
+# ---- scene: the game's draw side over src/render (scene renderer, transform pipeline, device, view, lights, sky) --
 model.h                     scene/scene_renderer.h      split # grab-bag: SceneRenderer stays; TransformPipeline -> scene/pipeline.h, RenderPreset / RenderHelper -> scene/render_helper.h, the link loader -> models/link_loader.h, prints.db -> terrain/ground_print.h (C168c)
 model.cpp                   scene/pipeline.cpp          split # the pipeline's clip test and matrices; the link loader's archive list -> models/link_loader.cpp (C168c)
 pipeline.h                  scene/pipeline.h            new   # TransformPipeline, MatrixStack, ClipBounds, SpritePoint, out of model.h
@@ -473,9 +476,6 @@ renderer_strip.cpp          scene/renderer_strip.cpp
 render_helper.cpp           scene/render_helper.cpp
 surface.h                   scene/surface.h
 surface.cpp                 scene/surface.cpp
-camera.h                    scene/camera.h
-camera.cpp                  scene/camera.cpp
-camera_object.cpp           scene/camera_object.cpp
 light.h                     scene/light.h               new   # Light and LightFactory, out of spell.h
 light.cpp                   scene/light.cpp
 sky_object.h                scene/sky_object.h

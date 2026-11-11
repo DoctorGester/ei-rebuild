@@ -1,7 +1,7 @@
 # The image's first start without a settings file. The run starts with no ei_settings.ini; the first use of the
-# settings writes it with the defaults (src/engine/data/settings.h Defaults: full screen at the desktop's size, here the
+# settings writes it with the defaults (src/game/app/settings.h Defaults: full screen at the desktop's size, here the
 # harness's 1280x720 so the file does not depend on the monitor, the movies on, every graphics option at its best, the
-# renderer's quality and vsync, each line with its catalog description above it (src/engine/data/settings_catalog.inc);
+# renderer's quality and vsync, each line with its catalog description above it (src/game/app/settings_catalog.inc);
 # tests/verify/harness_settings.h), the game reads every value they leave out
 # as absent and takes its catalog row's default, and its exit save rewrites the file with all of its options. run_all
 # compares the file after the exit with settings/settings_defaults.ini (the defaults are the same on both installs:

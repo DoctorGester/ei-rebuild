@@ -1,6 +1,6 @@
 // The camera (Camera, camera.h): the per-frame update and view placement, focus and terrain sampling,
 // panning / zoom / saved views, shakes and recorded camera paths.
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 
 #include "engine/core/base_manager.h"
 #include "engine/core/core_maths.h"
@@ -10,6 +10,7 @@
 #include "game/sound/sound.h"
 #include "game/terrain/terrain.h"
 #include "game/world/world.h"
+#include "engine/scene/scene_renderer.h"
 
 #include "lib/crt.h"
 #include "lib/float_select.h"
@@ -197,6 +198,8 @@ camera::ViewPose camera::DrawnView(const Camera* camera) {
 
 void camera::TakeFrameView(const Camera* camera) {
     g_frameView = DrawnView(camera);
+    g_sceneRenderer.view.position = g_frameView.position;
+    g_sceneRenderer.view.rotation = g_frameView.rotation;
     g_viewStep.placed = false;
 }
 

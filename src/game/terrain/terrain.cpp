@@ -2,12 +2,12 @@
 #include "engine/scene/light.h"
 #include "game/terrain/terrain.h"
 
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 #include "engine/models/figure_mesh.h"   // VertexPacket
 #include "game/terrain/ground_decal.h"
 #include "engine/scene/scene_renderer.h"
 #include "engine/scene/pipeline.h"
-#include "engine/data/options.h"
+#include "game/app/options.h"
 #include "game/spells/spell.h"
 #include "game/terrain/terrain_sector.h"
 #include "game/world/world.h"

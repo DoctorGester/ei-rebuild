@@ -7,7 +7,7 @@
 // game.exe read them; an entry "name"=- / [-key] marks one read but absent on purpose. Nothing in the program reads
 // the registry: the snapshot is the source of the run's settings file below.
 //
-// The program keeps its settings in a file of its own format (engine/data/settings.h): harness runs get their
+// The program keeps its settings in a file of its own format (game/app/settings.h): harness runs get their
 // own, <run folder>\ei_settings.ini, pinned at start and written at the settings' first use from the snapshot: the
 // option tree game.exe reads on the run's install (the original's, or Rebirth's on its data: starter::RebirthData),
 // each key as its section (General Settings as [video] and

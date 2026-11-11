@@ -6,7 +6,7 @@
 
 #include "game/ai/ai_map.h"
 #include "engine/core/base_manager.h"
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 #include "game/console/console.h"
 #include "game/effects/effects.h"
 #include "engine/particles/particle_data.h"
@@ -19,7 +19,7 @@
 #include "game/objects/map_object_shadow.h"
 #include "game/net/net_link.h"
 #include "engine/core/named_floats.h"
-#include "engine/data/options.h"
+#include "game/app/options.h"
 #include "game/players/party.h"
 #include "game/players/player_messages.h"
 #include "game/players/player.h"

@@ -6,7 +6,7 @@
 #include "game/players/player_client.h"
 
 #include "engine/core/core_maths.h"
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 #include "game/items/item.h"
 #include "game/objects/map_object.h"
 #include "game/objects/object3d.h"

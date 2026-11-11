@@ -7,10 +7,10 @@
 #include "game/app/tool_hooks.h"
 #include "game/app/logic_settings.h"
 #include "game/app/movies.h"
-#include "engine/data/options.h"
-#include "engine/data/settings.h"
+#include "game/app/options.h"
+#include "game/app/settings.h"
 #include "game/app/singletons.h"
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 #include "game/console/console.h"
 #include "engine/core/asset_text.h"
 #include "engine/core/coder.h"
@@ -93,6 +93,34 @@ constexpr const char* kWindowTitle = "Evil Islands";
 constexpr const char* kWindowClassName = "EIGAME";
 
 // ---- Start-up --------------------------------------------------------------------------------------
+
+// The render quality (docs/notes/renderer.md section 11, "Render quality"): [renderer] Msaa (the world view's samples:
+// 1 off, 2, 4 or 8) and Anisotropy (its models' anisotropic sampling: 1 off .. 16). A value missing (or not a number)
+// is written with its catalog default, the look the user's dgVoodoo setup gave, so the file shows both.
+int QualitySetting(const char* name) {
+    const int value = settings::GetInt(settings::kRenderer, name);
+    settings::SetInt(settings::kRenderer, name, value);
+    return value;
+}
+
+// The engine's config (engine_globals.h) from the options and [renderer] of ei_settings.ini: the performance overlay
+// (docs/notes/renderer.md section 15), the vertical blank's switch and the render quality, each read only where the
+// renderer has it (the product: the harness build's settings file lacks them).
+void FillEngineConfig(const GameOptions& options) {
+    EngineConfig& config = g_engineConfig;
+    config.workPath = options.workPath;
+    config.resourcesPath = options.resourcesPath;
+    config.resolutionX = options.resolutionX;
+    config.resolutionY = options.resolutionY;
+    config.fullScreen = options.fullScreen != 0;
+    config.perfOverlay = render::PerfOverlaySupported() && settings::GetBool(settings::kRenderer, "PerfOverlay");
+    if (render::VsyncSwitchSupported()) config.vsync = settings::GetBool(settings::kRenderer, "VSync");
+    if (render::QualitySettingsSupported()) {
+        config.msaa = QualitySetting("Msaa");
+        config.anisotropy = QualitySetting("Anisotropy");
+        settings::Save();
+    }
+}
 
 constexpr int kExitDeclined = 0xDEAD;   // WinMain's result when the player gives up at a warning
 constexpr double kLittleDiskSpace = 314572800.0;   // 300 MB
@@ -612,6 +640,7 @@ int GameMain(char* commandLine) {
     GameOptions* options = &options::g_options;
     g_startFolder = platform::CurrentFolder() + '\\';
     options->Load();
+    FillEngineConfig(*options);
     // The layout comes from the configured resolution, which is the frame's size: the window made later may get a
     // smaller client area (a work area too small for it), and the renderer scales the frame into it.
     screen_layout::Configure(options->resolutionX, options->resolutionY);
@@ -631,7 +660,7 @@ int GameMain(char* commandLine) {
         platform::ShowGameWindow(g_mainWindow);
         platform::SetModalLoopStep(StepMusic);
         platform::SetCursor(nullptr);
-        g_sceneRenderer.CreateRenderer(g_mainWindow, options);
+        g_sceneRenderer.CreateRenderer(g_mainWindow);
         g_sceneRenderer.SetGamma(options->brightness, options->gamma);
         if (!g_toolScene.newGame) PlayMovies("Start", true);
         // The loading screen's first frame stays up while the world's graphics, the cursors and the interface are made.

@@ -1,7 +1,7 @@
 // Lightning bolts.
 #include "game/effects/lightning.h"
 
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 #include "engine/core/core_maths.h"
 #include "game/app/singletons.h"
 #include "engine/scene/scene_renderer.h"

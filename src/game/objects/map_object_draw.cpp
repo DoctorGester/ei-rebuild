@@ -13,7 +13,7 @@
 #include "engine/scene/scene_renderer.h"
 #include "engine/scene/pipeline.h"
 #include "game/world/world.h"                // WorldClient
-#include "engine/data/options.h"
+#include "game/app/options.h"
 #include "render/render.h"
 
 #include "lib/containers.h"

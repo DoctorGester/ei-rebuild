@@ -2,7 +2,7 @@
 // source, a light and a sound) and EffectArrowFigure (a bow shot drawn as a figure). See
 // world_effect.h and docs/notes/effects.md ("Missiles").
 #include "engine/core/base_manager.h"
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 #include "engine/core/core_streams.h"
 #include "game/app/singletons.h"
 #include "engine/scene/light.h"

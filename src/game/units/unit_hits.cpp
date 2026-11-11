@@ -4,7 +4,7 @@
 // armour pieces. See unit.h and docs/notes/units.md.
 #include "game/combat/combat.h"
 #include "game/console/console.h"
-#include "engine/data/options.h"
+#include "game/app/options.h"
 #include "game/units/unit.h"
 
 #include "engine/data/text_manager.h"

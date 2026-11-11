@@ -3,7 +3,7 @@
 #include "game/ui/ui_camera_input.h"
 #include "game/ui/ui_view_screen.h"
 
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 #include "lib/vecmath.h"
 #include "game/players/player_client.h"
 #include "game/ui/ui_cursor.h"

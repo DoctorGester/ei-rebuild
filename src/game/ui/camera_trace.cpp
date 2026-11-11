@@ -1,7 +1,7 @@
 // The camera's mouse turn traced (camera_trace.h; docs/notes/ui.md, "Camera mouse turn").
 #include "game/ui/camera_trace.h"
 
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 #include "game/app/singletons.h"
 
 #include "platform/log.h"

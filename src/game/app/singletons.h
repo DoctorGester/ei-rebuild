@@ -1,13 +1,14 @@
 #pragma once
 
 // The game's global objects, named once (they were per-file copies): the game flow, the interface manager, the client
-// and server worlds and what they hold (the managers, the mission script, the sector map), the cursor, the map
-// database and the party manager. The engine's (the scene renderer, the camera, the folders) are in
+// and server worlds and what they hold (the managers, the mission script, the sector map), the camera, the cursor, the
+// map database and the party manager. The engine's (the scene renderer, its config, the folders) are in
 // engine/core/engine_globals.h, included here. The global random generator is g_random.
 
 #include "engine/core/engine_globals.h"
 
 struct GameFlow;
+class Camera;
 class Interface3D;
 class WorldClient;
 class WorldServer;
@@ -37,6 +38,9 @@ extern Interface3D g_interface;   // ui_interface_input.cpp
 extern WorldClient g_clientWorld;   // world_create.cpp
 
 extern WorldServer g_serverWorld;   // world_create.cpp
+
+// The client world's camera.
+extern Camera g_camera;   // world/camera_object.cpp
 
 // The cursor. The map database. The server world's mission script and sector map.
 extern Cursor g_cursor;   // ui_cursor.cpp

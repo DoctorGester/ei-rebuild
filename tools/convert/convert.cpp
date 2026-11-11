@@ -31,7 +31,7 @@
 #include "engine/core/asset_text.h"
 #include "engine/models/material.h"
 #include "game/objects/object3d.h"
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 #include "game/terrain/ground_print.h"
 #include "game/units/acks_db.h"
 #include "lib/text_case.h"

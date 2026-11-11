@@ -712,7 +712,8 @@ with its own level.
   Msaa = 8           1 (off), 2, 4 or 8
   Anisotropy = 16    1 (off) .. 16
   ```
-  Read once the renderer starts (`QualitySetting`, device_mesh.cpp); a value missing or not a number is written with its
+  Read once at the start into the engine's config (`QualitySetting`, app/main_loop.cpp's FillEngineConfig), which the
+  device object's constructor applies (device_mesh.cpp); a value missing or not a number is written with its
   default. The options window's antialiasing and anisotropic filtering rows set both while the game runs ("Resolution
   changes", "The graphics rows"). `render::SetMsaa` rounds down to a power of two up to 8 (`kSmoothSamples`), and the target takes the device's
   nearest count (`SamplesFor`: the least it lists at or above the asked one, else the most below: lavapipe lists 1 and 4); `render::SetAnisotropy` clamps to 1..16. Both from the next frame; `Msaa()` / `Anisotropy()` read them.
@@ -825,9 +826,9 @@ ticks before the first present. Captures: build/captures/r56a in the main checko
 
 All in `src/game`:
 - `device_draw.cpp`: texture binds (the stage's holder recorded), the screen bounds of projected positions (picking,
-  section 3), the pass hand-over, `SetBlend`, the present.
-- `device_mesh.cpp`: the device object (`TextureDevice`) and its mesh draws; the settings the renderer reads at its start
-  (quality, overlay, vsync).
+  section 3), the pass hand-over, `SetBlend`. The present is the game's (`present_window::Present`).
+- `device_mesh.cpp`: the device object (`TextureDevice`) and its mesh draws; its constructor applies the engine's
+  config's renderer switches (quality, overlay, vsync; read by the game, app/main_loop.cpp).
 - `surface.cpp`: the holders, the channel split, the screenshot capture.
 - `texture.cpp`: the texture formats; `texture_load.cpp`: the loads (section 7).
 - `renderer_scene.cpp`: counted holders, list iterator copies, aligned blocks, the axis swap matrix (WideScreen changes
@@ -1881,8 +1882,8 @@ blends the pose last placed into the new one's (models/animation.cpp, models/ani
   [renderer]
   PerfOverlay = true
   ```
-  Off when absent or false (a new file has it false). Read once the renderer starts (`PerfOverlaySetting`,
-  device_mesh.cpp) into `render::SetPerfOverlay`; the options window's performance overlay row switches it live. **Never in a harness run**: `render::PerfOverlaySupported()` is false in
+  Off when absent or false (a new file has it false). Read once at the start into the engine's config
+  (app/main_loop.cpp), which the device object's constructor (device_mesh.cpp) passes to `render::SetPerfOverlay`; the options window's performance overlay row switches it live. **Never in a harness run**: `render::PerfOverlaySupported()` is false in
   the harness build.
 - **What it shows** (top left of the game image, refreshed every 250 ms, averages over the last second):
   ```
@@ -1922,8 +1923,9 @@ blends the pose last placed into the new one's (models/animation.cpp, models/ani
   [renderer]
   VSync = false
   ```
-  On when absent or true (`PresentMode::Vsync`); false turns it off. Read once the renderer starts (`VsyncSetting`,
-  device_mesh.cpp, before the first present) into `render::SetVsync`; the options window's vertical sync row switches it
+  On when absent or true (`PresentMode::Vsync`); false turns it off. Read once at the start into the engine's
+  config (app/main_loop.cpp), which the device object's constructor (device_mesh.cpp, before the first present) passes
+  to `render::SetVsync`; the options window's vertical sync row switches it
   live (the present mode changes at the next present). **Never in a harness run**:
   `render::VsyncSwitchSupported()` is false in the harness build; the harness's own `SetWaitForVsync(false)` under the
   virtual clock presents in `Mailbox` (no wait, no tearing).

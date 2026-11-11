@@ -4,7 +4,7 @@
 #include "game/ui/ui_briefing.h"
 #include "game/ui/ui_camp.h"
 
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 #include "game/combat/combat.h"
 #include "engine/core/core_maths.h"
 #include "engine/core/core_streams.h"
@@ -14,7 +14,7 @@
 #include "game/items/item_db.h"
 #include "lib/vecmath.h"
 #include "game/map/map_database.h"
-#include "engine/data/options.h"
+#include "game/app/options.h"
 #include "game/players/party.h"
 #include "game/players/player.h"
 #include "engine/data/text_manager.h"

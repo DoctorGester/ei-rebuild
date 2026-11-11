@@ -5,7 +5,7 @@
 #include "engine/scene/light.h"
 #include "engine/scene/scene_renderer.h"
 #include "engine/scene/pipeline.h"
-#include "engine/data/options.h"
+#include "game/app/options.h"
 #include "game/world/world.h"
 
 #include "engine/core/core_maths.h"

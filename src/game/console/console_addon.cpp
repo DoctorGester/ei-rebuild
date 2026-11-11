@@ -4,9 +4,9 @@
 // addon's; its own state (the two log levels, the GUI flags) lives here.
 #include "game/console/console.h"
 #include "game/app/singletons.h"
-#include "engine/data/options.h"
+#include "game/app/options.h"
 #include "game/script/script.h"
-#include "engine/data/settings.h"
+#include "game/app/settings.h"
 #include "platform/platform.h"
 #include "game/ui/ui.h"
 #include "game/ui/ui_cursor.h"

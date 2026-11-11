@@ -13,7 +13,7 @@
 #include "engine/models/texture.h"
 #include "engine/core/named_floats.h"
 #include "game/map/map_database.h"
-#include "engine/data/options.h"
+#include "game/app/options.h"
 #include "game/players/player_client.h"
 #include "game/sound/sound.h"
 #include "engine/scene/surface.h"

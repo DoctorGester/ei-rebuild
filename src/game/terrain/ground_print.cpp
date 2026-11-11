@@ -3,7 +3,7 @@
 // entry (by the ground's surface class) gives the alpha and the life. See docs/notes/models.md ("Ground prints").
 #include "game/terrain/ground_print.h"
 
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 #include "engine/core/core_streams.h"
 #include "game/effects/effects.h"
 #include "engine/models/figure_mesh.h"
@@ -12,7 +12,7 @@
 #include "engine/scene/device.h"
 #include "engine/scene/scene_renderer.h"
 #include "engine/models/texture.h"
-#include "engine/data/options.h"
+#include "game/app/options.h"
 #include "engine/scene/light.h"
 #include "game/terrain/terrain.h"
 #include "game/world/world.h"

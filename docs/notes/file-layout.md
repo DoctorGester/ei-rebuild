@@ -227,13 +227,23 @@ themselves). Includes name the tree: `#include "engine/core/ref.h"`, `#include "
   src/render, src/platform, third_party and the system's. `tools/engine_layers.txt` lists the includes still
   crossing (the back-references left); the list only shrinks: a new crossing fails, and so does a listed one that is
   gone (`engine_layers.py --write` rewrites the list, keeping each kept line's comment).
-- Files are in the engine's folders or the game's by what they need: the settings and options are data/'s (the
-  renderer and the camera read them), as are maps as folders and the .MP header; the maps folder's functions are
-  mods/maps_folder.h's; the peers' mod identity is net/'s; the particle core's calls into the world are
-  `particle_host.h`'s functions, which the game defines (game/effects/effects_particles.cpp). The program's window
-  and title, its error box and lib/crt.h's FatalExit / Warning are core/program_window's (no app.cpp needed); the
-  3D view's axis scales are the scene renderer's, which screen_layout sets; an item's texts are items/'s
-  (item_texts.h), not the text manager's.
+- Files are in the engine's folders or the game's by what they need: maps as folders and the .MP header are data/'s;
+  the maps folder's functions are mods/maps_folder.h's; the peers' mod identity is net/'s; the particle core's calls
+  into the world are `particle_host.h`'s functions, which the game defines (game/effects/effects_particles.cpp). The
+  program's window and title, its error box and lib/crt.h's FatalExit / Warning are core/program_window's (no
+  app.cpp needed); an item's texts are items/'s (item_texts.h), not the text manager's.
+- **The engine reads no settings (MF15k1d).** The settings file, its catalog and the game options are app/'s; the
+  game fills the engine's config (`EngineConfig g_engineConfig`, core/engine_globals.h) once after the options load
+  (app/main_loop.cpp, FillEngineConfig): the work and resources paths (the loose textures, a mod's config.reg) and
+  the renderer's start (size, full screen, the overlay, vsync, Msaa, anisotropy). A new value the engine needs joins
+  the config, filled there.
+- **The engine has a view, the game the camera (MF15k1d).** The scene renderer's `SceneView view`
+  (scene/scene_renderer.h) is what the engine draws from: the drawn pose (position, rotation; camera::TakeFrameView
+  sets it each frame the world is drawn, the particles face it), the projection's near distance and field of view
+  (Camera::Create / Init) and its axis scales (screen_layout). The matrices stay on the pipeline's stacks. The
+  Camera object (following, the ground under it, limits, shakes, saved views, recorded paths, the drawn view's
+  smoothing) is world/'s, `g_camera` in app/singletons.h; the particles' shakes reach it through
+  particlehost::ShakeCamera.
 - The check reads includes only. Code of the engine that calls a function defined in ei_game links only because both
   are in the same programs today; such calls are the seams MF15k2 turns into a host interface.
 
@@ -245,13 +255,13 @@ rest src/game's.
 | Folder | Files | What |
 |---|---|---|
 | `core/` | 27 | the engine's object model (EngineObject, BaseManager, ManagerContext), counted references, id tables, byte streams, buffers and the LZ coder, maths, transforms, random, UTF-8 text, text splitting, named floats |
-| `data/` | 13 | resource archives and their manager, registry and .ini files, the chunk archive, the databases' plumbing, the text manager, the settings file and the game options, maps as folders and the .MP header |
+| `data/` | 8 | resource archives and their manager, registry and .ini files, the chunk archive, the databases' plumbing, the text manager, maps as folders and the .MP header |
 | `mods/` | 6 | Rebirth's mod layer: mod folders, the menu's mod list, the mods' plugins, the maps folder |
 | `saves/` | 7 | the save file container, save versions, save pictures, the client's kept picture |
-| `app/` | 25 | WinMain's loop, the window, game flow (with Rebirth's kept "gvar." variables), options, settings, key bindings, movies, the globals |
+| `app/` | 30 | WinMain's loop, the window, game flow (with Rebirth's kept "gvar." variables), options, settings, key bindings, movies, the globals |
 | `console/` | 5 | the developer console, its commands and window |
 | `sound/` | 3 | the sound manager and music |
-| `world/` | 35 | World, WorldServer, WorldClient: zones, ticks, sync, saves of the world, quests, loot, diplomacy, client maps and draw lists |
+| `world/` | 38 | World, WorldServer, WorldClient: zones, ticks, sync, saves of the world, quests, loot, diplomacy, client maps and draw lists, the camera |
 | `players/` | 23 | Player, PlayerServer / PlayerClient (messages, handlers, sync), the player manager, parties, class templates |
 | `map/` | 11 | zone files (.mob specs, the reader, chunked files), the map database and its exits, the .MP header, the maps folder |
 | `ai/` | 28 | the AI map, footprints, unit layers, searches, regions, paths, motion, events, the sector map; the brain and its modes |
@@ -264,7 +274,7 @@ rest src/game's.
 | `effects/` | 17 | the game's particle effects (the core's world calls), the world's effect objects, lightning, weather, the visibility fog |
 | `terrain/` | 12 | the landscape, sectors, ambient sounds, ground prints and decals, water levels |
 | `models/` | 20 | figures, figure meshes and animation, link meshes and their loader, textures, materials, bitmaps |
-| `scene/` | 30 | the game's draw side over src/render: scene renderer, transform pipeline, device draws, the old renderer's draws, surfaces, camera, lights, sky, drawn motion |
+| `scene/` | 27 | the game's draw side over src/render: scene renderer, transform pipeline, device draws, the old renderer's draws, surfaces, the view, lights, sky, drawn motion |
 | `script/` | 20 | the mission script engine and Rebirth's script commands |
 | `net/` | 21 | sessions, socket driver, connections, links, messages, delta replication, lobby, game server and client |
 | `ui/` | 94 | the interface: manager, windows and controls, cursor, layout, menus, screens, battle HUD, briefing, camp and global map, hero screens, item panels |
@@ -362,30 +372,30 @@ Risks:
 | Folder | Files | Lines today | Move batch |
 |---|---|---|---|
 | `ai/` | 28 | 12564 | C168f |
-| `app/` | 18 | 5171 | C168e |
+| `app/` | 24 | 6903 | C168e |
 | `combat/` | 13 | 6384 | C168f |
 | `console/` | 5 | 2038 | C168e |
-| `core/` | 29 | 3783 | C168d |
-| `data/` | 25 | 8316 | C168d |
-| `effects/` | 17 | 4935 | C168g |
+| `core/` | 29 | 3795 | C168d |
+| `data/` | 19 | 6649 | C168d |
+| `effects/` | 17 | 4940 | C168g |
 | `items/` | 12 | 2958 | C168g |
 | `map/` | 11 | 3139 | C168e |
-| `models/` | 25 | 8231 | C168g |
-| `mods/` | 9 | 802 | C168d |
+| `models/` | 25 | 8229 | C168g |
+| `mods/` | 9 | 801 | C168d |
 | `net/` | 23 | 8423 | C168h |
 | `objects/` | 23 | 8176 | C168f |
-| `particles/` | 11 | 4531 | C168g |
+| `particles/` | 11 | 4532 | C168g |
 | `players/` | 24 | 5486 | C168e |
 | `saves/` | 7 | 848 | C168d |
-| `scene/` | 30 | 4397 | C168g |
+| `scene/` | 27 | 3113 | C168g |
 | `script/` | 33 | 11958 | C168h |
 | `sound/` | 3 | 1715 | C168e |
 | `spells/` | 11 | 2174 | C168g |
 | `terrain/` | 12 | 3560 | C168g |
-| `ui/` | 97 | 33145 | C168h |
+| `ui/` | 97 | 33146 | C168h |
 | `units/` | 27 | 9830 | C168f |
-| `world/` | 36 | 10307 | C168e |
-| all | 529 | 162871 | |
+| `world/` | 39 | 11579 | C168e |
+| all | 529 | 162940 | |
 
 570 files today; 55 fold into an owner, 10 split by meaning, 18 new files come out of the splits, 36 moves rename for meaning.
 
@@ -454,9 +464,16 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | app_frame.cpp | app/main_loop.cpp | fold | WinMain's frame step (78 lines): part of the loop |
 | bink_video.cpp | app/movies.cpp |  | with app/movies.h |
 | bink_video.h | app/movies.h |  | the game's movie players; src/video/bink_video.cpp is the decoder of the same name |
+| options.cpp | app/options.cpp |  |  |
+| options_construct.cpp | app/options.cpp | fold | GameOptions' constructor and global (27 lines) |
+| options.h | app/options.h |  |  |
 | persistent_globals.cpp | app/persistent_globals.cpp |  | Rebirth's kept "gvar." variables; game flow clears the tables |
 | present_window.cpp | app/present_window.cpp |  |  |
 | present_window.h | app/present_window.h |  |  |
+| settings.cpp | app/settings.cpp |  |  |
+| settings.h | app/settings.h |  |  |
+| settings_catalog.inc | app/settings_catalog.inc |  |  |
+| settings_document.cpp | app/settings_document.cpp |  |  |
 | game_singletons.h | app/singletons.h |  | the game's global objects; "game" says nothing inside src/game |
 | tool_hooks.h | app/tool_hooks.h |  |  |
 
@@ -547,9 +564,6 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | map_file.h | data/map_file.h |  | kept whole: map/file.h would not say which file |
 | map_folder.cpp | data/map_folder.cpp |  |  |
 | map_folder.h | data/map_folder.h |  |  |
-| options.cpp | data/options.cpp |  |  |
-| options_construct.cpp | data/options.cpp | fold | GameOptions' constructor and global (27 lines) |
-| options.h | data/options.h |  |  |
 | record_names.h | data/record_names.h |  |  |
 | registry.cpp | data/registry.cpp |  |  |
 | registry.h | data/registry.h |  |  |
@@ -559,10 +573,6 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | resource_stream.h | data/resource.h | fold | "the rest of the resource code": WildcardMatch (8 lines) |
 | resource_manager.cpp | data/resource_manager.cpp |  |  |
 | resource_manager.h | data/resource_manager.h |  |  |
-| settings.cpp | data/settings.cpp |  |  |
-| settings.h | data/settings.h |  |  |
-| settings_catalog.inc | data/settings_catalog.inc |  |  |
-| settings_document.cpp | data/settings_document.cpp |  |  |
 | text_manager.cpp | data/text_manager.cpp |  |  |
 | object_tables.cpp | data/text_manager.cpp | split | text keys -> data/text_manager.cpp, NamedFloatTable -> core/named_floats.cpp (C168b; the file goes) |
 | text_manager.h | data/text_manager.h |  |  |
@@ -800,9 +810,6 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 
 | Today | After | Op | Why |
 |---|---|---|---|
-| camera.cpp | scene/camera.cpp |  |  |
-| camera.h | scene/camera.h |  |  |
-| camera_object.cpp | scene/camera_object.cpp |  |  |
 | clip.h | scene/clip.h |  |  |
 | device_buffers.h | scene/device.h | fold | the device's two work vectors (18 lines) (folded into device.h by C168c) |
 | device.h | scene/device.h | new | TextureDevice and MeshArgs, out of texture.h |
@@ -1061,6 +1068,9 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 
 | Today | After | Op | Why |
 |---|---|---|---|
+| camera.cpp | world/camera.cpp |  |  |
+| camera.h | world/camera.h |  | the client world's camera: game behaviour (following, the ground, limits, shakes, saved views); the engine keeps the drawn view (SceneView, MF15k1d) |
+| camera_object.cpp | world/camera_object.cpp |  |  |
 | object_diplomacy.cpp | world/diplomacy.cpp |  | with world/diplomacy.h |
 | object_diplomacy.h | world/diplomacy.h |  | the diplomacy table between the players (world-wide, not an object) |
 | frame_lists.h | world/frame_lists.h |  |  |

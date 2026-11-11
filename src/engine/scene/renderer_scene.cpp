@@ -172,7 +172,7 @@ Matrix4* AxisSwapMatrix(Matrix4* out) {
     std::memset(out, 0, sizeof(*out));
     out->m[15] = 1.0f;
     out->m[10] = 1.0f;
-    out->m[0] = g_sceneRenderer.axisScale;
-    out->m[5] = -g_sceneRenderer.axisScaleY;
+    out->m[0] = g_sceneRenderer.view.axisScale;
+    out->m[5] = -g_sceneRenderer.view.axisScaleY;
     return out;
 }

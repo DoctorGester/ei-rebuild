@@ -173,7 +173,7 @@ else()
 endif()
 
 # The engine (docs/notes/file-layout.md, "The engine library"): src/lib and src/engine's folders: the data and its
-# archives (data), the models (textures, figures, animation), the scene (camera, lights, clip, pipeline, scene renderer),
+# archives (data), the models (textures, figures, animation), the scene (view, lights, clip, pipeline, scene renderer),
 # the core objects (engine objects, transforms, references, streams, random), the mods' file layers (mods) and the
 # particle core (particles), for the game and later the effect viewer's own exe (MF15k4). It includes no game header
 # (tools/engine_layers.py, a build check). An object library as the game's (below), every object linked in; an object
@@ -501,7 +501,7 @@ if(WIN32)
                    src/engine/data/map_folder.cpp src/lib/png.cpp src/game/effects/weather_field.cpp src/engine/core/buffer.cpp src/engine/core/coder.cpp
                    tests/unit/figure_gltf.cpp src/engine/models/figure_gltf.cpp src/engine/models/figure_gltf_animation.cpp src/lib/json.cpp src/lib/vecmath.cpp tests/unit/lua_number.cpp
                    tests/unit/particle_record.cpp src/engine/particles/particle_expr.cpp src/engine/particles/particle_record.cpp src/engine/core/random.cpp src/lib/crt.cpp
-                   src/audio/audio.cpp src/engine/data/settings_document.cpp src/engine/core/core_streams.cpp src/engine/data/ini_file.cpp
+                   src/audio/audio.cpp src/game/app/settings_document.cpp src/engine/core/core_streams.cpp src/engine/data/ini_file.cpp
                    src/game/saves/save_picture.cpp src/lib/qoi.cpp src/engine/core/asset_text.cpp src/lib/hash_map.cpp src/lib/ipv4.cpp
                    src/lib/text_case.cpp src/lib/calendar.cpp src/lib/str.cpp src/lib/crt_format.cpp
                    tests/unit/spell_behaviour.cpp src/game/spells/spell_behaviour.cpp
@@ -538,7 +538,7 @@ else()
     # window's present after resizes, read back from the X server.
     enable_testing()
     add_executable(ei_port_check tests/port/port_check.cpp src/lib/text_case.cpp src/lib/calendar.cpp src/lib/ipv4.cpp src/lib/str.cpp src/lib/crt_format.cpp
-                   src/engine/data/settings_document.cpp tests/unit/settings_file.cpp tests/unit/ini_file.cpp
+                   src/game/app/settings_document.cpp tests/unit/settings_file.cpp tests/unit/ini_file.cpp
                    tests/unit/ipv4.cpp tests/unit/maths.cpp tests/unit/save_picture.cpp tests/unit/audio_mix.cpp
                    tests/unit/display_sizes.cpp tests/unit/path_layers.cpp tests/unit/mod_hash.cpp src/engine/mods/mod_hash.cpp tests/unit/weather_field.cpp tests/unit/toml.cpp src/lib/toml.cpp tests/unit/texture_png.cpp src/engine/models/texture_png.cpp src/game/effects/weather_field.cpp src/audio/audio.cpp src/engine/data/ini_file.cpp src/engine/core/asset_text.cpp src/game/saves/save_picture.cpp src/lib/qoi.cpp src/video/bink_file.cpp
                    tests/unit/map_folder.cpp src/engine/data/map_folder.cpp src/lib/png.cpp

@@ -3,7 +3,7 @@
 // (render/render_state.h) and the scene pipeline's matrix stacks (g_sceneRenderer.pipeline) in the original's
 // order.
 #include "game/world/object_order.h"
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 #include "game/effects/effects.h"
 #include "engine/models/figure_manager.h"
 #include "game/world/frame_lists.h"
@@ -17,7 +17,7 @@
 #include "engine/scene/scene_renderer.h"
 #include "engine/scene/pipeline.h"
 #include "game/net/net_session.h"
-#include "engine/data/options.h"
+#include "game/app/options.h"
 #include "render/render.h"
 #include "render/render_state.h"
 #include "engine/scene/renderer_lines.h"

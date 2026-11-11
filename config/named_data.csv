@@ -72,8 +72,8 @@ address,size,name,file
 00794E3C,4,g_nextRecordObjectId,src/game/players/player_server_handlers.cpp
 0079AE60,348,kPow10Positive,src/lib/crt_format.cpp
 0079AFC0,348,kPow10Negative,src/lib/crt_format.cpp
-0079B5B8,16,kIdentityRotation,src/engine/scene/camera.h
-0079B5C8,12,kZeroVector,src/engine/scene/camera.h
+0079B5B8,16,kIdentityRotation,src/game/world/camera.h
+0079B5C8,12,kZeroVector,src/game/world/camera.h
 0079B5D8,4,g_gameClient,src/game/net/net_session.h
 0079B5DC,4,g_gameServer,src/game/net/net_session.h
 0079B604,4,g_lastPumpTime,src/game/net/net_session.cpp

@@ -5,7 +5,7 @@
 #include "../../../src/platform/log.h"
 
 #include "game/app/app.h"
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 #include "game/console/console.h"
 #include "engine/core/core_streams.h"
 #include "engine/core/program_window.h"
@@ -25,7 +25,7 @@
 #include "engine/models/texture.h"
 #include "game/map/map_database.h"
 #include "engine/data/text_manager.h"
-#include "engine/data/options.h"
+#include "game/app/options.h"
 #include "game/players/party.h"
 #include "game/players/party_manager.h"
 #include "game/players/player_client.h"
@@ -740,11 +740,12 @@ CameraView ViewCamera() {
     terrain::Terrain* ground = g_clientWorld.terrain.get();
     if (!ground) return view;
     const auto above = [ground](const Vector3& p) { return p.z - ground->CalmSurfaceHeight(p.x, p.y); };
-    const float slope = std::tan(c.fieldOfView * 0.5f);
-    const float halfX = c.nearDistance * slope / g_sceneRenderer.axisScale;
-    const float halfY = c.nearDistance * slope / (4.0f / 3.0f * g_sceneRenderer.axisScaleY);
+    const SceneView& projection = g_sceneRenderer.view;
+    const float slope = std::tan(projection.fieldOfView * 0.5f);
+    const float halfX = projection.nearDistance * slope / projection.axisScale;
+    const float halfY = projection.nearDistance * slope / (4.0f / 3.0f * projection.axisScaleY);
     const Vector3 across = drawn.rotation.AxisX(), up = drawn.rotation.AxisY();
-    const Vector3 centre = drawn.position + drawn.rotation.AxisZ() * c.nearDistance;
+    const Vector3 centre = drawn.position + drawn.rotation.AxisZ() * projection.nearDistance;
     float least = above(drawn.position);
     for (int i = -4; i <= 4; ++i)
         for (int j = -4; j <= 4; ++j)

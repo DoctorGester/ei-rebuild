@@ -3,13 +3,12 @@
 // matrix stacks (projection, viewport, the fixed axis swap and their products), sets the pipeline's viewport,
 // the render state (render/render_state.h), a default light and the ambient colour, and creates
 // the counted helper object. Runs once at start-up. See docs/notes/models.md ("Renderer creation").
-#include "engine/scene/camera.h"
 #include "game/app/singletons.h"
 #include "engine/scene/device.h"
 #include "engine/scene/scene_renderer.h"   // SceneRenderer
 #include "engine/scene/pipeline.h"
 #include "engine/scene/render_helper.h"
-#include "engine/data/options.h"
+#include "engine/core/engine_globals.h"
 #include "render/render_state.h"
 #include "engine/scene/light.h"
 #include "game/world/world.h"
@@ -20,8 +19,6 @@
 #include <bit>
 #include <cstdint>
 #include <cstring>
-
-using options::GameOptions;
 
 Matrix4* AxisSwapMatrix(Matrix4*);
 namespace {
@@ -84,10 +81,10 @@ void FillScreenStacks(SceneRenderer* renderer) {
 void FillMatrixStacks(SceneRenderer* renderer) {
     TransformPipeline* pipeline = renderer->pipeline;
     MatrixStack* stacks = pipeline->stacks;
-    // The camera's near distance and field of view.
-    const Camera* cam = &g_camera;
+    // The view's near distance and field of view.
+    const SceneView& view = renderer->view;
     Matrix4 m;
-    ProjectionMatrix(&m, cam->fieldOfView, camera::kAspect, cam->nearDistance);
+    ProjectionMatrix(&m, view.fieldOfView, SceneView::kAspect, view.nearDistance);
     StackPush(stacks[kProjection], &m);
     FillScreenStacks(renderer);
     // The distance fog's depth from a clip w (w is the projection's m[14] times the depth).
@@ -150,11 +147,11 @@ void SceneRenderer::AddDefaultLight() {
     SetSun(light);
 }
 
-void SceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
+void SceneRenderer::CreateRenderer(void* window) {
     render::g_renderState = {};   // a new device's
     CreatePipeline();
-    TextureDevice* newDevice = new TextureDevice(window, settings->fullScreen != 0,
-                                                settings->resolutionX, settings->resolutionY);
+    TextureDevice* newDevice = new TextureDevice(window, g_engineConfig.fullScreen, g_engineConfig.resolutionX,
+                                                g_engineConfig.resolutionY);
     device.Assign(newDevice);
     DeviceSetPipeline(&device->pipeline, pipeline);
 

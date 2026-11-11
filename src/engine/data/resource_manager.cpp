@@ -17,6 +17,9 @@ void CloseAll(std::vector<ArchiveEntry>& archives) {
 
 } // namespace
 
+// The engine's config (engine_globals.h; app/main_loop.cpp fills it).
+EngineConfig g_engineConfig;
+
 // The game's folders (engine_globals.h; app/app.cpp sets them).
 std::string g_startFolder;
 std::string g_textFolder;

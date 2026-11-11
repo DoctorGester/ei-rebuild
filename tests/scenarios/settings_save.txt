@@ -1,4 +1,4 @@
-# The image's options save into its settings file (src/engine/data/settings.cpp). The run's ei_settings.ini is not read
+# The image's options save into its settings file (src/game/app/settings.cpp). The run's ei_settings.ini is not read
 # only (tests/verify/harness_settings.h): it is written from the registry snapshot, with a probe section of odd values
 # (quotes, spaces at the ends, '=' and ';' inside, UTF-8, an empty value) and a comment, and the game's exit save
 # (WinMain's GameOptions::Save; settings::Save writes the file when a value changed, to ei_settings.ini.tmp and

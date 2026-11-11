@@ -1,9 +1,9 @@
 // The options loader and writer. See options.h.
 // Every value is read from the settings file in the game's order; a value that is missing takes its catalog row's
 // default (settings_catalog.inc).
-#include "engine/data/options.h"
+#include "game/app/options.h"
 
-#include "engine/data/settings.h"
+#include "game/app/settings.h"
 
 #include "lib/str.h"
 

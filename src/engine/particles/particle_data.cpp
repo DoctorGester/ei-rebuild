@@ -8,7 +8,6 @@
 #include "engine/core/engine_globals.h"
 #include "engine/core/random.h"
 #include "engine/data/resource.h"
-#include "engine/scene/camera.h"
 #include "engine/scene/light.h"
 #include "engine/scene/scene_renderer.h"
 
@@ -242,7 +241,7 @@ void WriteBack(ParticleSource& s, int which, float value) {
 void ApplyActions(ParticleSource& s, State& state) {
     for (const int written : state.sourceWrites) WriteBack(s, written, state.source[written]);
     state.sourceWrites.clear();
-    for (const ShakeRequest& shake : state.shakes) g_camera.Shake(s.origin, shake.time, shake.strength, shake.decay);
+    for (const ShakeRequest& shake : state.shakes) particlehost::ShakeCamera(s.origin, shake.time, shake.strength, shake.decay);
     state.shakes.clear();
     // The angle is the client's generator's (the original drew it there).
     for (const ScorchRequest& scorch : state.scorches) {

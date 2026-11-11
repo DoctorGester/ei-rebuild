@@ -20,7 +20,7 @@
 #include "game/net/net_link.h"   // netlink::NetLink: the world handle's pending link
 #include "game/world/hoover.h"     // Hoover
 #include "game/world/diplomacy.h"
-#include "engine/data/options.h"
+#include "game/app/options.h"
 #include "game/players/player_manager.h"
 #include "engine/core/random.h"
 #include "engine/data/registry.h"

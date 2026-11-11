@@ -4,7 +4,7 @@
 #include "game/app/movies.h"
 #include "game/console/console.h"
 #include "game/app/singletons.h"
-#include "engine/data/options.h"
+#include "game/app/options.h"
 #include "engine/data/text_manager.h"
 #include "game/ui/ui.h"
 #include "game/ui/ui_hud.h"

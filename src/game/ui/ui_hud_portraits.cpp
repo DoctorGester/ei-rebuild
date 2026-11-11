@@ -4,7 +4,7 @@
 // the face model's easing towards its rest orientation with an occasional random nod, shake or turn, and the marker
 // under the selected unit's portrait. See docs/notes/ui.md, section 7.
 #include "game/ui/ui_hud.h"
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 #include "game/app/singletons.h"
 #include "game/net/net_session.h"
 #include "game/net/net_messages.h"
