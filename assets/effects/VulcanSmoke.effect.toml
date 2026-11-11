@@ -23,18 +23,15 @@ max = 400
 name = "drop"
 when = "chance(60)"
 lifetime = 128
-vars = { lift = "range(0, spread_min.y * 0.5 - spread_min.y * -0.5) + spread_max.y + origin.z + spread_min.y * -0.5", angle = "range(0, deg * 360)", growth = "growth" }
-position = ["origin.x", "origin.y", "p.lift"]
-velocity = ["sin(p.angle) * spread_min.x", "cos(p.angle) * spread_min.x", 0]
-drag = 0.965
-size = { start = "size", growth = "p.growth" }
+position = "origin + vec3(0, 0, spread_max.y + range(-0.5, 0.5) * spread_min.y)"
+velocity = { start = "circle(range(0, 2 * pi)) * spread_min.x", tick = "p.velocity * 0.965" }
+size = { start = "size", tick = "p.size * growth" }
 frame = { start = 0, delay = 8, mode = "die" }
 
 [[particle]]
 name = "smoke"
 lifetime = 64
-vars = { reach = "range(0, spread_max.x)", angle = "range(0, deg * 360)" }
-position = ["sin(p.angle) * p.reach + origin.x", "cos(p.angle) * p.reach + origin.y", "origin.z"]
-velocity = [0, 0, "height"]
-size = { start = "size * 0.3", growth = 1.02 }
+position = "origin + circle(range(0, 2 * pi)) * range(0, spread_max.x)"
+velocity = "vec3(0, 0, height)"
+size = { start = "size * 0.3", tick = "p.size * 1.02" }
 frame = { start = 0, delay = 4, mode = "die" }

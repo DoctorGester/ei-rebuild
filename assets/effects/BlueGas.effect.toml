@@ -29,22 +29,13 @@ set_up = { start = "emitting && attached", tick = "set_up || (emitting && attach
 [[particle]]
 name = "puff"
 lifetime = 45
-velocity = [0, 0, "range(gas_height * 0.02, gas_height * 0.03)"]   # the rise (grows by the drag after the move)
-drag = 1.02
+position = { tick = "p.axis + p.out" }
 size = { start = "gas_radius * 0.7", tick = "p.size * 1.01" }
 alpha = { tick = "45 - p.age < 8 ? (p.alpha >= 32 ? p.alpha - 32 : p.alpha + 224) : p.alpha" }   # the original's byte sum
 frame = { start = 0, delay = 3, mode = "die" }
 
 [particle.vars]
-r = "range(0, gas_radius)"                      # out from the axis (its turn a tick: r * 0.3 / gas_radius)
-angle = "range(0, pi + pi)"
-last_x = { start = 0, tick = "p.x_off" }        # the offset from the axis before this tick's turn
-last_y = { start = 0, tick = "p.y_off" }
-last_z = { start = 0, tick = "p.z_off" }
-x_off = { start = "sin(p.angle) * p.r", tick = "cos(p.r * 0.3 / gas_radius) * p.last_x - p.last_y * sin(p.r * 0.3 / gas_radius)" }
-y_off = { start = "cos(p.angle) * p.r", tick = "p.last_x * sin(p.r * 0.3 / gas_radius) + p.last_y * cos(p.r * 0.3 / gas_radius)" }
-z_off = { start = "range(gas_radius * -0.3, gas_radius * 0.3)", tick = "p.vz + p.last_z" }
-
-[particle.position]
-start = ["origin.x + 0 + p.x_off", "origin.y + 0 + p.y_off", "origin.z + gas_z + p.z_off"]
-tick = ["p.x - p.last_x + p.x_off", "p.y - p.last_y + p.y_off", "p.z - p.last_z + p.z_off"]
+r = "range(0, gas_radius)"                      # out from the axis: its turn a tick is r * 0.3 / gas_radius
+axis = "origin + vec3(0, 0, gas_z)"             # the point of the axis it turns about
+out = { start = "circle(range(0, 2 * pi)) * p.r + vec3(0, 0, range(gas_radius * -0.3, gas_radius * 0.3))", tick = "vec3(cos(p.r * 0.3 / gas_radius) * p.out.x - p.out.y * sin(p.r * 0.3 / gas_radius), p.out.x * sin(p.r * 0.3 / gas_radius) + p.out.y * cos(p.r * 0.3 / gas_radius), p.out.z + p.rise)" }
+rise = { start = "range(gas_height * 0.02, gas_height * 0.03)", tick = "p.rise * 1.02" }   # grows by 1.02 a tick

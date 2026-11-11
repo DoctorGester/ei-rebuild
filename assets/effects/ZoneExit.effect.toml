@@ -18,20 +18,20 @@ max = 600
 
 [vars]
 tries = { start = 10, tick = "total > seen ? min(round(seen_alpha * seen_param), 40) : tries" }
-seen = { start = 0, tick = "total" }                    # the particles emitted before this tick
-seen_alpha = { start = "alpha", tick = "alpha" }        # the half extents those were emitted at
-seen_param = { start = "param", tick = "param" }
+seen = { tick = "total" }                       # the particles emitted before this tick
+seen_alpha = { tick = "alpha" }                 # the half extents those were emitted at
+seen_param = { tick = "param" }
 
 [[particle]]
 name = "spark"
 lifetime = 16                                   # 15 shown, as the original counts down past 0
-vars = { cell = "pick(16)", a = "range(-1, 1)", b = "range(-1, 1)", grown = "(below(0.6) + 0.7) * (1.9 - p.a * p.a - p.b * p.b) * 0.05", red = "extent.x != 0" }
-position = { start = ["p.a * alpha * turn_cos + origin.x - p.b * turn_sin * param", "turn_sin * alpha * p.a + p.b * turn_cos * param + origin.y", 0], tick = ["p.x", "p.y", "p.z + 0.05"] }
-spawn = { on_ground = 0.1 }
-size = { start = 0, tick = "p.grown" }
-color = [255, "p.red ? 96 : 255", "p.red ? 96 : 255"]
+vars = { a = "range(-1, 1)", b = "range(-1, 1)" }   # its place along the ellipse's axes
+position = "on_ground(origin + vec3(p.a * alpha * turn_cos - p.b * param * turn_sin, p.a * alpha * turn_sin + p.b * param * turn_cos, 0), 0.1)"
+velocity = "vec3(0, 0, 0.05)"
+size = { start = 0, tick = "p.age == 1 ? (below(0.6) + 0.7) * (1.9 - p.a * p.a - p.b * p.b) * 0.05 : p.size" }
+color = "extent.x != 0 ? vec3(255, 96, 96) : 255"
 alpha = { start = 0, tick = "fade[p.life]" }
-frame = { start = "p.cell", tick = "p.frame - p.frame % 4 + (p.frame + 1) % 4" }
+frame = { start = "pick(16)", tick = "p.frame - p.frame % 4 + (p.frame + 1) % 4" }
 
 [tables]
 fade = [0, 80, 176, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 128, 64]

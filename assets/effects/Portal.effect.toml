@@ -17,33 +17,28 @@ max = 800
 name = "glow"
 when = "count == 0"
 lifetime = 2147483647                           # lasts while the source emits
-position = ["origin.x", "origin.y", "8 * 0.8 + origin.z"]
-size = { start = 0, tick = "!emitting ? p.size : (size < 1 ? 0 : below(0.4) * 1.5 + 1.2)" }
+position = "origin + vec3(0, 0, 6.4)"
+size = { start = 0, tick = "size < 1 ? 0 : below(0.4) * 1.5 + 1.2" }
 alpha = 96
 frame = 15
 kill = "!emitting"
 
 [[particle]]
 name = "spark"
-lifetime = 2147483647                           # until it has climbed 8 (out)
-# The rise rate is the velocity's z (growing by the drag after the move), spread = (u + 1) * u * 0.5.
-velocity = [0, 0, "(1 - (p.u + 1) * p.u * 0.5 + 3) * 2.5 * 0.015"]
-drag = 1.03
-size = { start = 0, tick = "p.out == 1 ? 0 : (2 - (p.u + 1) * p.u * 0.5) * 0.3" }
-alpha = { start = 64, tick = "p.out == 1 ? 0 : min(floor((round((8 - (size * p.vz + p.z - origin.z)) * 25) + 55) / 4), 64)" }
-frame = { start = "p.cell", tick = "p.age % 3 != 0 ? p.frame : (p.frame + 1 == 4 ? 0 : (p.frame + 1 == 15 ? 4 : p.frame + 1))" }
-kill = "p.out == 2"
+lifetime = 2147483647                           # until it has climbed 8
+# Its rate of rise is the velocity's z (growing by 1.03 a tick), times the source's size.
+velocity = { start = "vec3(0, 0, (4 - p.spread) * 0.0375)", tick = "p.velocity * 1.03" }
+size = { start = 0, tick = "(2 - p.spread) * 0.3" }
+alpha = { start = 64, tick = "min(floor((round((8 - (p.position.z + size * p.velocity.z - origin.z)) * 25) + 55) / 4), 64)" }
+frame = { start = "p.spin > 0 ? pick(11) + 4 : pick(4)", tick = "p.age % 3 != 0 ? p.frame : (p.frame + 1 == 4 ? 0 : (p.frame + 1 == 15 ? 4 : p.frame + 1))" }
+kill = "p.position.z + size * p.velocity.z - origin.z > 8"
 
 [particle.vars]
 u = "range(0, 1)"
-angle = "range(0, 6.2832)"
-spin = "range(0, 1) > (p.u + 1) * p.u * 0.5 ? 0.1 : -0.1"   # the turn a tick
-cell = "p.spin > 0 ? pick(11) + 4 : pick(4)"
-next_x = { start = 0, tick = "p.off_y * sin(p.spin) + cos(p.spin) * p.off_x" }
-off_y = { start = "cos(p.angle) * ((p.u + 1) * p.u * 0.5 * 2.5)", tick = "p.off_y * cos(p.spin) - p.off_x * sin(p.spin)" }
-off_x = { start = "sin(p.angle) * ((p.u + 1) * p.u * 0.5 * 2.5)", tick = "p.next_x" }
-out = { start = 0, tick = "p.out != 0 ? 2 : (size * p.vz + p.z - origin.z > 8 ? 1 : 0)" }   # 1: climbed out, 2: gone
+spread = "(p.u + 1) * p.u * 0.5"                # out from the axis, a part of 2.5
+spin = "range(0, 1) > p.spread ? 0.1 : -0.1"    # the turn a tick
+out = { start = "circle(range(0, 2 * pi)) * (p.spread * 2.5)", tick = "vec3(p.out.x * cos(p.spin) + p.out.y * sin(p.spin), p.out.y * cos(p.spin) - p.out.x * sin(p.spin), 0)" }
 
 [particle.position]
-start = ["p.off_x + origin.x", "p.off_y + origin.y", "range(-0.5, 0.5) * ((1 - (p.u + 1) * p.u * 0.5 + 3) * 2.5 * 0.015) + origin.z"]
-tick = ["p.next_x + origin.x", "p.off_y + origin.y", "size * p.vz + p.z"]
+start = "origin + p.out + vec3(0, 0, range(-0.5, 0.5) * (4 - p.spread) * 0.0375)"
+tick = "vec3(origin.xy + p.out.xy, p.position.z + size * p.velocity.z)"

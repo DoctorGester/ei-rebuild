@@ -1,18 +1,15 @@
-# CampFire (0x2001): the smoke of a camp fire. Puffs at random points of the spread box (two in five half the size and
-# spread wider by 0.3 of it), half of their offset taken at once and the other half over their first two frames, at a
-# random height up to the source's height. They rise by that height a tick (halved at frame 8), grow by the source's
-# growth to frame 7, then by 1.06 while the wind carries them. A frame a tick to frame 8, then one every four ticks,
-# each with a chance of one in four to end the puff; 32 ticks at most.
-# Fire's puffs (Fire.effect.toml) going on past their eighth frame: the roll (before the rise, which reads it) ends one.
+# CampFire (0x2001): the smoke of a camp fire. Fire's puffs (Fire.effect.toml) going on past their eighth frame: from
+# there a frame every four ticks, each with a chance of one in four to end the puff, rising at half the speed; 32 ticks
+# at most.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
 like = "Fire"
 
 [[particle]]
 name = "puff"
-kill = "p.age == 32 || (p.stepped && (p.frame + 1 >= 15 || (p.frame + 1 > 7 && p.roll == 0)))"
+lifetime = 32
+frame = { delay = "p.frame < 7 ? 1 : 4" }
+kill = "p.age >= 8 && p.age % 4 == 0 && pick(4) == 0"
 
 [particle.vars]
-timer = { tick = "p.age == 32 ? p.timer : (p.stepped ? (p.frame + 1 >= 15 ? 0 : (p.frame + 1 > 7 ? 4 : 1)) : p.timer - 1)" }
-roll = { start = 1, tick = "p.stepped && p.frame + 1 < 15 && p.frame + 1 > 7 ? pick(4) : 1", before = "rise" }   # 0 ends the puff
-rise = { start = "height", tick = "p.stepped && p.frame + 1 == 8 && p.roll != 0 ? p.rise * 0.5 : p.rise" }
+rise = { start = "height", tick = "p.age == 8 ? p.rise * 0.5 : p.rise" }

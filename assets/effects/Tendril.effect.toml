@@ -3,46 +3,17 @@
 # unit of the extent's length, at least 6, at most 93.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
-texture = "TendriSmoke"
-frames = 15
-
-[source]
-size = 0.8
-height = 0.3
-growth = 0.85
-spread_min = [-0.2, -0.2, 0]
-spread_max = [0.2, 0.2, 0]
+like = "Fire"
 
 [emit]
-rate = "!(density >= 6) || density >= 2147483648 ? 6 : min(floor(density), 93)"   # the original's int: 6 when unordered
-chance = 88
+rate = "clamp(floor(length(extent) * 14.285714), 6, 93)"
 max = 1500
-
-[vars]
-density = { start = "sqrt(extent.x * extent.x + extent.y * extent.y + extent.z * extent.z) * 14.285714", tick = "sqrt(extent.x * extent.x + extent.y * extent.y + extent.z * extent.z) * 14.285714" }
 
 [[particle]]
 name = "puff"
-lifetime = 2147483647                           # 32 ticks by its age (kill)
-spawn = { on_ground = "p.z0 - origin.z" }
-size = { start = "p.small ? size * 0.5 : size", tick = "(p.stepped ? p.frame + 1 : p.frame) < 7 ? growth * p.size : p.size * 1.06" }
-frame = { start = 0, tick = "p.age != 32 && p.timer == 1 ? p.frame + 1 : p.frame" }
-kill = "p.age == 32 || (p.stepped && p.frame + 1 > 7)"
 
 [particle.vars]
-small = "chance(40)"
-sx = "range(spread_min.x - (p.small ? size * 0.3 : 0), (p.small ? size * 0.3 : 0) + spread_max.x) * 0.5"
-sy = "range(spread_min.y - (p.small ? size * 0.3 : 0), (p.small ? size * 0.3 : 0) + spread_max.y) * 0.5"
-z0 = "range(0, height) + origin.z"
 along = "range(-1, 1)"                           # the part of the wall
-stepped = { start = 0, tick = "p.age != 32 && p.timer == 1" }          # the frame steps this tick
-timer = { start = 1, tick = "p.age == 32 ? p.timer : (p.stepped ? (p.frame + 1 >= 15 ? 0 : 1) : p.timer - 1)" }
-rise = "height"
 
 [particle.position]
-start = ["p.along * extent.x + (origin.x + p.sx)", "p.along * extent.y + (origin.y + p.sy)", 0]
-tick = [
-    "(p.stepped ? p.frame + 1 : p.frame) < 2 ? p.x + p.sx : ((p.stepped ? p.frame + 1 : p.frame) < 7 ? p.x : p.x + p.size * 1.06 * wind_strength * 0.15 * wind.x)",
-    "(p.stepped ? p.frame + 1 : p.frame) < 2 ? p.y + p.sy : ((p.stepped ? p.frame + 1 : p.frame) < 7 ? p.y : p.y + p.size * 1.06 * wind_strength * 0.15 * wind.y)",
-    "(p.stepped ? p.frame + 1 : p.frame) < 2 ? p.z + p.rise + 0 : ((p.stepped ? p.frame + 1 : p.frame) < 7 ? p.z + p.rise : p.z + p.rise + p.size * 1.06 * wind_strength * 0.15 * wind.z)",
-]
+start = "on_ground(origin + p.half + p.along * vec3(extent.xy, 0), range(0, height))"

@@ -21,22 +21,19 @@ once = true
 [[particle]]
 name = "flash"
 when = "count == 0"
-lifetime = 2147483647                           # lasts until it has shown once
-size = { start = 0, tick = "p.size == 0 ? (below(0.4) + 0.8) * size * 0.55 : p.size" }
-kill = "p.size != 0"
+lifetime = 2                                    # shown once
+size = { start = 0, tick = "(below(0.4) + 0.8) * size * 0.55" }
 
 [[particle]]
 name = "spark"
 lifetime = 7                                    # 6 shown, as the original counts down past 0
-# The speed is drawn before the direction (a point of the unit ball, normalised), the part of the first step after it.
-vars = { speed = "below(0.6) + 0.8", dx = { start = "p.spawn.x / sqrt(p.spawn.x * p.spawn.x + p.spawn.y * p.spawn.y + p.spawn.z * p.spawn.z) * (p.speed * size * p.speed * 0.2)", after_spawn = true }, dy = { start = "p.spawn.y / sqrt(p.spawn.x * p.spawn.x + p.spawn.y * p.spawn.y + p.spawn.z * p.spawn.z) * (p.speed * size * p.speed * 0.2)", after_spawn = true }, dz = { start = "p.spawn.z / sqrt(p.spawn.x * p.spawn.x + p.spawn.y * p.spawn.y + p.spawn.z * p.spawn.z) * (p.speed * size * p.speed * 0.2)", after_spawn = true }, along = { start = "range(0, 1)", after_spawn = true } }
-spawn = { shape = "ball" }
-position = ["p.along * p.dx + origin.x", "p.along * p.dy + origin.y", "p.along * p.dz + origin.z"]
-velocity = ["p.dx", "p.dy", "p.dz"]
-drag = 0.6
-size = { start = "(below(0.4) + 0.8) * size * 0.2", growth = 0.9 }
+spawn = "ball()"                                # its direction
+vars = { speed = "below(0.6) + 0.8", step = "normalize(p.spawn) * (p.speed * size * p.speed * 0.2)" }
+position = "origin + p.step * range(0, 1)"
+velocity = { start = "p.step", tick = "p.velocity * 0.6" }
+size = { start = "(below(0.4) + 0.8) * size * 0.2", tick = "p.size * 0.9" }
 alpha = { tick = "fade[p.life - 1]" }
-frame = { start = "pick(3) + 1", tick = "p.frame + 1" }
+frame = { start = "pick(3) + 1", delay = 1 }
 
 [tables]
 fade = [0, 64, 128, 255, 255, 255, 255, 255]

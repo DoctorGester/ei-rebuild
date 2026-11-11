@@ -1,10 +1,9 @@
 # Teleport (0x2019): the sparks of a teleport. Each starts at a random point of the disc of the size (denser near the
 # edge), a little below the source, lifted by its first step. A positive size sends them out: opaque, fading by 19 a
-# tick (the alpha as the original's unsigned sum, capped at 255: below 19 it jumps back to opaque), the step growing by
-# 1.2 a tick; a negative one brings them in: clear, fading in by 19, the step shrinking by 1/1.2. Frames 0-3 cycle and
-# 4-15 run on back to 4; hidden in their last tick. 20 sparks a tick for 35 ticks.
-# A spark counts its own ticks: the update the original still gives a spark after its end (effects.md, "Kept") moves
-# it, so the end is a `kill` at age 14 that changes nothing, and that last update runs as the original's.
+# tick (the alpha as the original's unsigned sum, capped at 255: below 19 it jumps back to opaque), the step a fifth
+# of the first and growing by 1.2 a tick; a negative one brings them in: clear, fading in by 19, the step a sixth of
+# the first back down and shrinking by 1/1.2. Frames 0-3 cycle and 4-15 run on back to 4; hidden in their last tick.
+# 20 sparks a tick for 35 ticks, each 13 ticks.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
 texture = "Teleport"
@@ -24,22 +23,16 @@ do = [{ stop_emitting = true }]
 
 [[particle]]
 name = "spark"
-lifetime = 16                                   # 13 shown, its end at 14 and the original's update after it
-# The step is the velocity's z; spread = (u + 1) * u * 0.5.
-velocity = [0, 0, "p.out ? (1 - (p.u + 1) * p.u * 0.5 + 3) * abs(size) * 0.15 : (1 - (p.u + 1) * p.u * 0.5 + 3) * abs(size) * 2.25"]
-drag = "p.age == 14 ? 1 : (p.out ? 1.2 : 0.8333333)"
-size = { start = 0, tick = "p.age == 13 ? 0 : (2 - (p.u + 1) * p.u * 0.5) * 0.2" }
+lifetime = 14
+position = "origin + circle(range(0, 2 * pi)) * (abs(size) * p.spread) + vec3(0, 0, p.step + range(-0.4, -0.2) * abs(size))"
+velocity = { start = "vec3(0, 0, p.step * (p.grow - 1))", tick = "p.velocity * p.grow" }
+size = { start = 0, tick = "p.age == 13 ? 0 : (2 - p.spread) * 0.2" }
 alpha = { start = "p.out ? 255 : 0", tick = "p.out ? (p.alpha >= 19 ? p.alpha - 19 : 255) : min(p.alpha + 19, 255)" }
-frame = { start = "p.cell", tick = "p.frame + 1 == 4 ? 0 : (p.frame + 1 == 16 ? 4 : p.frame + 1)" }
-kill = "p.age == 14"
+frame = { start = "range(0, 1) > p.spread ? pick(12) + 4 : pick(4)", tick = "p.frame + 1 == 4 ? 0 : (p.frame + 1 == 16 ? 4 : p.frame + 1)" }
 
 [particle.vars]
 u = "range(0, 1)"
-angle = "range(0, 6.2832)"
-low = "range(-0.4, -0.2)"                       # below the source, times the size
-cell = "range(0, 1) > (p.u + 1) * p.u * 0.5 ? pick(12) + 4 : pick(4)"
+spread = "(p.u + 1) * p.u * 0.5"                # out from the axis, a part of the size
 out = "size > 0"
-
-[particle.position]
-start = ["sin(p.angle) * (abs(size) * ((p.u + 1) * p.u * 0.5)) + origin.x", "cos(p.angle) * (abs(size) * ((p.u + 1) * p.u * 0.5)) + origin.y", "(p.out ? (1 - (p.u + 1) * p.u * 0.5 + 3) * abs(size) * 0.15 : (1 - (p.u + 1) * p.u * 0.5 + 3) * abs(size) * 2.25) + (p.low * abs(size) + origin.z)"]
-tick = ["p.x", "p.y", "(p.out ? 1.2 : 0.8333333) * p.vz + (p.z - p.vz)"]
+step = "(4 - p.spread) * abs(size) * (p.out ? 0.15 : 2.25)"   # the first step up
+grow = "p.out ? 1.2 : 0.8333333"
