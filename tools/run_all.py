@@ -61,6 +61,7 @@ exit code: 0 when every run passed
 A run that outlives the scenario's time limit ("timeout <seconds>", default 60 s) is reported as TIMEOUT: the
 game's watchdog ends it at the limit, launch() LIMIT_MARGIN_S later if the watchdog could not.
 A scenario with a line "# expect: TIMEOUT" passes when it times out (tests/scenarios/watchdog_*.txt check this).
+A line "# arguments: <words>" starts the exe with those arguments (effect_viewer_standalone.txt: --effects).
 """
 import argparse, atexit, functools, collections, concurrent.futures, contextlib, glob, hashlib, json, os, re, shutil, struct, subprocess, sys, tempfile, threading, time
 
@@ -313,6 +314,20 @@ def scenario_limit(scenario, environ=None):
     return int(limit * time_scale(environ))
 
 
+ARGUMENTS_PREFIX = '# arguments:'
+
+
+def scenario_arguments(scenario):
+    """The exe's arguments a scenario's line "# arguments: <words>" gives (effect_viewer_standalone.txt: --effects), else
+    none: [words]."""
+    with contextlib.suppress(OSError):
+        with open(scenario, encoding='utf-8', errors='replace') as f:
+            for text in f:
+                if text.startswith(ARGUMENTS_PREFIX):
+                    return text[len(ARGUMENTS_PREFIX):].split()
+    return []
+
+
 def expected_result(scenario):
     """The result a scenario's line "# expect: <RESULT>" says it ends with (watchdog_*.txt: TIMEOUT), else None."""
     with contextlib.suppress(OSError):
@@ -485,7 +500,8 @@ def launch(scenario, out, data, build, env=None, command=None):
                 game_env['EI_PAIR'] = f'{pair},{side}'
             outputs.append(open(os.path.join(game.out, 'launch.txt'), 'wb'))
             try:
-                game.proc = group.start(command or [os.path.join(build, EXE)], game_root, game_env, outputs[-1])
+                game.proc = group.start(command or [os.path.join(build, EXE), *scenario_arguments(game.scenario)],
+                                        game_root, game_env, outputs[-1])
             except OSError as e:
                 said.append(f'cannot start {game.label}{os.path.join(build, EXE)}: {e}')
                 break

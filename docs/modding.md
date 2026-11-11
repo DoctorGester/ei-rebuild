@@ -689,8 +689,12 @@ frame = { start = "pick(16)", delay = 1 }
 
 ### The effect viewer
 
-`ei-rebuild --effects [<effect>]` starts the game with a panel on its left. Start a new game, or load a save, to get a
-world and a hero to play effects on. The panel lists:
+`ei-rebuild --effects [<effect>] [--zone <zone>]` starts straight in a new game, with a panel on its left. There are
+no start movies and no main menu. The game folder and your mod are loaded as the game loads them. The scene is the
+campaign's first island with your hero, or the battle zone you name (`--zone zone3`, a name from the map list). The
+hero is the unit effects go on. The camera is the game's, so you can scroll, turn and zoom it freely. `<effect>`, when
+you give one, plays at once. This game never autosaves, so your `savea` stays as it was. The game's menu (Esc) still
+works: load a save there to play effects in its world. The panel lists:
 - the 83 original effect types, marked `data` when they run from a built-in file and `code` when they still run from
   the game's code;
 - your mod's `Res\effects` files, marked `mod`.

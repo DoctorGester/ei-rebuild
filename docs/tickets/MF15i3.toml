@@ -4,3 +4,5 @@ group = "mods"
 size = 2
 note = "User 2026-11-11 expected the effect viewer as a standalone tool. Add an ei-effects exe (same libraries, a thin entry point; or ei-rebuild --effects going straight in) that starts with no menu and no new game: the install and mods loaded as the game does, a small viewer scene (a flat ground or a chosen map, one unit to attach effects to, a free camera), the panel open. Keep the in-game panel working as well (the harness drives it). Docs: docs/modding.md 'The effect viewer', docs/notes/effects.md. The release after the mods tickets ships it as a tool."
 order = 1382
+status = "review"
+started = "2026-11-11"

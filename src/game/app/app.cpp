@@ -6,6 +6,7 @@
 #include "game/app/options.h"
 #include "game/app/present_window.h"
 #include "game/app/singletons.h"
+#include "game/app/tool_hooks.h"
 #include "game/core/asset_text.h"
 #include "game/scene/device.h"
 #include "game/scene/scene_renderer.h"
@@ -176,6 +177,7 @@ void PumpMessages() {
 void StartFirstMap() {
     if (g_commandLineMob.empty()) {
         g_gameFlow.CloseSessions();
+        if (g_toolScene.newGame) g_gameFlow.RequestState3();
         MenuOpen(&g_gameFlow);
         return;
     }

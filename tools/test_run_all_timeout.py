@@ -37,6 +37,12 @@ class Limits(unittest.TestCase):
             self.assertIsNone(run_all.expected_result(scenario_file(d, 'quit\n')))
             self.assertEqual(run_all.expected_result(scenario_file(d, '# x\n# expect: TIMEOUT\nquit\n')), 'TIMEOUT')
 
+    def test_scenario_arguments(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(run_all.scenario_arguments(scenario_file(d, 'quit\n')), [])
+            self.assertEqual(run_all.scenario_arguments(scenario_file(d, '# x\n# arguments: --effects Portal\nquit\n')),
+                             ['--effects', 'Portal'])
+
 
 class Run(unittest.TestCase):
     """run_once() with launch() replaced: its result code and the report decide the result."""

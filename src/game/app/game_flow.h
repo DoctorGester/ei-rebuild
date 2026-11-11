@@ -96,8 +96,8 @@ struct GameFlow {
     // zoneMode). Rebirth's AllowScriptsInMainMenu sets the server's scriptsActive in the menu.
     void StartZone(std::string_view zone, ZoneMode mode);
     // A new game: "exec autoexec.cfg" on the console, the party manager's new game, saves\current
-    // emptied, then the party's zone started (mode 0). Rebirth's AutoExec runs addon's AutoExec lines
-    // first.
+    // emptied, then the party's zone started (mode 0; a tool's own scene names it, app::g_toolScene). Rebirth's
+    // AutoExec runs addon's AutoExec lines first.
     void StartNewGame();
     // Acts on the pending request (state, then cleared): the zone being left is saved, the interface
     // closes its windows, the zone is torn down and the resource database follows the network state;

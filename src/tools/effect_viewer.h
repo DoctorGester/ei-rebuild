@@ -1,6 +1,7 @@
 #pragma once
 
-// The effect viewer (ei-rebuild --effects; docs/modding.md, "The effect viewer"): a panel over the running game that
+// The effect viewer (ei-rebuild --effects, straight in a new game: app::g_toolScene; docs/modding.md, "The effect
+// viewer"): a panel over the running game that
 // plays any of the original particle types (from their code or their data file) or a mod's data effect on a unit or a
 // free point of the world, drives its inputs, and edits a data effect's file live. Textures and figures are the
 // install's, as the game loads them; nothing is written but the file the player saves.

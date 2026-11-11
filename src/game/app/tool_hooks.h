@@ -3,6 +3,8 @@
 // Where a tool built into the exe beside the game (src/tools: the effect viewer, ei-rebuild --effects) joins the main
 // loop (app/main_loop.cpp). Empty unless the tool was started: the game then runs as without it.
 
+#include <string>
+
 namespace platform {
 struct Event;
 }
@@ -23,5 +25,15 @@ struct ToolHooks {
 };
 
 inline ToolHooks g_toolHooks;
+
+// A tool that starts in a game of its own (ei-rebuild --effects): no start movies and no main menu, but a new game at
+// once (app.cpp, StartFirstMap), in `zone` when it is not empty (a zone of the map list; GameFlow::StartNewGame), else
+// in the campaign's first.
+struct ToolScene {
+    bool newGame = false;
+    std::string zone;
+};
+
+inline ToolScene g_toolScene;
 
 } // namespace app

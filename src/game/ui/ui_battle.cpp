@@ -11,6 +11,7 @@
 #include "game/core/core_streams.h"
 #include "game/app/game_flow.h"
 #include "game/app/singletons.h"
+#include "game/app/tool_hooks.h"
 #include "game/items/item.h"
 #include "game/objects/map_object.h"
 #include "game/objects/object3d.h"
@@ -70,8 +71,9 @@ bool LoadingGame() { return g_saveStream.size != 0; }
 
 // The world's update period in milliseconds (the harness's `speed`; the game's default 55).
 constexpr int kDefaultUpdatePeriod = 55;
-// The autosave option (nonzero: save "savea" on entering a zone).
-bool AutoSaveEnabled() { return options::g_options.autosave != 0; }
+// The autosave option (nonzero: save "savea" on entering a zone). A tool's own game (app::g_toolScene) never saves:
+// the effect viewer's new game must not overwrite the player's autosave.
+bool AutoSaveEnabled() { return options::g_options.autosave != 0 && !app::g_toolScene.newGame; }
 constexpr const char* kAutoSaveName = "savea";
 
 // The portraits' selected-face turn: pi / 2 times (1/7).
