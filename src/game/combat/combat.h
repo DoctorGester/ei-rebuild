@@ -233,9 +233,8 @@ public:
     bool IsPotionSource(std::uint32_t source);
     // A spell slot's spell, or a carrier item's.
     Spell* SpellOfSource(std::uint32_t source);
-    // Does the current order count as fighting (for the battle music): an attack, or a cast of a spell of type
-    // FireArrow to AcidFog from a spell slot or a spell carrier. Rebirth's FixPlaingBattleMusicFromAntimagic leaves
-    // out Antimagic.
+    // Does the current order count as fighting (for the battle music): an attack, or a cast of a fighting spell
+    // (Spell::Use; FireArrow to AcidFog of the game's) from a spell slot or a spell carrier.
     bool IsFighting();
     // A carrier with enough charge (a wand), or a spell the party unit has the mana for.
     bool CanCast(const AIOrder* order);

@@ -432,7 +432,8 @@ if(WIN32)
     # The unit checks (tests/unit): the settings file's format, lib::HashMap's walk order, the .ini reader,
     # lib::ParseIpv4, lib/maths.h, the save pictures, the bounded text reads, the tagged stream blocks and the byte
     # buffers with their cursor and coder, the mod's path map, the weather's particle field, the TOML writer and reader,
-    # the PNG textures, the glTF figure models, the script floats through Lua, without the game. build.cmd runs it.
+    # the PNG textures, the glTF figure models, the script floats through Lua, the spells' behaviours, without the
+    # game. build.cmd runs it.
     add_executable(ei_unit_check tests/unit/unit_check.cpp tests/unit/settings_file.cpp tests/unit/hash_map.cpp
                    tests/unit/ini_file.cpp tests/unit/ipv4.cpp tests/unit/maths.cpp tests/unit/save_picture.cpp
                    tests/unit/audio_mix.cpp tests/unit/display_sizes.cpp tests/unit/bounded_text.cpp
@@ -444,7 +445,9 @@ if(WIN32)
                    tests/unit/figure_gltf.cpp src/game/models/figure_gltf.cpp src/game/models/figure_gltf_animation.cpp src/lib/json.cpp src/lib/vecmath.cpp tests/unit/lua_number.cpp
                    src/audio/audio.cpp src/game/app/settings_document.cpp src/game/core/core_streams.cpp src/game/data/ini_file.cpp
                    src/game/saves/save_picture.cpp src/lib/qoi.cpp src/game/core/asset_text.cpp src/lib/hash_map.cpp src/lib/ipv4.cpp
-                   src/lib/text_case.cpp src/lib/calendar.cpp src/lib/str.cpp src/lib/crt_format.cpp ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS} ${EI_SDL_CALLS})
+                   src/lib/text_case.cpp src/lib/calendar.cpp src/lib/str.cpp src/lib/crt_format.cpp
+                   tests/unit/spell_behaviour.cpp src/game/spells/spell_behaviour.cpp
+                   ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS} ${EI_SDL_CALLS})
     target_include_directories(ei_unit_check PRIVATE src third_party)
     target_link_libraries(ei_unit_check PRIVATE ei_platform tomlc17 stb_dxt wuffs cgltf eris SDL3::SDL3-static miniz)
 
@@ -481,6 +484,7 @@ else()
                    tests/unit/display_sizes.cpp tests/unit/path_layers.cpp tests/unit/mod_hash.cpp src/game/mods/mod_hash.cpp tests/unit/weather_field.cpp tests/unit/toml.cpp src/lib/toml.cpp tests/unit/texture_png.cpp src/game/models/texture_png.cpp src/game/effects/weather_field.cpp src/audio/audio.cpp src/game/data/ini_file.cpp src/game/core/asset_text.cpp src/game/saves/save_picture.cpp src/lib/qoi.cpp src/video/bink_file.cpp
                    tests/unit/map_folder.cpp src/game/map/map_folder.cpp src/lib/png.cpp
                    tests/unit/figure_gltf.cpp src/game/models/figure_gltf.cpp src/game/models/figure_gltf_animation.cpp src/lib/json.cpp src/lib/vecmath.cpp tests/unit/lua_number.cpp
+                   tests/unit/spell_behaviour.cpp src/game/spells/spell_behaviour.cpp
                    ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS} ${EI_SDL_CALLS})
     target_include_directories(ei_port_check PRIVATE src third_party)
     target_link_libraries(ei_port_check PRIVATE ei_platform tomlc17 stb_dxt wuffs cgltf eris SDL3::SDL3-static miniz)

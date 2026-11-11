@@ -129,6 +129,15 @@ void SpellDatabase::Read(const RecordFile& file) {
         ar.Close(&stream);
     }
     MergeTomls(file, [this](const toml::Value& root, const std::string& path) { MergeToml(root, path); });
+    if (const std::size_t extra = LeaveOutPast(spells.records, kMaxSpellRecords)) {
+        game::Warning("spells.sdb: %d spells past the first %d are left out (a spell's place is a byte in saves and "
+                      "network messages)", static_cast<int>(extra), static_cast<int>(kMaxSpellRecords));
+    }
+    if (const std::size_t extra = LeaveOutPast(modifiers.records, kMaxModifierRecords)) {
+        game::Warning("spells.sdb: %d modifiers past the first %d are left out (a spell holds its modifiers' places "
+                      "as signed bytes)", static_cast<int>(extra), static_cast<int>(kMaxModifierRecords));
+    }
+    SetBehaviours(spells.records);
     spells.FileNames();
     modifiers.FileNames();
 }
@@ -151,6 +160,17 @@ constexpr Name kModifierKinds[] = {
     {0, "range"}, {1, "targets"}, {2, "area"}, {3, "effect"}, {4, "duration"}, {5, "mana"}, {6, "filter"}, {7, "item"},
 };
 constexpr std::string_view kAllowedModifiers[] = {"range", "targets", "area", "effect", "duration"};
+// SpellAi by name.
+constexpr Name kSpellAis[] = {
+    {0, "none"},    {1, "attack"},  {2, "area_attack"}, {3, "lasting_area"},
+    {4, "curse"},   {5, "protect"}, {6, "enhance"},     {7, "heal"},
+};
+// DamageType by the texts' names (record_names.h).
+constexpr Name kDamageTypeNames[] = {
+    {0, recordnames::kDamageTypes[0]}, {1, recordnames::kDamageTypes[1]}, {2, recordnames::kDamageTypes[2]},
+    {3, recordnames::kDamageTypes[3]}, {4, recordnames::kDamageTypes[4]}, {5, recordnames::kDamageTypes[5]},
+    {6, recordnames::kDamageTypes[6]},
+};
 
 } // namespace
 
@@ -182,6 +202,9 @@ void Fields(SpellRecord& r, Visit& v) {
     v("light_color", r.lightColor);
     v("light_range", r.lightRange);
     v("light_rise_divisor", r.lightRiseDivisor);
+    v("ai", Enum<SpellAi>{r.ai, kSpellAis});
+    v("damage_type", Enum<DamageType>{r.damageType, kDamageTypeNames});
+    v("offensive", dbtoml::Bool{r.offensive});
 }
 
 template <class Visit>

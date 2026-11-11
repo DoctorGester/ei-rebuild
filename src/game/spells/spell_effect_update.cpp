@@ -353,7 +353,7 @@ void Teleport(SpellEffect* e) {
 
 int SpellEffect::Update() {
     if (!world) return 0;
-    SpellType type = HeldSpell()->Type();
+    SpellType type = HeldSpell()->Behaviour();
     switch (state) {
     case kStateCasting: Start(type); return 1;
     case kStateMissile: UpdateMissile(type); return 1;

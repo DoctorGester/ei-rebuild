@@ -20,17 +20,6 @@ namespace {
 
 constexpr float kSpellSearchStart = 1e38f;
 
-// Whether the spell type turns the target against the caster.
-bool IsHostileType(SpellType type) {
-    switch (type) {
-    case SpellType::Stench: case SpellType::Stun: case SpellType::Weaken: case SpellType::Feeblemind:
-    case SpellType::Slow: case SpellType::Shrink:
-        return true;
-    default:
-        return false;
-    }
-}
-
 } // namespace
 
 void WorldServer::CreateMissile(Spell* spell, Unit* caster, Vector3 from, MapObject* target,
@@ -49,7 +38,7 @@ void WorldServer::CreateMissile(Spell* spell, Unit* caster, Vector3 from, MapObj
     }
     Unit* victim = UnitOrNull(target);
     if (victim && caster) {
-        if (IsHostileType(spell->Type())) {
+        if (spell->Use().turnsVictim) {
             victim->ServerController()->brain.SetSeen(caster);
             diplomacy.OnAttack(caster, victim);
             target->flags |= MapObjectFlag::RelationsChanged;
@@ -62,7 +51,7 @@ void WorldServer::CastSpell(Spell* spell, Unit* caster, const Vector3& from, Map
                              const Vector3& to, int extra) {
     if (!spell) return;
     if (zoneMode != ZoneMode::Battle && caster) return;
-    SpellType spellType = spell->Type();
+    SpellType spellType = spell->Behaviour();
     if (spellType == SpellType::Possession || spellType == SpellType::Link || spellType == SpellType::Charm) return;
     std::uint32_t targetFlags = spell->targetFlags;
     int targets = static_cast<int>(spell->targetCount);

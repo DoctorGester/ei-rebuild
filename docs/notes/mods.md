@@ -478,7 +478,10 @@ number, unless the file names the player), `player`, an item's `attack_interval`
 Also by name: spells.sdb's `school`, `target_kind` (`unit`, `point`; Shapechange's 's' stays the number 115:
 Spell::InitFromPrototype, the only reader, gives it neither target flag, so the interface asks for a point and the
 cast keeps its target object), `allowed_modifiers` (`{ range, targets, area,
-effect, duration }`), a modifier's `kind`, `needs_sight`; map.toml's `classes` (the surfaces, `line` 16).
+effect, duration }`), a modifier's `kind`, `needs_sight`, and the fields read for a record without a behaviour of its
+own (items_spells.md, "Spell behaviours"): `ai` (`none`, `attack`, `area_attack`, `lasting_area`, `curse`, `protect`,
+`enhance`, `heal`), `damage_type` (the damage types' names, `general` the default) and `offensive` (true / false);
+map.toml's `classes` (the surfaces, `line` 16).
 
 Levers.ldb, acks.db and prints.db were names and numbers already. The names were found as MF14b did: each field
 renamed and the tree compiled with `ninja -k 0`, so every reader shows (the level values, a quest's zone, the armour
@@ -1307,7 +1310,7 @@ Each part, its format, and what the formats could not do (each gap a ticket):
 | The enemy | `Res\figures\scgolem.glb` (15 boxes, 13 animations), `Res\database\scgolem.adb.toml`, `units.udb.toml` (`[[model]]` "Showcase Golem", `[[unit]]` "ShowcaseGolem"), `Res\textures\scgolem00.png` (the placement's `parent_iname`) | glTF set, records TOML, databases TOML, PNG | None. No sounds: `sound_folder` empty, the animations' `sounds` empty; its footsteps name the game's stone steps |
 | The weapon | items.idb.toml `[[weapon]]` "showcase hammer" (hammer number 9), `Res\figures\initwehm9.glb` (inventory model, loose figure, part `weapon`), `Res\redress\unhumahm_09.gr.0.png` | databases TOML, glTF loose, PNG | Not seen in the hand: the hand's model is a part of every unit figure (`rh3.<type><nn>`), which a new number lacks (MF13c) |
 | The armour | `[[armor]]` "showcase boots" (boots number 20), `initarbt20.glb`, `Res\redress\unhumabt_20.le.0.png` (a layer over the hero's 256 x 256 skin: opaque where the feet and shins are) | as the weapon | None: boots, gloves, shirts and trousers are skin layers, no part. Helmets, body armour and leggings would need parts (MF13c) |
-| The spell | spells.sdb.toml `[[spell]]` "spark", texts' `SPELL spark` | databases TOML | Placeholder: a spell's behaviour and look are the game's code for its place in the table (`Spell::Type()`, prototypeId >> 16), place 42 has none; nothing gives or casts it (MF13b) |
+| The spell | spells.sdb.toml `[[spell]]` "spark", texts' `SPELL spark` | databases TOML | Placeholder: place 42 gets the behaviour None (items_spells.md, "Spell behaviours"), which starts nothing; nothing gives or casts it (MF13b) |
 | The quest | `Maps\zone1.lua` (sets `q.gz1g.showcase_golem` and its objective `.1`, watches the golem, `QuestComplete`, `GiveItem`), `quests.qdb.toml` (its experience), texts' `quest showcase_golem` | Lua, databases TOML, texts TOML | None |
 
 Notes from making it:

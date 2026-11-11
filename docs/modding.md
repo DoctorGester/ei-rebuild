@@ -319,7 +319,8 @@ the record is left out`); the record is not read. The names (docs/notes/mods.md,
 | npc `stats` | `{ strength, dexterity, intelligence }` |
 | spell `school` | `fire`, `lightning`, `acid`, `illusion`, `divination`, `enchantment`, `healing`, `domination`, `none` |
 | spell `target_kind`, `allowed_modifiers`; modifier `kind` | `unit`, `point`; `{ range, targets, area, effect, duration }`; `range`, `targets`, `area`, `effect`, `duration`, `mana`, `filter`, `item` |
-| true / false | `buildable`, `shows_wounds`, `cast_effect`, `swap_feet`, `voiced`, `needs_sight`, `learnable`; config.reg.toml's `[MOD]` `Single`, `Multi`, `GameSaves`, `ForceShowTutorial` |
+| spell `ai`, `damage_type` (a new spell's only: the game's 42 keep their own) | how the AI casts it: `none` (never, the default), `attack`, `area_attack`, `lasting_area`, `curse`, `protect`, `enhance`, `heal`; the damage types' names (`general` the default) |
+| true / false | `buildable`, `shows_wounds`, `cast_effect`, `swap_feet`, `voiced`, `needs_sight`, `learnable`, a new spell's `offensive` (cast at enemies: the hotkey aims it at the nearest, the target turns on the caster, the battle music); config.reg.toml's `[MOD]` `Single`, `Multi`, `GameSaves`, `ForceShowTutorial` |
 | map.toml `[[material]] kind` | `dry` (the AI walks under it as on dry ground), `water` (the AI's water), `still` (no waves) |
 | map objects: a lever's `lock.mask` | `science` (the Use skill opens it at the lock's `level`), `key` (the quest item whose id is the lock's `id`), `science_2`, `science_3` (no key in the game has them); `[]`: no lock |
 | map objects: `side` | the player's number, or its name when the file's `[players] names` gives it one (`side = "Golems"`) |
@@ -660,5 +661,5 @@ for the quest, and its hammer and boots are yours. Read its files as a recipe fo
 
 What it cannot do yet: add a zone beside the game's (it replaces zone 1: the zone list is one text read whole), show
 a new weapon in the hero's hand or a new helmet or body armour on him (those are parts of the hero's figure), give a
-new spell an effect (a spell's effect is the game's code for its place in the table), and its island keeps zone 1's
+new spell an effect (the game's 42 spells have their code; a spell after them does nothing yet), and its island keeps zone 1's
 path-finding graph. The pictures and models are made by `tools/make_showcase_mod.py` in this repository.

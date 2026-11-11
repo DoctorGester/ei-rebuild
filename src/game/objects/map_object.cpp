@@ -6,7 +6,7 @@
 #include "game/objects/object3d.h"
 #include "game/objects/torch.h"
 #include "game/saves/save_versions.h"
-#include "game/spells/spell.h"   // SpellType
+#include "game/spells/spell.h"   // SpellType, BehaviourAt
 #include "game/units/unit.h"   // MapObjectServer
 #include "game/objects/map_object_manager.h"
 #include "game/world/world.h"   // World
@@ -82,7 +82,7 @@ void MapObject::MarkChanged(NetField part) {
 bool MapObject::HasEffect(SpellType spellType) {
     for (int i = 0; i < std::ssize(effects); ++i) {
         MapEffect effect = effects[i];   // the whole record is copied
-        if (effect.Type() == spellType) return true;
+        if (effect.Behaviour() == spellType) return true;
     }
     return false;
 }
@@ -101,7 +101,7 @@ void MapObject::AddEffect(const MapEffect* effect) {
     if (std::ssize(effects) >= kMaxEffects) return;   // RemoveOutdatedEffects keeps the list far below this
     effects.push_back(*effect);
     MarkChanged(NetField::Effects);
-    SpellType spellType = effect->Type();
+    SpellType spellType = effect->Behaviour();
     bool scales = spellType == SpellType::Strengthen || spellType == SpellType::Weaken || spellType == SpellType::Enlarge ||
                   spellType == SpellType::Shrink;
     ScaleEffectChanged(scales);
@@ -123,7 +123,7 @@ float MapObject::EffectValue(SpellType spellType) {
     float best = 0.0f;
     for (int i = 0; i < std::ssize(effects); ++i) {
         MapEffect effect = effects[i];   // the record is copied twice
-        if (effect.Type() != spellType) continue;   // the record's first dword & 0xFF
+        if (effect.Behaviour() != spellType) continue;
         best = MaxKeepB(best, effect.value);   // a NaN takes the value
     }
     return best;

@@ -344,7 +344,7 @@ void UnitStats::Recompute(UnitVitals* vitals, Unit* unit) {
 
     float strongest[kEffectTypes] = {};
     for (const MapEffect& effect : unit->effects) {
-        std::uint32_t type = effect.type;
+        const auto type = static_cast<std::uint32_t>(effect.Behaviour());
         if (type >= static_cast<std::uint32_t>(kEffectTypes)) continue;
         float value = effect.value;
         float old = strongest[type];

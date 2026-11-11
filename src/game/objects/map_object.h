@@ -19,19 +19,20 @@
 class MapObjectServer;
 class MapObjectClientSpecific;
 struct DeltaState;
-enum class SpellType : int;   // spell.h
+enum class SpellType : int;   // spell_db.h
 
 // An active effect (an array): the record of a buff spell (the buffs SpellEffect::Start applies) or of Teleport,
 // which stuns its caster like Stun. Strengthen, Weaken, Enlarge and Shrink scale the object.
 struct MapEffect {
-    std::uint8_t type = 0;          // the spell's SpellType (spell.h)
+    std::uint8_t type = 0;          // the place of the spell record that made it (spell_db.h)
     std::uint8_t power = 0;
     int ticksLeft = 0;              // counted down once per world update; removed at 0
     float value = 0.0f;             // the spell's damage (EffectValue)
     float strength = 0.0f;          // the spell's radius (saved; Rebirth compares it)
     std::uint8_t ending = 0;        // the client plays no end sound when set
 
-    SpellType Type() const { return static_cast<SpellType>(type); }
+    // What it does: the behaviour of the spell record at `type` (itemdb::BehaviourAt).
+    SpellType Behaviour() const;
 
     // One tick less; whether any are left (0 / 1).
     int Tick();
@@ -225,7 +226,7 @@ public:
     // Records that field `part` of the object changed (NetField::None: none), marks it dirty (flags bit 1) and
     // stamps it with the world's change counter.
     void MarkChanged(NetField part);
-    // Has the object an active effect of type `type` (compared with MapEffect::type)?
+    // Has the object an active effect of the behaviour `type` (MapEffect::Behaviour())?
     bool HasEffect(SpellType type);
 
     // The per-tick update: lets the companion update. Unit's update calls it after its controller's.
@@ -235,8 +236,8 @@ public:
     // virtuals.
     void ClearEffects();
 
-    // The largest MapEffect::value (as a float, at least 0) of the effects of type
-    // `type` (compared with the whole low byte); 0 without one. NaN values win the comparison.
+    // The largest MapEffect::value (as a float, at least 0) of the effects of the behaviour `type`; 0 without
+    // one. NaN values win the comparison.
     float EffectValue(SpellType type);
 
     // The point at the object's offset, moved to the ground height there plus the offset's z.

@@ -63,7 +63,7 @@ void Spell::InitFromPrototype(const itemdb::SpellRecord* prototype) {
     modifiers = {};
 }
 
-itemdb::SpellRecord* Spell::GetPrototype() {
+itemdb::SpellRecord* Spell::GetPrototype() const {
     return SpellAt(prototypeId >> 16);
 }
 
@@ -99,34 +99,6 @@ bool Spell::HasCastFlagModifier() {
         if (code[0] == 'i' && (code[1] == 'c' || code[1] == 't') && code[2] == 0 && code[3] == 0) return true;
     }
     return false;
-}
-
-DamageType Spell::GetDamageType() {
-    switch (Type()) {
-    case SpellType::FireArrow: case SpellType::Fireball: case SpellType::FireWall: case SpellType::RickMagic:
-        return DamageType::Fire;
-    case SpellType::Lightning: case SpellType::InvokeLightning: case SpellType::LightningWall:
-    case SpellType::CurseMagic:
-        return DamageType::Lightning;
-    case SpellType::AcidRay: case SpellType::AcidColumn: case SpellType::AcidFog:
-        return DamageType::Acid;
-    default:
-        return DamageType::Other;
-    }
-}
-
-bool Spell::IsOffensive() {
-    switch (Type()) {
-    case SpellType::FireArrow: case SpellType::Lightning: case SpellType::AcidRay: case SpellType::Fireball:
-    case SpellType::InvokeLightning: case SpellType::AcidColumn: case SpellType::FireWall:
-    case SpellType::LightningWall: case SpellType::AcidFog:
-    case SpellType::Lichdom: case SpellType::Stench: case SpellType::Stun: case SpellType::Weaken:
-    case SpellType::Feeblemind: case SpellType::Slow: case SpellType::Charm: case SpellType::Shrink:
-    case SpellType::RickMagic: case SpellType::CurseMagic:   // Rebirth's FixSpellSelfCasting (the original: not offensive)
-        return true;
-    default:
-        return false;
-    }
 }
 
 bool Spell::CanAffect(const Unit* caster, MapObject* target) const {
@@ -197,7 +169,9 @@ Spell::~Spell() { Spell::Destroy(); }
 const char* Spell::ClassName() { return "CSpell"; }
 ClassId Spell::GetClassId() { return ClassId::Spell; }
 
-// --- An effect's tick ----------------------------------------------------------------------------
+// --- An effect's behaviour and tick --------------------------------------------------------------
+
+SpellType MapEffect::Behaviour() const { return BehaviourAt(type); }
 
 int MapEffect::Tick() {
     --ticksLeft;

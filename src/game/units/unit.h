@@ -975,7 +975,7 @@ struct ParticleRecord {
     ParticleRecord& operator=(ParticleRecord&&) noexcept;
     ~ParticleRecord();
 
-    SpellType type{};                   // the effect type
+    SpellType type{};                   // the effect's behaviour (MapEffect::Behaviour())
     int power = 0x10;                   // the effect's power byte
     HeldRef<ParticleSource> source;    // null when the effect has no lasting source
     std::uint8_t present = 0;           // set while the effect list is compared
@@ -983,7 +983,7 @@ struct ParticleRecord {
 
 // One looping effect sound record.
 struct EffectSoundRecord {
-    SpellType kind{};           // the effect type
+    SpellType kind{};           // the effect's behaviour
     int spareHandle = -1;       // nothing reads it
     int handle = -1;            // feeble mind's sound sequence, -1 none
     std::uint32_t timer = 0;    // ticks to the next stench sound (it plays when the count runs below 0)

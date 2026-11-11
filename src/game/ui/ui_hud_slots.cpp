@@ -93,7 +93,7 @@ constexpr const char* kSoundNoMagic = "buttons\\battle\\nomagic.wav";
 // UseAtPoint at the target's position, with `quick`.
 bool UseAtOnce(BattleScreen* screen, Unit* unit, Spell* spell, bool quick) {
     Unit* target = unit;
-    if (spell->IsOffensive()) {
+    if (spell->Use().offensive) {
         target = g_clientWorld.NearestVisibleUnit(unit);
         if (!target) {
             g_interface.PlayInterfaceSound(kSoundNoMagic);
