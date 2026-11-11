@@ -7,4 +7,4 @@ savea/gz1g.sav 00d701d639c76875
 savea/info.sav ab6a2dca79460ca4
 savea/mission.sav 6b188c049e32c467
 savea/scenario.sav cecc2fabc22602fd
-savea/visuals.sav 2ceaa2e5a3884aa8
+savea/visuals.sav ff9ea55376bf1a76

@@ -332,6 +332,12 @@ class Reader:
         self.take(n)
         self.excluded(name, 'lua', why)
 
+    def client(self, name, n, why):
+        """n bytes of client-only cosmetic state (rule client): left out of the comparison."""
+        self.take(n)
+        self.excluded(name, 'client', why)
+        self.put(name, '~client')
+
     def junk(self, name, n, why):
         """n bytes the game never set (rule junk)."""
         self.take(n)
@@ -601,7 +607,10 @@ def read_visuals(r):
                     for i in range(r.u32('count')):
                         with r.scope(f'print{i}'):
                             read_ground_print(r, kind)
-        elif name in ('generator', 'particleGenerator'):
+        elif name == 'particleGenerator':
+            r.client('state', 4 + 4 + 1024 + 1024 + 12, "the client particles' generator: cosmetic, and particles "
+                     'need not be exact (user 2026-11-11); any change to particle draws moved nearly every golden')
+        elif name == 'generator':
             r.u32('seeded')
             r.u32('count')
             r.raw('results', 1024)
