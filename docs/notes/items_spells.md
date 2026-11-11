@@ -322,10 +322,12 @@ cast of one starts them).
   Cost: a timer call every 4 ticks; the ticks between touch no Lua ("Scripted spells", the idle ticks). Measured
   (2026-11-11, `--quiet`, `EI_PROFILE=1`, a scratch scenario standing 1000 frames in Lost in Astral's gz10g, 31
   campfires; the C++ campfire took 0.1%): `SpellEffect::Update` took 3.6-3.9% of the main thread while the host walked
-  the entry on every tick (MF17g4a), 2.9-3.3% with the idle ticks skipped (MF17g4b). Timed per tick in the same run
-  (a scratch build): a pulse 4.3-4.8 us, a tick between 0.48-0.52 us walked and 0.08 us skipped, so the pulses are
-  now nearly all of it: the hook's plumbing (the timer walk, the cast value's 24 fields, the module found by its
-  file name, OnTick looked up) and FindUnits / Damage / After (MF17g4c).
+  the entry on every tick (MF17g4a), 2.9-3.6% with the idle ticks skipped (MF17g4b), 1.5-1.6% with the hooked ticks
+  cut (MF17g4c: "Scripted spells", the hooked ticks; Campfire.lua keeps its filter in a constant and makes the hit
+  only when FindUnits found someone). Timed per tick in the same run (a scratch build): a pulse 4.9 us, of it 3.1 us
+  the hook's plumbing around the Lua call, before MF17g4c; 2.9 us after (the plumbing about 1.0 us, the call 1.8:
+  FindUnits 0.7-0.9, After 0.6, the Lua of Pulse 0.3); a tick between 0.08 us. The Lua state's collector also does
+  less (luaC_step 1.1% to 0.2% of the stretch): the kept cast value made the garbage of every hook.
 - The rest: `spells`, `combat`, `units`, `world`, `particles` and the other healing casts, `unit_ai_heal` (the AI's),
   `spells_more` (fireworks by script, the hero's teleport), `spells_cast` (clairvoyance and vision fog without a
   caster), `spells_hero` (the hero's vision fog), and `spells_old_rest` (tests/saves/rest_old, made by the C++ build:
@@ -419,8 +421,12 @@ zone's server state that Eris saves. Only the server runs it; clients see what i
   level runs with every binding off (`ScriptLua::worldOff`: a binding is a Lua error), so when it loads cannot matter.
   A file that does not load (missing, a Lua error, no table) says `Script error: Res\spells\<file> did not load: ...`
   once per state; its casts end at once with no hook.
-- **The cast value**, a new table for each hook: `id` (the key), `code`, `caster`, `target` (objects or nil), `from`,
-  `point` (`{x, y, z}`), `tick` (ticks since the cast; 0 in OnCast), the built `damage`, `range`, `radius`,
+- **The cast value**, one table per live cast (its clock's registry reference, made at its first hook, dropped with
+  the clock; not in the entry, so not saved): before each hook PushCast sets again only the fields whose value
+  changed (floats by their bits; a moved point a new table, so a point a script kept stays as it was; an object by
+  its pointer: Forget makes a gone one nil) and the data every time. The game's scripts only read them; a field a
+  script sets on it stays until the cast's own value changes and is not saved. Its fields: `id` (the key), `code`,
+  `caster`, `target` (objects or nil), `from`, `point` (`{x, y, z}`), `tick` (ticks since the cast; 0 in OnCast), the built `damage`, `range`, `radius`,
   `duration`, `targetCount`, `speed`, `mana`, `power` (`spellfx::Power`), `areaPower` (`spellfx::AreaCurve` of the
   radius over the record's area), `lightRise` (`spellfx::LightRise`),
   `lightRange` (the record's), `school` (recordnames::kSpellSchools), `silent` (the effect's silentEnd: an item's
@@ -478,6 +484,13 @@ zone's server state that Eris saves. Only the server runs it; clients see what i
   tick, `Finish` and a restore make the clock unknown, so that the next tick takes the whole walk. `--lua-check`'s
   waiter / poker casts check another cast's After and Finish between a cast's idle ticks; the saved-at-every-tick
   pulse checks the write-back.
+- **Hooked ticks** (MF17g4c): a known clock also stands for the entry between hooks. Its `due` is the earliest timer
+  left: the timers' walk sets it to the second lowest due when it takes one (the one it takes is the lowest), After
+  lowers it, so the walk runs only while a timer is due (once for one) and Settle reads the tick and due from the
+  clock instead of the entry; `finished` is read only from an unknown clock's entry (Finish makes it unknown). The
+  module comes from the clock's reference (looked up by file once per cast), the cast value is the kept one, and a
+  timer's name stays a Lua string on the stack while it runs. `--lua-check`'s kept cast checks the kept value (the
+  same table, a moved point a new one, a forgotten target nil).
 - **Hooks are not coroutines**: they run with `lua_pcall` on the state's main thread, so `Sleep` and the other waits
   raise an error (no yield outside a coroutine). Timers and OnTick do the pacing (user 2026-11-11). The bindings work
   in them; their commands run in a run of the host's own.

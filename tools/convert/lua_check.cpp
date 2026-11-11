@@ -793,6 +793,21 @@ return {
     Stop = function(cast) _G.waiter:Finish(); cast:Finish() end,
 }
 )lua"},
+    // The cast value is one table from hook to hook: a moved point a new table, a target gone nil, the tick counted.
+    {"kept.lua", R"lua(
+return {
+    OnCast = function(cast)
+        _G.kept = { value = cast, point = cast.point, from = cast.from }
+        cast:After(1, "Look")
+    end,
+    Look = function(cast)
+        local kept = _G.kept
+        _G.spellEnd = string.format("%s %s %s %s %g %d", rawequal(cast, kept.value), rawequal(cast.point, kept.point),
+                                    rawequal(cast.from, kept.from), cast.target ~= nil, cast.point.x, cast.tick)
+        if cast.tick < 2 then cast:After(1, "Look") else cast:Finish() end
+    end,
+}
+)lua"},
     {"resume.lua", R"lua(
 -- A cast of a save from before its spell's script: its missile flies on, OnHit when it lands, its old count's end.
 return {
@@ -1025,6 +1040,16 @@ void CheckSpellHost(TestWorld& world) {
         Expect(round == 10 && SpellEnd(scheduler) == "finished at 10 ping at 8" && reported.size() == 4,
                "another cast's After counts from the cast's own tick, its Finish ends it at its next tick");
         Expect(world.stones[0]->refCount > 1, "the casts' effects hold their target");
+
+        SpellEffect kept;
+        cast(kept, "kept.lua", 0);
+        Expect(host.Cast(kept), "a cast keeping its first cast value");
+        kept.targetPoint = {7.0f, 0.0f, 0.0f};
+        Expect(host.Tick(kept) && SpellEnd(scheduler) == "true false true true 7 1",
+               "the next hook's cast value is the same table, its moved point a new one");
+        kept.target.Reset();
+        Expect(!host.Tick(kept) && SpellEnd(scheduler) == "true false true false 7 2" && reported.size() == 4,
+               "and its target nil once the cast forgot it");
     }
 
     // A cast saved after each of its first ticks and restored into a new state ends as the unbroken one did.
