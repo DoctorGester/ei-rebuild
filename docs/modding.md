@@ -713,8 +713,9 @@ A spell of your own is a record and a Lua file: the record (`Res\database\spells
 names the file with `script`, and the file below `Res\spells\` runs every cast of it, on the server. The game's own
 spells are moving onto the same path: the lightning arc and curse magic are `Res\spells\Lightning.lua`, the fire
 arrow, Rick magic and the acid ray `Res\spells\Missile.lua`, the fireball `Res\spells\Fireball.lua`, the light strike
-and the acid column `Res\spells\Strike.lua` (built into the game; the source's `assets/spells/` has them and the
-fields the game's records get), which a mod's file of that name replaces.
+and the acid column `Res\spells\Strike.lua`, the twenty buffs (protections to shrink) `Res\spells\Buff.lua` (built
+into the game; the source's `assets/spells/` has them and the fields the game's records get), which a mod's file of
+that name replaces.
 The showcase mod's Chain Spark ([The showcase mod](#the-showcase-mod)) is this example: a spark that strikes its
 target, then leaps to the nearest enemy it has not struck, each strike 0.6 of the one before, each slowing its victim.
 
@@ -742,8 +743,28 @@ offensive = true
   `curse`, `protect`, `enhance`, `heal`), `damage_type` (the AI's estimate), `offensive` (the HUD's use at once aims at
   the nearest enemy), `turns_victim` (the unit it is cast at turns on the caster) and `fighting` (casting it starts the
   battle music; both as `offensive` unless given), `ai_effect` (the code of the spell whose effect the AI looks for
-  before casting a curse or a protection again), `cast_school` (the school whose casting look the caster shows, when not
-  its own).
+  before casting a curse or a protection again; without it the spell's own `effect`), `cast_school` (the school whose
+  casting look the caster shows, when not its own).
+- **What its effect on a unit does**: `effect` names it, for every active effect of the spell (`cast:Apply(unit,
+  "own")`, and `cast:Apply(unit, "<this spell's code>")` from any spell): its stat effect, its look and sounds on the
+  unit, and what the AI looks for. The kinds are the game's buffs by their codes; `own` (the default) is the spell's own
+  (nothing for a spell of yours), `none` nothing. Several effects of one kind: the strongest counts.
+
+| `effect` | What it does while it lasts (`value`: the spell's damage) |
+|---|---|
+| `prot_fire`, `prot_electro`, `prot_acid` | fire / lightning / acid protection + the value (the larger of it and an `antimagic`'s); a sphere of fire / sparks / acid |
+| `antimagic` | fire, lightning and acid protection + the value (where no protection spell's is larger); its own look |
+| `eagle_sight`, `infravision`, `detect_life` | sight / sight by night / the near sense + the value; a star over the head |
+| `invisibility` | harder to see: sight conspicuity - value % (the unit drawn faded) |
+| `silence`, `lichdom` | harder to hear / to sense near: conspicuity - the value (lichdom: a ring as it starts and ends) |
+| `stench` | easier to smell: smell conspicuity + the value; a gas cloud and its sounds |
+| `stun` | stunned: no actions (the unit drawn tinted) |
+| `teleport` | stunned like `stun`, with no look or sound (the teleport's arrival) |
+| `strength`, `weak` | more / fewer hit points (more for a larger value), the figure larger / smaller; a ring as it starts and ends |
+| `enlarge`, `shrink` | the figure larger / smaller |
+| `regeneration` | the healing rate times the value |
+| `feeblemind` | no casting; its sounds |
+| `speed`, `slow` | the action rate + / - the value; a cloud at the feet |
 - **One cast or one per target.** A scripted spell is one cast whatever its `target_count` and `f` runes: the script
   picks its targets. `per_target = true` has the game pick them as for its own attack spells (the unit aimed at, then
   those nearest the aim within range that the runes and the line of sight allow, up to the target count) and cast it
@@ -824,7 +845,7 @@ return spell
 | `cast:CanAffect(unit)` | the spell's hits would hit the unit (its rune filters) |
 | `cast:Damage(unit, amount, type, {area, noCredit, split})` | a spell's hit of `amount` of a damage type (`fire`, `lightning`, `acid`, `piercing`, `slashing`, `crushing`, `general`) on a unit (other objects are not hit): armour and protections count, the caster is the attacker unless `noCredit`; `area` hits have no direction, as the walls' and clouds'; `split = n` shares the hit between n targets as the game's area spells do (n above 1: the amount and the hit's strength x 4 / n; they pass `cast.duration`). Gives the hit points lost |
 | `cast:Heal(unit, amount)` | heals as the healing spell does; gives the hit points gained |
-| `cast:Apply(unit, kind, {ticks, power, value, strength})` | an active effect on the unit: `kind` a spell's code (`slow`, `stun`, `weak`, `prot_fire`, ...: that spell's effect and look) or `"own"` (this spell's, with its icon and no effect of its own). The values default to the cast's (duration, power, damage, radius) |
+| `cast:Apply(unit, kind, {ticks, power, value, strength})` | an active effect on the unit: `kind` a spell's code (`slow`, `stun`, `weak`, `prot_fire`, ...: that spell's effect and look) or `"own"` (this spell's, with its icon, doing what its `effect` says: nothing unless given). The values default to the cast's (duration, power, damage, radius) |
 | `cast:Remove(unit, kind)`, `cast:Has(unit, kind)` | the unit's effects of that kind removed (how many) / whether it has one |
 | `cast:Move(unit, to, {check = true})` | the unit moved to the point (at its own height) unless it cannot stand there; true when it moved. A push is a small move each tick |
 | `cast:Bolt(from, to, {width, lifetime, demon})` | a lightning bolt; an end that is a unit follows it; `demon` the curse magic's look |

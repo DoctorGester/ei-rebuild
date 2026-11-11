@@ -174,6 +174,33 @@ constexpr Name kSpellAis[] = {
     {0, "none"},    {1, "attack"},  {2, "area_attack"}, {3, "lasting_area"},
     {4, "curse"},   {5, "protect"}, {6, "enhance"},     {7, "heal"},
 };
+// What an active effect of a record does (SpellRecord::effect), by the codes of the game's spells that do it: "own"
+// its behaviour's (the default), "none" nothing.
+constexpr Name kEffectKinds[] = {
+    {kOwnEffect, "own"},
+    {static_cast<int>(SpellType::None), "none"},
+    {static_cast<int>(SpellType::ProtectionFromFire), "prot_fire"},
+    {static_cast<int>(SpellType::ProtectionFromLightning), "prot_electro"},
+    {static_cast<int>(SpellType::ProtectionFromAcid), "prot_acid"},
+    {static_cast<int>(SpellType::EagleSight), "eagle_sight"},
+    {static_cast<int>(SpellType::Infravision), "infravision"},
+    {static_cast<int>(SpellType::DetectLife), "detect_life"},
+    {static_cast<int>(SpellType::Invisibility), "invisibility"},
+    {static_cast<int>(SpellType::Silence), "silence"},
+    {static_cast<int>(SpellType::Lichdom), "lichdom"},
+    {static_cast<int>(SpellType::Stench), "stench"},
+    {static_cast<int>(SpellType::Stun), "stun"},
+    {static_cast<int>(SpellType::Antimagic), "antimagic"},
+    {static_cast<int>(SpellType::Teleport), "teleport"},
+    {static_cast<int>(SpellType::Strengthen), "strength"},
+    {static_cast<int>(SpellType::Weaken), "weak"},
+    {static_cast<int>(SpellType::Regeneration), "regeneration"},
+    {static_cast<int>(SpellType::Feeblemind), "feeblemind"},
+    {static_cast<int>(SpellType::Speed), "speed"},
+    {static_cast<int>(SpellType::Slow), "slow"},
+    {static_cast<int>(SpellType::Enlarge), "enlarge"},
+    {static_cast<int>(SpellType::Shrink), "shrink"},
+};
 // DamageType by the texts' names (record_names.h).
 constexpr Name kDamageTypeNames[] = {
     {0, recordnames::kDamageTypes[0]}, {1, recordnames::kDamageTypes[1]}, {2, recordnames::kDamageTypes[2]},
@@ -221,6 +248,7 @@ void Fields(SpellRecord& r, Visit& v) {
     v("cast_school", Enum<SpellSchool>{r.castSchool, kSchools});
     v("per_target", dbtoml::Bool{r.perTarget});
     v("ends_with_target", dbtoml::Bool{r.endsWithTarget});
+    v("effect", Enum<int>{r.effect, kEffectKinds});
 }
 
 template <class Visit>

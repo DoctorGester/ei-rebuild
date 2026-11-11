@@ -16,7 +16,7 @@ constexpr DamageType kNoDamage = DamageType::Other;
 
 // The game's spells still in code by behaviour: the AI's use, the damage type, and offensive / turns the victim /
 // fighting. Those on scripts (assets/spells) have an empty row: their records' fields (assets/spells/spells.sdb.toml)
-// say it. Antimagic is not fighting (Rebirth's FixPlaingBattleMusicFromAntimagic; the original counted it).
+// say it.
 constexpr SpellUse kGameSpells[kGameSpellCount] = {
     {},                                                                   // FireArrow: Missile.lua
     {},                                                                   // Lightning: Lightning.lua
@@ -27,36 +27,36 @@ constexpr SpellUse kGameSpells[kGameSpellCount] = {
     {SpellAi::LastingArea, DamageType::Fire, true, false, true},          // FireWall
     {SpellAi::LastingArea, DamageType::Lightning, true, false, true},     // LightningWall
     {SpellAi::LastingArea, DamageType::Acid, true, false, true},          // AcidFog
-    {SpellAi::Protect, kNoDamage, false, false, false},                   // ProtectionFromFire
-    {SpellAi::Protect, kNoDamage, false, false, false},                   // ProtectionFromLightning
-    {SpellAi::Protect, kNoDamage, false, false, false},                   // ProtectionFromAcid
-    {SpellAi::Enhance, kNoDamage, false, false, false},                   // EagleSight
-    {SpellAi::Enhance, kNoDamage, false, false, false},                   // Infravision
-    {SpellAi::Enhance, kNoDamage, false, false, false},                   // DetectLife
-    {SpellAi::Enhance, kNoDamage, false, false, false},                   // Invisibility
-    {SpellAi::Enhance, kNoDamage, false, false, false},                   // Silence
-    {SpellAi::Enhance, kNoDamage, true, false, false},                    // Lichdom
+    {},                                                                   // ProtectionFromFire: Buff.lua
+    {},                                                                   // ProtectionFromLightning: Buff.lua
+    {},                                                                   // ProtectionFromAcid: Buff.lua
+    {},                                                                   // EagleSight: Buff.lua
+    {},                                                                   // Infravision: Buff.lua
+    {},                                                                   // DetectLife: Buff.lua
+    {},                                                                   // Invisibility: Buff.lua
+    {},                                                                   // Silence: Buff.lua
+    {},                                                                   // Lichdom: Buff.lua
     {SpellAi::None, kNoDamage, false, false, false},                      // Fireworks
-    {SpellAi::None, kNoDamage, true, true, false},                        // Stench
+    {},                                                                   // Stench: Buff.lua
     {SpellAi::None, kNoDamage, false, false, false},                      // Clairvoyance
     {SpellAi::None, kNoDamage, false, false, false},                      // Possession
     {SpellAi::None, kNoDamage, false, false, false},                      // Shapechange
     {SpellAi::None, kNoDamage, false, false, false},                      // VisionFog
     {SpellAi::Heal, kNoDamage, false, false, false},                      // Healing
-    {SpellAi::Curse, kNoDamage, true, true, false},                       // Stun
-    {SpellAi::Protect, kNoDamage, false, false, false},                   // Antimagic
+    {},                                                                   // Stun: Buff.lua
+    {},                                                                   // Antimagic: Buff.lua
     {SpellAi::None, kNoDamage, false, false, false},                      // Link
     {SpellAi::None, kNoDamage, false, false, false},                      // Teleport
-    {SpellAi::Protect, kNoDamage, false, false, false},                   // Strengthen
-    {SpellAi::Curse, kNoDamage, true, true, false},                       // Weaken
-    {SpellAi::Enhance, kNoDamage, false, false, false},                   // Regeneration
-    {SpellAi::Curse, kNoDamage, true, true, false},                       // Feeblemind
-    {SpellAi::Enhance, kNoDamage, false, false, false},                   // Speed
-    {SpellAi::None, kNoDamage, true, true, false},                        // Slow
+    {},                                                                   // Strengthen: Buff.lua
+    {},                                                                   // Weaken: Buff.lua
+    {},                                                                   // Regeneration: Buff.lua
+    {},                                                                   // Feeblemind: Buff.lua
+    {},                                                                   // Speed: Buff.lua
+    {},                                                                   // Slow: Buff.lua
     {SpellAi::None, kNoDamage, false, false, false},                      // Comprehend
     {SpellAi::None, kNoDamage, true, false, false},                       // Charm
-    {SpellAi::None, kNoDamage, false, false, false},                      // Enlarge
-    {SpellAi::None, kNoDamage, true, true, false},                        // Shrink
+    {},                                                                   // Enlarge: Buff.lua
+    {},                                                                   // Shrink: Buff.lua
     {SpellAi::None, kNoDamage, false, false, false},                      // Campfire
     {},                                                                   // RickMagic: Missile.lua
     {},                                                                   // CurseMagic: Lightning.lua
@@ -79,14 +79,16 @@ std::vector<std::string> SetBehaviours(std::vector<SpellRecord>& records) {
     for (std::size_t i = 0; i < records.size(); ++i) {
         if (!records[i].script.empty()) records[i].behaviour = SpellType::Scripted;
         else records[i].behaviour = i < kGameSpellCount ? static_cast<SpellType>(i) : SpellType::None;
+        records[i].activeEffect =
+            records[i].effect == kOwnEffect ? records[i].behaviour : static_cast<SpellType>(records[i].effect);
     }
     std::vector<std::string> unnamed;
     for (SpellRecord& record : records) {
-        record.aiEffect = record.behaviour;
+        record.aiEffect = record.activeEffect;
         if (static_cast<std::uint32_t>(record.behaviour) < kGameSpellCount || record.aiEffectCode.empty()) continue;
         const auto named = std::find_if(records.begin(), records.end(),
                                         [&](const SpellRecord& other) { return other.code == record.aiEffectCode; });
-        if (named != records.end()) record.aiEffect = named->behaviour;
+        if (named != records.end()) record.aiEffect = named->activeEffect;
         else unnamed.push_back(record.code);
     }
     return unnamed;

@@ -231,8 +231,8 @@ public:
     void CreatePointLight(const Vector3& position, const Vector3& color, float range, const Vector3& velocity);
     // CreatePointLight's object, not yet in the world.
     EffectPointLight* NewPointLight(const Vector3& position, const Vector3& color, float range, const Vector3& velocity);
-    // The record a buff puts on its target: the spell's, its strength trunc(power x 16), the end sound as silentEnd
-    // says.
+    // The active effect a cast puts on a unit by default (cast:Apply; Buff.lua's buffs): the spell's, its strength
+    // trunc(power x 16), the end sound as silentEnd says.
     MapEffect BuffRecord();
     // `unit` to `point` (the sector map's Move) unless `check` and the AI map does not let it stand there (false).
     bool MoveUnit(Unit* unit, const Vector3& point, bool check);

@@ -1,6 +1,7 @@
 // The spells' behaviours over a fake record table (src/game/spells/spell_behaviour.cpp): the game's places keep their
 // own behaviour and row whatever their fields say, a record past them or on a script reads its ai / damage_type /
-// offensive / turns_victim / fighting / ai_effect, and a table past 256 spells is cut to 256. ei_unit_check (unit_check.cpp) and the POSIX port check run it.
+// offensive / turns_victim / fighting / ai_effect, `effect` sets what its active effects do, and a table past 256
+// spells is cut to 256. ei_unit_check (unit_check.cpp) and the POSIX port check run it.
 #include "../../src/game/spells/spell_db.h"
 
 #include <cstdio>
@@ -46,13 +47,12 @@ int RunSpellBehaviourChecks() {
     Expect("fire wall: a lasting area of fire, offensive and fighting",
            fireWall.ai == SpellAi::LastingArea && fireWall.damageType == DamageType::Fire && fireWall.offensive &&
                !fireWall.turnsVictim && fireWall.fighting);
+    const itemdb::SpellUse healing = UseOf(records[static_cast<int>(SpellType::Healing)]);
+    Expect("healing: a heal, no damage, not offensive or fighting",
+           healing.ai == SpellAi::Heal && healing.damageType == DamageType::Other && !healing.offensive &&
+               !healing.turnsVictim && !healing.fighting);
     const itemdb::SpellUse stun = UseOf(records[static_cast<int>(SpellType::Stun)]);
-    Expect("stun: a curse that turns the victim, no damage, not fighting",
-           stun.ai == SpellAi::Curse && stun.damageType == DamageType::Other && stun.offensive && stun.turnsVictim &&
-               !stun.fighting);
-    const itemdb::SpellUse antimagic = UseOf(records[static_cast<int>(SpellType::Antimagic)]);
-    Expect("antimagic: a protection, not fighting", antimagic.ai == SpellAi::Protect && !antimagic.offensive &&
-                                                        !antimagic.fighting);
+    Expect("stun (on Buff.lua): an empty row", stun.ai == SpellAi::None && !stun.offensive && !stun.fighting);
     const itemdb::SpellUse fireworks = UseOf(records[static_cast<int>(SpellType::Fireworks)]);
     Expect("fireworks: nothing", fireworks.ai == SpellAi::None && !fireworks.offensive && !fireworks.fighting);
 
@@ -95,7 +95,7 @@ int RunSpellBehaviourChecks() {
     const std::string slow = "s" + std::to_string(static_cast<int>(SpellType::Slow));
     records[44].aiEffectCode = slow;
     records[45].aiEffectCode = "nothing";
-    records[static_cast<int>(SpellType::Stun)].aiEffectCode = slow;
+    records[static_cast<int>(SpellType::Teleport)].aiEffectCode = slow;
     const std::vector<std::string> unnamed = itemdb::SetBehaviours(records);
     Expect("an ai_effect naming no spell reported", unnamed.size() == 1 && unnamed[0] == "s45");
     Expect("ai_effect: the named spell's behaviour", UseOf(records[44]).effect == SpellType::Slow);
@@ -104,7 +104,26 @@ int RunSpellBehaviourChecks() {
                                                                UseOf(records[static_cast<int>(SpellType::Fireball)])
                                                                        .effect == SpellType::Scripted);
     Expect("a game row looks for its own effect",
-           UseOf(records[static_cast<int>(SpellType::Stun)]).effect == SpellType::Stun &&
-               UseOf(records[static_cast<int>(SpellType::Strengthen)]).effect == SpellType::Strengthen);
+           UseOf(records[static_cast<int>(SpellType::Teleport)]).effect == SpellType::Teleport &&
+               UseOf(records[static_cast<int>(SpellType::Healing)]).effect == SpellType::Healing);
+
+    // effect: what an active effect of the record does (MapEffect::Behaviour), the kind it names, else its
+    // behaviour's; ai_effect then looks for that (the named record's, else the record's own).
+    SpellRecord& slowRecord = records[static_cast<int>(SpellType::Slow)];
+    slowRecord.script = "Buff.lua";
+    slowRecord.effect = static_cast<int>(SpellType::Slow);
+    records[46].script = "pulse.lua";
+    records[46].effect = static_cast<int>(SpellType::Stun);
+    itemdb::SetBehaviours(records);
+    Expect("effect: the kind it names", slowRecord.behaviour == SpellType::Scripted &&
+                                            slowRecord.activeEffect == SpellType::Slow &&
+                                            records[46].activeEffect == SpellType::Stun);
+    Expect("effect not given: the behaviour's",
+           records[static_cast<int>(SpellType::Fireball)].activeEffect == SpellType::Scripted &&
+               records[static_cast<int>(SpellType::Stun)].activeEffect == SpellType::Stun &&
+               records[45].activeEffect == SpellType::None);
+    Expect("ai_effect: the named record's effect, else the record's own",
+           UseOf(records[44]).effect == SpellType::Slow && UseOf(records[46]).effect == SpellType::Stun &&
+               UseOf(slowRecord).effect == SpellType::Slow);
     return failures;
 }

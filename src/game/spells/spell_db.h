@@ -38,7 +38,8 @@ enum class SpellSchool : int {
 // Names from the prototypes' names (the code name where it differs), the sound folders under magic\ and the Start*
 // functions. The 1.06 database and Rebirth's both have all 42. Shapechange and Comprehend start nothing; Teleport's
 // record on the caster stuns it like Stun's (the client draws no particles for it). An active effect holds the place
-// of the spell that made it (MapEffect::type; MapEffect::Behaviour() reads the record's behaviour).
+// of the spell that made it (MapEffect::type); what it does is that record's activeEffect (MapEffect::Behaviour()):
+// one of these, the kind the record's `effect` names, else its behaviour.
 enum class SpellType : int {
     FireArrow = 0x00,               // "arrow"
     Lightning = 0x01,               // "Lightning Arc"
@@ -105,6 +106,9 @@ enum class SpellAi : int {
 // (Spell::modifiers). The load leaves out the records past these (SpellDatabase::Read).
 inline constexpr std::size_t kMaxSpellRecords = 256;
 inline constexpr std::size_t kMaxModifierRecords = 127;
+
+// A record's `effect` not given: its active effects do what its behaviour does (SpellRecord::effect).
+inline constexpr int kOwnEffect = -1;
 
 namespace itemdb {
 
@@ -174,8 +178,14 @@ struct SpellRecord {
     // TOML only (`ai_effect`): the code of the spell whose effect the AI's curse, protect and enhance options look
     // for on a unit (a scripted spell that applies another's buff names that one); empty: the record's own.
     std::string aiEffectCode;
-    // The behaviour those options look for (HasEffect), set by the load (SetBehaviours): for the game's 42 their own.
+    // The behaviour those options look for (HasEffect), set by the load (SetBehaviours): the activeEffect of the
+    // record aiEffectCode names, else its own.
     SpellType aiEffect = SpellType::None;
+    // TOML only (`effect`, by the names of kEffectKinds): what an active effect of this record does, its stat effect
+    // and its look on the unit (a SpellType); kOwnEffect: its behaviour's.
+    int effect = kOwnEffect;
+    // That, set by the load (SetBehaviours): what MapEffect::Behaviour() gives for an effect of this record.
+    SpellType activeEffect = SpellType::None;
 };
 
 // How the game's tables use a spell (UseOf).
@@ -194,8 +204,9 @@ struct SpellUse {
 SpellUse UseOf(const SpellRecord& record);
 
 // Each record's behaviour: Scripted with a script, else from its place (the first kGameSpellCount their own, the
-// others None); then each one's aiEffect: a game row's own behaviour, else that of the record its aiEffectCode names
-// (its own when empty or unknown). Returns the codes of the records whose aiEffectCode names no record.
+// others None); its activeEffect: the kind its `effect` names, else its behaviour; then each one's aiEffect: a game
+// row's own behaviour, else the activeEffect of the record its aiEffectCode names (its own when empty or unknown).
+// Returns the codes of the records whose aiEffectCode names no record.
 std::vector<std::string> SetBehaviours(std::vector<SpellRecord>& records);
 
 // The records past `limit` erased; how many there were.
@@ -287,10 +298,16 @@ namespace itemdb {
 // The records of its tables typed (null when the index is out of range).
 inline SpellRecord* SpellAt(std::uint32_t index) { return g_spellDatabase.spells.At(index); }
 inline SpellModifierRecord* SpellModifierAt(std::uint32_t index) { return g_spellDatabase.modifiers.At(index); }
-// The behaviour of the record at `index` (None out of range: an active effect of a database without it).
+// The behaviour of the record at `index` (None out of range).
 inline SpellType BehaviourAt(std::uint32_t index) {
     const SpellRecord* record = SpellAt(index);
     return record ? record->behaviour : SpellType::None;
+}
+// What an active effect of the record at `index` does (its activeEffect; None out of range: an effect of a database
+// without it).
+inline SpellType ActiveEffectAt(std::uint32_t index) {
+    const SpellRecord* record = SpellAt(index);
+    return record ? record->activeEffect : SpellType::None;
 }
 
 } // namespace itemdb

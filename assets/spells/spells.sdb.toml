@@ -102,3 +102,246 @@ damage_type = "acid"
 offensive = true
 turns_victim = false
 fighting = true
+
+# The buffs (Buff.lua): each puts its own effect on the unit it is cast at (`effect`: what that effect does, its
+# stat effect and its look), for the cast's duration. None of them is fighting.
+
+# Protection from fire: fire protection (the larger of it and antimagic's).
+[[spell]]
+code = "prot_fire"
+script = "Buff.lua"
+effect = "prot_fire"
+per_target = true
+ends_with_target = true
+ai = "protect"
+offensive = false
+turns_victim = false
+fighting = false
+
+# Protection from lightning.
+[[spell]]
+code = "prot_electro"
+script = "Buff.lua"
+effect = "prot_electro"
+per_target = true
+ends_with_target = true
+ai = "protect"
+offensive = false
+turns_victim = false
+fighting = false
+
+# Protection from acid.
+[[spell]]
+code = "prot_acid"
+script = "Buff.lua"
+effect = "prot_acid"
+per_target = true
+ends_with_target = true
+ai = "protect"
+offensive = false
+turns_victim = false
+fighting = false
+
+# Eagle sight: further sight.
+[[spell]]
+code = "eagle_sight"
+script = "Buff.lua"
+effect = "eagle_sight"
+per_target = true
+ends_with_target = true
+ai = "enhance"
+offensive = false
+turns_victim = false
+fighting = false
+
+# Infravision: sight by night.
+[[spell]]
+code = "infravision"
+script = "Buff.lua"
+effect = "infravision"
+per_target = true
+ends_with_target = true
+ai = "enhance"
+offensive = false
+turns_victim = false
+fighting = false
+
+# Detect life: the near sense.
+[[spell]]
+code = "detect_life"
+script = "Buff.lua"
+effect = "detect_life"
+per_target = true
+ends_with_target = true
+ai = "enhance"
+offensive = false
+turns_victim = false
+fighting = false
+
+# Invisibility: harder to see.
+[[spell]]
+code = "invisibility"
+script = "Buff.lua"
+effect = "invisibility"
+per_target = true
+ends_with_target = true
+ai = "enhance"
+offensive = false
+turns_victim = false
+fighting = false
+
+# Silence: harder to hear.
+[[spell]]
+code = "silence"
+script = "Buff.lua"
+effect = "silence"
+per_target = true
+ends_with_target = true
+ai = "enhance"
+offensive = false
+turns_victim = false
+fighting = false
+
+# Lichdom: harder to sense near; offensive, the victim does not turn.
+[[spell]]
+code = "lichdom"
+script = "Buff.lua"
+effect = "lichdom"
+per_target = true
+ends_with_target = true
+ai = "enhance"
+offensive = true
+turns_victim = false
+fighting = false
+
+# Stench: easier to smell; the AI does not cast it.
+[[spell]]
+code = "stench"
+script = "Buff.lua"
+effect = "stench"
+per_target = true
+ends_with_target = true
+ai = "none"
+offensive = true
+turns_victim = true
+fighting = false
+
+# Stun: the unit stands stunned.
+[[spell]]
+code = "stun"
+script = "Buff.lua"
+effect = "stun"
+per_target = true
+ends_with_target = true
+ai = "curse"
+offensive = true
+turns_victim = true
+fighting = false
+
+# Antimagic: every protection. Not fighting (Rebirth's FixPlaingBattleMusicFromAntimagic; the original counted it).
+[[spell]]
+code = "antimagic"
+script = "Buff.lua"
+effect = "antimagic"
+per_target = true
+ends_with_target = true
+ai = "protect"
+offensive = false
+turns_victim = false
+fighting = false
+
+# Strengthen: more hit points, a larger figure.
+[[spell]]
+code = "strength"
+script = "Buff.lua"
+effect = "strength"
+per_target = true
+ends_with_target = true
+ai = "protect"
+offensive = false
+turns_victim = false
+fighting = false
+
+# Weaken: fewer hit points, a smaller figure.
+[[spell]]
+code = "weak"
+script = "Buff.lua"
+effect = "weak"
+per_target = true
+ends_with_target = true
+ai = "curse"
+offensive = true
+turns_victim = true
+fighting = false
+
+# Regeneration: faster healing.
+[[spell]]
+code = "regeneration"
+script = "Buff.lua"
+effect = "regeneration"
+per_target = true
+ends_with_target = true
+ai = "enhance"
+offensive = false
+turns_victim = false
+fighting = false
+
+# Feeblemind: no casting.
+[[spell]]
+code = "feeblemind"
+script = "Buff.lua"
+effect = "feeblemind"
+per_target = true
+ends_with_target = true
+ai = "curse"
+offensive = true
+turns_victim = true
+fighting = false
+
+# Speed: a faster action rate.
+[[spell]]
+code = "speed"
+script = "Buff.lua"
+effect = "speed"
+per_target = true
+ends_with_target = true
+ai = "enhance"
+offensive = false
+turns_victim = false
+fighting = false
+
+# Slow: a slower action rate; the AI does not cast it.
+[[spell]]
+code = "slow"
+script = "Buff.lua"
+effect = "slow"
+per_target = true
+ends_with_target = true
+ai = "none"
+offensive = true
+turns_victim = true
+fighting = false
+
+# Enlarge: a larger figure; the AI does not cast it.
+[[spell]]
+code = "enlarge"
+script = "Buff.lua"
+effect = "enlarge"
+per_target = true
+ends_with_target = true
+ai = "none"
+offensive = false
+turns_victim = false
+fighting = false
+
+# Shrink: a smaller figure; the AI does not cast it.
+[[spell]]
+code = "shrink"
+script = "Buff.lua"
+effect = "shrink"
+per_target = true
+ends_with_target = true
+ai = "none"
+offensive = true
+turns_victim = true
+fighting = false

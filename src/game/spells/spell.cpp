@@ -172,7 +172,7 @@ ClassId Spell::GetClassId() { return ClassId::Spell; }
 
 // --- An effect's behaviour and tick --------------------------------------------------------------
 
-SpellType MapEffect::Behaviour() const { return BehaviourAt(type); }
+SpellType MapEffect::Behaviour() const { return ActiveEffectAt(type); }
 
 int MapEffect::Tick() {
     --ticksLeft;
