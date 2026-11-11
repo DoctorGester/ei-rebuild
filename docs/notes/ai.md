@@ -36,6 +36,47 @@ is in the region was reached, and every reached cell of the window gets the answ
 the connected areas of blocks per size class: each class's region grid is cleared, and every block still 0 starts a new
 region (1, 2, ...) flooded from a queue of blocks.
 
+### Built graphs
+
+The region map a zone starts with (MF13d). One rule, whatever the map's format: a zone's graph is no older than its
+ground. `WorldServer::NewZone` (world_save.cpp) reads the zone's graph (`ReadAIGraph`: the .mob's 0x31415926 chunk,
+else `<map>.grp`; one whose block grid is not the map's size counts as none) and `LoadMap` loads it
+(`RegionMap::LoadBlocks`), unless
+- the map comes from the mod's `Maps\` and the .mob from the game's (`MapFromMod`, Rebirth's Maps rule as
+  `SelectMaps` decides it for each file; docs/notes/mods.md, "Maps as folders"): a mod's ground under the game's graph
+  (the showcase island's folder, mod_map_heights' painted heights, rebirth_mod_maps' copy of zone2.mpr);
+- or no graph is found (the original ended the game with "Can't load AIGraph"), or none of the map's size: Lost in
+  Astral's main menu map is 24 x 24 blocks but its zonemainmenunew.mob carries the game's 16 x 16 menu graph (one of its
+  zones, 24 x 32, has a misfit too); `LoadBlocks` used to size the region grids by the graph, and region reads for
+  units past the 16th block went beyond the grid.
+
+Then the graph is built: `AIMap::BuildRegionGraph`, after `EndRefresh` (the objects' footprints stamped, the cells
+refreshed) and before `refreshUnits` goes on: the region map reset and attached blank, every unit lifted from the
+sector map, `RegionMap::UpdateBlocks` over every block (the editor's computation, which a refresh runs over its area),
+the units put back. Logged: "ai graph: built for W x H blocks, N units lifted, in T ms". An install without a mod
+(binary or converted: ei-convert's folders sit beside their .mob), a mod that ships its zone's map and .mob (Lost in
+Astral) and a mod that ships only the .mob (its objects over the game's ground) read their graph. Nothing tells a
+folder painted in place from ei-convert's, so ground changed in a converted install's own folder keeps the zone's
+graph (the same change as a mod builds).
+
+- Saves: the graph is written as a difference (`WriteDiff`) from `ReadGraphBase`: the zone's graph when one fits the
+  map, else zeros of the graph's size (`RegionMap::SavedSize`), whether the zone built its graph or not. A save's load
+  (`LoadSave`) loads the AI map first (`LoadAIMap`), applies the difference over the same base and loads the result;
+  it never builds.
+- Why not build for every map made from a folder (measured 2026-11-11 with every map of the converted vanilla install built and
+  compared with its shipped graph, 32 maps): the shipped graphs are not ours. With the units lifted the representative
+  cells match (20 of 1.2 million block-classes differ) and every map has as many class-0 regions as its file, but 11%
+  of the edge words differ (1,060,450 of 9,584,640), a quarter of those by 1, 1.2% (117,682) open in one and closed in
+  the other; the regions of 7.6% of the block-classes are numbered otherwise. (With the units standing the regions
+  split: zone 17 has 337 class-0 regions for the file's 160.) The editor measured with something we do not have (its
+  own cost tables, or the objects as they stood then). Built everywhere, the converted install's smoke tier had 40 of
+  58 goldens differ from the binary install's (unit moves from the first record: the main menu's zone builds too), so
+  the converted check would lose its paths; and every zone load paid the cost below.
+- Cost (verify build, 2026-11-11; four games at once): nearly all of it the edges' local searches (8 size classes x 8
+  neighbours a block): zone 19 (128 x 128 blocks, the largest) 2.55 s, zone 11 (128 x 96) 2.0 s, zone 12 (80 x 128)
+  1.7 s, zone 4 (128 x 80) 1.55 s, zone 1 (64 x 48) 0.4-1.2 s, a base (32 x 32) 0.13-0.16 s, the menu zone 0.04 s.
+  Paid at a new zone that builds (a save's load reads the save's graph).
+
 ## The map's data
 
 - The grids are `SearchGrid`s (search_grid.h: a `std::vector` of `height` rows of `rowLength` elements, sized by

@@ -474,13 +474,18 @@ A map can be a folder, `Maps\<zone>\`, which stands over `Maps\<zone>.mpr` (ei-c
 - A PNG of the wrong size or kind is logged (`warning: maps: ...`) and left out.
 - The objects on the map are its `.mob` ([Map objects](#map-objects)). The AI's map of the ground is made from the
   map's files, so painted heights reach the AI too.
+- The AI's path-finding graph (the regions long walks are planned through) follows the ground: when the mod's
+  `Maps\` has the zone's map (its folder or its `.mpr`) but not the zone's `.mob`, the game builds the graph from the
+  mod's ground when the zone loads (up to about 2.5 s on the largest zones). A mod that ships the zone's `.mob` too
+  keeps that `.mob`'s graph, as an install keeps its own.
 
 ## Map objects
 
 A zone's objects (`Maps\<zone>.mob`: units, buildings, trees, levers, lights, sounds, traps, effects; the weather and the
 players' relations) can be `Maps\<zone>.mob.toml`. Unlike the other records it is **not merged**: the top file found is
 all of the zone's objects. So a mod's file is the whole of ei-convert's file with its changes. The zone's AI graph is
-still read from the `.mob` (the mod's, else the game's), and so is its script unless a `.lua` stands for it
+still read from the `.mob` (the mod's, else the game's; built from the ground when the mod's map stands over
+the game's `.mob`: [Maps as folders](#maps-as-folders)), and so is its script unless a `.lua` stands for it
 ([Scripts](#scripts)), so a mod's `.mob.toml` can stand alone.
 
 ```toml
@@ -539,8 +544,8 @@ call_radius = 5.0
   out.
 
 Moving or adding objects keeps the zone's AI graph from the `.mob` (a building moved onto a path does not change how
-the AI plans its way across the map). A zone with no `.mob` anywhere (a mod's new zone, [Zones](#zones)) has its graph
-built from its map when it loads.
+the AI plans its way across the map). A zone with no graph anywhere (a mod's new zone, [Zones](#zones)), or one
+whose ground the mod also changes ([Maps as folders](#maps-as-folders)), has its graph built when it loads.
 
 ## Zones
 
@@ -1829,7 +1834,8 @@ is (and can still be replaced by a loose file of the same name in the archive's 
 - sounds and speech: `.wav` (sfx.res) and `.mp3` (speech.res), music `.mp3` (`Stream\`), already common formats;
 - movies: Bink `.bik` (`Movies\`);
 - the quest zones (`Maps\*.mq`): their `quest.reg`, `map.txt` and briefing texts;
-- a `.mob`'s AI graph (its script can be a `.lua`: [Scripts](#scripts));
+- a `.mob`'s AI graph (its script can be a `.lua`: [Scripts](#scripts); a mod's new ground gets a graph built for it:
+  [Maps as folders](#maps-as-folders));
 - a few small files no tool edits: `aiinfo.res`'s `normal.dat`, `gfx.res`'s `lightning.dat`, the credits
   (`outro.res`), the start-up picture archive (`autorun.res`, `.bmp`).
 

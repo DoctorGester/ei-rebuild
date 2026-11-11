@@ -25,7 +25,7 @@ usage:
   python tools/savefile.py raw FILE.sav OUT               the plain data (decompressed)
   python tools/savefile.py rules FILE.sav...              the fields left out while decoding these, with the reason
 """
-import argparse, copy, re, struct, sys
+import argparse, re, struct, sys
 
 # ---- the file frame and the LZ coder (core/coder.cpp: CoderState::Decompress 00430960) -----------------
 
@@ -402,26 +402,14 @@ def read_diff(r, name):
 
 
 def read_mission(r):
-    """A mission save: the world (read_world), then the file's end. A zone with no graph file (a mod's new zone,
-    its graph built at the load) has an empty base, and WriteDiff writes nothing for it (world_save.cpp): the bytes
-    do not tell, so a save that does not decode with the graph's changes read is read again without them."""
-    kept = copy.deepcopy({k: v for k, v in vars(r).items() if k != 'd'})
-    try:
-        read_world(r, True)
-        if not r.at_end():
-            r.fail(f'{len(r.d) - r.p} bytes left after the decode')
-    except DecodeError as first:
-        vars(r).update(kept)
-        try:
-            read_world(r, False)
-            if not r.at_end():
-                r.fail(f'{len(r.d) - r.p} bytes left after the decode')
-        except DecodeError:
-            raise first from None
+    """A mission save: the world (read_world), then the file's end."""
+    read_world(r)
+    if not r.at_end():
+        r.fail(f'{len(r.d) - r.p} bytes left after the decode')
 
 
-def read_world(r, graph=True):
-    """SaveWorld: the world's own fields, the AI graph's changes (`graph`: there are any), the objects by manager,
+def read_world(r):
+    """SaveWorld: the world's own fields, the AI graph's changes, the objects by manager,
     the players."""
     import savefile_objects as objects
     import savefile_items as items
@@ -447,9 +435,8 @@ def read_world(r, graph=True):
     r.f32('timeSpeed')
     r.u32('lastRainBoltTick')
     r.i32('sessionKind')
-    if graph:
-        r.entity('aigraph', 'the AI graph state against the zone file (00596140 / 005B1380)')
-        read_diff(r, 'diff')
+    r.entity('aigraph', 'the AI graph state against the zone file (00596140 / 005B1380)')
+    read_diff(r, 'diff')
 
     # The map objects' identities (mapObjects in its hash order), then the managers' object lists.
     identities = []

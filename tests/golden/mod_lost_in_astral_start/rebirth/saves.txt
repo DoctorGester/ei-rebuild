@@ -1,11 +1,11 @@
 LostInAstral/current/bz1r.sav eb0222de1958ead3
 LostInAstral/current/bz1r.visuals.sav 267438d8ab94d246
 LostInAstral/current/gz1g.sav a292f50734075f3e
-LostInAstral/current/gz1g.visuals.sav 6d18299f3df4d08b
+LostInAstral/current/gz1g.visuals.sav 9507a452f0c61658
 LostInAstral/savea/bz1r.sav eb0222de1958ead3
 LostInAstral/savea/bz1r.visuals.sav 267438d8ab94d246
 LostInAstral/savea/gz1g.sav b3d151912651895c
 LostInAstral/savea/info.sav b2c0d507b2644d32
 LostInAstral/savea/mission.sav 5b3e7d674255f688
 LostInAstral/savea/scenario.sav f2c5e02b6a83c022
-LostInAstral/savea/visuals.sav 7e9cf29c8cd9200c
+LostInAstral/savea/visuals.sav d74e05bed5c0993d

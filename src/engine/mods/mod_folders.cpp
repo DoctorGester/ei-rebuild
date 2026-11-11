@@ -383,6 +383,11 @@ std::string MapPath(std::string_view name) {
     return path;
 }
 
+bool MapFromMod(std::string_view name) {
+    modfolders::SelectMaps(name, modfolders::MapsSite::MapPath);
+    return modfolders::MapsRoot(g_dataFolder) != g_dataFolder;
+}
+
 bool MapFileExists(const char* name) {
     modfolders::SelectMaps(name, modfolders::MapsSite::FileExists);
     return ResourceExists(MapsFolder() + name);

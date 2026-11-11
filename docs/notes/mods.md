@@ -68,6 +68,7 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `figure_gltf.h` (`IsWornModel`, `JoinWorn`), `resource.cpp` (`WornSetFile`, `JoinedSet`) | an item's worn model joined to the figure sets that lack its parts ("Worn models") |
 | `tests/scenarios/mod_showcase_worn.txt` | the showcase hammer in the hero's hand (`unitpart`) |
 | `src/game/map/map_database.cpp`, `tests/scenarios/mod_showcase_zone.txt` | the zone table, map.txt and a mod's `Res\texts\map.toml` merged by name ("Zones from a mod"); the showcase's zone walked into and out of |
+| `tests/scenarios/mod_showcase_long_walk.txt` | a long walk over the island on its built region graph, through a save (docs/notes/ai.md, "Built graphs") |
 | `src/engine/models/figure_gltf_animation.cpp`, `figure_gltf_glb.h` | a set's animations as glTF animations and back ("Animations as glTF"); the pieces the two files share (the .glb's writer, the reader's accessors) |
 | `tests/scenarios/mod_gltf_animation.txt` | a mod's glTF hero whose idle is twice as slow, played in a new game |
 | `src/game/script/script_lua_mission.cpp` | a .mob's script from a .lua ("Scripts in Lua"): `Script::LoadLua`; `Script::Runner`, `GlobalValues`, `GlobalGroup` and the scheduler's views for the digest and the saves |
@@ -661,6 +662,10 @@ objects as TOML"; the quest zones stay as they are.
 - Rebirth's Maps (mod_folders.cpp `SelectMaps`): a mod whose `Maps\` has `zone1\` reads the mod's `Maps\zone1.mpr` in
   place of the game's, so a mod that paints heights alone ships the archive (or its folder) with them, as the test mod
   does.
+- The AI region graph follows the ground (docs/notes/ai.md, "Built graphs"): a zone whose map comes from the mod's
+  `Maps\` and its .mob from the game's has its graph built at the zone's load (the showcase island, a mod's painted
+  heights); ei-convert's folders sit beside their .mob and read its graph, so a converted install plays as the binary
+  one.
 - Not held (no loader reads them): each material's warp speed and reserved bytes, the water vertices' displacements; a
   sector flag byte 1 (water vertices without water tiles: none ship) comes back as 3.
 
@@ -810,10 +815,11 @@ Zone 1's TOML (777 records, 12,824 lines, 0.3 MB) reads in about 10 ms.
   and the game's `.mob` read; two more records at the file's end (a unit without a class, one of a tree's class, ids
   2010 and 2011) are left out with their warnings (`expectlog`). A map unit is found by its id (`GetObject`): `GetObjectByName` found none of the
   pigs by the names the TOML gives.
-- Still binary in a mod: the `.mob`'s AI graph chunk (0x31415926, `ReadAIGraph`) comes from the game's `.mob` (or the
-  `.grp`; built at the load when no layer has either: "Zones from a mod"); a mod that moves objects keeps the game's
-  graph, which the TOML does not carry (MF13d). Its scripts can be a `.lua` ("Scripts in Lua").
-
+- Still binary in a mod: the `.mob`'s AI graph chunk (0x31415926, `ReadAIGraph`) comes from the game's `.mob` (or
+  none when no layer has one; then, or when the mod's map stands over the game's .mob, it is built from the ground:
+  docs/notes/ai.md, "Built graphs"); a mod that only moves objects keeps the game's graph, which the TOML does
+  not carry. Its scripts
+  can be a `.lua` ("Scripts in Lua").
 ## Zones from a mod
 
 The zone table (`MapDatabase`, map_database.cpp: the allods, the zones with their exits, the quests' global map places)
@@ -839,12 +845,8 @@ places, where the old reader took the next header as one place at (0, 0); and a 
 bz1mpg ...) has its own position on the global map, where the lookup read map.txt only and gave (0, 0, 0).
 
 A new zone needs no `.mpr` (a map folder: "Maps as folders") and no `.mob` (`NewZone` takes a `.mob.toml` alone:
-`MapFileMissing` of both). With neither a `.mob` graph chunk nor a `.grp` (`ReadAIGraph` leaves the graph empty, where
-it was a fatal "Can't load graph"), `NewZone` and `LoadSave` build the region graph once the load's refresh has
-measured the cells (`BuildAIGraph`, world_save.cpp: `RefreshArea` over the whole map with the units out, as the editor
-made the files' graphs; built in `LoadMap` instead, before `EndRefresh`, every cell was a wall and no unit walked). A
-save of such a zone has an empty base, so `WriteDiff` writes no graph bytes and its load builds the graph again
-(`savefile.py` reads a mission save again without the graph's changes when it does not decode with them).
+`MapFileMissing` of both). With neither a `.mob` graph chunk nor a `.grp`, `NewZone` builds the region graph once
+the objects stand (docs/notes/ai.md, "Built graphs"), and a save keeps it against zeros, so a load never builds.
 
 ### Checks
 
@@ -852,7 +854,7 @@ save of such a zone has an empty base, so `WriteDiff` writes no graph bytes and 
   walks onto gz1g's merged exit 3 east of the landing and is ordered onto it, the leave question, and the party arrives
   on the island in its exit 1's deploy rectangle (the island's script, the quest's variable, the golem standing); back
   through the island's exit 1 into gz1g's exit 3 deploy rectangle, and in again from the island's save (the golem and
-  the variable kept, the graph built again).
+  the variable kept, the graph from the save).
 - The showcase scenarios ("The showcase mod") enter the island with the harness's `zone showcase 0` once the new
   game's battle screen is up.
 
@@ -1438,6 +1440,9 @@ Notes from making it:
 - `mod_showcase_buff` (vanilla): a console cast of Ember Brand at shard 4002: its strength lower while it lasts and
   back after, five burns (100, 80, 60, 40, 20 ticks left) that take hit points, "expired"; saved after the second burn
   and loaded: the same five burns and end from the save's effect alone.
+- `mod_showcase_long_walk` (vanilla): the island's graph built (`expectlog ai graph: built for 64 x 48 blocks`); the
+  hero walks from the landing past the golem's post over the hills to (130, 80), about 96 units; saved on the way
+  and loaded: the hero walks there again on the save's graph.
 
 ## Mods in multiplayer
 

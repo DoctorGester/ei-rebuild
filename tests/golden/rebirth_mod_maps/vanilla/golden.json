@@ -2,26 +2,16 @@
   "scenario": "rebirth_mod_maps",
   "install": "vanilla",
   "recorded": "2026-11-11",
-  "commit": "da6e624e0",
+  "commit": "e6e494d71",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MF17g4a: the campfire runs on Campfire.lua (its missile records are the scripted cast's, its entry in the Lua state's casts), the casts carry over a base's script reset; outcomes and units the same.",
+  "reason": "MF13d: the S19d mod ships zone2.mpr (a copy) without zone2.mob, so the map comes from the mod's Maps and the .mob from the game's: the graph is built from the mod's ground at the zone's load. The save's aigraph record differs (the built graph's difference from zone2.mob's); play the same. The converted install's run, which builds too, now matches.",
   "source": "image",
+  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 4 of 4 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; no unit position differs",
-    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 1 fields",
-    "    missile0 (spell 39) #: FEC14634 in the old golden, 32FA1123 in the new run",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  missiles: 2 of 2 differ",
-    "    #: 2 missiles, 4 records, from 0; hash only (no numbers kept)",
-    "save s19d_mod/current/gz1g.sav: 12 fields in 2 records differ: missile 12",
-    "  missile: 12 fields in 2 records; first missile0 position.z: 7.35812235 in the old golden, 0.5 in the new run; largest numeric d 180 at missile0 timer: 180 -> 0",
-    "save s19d_mod/savea/gz1g.sav: 12 fields in 2 records differ: missile 12",
-    "  missile: 12 fields in 2 records; first missile0 position.z: 7.35812235 in the old golden, 0.5 in the new run; largest numeric d 180 at missile0 timer: 180 -> 0",
-    "save s19d_mod/savea/mission.sav: 6 fields in 1 records differ: missile 6",
-    "  missile: 6 fields in 1 records; first missile0 position.z: 9.18810177 in the old golden, 7.45058015e-09 in the new run; largest numeric d 165 at missile0 timer: 165 -> 0"
-  ],
-  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs"
+    "save s19d_mod/savea/mission.sav: 10290 fields in 1 records differ: aigraph 10290",
+    "  aigraph: 10290 fields in 1 records; first aigraph diff.+D2: (none) in the old golden, 21 in the new run"
+  ]
 }

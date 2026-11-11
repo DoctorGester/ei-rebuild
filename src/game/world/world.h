@@ -411,9 +411,12 @@ public:
     // virtual with 0.
     void PrepareSave();
     // Reads the zone's AI graph into the memory stream `out`: the 0x31415926 chunk of the .mob file when
-    // there is one, else the whole <map>.grp file; `out` stays empty when neither is there (a mod's new zone:
-    // NewZone and LoadSave then build the graph after the load's refresh).
-    void ReadAIGraph(std::string_view map, std::string_view mob, ByteStream* out);
+    // there is one, else the whole <map>.grp file. 1 when found and its block grid is the loaded AI map's size;
+    // else 0, `out` empty.
+    int ReadAIGraph(std::string_view map, std::string_view mob, ByteStream* out);
+    // The base a save's AI graph is written and read as a difference from: the zone's graph (ReadAIGraph), else as
+    // many zeros as the loaded AI map's graph has bytes (docs/notes/ai.md, "Built graphs").
+    void ReadGraphBase(std::string_view map, std::string_view mob, MemoryStream* out);
     // The zone's scripts from the .mob file's 0xA000 chunk (its 0xACCEECCB text packed and XORed,
     // decoded by the game's routine, or the plain 0xACCEECCA text) become the only line of the first
     // command queue.
@@ -422,8 +425,10 @@ public:
     // starting at startPosition ("Accepted player <id>" goes to the network log).
     void AcceptNewPlayers(PlayerSource* lobby);
 
-    // Loads map `map` (when it changed), the AI layer state from `graph` and the zone's .mob objects (the
-    // same .mob starts the zone over, another one empties the world first; from a save the loaded objects are
+    // Loads map `map` into the AI map when it is not the current one (the .mob forgotten then). 0 when it cannot.
+    int LoadAIMap(std::string_view map);
+    // LoadAIMap, the AI layer state from `graph` (left as it is when `graph` is empty) and the zone's .mob objects
+    // (the same .mob starts the zone over, another one empties the world first; from a save the loaded objects are
     // cleared again). Returns 1, 0 when the map or the objects cannot be loaded.
     int LoadMap(std::string_view map, std::string_view mob, ByteStream* graph, char fromSave);
     // Empties the world of the current zone.
