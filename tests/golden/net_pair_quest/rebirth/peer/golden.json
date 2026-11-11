@@ -2,12 +2,12 @@
   "scenario": "net_pair_quest",
   "install": "rebirth",
   "recorded": "2026-11-11",
-  "commit": "325c1b848",
+  "commit": "b0dc7478e",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "P12 merged onto L11/H70 main: the village camera distance moves base clicks, the Rebirth net games play out differently",
+  "reason": "MF15a's particle generator on MF16's net_pair_mod goldens and net_pair_quest Rebirth's visuals.sav",
   "side": "peer",
   "source": "image"
 }

@@ -2,20 +2,16 @@
   "scenario": "net_pair_quest",
   "install": "rebirth",
   "recorded": "2026-11-11",
-  "commit": "325c1b848",
+  "commit": "b0dc7478e",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "P12 merged onto L11/H70 main: the village camera distance moves base clicks, the Rebirth net games play out differently",
+  "reason": "MF15a's particle generator on MF16's net_pair_mod goldens and net_pair_quest Rebirth's visuals.sav",
   "source": "image",
   "saves": "2 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save current/z9q2.sav: 8562 fields in 335 records differ: obj 8553, item 4, world 3, missile 1, mapObjects 1",
-    "  obj: 8553 fields in 328 records; first obj576852 controller.queue.extra: 1031 in the old golden, 1037 in the new run; largest numeric d 1e+06 at obj2250 controller.motion.goal.z: 1000000.0 -> 0.0",
-    "  item: 4 fields in 4 records; first item201 condition: 166723.719 in the old golden, 166754.0 in the new run (d 30.3)",
-    "  world: 3 fields in 1 records; first world tick: 9467 in the old golden, 9212 in the new run; largest numeric d 256 at world lastRainBoltTick: 9411 -> 9155",
-    "  missile: 1 fields in 1 records; first missile0 timer: 8550 in the old golden, 8300 in the new run (d 250)",
-    "save current/z9q2.visuals.sav: differs (decoded 3f40d0b5f4eaa61f in the old golden, e5270e45ffcaede4 in the new run; the store has no copy of 3f40d0b5f4eaa61f)"
+    "save current/z9q2.visuals.sav: 12 fields in 1 records differ: visuals 12",
+    "  visuals: 12 fields in 1 records; first visuals.prints blood.print0.position.x: 209.151337 in the old golden, 208.291336 in the new run; largest numeric d 17 at visuals.prints blood.print0.lit: 156 -> 139"
   ]
 }

@@ -2,11 +2,19 @@
   "scenario": "net_pair_mod_same",
   "install": "rebirth",
   "recorded": "2026-11-11",
-  "commit": "75c12ae89",
+  "commit": "b0dc7478e",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MF16: new scenarios, the mods compared at the lobby's join (same mod admitted, another version and no mod refused, an original peer on either side)",
-  "source": "image"
+  "reason": "MF15a's particle generator on MF16's net_pair_mod goldens and net_pair_quest Rebirth's visuals.sav",
+  "source": "image",
+  "change": [
+    "digest: 15 of 59 records differ, first at record 1 (world update 40, tick 20, frame 7, zone -); outcomes the same; no unit position differs",
+    "  first difference at record 1 (world update 40, tick 20, frame 7, zone -): 1 fields",
+    "    cunit1000011214 (80 unhuma \"\") #unit: D7CD8914 in the old golden, 3AEE20A6 in the new run",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  client units: 1 of 27 differ",
+    "    #unit: 1 client unit, 15 records, from 1; hash only (no numbers kept)"
+  ]
 }
