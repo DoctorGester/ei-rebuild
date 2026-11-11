@@ -190,39 +190,15 @@ void SpellEffect::ResumeScripted() {
 // --- The casting state -------------------------------------------------------------------------------
 
 // A spell effect's casting state (SpellEffect::Update state 0) and the helpers that create its effect
-// objects. Every spell type starts differently: the lasting spells get particles, lights and sound sequences and go
-// to state 2, the instant ones (buffs, charm) deal or apply their effect here; a scripted spell's cast starts its
-// script. Also the cast spell's lifetime. See docs/notes/items_spells.md.
+// objects. A scripted spell's cast (the game's own spells are on scripts: assets/spells) starts its script; the cut
+// spells still in code (possession, link, charm) and the campfire start here. Also the cast spell's lifetime. See
+// docs/notes/items_spells.md.
 
 using namespace spellfx;
 
 namespace {
 
 // --- The spell types ----------------------------------------------------------------------------
-
-// Fireworks (five numbered sounds).
-void StartFirework(SpellEffect* e) {
-    Vector3 centre = e->targetPoint;
-    centre.z = e->world->GridHeightAt(centre.x, centre.y) + 1.0f;
-    float size = Power(e);
-    e->CreateParticle(1, ParticleType::Geyser, centre, size, 1.0f, kZeroVector, nullptr);
-    PrototypeLight(e, centre, Prototype(e)->lightRange, kZeroVector);
-    e->CreateSoundSequence(centre, kZeroVector, "", "magic\\Firework\\%i.wav", 5);
-    e->position = centre;
-    EnterLasting(e);
-}
-
-// Clairvoyance. The particle uses the target point as it was; the light, the ground point.
-void StartClairvoyance(SpellEffect* e) {
-    Vector3 centre = e->targetPoint;
-    centre.z = e->world->GridHeightAt(centre.x, centre.y) + 1.0f;
-    e->position = centre;
-    e->CreateParticle(0, ParticleType::ClayRing, e->targetPoint, e->HeldSpell()->radius, 1.0f, kZeroVector,
-                      nullptr);
-    PrototypeLight(e, centre, e->HeldSpell()->radius, kZeroVector);
-    e->CreateSound("magic\\Clairvoyence\\start.wav", e->position, kZeroVector, kVolume, kHearing);
-    EnterLasting(e);
-}
 
 // Possession (only the sound here).
 // Unreached in the shipped game: CastSpell refuses possession, only a saved projectile of that type gets here.
@@ -233,45 +209,6 @@ void StartPossession(SpellEffect* e) {
     }
     e->CreateSound("magic\\Possession\\start.wav", e->target->EyePoint(), kZeroVector, kVolume, kHearing);
     EnterLasting(e);
-}
-
-// VisionFog: a EffectShowVisibility linking the caster and the target.
-void StartVisionFog(SpellEffect* e) {
-    if (!e->caster || !e->target) {
-        e->state = kStateEnded;
-        return;
-    }
-    int targetId = e->target->id;
-    int casterId = e->caster->id;
-    auto* shown = CreateObject<EffectShowVisibility>(e, ClassId::EffectShowVisibility);
-    shown->SetUnits(casterId, targetId);
-    SetPosition(shown, kZeroVector);
-    e->SetVisual(shown);
-    e->CreateSound("magic\\VisionFog\\start.wav", e->target->EyePoint(), kZeroVector, kVolume, kHearing);
-    EnterLasting(e);
-}
-
-// Healing. Heals the target's controller by the effect value; the sound and the light only
-// when the target is not at full health (or silentEnd is clear).
-void StartHealing(SpellEffect* e) {
-    if (!IsUnit(e->target)) {
-        e->state = kStateEnded;
-        return;
-    }
-    Unit* unit = UnitOrNull(e->target);
-    unit->controller->Heal(e->HeldSpell()->damage);
-    float size = Power(e);
-    e->CreateParticle(0, ParticleType::Healing, kZeroVector, size, 1.0f, kZeroVector, unit);
-    bool full = unit->packedVitals.hitPoints == unit->packedVitals.maxHitPoints;
-    if (e->silentEnd == 0 || !full) {
-        e->CreateSound("magic\\Healing\\start.wav", unit->localPosition, kZeroVector, kVolume, kHearing);
-        Vector3 rise{0.0f, 0.0f, LightRise(e)};
-        float range = Prototype(e)->lightRange;
-        Vector3 color = Prototype(e)->lightColor;
-        e->CreatePointLight(e->targetPoint, color, -range, rise);
-    }
-    e->timer = 30;
-    e->state = kStateLasting;
 }
 
 // Link between two different units that are both free; otherwise the caster complains (LinkImpossible).
@@ -298,23 +235,6 @@ void StartLink(SpellEffect* e) {
     }
     e->CreateSoundSequence(from, kZeroVector, "magic\\Link\\start.wav", "magic\\Link\\circle.wav", -1);
     EnterLasting(e);
-}
-
-// Teleport: a particle where the caster stands and an inverted one at the target point.
-void StartTeleport(SpellEffect* e) {
-    const Vector3* source = e->caster ? &e->caster->localPosition : &e->position;
-    Vector3 point = *source;
-    point.z = e->world->GridHeightAt(point.x, point.y) + point.z;
-    e->CreateParticle(1, ParticleType::Teleport, point, 1.0f, 1.0f, kZeroVector, nullptr);
-    point = e->targetPoint;
-    point.z = e->world->GridHeightAt(point.x, point.y) - kTeleportDepth;
-    e->CreateParticle(0, ParticleType::Teleport, point, -1.0f, 1.0f, kZeroVector, nullptr);
-    e->CreateSound("magic\\Teleport\\start.wav", point, kZeroVector, kVolume, kHearing);
-    PrototypeLight(e, point, Prototype(e)->lightRange, kZeroVector);
-    int duration = static_cast<int>(e->HeldSpell()->duration);
-    if (duration < 1) duration = 1;
-    e->state = kStateLasting;
-    e->timer = duration + 30;
 }
 
 // Charm. The target is tamed by the caster until their units' players agree; a failed attempt makes the caster
@@ -356,13 +276,8 @@ void SpellEffect::Start(SpellType type) {
     flags &= ~1u;
     // Every case sets the state itself: the lasting one or the end.
     switch (type) {
-    case SpellType::Fireworks: StartFirework(this); break;
-    case SpellType::Clairvoyance: StartClairvoyance(this); break;
     case SpellType::Possession: StartPossession(this); break;
-    case SpellType::VisionFog: StartVisionFog(this); break;
-    case SpellType::Healing: StartHealing(this); break;
     case SpellType::Link: StartLink(this); break;
-    case SpellType::Teleport: StartTeleport(this); break;
     case SpellType::Charm: StartCharm(this); break;
     case SpellType::Campfire: StartAtGround(this); break;
     case SpellType::Scripted: StartScripted(this); break;
@@ -499,12 +414,6 @@ EffectSoundSeq* SpellEffect::NewSoundSequence(const Vector3& at, const Vector3& 
     effect->name = first;
     effect->names = std::move(names);
     return effect;
-}
-
-void SpellEffect::CreatePointLight(const Vector3& at, const Vector3& color, float range, const Vector3& velocity) {
-    EffectPointLight* effect = NewPointLight(at, color, range, velocity);
-    Hold(this, light, effect);
-    world->AddTimedObject(effect);
 }
 
 EffectPointLight* SpellEffect::NewPointLight(const Vector3& at, const Vector3& color, float range,

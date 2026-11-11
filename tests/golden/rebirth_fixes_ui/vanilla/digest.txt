@@ -6932,7 +6932,7 @@ client ticksRun 312
 cunit1000011214 #place FCB07B56
 cunit1000011214 #unit 475C61C5
 cunit1000011214 #vitals C03CA0C7
-@ 17 update 360 frame 71 tick 322 zone gz1g hash EBE45282 n 796
+@ 17 update 360 frame 71 tick 322 zone gz1g hash BE35DBD2 n 796
 world tick 322
 world updates 360
 world timedObjects 2
@@ -6965,7 +6965,7 @@ timed265 # DE235530
 missile0 # D0AA7BE6
 missile1 # B41DB4E3
 + missile2 spell 24
-missile2 # A9913E06
+missile2 # 470E1793
 aievents tick 322
 client tick 322
 client ticksRun 332

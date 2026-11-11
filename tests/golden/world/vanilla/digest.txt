@@ -6494,7 +6494,7 @@ cunit1804 #place DF969219
 cunit1804 #unit 618078DC
 cunit1000011214 #vitals D3F14C18
 cunit1041730800 #place CD900B43
-@ 4 update 100 frame 19 tick 100 zone gz1g hash 8C0361E1 n 796
+@ 4 update 100 frame 19 tick 100 zone gz1g hash BFC2FC1D n 796
 world tick 100
 world updates 100
 world alarm2.active 1
@@ -6540,7 +6540,7 @@ timed263 # 79FBD916
 missile0 # C71EB81A
 missile1 # A3A9771F
 + missile2 spell 24
-missile2 # 8352E5C7
+missile2 # 568A3C9D
 aievents tick 100
 client tick 100
 client ticksRun 72

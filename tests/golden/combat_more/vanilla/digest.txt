@@ -6817,7 +6817,7 @@ aievents tick 260
 client tick 260
 client ticksRun 232
 cunit1001324934 #place 2535ECC3
-@ 13 update 280 frame 55 tick 280 zone gz1g hash 115697D1 n 798
+@ 13 update 280 frame 55 tick 280 zone gz1g hash 7F30AB1B n 798
 world tick 280
 world updates 280
 world timedObjects 2
@@ -6850,13 +6850,13 @@ timed263 # A8B3BA01
 missile0 # 8BC0F958
 missile1 # EF77365D
 + missile2 spell 24
-missile2 # 8ED752CF
+missile2 # AD9F11D9
 aievents tick 280
 client tick 280
 client ticksRun 252
 cunit1000011214 #unit 88D3C81B
 cunit1001324934 #place 95C3C3B7
-@ 14 update 300 frame 59 tick 300 zone gz1g hash 8556FB26 n 798
+@ 14 update 300 frame 59 tick 300 zone gz1g hash 3C12F8EF n 798
 world tick 300
 world updates 300
 random isaac.count 43
@@ -6880,7 +6880,6 @@ obj1001324934 #vitals ED91BFD0
 timed263 # B5954027
 missile0 # 67FB67C7
 missile1 # 034CA8C2
-missile2 # CFCA065E
 aievents tick 300
 client tick 300
 client ticksRun 272

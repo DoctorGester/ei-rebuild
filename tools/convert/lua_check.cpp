@@ -865,6 +865,19 @@ function spell.OnCast(cast)
           "Block: along or a radius expected; Unblock: none held")
     check(not pcall(cast.Noise, cast, here), "Noise: a loudness expected (nothing without a unit caster)")
     check(type(cast.areaPower) == "number", "the cast's area power")
+    local where = cast:Position(stone)
+    check(where.x == GetX(stone) and where.y == GetY(stone) and not pcall(cast.Position, cast, nil),
+          "Position: an object's own")
+    check(not cast:IsDead(stone) and not cast:IsDead(nil) and not cast:IsHurt(stone) and not cast:IsHurt(nil),
+          "IsDead, IsHurt: units only")
+    check(cast.silent == false, "a cast not an item's periodic one is not silent")
+    cast:Shout(stone, "cant_teleport")
+    check(not pcall(cast.Shout, cast, stone, "nosuch"), "Shout: an unknown ack")
+    cast:Reveal(stone)
+    cast:Wake(here, 5)
+    cast:Notice(stone, here, 300)
+    check(not pcall(cast.Notice, cast, stone, here), "Notice: a level expected")
+    check(not pcall(cast.Vision, cast, stone, stone), "Vision: two units expected")
     cast:Missile { to = stone, from = { x = 5, y = 0, z = 0 }, payload = { n = 7 } }
     cast:Missile { to = stone, from = { x = 6, y = 0, z = 0 }, effect = "AcidRay" }
     check(not pcall(cast.Missile, cast, { from = here }), "Missile: an object to fly at")

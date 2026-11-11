@@ -178,6 +178,10 @@ struct SpellRecord {
     // TOML only (`max_ticks`): the ticks a scripted cast lives at most; 0: no limit (its script ends it, as the walls'
     // outlast their duration); -1, not given: the duration rule (ScriptSpellHost's Settle).
     int maxTicks = -1;
+    // TOML only (`item_heals`): an item's spell of the record heals: armour casts it when its wearer is not hit (the
+    // others when it is), and an item's periodic cast of it waits until the wearer is hurt, one such cast a tick
+    // (UnitServer::TriggerItemSpells, TickItemSpells).
+    bool itemHeals = false;
     // TOML only (`ai_effect`): the code of the spell whose effect the AI's curse, protect and enhance options look
     // for on a unit (a scripted spell that applies another's buff names that one); empty: the record's own.
     std::string aiEffectCode;

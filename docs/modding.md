@@ -717,11 +717,12 @@ Pick one and it plays. Its textures and figures are your install's, as the game 
 
 A spell of your own is a record and a Lua file: the record (`Res\database\spells.sdb.toml`, [Databases](#databases))
 names the file with `script`, and the file below `Res\spells\` runs every cast of it, on the server. The game's own
-spells are moving onto the same path: the lightning arc and curse magic are `Res\spells\Lightning.lua`, the fire
-arrow, Rick magic and the acid ray `Res\spells\Missile.lua`, the fireball `Res\spells\Fireball.lua`, the light strike
-and the acid column `Res\spells\Strike.lua`, the twenty buffs (protections to shrink) `Res\spells\Buff.lua`, the
-fire wall, the light wall and the poison cloud `Res\spells\LastingArea.lua` (built into the game; the source's
-`assets/spells/` has them and the fields the game's records get), which a mod's file of that name replaces.
+spells are on the same path: the lightning arc and curse magic are `Res\spells\Lightning.lua`, the fire arrow, Rick
+magic and the acid ray `Res\spells\Missile.lua`, the fireball `Res\spells\Fireball.lua`, the light strike and the
+acid column `Res\spells\Strike.lua`, the twenty buffs (protections to shrink) `Res\spells\Buff.lua`, the fire wall,
+the light wall and the poison cloud `Res\spells\LastingArea.lua`, healing `Healing.lua`, teleport `Teleport.lua`,
+clairvoyance `Clairvoyance.lua`, fireworks `Fireworks.lua` and vision fog `VisionFog.lua` (built into the game; the
+source's `assets/spells/` has them and the fields the game's records get), which a mod's file of that name replaces.
 The showcase mod's Chain Spark ([The showcase mod](#the-showcase-mod)) is this example: a spark that strikes its
 target, then leaps to the nearest enemy it has not struck, each strike 0.6 of the one before, each slowing its victim.
 
@@ -750,7 +751,9 @@ offensive = true
   the nearest enemy), `turns_victim` (the unit it is cast at turns on the caster) and `fighting` (casting it starts the
   battle music; both as `offensive` unless given), `ai_effect` (the code of the spell whose effect the AI looks for
   before casting a curse or a protection again; without it the spell's own `effect`), `cast_school` (the school whose
-  casting look the caster shows, when not its own).
+  casting look the caster shows, when not its own), `item_heals` (on an item the spell heals: armour casts it when
+  its wearer is not hit, where other armour spells go off when it is, and an item's periodic cast of it waits until
+  the wearer is hurt, one such cast a tick; the game's healing has it).
 - **What its effect on a unit does**: `effect` names it, for every active effect of the spell (`cast:Apply(unit,
   "own")`, and `cast:Apply(unit, "<this spell's code>")` from any spell): its stat effect, its look and sounds on the
   unit, and what the AI looks for. The kinds are the game's buffs by their codes; `own` (the default) is the spell's own
@@ -842,7 +845,8 @@ return spell
   `cast.power` (the game's power curve of its damage, about 0.8 to 1.8), `cast.areaPower` (the same curve of its area
   over the record's: the fireball's blast is the larger of the two), `cast.lightRise` (how fast the game's spell
   lights rise away: the record's `light_range / max(light_rise_divisor, 1)` a tick), `cast.lightRange` (the record's
-  `light_range`) and `cast.school` (its school's name); and
+  `light_range`), `cast.school` (its school's name), `cast.silent` (an item's own periodic cast: the game's buffs end
+  without their sound and its healing makes no sound or light on a unit at full health); and
   `cast.data`, a table of your own that is kept with the cast (and in saves): numbers, strings, booleans, units,
   tables.
 - **The methods.** Positions are `{x, y, z}` tables or units (where the unit stands). Each does what the game's own
@@ -872,10 +876,17 @@ return spell
 | `cast:Release(handle)` | the cast's bolt, missile, effect, light or sound loop of that handle goes now (a missile's `OnHit` never runs); false when it is gone or the handle is nil |
 | `cast:Noise(at, loudness, delay)` | the caster (a unit; nothing otherwise) makes a noise there that hostile units near it hear and come looking for the caster, as the fireball's blast does (`delay` the AI's call delay, 26 unless given) |
 | `cast:Across(from, to, length)` | the vector `{x, y, 0}` `length` long square to the ground line from `from` to `to` (to its left; along x when the two stand on one spot), as the game's walls stand across the line from their caster to their point: the wall's half from its middle to an end |
+| `cast:Position(object)` | the point `{x, y, z}` where the object is (its own position, not the ground below it), where the teleport's departure shows |
+| `cast:IsDead(unit)`, `cast:IsHurt(unit)` | whether the unit is dead, as the game's spells test it / whether its hit points as the players see them are not its maximum (the healing's test); false for nil or another object |
+| `cast:Shout(unit, ack)` | the unit says an ack to its player, by acks.db's names (`"cant_teleport"`, `"link_ended"`, ...), as the teleport's caster says it cannot go |
+| `cast:Reveal(unit)` | the caster's player sees the unit this tick, as clairvoyance shows the units around its point (call it every tick) |
+| `cast:Wake(at, radius)` | the units within `radius` of the position wake, as fireworks and clairvoyance wake those around them |
+| `cast:Notice(unit, at, level)` | the unit's AI notices the position at `level` (a whole number) when that is above what it noticed last: fireworks frighten with 300 falling to 50 over their duration |
+| `cast:Vision(seer, observer, {lifetime})` | the fog of war shows what the unit `seer` sees with the unit `observer`'s senses, as vision fog shows its caster what its target sees. Gives a handle |
 | `cast:Block(at, {along})`, `cast:Block(at, {radius})`, `cast:Unblock()` | the ground under a wall from `at - along` to `at + along`, or a disc of `radius` around `at`, counts as blocked for the units' paths (they go round it, as round the game's walls and clouds) until `Unblock` or the cast's end; one at a time (a second `Block` replaces the first). `Block` also works in `OnResume` |
 | `cast:After(ticks, "Name", payload)`, `cast:Finish()` | a timer; the end of the cast after this hook |
 
-- **Handles.** `Bolt`, `Missile`, `Effect`, `Light` and `SoundLoop` give a handle (a number) for `SetVelocity` and
+- **Handles.** `Bolt`, `Missile`, `Effect`, `Light`, `SoundLoop` and `Vision` give a handle (a number) for `SetVelocity` and
   `Release`; keep it in `cast.data` to use it in a later hook.
 - **Exact numbers.** Lua numbers are doubles and the game's are floats: a cast's number passed on, or put through one
   operation, rounds back to what the game would compute; a chain of operations may not. A constant the game wrote as a

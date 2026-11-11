@@ -1,0 +1,13 @@
+{
+  "scenario": "spells_old_rest",
+  "install": "rebirth",
+  "recorded": "2026-11-11",
+  "commit": "43881c8b6",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "MF17g6: healing, teleport, clairvoyance, fireworks and vision fog run on their scripts (assets/spells); their casts' SpellEffect records are the scripted form (state 4, objects owned), the missile records differ; units, timed objects, AI events, saves and outcomes the same. spells_old_rest new: tests/saves/rest_old resumed through OnResume, against the C++ build's run only the missile records differ.",
+  "source": "image",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+}

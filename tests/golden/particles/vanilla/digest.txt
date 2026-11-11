@@ -6381,7 +6381,7 @@ cunit1884 #vitals C3E01DE4
 cunit1000011214 #place DFCF543E
 cunit1000011214 #unit C6081760
 cunit1000011214 #vitals 7D2D89BA
-@ 2 update 60 frame 11 tick 60 zone gz1g hash E17D2BEA n 802
+@ 2 update 60 frame 11 tick 60 zone gz1g hash FFB2D52E n 802
 world tick 60
 world updates 60
 world timedObjects 10
@@ -6437,7 +6437,7 @@ timed271 # 3A998B97
 missile0 # 90E33CB5
 missile1 # F454F3B0
 + missile2 spell 24
-missile2 # 66873F49
+missile2 # 568A3C9D
 aievents tick 60
 client tick 60
 client ticksRun 32

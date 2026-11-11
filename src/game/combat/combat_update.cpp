@@ -471,7 +471,7 @@ void UnitServer::TickItemSpells() {
         auto* spell = item->spell.Get();
         float cost = spell->manaCost;
         if (cost >= item->charge) continue;    // a NaN charge or cost goes on
-        if (spell->Behaviour() == SpellType::Healing) {
+        if (spell->GetPrototype()->itemHeals) {
             // Only one a tick, and only when the unit is hurt.
             if (healed || unit->packedVitals.hitPoints == unit->packedVitals.maxHitPoints) continue;
             healed = true;

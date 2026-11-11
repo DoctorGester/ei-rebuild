@@ -19,6 +19,7 @@
 #include "lib/toml.h"
 
 #include <cstring>
+#include <optional>
 
 // The database of the speeches: built empty by the C++ runtime, loaded at start.
 acks::AckDatabase g_ackDatabase;
@@ -392,6 +393,12 @@ void Fields(SpeechRecord& r, Visit& v) {
 }
 
 namespace acks {
+
+std::optional<AckKind> KindByName(std::string_view name) {
+    for (std::size_t i = 0; i < std::size(kKindNames); ++i)
+        if (kKindNames[i] == name) return static_cast<AckKind>(i);
+    return std::nullopt;
+}
 
 template <class Visit>
 void Fields(EnvironmentSpeech& r, Visit& v) {

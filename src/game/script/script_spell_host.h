@@ -83,6 +83,14 @@ public:
     static int Across(lua_State* L);
     static int Block(lua_State* L);
     static int Unblock(lua_State* L);
+    static int Position(lua_State* L);
+    static int IsDead(lua_State* L);
+    static int IsHurt(lua_State* L);
+    static int Shout(lua_State* L);
+    static int Reveal(lua_State* L);
+    static int Wake(lua_State* L);
+    static int Notice(lua_State* L);
+    static int Vision(lua_State* L);
 
 private:
     // The effect of the cast value `self` (argument 1) of a world method; a Lua error when the cast has ended or the

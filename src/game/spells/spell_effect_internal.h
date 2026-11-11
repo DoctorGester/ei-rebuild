@@ -37,9 +37,7 @@ constexpr float kLoud = 1000.0f;
 constexpr float kDefaultSpeed = 5.0f;           // a flight's speed (a second) when the spell has none
 constexpr float kBoltWidthScale = 5.0f;         // a lightning's width per power
 constexpr float kTargetHeight = 1.2f;           // a lightning ends at the target's top x this above the ground
-constexpr float kTeleportDepth = 0.2f;          // the teleport's arrival particle below the ground
 constexpr float kBuffScale = 16.0f;             // a buff's strength per power
-constexpr float kImpactWakeMargin = 5.0f;       // fireworks and clairvoyance wake the units this far past the radius
 constexpr float kPossessWake = 2.0f;            // possession wakes the units within reach x this + kPossessWakeBase
 constexpr float kPossessWakeBase = 20.0f;
 
@@ -65,13 +63,6 @@ inline float PowerFactor(float damage, float effect) {
 
 // The area power (the fireball blast's size): pow(clamp((r * r * pi) / area, 1, 8), 0.33) - 0.2.
 inline float AreaCurve(float radius, float area) { return ClampPow(radius * radius * 3.1415927f / area); }
-
-// The fireworks' fright level: _ftol(((float)timer / duration) * 250 + 50); a duration of 0 gives _ftol's 0 for a
-// NaN, 0x80000000 for an infinity's low half.
-inline int FrightLevel(int timer, int duration) {
-    const float level = (static_cast<float>(timer) / static_cast<float>(duration)) * 250.0f + 50.0f;
-    return static_cast<int>(static_cast<std::int64_t>(level));
-}
 
 // A flight's velocity a tick at `speed` a second: v * ((speed * 1/15) / sqrt((y*y + x*x) + z*z)).
 inline Vector3 ScaledToSpeed(Vector3 v, float speed) {
@@ -131,12 +122,6 @@ inline float Power(const SpellEffect* e) { return PowerFactor(e->HeldSpell()->da
 inline float LightRise(const SpellEffect* e) {
     const itemdb::SpellRecord* prototype = Prototype(e);
     return prototype->lightRange / MaxKeepB(1.0f, prototype->lightRiseDivisor);
-}
-
-// The light every lasting spell puts at its point, in the prototype's light colour.
-inline void PrototypeLight(SpellEffect* e, const Vector3& at, float range, const Vector3& velocity) {
-    Vector3 color = Prototype(e)->lightColor;
-    e->CreatePointLight(at, color, range, velocity);
 }
 
 // SpellEffect::state.

@@ -6627,7 +6627,7 @@ cunit1000011214 #vitals E798F7ED
 cunit1000012714 #place 7D637B9E
 cunit1000012714 #unit 4E1977C9
 cunit1000012715 #place CAFB8CA3
-@ 7 update 160 frame 31 tick 160 zone gz1g hash 533D472B n 798
+@ 7 update 160 frame 31 tick 160 zone gz1g hash 32F5B946 n 798
 world tick 160
 world updates 160
 world timedObjects 2
@@ -6676,7 +6676,7 @@ timed264 # 97FD5AC7
 missile0 # 2D29507B
 missile1 # 499E9F7E
 + missile2 spell 24
-missile2 # 4C51EC02
+missile2 # 568A3C9D
 aievents tick 160
 client tick 160
 client ticksRun 132
