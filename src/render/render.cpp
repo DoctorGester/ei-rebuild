@@ -439,6 +439,7 @@ static void DrawCommands(std::size_t from, std::size_t to, int width, int height
         case Command::Kind::Fill: DrawFill(g_frame.fills[i], width, height); break;
         case Command::Kind::Ui: DrawUiBatch(g_frame.uiBatches[i], width, height); break;
         case Command::Kind::Picture: DrawPictureBatch(g_frame.pictureBatches[i], width, height); break;
+        case Command::Kind::Overlay: DrawOverlayBatch(g_frame.overlayBatches[i], width, height); break;
         }
     }
 }
@@ -477,6 +478,7 @@ static bool DrawPending() {
     UploadTerrain();
     UploadMeshes(g_frame);
     UploadUi(g_frame);
+    UploadOverlay(g_frame);
     // The sun's shadow map, the ambient occlusion and the water's sky image, once a frame before its first pass.
     if (!g_frame.shadow.prepared) {
         {
@@ -731,6 +733,7 @@ static void NextFrame() {
     TerrainFrameDone();
     MeshCacheFrameDone();
     UiFrameDone();
+    OverlayFrameDone();
     ShadowFrameDone();
     OcclusionFrameDone();
     g_frameDrawn = false;

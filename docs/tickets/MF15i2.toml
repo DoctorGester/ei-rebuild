@@ -1,0 +1,8 @@
+id = "MF15i2"
+title = "Effect viewer: sub-effects on the viewer's clock"
+group = "mods"
+size = 1
+model = "sonnet"
+depends = ["MF15i"]
+note = "From MF15i: effects a data effect starts itself (its effects actions, EffectParticle::Spawn) are held by the particle manager and tick with the world, so they neither pause nor scrub with the viewer (docs/notes/effects.md, 'The effect viewer', Limits). Give them ParticleSourceFlag::OwnClock and tick them from the viewer's Step with its generator, released on Restart."
+order = 1374

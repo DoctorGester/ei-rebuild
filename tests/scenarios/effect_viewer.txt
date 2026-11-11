@@ -1,0 +1,73 @@
+# The effect viewer (ei-rebuild --effects; docs/modding.md, "The effect viewer"; MF15i), opened over a new game of the
+# showcase mod and driven by its commands (src/tools/effect_viewer.cpp, Command). Checked:
+# - an original type on data (Portal, its built-in file) plays at a free point by the camera's focus: particles;
+#   pause, scrub and step land on the ticks asked for;
+# - a field edited (emit.rate, the panel's Fields tab) plays again from the start up to the same tick, and the file is
+#   saved into the run's output folder (never the install): `replace = true` and the edited rate in it;
+# - a mod's data effect (showcase_aura, from the mod's Res\effects) on the hero, driven through its typed inputs (the
+#   enum `mode` by its value's name, the float `charge`, the event `pulse`): stepped through its first stages;
+# - an original type still in code (CastingFire, on the hero) plays from code (the panel shows its values as made);
+# - captures: the viewer's panel over each.
+# prepare: make_showcase_mod.py
+mod harness_saves\showcase_mod
+reject Script error
+waitmenu
+console thingamabob
+
+newgame
+waitline 20 Showcase mod: the island loads
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @GodMode(0,1)
+console @BlockUnit(GetLeader(),0)
+effectviewer open
+effectviewer pick Portal
+effectviewer place focus 3 0 0
+wait 1500
+effectviewer expect particles 20
+capture viewer_portal
+frames 3
+
+effectviewer pause
+effectviewer scrub 40
+effectviewer expect tick 40
+effectviewer step 5
+effectviewer expect tick 45
+effectviewer field emit.rate size * 30
+effectviewer expect problems 0
+effectviewer expect tick 45
+effectviewer expect particles 100
+effectviewer tab text
+effectviewer play
+frames 3
+capture viewer_portal_edited
+frames 3
+effectviewer folder out viewer_mod
+effectviewer save
+effectviewer expect status saved
+effectviewer tab fields
+
+effectviewer pick showcase_aura
+effectviewer place party
+effectviewer pause
+effectviewer step 5
+effectviewer expect stage rise
+effectviewer step 20
+effectviewer expect stage glow
+effectviewer play
+effectviewer input mode storm
+effectviewer input charge 1
+frames 3
+effectviewer fire pulse
+wait 600
+effectviewer expect particles 20
+capture viewer_aura
+frames 3
+
+effectviewer pick CastingFire
+effectviewer place party
+wait 800
+effectviewer expect particles 5
+capture viewer_code
+frames 3
+report
+quit

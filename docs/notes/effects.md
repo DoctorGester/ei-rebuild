@@ -443,6 +443,62 @@ inputs the server sets and every client replicates (today only the client's sour
   `set` seen (`effect ... value`), an event fired; captures `calm`, `storm`; an unknown name makes nothing.
 - `tests/unit/mod_hash.cpp`: Res\effects counts.
 
+## The effect viewer
+
+`ei-rebuild --effects [<effect>]` (src/tools; how to use it: docs/modding.md, "The effect viewer") is a dear imgui
+panel over the running game. The game starts as usual and the viewer plays its source in the client world. That one
+choice brings in the install's textures and figures, the mods' layers, the terrain, the lights, units with their
+animations and the camera, all without a second start-up. It also lets the harness drive the viewer like any game.
+A separate exe would need all of that again, and it could draw no unit without a loaded map.
+
+- **The source**:
+  - The client world's particle manager makes the source (`CreateObjectAs`, the effect's shown type), and only the
+    viewer holds it (AddRef, not in the manager's `held`). DrawAll draws it like any other source.
+  - TickSources ticks every source in its list, held or not, so the source carries `ParticleSourceFlag::OwnClock`,
+    which TickSources skips. The viewer clears the flag before it lets the source go back to the spares.
+  - The viewer ticks it after each client tick (`app::g_toolHooks.clientTicked`), so the frame's tick fraction
+    interpolates it as it interpolates the others.
+  - Its draws come from the viewer's own IsaacRandom, swapped with `g_particleRandom` around its set-up and its ticks.
+    The game's generator is untouched, and every replay draws the same.
+  - It is placed as EffectParticle::Spawn places a spawned effect (localPosition, ScaleSize(size / baseSize),
+    Attach). On a unit outside the party it draws only while its unit is shown (`AttachedToHiddenUnit`).
+  - The viewer lets go of it before the worlds are emptied (`worldsEnding`, from StopGame).
+- **Time**:
+  - What the panel changes (emission, the source's alpha / param / extent / turn, the inputs, the events) goes on a
+    timeline at the tick it was made. Changes dragged within one tick count as one.
+  - A restart, a scrub or an edit makes the source again and runs it silently up to the tick, making each change at
+    its tick.
+  - Paused, the particles' previous values are set to their current ones (`Freeze`), so the interpolation holds
+    still. The next tick's SavePrevious overwrites them first.
+- **Editing**:
+  - The document is the effect's top layer: a mod's file, else the built-in file. The layers below it are merged under
+    it as `Registry::Load` merges them (tools/effect_document.cpp).
+  - Each edit that reads gives a new record, which goes into the registry (`Registry::Put`), so any source of the name
+    made afterwards plays it too.
+  - The Fields tab edits the parsed tree and writes it back as TOML (`WriteToml`), which drops the text's comments.
+    The Text tab keeps the text as typed.
+  - A text that fails to parse, or reads with errors, keeps the last record and lists the problems.
+- **Saving**:
+  - The file goes to `<folder>\Res\effects\<name>.effect.toml`, and an edited built-in file gets `replace = true`.
+  - The default folder is the active mod's folder when it lies outside the game folder, else
+    `<user data>\ei-rebuild-effects` (`platform::UserDataFolder`). It is never the install unless the player types it
+    in.
+- **Limits**:
+  - Effects that a data effect starts (its `effects` actions) are held by the manager and tick with the world, so
+    they neither pause nor scrub.
+  - A type still in code shows the values its set-up gave the source (`MadeValues`), with no fields to edit.
+  - The viewer's source is in no save and on no network.
+- **Interface**:
+  - Dear ImGui v1.93.0 (third_party/imgui, unmodified, no backends of its own).
+  - Its platform side is tools/imgui_layer.cpp: platform events, the texture protocol (`RendererHasTextures`), a
+    scale of frame height / 1080, and no ini file.
+  - Its renderer side is the renderer's overlay (renderer.md, "render_overlay.cpp: the tools' overlay").
+- **Check**: the `effect_viewer` scenario (the showcase mod).
+  - Portal from its built-in file: pause, scrub, step, a field edited and the file saved into the run's output folder.
+  - showcase_aura on the hero, with its enum, float and event inputs and its stages.
+  - CastingFire from code, on the hero.
+  - Captures `viewer_portal`, `viewer_portal_edited`, `viewer_aura`, `viewer_code`.
+
 ## Missiles and visibility
 
 `EffectMissile` (abstract): arrived flag, target id, "from caster". `EffectArrow` (0x4E) embeds a particle, a point

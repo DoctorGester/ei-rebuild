@@ -669,6 +669,44 @@ frame = { start = "pick(16)", delay = 1 }
   nothing. An unknown key is only noted.
 - In a network game every player needs the same effect files: they count in the mod's content hash.
 
+### The effect viewer
+
+`ei-rebuild --effects [<effect>]` starts the game with a panel on its left. Start a new game, or load a save, to get a
+world and a hero to play effects on. The panel lists:
+- the 83 original effect types, marked `data` when they run from a built-in file and `code` when they still run from
+  the game's code;
+- your mod's `Res\effects` files, marked `mod`.
+
+Pick one and it plays. Its textures and figures are your install's, as the game loads them.
+
+- **Playing**:
+  - Play, Pause, Step (one tick) and Restart; Loop starts an ended effect again.
+  - The Tick slider scrubs back and forth: the effect is played again from its start to that tick, and every replay
+    draws the same particles.
+  - Size is the effect's size, as a script's `CreateParticleSource` gives it.
+- **Place**: on a unit (your party's, or one near the camera) or free at a point. "At the camera's focus" puts it where
+  you look.
+- **Drive**:
+  - Start emitting, Stop emitting and Stop, as the game calls them.
+  - The source's alpha, param and extent.
+  - A data effect's inputs: a slider for a float or vector, a box for a bool, a list for an enum, a button that fires an
+    event.
+  - Everything you change goes on the Timeline at its tick, and the replays make it again there.
+- **File** (data effects):
+  - The effect's top file: your mod's, else the built-in one.
+  - The Fields tab edits it value by value. The Text tab edits it as text.
+  - Every change plays at once, from the start up to the tick you were at. Problems are listed under it.
+  - Fields drops the text's comments; Text keeps them.
+- **Save** writes `<folder>\Res\effects\<name>.effect.toml`.
+  - The folder is your active mod's when it lies outside the game folder, else `ei-rebuild-effects` in your user data
+    folder (`%LOCALAPPDATA%` on Windows). You can type another.
+  - An edited built-in effect is saved whole with `replace = true` at the top, so your file is exactly what you saw.
+  - The viewer writes nothing else, and nothing into the game folder unless you type that folder in.
+- **Code types** show the values their set-up gives the source (texture, frames, emission, sizes, spread), a start
+  for writing them as data.
+- **Limits**: effects that a data effect starts itself (its `effects` actions) run on the game's clock, so they do
+  not pause or scrub with it. The viewer is part of the game and is not in saves or network games.
+
 ## Spells
 
 A spell of your own is a record and a Lua file: the record (`Res\database\spells.sdb.toml`, [Databases](#databases))

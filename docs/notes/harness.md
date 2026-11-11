@@ -181,7 +181,9 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   fire <event>` drive the client's running sources of that effect through the inputs game code uses
   (`effectdata::SetInput` / `Fire`); `effect <name> value <input> <expected>` requires an input's value (an enum's as its
   index), `effect <name> check <least particles> [<stage>]` requires a source with that many particles, in that stage
-  (`harness_objects_image.cpp`'s `DataEffectStep`; `mod_effect`). `clientbolts <least> [<most>]` requires that many
+  (`harness_objects_image.cpp`'s `DataEffectStep`; `mod_effect`). `effectviewer <command>` opens and drives the
+  effect viewer (effects.md, "The effect viewer"; the commands in harness.cpp's list, `tools::effect_viewer::Command`;
+  `folder out [<name>]` saves into the run's output folder; `effect_viewer`). `clientbolts <least> [<most>]` requires that many
   lightning bolts (EffectLightning) in this game's client world, a peer's too, and logs their ends
   (`net_pair_mod_spell`); `clienthurt <least> [<most>]` that many living client units below their maximum hit points
   (the packed vitals the server sent), each logged with its id and hit points (`net_pair_mod_spell`'s peer: the blow

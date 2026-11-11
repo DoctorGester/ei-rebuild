@@ -274,10 +274,18 @@ struct PictureBatch {
     bool grey = false;
 };
 
+// render::OverlayTriangles: a run of the frame's overlayIndices (absolute into overlayVertices).
+struct OverlayBatch {
+    std::uint32_t first = 0, count = 0;
+    std::uint32_t texture = 0;
+    Rect clip;
+};
+
 struct Command {
-    enum class Kind : std::uint8_t { Terrain, Mesh, Blit, ClearDepth, Fill, Ui, Picture };
+    enum class Kind : std::uint8_t { Terrain, Mesh, Blit, ClearDepth, Fill, Ui, Picture, Overlay };
     Kind kind = {};
-    int index = 0;            // into terrainBatches / meshBatches / blitBatches / clears / fills / uiBatches / pictureBatches
+    int index = 0;            // into terrainBatches / meshBatches / blitBatches / clears / fills / uiBatches /
+                              // pictureBatches / overlayBatches
 };
 
 struct Frame;
@@ -413,6 +421,9 @@ struct Frame {
     std::vector<UiVertex> uiVertices;
     std::vector<UiBatch> uiBatches;
     std::vector<PictureBatch> pictureBatches;
+    std::vector<OverlayVertex> overlayVertices;
+    std::vector<std::uint32_t> overlayIndices;
+    std::vector<OverlayBatch> overlayBatches;
     std::vector<Command> commands;
 // The world view's commands (render::BeginWorld .. EndWorld), the last range open (end SIZE_MAX) while the
 // world view draws. The render quality draws them multisampled and their models anisotropically.
@@ -450,6 +461,9 @@ struct Frame {
         uiVertices.clear();
         uiBatches.clear();
         pictureBatches.clear();
+        overlayVertices.clear();
+        overlayIndices.clear();
+        overlayBatches.clear();
         commands.clear();
         worldRanges.clear();
         worldGround.clear();
@@ -1212,6 +1226,11 @@ void UploadUi(const Frame& frame);
 void UiFrameDone();
 void DrawUiBatch(const UiBatch& batch, int width, int height);
 void DrawPictureBatch(const PictureBatch& batch, int width, int height);
+// The tools' overlay (render_overlay.cpp): UploadOverlay puts the frame's triangles on the GPU (before the passes);
+// OverlayFrameDone after the present.
+void UploadOverlay(const Frame& frame);
+void OverlayFrameDone();
+void DrawOverlayBatch(const OverlayBatch& batch, int width, int height);
 // SplitFrame draws the commands recorded so far (a pass split; not between frames); RunCanvasesNow runs
 // RunCanvasCommands at once.
 void SplitFrame();

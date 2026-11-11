@@ -13,6 +13,7 @@
 #include "render/mesh_records.h"
 #include "render/render_state.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <span>
@@ -380,6 +381,27 @@ struct MeshLighting {
 // Colours (the sky's lighting), Rebuilt (loaded, cleared, mirrored, a part added or removed, destroyed).
 enum class MeshChange { Positions, Colours, Rebuilt };
 void MeshChanged(const void* object, MeshChange change);
+
+// A tool's panel over the frame (src/tools: dear imgui's draw lists; docs/notes/renderer.md, "render_overlay.cpp: the
+// tools' overlay"): textured, coloured triangles in frame pixels, drawn where the call stands among the frame's
+// commands, alpha-blended, the depth neither tested nor written. `indices` count from the call's first vertex; each draw is a run of them with
+// its texture (an overlay texture's id; 0: white) and its clip rectangle (frame pixels).
+struct OverlayVertex {
+    float x = 0.0f, y = 0.0f, u = 0.0f, v = 0.0f;
+    std::uint32_t colour = 0;   // bytes R, G, B, A
+};
+struct OverlayDraw {
+    std::uint32_t firstIndex = 0, indexCount = 0;
+    std::uint32_t texture = 0;
+    Rect clip;
+};
+void OverlayTriangles(std::span<const OverlayVertex> vertices, std::span<const std::uint32_t> indices,
+                      std::span<const OverlayDraw> draws);
+// The overlay's textures: RGBA8, made `width` x `height` (an id above 0; 0 when it could not be made), a region
+// written from rows `pitch` bytes apart (between frames' draws, as the tool records its frame), and dropped.
+std::uint32_t MakeOverlayTexture(int width, int height);
+void WriteOverlayTexture(std::uint32_t texture, const Rect& region, const void* rows, std::size_t pitch);
+void DropOverlayTexture(std::uint32_t texture);
 
 // Draws what was handed over since the last present and presents it. Once per frame; captures call it
 // before reading.
