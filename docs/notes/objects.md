@@ -41,13 +41,15 @@ text manager and split into words. A directive word sets the current record:
     #allod <name>, then 5 lines with one word each (the allod's other names)
     #zone <name> <allod> <game|brief|edge>       a new map, the current one from here
     #res, #camera, #maps, #figure (each followed by a line of words), #weather, #cage, #restrict,
-    #sky                                         fields of the current map
+    #sky, #position                              fields of the current map
     #exit (then "<target> <n>")                  a new exit of the current map
     #deploy, #remove, #passtime, #view, #deployangle   fields of the current exit
+    #quest <name>, then its position line and its places' line   a quest's global map place (MapQuestRecord)
 
 Kept: the map index continues from the last map of the earlier file (lines before the first "#zone" go to it), the
 exit index restarts with every "#zone"; "#allod" reads word 0 of its five lines even without words; "#view" /
-"#deployangle" append a "0" word.
+"#deployangle" append a "0" word. Then a mod's `Res\texts\map.toml` merges over the lists by name (mods.md, "Zones
+from a mod").
 
 ## Zone files and unit records
 

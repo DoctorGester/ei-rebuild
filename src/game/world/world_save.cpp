@@ -132,7 +132,6 @@ void SavePlayers(WorldServer* world, ByteStream* stream) {
 }
 
 
-constexpr const char* kCantLoadGraph = "CWorldServer::LoadMap.\n Can't load AIGraph.\n";
 constexpr const char* kCantLoadMap = "CWorldServer::NewZone()\n Can't load map.\n";
 
 // Whether the file `name` (an archive also as its folder) is neither there as named nor in the maps folder (Rebirth's
@@ -143,6 +142,10 @@ bool MapFileMissing(std::string_view name, modfolders::MapsSite site) {
     modfolders::SelectMaps(name, site);
     return !ResourceExists(MapsFolder() + file);
 }
+
+// A zone without a graph file (a mod's new zone; ReadAIGraph left the graph empty): once the refresh has measured the
+// cells, the whole map refreshed again with its blocks measured, as the editor made the files' graphs.
+void BuildAIGraph(AIMap& map) { map.RefreshArea({0, 0}, {map.cells.width - 1, map.cells.height - 1}); }
 
 } // namespace
 
@@ -257,7 +260,7 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
 
     // The AI graph state as the zone files have it, then with the save's differences applied.
     MemoryStream savedGraph;
-    if (!ReadAIGraph(newMapName, newMobName, &savedGraph)) return 0;
+    ReadAIGraph(newMapName, newMobName, &savedGraph);
     MemoryStream graph;
     graph.ApplyDiff(&savedGraph, stream);
     ShowLoadProgress(kProgressZone);
@@ -347,6 +350,7 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
     loaded = 1;
     aiMap.EndRefresh();
     aiMap.refreshUnits = true;
+    if (graph.Size() == 0) BuildAIGraph(aiMap);
 
     RelocateStrandedUnits(this);
 
@@ -396,6 +400,7 @@ void WorldServer::SaveWorld(ByteStream* stream) {
     stream->WriteValue(lastRainBoltTick);
     stream->WriteValue(zoneMode);
 
+    // A zone without a graph file has an empty base: nothing is written, and its load builds the graph again.
     ReadAIGraph(mapName, mobName, &base);
     aiMap.regionMap.SaveBlocks(&current);
     stream->WriteDiff(&base, &current);
@@ -506,10 +511,12 @@ int WorldServer::NewZone(std::string_view map, std::string_view mob, std::option
     SelectLoadingMovie(zone);
     ShowLoadProgress(kProgressStart);
     if (MapFileMissing(map, modfolders::MapsSite::NewZoneMap)) return 0;
-    if (MapFileMissing(mob, modfolders::MapsSite::NewZoneMob)) return 0;
+    // The objects may be the .mob's TOML alone (a mod's new zone; docs/notes/mods.md, "Map objects as TOML").
+    if (MapFileMissing(mob, modfolders::MapsSite::NewZoneMob) &&
+        MapFileMissing(std::string(mob) + ".toml", modfolders::MapsSite::NewZoneMob))
+        return 0;
     MemoryStream graph;
-    if (!ReadAIGraph(map, mob, &graph))
-        game::FatalExit(kCantLoadGraph);
+    ReadAIGraph(map, mob, &graph);
     mobFiles.clear();
     aiMap.BeginRefresh();
     loaded = 0;
@@ -521,6 +528,7 @@ int WorldServer::NewZone(std::string_view map, std::string_view mob, std::option
     loaded = 1;
     aiMap.EndRefresh();
     aiMap.refreshUnits = true;
+    if (graph.Size() == 0) BuildAIGraph(aiMap);
     ShowLoadProgress(kProgressDone);
     if (zone) zoneName = *zone;
     scriptsActive = 0;

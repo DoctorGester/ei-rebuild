@@ -640,14 +640,14 @@ void GameFlow::LeaveThroughExit(int exit) {
         g_clientWorld.LocalView()->TakeExit(exit);
 }
 
-int WorldServer::ReadAIGraph(std::string_view map, std::string_view mob, ByteStream* out) {
+void WorldServer::ReadAIGraph(std::string_view map, std::string_view mob, ByteStream* out) {
     FileStream mobFile;
-    int found = 0;
-    // The graph chunk of the .mob file.
-    mobFile.Open(MapPath(mob), platform::FileMode::Read);
-    if (mobFile.FindTagged(kGraphChunk, out)) found = 1;
-    mobFile.Close();
-    if (found) return found;
+    // The graph chunk of the .mob file (none when the objects are its TOML alone).
+    if (mobFile.Open(MapPath(mob), platform::FileMode::Read)) {
+        const bool found = mobFile.FindTagged(kGraphChunk, out);
+        mobFile.Close();
+        if (found) return;
+    }
     // Otherwise <map without extension>.grp.
     std::string base = MapPath(map);
     int dot = str::ReverseFind(base, '.');
@@ -655,10 +655,8 @@ int WorldServer::ReadAIGraph(std::string_view map, std::string_view mob, ByteStr
     FileStream graph;
     if (graph.Open(base + kGraphExtension, platform::FileMode::Read)) {
         out->CopyFrom(&graph);
-        found = 1;
         graph.Close();
     }
-    return found;
 }
 
 void WorldServer::SetConstructionVariable(float value) {

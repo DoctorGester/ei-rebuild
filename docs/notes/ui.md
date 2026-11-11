@@ -210,8 +210,9 @@ gz2g's area at (140, 277) opens the objectives window with the ways. Not reached
 offered, and no script command or key wears one). The map's camp button (region 2) after `screen 4` makes the server fail
 ("Serv error during parsing command prevID=ff curID=4", the original too), so scenarios end on the map.
 
-**Global map** (`ui_global_map*.cpp`). Titles go through `PlaceTitle`, positions through `MapPosition` ((0, 0, 0) for a
-missing entry). `SetWeather` gives the three layers, the display colour and the clouds' ramp their final values once.
+**Global map** (`ui_global_map*.cpp`). Titles go through `PlaceTitle`, positions from the map database's records
+(`MapRecord::position`, `FindQuest`; (0, 0, 0) for a missing entry). `SetWeather` gives the three layers, the display
+colour and the clouds' ramp their final values once.
 The zone under the mouse is `ZoneAt`: each zone marker's triangles projected as its draw projects them (the screen
 matrix the window's draw starts from, recorded by `GlobalMap::DrawSprites`, times the marker's placement and scale), the faces the
 clockwise cull keeps, the nearest depth there and of equal ones the later marker (the depth test's LessEqual), at the
@@ -440,9 +441,10 @@ in the game, the hero's moveMode in the digest), the graphics rows ui_options_gr
 - **Objectives window**: TAB (keyboard.ini `obj`) opens it, Esc or Enter closes it; OK asks for the zone at the nearest exit.
   Build shows the current zone's page, or the zones of the allod in which the player holds quests ("q.<zone>.<quest>" = 1;
   any allod in multiplayer). ShowZone's exits come from the map database record, not the world's ZoneExit; the player's
-  variables are walked in the hash map's order. `LoadQuestPlaces`: map.txt "#quest <name>" pairs, or the quest record's
-  floats for a client. RefreshQuests trims sprites and regions to 21 + exits and 9 + exits and adds one of each per quest
-  place. The zone list and the distance table (from the global map) are not reached. Update blinks the markers with cos.
+  variables are walked in the hash map's order. `LoadQuestPlaces`: the map database quest's places (map.txt
+  "#quest <name>"), or the quest record's floats for a client. RefreshQuests trims sprites and regions to 21 + exits and
+  9 + exits and adds one of each per quest place. The zone list and the distance table (from the global map) are not
+  reached. Update blinks the markers with cos.
 - Help window (`ui_help_window.cpp`): Build "tutorial <topic>", "#screen" per page, "tutor <key>" texts, the pulse, clicks
   and keys; the page setup is section 11, "HelpWindow::ShowPage".
 

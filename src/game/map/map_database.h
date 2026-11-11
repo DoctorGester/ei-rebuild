@@ -1,15 +1,22 @@
 #pragma once
 
-// The map database's records: the allods and zones of map.txt (map_database.cpp loads them).
+// The map database's records: the allods, zones and quests of map.txt, map-LMP.txt and the map.toml files over them
+// (map_database.cpp loads them; docs/notes/mods.md, "Zones from a mod").
+
+#include "lib/vecmath.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
 
 
 class ByteStream;
+namespace toml {
+class Value;
+}
 
 // One "#allod" entry of map.txt.
 struct AllodRecord {
@@ -50,10 +57,11 @@ struct MapRecord {
     std::string picture2;  // the "#maps" second line's second word
     std::string picture;   // its first word, the HUD map's texture
     std::string camera;    // the "#camera" line
+    std::optional<Vector3> position;   // "#position": the zone's place on the global map
     int sizeX = 0;          // "#maps" first line: the zone's size (times 32: the HUD map's world extent)
     int sizeY = 0;
     int kind = 0;           // 0 game, 1 edge, 2 brief (2: the zone has a script folder)
-    int climate = 0;      // WorldServer::SetClimate when the zone starts
+    int climate = 1;      // WorldServer::SetClimate when the zone starts (rain unless "#weather" says)
     int cave = 0;      // WorldServer::SetCave
     bool restricted = false;   // "#restrict x y radius": the camera stays in that circle
     float restrictX = 0.0f;
@@ -63,18 +71,29 @@ struct MapRecord {
     std::vector<ZoneExit> exits;
 };
 
-// The map database loaded from map.txt / map_LMP.txt (a global).
+// One "#quest" entry: the quest's marker on the global map and its places on the objectives screen.
+struct MapQuestRecord {
+    std::string name;
+    std::optional<Vector3> position;   // the line after the header
+    std::vector<Vector2> places;       // the line after that: x y pairs
+};
+
+// The map database loaded from map.txt / map_LMP.txt and the map.toml files (a global).
 struct MapDatabase {
     // Map named `name` (_mbsicmp), or null.
     MapRecord* FindMap(std::string_view name);
     // Allod named `name` (_mbsicmp), or null.
     AllodRecord* FindAllod(std::string_view name);
-    // Adds the allods and maps of a map.txt-style text file. Returns false if the file is not found.
-    bool Load(std::string_view fileName);
-    // The lists emptied, then "map.txt" and "map-LMP.txt" loaded; returns the second Load's result (WinMain does not
-    // read it).
-    bool LoadAll();
+    // Quest named `name` (no case), or null.
+    const MapQuestRecord* FindQuest(std::string_view name) const;
+    // Adds the allods, maps and quests of a map.txt-style text file (none when there is no such file).
+    void Load(std::string_view fileName);
+    // The lists emptied, then "map.txt" and "map-LMP.txt" loaded and the map.toml files merged over them.
+    void LoadAll();
+    // A map.toml's allods, zones and quests merged over the lists by name (docs/notes/mods.md, "Zones from a mod").
+    void MergeToml(const toml::Value& root, const std::string& path);
 
     std::vector<AllodRecord> allods;
     std::vector<MapRecord> maps;
+    std::vector<MapQuestRecord> quests;
 };

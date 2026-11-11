@@ -101,8 +101,6 @@ const char* const kMissionTopic = "quest_mission";
 constexpr const char* kOkSound = "buttons\\tutorial\\ok.wav";
 constexpr const char* kSelectSound = "buttons\\objectives\\select.wav";
 constexpr const char* kEnterSound = "buttons\\objectives\\enter.wav";
-constexpr const char* kMapText = "map.txt";
-constexpr const char* kQuestHeader = "#quest %s";
 
 constexpr int kActionObjectives = 4;   // "obj" in the key table
 
@@ -729,25 +727,7 @@ void ObjectivesWindow::LoadQuestPlaces(std::string_view name) {
             places.push_back(Vector2{record->places[i - 1], record->places[i]});
         return;
     }
-    std::string header;
-    std::vector<std::string> words;
-    TextManager* texts = g_clientWorld.texts.get();
-    texts->Open(kMapText);
-    header = str::Format(kQuestHeader, std::string(name));
-    if (texts->FindLine(header)) {
-        texts->NextLine();
-        texts->NextLine();
-        words = texts->Split(true);   // none at the end
-        if (words.size() > 1) {
-            for (std::size_t i = 1; i < words.size(); i += 2) {
-                Vector2 place;
-                place.x = str::ToFloat(words[i - 1]);
-                place.y = str::ToFloat(words[i]);
-                places.push_back(place);
-            }
-        }
-    }
-    texts->Close();
+    if (const MapQuestRecord* quest = g_mapDatabase.FindQuest(name)) places = quest->places;
 }
 
 // --- Quest list handlers --------------------------------------------------------

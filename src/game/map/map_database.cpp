@@ -1,12 +1,14 @@
-// The map database loader: MapDatabase's allods, maps and exits (map/map_database.h) filled from map.txt / map-
-// LMP.txt; ZoneExit's area test and stream form.
-// More: docs/notes/objects.md, "Map database".
+// The map database loader: MapDatabase's allods, maps, exits and quests (map/map_database.h) filled from map.txt /
+// map-LMP.txt, the map.toml files merged over them; ZoneExit's area test and stream form.
+// More: docs/notes/objects.md, "Map database"; docs/notes/mods.md, "Zones from a mod".
 #include "game/map/map_database.h"
 
 #include "game/app/singletons.h"
 #include "game/console/console.h"
 #include "engine/core/core_maths.h"
 #include "engine/core/core_streams.h"
+#include "engine/data/database_toml.h"
+#include "engine/data/resource.h"
 #include "engine/data/text_manager.h"
 #include "game/saves/save_versions.h"
 #include "game/world/world.h"
@@ -14,11 +16,14 @@
 #include "lib/maths.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
+#include "lib/toml.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -43,9 +48,17 @@ private:
     int Count() const { return static_cast<int>(words.size()); }
     MapRecord& Map() { return db->maps[map]; }
     ZoneExit& Exit() { return Map().exits[exit]; }
+    // Whether the cursor is at a line of values: not a header, not the text's end.
+    bool AtValues() {
+        const std::optional<std::string> word = reader->PeekWord();
+        return word && !word->starts_with('#');
+    }
+    // The values line's x y z (missing numbers 0), none when the cursor is not at one.
+    std::optional<Vector3> Position();
 
     void AddAllod();
     void AddMap();
+    void AddQuest();
     bool MapLine(const std::string& word);
     void AddExit();
     void ExitLine(const std::string& word);
@@ -80,10 +93,23 @@ void Loader::AddMap() {
     if (Is(Word(3), "game")) Map().kind = 0;
     else if (Is(Word(3), "brief")) Map().kind = 2;
     else if (Is(Word(3), "edge")) Map().kind = 1;
-    Map().climate = 1;   // the weather
-    Map().cave = 0;   // no cave
-    Map().restricted = false;
-    Map().cage = false;
+}
+
+std::optional<Vector3> Loader::Position() {
+    if (!AtValues()) return std::nullopt;
+    Split();
+    while (Count() < 3) words.push_back("0");
+    return Vector3{str::ToFloat(Word(0)), str::ToFloat(Word(1)), str::ToFloat(Word(2))};
+}
+
+// "#quest name": its global map position on the next line, its places on the one after.
+void Loader::AddQuest() {
+    MapQuestRecord& quest = db->quests.emplace_back();
+    quest.name = words[1];
+    quest.position = Position();
+    if (!AtValues()) return;
+    Split();
+    for (int i = 1; i < Count(); i += 2) quest.places.push_back({str::ToFloat(Word(i - 1)), str::ToFloat(Word(i))});
 }
 
 void Loader::AddExit() {
@@ -124,6 +150,8 @@ bool Loader::MapLine(const std::string& word) {
     } else if (Is(word, "#figure")) {
         Split();
         if (Count() > 0) Map().figure = words[0];
+    } else if (Is(word, "#position")) {
+        Map().position = Position();
     } else if (Is(word, "#weather")) {
         Split();
         if (Count() > 0) {
@@ -194,6 +222,8 @@ void Loader::Line() {
         AddAllod();
     } else if (Is(Word(0), "#zone") && Count() > 3) {
         AddMap();
+    } else if (Is(Word(0), "#quest") && Count() > 1) {
+        AddQuest();
     } else if (map >= 0) {
         if (!MapLine(Word(0)) && exit >= 0) ExitLine(Word(0));
     }
@@ -202,22 +232,32 @@ void Loader::Line() {
 } // namespace
 } // namespace mapdb
 
-bool MapDatabase::Load(std::string_view fileName) {
+void MapDatabase::Load(std::string_view fileName) {
     using namespace mapdb;
     TextManager* reader = g_clientWorld.texts.get();
     Loader loader(this, reader);
-    if (!reader->Open(fileName)) return false;
+    if (!reader->Open(fileName)) return;
     while (reader->FindHeader()) loader.Line();
     reader->Close();
-    return true;
 }
 
-// The map database file names ("map.txt", "map-LMP.txt").
-bool MapDatabase::LoadAll() {
+// The map database file names ("map.txt", "map-LMP.txt"), then the map.toml files of texts.res's places (the text
+// manager's first archive: Res\texts\ in each layer of the path map; a mod's over the game's).
+void MapDatabase::LoadAll() {
     allods.clear();
     maps.clear();
+    quests.clear();
     Load("map.txt");
-    return Load("map-LMP.txt");
+    Load("map-LMP.txt");
+    const std::vector<TextSource>& archives = g_clientWorld.texts->sources.archives;
+    if (archives.empty()) return;
+    const RecordFile file = archives.front().source->FindRecord("map");
+    if (file.replaced) {
+        allods.clear();
+        maps.clear();
+        quests.clear();
+    }
+    MergeTomls(file, [this](const toml::Value& root, const std::string& path) { MergeToml(root, path); });
 }
 
 // The map database (a plain global: the C++ runtime builds it empty and destroys it).
@@ -233,6 +273,309 @@ AllodRecord* MapDatabase::FindAllod(std::string_view name) {
     for (AllodRecord& allod : allods)
         if (text::CompareIgnoringCase(allod.name, name) == 0) return &allod;
     return nullptr;
+}
+
+const MapQuestRecord* MapDatabase::FindQuest(std::string_view name) const {
+    for (const MapQuestRecord& quest : quests)
+        if (text::CompareIgnoringCase(quest.name, name) == 0) return &quest;
+    return nullptr;
+}
+
+// --- As TOML (docs/notes/mods.md, "Zones from a mod") ------------------------------------------------------------
+
+namespace mapdb {
+namespace {
+
+constexpr const char* kWhat = "map";
+
+// A text as it is (UTF-8, as the text manager hands map.txt's out).
+struct Text {
+    std::string& value;
+};
+bool ReadValue(const toml::Value& value, Text field) { return toml::Read(value, &field.value); }
+
+// An allod's five figure names.
+struct Figures {
+    std::string (&names)[5];
+};
+bool ReadValue(const toml::Value& value, Figures field) {
+    if (!value.IsArray() || value.Size() != 5) return false;
+    std::string read[5];
+    for (int i = 0; i < 5; ++i)
+        if (!toml::Read(value.At(i), &read[i])) return false;
+    for (int i = 0; i < 5; ++i) field.names[i] = std::move(read[i]);
+    return true;
+}
+
+// [x, y, z].
+struct Position {
+    std::optional<Vector3>& value;
+};
+bool ReadValue(const toml::Value& value, Position field) {
+    Vector3 read;
+    if (!dbtoml::ReadValue(value, read)) return false;
+    field.value = read;
+    return true;
+}
+
+// [x, y] pairs.
+struct Places {
+    std::vector<Vector2>& values;
+};
+bool ReadValue(const toml::Value& value, Places field) {
+    if (!value.IsArray()) return false;
+    std::vector<Vector2> read;
+    for (int i = 0; i < value.Size(); ++i) {
+        float point[2] = {};
+        if (value.At(i).Size() != 2 || !dbtoml::ReadValue(value.At(i), point)) return false;
+        read.push_back({point[0], point[1]});
+    }
+    field.values = std::move(read);
+    return true;
+}
+
+// A zone's size in sectors, [x, y].
+struct Size {
+    int& x;
+    int& y;
+};
+bool ReadValue(const toml::Value& value, Size field) {
+    std::int32_t read[2] = {};
+    if (value.Size() != 2 || !dbtoml::ReadValue(value, read)) return false;
+    field.x = read[0];
+    field.y = read[1];
+    return true;
+}
+
+// "#restrict": [x, y, radius], the camera kept in that circle.
+struct Restrict {
+    MapRecord& map;
+};
+bool ReadValue(const toml::Value& value, Restrict field) {
+    float x = 0.0f, y = 0.0f, radius = 0.0f;
+    if (value.Size() != 3 || !toml::Read(value.At(0), &x) || !toml::Read(value.At(1), &y) ||
+        !toml::Read(value.At(2), &radius))
+        return false;
+    field.map.restricted = true;
+    field.map.restrictX = x;
+    field.map.restrictY = y;
+    field.map.restrictRadius = radius;
+    return true;
+}
+
+// An angle in degrees (map.txt's), held in radians.
+struct Degrees {
+    float& value;
+};
+bool ReadValue(const toml::Value& value, Degrees field) {
+    float degrees = 0.0f;
+    if (!toml::Read(value, &degrees)) return false;
+    field.value = ei::kRadiansPerDegree * degrees;
+    return true;
+}
+struct DeployAngle {
+    ZoneExit& exit;
+};
+bool ReadValue(const toml::Value& value, DeployAngle field) {
+    if (!ReadValue(value, Degrees{field.exit.deployAngle})) return false;
+    field.exit.hasDeployAngle = 1;
+    return true;
+}
+
+// An exit's area that leads out, [x1, y1, x2, y2].
+struct Area {
+    ZoneExit& exit;
+};
+bool ReadValue(const toml::Value& value, Area field) {
+    float read[4] = {};
+    if (value.Size() != 4 || !dbtoml::ReadValue(value, read)) return false;
+    field.exit.x1 = read[0];
+    field.exit.y1 = read[1];
+    field.exit.x2 = read[2];
+    field.exit.y2 = read[3];
+    return true;
+}
+struct Deploy {
+    float (&values)[4];
+};
+bool ReadValue(const toml::Value& value, Deploy field) {
+    float read[4] = {};
+    if (value.Size() != 4 || !dbtoml::ReadValue(value, read)) return false;
+    std::copy(std::begin(read), std::end(read), field.values);
+    return true;
+}
+
+// The entrance as map.txt numbers the exits, from 1.
+struct Number {
+    int& value;
+};
+bool ReadValue(const toml::Value& value, Number field) {
+    std::int32_t read = 0;
+    if (!toml::Read(value, &read)) return false;
+    field.value = read - 1;
+    return true;
+}
+
+constexpr dbtoml::Name kKinds[] = {{0, "game"}, {1, "edge"}, {2, "brief"}};
+constexpr dbtoml::Name kWeathers[] = {{0, "none"}, {1, "rain"}, {2, "snow"}, {3, "tornado"}};
+constexpr dbtoml::Name kSkies[] = {{0, "normal"}, {1, "cave"}};
+
+} // namespace
+} // namespace mapdb
+
+template <class Visit>
+void Fields(AllodRecord& r, Visit& v) {
+    v("name", mapdb::Text{r.name});
+    v("figures", mapdb::Figures{r.otherNames});
+}
+
+template <class Visit>
+void Fields(MapRecord& r, Visit& v) {
+    v("name", mapdb::Text{r.name});
+    v("allod", mapdb::Text{r.allod});
+    v("kind", dbtoml::Enum<int>{r.kind, mapdb::kKinds});
+    v("map", mapdb::Text{r.map});
+    v("mob", mapdb::Text{r.mob});
+    v("camera", mapdb::Text{r.camera});
+    v("size", mapdb::Size{r.sizeX, r.sizeY});
+    v("minimap", mapdb::Text{r.picture});
+    v("objectives_map", mapdb::Text{r.picture2});
+    v("figure", mapdb::Text{r.figure});
+    v("position", mapdb::Position{r.position});
+    v("weather", dbtoml::Enum<int>{r.climate, mapdb::kWeathers});
+    v("sky", dbtoml::Enum<int>{r.cave, mapdb::kSkies});
+    v("cage", dbtoml::Bool<bool>{r.cage});
+    v("restrict", mapdb::Restrict{r});
+}
+
+template <class Visit>
+void Fields(ZoneExit& r, Visit& v) {
+    v("target", mapdb::Text{r.target});
+    v("entrance", mapdb::Number{r.entrance});
+    v("deploy", mapdb::Deploy{r.deploy});
+    v("remove", mapdb::Area{r});
+    v("angle", mapdb::Degrees{r.angle});
+    v("pass_time", r.passTime);
+    v("view", mapdb::Degrees{r.view});
+    v("deploy_angle", mapdb::DeployAngle{r});
+}
+
+template <class Visit>
+void Fields(MapQuestRecord& r, Visit& v) {
+    v("name", mapdb::Text{r.name});
+    v("position", mapdb::Position{r.position});
+    v("places", mapdb::Places{r.places});
+}
+
+namespace mapdb {
+namespace {
+
+// The keys of the table `item` but `skip` read into `record`'s fields; the message of the first that does not load
+// (`*line` its line), or empty.
+template <class Record>
+std::string ReadFields(const toml::Value& item, Record& record, std::string_view skip, int* line) {
+    for (int k = 0; k < item.Size(); ++k) {
+        const std::string_view key = item.KeyAt(k);
+        if (key == skip) continue;
+        *line = item.ValueAt(k).Line();
+        dbtoml::FieldReader reader(key, item.ValueAt(k));
+        Fields(record, reader);
+        if (!reader.found) return "unknown key " + std::string(key);
+        if (!reader.read) return reader.Refused();
+    }
+    return {};
+}
+
+// The index of the record named `name` (no case, as the Find functions), or the list's size.
+template <class Record>
+std::size_t IndexOf(const std::vector<Record>& records, std::string_view name) {
+    std::size_t index = 0;
+    while (index < records.size() && text::CompareIgnoringCase(records[index].name, name) != 0) ++index;
+    return index;
+}
+
+// A zone's exits merged by number: `number` n (from 1) is the zone's n-th exit, which takes the fields given; an
+// exit without one, or past the zone's last, is a new exit at the end (leading nowhere unless it has a target).
+// `deploy` sets the area that leads out too unless `remove` is given, as map.txt's "#deploy" line does.
+std::string MergeExits(const toml::Value& table, std::vector<ZoneExit>& exits, int* line) {
+    if (!table.Exists()) return {};
+    if (!table.IsArray()) {
+        *line = table.Line();
+        return "exit is not an array of tables";
+    }
+    for (int i = 0; i < table.Size(); ++i) {
+        const toml::Value item = table.At(i);
+        std::int32_t number = 0;
+        if (item["number"].Exists() && !toml::Read(item["number"], &number)) {
+            *line = item["number"].Line();
+            return "number has a value it does not take";
+        }
+        const bool added = number < 1 || number > std::ssize(exits);
+        ZoneExit exit;
+        exit.target = "none";
+        if (!added) exit = exits[number - 1];
+        if (std::string refused = ReadFields(item, exit, "number", line); !refused.empty()) return refused;
+        if (item["deploy"].Exists() && !item["remove"].Exists()) {
+            exit.x1 = exit.deploy[0];
+            exit.y1 = exit.deploy[1];
+            exit.x2 = exit.deploy[2];
+            exit.y2 = exit.deploy[3];
+        }
+        if (added) exits.push_back(exit);
+        else exits[number - 1] = exit;
+    }
+    return {};
+}
+
+} // namespace
+} // namespace mapdb
+
+// Each record of a table by name: one the lists have (no case) takes the fields given and keeps the others; a new
+// name is a new record at the end (a zone as map.txt's "#zone" line starts one: rain, its allod's map list). A record
+// with a key it does not have, or a value its field does not take, is logged and left out whole.
+void MapDatabase::MergeToml(const toml::Value& root, const std::string& path) {
+    using namespace mapdb;
+    // `skip`: a key that `finish(item, record, index, line)` reads after the fields (its message, or empty).
+    auto merge = [&path](const toml::Value& table, auto& records, std::string_view skip, auto finish) {
+        if (table.Exists() && !table.IsArray()) {
+            game::Warning("%s: %s line %d: not an array of tables", kWhat, path, table.Line());
+            return;
+        }
+        for (int i = 0; i < table.Size(); ++i) {
+            const toml::Value item = table.At(i);
+            std::string name;
+            if (!toml::Read(item["name"], &name)) {
+                game::Warning("%s: %s line %d: a record without its name", kWhat, path, item.Line());
+                continue;
+            }
+            const std::size_t index = IndexOf(records, name);
+            const bool added = index == records.size();
+            auto record = added ? typename std::remove_reference_t<decltype(records)>::value_type{} : records[index];
+            int line = item.Line();
+            std::string refused = ReadFields(item, record, skip, &line);
+            if (refused.empty()) refused = finish(item, record, index, &line);
+            if (!refused.empty()) {
+                game::Warning("%s: %s line %d: %s; the record is left out", kWhat, path, line, refused);
+                continue;
+            }
+            if (added) records.push_back(std::move(record));
+            else records[index] = std::move(record);
+        }
+    };
+    auto none = [](const toml::Value&, auto&, std::size_t, int*) { return std::string(); };
+    merge(root["allod"], allods, "", none);
+    merge(root["zone"], maps, "exit", [this](const toml::Value& item, MapRecord& zone, std::size_t index, int* line) {
+        if (std::string refused = MergeExits(item["exit"], zone.exits, line); !refused.empty()) return refused;
+        // The allods' map lists: a new zone joins its allod's, a zone given another allod moves.
+        const int at = static_cast<int>(index);
+        const bool added = index == maps.size();
+        if (!added && text::CompareIgnoringCase(maps[index].allod, zone.allod) == 0) return std::string();
+        if (AllodRecord* old = added ? nullptr : FindAllod(maps[index].allod)) std::erase(old->maps, at);
+        if (AllodRecord* allod = FindAllod(zone.allod)) allod->maps.push_back(at);
+        return std::string();
+    });
+    merge(root["quest"], quests, "", none);
+    dbtoml::CheckTables(root, {"allod", "zone", "quest"}, kWhat, path);
 }
 
 // --- ZoneExit ----------------------------------------------------------------------------------------
