@@ -1,9 +1,10 @@
 // The spells' behaviours over a fake record table (src/game/spells/spell_behaviour.cpp): the game's places keep their
-// own behaviour and row whatever their fields say, a record past them reads its ai / damage_type / offensive, and a
-// table past 256 spells is cut to 256. ei_unit_check (unit_check.cpp) and the POSIX port check run it.
+// own behaviour and row whatever their fields say, a record past them reads its ai / damage_type / offensive /
+// ai_effect, and a table past 256 spells is cut to 256. ei_unit_check (unit_check.cpp) and the POSIX port check run it.
 #include "../../src/game/spells/spell_db.h"
 
 #include <cstdio>
+#include <string>
 #include <vector>
 
 namespace {
@@ -78,5 +79,23 @@ int RunSpellBehaviourChecks() {
                                                     records[45].behaviour == SpellType::None);
     const itemdb::SpellUse scripted = UseOf(records[static_cast<int>(SpellType::Fireball)]);
     Expect("a scripted record reads its fields", scripted.ai == SpellAi::Heal && scripted.offensive);
+
+    // ai_effect: the AI's curse / protect / enhance test looks for the behaviour of the record it names, else for the
+    // record's own; a game row's is its own whatever the field says.
+    for (std::size_t i = 0; i < records.size(); ++i) records[i].code = "s" + std::to_string(i);
+    const std::string slow = "s" + std::to_string(static_cast<int>(SpellType::Slow));
+    records[44].aiEffectCode = slow;
+    records[45].aiEffectCode = "nothing";
+    records[static_cast<int>(SpellType::Stun)].aiEffectCode = slow;
+    const std::vector<std::string> unnamed = itemdb::SetBehaviours(records);
+    Expect("an ai_effect naming no spell reported", unnamed.size() == 1 && unnamed[0] == "s45");
+    Expect("ai_effect: the named spell's behaviour", UseOf(records[44]).effect == SpellType::Slow);
+    Expect("ai_effect unknown or empty: the record's own", UseOf(records[45]).effect == SpellType::None &&
+                                                               UseOf(records[46]).effect == SpellType::None &&
+                                                               UseOf(records[static_cast<int>(SpellType::Fireball)])
+                                                                       .effect == SpellType::Scripted);
+    Expect("a game row looks for its own effect",
+           UseOf(records[static_cast<int>(SpellType::Stun)]).effect == SpellType::Stun &&
+               UseOf(records[static_cast<int>(SpellType::Strengthen)]).effect == SpellType::Strengthen);
     return failures;
 }

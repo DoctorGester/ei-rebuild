@@ -401,7 +401,7 @@ void AIAttention::Build(Unit* unit) {
             case AIOptionKind::Curse:
             case AIOptionKind::Protect:
             case AIOptionKind::Enhance:
-                effect = static_cast<int>(spell->Behaviour());
+                effect = static_cast<int>(spell->Use().effect);
                 break;
             case AIOptionKind::Heal:
                 radius = spell->damage;

@@ -159,6 +159,11 @@ struct SpellRecord {
     SpellAi ai = SpellAi::None;
     DamageType damageType = DamageType::Other;
     bool offensive = false;
+    // TOML only (`ai_effect`): the code of the spell whose effect the AI's curse, protect and enhance options look
+    // for on a unit (a scripted spell that applies another's buff names that one); empty: the record's own.
+    std::string aiEffectCode;
+    // The behaviour those options look for (HasEffect), set by the load (SetBehaviours): for the game's 42 their own.
+    SpellType aiEffect = SpellType::None;
 };
 
 // How the game's tables use a spell (UseOf).
@@ -168,15 +173,17 @@ struct SpellUse {
     bool offensive = false;     // the HUD's use at once aims it at the nearest enemy, not at the caster
     bool turnsVictim = false;   // the unit it is cast at sees the caster and counts as attacked (CreateMissile)
     bool fighting = false;      // casting it is fighting (UnitServer::IsFighting: the battle music)
+    SpellType effect = SpellType::None;  // what the AI's curse / protect / enhance options look for (aiEffect)
 };
 
 // The row of the record's behaviour for the game's 42; for Scripted and None the record's fields, `offensive` also standing for
-// turnsVictim and fighting.
+// turnsVictim and fighting. `effect` is the record's aiEffect.
 SpellUse UseOf(const SpellRecord& record);
 
 // Each record's behaviour: Scripted with a script, else from its place (the first kGameSpellCount their own, the
-// others None).
-void SetBehaviours(std::vector<SpellRecord>& records);
+// others None); then each one's aiEffect: a game row's own behaviour, else that of the record its aiEffectCode names
+// (its own when empty or unknown). Returns the codes of the records whose aiEffectCode names no record.
+std::vector<std::string> SetBehaviours(std::vector<SpellRecord>& records);
 
 // The records past `limit` erased; how many there were.
 template <class Record>
