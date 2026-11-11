@@ -1,0 +1,72 @@
+# A network zone that cannot be entered (src/game/app/game_flow.cpp, GameFlow::NetworkZoneNotEntered; MF13d2a). The
+# mod (tools/make_missing_zone_mod.py) gives the quest zones on zone3Obr (z3q1-z3q3) the objects mf13d2a_missing.mob in
+# its Res\texts\map.toml, which no install has (the map stays zone3Obr: a zone on another map is not offered). A game
+# hosted alone takes the sheriff's second topic (z3q2 by this run's draws) and walks out through the gate, as
+# net_pair_mod_effect's host does: the flow's request 6, StartNetworkZone, whose NewZone refuses the missing objects
+# after the base was torn down. The flow then goes to the main menu with the warning "Zone z3q2 cannot be entered"
+# (ei-rebuild.log) and both sessions closed (netstate), instead of playing on with no world under the hosted game. A
+# new game then starts.
+# Only on the vanilla data: the Rebirth run reaches no code and checks nothing the vanilla run does not.
+# installs: vanilla
+# prepare: make_missing_zone_mod.py
+rebirth resolution desktop
+timeout 120
+mod harness_saves\missing_zone_mod
+reject Script error
+waitmenu
+console thingamabob
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key h
+frames 3
+key o
+frames 3
+key s
+frames 3
+key t
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 mpconnect
+
+clickregion 14
+frames 5
+clickregion 0
+waitwindow 25 briefing
+frames 20
+
+# The sheriff's second topic, talked through.
+clickground 63 64 dblclick
+frames 60
+waitunit 10 Nsheriff
+clickunit Nsheriff
+waitdialogue 10 1
+clickregion 1
+talk 30
+
+# Out through the gate into exit 1 (remove rectangle 56 39 62.5 45).
+clickground 61 50 dblclick
+frames 60
+clickground 59 43 dblclick
+waitmenu 40
+frames 10
+netstate
+expect netstate: no server
+netstate
+expect netstate: no client
+
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+wait 1000
+check IsAlive(GetLeader())
+report
+quit

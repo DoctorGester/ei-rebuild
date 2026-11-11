@@ -1,0 +1,13 @@
+{
+  "scenario": "net_zone_missing_map",
+  "install": "vanilla",
+  "recorded": "2026-11-11",
+  "commit": "25cd61885",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "New scenario (MF13d2a): a hosted game whose quest zone's objects are missing goes to the main menu with both sessions closed.",
+  "source": "image",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+}
