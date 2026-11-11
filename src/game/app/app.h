@@ -51,8 +51,8 @@ void PumpMessages();
 // The music stream's steps due by now (SoundManager::FollowClock on the frame clock), from the passes that hold the
 // main loop longer than a stream half plays: the loading screen's steps and the system's modal loops.
 void StepMusic();
-// Without a .mob on the command line opens the main menu; otherwise loads the map into the
-// world server and runs the command line's script file.
+// Without a .mob on the command line opens the main menu (a tool's own scene, app::g_toolScene: a new game instead);
+// otherwise loads the map into the world server and runs the command line's script file.
 void StartFirstMap();
 // One frame: the interface drawn and the scene presented, nothing while the application is inactive.
 void FrameStep(bool draw);

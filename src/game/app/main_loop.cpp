@@ -634,7 +634,7 @@ int GameMain(char* commandLine) {
         platform::SetCursor(nullptr);
         g_sceneRenderer.CreateRenderer(g_mainWindow, options);
         g_sceneRenderer.SetGamma(options->brightness, options->gamma);
-        PlayMovies("Start", true);
+        if (!g_toolScene.newGame) PlayMovies("Start", true);
         // The loading screen's first frame stays up while the world's graphics, the cursors and the interface are made.
         ShowLoadingMovie(0);
         CloseLoadingMovie();

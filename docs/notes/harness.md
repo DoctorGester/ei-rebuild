@@ -468,7 +468,8 @@ program reads the registry; the settings are a file, harness_settings.h). The ha
 - The game's output and run_all's lines for the run go to its `launch.txt`; a game that ends while its report still
   says `RESULT: RUNNING` gets a failure with its exit code (an INT3's named as such), and a harness that has not written
   its report 30 s after the start ends the run without one. A scenario's `# settings-file:` line is checked after the
-  game has ended (run_all.check_settings_file).
+  game has ended (run_all.check_settings_file). A `# arguments: <words>` line starts the exe with those arguments
+  (run_all.scenario_arguments; effect_viewer_standalone.txt's `--effects Portal`).
 - When the game crashes, the stack is in `ei-rebuild.log`; run_all prints it by function names under the run's line
   (outermost first) and `python tools\resolve_crash.py <run folder>` prints the named stack (`--raw`: every logged word).
 - A run that exceeds its time limit logs where the main thread waits. No game outlives its limit: the watchdog thread in

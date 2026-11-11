@@ -1,7 +1,8 @@
 // ei-rebuild: the game.
-// usage: ei-rebuild [--effects [<effect>]] [-- <game arguments>]
-//   --effects opens the effect viewer over the game (src/tools/effect_viewer.h; docs/modding.md, "The effect viewer"),
-//   <effect> picked in it once a world is there.
+// usage: ei-rebuild [--effects [<effect>] [--zone <zone>]] [-- <game arguments>]
+//   --effects starts the effect viewer (src/tools/effect_viewer.h; docs/modding.md, "The effect viewer") straight in a
+//   new game, with no start movies and no main menu: in <zone> (a battle zone of the map list) when given, else the
+//   campaign's first; <effect> picked once the world is there.
 //   The game folder is the one EI_GAME_ROOT names (tools/run_all.py's), else the platform's
 //   (platform::DefaultGameFolder: the exe's own, dropped into a game folder; on macOS beside the
 //   app or chosen); without one (none chosen) the program ends at once. With EI_GAME_ROOT the
@@ -9,6 +10,7 @@
 //   line, as typed (WinMain's).
 #include "game/app/app.h"
 #include "game/app/settings.h"
+#include "game/app/tool_hooks.h"
 #include "lib/text_case.h"
 #include "platform/log.h"
 #include "platform/platform.h"
@@ -46,9 +48,13 @@ int main(int argc, char** argv) {
         effects = true;
         ++next;
         if (next < argc && argv[next][0] != '-') effect = argv[next++];
+        if (next + 1 < argc && std::strcmp(argv[next], "--zone") == 0) {
+            app::g_toolScene.zone = argv[next + 1];
+            next += 2;
+        }
     }
     if (next < argc && std::strcmp(argv[next], "--") != 0) {
-        std::fprintf(stderr, "usage: ei-rebuild [--effects [<effect>]] [-- <game arguments>]\n");
+        std::fprintf(stderr, "usage: ei-rebuild [--effects [<effect>] [--zone <zone>]] [-- <game arguments>]\n");
         return 2;
     }
     const std::string folder = GameFolder();
@@ -73,7 +79,10 @@ int main(int argc, char** argv) {
     app::StartVideo();
     // The settings' [game] Mod: its files then stand over the game folder's and its saves keep apart.
     app::UseMod(folder, settings::GetString(settings::kGame, "Mod"));
-    if (effects) tools::effect_viewer::Open(effect);
+    if (effects) {
+        app::g_toolScene.newGame = true;
+        tools::effect_viewer::Open(effect);
+    }
     const int result = app::GameMain(arguments.data());
     ei::Log("exit: the game's main returned");
     return result;

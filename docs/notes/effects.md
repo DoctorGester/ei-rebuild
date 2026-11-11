@@ -435,11 +435,23 @@ client replicates (today only the client's sources take SetInput / Fire; MF15j2)
 
 ## The effect viewer
 
-`ei-rebuild --effects [<effect>]` (src/tools; how to use it: docs/modding.md, "The effect viewer") is a dear imgui
-panel over the running game. The game starts as usual and the viewer plays its source in the client world. That one
-choice brings in the install's textures and figures, the mods' layers, the terrain, the lights, units with their
-animations and the camera, all without a second start-up. It also lets the harness drive the viewer like any game.
-A separate exe would need all of that again, and it could draw no unit without a loaded map.
+`ei-rebuild --effects [<effect>] [--zone <zone>]` (src/tools; how to use it: docs/modding.md, "The effect viewer") is a
+dear imgui panel over the running game, and the viewer plays its source in the client world. That one choice brings
+in the install's textures and figures, the mods' layers, the terrain, the lights, units with their animations and the
+camera, all without a second start-up. It also lets the harness drive the viewer like any game.
+
+- **Its own scene** (MF15i3): `--effects` sets `app::g_toolScene` (app/tool_hooks.h) before GameMain. The start
+  then skips the "Start" movies, and StartFirstMap asks for a new game (flow state 3) where it would open the main
+  menu. StartNewGame puts the party into `--zone` when one is given (the party's zone set before the redeploy), else
+  the campaign's first zone. The hero is the unit the first pick goes on. The zone entry's autosave is off in this
+  mode (ui_battle.cpp, AutoSaveEnabled), so the player's `savea` survives the viewer.
+  - Not a separate exe: an `ei-effects` entry point would still need GameMain's whole start (the worlds, the
+    databases, the window, the renderer, the interface) and a zone with a unit, which is what the new game gives.
+    The flag costs a few lines of app code, while a second exe would add a CMake target, its packaging and a second
+    copy of main.cpp's set-up.
+  - The in-game panel (the harness's `effectviewer open`, over a game started as usual) is the same viewer.
+  - A base zone (map list kind 2) has no 3D scene, so `--zone` wants a battle zone.
+  - tests/scenarios/effect_viewer_standalone.txt starts the exe with `--effects Portal` (run_all's `# arguments:` line).
 
 - **The source**:
   - The client world's particle manager makes the source (`CreateObjectAs`, the effect's shown type), and only the
