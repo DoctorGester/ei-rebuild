@@ -530,6 +530,7 @@ AIMap::AIMap() { Reset(); }
 
 void AIMap::Reset() {
     loaded = false;
+    groundFolder.clear();
     batching = false;
     refreshUnits = 0;
     dirty.Reset();

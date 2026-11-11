@@ -640,6 +640,20 @@ void GameFlow::LeaveThroughExit(int exit) {
         g_clientWorld.LocalView()->TakeExit(exit);
 }
 
+namespace {
+
+// Whether `graph` (as RegionMap::SaveBlocks writes it) is the block grid of `map`'s size.
+bool GraphFitsMap(ByteStream* graph, AIMap& map) {
+    if (graph->Size() != RegionMap::SavedSize(map.cells.width, map.cells.height)) return false;
+    std::int32_t size[2] = {};
+    graph->Seek(0);
+    graph->Read(size, sizeof(size));
+    graph->Seek(0);
+    return size[0] == map.cells.width / 8 && size[1] == map.cells.height / 8;
+}
+
+} // namespace
+
 int WorldServer::ReadAIGraph(std::string_view map, std::string_view mob, ByteStream* out) {
     FileStream mobFile;
     int found = 0;
@@ -647,18 +661,28 @@ int WorldServer::ReadAIGraph(std::string_view map, std::string_view mob, ByteStr
     mobFile.Open(MapPath(mob), platform::FileMode::Read);
     if (mobFile.FindTagged(kGraphChunk, out)) found = 1;
     mobFile.Close();
-    if (found) return found;
     // Otherwise <map without extension>.grp.
-    std::string base = MapPath(map);
-    int dot = str::ReverseFind(base, '.');
-    if (dot > 0) base = str::Left(base, dot);
-    FileStream graph;
-    if (graph.Open(base + kGraphExtension, platform::FileMode::Read)) {
-        out->CopyFrom(&graph);
-        found = 1;
-        graph.Close();
+    if (!found) {
+        std::string base = MapPath(map);
+        int dot = str::ReverseFind(base, '.');
+        if (dot > 0) base = str::Left(base, dot);
+        FileStream graph;
+        if (graph.Open(base + kGraphExtension, platform::FileMode::Read)) {
+            out->CopyFrom(&graph);
+            found = 1;
+            graph.Close();
+        }
     }
+    // A graph of another map's size is none.
+    if (found) found = GraphFitsMap(out, aiMap);
+    if (!found) out->Clear();
     return found;
+}
+
+void WorldServer::ReadGraphBase(std::string_view map, std::string_view mob, MemoryStream* out) {
+    if (ReadAIGraph(map, mob, out)) return;
+    const std::vector<std::uint8_t> zeros(RegionMap::SavedSize(aiMap.cells.width, aiMap.cells.height));
+    out->Fill(zeros.data(), static_cast<std::uint32_t>(zeros.size()));
 }
 
 void WorldServer::SetConstructionVariable(float value) {

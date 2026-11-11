@@ -65,6 +65,7 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `tests/scenarios/mod_example.txt` | the example mod played: its text, weapons, pig, red ground (`hues world 0.2 1 red`) and reads |
 | `examples/showcase_mod/`, `tools/make_showcase_mod.py` | the showcase mod, all our own files ("The showcase mod"); the tool writes its pictures and models and copies it for a run |
 | `tests/scenarios/mod_showcase.txt` | the showcase mod played: the island, the golem's fight, the quest and its reward |
+| `tests/scenarios/mod_showcase_long_walk.txt` | a long walk over the island on its built region graph, through a save (docs/notes/ai.md, "Built graphs") |
 | `src/engine/models/figure_gltf_animation.cpp`, `figure_gltf_glb.h` | a set's animations as glTF animations and back ("Animations as glTF"); the pieces the two files share (the .glb's writer, the reader's accessors) |
 | `tests/scenarios/mod_gltf_animation.txt` | a mod's glTF hero whose idle is twice as slow, played in a new game |
 | `src/game/script/script_lua_mission.cpp` | a .mob's script from a .lua ("Scripts in Lua"): `Script::LoadLua`; `Script::Runner`, `GlobalValues`, `GlobalGroup` and the scheduler's views for the digest and the saves |
@@ -658,6 +659,10 @@ objects as TOML"; the quest zones stay as they are.
 - Rebirth's Maps (mod_folders.cpp `SelectMaps`): a mod whose `Maps\` has `zone1\` reads the mod's `Maps\zone1.mpr` in
   place of the game's, so a mod that paints heights alone ships the archive (or its folder) with them, as the test mod
   does.
+- The AI region graph follows the ground (docs/notes/ai.md, "Built graphs"): a map whose highest folder file comes
+  from a place with no `<zone>.mob` (or `<map>.grp`) beside the folder has its graph built at the zone's load (the
+  showcase island, a mod's painted heights over the game's .mob); ei-convert's folders sit beside their .mob and read
+  its graph, so a converted install plays as the binary one.
 - Not held (no loader reads them): each material's warp speed and reserved bytes, the water vertices' displacements; a
   sector flag byte 1 (water vertices without water tiles: none ship) comes back as 3.
 
@@ -804,8 +809,10 @@ Zone 1's TOML (777 records, 12,824 lines, 0.3 MB) reads in about 10 ms.
   and the game's `.mob` read; two more records at the file's end (a unit without a class, one of a tree's class, ids
   2010 and 2011) are left out with their warnings (`expectlog`). A map unit is found by its id (`GetObject`): `GetObjectByName` found none of the
   pigs by the names the TOML gives.
-- Still binary in a mod: the `.mob`'s AI graph chunk (0x31415926, `ReadAIGraph`) comes from the game's `.mob` (or none
-  when no layer has one); a mod that moves objects keeps the game's graph, which the TOML does not carry. Its scripts
+- Still binary in a mod: the `.mob`'s AI graph chunk (0x31415926, `ReadAIGraph`) comes from the game's `.mob` (or
+  none when no layer has one; then, or when the mod's map folder stands over the game's .mob, it is built from the
+  ground: docs/notes/ai.md, "Built graphs"); a mod that only moves objects keeps the game's graph, which the TOML does
+  not carry. Its scripts
   can be a `.lua` ("Scripts in Lua").
 
 ## Scripts in Lua
@@ -1305,7 +1312,7 @@ Each part, its format, and what the formats could not do (each gap a ticket):
 
 | Part | Files | Format | Gap |
 |---|---|---|---|
-| The zone | `Maps\zone1\` (map.toml, heights.png, tiles.png), `Maps\zone1.mob.toml`, `Maps\zone1.lua`; `Res\textures\zone1000.png` (the ground page), `zone1map.png`, `zone1quest.png` (minimap, objectives map); texts' `zone gz1g` | map folder, map objects TOML, Lua, PNG | It replaces zone 1 (map.txt's gz1g: `#res zone1 zone1`): a mod cannot add a zone, since map.txt is one texts entry read whole (MF13a). A new game enters it with no extra step, its 8 x 6 sectors keep gz1g's exits fitting: the party lands at exit 1's (49, 133)-(59, 143), exit 2 at (181, 108)-(193, 120) still leads to the base bz1g. The AI region graph is zone 1's, read from the game's zone1.mob (MF13d) |
+| The zone | `Maps\zone1\` (map.toml, heights.png, tiles.png), `Maps\zone1.mob.toml`, `Maps\zone1.lua`; `Res\textures\zone1000.png` (the ground page), `zone1map.png`, `zone1quest.png` (minimap, objectives map); texts' `zone gz1g` | map folder, map objects TOML, Lua, PNG | It replaces zone 1 (map.txt's gz1g: `#res zone1 zone1`): a mod cannot add a zone, since map.txt is one texts entry read whole (MF13a). A new game enters it with no extra step, its 8 x 6 sectors keep gz1g's exits fitting: the party lands at exit 1's (49, 133)-(59, 143), exit 2 at (181, 108)-(193, 120) still leads to the base bz1g. The AI region graph is the island's own, built at the zone's load (MF13d: the mod has no zone1.mob beside its map folder; docs/notes/ai.md, "Built graphs") |
 | The enemy | `Res\figures\scgolem.glb` (15 boxes, 13 animations), `Res\database\scgolem.adb.toml`, `units.udb.toml` (`[[model]]` "Showcase Golem", `[[unit]]` "ShowcaseGolem"), `Res\textures\scgolem00.png` (the placement's `parent_iname`) | glTF set, records TOML, databases TOML, PNG | None. No sounds: `sound_folder` empty, the animations' `sounds` empty; its footsteps name the game's stone steps. The shards (`[[unit]]` "ShowcaseShard", 4002 and 4003 by the golem) are the golem's model at scale 0.3 in their own skin (`Res\textures\scshard00.png`) |
 | The weapon | items.idb.toml `[[weapon]]` "showcase hammer" (hammer number 9), `Res\figures\initwehm9.glb` (inventory model, loose figure, part `weapon`), `Res\redress\unhumahm_09.gr.0.png` | databases TOML, glTF loose, PNG | Not seen in the hand: the hand's model is a part of every unit figure (`rh3.<type><nn>`), which a new number lacks (MF13c) |
 | The armour | `[[armor]]` "showcase boots" (boots number 20), `initarbt20.glb`, `Res\redress\unhumabt_20.le.0.png` (a layer over the hero's 256 x 256 skin: opaque where the feet and shins are) | as the weapon | None: boots, gloves, shirts and trousers are skin layers, no part. Helmets, body armour and leggings would need parts (MF13c) |
@@ -1353,6 +1360,9 @@ Notes from making it:
 - `mod_showcase_buff` (vanilla): a console cast of Ember Brand at shard 4002: its strength lower while it lasts and
   back after, five burns (100, 80, 60, 40, 20 ticks left) that take hit points, "expired"; saved after the second burn
   and loaded: the same five burns and end from the save's effect alone.
+- `mod_showcase_long_walk` (vanilla): the island's graph built (`expectlog ai graph: built for 64 x 48 blocks`); the
+  hero walks from the landing past the golem's post over the hills to (130, 80), about 96 units; saved on the way
+  and loaded: the hero walks there again on the save's graph.
 
 ## Mods in multiplayer
 

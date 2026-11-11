@@ -251,6 +251,12 @@ void RegionMap::SaveBlocks(ByteStream* stream) {
     }
 }
 
+std::uint32_t RegionMap::SavedSize(int cellsWide, int cellsHigh) {
+    // Per block and size class 8 edge words, the representative cell and the region.
+    constexpr std::uint32_t kBlockBytes = 8 * 2 + 1 + 2;
+    return 8 + 8 * kBlockBytes * static_cast<std::uint32_t>(cellsWide / 8) * static_cast<std::uint32_t>(cellsHigh / 8);
+}
+
 void RegionMap::PickRepresentatives(AIMap* map, Point block) {
     for (int c = 0; c < 8; ++c) {
         std::uint8_t& cell = cells[c][block];

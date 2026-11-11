@@ -1,0 +1,49 @@
+# The showcase island's own AI region graph (MF13d; docs/notes/ai.md, "Built graphs"): the island's map is made from
+# the mod's folder (examples/showcase_mod/Maps/zone1/), so its region graph is built from the AI map when the zone
+# loads (64 x 48 blocks: the island's 8 x 6 sectors, as zone 1's) and the game's zone1.mob graph is not used.
+# - The hero walks from the party's landing (54, 138) past the golem's post and over the valley's hills to (130, 80),
+#   about 96 units (some 70 s at a walk): a long path, planned as a chain of the graph's regions and a local search a
+#   leg. The golem and its shards have their AI modes cleared (UMClear: they stand).
+# - Saved on the way (x past 90) and played on to the end point. The save holds the built graph as its difference from
+#   zone1.mob's (the zone's graph file, which fits the map: ReadGraphBase); loaded, the hero stands where it was saved
+#   and walks to the end point again on the save's graph (none is built at a save's load).
+# prepare: make_showcase_mod.py
+mod harness_saves\showcase_mod
+reject Script error
+waitmenu
+console thingamabob
+
+newgame
+waitline 20 Showcase mod: the island loads
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitwindow 10 battle
+expectlog ai graph: built for 64 x 48 blocks
+console @GodMode(0,1)
+console @UMClear(GetObject(4001))
+console @UMClear(GetObject(4002))
+console @UMClear(GetObject(4003))
+check IsLess(DistanceUnitPoint(GetLeader(),54,138),8)
+
+console @MoveToPoint(GetLeader(),130,80)
+waitfor 40 IsGreater(GetX(GetLeader()),90)
+key esc
+waitwindow 10 escmenu
+click 395 120
+waitwindow 10 saveload
+clickregion 0
+waitline 15 Saved save1
+waitwindow 10 battle
+waitfor 60 IsLess(DistanceUnitPoint(GetLeader(),130,80),3)
+dump walked
+
+wait 300
+load save1
+waitwindow 30 battle
+waitfor 20 IsGreater(HP(GetLeader()),0)
+check IsGreater(GetX(GetLeader()),90)
+check IsGreater(DistanceUnitPoint(GetLeader(),130,80),10)
+console @MoveToPoint(GetLeader(),130,80)
+waitfor 60 IsLess(DistanceUnitPoint(GetLeader(),130,80),3)
+dump walked_loaded
+report
+quit

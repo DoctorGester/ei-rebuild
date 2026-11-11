@@ -2,9 +2,9 @@
 # copied by tools/make_showcase_mod.py into the run's harness_saves\showcase_mod, which "mod" makes the settings' Mod.
 # Checked:
 # - Maps\zone1\, Maps\zone1.mob.toml, Maps\zone1.lua: a new game starts on the mod's island (its map folder read for
-#   the game's zone1.mpr, which is not read; the game's zone1.mob read for its AI graph alone), its script runs (the
-#   console line) and gives the quest (q.gz1g.showcase_golem 1) and the Chain Spark's spell container
-#   (mod_showcase_spell casts it); the golem's two shards (4002, 4003) stand by it and join the fight;
+#   the game's zone1.mpr, which is not read; the game's zone1.mob read, but not its AI graph: the island's is built,
+#   MF13d), its script runs (the console line) and gives the quest (q.gz1g.showcase_golem 1) and the Chain Spark's spell
+#   container (mod_showcase_spell casts it); the golem's two shards (4002, 4003) stand by it and join the fight;
 # - Res\database\units.udb.toml, scgolem.adb.toml, Res\figures\scgolem.glb, Res\textures\scgolem00.png: the golem
 #   (map object 4001) stands, sees the hero coming, walks to it and attacks (objplayed: its glTF animations by the
 #   animation list's names), and the hero (god mode) breaks it in the fight;

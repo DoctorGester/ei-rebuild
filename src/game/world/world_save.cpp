@@ -132,8 +132,20 @@ void SavePlayers(WorldServer* world, ByteStream* stream) {
 }
 
 
-constexpr const char* kCantLoadGraph = "CWorldServer::LoadMap.\n Can't load AIGraph.\n";
+constexpr const char* kCantLoadSavedMap = "CWorldServer::LoadSave()\n Can't load map.\n";
 constexpr const char* kCantLoadMap = "CWorldServer::NewZone()\n Can't load map.\n";
+
+// Whether the place a folder map's ground came from has the zone's graph: `mob` or `map`'s .grp beside
+// `groundFolder` (the map's `Maps\<zone>` in that place).
+bool GraphBesideGround(const std::string& groundFolder, std::string_view map, std::string_view mob) {
+    const std::size_t slash = groundFolder.find_last_of("\\/");
+    if (slash == std::string::npos) return false;
+    const std::string maps = groundFolder.substr(0, slash + 1);
+    auto fileName = [](std::string_view path) { return path.substr(path.find_last_of("\\/") + 1); };
+    const std::string_view mapName = fileName(map);
+    const std::string graphFile = std::string(mapName.substr(0, mapName.rfind('.'))) + ".grp";
+    return platform::IsFile(maps + std::string(fileName(mob))) || platform::IsFile(maps + graphFile);
+}
 
 // Whether the file `name` (an archive also as its folder) is neither there as named nor in the maps folder (Rebirth's
 // Maps names it first: `site`).
@@ -255,13 +267,14 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
     }
     stream->ReadValue(zoneMode);
 
-    // The AI graph state as the zone files have it, then with the save's differences applied.
+    // The AI graph state as the zone files have it (ReadGraphBase), then with the save's differences applied.
+    ShowLoadProgress(kProgressZone);
+    if (!LoadAIMap(newMapName)) game::FatalExit("%s", kCantLoadSavedMap);
     MemoryStream savedGraph;
-    if (!ReadAIGraph(newMapName, newMobName, &savedGraph)) return 0;
+    ReadGraphBase(newMapName, newMobName, &savedGraph);
     MemoryStream graph;
     graph.ApplyDiff(&savedGraph, stream);
-    ShowLoadProgress(kProgressZone);
-    if (!LoadMap(newMapName, newMobName, &graph, 1)) game::FatalExit("%s", "CWorldServer::LoadSave()\n Can't load map.\n");
+    if (!LoadMap(newMapName, newMobName, &graph, 1)) game::FatalExit("%s", kCantLoadSavedMap);
 
     // The map objects' identities: id, type and prototype id.
     for (;;) {
@@ -396,7 +409,7 @@ void WorldServer::SaveWorld(ByteStream* stream) {
     stream->WriteValue(lastRainBoltTick);
     stream->WriteValue(zoneMode);
 
-    ReadAIGraph(mapName, mobName, &base);
+    ReadGraphBase(mapName, mobName, &base);
     aiMap.regionMap.SaveBlocks(&current);
     stream->WriteDiff(&base, &current);
 
@@ -507,19 +520,24 @@ int WorldServer::NewZone(std::string_view map, std::string_view mob, std::option
     ShowLoadProgress(kProgressStart);
     if (MapFileMissing(map, modfolders::MapsSite::NewZoneMap)) return 0;
     if (MapFileMissing(mob, modfolders::MapsSite::NewZoneMob)) return 0;
-    MemoryStream graph;
-    if (!ReadAIGraph(map, mob, &graph))
-        game::FatalExit(kCantLoadGraph);
     mobFiles.clear();
     aiMap.BeginRefresh();
     loaded = 0;
     std::memset(alarms, 0, sizeof(alarms));
     aiMap.refreshUnits = false;
+    if (!LoadAIMap(map)) game::FatalExit(kCantLoadMap);
+    // The zone's graph is read (ReadAIGraph) unless the map is made from a folder whose place has no graph beside it,
+    // or no graph of the map's size is found: then it is built once the objects stand (docs/notes/ai.md, "Built
+    // graphs").
+    MemoryStream graph;
+    const bool graphFollowsGround = aiMap.groundFolder.empty() || GraphBesideGround(aiMap.groundFolder, map, mob);
+    const bool buildsGraph = !graphFollowsGround || !ReadAIGraph(map, mob, &graph);
     if (!LoadMap(map, mob, &graph, 0))
         game::FatalExit(kCantLoadMap);
     ShowLoadProgress(kProgressObjects);
     loaded = 1;
     aiMap.EndRefresh();
+    if (buildsGraph) aiMap.BuildRegionGraph();
     aiMap.refreshUnits = true;
     ShowLoadProgress(kProgressDone);
     if (zone) zoneName = *zone;

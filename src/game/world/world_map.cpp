@@ -49,16 +49,18 @@ void EndTimedObjects(WorldServer* world) {
 
 } // namespace
 
+int WorldServer::LoadAIMap(std::string_view map) {
+    if (text::CompareIgnoringCase(mapName, map) == 0) return 1;
+    aiMap.Reset();
+    aiMap.BeginRefresh();
+    if (aiMap.Load(MapPath(map)) == 0) return 0;
+    mapName = map;
+    mobName.clear();
+    return 1;
+}
+
 int WorldServer::LoadMap(std::string_view map, std::string_view mob, ByteStream* graph, char fromSave) {
-    AIMap* currentAiMap = &aiMap;
-    if (text::CompareIgnoringCase(mapName, map) != 0) {
-        currentAiMap->Reset();
-        currentAiMap->BeginRefresh();
-        bool failed = currentAiMap->Load(MapPath(map)) == 0;
-        if (failed) return 0;
-        mapName = map;
-        mobName.clear();
-    }
+    if (!LoadAIMap(map)) return 0;
     graph->Seek(0);
     if (graph->Size() != 0 && !aiMap.regionMap.LoadBlocks(graph)) return 0;
 

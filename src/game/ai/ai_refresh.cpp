@@ -5,7 +5,9 @@
 
 #include "engine/core/core_maths.h"
 #include "game/ai/sector_map.h"
+#include "platform/log.h"
 
+#include <chrono>
 #include <cstdint>
 
 #include "lib/maths.h"
@@ -154,6 +156,20 @@ void AIMap::RefreshArea(Point first, Point last) {
     for (Unit* object : objects) sectors->Remove(object);
     regionMap.UpdateBlocks(this, blocks);
     for (Unit* object : objects) sectors->Add(object);
+}
+
+void AIMap::BuildRegionGraph() {
+    const auto began = std::chrono::steady_clock::now();
+    std::vector<Unit*> units;
+    for (const Sector& sector : sectorMap.sectors) units.insert(units.end(), sector.units.begin(), sector.units.end());
+    for (Unit* unit : units) sectorMap.Remove(unit);
+    regionMap.Reset();
+    regionMap.Attach(this);
+    regionMap.UpdateBlocks(this, Rect::FromCorners({0, 0}, {cells.width / 8, cells.height / 8}));
+    for (Unit* unit : units) sectorMap.Add(unit);
+    const double ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - began).count();
+    ei::Log("ai graph: built for %d x %d blocks, %zu units lifted, in %.1f ms", cells.width / 8, cells.height / 8,
+            units.size(), ms);
 }
 
 // ---- CellMark ---------------------------------------------------------------------------------

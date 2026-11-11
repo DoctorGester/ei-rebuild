@@ -152,6 +152,13 @@ public:
     // a file's the asset code page's.
     void* FindText(std::string_view name, std::uint32_t* size, bool* utf8);
 
+    // When the archive's map file and sectors are made from its folder (docs/notes/mods.md, "Maps as folders"): the
+    // folder in full that the highest of the folder's files read came from (a layer's `Maps\<zone>`); else empty.
+    const std::string& MapFolderPlace() {
+        FolderMap();
+        return folderMapPlace;
+    }
+
     // Fills `names` with the names in Sources() that match `pattern` (drive, directory, name and extension matched
     // separately with * and ?), or with every name when `pattern` is null: a folder's files by name, an archive's
     // entries in their order but those its own folder has. With a mod the names are appended to `names` (Rebirth's
@@ -176,6 +183,7 @@ public:
     std::string mapFolder;
     std::shared_ptr<const map_folder::MapData> folderMap;
     bool folderMapMade = false;
+    std::string folderMapPlace;   // MapFolderPlace
     // The archive's own entries that are figure models as glTF (LooseFiles::models), read at their first use.
     std::map<std::string, std::string, std::less<>> modelEntries;
     bool modelEntriesRead = false;

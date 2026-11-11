@@ -453,6 +453,8 @@ struct RegionMap {
     // The block grids as LoadBlocks reads them: width and height, then per size class each row's edge words,
     // representative cells and regions.
     void SaveBlocks(ByteStream* stream);
+    // The bytes SaveBlocks writes for a map of `cellsWide` x `cellsHigh` cells.
+    static std::uint32_t SavedSize(int cellsWide, int cellsHigh);
     // Per size class the representative cell of `block`: (3, 3) unless a passable cell in rings from the
     // middle is better.
     void PickRepresentatives(class AIMap* map, Point block);
@@ -687,6 +689,10 @@ public:
     // region map, the AI events and the sector map attached to the new size, and the whole map refreshed (or
     // added to the dirty rectangle while batching).
     void AttachTerrain();
+    // The region map measured anew over the whole map, the editor's computation for a zone without a graph of its
+    // own (docs/notes/ai.md, "Built graphs"): blank grids, then RegionMap::UpdateBlocks over every block with
+    // every unit lifted from the sector map meanwhile (as a refresh lifts the ones around it). Logs the time.
+    void BuildRegionGraph();
 
 
     // refreshUnits = the low byte of `on`; returns the old byte.
@@ -837,6 +843,9 @@ public:
     void QueueRefresh(Point first, Point last);
 
     bool loaded = false;                // set by Load
+    // Set by LoadTerrain: for a map assembled from its folder the folder its highest file came from
+    // (MappedResource::MapFolderPlace); empty for the archive's own files.
+    std::string groundFolder;
     bool batching = false;              // refreshes collect into the dirty rectangle
     std::uint8_t refreshUnits = 0;      // non-zero: a refresh also re-registers the units around it
     AIDirtyRect dirty;                  // the area to refresh when batching ends
