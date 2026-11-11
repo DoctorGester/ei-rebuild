@@ -55,6 +55,9 @@ struct GameFlow {
     void LeaveThroughExit(int exit);
     // Clears the sessions-open flag, releases both network sessions (server, then client), sets the state to 1.
     void CloseSessions();
+    // A network zone that could not be entered (StartNetworkZone 0): the warning "Zone <name> cannot be entered", then
+    // state 7, which ProcessRequest takes as CloseSessions and the main menu.
+    void NetworkZoneNotEntered(std::string_view zone);
     // Used by the menus and the interface on leaving a network game. As CloseSessions without the
     // state: cleared, the server and the client session released.
     void DropSessions();
@@ -101,7 +104,8 @@ struct GameFlow {
     // Acts on the pending request (state, then cleared): the zone being left is saved, the interface
     // closes its windows, the zone is torn down and the resource database follows the network state;
     // then 1 main menu, 2 load the save named in requestTarget (two ticks first), 3 new game (StartNewGame), 4 the zone in requestTarget, 5 / 6 multiplayer zone
-    // changes with the party copy in requestParty. Ends with the network pump.
+    // changes with the party copy in requestParty (6 whose zone cannot be entered: NetworkZoneNotEntered, then the
+    // flow's update again), 7 CloseSessions first, then as 1. Ends with the network pump.
     void ProcessRequest();
     // The resource database follows `network`: "databaseLMP.res" in a network game, else "database.res".
     // When the name differs from the last one ("database.res" at first) the databases are switched and
@@ -131,10 +135,10 @@ struct GameFlow {
     class Party* RequestParty() { return &requestParty; }
 
     // saves\current emptied, the multiplayer zone (multiplayerZone) named; a host without an active client
-    // session starts it when there is a name.
+    // session starts it when there is a name (NetworkZoneNotEntered when it cannot be entered).
     void SetNetworkZone(const char* zone);
 
-    int state = 0;                        // the pending request (1..6; ProcessRequest runs it)
+    int state = 0;                        // the pending request (1..7; ProcessRequest runs it)
     std::string requestTarget;            // the request's zone or save name
     Party requestParty;
     std::string multiplayerZone;          // the multiplayer zone (SwitchMultiplayerZone)

@@ -180,6 +180,10 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   prints the mods the lobby compares (network.md, "Mods"), `netlist` the client's listed servers with the mod each
   one's info answer named and whether this game may join it; `originalnet` makes the game's lobby act as the original's
   (no mod mark, any mod admitted).
+- `graphthreads <zone> ...` (MF13d1) loads each zone (NewZone) and builds its AI region graph twice, on the processors
+  (`AIMap::BuildRegionGraph`) and with one local search measuring every block in order; a console line per zone says
+  whether SaveBlocks' bytes are the same (a difference fails the run; the log has both times), then the main menu
+  loads (`ai_graph_threads.txt`; ai.md, "Built graphs").
 - `secondmaster <host[:port]>` sets NewMaster's second master server for the run, over the settings file's
   `[network]` SecondMaster (rebirth.md, "Settings"). A game's player limit and pause mode are the host's create-server choices:
   a scenario drags the player slider (`layout ldown` / `move` / `lup`, `net_pair_portraits`) or clicks the pause

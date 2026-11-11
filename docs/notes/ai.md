@@ -72,9 +72,22 @@ graph (the same change as a mod builds).
   own cost tables, or the objects as they stood then). Built everywhere, the converted install's smoke tier had 40 of
   58 goldens differ from the binary install's (unit moves from the first record: the main menu's zone builds too), so
   the converted check would lose its paths; and every zone load paid the cost below.
-- Cost (verify build, 2026-11-11; four games at once): nearly all of it the edges' local searches (8 size classes x 8
-  neighbours a block): zone 19 (128 x 128 blocks, the largest) 2.55 s, zone 11 (128 x 96) 2.0 s, zone 12 (80 x 128)
-  1.7 s, zone 4 (128 x 80) 1.55 s, zone 1 (64 x 48) 0.4-1.2 s, a base (32 x 32) 0.13-0.16 s, the menu zone 0.04 s.
+- Threads (MF13d1): `UpdateBlocks` runs each pass (the representative cells, then the edges) a row at a time on
+  `lib::OnThreads`, each row with a `LocalSearch` of its own attached to the map; the second pass starts when the first
+  has ended (the edges read the neighbours' representative cells). A block's measurement reads only the AI map and the
+  representative cells and writes only its own block's words, and a search never reaches the cells off the map (the
+  three outermost rows and columns are never passable: `RefreshArea`), so the stale window rows a search keeps from an
+  earlier one are never read and a fresh search measures as the one search did. One state did carry over: the
+  original picked the representative cells with the region map's own search in whatever direction the region queries
+  had left it (`ReachesRegion` turns it backward, `NearbyBlocks` by its flag) and the edges set it forward, so the
+  first pass's searches take `local.backward` and the second leaves it false (a refresh in play: without it Lost in
+  Astral's gz1h saved 18 other aigraph bytes in mod_lost_in_astral_suslanger). Checked byte for byte (SaveBlocks)
+  against one search measuring every block in order on all 40 vanilla map and .mob pairs of map.txt and map-LMP.txt
+  (the harness step `graphthreads <zone> ...`; scenario `ai_graph_threads` keeps four of them).
+- Cost (verify build, 2026-11-11, `--quiet`, two loads each): zone 19 (128 x 128 blocks, the largest) 0.17-0.33 s on
+  the threads against 3.2-3.9 s with one search, zone 11 (128 x 96) 0.13-0.24 s against 2.4-2.7 s, zone 1 (64 x 48)
+  0.04-0.07 s against 0.5 s; a base (32 x 32) about 0.02 s. Nearly all of it the edges' local searches (8 size classes
+  x 8 neighbours a block). (Before MF13d1, four games at once: zone 19 2.55 s, zone 11 2.0 s, zone 1 0.4-1.2 s.)
   Paid at a new zone that builds (a save's load reads the save's graph).
 
 ## The map's data

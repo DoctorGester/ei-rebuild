@@ -68,6 +68,11 @@ void OriginalNet();
 int ServerAwards();
 // The client session's player limit (ClientSession::PlayerLimit), -1 without a client.
 int SessionPlayerLimit();
+// "graphthreads <zone> ..." (MF13d1): each zone loaded (NewZone) and its region graph built on the processors
+// (AIMap::BuildRegionGraph) and with one local search measuring every block in order; a console line per zone
+// (whether SaveBlocks' bytes are the same; the log has both times), each difference also into `failures`. The main
+// menu loads after the last.
+std::vector<std::string> GraphThreads(const std::vector<std::string>& zones, std::vector<std::string>* failures);
 // Companions: the server world player's party records (-1 without the player); the unit id of server player 0's
 // companion `index` (from 0, -1 none); the nearest living unit hostile to unit `id` (-1 none); the saved hero of the
 // heroes' list named `name` (its file), read from the disk (false without one or when it does not read).

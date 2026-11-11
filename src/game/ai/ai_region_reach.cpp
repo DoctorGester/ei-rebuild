@@ -257,7 +257,7 @@ std::uint32_t RegionMap::SavedSize(int cellsWide, int cellsHigh) {
     return 8 + 8 * kBlockBytes * static_cast<std::uint32_t>(cellsWide / 8) * static_cast<std::uint32_t>(cellsHigh / 8);
 }
 
-void RegionMap::PickRepresentatives(AIMap* map, Point block) {
+void RegionMap::PickRepresentatives(AIMap* map, LocalSearch* search, Point block) {
     for (int c = 0; c < 8; ++c) {
         std::uint8_t& cell = cells[c][block];
         // (3, 3); the original sets only x's two low bits.
@@ -275,7 +275,7 @@ void RegionMap::PickRepresentatives(AIMap* map, Point block) {
                     int nibble = map->cells[at].Passability(c * 4);
                     if (nibble == 0) continue;
                     if (!(nibble > best) && found) continue;
-                    bool suits = CellSuitsBlockAt(c, block, {xx, yy});
+                    bool suits = CellSuitsBlockAt(search, c, block, {xx, yy});
                     if (!suits && found) continue;
                     found = suits;
                     best = nibble;
@@ -381,15 +381,14 @@ void BlockSearch::PathTo(Point block, PathCells* path) {
     std::ranges::reverse(*path);
 }
 
-void RegionMap::MeasureBlockEdges(Point block) {
+void RegionMap::MeasureBlockEdges(LocalSearch* search, Point block) {
     const int* dx = StepX();
     const int* dy = StepY();
-    LocalSearch* search = &local;
     for (int c = 0; c < 8; ++c) {
         SearchGrid<std::uint8_t>& cellRows = cells[c];
         SearchGrid<std::int16_t>& edgeRows = edges[c];
         std::uint8_t own = cellRows[block];
-        local.backward = false;
+        search->backward = false;
         BeginAroundBlock(search, c, block, Representative(own) + block * 8);
         search->ExpandAll();
         // Each direction: the search cost from the block's representative cell to the
@@ -430,7 +429,6 @@ void RegionMap::Reset() {
     forward = {};
     backward = {};
     local = {};
-    progress = nullptr;
     for (SearchGrid<std::int16_t>& grid : edges) {
         grid = {};
         grid.Resize(1, 1, kNoWay, kEdgesPerBlock);
@@ -446,8 +444,7 @@ void RegionMap::Reset() {
     AttachSearches();
 }
 
-bool RegionMap::CellSuitsBlockAt(int sizeClass, Point block, Point inBlock) {
-    LocalSearch* search = &local;
+bool RegionMap::CellSuitsBlockAt(LocalSearch* search, int sizeClass, Point block, Point inBlock) {
     const Point topLeft = block * 8, bottomRight = block * 8 + Point{8, 8};
     const auto [left, top] = topLeft;
     const auto [right, bottom] = bottomRight;

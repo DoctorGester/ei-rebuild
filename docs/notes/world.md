@@ -158,7 +158,12 @@ map and its lights without them (R61; scenario `render_menu_return`). The menu's
   A zone that cannot be entered (EnterZone 0: its map or objects missing, NewZone refusing them after the old zone was
   torn down, or its saves\current file gone) goes to the main menu with the warning "Zone <name> cannot be entered", as
   a zone map.txt lacks does (StartZone); playing on left the battle screen over no world, reading the party's units
-  (MF13d2: gz21g, whose zonemichel files no install has). StartNetworkZone's failure is still ignored by its callers (MF13d2a).
+  (MF13d2: gz21g, whose zonemichel files no install has). A network zone the same (StartNetworkZone 0, the base torn
+  down: `GameFlow::NetworkZoneNotEntered`): the same warning, then flow state 7, which closes both sessions
+  (CloseSessions) and loads the main menu; from the flow's request 6 at once (ProcessRequest runs again), from
+  SetNetworkZone (a server without a local client, inside ServerSession::SetMap) at the flow's next request, as a
+  session released there would return into freed memory. A hosted game used to play on with no world (MF13d2a:
+  net_zone_missing_map, a mod's map.toml naming objects for z3q1-z3q3 that no install has).
 - **Briefings**: the client's speaker is the second word of the first "#show" line of section "briefing <name>" that is
   not "Hero"; the variable is "b.<speaker>.<name>" or "b.elder.<name>"; `MarkBriefing` / `ForgetBriefing` set / remove it
   (loading the zone's quests first for "<zone>_N" names); `OnVariableChanged` passes "q." variables to the quest log.

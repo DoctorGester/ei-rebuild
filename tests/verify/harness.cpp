@@ -3296,6 +3296,14 @@ void RunSteps() {
             if (TickLength() != want)
                 g_failures.push_back("checktick: the update period is " + std::to_string(TickLength()) + " ms, not " +
                                      std::to_string(want));
+        } else if (s.verb == "graphthreads") {
+            std::vector<std::string> zones;
+            for (std::size_t at = 0; at < s.argument.size();) {
+                const std::size_t space = std::min(s.argument.find(' ', at), s.argument.size());
+                if (space > at) zones.push_back(s.argument.substr(at, space - at));
+                at = space + 1;
+            }
+            for (std::string& line : image::GraphThreads(zones, &g_failures)) g_console.push_back(std::move(line));
         } else if (s.verb == "checklimit") {
             const int want = std::atoi(s.argument.c_str());
             const int limit = image::SessionPlayerLimit();

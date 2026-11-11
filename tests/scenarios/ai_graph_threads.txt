@@ -1,0 +1,18 @@
+# A zone's AI region graph built on the processors (RegionMap::UpdateBlocks: each pass's rows on lib::OnThreads, each
+# row with a local search of its own; MF13d1) is the graph one local search measures block by block in order, as
+# UpdateBlocks did before: the "graphthreads" step loads each zone (NewZone), builds it both ways and compares
+# SaveBlocks' bytes (a difference fails the run; the console lines are the golden's; docs/notes/ai.md, "Built
+# graphs"). Four zones of different sizes and shapes: the first base, the first island (64 x 48 blocks), zone 4
+# (128 x 80) and the first multiplayer base (its -mp objects). Every vanilla zone record was checked so (40 map and
+# .mob pairs, 2026-11-11). Then a new game starts from the menu the step loads.
+# installs: vanilla
+reject Script error
+waitmenu
+console thingamabob
+graphthreads bz1g gz1g gz4g bz1mpg
+waitmenu 10
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+check IsAlive(GetLeader())
+report
+quit

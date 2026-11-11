@@ -6,6 +6,7 @@
 #include "game/ai/unit_shape.h"
 #include "game/ai/unit_ai.h"
 #include "lib/crt.h"
+#include "lib/threads.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -13,10 +14,6 @@
 
 namespace {
 constexpr int kUnreached = 0x7FFFFFFF;
-
-// Progress steps of UpdateBlocks: the representative cells take the first eighth, the edges the rest.
-constexpr float kFirstPassShare = 0.125f;
-constexpr float kSecondPassShare = 0.875f;
 } // namespace
 
 void BlockSearch::Attach(RegionMap* regionMap, bool fromTargetSide) {
@@ -120,19 +117,24 @@ bool RegionMap::SeedSearch(int sizeClass, bool flag, BlockSearch* search, Point 
 void RegionMap::UpdateBlocks(AIMap* aiMap, Rect blocks) {
     const Point first = Max(blocks.TopLeft(), Point{});
     const Point end = Min(blocks.BottomRight(), Point{edges[0].width, edges[0].height});
-    for (int y = first.y; y < end.y; ++y) {
-        for (int x = first.x; x < end.x; ++x) PickRepresentatives(aiMap, {x, y});
-        if (progress) progress(static_cast<float>(y) / static_cast<float>(edges[0].height) * kFirstPassShare);
-    }
-    for (int y = first.y; y < end.y; ++y) {
-        for (int x = first.x; x < end.x; ++x) MeasureBlockEdges({x, y});
-        if (progress)
-            progress(static_cast<float>(y) / static_cast<float>(edges[0].height) * kSecondPassShare + kFirstPassShare);
-    }
+    // Each pass a row at a time, on as many threads as there are processors; the edges read the representative
+    // cells of the rows around, so the first pass ends before the second starts.
+    const auto rows = [&](bool backward, auto measure) {
+        lib::OnThreads(end.y - first.y, [&](int row) {
+            LocalSearch search;
+            search.Attach(aiMap, backward);
+            for (int x = first.x; x < end.x; ++x) measure(&search, Point{x, first.y + row});
+        });
+    };
+    // The original measured with the region map's own search: the candidates are tried in the direction the region
+    // queries last left it in (ReachesRegion turns it backward, NearbyBlocks by its flag; a refresh in play), and the
+    // edges leave it forward.
+    rows(local.backward, [&](LocalSearch* search, Point block) { PickRepresentatives(aiMap, search, block); });
+    rows(false, [&](LocalSearch* search, Point block) { MeasureBlockEdges(search, block); });
+    if (first.x < end.x && first.y < end.y) local.backward = false;
     ClampEdgeCosts();
     AttachSearches();
     LabelRegions();
-    progress = nullptr;
 }
 
 void RegionMap::AttachSearches() {

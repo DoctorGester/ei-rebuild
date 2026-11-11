@@ -1,0 +1,11 @@
+  Activated!
+  netstate: no server
+  netstate: no client
+  netstate: no server
+  netstate: no client
+  Cannot open file autoexec.cfg for reading
+  0
+  Saved savea
+  1
+  1
+  1

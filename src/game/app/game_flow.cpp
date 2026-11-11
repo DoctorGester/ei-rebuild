@@ -291,7 +291,7 @@ bool SameText(std::string_view a, std::string_view b) {
 float HoursOfDay(float value) { return std::fmod(value, 24.0f); }
 
 constexpr int kStateMainMenu = 1, kStateLoad = 2, kStateNewGame = 3, kStateZone = 4, kStatePartyZone = 5,
-              kStateNetworkZone = 6;
+              kStateNetworkZone = 6, kStateCloseSessions = 7;
 
 unsigned g_serverStamp = /*007AFED0*/ {};   // the newest variable stamp seen
 unsigned g_appliedStamp = /*007AFED4*/ {};   // the stamp applied up to
@@ -603,6 +603,14 @@ void GameFlow::EndSession() {
 void GameFlow::CloseSessions() {
     DropSessions();
     state = kStateMainMenu;
+}
+
+// A network zone StartNetworkZone could not enter goes to the main menu as StartZone's does: the warning, then the
+// request that closes the sessions before the menu loads. ProcessRequest takes it, as a session's own command may be the
+// caller (SetNetworkZone from ServerSession::SetMap), which a session released here would return into.
+void GameFlow::NetworkZoneNotEntered(std::string_view zone) {
+    game::Warning(kZoneNotEntered, std::string(zone));
+    state = kStateCloseSessions;
 }
 
 // The flow's requests: the state its update acts on next, the zone or save name, and a party for states 5
@@ -998,6 +1006,7 @@ void GameFlow::UseResources(bool network) {
 
 void GameFlow::ProcessRequest() {
     if (state == 0) return;
+    if (state == kStateCloseSessions) CloseSessions();   // then the main menu
     // A zone the local client leaves for another keeps its picture beside the zone's file when the zone is of a kind
     // the game keeps (kinds 0 and 2: LeaveZone below on a server, the host's on a multiplayer client), each client its
     // own; the client generators go on through the zones, so the zone's file has none (client_visuals.h).
@@ -1062,7 +1071,12 @@ void GameFlow::ProcessRequest() {
         break;
     }
     case kStateNetworkZone: {
-        StartNetworkZone(requestTarget);
+        if (!StartNetworkZone(requestTarget)) {
+            // The old zone is gone and none came: the sessions closed and the main menu now, not a frame later.
+            NetworkZoneNotEntered(requestTarget);
+            ProcessRequest();
+            return;
+        }
         Player* player = g_clientWorld.LocalView()->player;
         player->AssignParty(RequestParty());
         g_clientWorld.SetPlayer(g_serverWorld.worldHandle.Get());
@@ -1150,7 +1164,8 @@ void GameFlow::SetNetworkZone(const char* zone) {
     folder = str::Format(kCurrentFolder, g_dataFolder);
     ClearSaveFolder(folder);
     multiplayerZone = zone ? zone : "";    // null (LeaveZone): no zone
-    if (IsLive(net::g_gameServer) && !IsLive(net::g_gameClient) && zone) StartNetworkZone(zone);
+    if (IsLive(net::g_gameServer) && !IsLive(net::g_gameClient) && zone && !StartNetworkZone(zone))
+        NetworkZoneNotEntered(zone);
 }
 
 int CurrentSaveSize() {

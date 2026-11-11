@@ -435,7 +435,7 @@ struct RegionMap {
     RegionMap& operator=(const RegionMap&) = delete;
 
     // The block grids 1 x 1 (edges -1, representative cells zeroed) with both block searches attached to them,
-    // a new local search, no progress report.
+    // a new local search.
     void Reset();
 
     // The region of `cell` for a size class, the one most of the reachable 3x3 blocks around the cell belong
@@ -456,19 +456,20 @@ struct RegionMap {
     // The bytes SaveBlocks writes for a map of `cellsWide` x `cellsHigh` cells.
     static std::uint32_t SavedSize(int cellsWide, int cellsHigh);
     // Per size class the representative cell of `block`: (3, 3) unless a passable cell in rings from the
-    // middle is better.
-    void PickRepresentatives(class AIMap* map, Point block);
+    // middle is better (`search`, attached to `map`, tries each candidate).
+    void PickRepresentatives(class AIMap* map, LocalSearch* search, Point block);
     // The chain of regions from cell `from` to cell `to` into `chain`, avoiding the blocks in `excluded`.
     bool FindRegionChain(int sizeClass, Point from, Point to, PathCells* chain, std::vector<Point>* excluded);
     // Expands the two block searches until they meet and joins their paths into `chain`; false when one runs out.
     bool JoinBlockSearches(PathCells* chain);
-    // Per size class the edge words of `block`: the local search cost to each neighbour's representative cell
-    // / 128.
-    void MeasureBlockEdges(Point block);
+    // Per size class the edge words of `block`: the cost of `search` (attached to the map) to each neighbour's
+    // representative cell / 128.
+    void MeasureBlockEdges(LocalSearch* search, Point block);
     // Sizes the block grids for the map (8x8-cell blocks), sets up the local search and rebuilds the tables.
     void Attach(class AIMap* map);
-    // Whether cell `inBlock` (0..7 each way) of `block` reaches both side edges or both end edges of the block.
-    bool CellSuitsBlockAt(int sizeClass, Point block, Point inBlock);
+    // Whether cell `inBlock` (0..7 each way) of `block` reaches both side edges or both end edges of the block
+    // (searched with `search`).
+    bool CellSuitsBlockAt(LocalSearch* search, int sizeClass, Point block, Point inBlock);
     // Floods `label` over the blocks connected through open edges, breadth first from `frontier`.
     void FloodRegionFrom(int sizeClass, std::vector<Point>* frontier, std::vector<Point>* next, int label);
     // The 3x3 blocks around `cell` whose representative cell the local search reaches from it, as {block x,
@@ -476,21 +477,19 @@ struct RegionMap {
     std::vector<BlockCost> NearbyBlocks(int sizeClass, bool flag, Point cell);
 
     // Re-measures the blocks of `blocks` (right and bottom edges outside; clamped to the grid): representative
-    // cells, then edges, row by row (reporting progress), then the edge clamp, the two block searches and the
-    // regions.
+    // cells, then edges, then the edge clamp, the two block searches and the regions. The rows of each pass are
+    // spread over the processors (lib::OnThreads), each row with a local search of its own attached to `map`: a
+    // block's measurement reads only the map and the representative cells and writes only its own block, so the
+    // result is the one row-by-row measurement's (docs/notes/ai.md, "Built graphs").
     void UpdateBlocks(AIMap* map, Rect blocks);
     void AttachSearches();
     // Seeds `search` with the blocks around `cell` its representative cells are reached from
     // (NearbyBlocks), cost / 128; true when one was lowered.
     bool SeedSearch(int sizeClass, bool flag, BlockSearch* search, Point cell);
 
-    // A progress report (0..1) during UpdateBlocks; cleared by it.
-    using ProgressFn = void(*)(float);
-
     BlockSearch forward;
     BlockSearch backward;
     LocalSearch local;
-    ProgressFn progress = nullptr;
     SearchGrid<std::int16_t> edges[8];          // per size class: 8 edge words per block
     SearchGrid<std::uint8_t> cells[8];          // representative cell per block (RepresentativeX / Y)
     SearchGrid<std::uint16_t> regions[8];       // region per block
