@@ -213,7 +213,6 @@ struct Record {
     Attach attach = Attach::Free;
     int part = -1;          // an AttachPoint (the source then sits on that part); -1: on top of the bounds
     bool ticksWhilePaused = false, idlesOffScreen = false;
-    std::string fallback;
 
     // [server]: read by the server.
     int oneShot = 0;            // the world object lives this many ticks (0: until removed)

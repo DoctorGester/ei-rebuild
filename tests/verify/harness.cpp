@@ -2885,6 +2885,10 @@ void RunSteps() {
                                           : image::GiveItem(player, item);
             Log("harness: giveitem %s%s%s", s.argument.c_str(), error.empty() ? "" : ": ", error.c_str());
             if (!error.empty()) g_failures.push_back(error);
+        } else if (s.verb == "serverscript") {
+            const std::string error = image::ServerScript(s.argument);
+            Log("harness: serverscript %s%s%s", s.argument.c_str(), error.empty() ? "" : ": ", error.c_str());
+            if (!error.empty()) g_failures.push_back(error);
         } else if (s.verb == "console") {
             ConsoleExecute(s.argument.c_str());
         } else if (s.verb == "recordcut") {
@@ -3129,8 +3133,10 @@ void RunSteps() {
             else if (port <= 0 || port > 0xFFFF) g_failures.push_back("fakemaster needs <port>");
             else if (!pair::FakeMaster(static_cast<std::uint16_t>(port), reply))
                 g_failures.push_back("fakemaster: the reply is list, badsize or short");
-        } else if (s.verb == "netstate" || s.verb == "netmod") {
-            for (std::string& line : s.verb == "netstate" ? pair::NetState() : image::NetMod()) {
+        } else if (s.verb == "netstate" || s.verb == "netmod" || s.verb == "netlist") {
+            for (std::string& line : s.verb == "netstate" ? pair::NetState()
+                                     : s.verb == "netmod" ? image::NetMod()
+                                                          : image::NetList()) {
                 Log("harness: %s", line.c_str());
                 g_console.push_back(std::move(line));
             }

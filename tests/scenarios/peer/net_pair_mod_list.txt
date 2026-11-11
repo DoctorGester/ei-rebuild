@@ -1,0 +1,49 @@
+# The peer of net_pair_mod_list: no mod, a hero, the host's game in the connection screen's list (row 1, selected):
+# the host's info answer names its mod, which this game does not play, so the row is marked as one it cannot join; a
+# capture of the list. Then the host answers as the original game (no mark): joinable for a game without a mod.
+timeout 180
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key p
+frames 3
+key e
+frames 3
+key e
+frames 3
+key r
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 mpconnect
+
+peerwait 90 hosted
+wait 4000
+clickregion 15
+wait 1500
+netlist
+expect plays "Showcase mod" (other files), cannot join for the mods
+capture mod_list
+peersignal listed
+
+peerwait 60 original
+wait 1500
+netlist
+expect plays no mark, joinable
+capture mod_list_original
+peersignal listedoriginal
+peerwait 60 seen
+frames 20
+peersignal leaving
+frames 2
+report
+quit

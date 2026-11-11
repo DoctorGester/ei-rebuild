@@ -1373,7 +1373,9 @@ server that plays a mod).
 - `net_pair_mod_same` (showcase on both: admitted, the acceptance names the host's mod), `net_pair_mod_differ` (the
   peer's copy one Lua line longer: refused with the version box; then the host as the original game, whose unmarked
   acceptance the modded peer does not take), `net_pair_mod_none` (the peer without a mod refused, and as an original
-  client refused too); `tools/make_mod_pair.py` copies each game's mod (the peer's into the run folder's
+  client refused too), `net_pair_mod_list` (the peer without a mod lists the host's mod from its info answer, the row
+  marked as one it cannot join; then the host as the original game, joinable), `net_pair_mod_effect` (a data effect
+  started by the host's server shown on the peer; effects.md, "In multiplayer and saves"); `tools/make_mod_pair.py` copies each game's mod (the peer's into the run folder's
   `peer\harness_saves`).
 
 ## Open questions

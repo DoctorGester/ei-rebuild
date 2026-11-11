@@ -24,7 +24,9 @@ and `net_pair_party` (an exchange offered, withdrawn, answered, left);
   `net_zone_vars` (one hosted game: z6q3's script raises server variables), `net_zone_leader` (z7q3's script asks for the leader)
   and `net_pair_companion` (ours: a companion picked in the base, fighting, dying, written back, restored in the next
   zone and taken off the list, "Companions" below); `net_pair_mod_same`, `net_pair_mod_differ`, `net_pair_mod_none`
-  (ours: the mods compared at the join, "Mods" below).
+  (ours: the mods compared at the join, "Mods" below), `net_pair_mod_list` (ours: the connection screen's list names
+  the host's mod) and `net_pair_mod_effect` (ours: a mod's data effect started by the host's server, shown on the
+  peer; effects.md, "Data effects").
 
 ## The multiplayer game
 
@@ -124,14 +126,15 @@ list again. Scenario `net_pair_companion`.
 
 ## Mods (ours)
 
-Peers learn each other's mod at the lobby's join (MF16): the mod's title and its content hash (`modidentity::Identity`,
-src/game/mods/mod_identity.h; the hash: mods.md, "Mods in multiplayer"). Scenarios `net_pair_mod_same`,
-`net_pair_mod_differ` and `net_pair_mod_none`.
+Peers learn each other's mod from the lobby's info answer and at the join (MF16): the mod's title and its content
+hash (`modidentity::Identity`, src/game/mods/mod_identity.h; the hash: mods.md, "Mods in multiplayer"). Scenarios
+`net_pair_mod_same`, `net_pair_mod_differ`, `net_pair_mod_none` and `net_pair_mod_list`.
 - **The mark** (`net::WriteModMark` / `ReadModMark`, net_lobby.cpp): `kModMark` "ei-rebuild mod" with its zero, a
   format byte (1), the hash's low and high dwords, the title's length (a byte) and its UTF-8 bytes. Our client writes it
-  after the login's 20-byte password (`JoinWithPassword`); our server after an acceptance's join id (`SendAccepted`)
-  and after a refusal's reason when the reason is `ModMismatch` (4). An original peer reads none of it: its server
-  reads the password's 20 bytes at most, its client the id and the reason byte. No mark (the packet ends before it)
+  after the login's 20-byte password (`JoinWithPassword`); our server after the info answer's entry (`SendInfo`), an
+  acceptance's join id (`SendAccepted`) and a refusal's reason when the reason is `ModMismatch` (4). An original peer
+  reads none of it: its server reads the password's 20 bytes at most, its client the entry, the id and the reason
+  byte. No mark (the packet ends before it)
   means the original game, which counts as playing no mod.
 - **The server** (`ServerSession::Admit`, after the ban check, before the password and the limit): a client whose mod
   is not the server's (`modidentity::Agrees`: the same title and hash) is refused with `ModMismatch` and the server's
@@ -150,6 +153,14 @@ src/game/mods/mod_identity.h; the hash: mods.md, "Mods in multiplayer"). Scenari
   (`lmp_cannot_connect`). A Rebirth player of the original exe with the same classic mod (Lost in Astral) is refused
   as well; a host's option to admit unmarked clients would be the way back if wanted. A server without a mod admits
   them as before, and our client without a mod joins an original server as before.
+- **The list**: the client reads the mark after an info answer's entry (`ClientBase::OnInfo`: `ServerEntry::mod`,
+  `modRead`; an original server's answer has none, the original game). The connection screen names the selected
+  host's mod in its details and dims the rows of hosts this game cannot join for the mods (`ServerEntry::ModAgrees`,
+  `modidentity::Listed`: `lmp_mod_listed`, `lmp_mod_cannot_join`, `lmp_mod_cannot_join_version`; ui.md,
+  "MpConnectScreen::DrawListVanilla"). Entries without an answer read (the master's
+  list, the address book's saved replies) show no mod and count as joinable. Joining such a host is still tried and
+  refused as above: the list only shows it. A switch to the host's mod from the list (when it is in the menu's list) is
+  not offered: mods switch only in the main menu (`app::RequestModSwitch`).
 - **The texts** are the game's when its texts have the key (a texts.toml of a mod or a converted install can carry
   `string lmp_mod_mismatch` and the others), else ours in Russian where the game's texts are, otherwise English.
 - `net::g_originalPeer` (the harness's `originalnet`): this game's lobby acts as the original's (no mark sent or read,

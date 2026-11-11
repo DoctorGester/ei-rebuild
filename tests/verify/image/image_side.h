@@ -56,6 +56,12 @@ std::vector<std::string> NetState();
 // "netmod" (MF16): the mods our lobby compares (modidentity, net::ReadModMark) as console lines: this game's, the
 // client's join state, refusal and the host's mod, the server's refusals for a mod and the last one's.
 std::vector<std::string> NetMod();
+// "netlist" (MF16a): the client's servers as console lines: each one's name, the mod its info answer named
+// (ServerEntry::mod) and whether this game may join it for the mods (ServerEntry::ModAgrees).
+std::vector<std::string> NetList();
+// "serverscript <command>" (MF15e): a world script command run on the server world (WorldScript(<command>)), also in a
+// network game, where the console's "@" lines do nothing. "" or the script's error.
+std::string ServerScript(const std::string& line);
 // "originalnet" (MF16): this game's lobby acts as the original's from now on (net::g_originalPeer).
 void OriginalNet();
 // The awards the game server keeps queued (each for 60 s: ServerSession::QueueAward), -1 without a server.

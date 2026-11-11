@@ -8,6 +8,7 @@
 #include "game/players/player.h"
 #include "game/players/player_client.h"
 #include "game/players/saved_parties.h"
+#include "game/script/script.h"
 #include "game/units/unit.h"
 #include "game/world/world.h"
 
@@ -45,6 +46,26 @@ std::vector<std::string> NetMod() {
         lines.push_back(line);
     }
     return lines;
+}
+
+std::vector<std::string> NetList() {
+    std::vector<std::string> lines;
+    const net::ClientSession* client = net::g_gameClient.Get();
+    if (!client) return {"netlist: no client session"};
+    for (const auto& listed : client->servers) {
+        const net::ServerEntry* server = listed.Get();
+        lines.push_back("netlist: \"" + server->name + "\" plays " + (server->modRead ? ShownMod(server->mod) : "(no answer read)") +
+                        (server->ModAgrees() ? ", joinable" : ", cannot join for the mods"));
+    }
+    if (lines.empty()) lines.push_back("netlist: no servers");
+    return lines;
+}
+
+std::string ServerScript(const std::string& line) {
+    ScriptErrorInfo error{};
+    if (!g_serverWorld.RunCommandScript("WorldScript(" + line + ")", true, &error))
+        return "serverscript " + line + ": " + error.text;
+    return {};
 }
 
 void OriginalNet() { net::g_originalPeer = true; }

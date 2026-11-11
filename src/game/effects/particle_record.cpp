@@ -179,8 +179,8 @@ public:
     }
 
     std::shared_ptr<const Record> Run() {
-        Known(root, {"replace", "texture", "frames", "columns", "blend", "attach", "part", "flags", "fallback",
-                     "server", "source", "emit", "inputs", "vars", "stage", "on", "anchor", "particle", "tables",
+        Known(root, {"replace", "texture", "frames", "columns", "blend", "attach", "part", "flags", "server",
+                     "source", "emit", "inputs", "vars", "stage", "on", "anchor", "particle", "tables",
                      "curves"});
         ReadLook();
         ReadServer();
@@ -309,7 +309,6 @@ private:
             default: break;
             }
         }
-        Text(root["fallback"], &record->fallback);
     }
     void ReadServer() {
         const RawNode& server = root["server"];

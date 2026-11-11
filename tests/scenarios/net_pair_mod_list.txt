@@ -1,0 +1,52 @@
+# MF16a: the connection screen's list names each host's mod (docs/notes/network.md, "Mods"). This game hosts the
+# showcase mod (tools/make_mod_pair.py) as net_pair_mod_none does; our server's info answer carries the mod mark after
+# the entry, where an original client reads nothing. The peer (peer/net_pair_mod_list.txt) plays no mod: its list
+# reads the mark, names the host's mod in the selected row's details and marks the row as one it cannot join (dimmed,
+# "Cannot join: the mods differ"), before any join is tried. Then this game's lobby acts as the original's
+# ("originalnet": no mark in the answer): the peer's list shows the original game, which a game without a mod joins.
+# prepare: make_mod_pair.py showcase none
+timeout 180
+peer net_pair_mod_list
+mod harness_saves\showcase_mod
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key h
+frames 3
+key o
+frames 3
+key s
+frames 3
+key t
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 mpconnect
+
+# Row 0 (the new game), host.
+clickregion 14
+frames 5
+clickregion 0
+waitwindow 25 briefing
+peersignal hosted
+
+peerwait 120 listed
+originalnet
+peersignal original
+peerwait 60 listedoriginal
+netmod
+expect the server refused 0 joins for their mod
+peersignal seen
+peerwait 60 leaving
+frames 60
+report
+quit
