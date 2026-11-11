@@ -271,7 +271,8 @@ ScriptSpellHost::ScriptSpellHost(ScriptLuaScheduler& owner)
     : readModule(ReadFromLayers), scheduler(owner), L(owner.lua.State()) {
     lua_newtable(L);
     casts = luaL_ref(L, LUA_REGISTRYINDEX);
-    // The cast values' metatable and its methods, permanents: a cast value a script keeps in its data persists.
+    // The cast values' metatable and its methods (from their declarations, script_lua_api.inc), permanents: a cast
+    // value a script keeps in its data persists.
     lua_createtable(L, 0, 1);
     lua_createtable(L, 0, 35);
     const int methods = lua_gettop(L);
@@ -282,41 +283,8 @@ ScriptSpellHost::ScriptSpellHost(ScriptLuaScheduler& owner)
         scheduler.lua.AddPermanent(std::format("ei.cast.{}", name).c_str());
         lua_setfield(L, methods, name);
     };
-    method("After", After);
-    method("Finish", Finish);
-    method("FindUnits", FindUnits);
-    method("CanAffect", CanAffect);
-    method("Damage", Damage);
-    method("Heal", Heal);
-    method("Apply", Apply);
-    method("Remove", Remove);
-    method("Has", Has);
-    method("Move", Move);
-    method("Bolt", Bolt);
-    method("Missile", Missile);
-    method("Effect", Effect);
-    method("Sound", Sound);
-    method("Light", Light);
-    method("SetVelocity", SetVelocity);
-    method("Eye", Eye);
-    method("HitPoint", HitPoint);
-    method("IsUnit", IsUnit);
-    method("Ground", Ground);
-    method("Flight", Flight);
-    method("SoundLoop", SoundLoop);
-    method("Release", Release);
-    method("Noise", Noise);
-    method("Across", Across);
-    method("Block", Block);
-    method("Unblock", Unblock);
-    method("Position", Position);
-    method("IsDead", IsDead);
-    method("IsHurt", IsHurt);
-    method("Shout", Shout);
-    method("Reveal", Reveal);
-    method("Wake", Wake);
-    method("Notice", Notice);
-    method("Vision", Vision);
+#define EI_LUA_CAST_METHOD(name, params, returns, text) method(#name, name);
+#include "game/script/script_lua_api.inc"
     lua_pushvalue(L, methods);
     scheduler.lua.AddPermanent("ei.cast.methods");
     lua_setfield(L, -2, "__index");
@@ -336,10 +304,8 @@ ScriptSpellHost::ScriptSpellHost(ScriptLuaScheduler& owner)
         scheduler.lua.AddPermanent(std::format("ei.stats.{}", name).c_str());
         lua_setfield(L, statMethods, name);
     };
-    statMethod("Add", StatAdd);
-    statMethod("Subtract", StatSubtract);
-    statMethod("Larger", StatLarger);
-    statMethod("Multiply", StatMultiply);
+#define EI_LUA_STATS_METHOD(name, params, returns, text) statMethod(#name, Stat##name);
+#include "game/script/script_lua_api.inc"
     lua_pushvalue(L, statMethods);
     scheduler.lua.AddPermanent("ei.stats.methods");
     lua_setfield(L, -2, "__index");

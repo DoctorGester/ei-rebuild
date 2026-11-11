@@ -219,9 +219,9 @@ script's. Checked by `ei-convert --lua-check` (build checks; ctest `port_lua`) a
   (`__persist`, looked up in the server world as `ScriptObjectRef::Load` does; a missing object comes back as a value
   of none). The run's position (ticks, sleep start) is C++'s, not in the data: L6 keeps it beside the coroutine.
 
-**The naming rule.** A keyword's Lua name is its own (the table's spelling) except where it abbreviates or misspells;
-`kRenames` in script_lua.cpp is the list (72): `UM…` → `UnitMode…` (`UMAg` → `UnitModeAggressionLevel`,
-`UMSuspection` → `UnitModeSuspicion`); `GS…Var` → `…GameVar` (`GSSetVar` → `SetGameVar`, `GSDelVar` → `DeleteGameVar`,
+**The naming rule.** A keyword's Lua name is its own (the table's spelling) except where it abbreviates or misspells
+(72; each keyword's `EI_LUA_BINDING` row in script_lua_api.inc names it): `UM…` → `UnitMode…` (`UMAg` →
+`UnitModeAggressionLevel`, `UMSuspection` → `UnitModeSuspicion`); `GS…Var` → `…GameVar` (`GSSetVar` → `SetGameVar`, `GSDelVar` → `DeleteGameVar`,
 Rebirth's `GSSetPlayerVar` → `SetPlayerGameVar`, `GSListPlayerVars` → `ListPlayerGameVars`); `Q…` / `QObj…` →
 `Quest…` / `QuestObjective…`; `FX` → `Sound` (`CreateFX` → `CreateSound`, `PlayFX` → `PlaySound`); `HP` → `HitPoints`;
 `SetCP` → `SetPosition`; `AlarmPos…` → `AlarmPosition…`; `GetZValue` / `GetBSZValue` → `GetGridHeight` /
@@ -240,6 +240,32 @@ optional action function) and gives the table a metatable whose `__call` starts 
 `ScriptLua::startScript` (the scheduler's; without one a call is a Lua error). Lua arithmetic is in doubles: one
 `+ - * /` of two floats rounded to a float equals the float operation, a chain does not, and `Add(a, b)` is `b + a` in
 floats; converted scripts keep the bindings (`Add`, `IsEqual`, whose NaN rules differ from Lua's `==`).
+
+### The API's declarations
+
+`src/game/script/script_lua_api.inc` declares every name the game's Lua gives or reads, once (MF17i): each keyword's
+binding (its Lua name, arguments with types, result, one line of what it does; the rows' order and sections are the
+docs'), the runtime's own globals (`NewGroup`, `CopyGroup`) and the prelude's helpers (`GlobalVars`, `Script`), the
+cast value's methods and fields, the stats' methods and names, the effect's fields, the options tables, the spell
+hooks. The same rows register: `LuaName` is the keyword's row's name (a keyword without a row gets no binding), the
+constructor registers the globals and helpers from theirs, ScriptSpellHost the cast and stats methods (X-macros over
+the .inc; `script_lua_api.h` holds them as data, `luaapi::kRows`). Lua's own (`print`, `pairs`, `load`, the
+libraries) are not declared.
+
+- **Exported.** `ei-convert --lua-api <file>` writes a LuaLS definition file (`---@meta`; classes `ei.Object`,
+  `ei.Group`, `ei.Cast`, `ei.Stats`, `ei.Effect`, `ei.Spell` with the hooks, the options; every global function with
+  `---@param` / `---@return` / `---@overload`) (tools/convert/lua_api.cpp). The short types of the rows (`object`,
+  `group`, `point`, `position`, ...) become `ei.*`; an `object` argument or result is `ei.Object?`.
+- **Generated docs.** `ei-convert --lua-api-docs <repository>` rewrites docs/modding.md's blocks between
+  `<!-- lua-api: NAME -->` and `<!-- /lua-api -->` (functions, hooks, cast-fields, cast-methods, options,
+  effect-fields, stats-methods, stats) and the shipped copy `examples/lua_api/ei_api.lua` (the release takes the
+  examples folder beside ei-convert); with `--check` it compares them instead (a build check; ctest `port_lua_api`).
+  Edit the .inc, then run it.
+- **Checked** by `--lua-check` (CheckDeclarations, CheckCastDeclarations): every keyword with a signature has one row
+  and its declared argument types (the first of a union) and result are the signature's letters (`?`, `+` included;
+  the loops and Every / Any / Sum have shapes of their own); the state's global functions beyond a plain Lua's are the
+  declared ones and the reverse; a live cast value's methods and fields, the stats value's methods and an effect's
+  fields are the declared ones; the stat rows are `kEffectStatNames` in order.
 
 ## Converted scripts
 
