@@ -191,8 +191,8 @@ void UnitModelSlot::Serialize(ChunkArchive* ar) {
 
 void UnitLevelRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(0, &name);
-    ar->Field(1, valuesA, sizeof(valuesA));
-    ar->Field(2, valuesB, sizeof(valuesB));
+    ar->Field(1, unreadValuesA, sizeof(unreadValuesA));
+    ar->Field(2, unreadValuesB, sizeof(unreadValuesB));
     Dword(ar, 3, &vitalMask);
     Dword(ar, 4, &slotType);
 }
@@ -390,7 +390,6 @@ void SkillDatabase::Read(const RecordFile& file) {
 using dbtoml::Bool;
 using dbtoml::Enum;
 using dbtoml::FloatBits;
-using dbtoml::Hex;
 using dbtoml::Name;
 using dbtoml::Signed;
 using dbtoml::Table;
@@ -425,14 +424,12 @@ constexpr Name kHitSounds[] = {
     {6, "crossbow"}, {8, "none"},  {9, "hands1"},  {10, "pierce"}, {11, "crash"}, {12, "hands4"},
     {13, "slash"},  {14, "hands6"}, {15, "hands7"}, {16, "spells_only"},
 };
-// UnitStats::modeSpeeds by movement mode (ModeSpeedOf), the action speeds by animation kind (Unit::ActionSpeed).
-constexpr std::string_view kModeSpeeds[] = {"run", "walk", "crawl", "lie"};
+// The action speeds by animation kind (Unit::ActionSpeed).
 constexpr std::string_view kActionSpeeds[] = {"attack", "cast", "hit", "death", "cross", "special"};
 // UnitStats::CombatIndex.
 constexpr std::string_view kCombat[] = {"reach", "attack", "attack_spread", "defence", "speed"};
-// Sense (the perception and conspicuity rows); the sixth is read by nothing (Sense). A prototype's conspicuity
-// sight is also its footprint scale (UnitClientSpecific::PlayStepSounds).
-constexpr std::string_view kSenses[] = {"sight", "day_sight", "near", "hearing", "smell", "unread"};
+// A prototype's conspicuity sight is also its footprint scale (UnitClientSpecific::PlayStepSounds).
+using recordnames::kSenses;
 constexpr std::string_view kStats[] = {"strength", "dexterity", "intelligence"};
 
 template <class T>
@@ -440,15 +437,64 @@ Table<T> DamageTable(T* values) {
     return {values, recordnames::kDamageTypes};
 }
 
+// UnitLevelRecord::slotType, the type of a model's body slot of the level (UnitStatSlot::type): the protection's
+// weight by type (kSlotWeights), the legs' and arms' factors and crippled remarks (LowestSlotRatio, the hits); 4 is
+// the type a slot is reset to.
+constexpr Name kSlotTypes[] = {{0, "head"}, {1, "body"}, {2, "arm"}, {3, "leg"}, {4, "none"}};
+// UnitLevelRecord::vitalMask's bits by damage type: a full hit of the type severs the slot (the hits). The bits above
+// them are read by nothing (copied into the slot and the unit's parameters' byte).
+constexpr Name kDamageBits[] = {
+    {0x1, "piercing"}, {0x2, "slashing"}, {0x4, "crushing"}, {0x8, "fire"},
+    {0x10, "acid"},    {0x20, "lightning"}, {0x40, "general"},
+};
+constexpr std::uint32_t kUnreadVitalBits = ~0x7Fu;
+
+// A perk's required skill: the skill byte (values[0]) and the text that turns the check on (requiredSkillName:
+// UnitStats::CanLearn checks the byte unless the text is empty or "none"), written as one name when the text is the
+// byte's name, as every file has them; read, the name sets both.
+struct RequiredSkill {
+    std::uint32_t& skill;
+    std::string& text;
+
+    // The byte's name when the text is that name.
+    std::string_view NamedAs() const {
+        const std::string_view name = dbtoml::NameOf(recordnames::kRequiredSkills, skill);
+        return name == text ? name : std::string_view();
+    }
+};
+std::string ValueText(RequiredSkill field) {
+    const std::string_view name = field.NamedAs();
+    if (!name.empty()) return toml::String(name);
+    return toml::InlineTable({{"skill", dbtoml::ValueText(dbtoml::Signed{field.skill})},
+                              {"text", dbtoml::ValueText(field.text)}});
+}
+bool ReadValue(const toml::Value& value, RequiredSkill field) {
+    std::int64_t skill = 0;
+    if (value.IsString()) {
+        if (!dbtoml::ValueOf(recordnames::kRequiredSkills, value.String(), skill)) return false;
+        field.skill = static_cast<std::uint32_t>(skill);
+        field.text = std::string(value.String());
+        return true;
+    }
+    std::string text;
+    if (!value.IsTable() || !dbtoml::ReadValue(value["skill"], dbtoml::Signed{field.skill}) ||
+        !dbtoml::ReadValue(value["text"], text))
+        return false;
+    field.text = text;
+    return true;
+}
+std::string ValidNames(const RequiredSkill&) { return dbtoml::NameList(recordnames::kRequiredSkills); }
+
 } // namespace
 
 template <class Visit>
 void Fields(UnitLevelRecord& r, Visit& v) {
     v("name", r.name);
-    v("slot_type", r.slotType);
-    v("values_a", r.valuesA);
-    v("values_b", r.valuesB);
-    v("vital_mask", Hex{r.vitalMask});
+    v("slot_type", Enum<int>{r.slotType, kSlotTypes});
+    v.Unread("unread_values_a", dbtoml::FloatBitsValues<7>{r.unreadValuesA});
+    v.Unread("unread_values_b", dbtoml::FloatBitsValues<7>{r.unreadValuesB});
+    v("severed_by", dbtoml::Bits{r.vitalMask, kDamageBits});
+    v.Unread("unread_severed_bits", dbtoml::Masked{r.vitalMask, kUnreadVitalBits});
 }
 
 template <class Visit>
@@ -467,7 +513,7 @@ void Fields(UnitModelRecord& r, Visit& v) {
     v.Unread("unread", r.unreadField);
     v("movement", Enum<std::uint32_t>{r.movementKind, kMovements});
     v("angle", r.angle);
-    v("mode_speeds", Table<float>{r.modeSpeeds, kModeSpeeds});
+    v("mode_speeds", Table<float>{r.modeSpeeds, recordnames::kModeSpeeds});
     v("action_speeds", Table<float>{r.actionSpeeds, kActionSpeeds});
     v("reach_height_scale", r.reachHeightScale);
     v("size_class", r.sizeClass);
@@ -530,9 +576,9 @@ void Fields(UnitPrototypeRecord& r, Visit& v) {
     v("damage", r.damage);
     v("damage_spread", r.damageSpread);
     v("skill_level", r.skillLevel);
-    v("attributes_01", r.attributes01);
-    v("attribute_2", r.attribute2);
-    v("skills_3_to_5", r.skills3to5);
+    v("science", r.attributes01);
+    v("taming", r.attribute2);
+    v("magic_skills", Table<float>{r.skills3to5, recordnames::kMagicSkills});
     v("peripheral_range", r.peripheralRange);
     v("perception", Table<float>{r.perception, kSenses});
     v("conspicuity", Table<float>{r.conspicuity, kSenses});
@@ -551,8 +597,8 @@ void Fields(UnitNpcRecord& r, Visit& v) {
     v.Unread("unread", r.unreadField);
     v("experience", r.experience);
     v("stats", Table<float>{r.stats, kStats});
-    v("attributes", r.attributes);
-    v("skills", r.skills);
+    v("attributes", Table<std::uint8_t>{r.attributes, recordnames::kAttributes});
+    v("skills", Table<std::uint8_t>{r.skills, recordnames::kSkillBytes});
     v("perks", r.skillNames);
     v("start_weapons", r.startWeapons);
     v("start_quick_items", r.startQuickItems);
@@ -576,8 +622,7 @@ void Fields(SkillLevelRecord& r, Visit& v) {
     v("display_name", r.displayName);
     v.Unread("unread", r.unreadField);
     v("required_level", r.requiredLevelName);
-    v("required_skill_name", r.requiredSkillName);
-    v("required_skill", Signed{r.values[0]});
+    v("required_skill", RequiredSkill{r.values[0], r.requiredSkillName});
     v.Unread("unread_value_1", r.values[1]);
     v("required_skill_value", r.values[2]);
     v("required_strength", FloatBits{r.values[3]});
@@ -587,7 +632,7 @@ void Fields(SkillLevelRecord& r, Visit& v) {
     v("value", r.values[7]);
     v.Unread("unread_value_8", r.values[8]);
     v.Unread("unread_value_9", r.values[9]);
-    v("learnable", r.learnable);
+    v("learnable", Bool{r.learnable});
     v("exclusion_group", r.exclusionGroup);
 }
 

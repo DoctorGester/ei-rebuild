@@ -83,6 +83,17 @@ struct Bits {
     int firstNumber = 0;
     std::string_view numbers;
 };
+// The bits `mask` of an unsigned field, unshifted, as a number: the bits of a mask that no code reads (an `unread...`
+// field beside the named bits).
+struct Masked {
+    std::uint32_t& value;
+    std::uint32_t mask = 0;
+};
+// Unsigned fields holding floats' bits, as a list of the floats (the bytes no code reads, kept as data).
+template <std::size_t N>
+struct FloatBitsValues {
+    std::uint32_t (&values)[N];
+};
 // A number that holds 0 or 1: false / true (another number stays a number).
 template <class T>
 struct Bool {
@@ -155,6 +166,13 @@ inline std::string ValueText(Bits field) {
     left |= field.value & field.numbered & ~NamedBits(field.names);
     for (int bit = 0; bit < 32; ++bit)
         if (left & (1u << bit)) items.push_back(toml::Int(bit + field.firstNumber));
+    return toml::Array(items);
+}
+inline std::string ValueText(Masked field) { return toml::Int(field.value & field.mask); }
+template <std::size_t N>
+std::string ValueText(FloatBitsValues<N> field) {
+    std::vector<std::string> items;
+    for (std::uint32_t bits : field.values) items.push_back(toml::Float(std::bit_cast<float>(bits)));
     return toml::Array(items);
 }
 template <class T>
@@ -265,6 +283,11 @@ template <class T>
 bool IsUnset(const std::vector<T>& values) {
     return values.empty();
 }
+inline bool IsUnset(Masked field) { return (field.value & field.mask) == 0; }
+template <std::size_t N>
+bool IsUnset(FloatBitsValues<N> field) {
+    return IsUnset(field.values);
+}
 
 template <class T>
 void PairWriter::Unread(std::string_view key, T&& field) {
@@ -366,6 +389,19 @@ inline bool ReadValue(const toml::Value& value, Bits field) {
         bits |= 1u << bit;
     }
     field.value = (field.value & ~(NamedBits(field.names) | field.numbered)) | bits;
+    return true;
+}
+inline bool ReadValue(const toml::Value& value, Masked field) {
+    std::uint32_t read = 0;
+    if (!toml::Read(value, &read) || (read & ~field.mask) != 0) return false;
+    field.value = (field.value & ~field.mask) | read;
+    return true;
+}
+template <std::size_t N>
+bool ReadValue(const toml::Value& value, FloatBitsValues<N> field) {
+    float read[N] = {};
+    if (!ReadValue(value, read)) return false;
+    for (std::size_t i = 0; i < N; ++i) field.values[i] = std::bit_cast<std::uint32_t>(read[i]);
     return true;
 }
 template <class T>

@@ -38,6 +38,32 @@ inline constexpr std::string_view kSurfaces[] = {
     "astral", "snow", "ice", "dry_grass", "snowballs", "lava", "swamp", "high_rock",
 };
 
+// UnitStats::modeSpeeds by movement mode (ModeSpeedOf): a model's and a map unit's.
+inline constexpr std::string_view kModeSpeeds[] = {"run", "walk", "crawl", "lie"};
+// Sense (the perception and conspicuity rows of a prototype and of a map unit); the sixth is read by nothing (Sense).
+inline constexpr std::string_view kSenses[] = {"sight", "day_sight", "near", "hearing", "smell", "unread"};
+
+// UnitStats::attributes: [0] the science of the Use and Steal skills (UnitServer::UseSkill; the trade panel's science
+// row, the HUD), [2] the taming (UnitServer::TryTame, kStatTaming); [1] is read by nothing (AttributeWithBonus and
+// AttributeWithItems take any index, every caller gives 0 or 2). A quick item's attribute bonuses are by the same index.
+inline constexpr std::string_view kAttributes[] = {"science", "unread", "taming"};
+// UnitStats::skills, by the skill records' names (UnitStats::SkillWithBonus: skill byte n is perks.pdb's skill n, the
+// trade panel's rows, the script's GetSkill): the weapon skills (WeaponSkill: melee 0, archery 1), backstab, the
+// magic skills of the schools (SpellSchoolSkill: elemental 3, sense 4, astral 5). Bytes 6 and 7 are read by nothing
+// but a perk that requires one (no file has one).
+inline constexpr std::string_view kSkillBytes[] = {"melee",  "archery", "backstab", "elemental",
+                                                   "sense",  "astral",  "unread_6", "unread_7"};
+// A skill byte by its name, for a perk's requirement; "none" the data's 0x7FFFFFFF (SkillLevelRecord::kNoSkill).
+inline constexpr dbtoml::Name kRequiredSkills[] = {
+    {0, "melee"}, {1, "archery"}, {2, "backstab"}, {3, "elemental"}, {4, "sense"},
+    {5, "astral"}, {6, "unread_6"}, {7, "unread_7"}, {0x7FFFFFFF, "none"},
+};
+// The magic of a spell (SpellRecord::castType: the item info's and the tool tip's "string school_<n>" line, the
+// inventory strip's spell tab; sense spells are cast without noise and without the casting's visibility, elemental
+// ones are planned as an attack: UnitServer's FinishCast, the move factors, the route planning) and the magic skills a prototype gives (skill bytes 3..5), by the skills' names.
+inline constexpr dbtoml::Name kMagic[] = {{0, "elemental"}, {1, "sense"}, {2, "astral"}};
+inline constexpr std::string_view kMagicSkills[] = {"elemental", "sense", "astral"};
+
 // MapObjectType: a model's and a map object's class (52: the animals, the code's UnitSpare).
 inline constexpr dbtoml::Name kObjectClasses[] = {
     {0x32, "hero"},  {0x33, "creature"}, {0x34, "animal"}, {0x35, "tree"},       {0x36, "building"},

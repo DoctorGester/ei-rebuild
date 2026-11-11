@@ -206,7 +206,6 @@ void ItemDatabase::Read(const RecordFile& file) {
 
 using dbtoml::Bool;
 using dbtoml::Enum;
-using dbtoml::Hex;
 using dbtoml::Name;
 using dbtoml::Table;
 using recordnames::kDamageTypes;
@@ -230,6 +229,69 @@ Table<T> DamageTable(T* values) {
     return {values, kDamageTypes};
 }
 
+// A weapon's skill bonus by the skill (UnitStats::WeaponBonus: skill byte 0 or 1).
+constexpr std::string_view kWeaponSkills[] = {"melee", "archery"};
+
+// A loot record's index: the record of its record type's table it stands for, by the key GiveItem's
+// "<loot>.<name>" gives (LootTableIndex: a weapon's, armour's or quick item's name, a spell's or modifier's code), the
+// last record of the key as the tables' indexes file them. The tables are the game's (the spells load before the
+// items; the item tables are merged before the loot); an index no record has (every file's 0xFFFFFFFD) is a number.
+// A name is looked up in the record type the record has when the key is read: record_type comes first.
+struct LootIndex {
+    std::uint32_t& recordType;
+    std::uint32_t& index;
+};
+
+template <class Record>
+std::string_view NameAt(const std::vector<Record>& records, std::uint32_t index) {
+    if (index >= records.size()) return {};
+    const std::string_view name = IndexKey(records[index]);
+    for (std::size_t i = index + 1; i < records.size(); ++i)
+        if (IndexKey(records[i]) == name) return {};
+    return name;
+}
+template <class Record>
+bool IndexOfName(const std::vector<Record>& records, std::string_view name, std::uint32_t& index) {
+    for (std::size_t i = records.size(); i-- > 0;)
+        if (IndexKey(records[i]) == name) {
+            index = static_cast<std::uint32_t>(i);
+            return true;
+        }
+    return false;
+}
+// `visit(records)` with the table of `recordType`; false for a type that names none.
+template <class Visit>
+bool WithLootTable(std::uint32_t recordType, Visit visit) {
+    switch (static_cast<LootRecordType>(recordType)) {
+    case LootRecordType::Weapon: return visit(g_itemDatabase.weapons.records);
+    case LootRecordType::Armor: return visit(g_itemDatabase.armors.records);
+    case LootRecordType::Quick: return visit(g_itemDatabase.quickItems.records);
+    case LootRecordType::Spell: return visit(g_spellDatabase.spells.records);
+    case LootRecordType::Modifier: return visit(g_spellDatabase.modifiers.records);
+    default: return false;
+    }
+}
+
+std::string ValueText(LootIndex field) {
+    std::string name;
+    WithLootTable(field.recordType, [&](const auto& records) {
+        name = std::string(NameAt(records, field.index));
+        return true;
+    });
+    return name.empty() ? dbtoml::ValueText(field.index) : dbtoml::ValueText(name);
+}
+bool ReadValue(const toml::Value& value, LootIndex field) {
+    if (!value.IsString()) return dbtoml::ReadValue(value, field.index);
+    std::string name;
+    if (!dbtoml::ReadValue(value, name)) return false;
+    return WithLootTable(field.recordType,
+                         [&](const auto& records) { return IndexOfName(records, name, field.index); });
+}
+std::string ValidNames(const LootIndex&) {
+    return "the name of a record of its record_type's table (a weapon's, armour's or quick item's name, a spell's or "
+           "modifier's code), or a number";
+}
+
 } // namespace
 
 template <class Visit>
@@ -246,7 +308,7 @@ void Fields(MaterialRecordHead& r, Visit& v) {
     v.Unread("unread", r.unreadField);
     v("damage_factor", r.damageFactor);
     v("absorb_factors", DamageTable(r.absorbFactors));
-    v("armour_flags", Hex{r.armourFlags});
+    v.Unread("unread_armour_flags", r.armourFlags);
     v("sold_by", recordnames::SoldBy(r.classMask));
 }
 
@@ -292,7 +354,7 @@ void Fields(WeaponRecord& r, Visit& v) {
     v("damage", r.damage);
     v("damage_spread", r.damageSpread);
     v("damage_types", DamageTable(r.damageTypes.data()));
-    v("skill_bonus", r.skillBonus);
+    v("skill_bonus", Table<std::uint8_t>{r.skillBonus, kWeaponSkills});
     v("attack_bonus", r.attackBonus);
     v("defence_bonus", r.defenceBonus);
     v.Unread("unread", r.unreadFields);
@@ -303,10 +365,10 @@ void Fields(ArmorRecord& r, Visit& v) {
     HeadFields(r, v, Enum<int>{r.type, kArmorTypes});
     v("first_factor", r.firstFactor);
     v("absorb_first", DamageTable(r.absorbFirst.data()));
-    v("first_flags", Hex{r.firstFlags});
+    v.Unread("unread_first_flags", r.firstFlags);
     v("others_factor", r.othersFactor);
     v("absorb_others", DamageTable(r.absorbOthers.data()));
-    v("others_flags", Hex{r.othersFlags});
+    v.Unread("unread_others_flags", r.othersFlags);
     v("shows_wounds", Bool{r.showsWounds});
     v("layer", r.layer);
     v.Unread("unread", r.unreadFields);
@@ -318,7 +380,7 @@ void Fields(QuickItemRecord& r, Visit& v) {
     v("category", Enum<std::uint32_t>{r.category, kQuickItemCategories});
     v("action_value", r.actionValue);
     v("spell_text", r.spellText);
-    v("attribute_bonus", r.attributeBonus);
+    v("attribute_bonus", Table<std::uint8_t>{r.attributeBonus, recordnames::kAttributes});
     v.Unread("unread", r.unreadFields);
 }
 
@@ -334,7 +396,7 @@ void Fields(LootItemRecord& r, Visit& v) {
     HeadFields(r, v, UnreadType{r.type});
     v("kind", Enum<std::uint32_t>{r.category, kLootKinds});
     v("record_type", Enum<std::uint32_t>{r.recordType, kLootRecordTypes});
-    v("index", r.index);
+    v("index", LootIndex{r.recordType, r.index});
 }
 
 namespace {

@@ -62,8 +62,8 @@ hit_sound = "crash"
 damage = 4.0
 damage_spread = 3.0
 skill_level = 3.0
-attributes_01 = 100.0
-attribute_2 = 100.0
+science = 100.0
+taming = 100.0
 peripheral_range = 1.7
 perception = { sight = 8.5, day_sight = 100.0, hearing = 2.8, unread = 10.0 }
 conspicuity = { sight = 1.0, day_sight = 1.0, near = 1.0, hearing = 1.0, smell = 1.0, unread = 1.0 }

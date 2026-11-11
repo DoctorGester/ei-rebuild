@@ -163,14 +163,14 @@ struct UnitModelRecord {
 
 // A unit database level record (the fourth table).
 struct UnitLevelRecord {
-    // The name as field 0, valuesA / valuesB as fields 1 / 2, vitalMask as 3 and slotType as 4.
+    // The name as field 0, unreadValuesA / unreadValuesB as fields 1 / 2, vitalMask as 3 and slotType as 4.
     void Serialize(ChunkArchive* ar);
 
     std::string name;              // field 0
     int slotType = 0;               // 4 the type a model's body slot of this level gets (UnitStatSlot::type)
-    std::uint32_t valuesA[7] = {};  // 1
-    std::uint32_t valuesB[7] = {};  // 2
-    std::uint32_t vitalMask = 0;    // 3 the slot's vital mask (UnitStatSlot::vitalMask)
+    std::uint32_t unreadValuesA[7] = {};  // field 1 (floats' bits); nothing reads them
+    std::uint32_t unreadValuesB[7] = {};  // field 2 (floats' bits); nothing reads them
+    std::uint32_t vitalMask = 0;    // 3 the slot's vital mask (UnitStatSlot::vitalMask: bit = damage type)
 };
 
 // The model table: the records and an index by name, as the prototype tables.

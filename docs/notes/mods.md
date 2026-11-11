@@ -403,7 +403,7 @@ armours, 63 weapons, 126 quests).
 The record TOML says what a value means rather than its bits (MF14, user 2026-11-11: the showcase mod's `class_mask =
 0x1`, `key = 0x2890000`, `blood_kind = 8`, unnamed arrays and a 32 x 32 relations matrix could not be written by
 hand). One path: ei-convert writes this form, the game reads only this form. The field helpers are database_toml.h's
-(`dbtoml::Enum`, `Bits`, `Code`, `Table`), which mob_toml.cpp uses too:
+(`dbtoml::Enum`, `Bits`, `Code`, `Table`, `Bool`, `Masked`, `FloatBitsValues`), which mob_toml.cpp uses too:
 - An enum is its name (`natural_weapon = "club"`); a value no name has stays a number (the data's garbage, a code no
   code tests), which the reader also takes.
 - A bit mask is a list of names (`sold_by = ["gipat_smith"]`; a name may stand for several bits: `weapons = ["any"]`
@@ -435,17 +435,36 @@ Field by field (the names, the code that reads each):
 | items.idb | loot `kind`, `record_type` | numbers | LootKind `self`, `material`, `record`; LootRecordType `weapon`, `armor`, `quick_item`, `spell`, `modifier`; 0x7FFFFFFF `none` |
 | units.udb | model `object_class` | 50..52 | `class`: MapObjectType `hero`, `creature`, `animal` (52: Bat, Boar, Cow, ... the code's UnitSpare) |
 | units.udb | `movement_kind` | 1..3 | `movement`: `walks` (1: the load factor from the legs), `flies` (2), `rooted` (3: Fungus) |
-| units.udb | `mode_speeds` | [4] | `{ run, walk, crawl, lie }` (ModeSpeedOf) |
+| units.udb | `mode_speeds` (also mob.toml's `[object.stats]`) | [4] | `{ run, walk, crawl, lie }` (ModeSpeedOf) |
 | units.udb | `action_speeds` | [6] | `{ attack, cast, hit, death, cross, special }` (Unit::ActionSpeed) |
 | units.udb | `blood_kind` | 0..9 | `blood`: `none`, `red`, `green`, `blue`, `brown` (1..4: a shower and a bloodprints.png decal of that colour), `red_spray`, `green_spray`, `blue_spray`, `brown_spray` (5..8: the shower alone); 9 (Lost in Astral's earth and ice elementals) stays a number: StatChanged and Died, its only readers, do for it what they do for `none` |
 | units.udb | `footprint_kind` | -1..25 | `footprint`: the tile of footprints.png (16 x 16 cells, eight across, a cell the left and the right print; PlayStepSounds, Footprint), each named by the vanilla models whose tile it is: every tile is used, each by the models of its name alone (Human Male and Human Female: `human`, the default) (`none` -1, `human`, `driad`, `cyclope`, `skeleton`, `troll`, `golem`, `elemental`, `goblin`, `toad`, `ogre`, `lizardman`, `zombie`, `unicorn`, `horse`, `scrab`, `orc`, `pig`, `hyena`, `boar`, `cow`, `wolf`, `tiger`, `hare`, `rat`, `deer`, `dog`) |
 | units.udb | `cast_effect`, `swap_feet` | 0 / 1 | true / false |
 | units.udb | model `sounds` | 16 names | `step_sounds`: a table by the ground's surface class (FootstepSound; prints.db's names): `grass`, `ground`, `stone`, `sand`, `rock`, `field`, `water`, `road`, `astral` (8: prints.db has no name; Terrain::SurfaceClass's class outside the map and on a tile without a texture, aiinfo tileDesc.reg's "ASTRAL"; every model gives it "steps", a folder without sounds), `snow`, `ice`, `dry_grass`, `snowballs`, `lava`, `swamp`, `high_rock` |
 | units.udb | unit `combat` | [5] | `{ reach, attack, attack_spread, defence, speed }` (CombatIndex) |
-| units.udb | unit `perception`, `conspicuity` | [6] | `{ sight, day_sight, near, hearing, smell, unread }` (Sense; `smell`: Sense::Smell, read by AIMemory::MeasureExposure, a unit's conspicuity raised by the Stench spell; `unread`: the sixth, copied into the stats and the params (saved, sent) and read by nothing, so kept as data; a prototype's conspicuity `sight` is also its footprints' scale) |
+| units.udb | unit `perception`, `conspicuity` (also mob.toml's `[object.stats]`) | [6] | `{ sight, day_sight, near, hearing, smell, unread }` (Sense; `smell`: Sense::Smell, read by AIMemory::MeasureExposure, a unit's conspicuity raised by the Stench spell; `unread`: the sixth, copied into the stats and the params (saved, sent) and read by nothing, so kept as data; a prototype's conspicuity `sight` is also its footprints' scale) |
+| units.udb | unit `attributes_01`, `attribute_2`, `skills_3_to_5` | floats, [3] | `science` (UnitStats::attributes[0] and [1]: map_object_manager.cpp's prototype stats), `taming` ([2]), `magic_skills` (`{ elemental, sense, astral }`: skill bytes 3..5); `skill_level` still starts every byte |
+| units.udb | npc `attributes`, `skills`; mob.toml `[object.stats]` `attributes`; items.idb quick item `attribute_bonus` | [3], [8] | UnitStats::attributes `{ science, unread, taming }` ([0]: UnitServer::UseSkill's Use and Steal, the trade panel's science row, the HUD; [2]: UnitServer::TryTame, kStatTaming; [1]: AttributeWithBonus and AttributeWithItems take any index, but every caller gives 0 or 2), UnitStats::skills `{ melee, archery, backstab, elemental, sense, astral, unread_6, unread_7 }` (skill byte n is perks.pdb's skill n: SkillWithBonus, the trade panel's rows, GetSkill; WeaponSkill reads 0 and 1, SpellSchoolSkill 3..5, BackstabFactor's hover 2; 6 and 7 only through a perk that requires them, none does; two Rebirth NPCs give 6 a 10) |
+| units.udb | level `slot_type` | 0..4 | UnitStatSlot::type: `head`, `body`, `arm`, `leg`, `none` (kSlotWeights; LowestSlotRatio's legs and arms; the crippled remarks; 4 the reset type) |
+| units.udb | level `vital_mask` | hex | `severed_by`: the damage types whose full hit severs the slot (unit_hits.cpp, bit = DamageType); the bits above 6 (garbage in one Rebirth mod's file: 0x6C2D0E00) are read by nothing (copied into the slot and the params' byte): `unread_severed_bits`, the number, only when not zero |
+| units.udb | level `values_a`, `values_b` | [7] of float bits | `unread_values_a`, `unread_values_b` as floats: no code reads UnitLevelRecord::unreadValuesA / unreadValuesB (the rename compile finds only the serialiser) |
+| perks.pdb | perk `required_skill_name`, `required_skill` | text, number | one `required_skill`: the skill byte by its name (as `skills`; `none` the data's 0x7FFFFFFF, which CanLearn refuses), which also sets the text CanLearn tests (the check is on unless it is empty or "none"); every file has the text equal to the byte's name, so a record whose text differs would be written `{ skill = n, text = "..." }` |
+| perks.pdb | perk `learnable` | 0 / 1 | true / false (CanLearn) |
+| spells.sdb | spell `cast_type` | 0..2 | `magic`: `elemental`, `sense`, `astral` (the texts "string school_0".."school_2", the item info's line and the inventory's spell tab; a sense spell is cast without noise and without the casting's visibility (FinishCast, the move factors), an elemental one is planned as an attack) |
+| items.idb | weapon `skill_bonus` | [2] | `{ melee, archery }` (UnitStats::WeaponBonus: the skill byte 0 or 1 the weapon type uses) |
+| items.idb | armor `first_flags`, `others_flags`, material `armour_flags` | hex | `unread_first_flags`, `unread_others_flags`, `unread_armour_flags` (numbers, only when not zero; no file sets one): the item constructor ors the material's into the armour's, and nothing reads either |
+| items.idb | loot `index` | a number | the record of its `record_type`'s table by its key, as GiveItem's `"<loot>.<name>"` names it (LootTableIndex: a weapon's, armour's or quick item's name, a spell's or modifier's code; the last record of the key); an index no record has stays a number: every file's is 0xFFFFFFFD. The tables are the game's (g_itemDatabase, g_spellDatabase: the spells load first, the item tables merge before the loot), so ei-convert, which converts items.idb alone, writes numbers; `record_type` comes before `index` in a record that names one |
+| quests.qdb | quest `zone` | a number | `unread_zone`: nothing reads QuestRecord::zone (the quest file's "zone index") |
+| quests.qdb | quest `places` | x, y in turn | a list of `[x, y]` points (ObjectivesWindow::LoadQuestPlaces); a last odd value, which nothing reads, is not kept (no file has one) |
+| mob.toml | lever `lock.mask` | hex | the bits LockKey::Opens compares: `science` 0x1 (the Use skill's key, {0x1, level: the science}), `science_2` 0x2, `science_3` 0x4 (level bits like science's; no key has them, so a lock of only these opens with none), `key` 0x8 (a quest item's key, {0x8, its id}: Item::GetUse); another bit its number (none has one). The data: `[]`, `["science"]`, `["key"]`, `["science", "science_3"]` |
+| mob.toml | trap `sides` | hex | `unread_sides`: mapspec::LoadMob sets every trap's sides from the player table before the trap is made, so the chunk's value (always ~0 in the data) is read by nothing |
+| mob.toml | object `side` | a number | the player's name where the file's `[players] names` gives the player one (only that player has it): `side = "Golems"`; else the number. Player names are read by nothing in the game (ZoneDiplomacy::names), so a name is the file's own label |
+| mob.toml | `[object.stats]` `damage_weights` | [7] bytes | a table by damage type |
+| map.toml | `[[material]] kind` | a number | `dry` 1, `water` 3, `still` 4: the AI map counts the cells under kinds 2 and 3 as under water (ai_map_load.cpp), kind 4's vertices keep the ground's x and y and have no waves (TerrainMaterial::kKeepsGroundXY); 0 and 2 (the same as 1 and 3; no file has them) stay numbers. The files have `dry` (opaque, the colours of the ground) and `water` (the blue water and the red lava alike) |
+| config.reg.toml | `[MOD]` `Single`, `Multi`, `GameSaves`, `ForceShowTutorial` | 0 / 1 | true / false: registry.cpp's switch keys (kSwitches) are written so; any registry value read from TOML takes true / false as 1 / 0 (ModEntry reads Single and Multi; GameSaves and ForceShowTutorial are the starter's, read by nothing of ours) |
 | units.udb | unit `hit_sound_kind` | 8..16 | `hit_sound`, the sound of its natural attack's hit (HitSoundFormat, its only reader): a weapon type (0..6: that weapon's sound), `none` (8), else by the folder of res\sfx\weapons\ the code picks: `hands1` 9, `pierce` 10, `crash` 11, `hands4` 12, `slash` 13, `hands6` 14, `hands7` 15; `spells_only` 16 (none). hands1 (the humans, skeletons and zombies), hands4 (the ogres), hands6 (the trolls) hold one sound for every material; no install has a hands7 folder (the animals and elementals: they hit silently) |
 | units.udb | npc `stats` | [3] | `{ strength, dexterity, intelligence }` |
-| .adb | `key` | hex | its parts (object3d.h): `kind` (AnimationKind: `special`, `attack`, `cast`, `run`, `walk`, `idle`, `death`, `hit`, `cross`), `weapons` (the variant bits by weapon type, `any` 0x7F), `move` (`stop`, `walk`, `crawl`, `lie`), `play` (`once`, `looped`); the number (bits 22..29) by the kind: an attack's or cast's `height` (`high`, `middle`, `low`) and `blow` (true), a death's or hit's `side` (BlowSide: `back`, `front`, `minus_x`, `plus_x`) and `fall` (UnitServer::BuildDeathAnimation: `running` 0x08, a hero hit while it runs; `moving` 0x10, while it moves otherwise (HitWhileMoving); `none` 0x18, no fall), a special's `skill` (SkillAnimation), else `number`. Every variant bit (0..14) is a weapon bit (AnimationKeyFits; the requests' bits are AnimationWeaponBit of the held or natural weapon's type): `none` is type 8, a type without a name its number (7: the 8 entries of unmoco3 and unmoco4 past their old, shorter entries' end) |
+| .adb | `key` | hex | its parts (object3d.h): `kind` (AnimationKind: `special`, `attack`, `cast`, `run`, `walk`, `idle`, `death`, `hit`, `cross`), `weapons` (the variant bits by weapon type, `any` 0x7F), `move` (`stop`, `walk`, `crawl`, `lie`), `play` (`once`, `looped`); the number (bits 22..29) by the kind: an attack's or cast's `height` (`high`, `middle`, `low`) and `blow` (true), a death's or hit's `side` (BlowSide: `back`, `front`, `minus_x`, `plus_x`) and `fall` (UnitServer::BuildDeathAnimation: `running` 0x08, a hero hit while it runs; `moving` 0x10, while it moves otherwise (HitWhileMoving); `none` 0x18, no fall), a special's `skill` (SkillAnimation by name; another number is one a briefing phrase plays, ui_briefing_phrases.cpp, and is written as the number: 14..76 in the data), a walk's or run's `legs` (AnimationKeyFlag::DamageLevel1 / 2: a hero whose lowest leg slot is at most ai.reg's [RPG] DamageLevel1Value / DamageLevel2Value asks for `wounded` / `badly_wounded`, UnitServer::BuildMoveSteps and NextAnimation; "cwalk08", "cwalk06"), an idle's `idle` (`special` 1: every idle request has it, kAnimationSpecialIdleKey in FillIdle and a client's special idle mode; `unused` 2: no request has it, so the 6 vanilla entries with it never play), a cross's `to` (the mode it goes into, EnterBits; `move` is the one it leaves: `hero_walk` 1, a hero's own walk, Walk without onGuard, whose key has no move bits; `walk` 2, the guarded walk or another unit's; `crawl` 3; `lie` 4; `stop` 5), else `number` (a value no part's names have; no file has one). Every variant bit (0..14) is a weapon bit (AnimationKeyFits; the requests' bits are AnimationWeaponBit of the held or natural weapon's type): `none` is type 8, a type without a name its number (7: the 8 entries of unmoco3 and unmoco4 past their old, shorter entries' end) |
 | .adb | `flags` | hex | `flags = ["arrow", "with_under_armour", "with_outer_armour"]` (AnimationFlag: 0x1 UpdateArrow; 0x10 / 0x20 Unit::AcceptsAnimation: a hero wearing a shirt, pants, boots or gloves / a helmet, body armour or leggings plays only the animations with the bit), `death_side` (0x1C00000, FigureAnimationRecord::Side). The files set other bits too (1..3, 15..21, 25, 26: most entries repeat their key's bits) that nothing reads: compiling with the field renamed finds its only readers (those three, the harness's `anim` check and ei-convert's comparison), so ReadAdbImage keeps kAnimationFlagBits and the TOML has no field for the rest |
 | .adb | `index` | its place | left out when it is its place (a new animation's default) |
 | mob.toml | `parent_id` | 50..60 | `class`: MapObjectType `hero`, `creature`, `animal`, `tree`, `building`, `stone`, `stuff`, `torch`, `magic_trap`, `lever` |
@@ -453,18 +472,17 @@ Field by field (the names, the code that reads each):
 
 Kept as numbers (quantities, indexes, a player number): `number`, `variant`, `magic_level`, `material_units`, a
 unit's `level`, `size_class` (the AI map's size class), `foot_part` (the "ll<n>" part), `side` (the owner's player
-number), `player`, an item's `attack_interval`, a quest item's `id`, a loot record's `index`, the eyes, the chances.
+number, unless the file names the player), `player`, an item's `attack_interval`, a quest item's `id`, a quest's
+`order`, a perk's `exclusion_group`, the eyes, the chances.
 
 Also by name: spells.sdb's `school`, `target_kind` (`unit`, `point`; Shapechange's 's' stays the number 115:
 Spell::InitFromPrototype, the only reader, gives it neither target flag, so the interface asks for a point and the
 cast keeps its target object), `allowed_modifiers` (`{ range, targets, area,
 effect, duration }`), a modifier's `kind`, `needs_sight`; map.toml's `classes` (the surfaces, `line` 16).
 
-Left for MF14a: a spell's `cast_type`, quests.qdb, perks.pdb, Levers.ldb, a lever's `lock.mask`, map.toml's
-`[[material]] kind`, config.reg.toml (`Single`, `Multi` as booleans: the registry writer knows no key's meaning), an
-NPC's `attributes` and `skills`, the unit level records, acks.db and prints.db (already names and numbers). Left for
-MF14c: an .adb key's `number` by kind (the walk's and run's damage levels, the idle's special idle, the crossings),
-mob.toml's `[object.stats]` arrays as named tables.
+Levers.ldb, acks.db and prints.db were names and numbers already. The names were found as MF14b did: each field
+renamed and the tree compiled with `ninja -k 0`, so every reader shows (the level values, a quest's zone, the armour
+flags have only the serialiser and the TOML; the material kind has the AI map's and the terrain's).
 
 ## Textures as PNG
 
@@ -709,14 +727,17 @@ id = 12
   Each kind's fields are those its chunks set, listed once in mob_toml.cpp (`Fields(record, visit)`), which the
   writer, the reader and ei-convert's comparison walk:
   - every object kind: `id`, `name`, `model`, `texture`, `primary_texture`, `skin_texture`, `parent_iname`,
-    `class`, `position`, `rotation` (`[w, x, y, z]`), `scale` (`[x, y, z]`), `side`, `player`, `shadow`,
+    `class`, `position`, `rotation` (`[w, x, y, z]`), `scale` (`[x, y, z]`), `side` (the player's number, or its
+    name when `[players] names` gives it one: the reader takes `[players]` first), `player`, `shadow`,
     `visible` (true / false), `parts`, `comment`;
-  - flame: `volume`, `offset`, `sound`; trap: `spell`, `sides` (hex; the loader sets it from the player table),
-    `period`, `single_target`, `area` (`{ x, y, radius }` circles), `points` (`[x, y]`); lever: `lock`
-    (`{ mask, id, level }`), `state`, `state_count`, `cycling`, `direct_use_blocked`, `keeps_map_flag`;
+  - flame: `volume`, `offset`, `sound`; trap: `spell`, `unread_sides` (the loader sets the sides from the player
+    table), `period`, `single_target`, `area` (`{ x, y, radius }` circles), `points` (`[x, y]`); lever: `lock`
+    (`{ mask, id, level }`, the mask by name: "Readable values"), `state`, `state_count`, `cycling`,
+    `direct_use_blocked`, `keeps_map_flag`;
   - unit: `prototype`, `apply_stats`, the item lists `carried`, `quick_items`, `spells`, `weapons`, `armour`;
-    `[object.stats]` (the statistics chunk BBBB0004 by field: `hit_points`, `speed`, `mode_speeds`, `perception`,
-    ...; its unused bytes `unread_...` only when not zero), `[[object.behaviour]]` (up to five: `type`, `alarm`,
+    `[object.stats]` (the statistics chunk BBBB0004 by field: `hit_points`, `speed`, ...; `mode_speeds`,
+    `damage_weights`, `perception`, `conspicuity` and `attributes` as the units.udb tables of their names; its unused
+    bytes `unread_...` only when not zero), `[[object.behaviour]]` (up to five: `type`, `alarm`,
     `alert_mode` by name, `alarm_kind`, `enabled`, `guard`, `guard_radius`, `call_radius`, `loop`,
     `always_updated`, `unread`), each with its `[[object.behaviour.patrol]]` (`position`, `waypoints` of
     `{ position, time, look_wait, stop_first }`);
@@ -1047,7 +1068,8 @@ PNG", "Loading cost").
 The game's registry format (src/game/data/registry.h), or `config.reg.toml` ("Records as TOML"). Sections in Rebirth's
 mods:
 - `[MOD]`: Title, Author, Version, Date_DMY, URL, AuthorEmail, GameSaves, Single, Multi, ForceShowTutorial: the
-  starter's list (the menu's list, MOD3).
+  starter's list (the menu's list, MOD3). The four switches are `true` / `false` in config.reg.toml ("Readable
+  values").
 - `[RES]`: archive name = the mod's archive(s) (string or array), `-` to drop the game's; read by ResOverride
   (mod_folders.cpp) from `ModPath()`, which is the Mod folder. Rebirth's starter's own `AddonPath` (its registry) is not
   read.

@@ -1,8 +1,8 @@
 # The golem's animation list (docs/modding.md, "Records as TOML"): a new file, no game file below it. Each
 # animation is a glTF animation of Res\figures\scgolem.glb of the same name, played to its `frames`. `kind`, `move`,
-# `play` and the kind's parts (an attack's `height` and `blow`, a death's `fall`) say when the game plays it, as the
-# game's creatures have the same animations (docs/modding.md, "Animation lists"). `steps` are its footfalls, `moment`
-# the frame a blow lands. It plays no sounds.
+# `play` and the kind's parts (an attack's `height` and `blow`, a hit's `fall`, an idle's `idle`, a cross's `to`) say
+# when the game plays it, as the game's creatures have the same animations (docs/modding.md, "Animation lists").
+# `steps` are its footfalls, `moment` the frame a blow lands. It plays no sounds.
 name = "Showcase Golem"
 start = 0.5
 length = 0.76
@@ -71,7 +71,7 @@ name = "cidle"
 kind = "idle"
 move = "walk"
 play = "looped"
-number = 1
+idle = "special"
 chance = 100
 frames = 68
 moment = 20
@@ -122,7 +122,7 @@ sound_frame = 1
 name = "ucross01"
 kind = "cross"
 move = "walk"
-number = 5
+to = "stop"
 chance = 100
 frames = 73
 steps = [16, 30, 73]
@@ -131,7 +131,7 @@ steps = [16, 30, 73]
 name = "ucross02"
 kind = "cross"
 move = "stop"
-number = 2
+to = "walk"
 chance = 100
 frames = 15
 steps = [4, 6, 8]
@@ -141,7 +141,7 @@ name = "crest"
 kind = "idle"
 move = "stop"
 play = "looped"
-number = 1
+idle = "special"
 chance = 100
 frames = 45
 moment = 45

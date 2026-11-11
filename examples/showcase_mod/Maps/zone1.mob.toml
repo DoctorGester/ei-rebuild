@@ -8,9 +8,11 @@ wind = [-0.6, -0.8, 0.0]
 wind_strength = 0.2
 time = 11.0
 
-# Player 0 is the party; the golem plays for player 3 (its side), hostile to it both ways. The other pairs keep the
-# default relation (neutral; each player allied with itself), and every player its name "Player-<n>".
+# Player 0 is the party; the golem plays for player 3, named "Golems" here so the golem's side can say it (the game
+# reads no player's name), hostile to it both ways. The other pairs keep the default relation (neutral; each player
+# allied with itself), and every other player its name "Player-<n>".
 [players]
+names = { 3 = "Golems" }
 hostile = [[0, 3], [3, 0]]
 
 # The golem: the mod's creature (Res\database\units.udb.toml's "ShowcaseGolem"), guarding the path north-east of the
@@ -24,7 +26,7 @@ primary_texture = "ShowcaseGolem"
 parent_iname = "ScGolem00"
 class = "creature"
 position = [78.0, 116.0, 0.0]
-side = 3
+side = "Golems"
 shadow = true
 prototype = "ShowcaseGolem"
 

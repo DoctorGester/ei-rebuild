@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <iterator>
 #include <memory>
 #include <new>
 #include <string>
@@ -40,7 +41,7 @@ void ReadQuest(FileRegistry& reg, QuestRecord* quest, std::vector<std::string>& 
     quest->name = reg.GetString("quest", "name", std::string());
     quest->exp = static_cast<float>(reg.GetFloat("quest", "exp", 0));
     quest->money = static_cast<float>(reg.GetFloat("quest", "money", 0));
-    quest->zone = reg.GetInt("quest", "zone index", 0);
+    quest->unreadZone = reg.GetInt("quest", "zone index", 0);
     quest->order = reg.GetInt("quest", "order", 0);
     reg.GetStringArray("quest", "questplaces", &places);
     // Each place "{x;y}": the braces trimmed, split at ';'; with two parts x and y are appended.
@@ -159,15 +160,43 @@ void QuestDatabase::Read(const RecordFile& file) {
 
 using Lists = QuestBriefingRecord::ListKind;
 
+namespace {
+
+// A quest's places on the objectives map (ObjectivesWindow::LoadQuestPlaces: x and y in turn) as a list of [x, y]
+// points. A last odd value is not kept (no file has one).
+struct Places {
+    std::vector<float>& values;
+};
+
+std::string ValueText(Places field) {
+    std::vector<std::string> points;
+    for (std::size_t i = 1; i < field.values.size(); i += 2)
+        points.push_back(toml::Array({toml::Float(field.values[i - 1]), toml::Float(field.values[i])}));
+    return toml::Array(points);
+}
+bool ReadValue(const toml::Value& value, Places field) {
+    if (!value.IsArray()) return false;
+    std::vector<float> read;
+    for (int i = 0; i < value.Size(); ++i) {
+        float point[2] = {};
+        if (value.At(i).Size() != 2 || !dbtoml::ReadValue(value.At(i), point)) return false;
+        read.insert(read.end(), std::begin(point), std::end(point));
+    }
+    field.values = std::move(read);
+    return true;
+}
+
+} // namespace
+
 template <class Visit>
 void Fields(QuestRecord& r, Visit& v) {
     v("name", r.name);
     v("text", r.text);
     v("exp", r.exp);
     v("money", r.money);
-    v("zone", r.zone);
+    v.Unread("unread_zone", r.unreadZone);
     v("order", r.order);
-    v("places", r.places);
+    v("places", Places{r.places});
     v.Unread("unread", r.unreadField);
 }
 
@@ -217,7 +246,7 @@ void QuestRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(0, &name);
     ar->Field(1, &exp);
     ar->Field(2, &unreadField);
-    ar->Field(3, &zone);
+    ar->Field(3, &unreadZone);
     ar->StringField(4, &text);
     ar->Field(5, &money);
     ar->Field(6, &order);

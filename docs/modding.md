@@ -63,8 +63,8 @@ The config, as TOML:
 Title = "Example mod"          # the menu's list shows it (else the folder's name)
 Author = "Your name"
 Version = "1.0"
-Single = 1                     # Single 1 and Multi 0: "(single player)" after the title;
-Multi = 0                      # Single 0 and Multi 1: "(multiplayer)". A label only.
+Single = true                  # Single true and Multi false: "(single player)" after the title;
+Multi = false                  # Single false and Multi true: "(multiplayer)". A label only.
 
 [RES]                          # only for a mod that ships archives:
 "textures.res" = ["Res\\mytextures.res"]   # read before the game's textures.res
@@ -306,11 +306,23 @@ the record is left out`); the record is not read. The names (docs/notes/mods.md,
 | model `mode_speeds`, `action_speeds` | `{ run, walk, crawl, lie }`; `{ attack, cast, hit, death, cross, special }` |
 | unit `combat` | `{ reach, attack, attack_spread, defence, speed }` |
 | unit `perception`, `conspicuity` | `{ sight, day_sight, near, hearing, smell, unread }` (`unread`: no code reads it; a prototype's conspicuity `sight` also scales its footprints) |
+| unit `science`, `taming`, `magic_skills` | the unit's science (and the unread second attribute) and taming; `{ elemental, sense, astral }` (its magic skills); `skill_level` is every skill's and attribute's start |
+| npc and map unit `attributes`, quick item `attribute_bonus` | `{ science, unread, taming }` (science: the Use and Steal skills; taming; the second is read by nothing) |
+| npc `skills` | `{ melee, archery, backstab, elemental, sense, astral, unread_6, unread_7 }` (the last two are read by nothing) |
+| weapon `skill_bonus` | `{ melee, archery }` |
+| level `slot_type`, `severed_by` | `head`, `body`, `arm`, `leg`, `none`; the damage types whose full hit severs the slot (a list of the damage types' names) |
+| perk `required_skill` | the skill it needs at its `required_skill_value`: `melee`, `archery`, `backstab`, `elemental`, `sense`, `astral`, `unread_6`, `unread_7`; `none` |
+| spell `magic` | `elemental`, `sense` (cast without noise, the caster not seen casting), `astral` |
+| loot `index` | the record it stands for, by the name `GiveItem` takes after its dot (a weapon's, armour's or quick item's name, a spell's or modifier's code), looked up in its `record_type`'s table: give `record_type` first. The game's files have none (the number 4294967293) |
+| quest `places` | the quest's points on the objectives map: `[[x, y], ...]` |
 | unit `hit_sound` | the sound of its natural attack's hit: a weapon type (that weapon's sound), `none`, `spells_only` (no sound), or a folder of `Res\sfx\weapons\`: `pierce`, `crash`, `slash`, `hands1` (the humans' unarmed hits), `hands4` (the ogres'), `hands6` (the trolls'), `hands7` (the animals': no install has the folder, so they hit silently; a mod may add `weapons\hands7\<material>\1.wav`) |
 | npc `stats` | `{ strength, dexterity, intelligence }` |
 | spell `school` | `fire`, `lightning`, `acid`, `illusion`, `divination`, `enchantment`, `healing`, `domination`, `none` |
 | spell `target_kind`, `allowed_modifiers`; modifier `kind` | `unit`, `point`; `{ range, targets, area, effect, duration }`; `range`, `targets`, `area`, `effect`, `duration`, `mana`, `filter`, `item` |
-| true / false | `buildable`, `shows_wounds`, `cast_effect`, `swap_feet`, `voiced`, `needs_sight` |
+| true / false | `buildable`, `shows_wounds`, `cast_effect`, `swap_feet`, `voiced`, `needs_sight`, `learnable`; config.reg.toml's `[MOD]` `Single`, `Multi`, `GameSaves`, `ForceShowTutorial` |
+| map.toml `[[material]] kind` | `dry` (the AI walks under it as on dry ground), `water` (the AI's water), `still` (no waves) |
+| map objects: a lever's `lock.mask` | `science` (the Use skill opens it at the lock's `level`), `key` (the quest item whose id is the lock's `id`), `science_2`, `science_3` (no key in the game has them); `[]`: no lock |
+| map objects: `side` | the player's number, or its name when the file's `[players] names` gives it one (`side = "Golems"`) |
 
 A table gives only the elements it changes (`perception = { sight = 9.0 }`); a long one can be a sub-table of the
 record (`[model.step_sounds]` after the model's other fields). A value without a name is a number: the game data has
@@ -325,7 +337,12 @@ An `.adb.toml`'s `[[animation]]` says when the game plays it by parts: `kind` (`
 unarmed), `move` (`stop`, `walk`, `crawl`, `lie`), `play` (`once`, `looped`), and what the kind adds: an attack's or
 cast's `height` (`high`, `middle`, `low`) and `blow = true`, a death's or hit's `side` (`back`, `front`, `minus_x`,
 `plus_x`) and `fall` (`running`: a hero hit while it runs, `moving`: while it moves otherwise, `none`: no fall), a
-special's `skill` (`tame`, `steal`, `use`, `search_body`, `briefing01`, ...), else a `number`. `flags` lists `arrow` (a
+special's `skill` (`tame`, `steal`, `use`, `search_body`, `briefing01`, ...; another number is the one a briefing
+phrase plays), a walk's or run's `legs` (`wounded`, `badly_wounded`: a hero with hurt legs, at most ai.reg's
+`[RPG] DamageLevel1Value` / `DamageLevel2Value`, walks or runs with it: "cwalk08", "cwalk06"), an idle's `idle`
+(`special`: every idle the game asks for has it; `unused`: none asks for it, so it never plays), a cross's `to` (the
+movement mode it changes to, `move` the one it leaves: `hero_walk` (a hero's own walk, whose `move` is left out),
+`walk`, `crawl`, `lie`, `stop`), else a `number` (no game file has one). `flags` lists `arrow` (a
 bow shows its arrow from `arrow`'s first frame to its second), `with_under_armour` (a hero wearing a shirt, pants, boots
 or gloves may play it), `with_outer_armour` (a hero wearing a helmet, body armour or leggings may play it), and
 `death_side` is where a dead body lies. `index` is the animation's place unless given. Copy the parts from a game creature's animation of the same name.
@@ -480,7 +497,8 @@ call_radius = 5.0
   like yours), `tree`, `building`, `stone`, `stuff` (other objects), `torch` (`flame`), `magic_trap` (`trap`), `lever`
   (an `object` record may also hold a unit's class). A missing or wrong one is logged at the zone's load (`warning: map
   objects: <zone> record <id>: class <n> does not fit its kind; the record is left out`) and the record is skipped.
-  `side` is the player number (0..31) the object belongs to, as `[players]` numbers them.
+  `side` is the player number (0..31) the object belongs to, as `[players]` numbers them, or the player's name
+  where `[players] names` gives one (the names are the file's own labels: the game reads none).
   `parent_iname` is the editor's class name.
 - With `apply_stats` left out (0), a unit's `[object.stats]` are not applied: it has its prototype's statistics from
   units.udb. Its items: `carried`, `quick_items`, `spells`, `weapons` and `armour` (`"<name>.<material>"`, as

@@ -164,6 +164,27 @@ std::string IntArray(std::initializer_list<int> values) {
     return toml::Array(items);
 }
 
+// A water material's kind (MapMaterial::kind) by what reads it: the AI map counts the cells under kinds 2 and 3 as
+// under water (ai_map_load.cpp), kind 4's vertices keep the ground's x and y and have no waves (TerrainMaterial::
+// kKeepsGroundXY); every other kind is dry to the AI and waves. The files have 1 and 3; 0 and 2 (as 1 and 3) stay
+// numbers.
+constexpr std::pair<int, std::string_view> kMaterialKinds[] = {{1, "dry"}, {3, "water"}, {4, "still"}};
+
+std::string MaterialKindText(int kind) {
+    for (const auto& [value, name] : kMaterialKinds)
+        if (value == kind) return toml::String(name);
+    return toml::Int(kind);
+}
+bool ReadMaterialKind(const toml::Value& value, int* kind) {
+    if (!value.IsString()) return toml::Read(value, kind);
+    for (const auto& [code, name] : kMaterialKinds)
+        if (name == value.String()) {
+            *kind = code;
+            return true;
+        }
+    return false;
+}
+
 // A tile texture's class by name: the ground's surface (record_names.h), 16 a line; another as its number.
 constexpr int kLineClass = 16;
 std::string ClassText(std::int32_t value) {
@@ -219,7 +240,7 @@ std::string HeaderToml(const MapData& map) {
     w.Pair("animated", toml::Array(animated, true));
     for (const MapMaterial& m : map.materials) {
         w.ArrayTable("material");
-        w.Pair("kind", toml::Int(m.kind));
+        w.Pair("kind", MaterialKindText(m.kind));
         w.Pair("colour", toml::Array({toml::Float(m.colour.x), toml::Float(m.colour.y), toml::Float(m.colour.z)}));
         w.Pair("opacity", toml::Float(m.opacity));
         w.Pair("light", toml::Float(m.light));
@@ -299,7 +320,11 @@ bool ReadHeader(std::string_view text, std::string_view path, MapData& map, std:
                 const toml::Value table = value.At(m);
                 MapMaterial& material = read.materials[static_cast<std::size_t>(m)];
                 const toml::Value colour = table["colour"];
-                if (!toml::Read(table["kind"], &material.kind) || colour.Size() != 3 ||
+                if (!ReadMaterialKind(table["kind"], &material.kind)) {
+                    *error = std::format("{}: material kind is not one of: dry, water, still, or a number", path);
+                    return false;
+                }
+                if (colour.Size() != 3 ||
                     !toml::Read(colour.At(0), &material.colour.x) || !toml::Read(colour.At(1), &material.colour.y) ||
                     !toml::Read(colour.At(2), &material.colour.z) || !toml::Read(table["opacity"], &material.opacity) ||
                     !toml::Read(table["light"], &material.light) || !toml::Read(table["priority"], &material.priority))
