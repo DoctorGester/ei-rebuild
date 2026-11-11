@@ -1765,7 +1765,7 @@ cunit1000205 #vitals 42557372
 cunit1000206 #place 0581AB39
 cunit1000206 #unit 39D43514
 cunit1000206 #vitals 75BE0BF3
-@ 1 update 110 frame 22 tick 110 zone gz13g hash DE330722 n 751
+@ 1 update 110 frame 22 tick 110 zone gz13g hash 3077DA5E n 751
 world tick 110
 world updates 110
 world timeBase 5.96444511
@@ -7265,7 +7265,7 @@ timed5321032 # F34DB3DC
 timed5321033 # 9B681592
 missile0 # EF053555
 + missile1 spell 6
-missile1 # F17E37CA
+missile1 # 67181C81
 - missile2
 aievents tick 110
 aievents width 17
@@ -7298,7 +7298,7 @@ cunit1317 #vitals 21D51F80
 cunit1000011214 #place 6E9BB6F8
 cunit1000011214 #unit 26456645
 cunit1000011214 #vitals 4304CF29
-@ 2 update 880 frame 176 tick 880 zone gz13g hash F3D92246 n 748
+@ 2 update 880 frame 176 tick 880 zone gz13g hash 691F5F0A n 748
 world tick 880
 world updates 880
 world occluderReplanTime 704
@@ -7479,7 +7479,7 @@ obj1000011214 #vitals 32E00697
 + timed5321044 75 CEffectPointLight
 timed5321044 # 51157B7F
 missile0 # 9565B067
-missile1 # 2FCF6DD5
+missile1 # CA08635C
 aievents tick 880
 script #gobject F6074F92
 script #inst CF890514
