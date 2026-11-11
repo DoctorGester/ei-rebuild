@@ -137,7 +137,8 @@ constexpr std::string_view kSourceNames[kSourceValues] = {
 };
 // The source values a `set` action may write (the [source] table's numbers).
 constexpr std::string_view kSettableSourceNames[] = {"size", "height", "growth", "alpha", "param"};
-constexpr std::string_view kAnchorNames[kAnchorValues] = {"index", "count", "age", "ticks", "x", "y", "z"};
+constexpr std::string_view kAnchorNames[kAnchorValues] = {"index", "count", "age", "ticks", "x", "y", "z",
+                                                          "spawn.x", "spawn.y", "spawn.z"};
 constexpr std::string_view kParticleNames[kParticleValues] = {
     "age", "life", "t", "x", "y", "z", "vx", "vy", "vz", "size", "alpha", "frame", "anchor", "index",
     "spawn.x", "spawn.y", "spawn.z",
@@ -376,7 +377,7 @@ private:
     // ---- inputs ----
 
     void ReadInputs() {
-        static constexpr std::string_view kTypes[] = {"float", "vector", "bool", "event", "enum"};
+        static constexpr std::string_view kTypes[] = {"float", "vector", "bool", "event", "enum", "list"};
         for (const auto& [name, spec] : root["inputs"].keys) {
             Input input;
             input.name = name;
@@ -386,7 +387,7 @@ private:
             }
             Known(spec, {"type", "default", "values"});
             input.type = static_cast<InputType>(Choice(spec["type"], kTypes, 0));
-            if (!spec["type"].Exists()) Error(spec, "input '" + name + "': no type (" + Joined({"float", "vector", "bool", "event", "enum"}) + ")");
+            if (!spec["type"].Exists()) Error(spec, "input '" + name + "': no type (" + Joined({"float", "vector", "bool", "event", "enum", "list"}) + ")");
             const RawNode& start = spec["default"];
             switch (input.type) {
             case InputType::Float: Number(start, &input.start.x); break;
@@ -414,6 +415,16 @@ private:
                 }
                 break;
             }
+            case InputType::List:
+                if (start.Exists() && start.kind != RawNode::Kind::Array)
+                    Error(start, "input '" + name + "': a list's default is a list of [x, y, z]");
+                for (const RawNode& point : start.items) {
+                    Vector3 value;
+                    Vector3Of(point, &value);
+                    input.points.push_back(value);
+                }
+                input.list = record->lists++;
+                break;
             }
             if (input.type != InputType::Enum && spec["values"].Exists())
                 Error(spec["values"], "input '" + name + "': only an enum has values");
@@ -491,6 +502,14 @@ private:
         if (const std::size_t dot = name.find('.'); dot != std::string_view::npos) {
             if (const Input* input = record->FindInput(name.substr(0, dot))) {
                 const std::string_view field = name.substr(dot + 1);
+                if (input->type == InputType::List) {
+                    if (field == "count") return value(Scope::Input, input->slot);
+                    const int axis = field == "x" ? 0 : field == "y" ? 1 : field == "z" ? 2 : -1;
+                    if (axis < 0) return {};
+                    Resolved list{Resolved::Kind::ListAxis, Scope::Input, static_cast<std::uint16_t>(input->list), 0.0f};
+                    list.axis = static_cast<std::uint8_t>(axis);
+                    return list;
+                }
                 if (input->type == InputType::Vector) {
                     const int axis = field == "x" ? 0 : field == "y" ? 1 : field == "z" ? 2 : -1;
                     return axis < 0 ? Resolved{} : value(Scope::Input, input->slot + axis);
@@ -503,7 +522,8 @@ private:
             }
         }
         if (const Input* input = record->FindInput(name))
-            return input->type == InputType::Vector ? Resolved{} : value(Scope::Input, input->slot);
+            return input->type == InputType::Vector || input->type == InputType::List ? Resolved{}
+                                                                                      : value(Scope::Input, input->slot);
         for (std::size_t i = 0; i < record->vars.size(); ++i)
             if (record->vars[i].name == name) return value(Scope::SourceVar, static_cast<int>(i));
         if (const int i = IndexIn(kSourceNames, name); i >= 0) return value(Scope::Source, i);
@@ -622,7 +642,7 @@ private:
         stage.rate = Field(node["rate"], {});
         stage.chance = Field(node["chance"], {});
         stage.emitting = Field(node["emitting"], {});
-        stage.enter = Actions(node["enter"]);
+        stage.enter = Actions(node["enter"], {});
     }
     void ReadReactions() {
         for (const RawNode* node : Tables("on")) {
@@ -633,22 +653,25 @@ private:
             else if (reaction.event == "stop") reaction.on = Reaction::On::Stop;
             else if (reaction.event == "tick") reaction.on = Reaction::On::Tick;
             else if (reaction.event == "emit") reaction.on = Reaction::On::Emit;
+            else if (reaction.event == "before_emit") reaction.on = Reaction::On::BeforeEmit;
             else if (!reaction.event.empty()) {
                 reaction.on = Reaction::On::Event;
                 reaction.slot = EventSlot((*node)["event"], reaction.event);
             }
             reaction.when = Field((*node)["when"], {});
-            reaction.actions = Actions((*node)["do"]);
-            if (reaction.on != Reaction::On::Emit) continue;
+            reaction.actions = Actions((*node)["do"], {});
+            if (reaction.on == Reaction::On::BeforeEmit) record->beforeEmit = true;
+            if (reaction.on != Reaction::On::Emit && reaction.on != Reaction::On::BeforeEmit) continue;
             for (const Action& action : reaction.actions) {
                 if (action.kind == Action::Kind::Emit || action.kind == Action::Kind::Stage ||
                     action.kind == Action::Kind::Effect)
-                    Error(*node, "an \"emit\" reaction sets, stops, lets go or ends; it does not emit, change stage "
-                                 "or start an effect");
+                    Error(*node, "an \"" + reaction.event + "\" reaction sets, adds anchors, stops, lets go or ends; "
+                                 "it does not emit, change stage or start an effect");
             }
         }
     }
-    std::vector<Action> Actions(const RawNode& list) {
+    // The actions of `list`, their values compiled in `context` (a particle's for its on_death).
+    std::vector<Action> Actions(const RawNode& list, Context context) {
         std::vector<Action> actions;
         if (!list.Exists()) return actions;
         if (list.kind != RawNode::Kind::Array) {
@@ -657,12 +680,12 @@ private:
         }
         for (const RawNode& node : list.items) {
             Known(node, {"emit", "kind", "at", "set", "value", "stage", "effect", "end", "stop", "stop_emitting",
-                         "let_go"});
+                         "let_go", "add_anchor", "count"});
             Action action;
             std::string name;
             if (node["emit"].Exists()) {
                 action.kind = Action::Kind::Emit;
-                action.count = Field(node["emit"], {});
+                action.count = Field(node["emit"], context);
                 if (Text(node["kind"], &name)) action.particleKind = KindIndex(node["kind"], name);
                 if (Text(node["at"], &name)) action.anchor = GroupIndex(node["at"], name);
             } else if (Text(node["set"], &name)) {
@@ -682,7 +705,7 @@ private:
                     Error(node, "'" + name + "' is no float, bool or enum input, no var, nor " + Joined({"size",
                           "height", "growth", "alpha", "param"}));
                 }
-                action.value = Field(node["value"], {});
+                action.value = Field(node["value"], context);
                 if (action.value.Empty()) Error(node, "set needs a value");
             } else if (node["stage"].Exists()) {
                 action.kind = Action::Kind::Stage;
@@ -697,8 +720,13 @@ private:
                 action.kind = Action::Kind::StopEmitting;
             } else if (node["let_go"].Exists()) {
                 action.kind = Action::Kind::LetGo;
+            } else if (Text(node["add_anchor"], &name)) {
+                action.kind = Action::Kind::AddAnchor;
+                action.anchor = GroupIndex(node["add_anchor"], name);
+                action.count = Field(node["count"], context);
+                if (action.count.Empty()) action.count = ConstantExpr(1.0f);
             } else {
-                Error(node, "an action is emit, set, stage, effect, end, stop, stop_emitting or let_go");
+                Error(node, "an action is emit, set, stage, effect, end, stop, stop_emitting, let_go or add_anchor");
                 continue;
             }
             actions.push_back(std::move(action));
@@ -725,12 +753,26 @@ private:
 
     // ---- anchors and particles ----
 
+    // A spawn shape (`spawn = { shape, radius, min, max, from, to }`); `known`: the table's keys where it is read.
+    void ReadSpawn(const RawNode& spawn, Context context, Spawn* out, std::initializer_list<std::string_view> known) {
+        Known(spawn, known);
+        static constexpr std::string_view kShapes[] = {"point", "box", "ball", "shell", "disc", "ring", "flat_ball",
+                                                       "segment"};
+        out->shape = static_cast<SpawnShape>(Choice(spawn["shape"], kShapes, 0));
+        out->radius = Field(spawn["radius"], context);
+        Fields3(spawn["min"], context, out->boxMin);
+        Fields3(spawn["max"], context, out->boxMax);
+        Fields3(spawn["from"], context, out->from);
+        Fields3(spawn["to"], context, out->to);
+    }
+
     void ReadAnchor(const RawNode& node, int group) {
-        Known(node, {"name", "count", "ticks", "vars", "x", "y", "z", "radius", "angle"});
+        Known(node, {"name", "count", "spawn", "ticks", "vars", "x", "y", "z", "radius", "angle"});
         Anchor& anchor = record->anchors[group];
         const Context context{group, -1};
         anchor.count = Field(node["count"], {});
         if (anchor.count.Empty()) Error(node, "anchor '" + anchor.name + "': no count");
+        ReadSpawn(node["spawn"], context, &anchor.spawn, {"shape", "radius", "min", "max", "from", "to"});
         anchor.ticks = Field(node["ticks"], context);
         ReadVars(node["vars"], context, &anchor.vars);
         anchor.cylindrical = node["radius"].Exists() || node["angle"].Exists();
@@ -746,7 +788,7 @@ private:
     void ReadParticle(const RawNode& node, int index) {
         Known(node, {"name", "when", "lifetime", "vars", "at", "pick", "anchor_index", "space", "spawn", "position",
                      "velocity", "speed", "drag", "gravity", "wind", "size", "color", "alpha", "frame", "kill", "drop",
-                     "source"});
+                     "source", "on_death"});
         ParticleKind& kind = record->particles[index];
         std::string group;
         if (Text(node["at"], &group)) kind.anchor = GroupIndex(node["at"], group);
@@ -755,7 +797,7 @@ private:
         kind.lifetime = Field(node["lifetime"], context);
         if (kind.lifetime.Empty()) Error(node, "particle '" + kind.name + "': no lifetime");
         ReadVars(node["vars"], context, &kind.vars);
-        static constexpr std::string_view kPicks[] = {"cycle", "random"};
+        static constexpr std::string_view kPicks[] = {"cycle", "random", "first"};
         kind.pick = static_cast<AnchorPick>(Choice(node["pick"], kPicks, 0));
         kind.anchorIndex = Field(node["anchor_index"], context);
         if (!kind.anchorIndex.Empty()) {
@@ -772,12 +814,7 @@ private:
         if (kind.space == Space::Anchor && kind.anchor < 0) Error(node, "particle '" + kind.name + "': space anchor needs at");
 
         const RawNode& spawn = node["spawn"];
-        Known(spawn, {"shape", "radius", "min", "max", "offset", "on_ground"});
-        static constexpr std::string_view kShapes[] = {"point", "box", "ball", "shell", "disc", "ring", "flat_ball"};
-        kind.shape = static_cast<SpawnShape>(Choice(spawn["shape"], kShapes, 0));
-        kind.radius = Field(spawn["radius"], context);
-        Fields3(spawn["min"], context, kind.boxMin);
-        Fields3(spawn["max"], context, kind.boxMax);
+        ReadSpawn(spawn, context, &kind.spawn, {"shape", "radius", "min", "max", "from", "to", "offset", "on_ground"});
         Fields3(spawn["offset"], context, kind.offset);
         kind.onGround = Field(spawn["on_ground"], context);
         const RawNode& position = node["position"];
@@ -852,6 +889,15 @@ private:
             }
             kind.sourceWrites.emplace_back(IndexIn(kSourceNames, name), Field(value, context));
         }
+        kind.onDeath = Actions(node["on_death"], context);
+        for (const Action& action : kind.onDeath) {
+            const bool placed = (action.kind == Action::Kind::Emit && action.particleKind >= 0) ||
+                                action.kind == Action::Kind::Effect || action.kind == Action::Kind::Set ||
+                                action.kind == Action::Kind::SetVar;
+            if (!placed)
+                Error(node["on_death"], "particle '" + kind.name + "': on_death emits a kind (emit with kind), "
+                                        "starts an effect or sets an input or a var");
+        }
     }
     static bool ReadsAnchor(const Expr& expr) {
         for (const Instruction& i : expr.code)
@@ -888,7 +934,88 @@ int Count(float value) {
     return static_cast<int>(std::lround(value));
 }
 
+float SourceValueOf(const Env& env, SourceValue which) {
+    const float* source = env.scopes[static_cast<int>(Scope::Source)];
+    return source ? source[static_cast<int>(which)] : 0.0f;
+}
+
 } // namespace
+
+Vector3 RandomInCube(IsaacRandom& random) {
+    const float x = random.Range(-1.0f, 1.0f);
+    const float y = random.Range(-1.0f, 1.0f);
+    return {x, y, random.Range(-1.0f, 1.0f)};
+}
+
+Vector3 RandomInBall(IsaacRandom& random, float* lengthSquared) {
+    Vector3 v;
+    float length2 = 0.0f;
+    for (int tries = 10;;) {
+        v = RandomInCube(random);
+        length2 = LengthSquared(v);
+        if (length2 < 1.0f) break;   // random: never NaN
+        if (!(--tries > 0)) break;
+    }
+    if (lengthSquared) *lengthSquared = length2;
+    return v;
+}
+
+Vector3 SpawnPoint(const Spawn& spawn, const Env& env, IsaacRandom& random) {
+    constexpr float kTwoPi = kPi + kPi;
+    switch (spawn.shape) {
+    case SpawnShape::Point: return {};
+    case SpawnShape::Box: {
+        auto axis = [&](int i, SourceValue low, SourceValue high) {
+            const float from = spawn.boxMin[i].Run(env, SourceValueOf(env, low));
+            const float to = spawn.boxMax[i].Run(env, SourceValueOf(env, high));
+            return random.Range(from, to);
+        };
+        const float x = axis(0, SourceValue::SpreadMinX, SourceValue::SpreadMaxX);
+        const float y = axis(1, SourceValue::SpreadMinY, SourceValue::SpreadMaxY);
+        const float z = axis(2, SourceValue::SpreadMinZ, SourceValue::SpreadMaxZ);
+        return {x, y, z};
+    }
+    case SpawnShape::Ball: {
+        const Vector3 v = RandomInBall(random);
+        return v * spawn.radius.Run(env, 1.0f);
+    }
+    case SpawnShape::Shell: {
+        const Vector3 v = RandomInBall(random);
+        const float length = Length(v);
+        const float radius = spawn.radius.Run(env, 1.0f);
+        return length > 0.0f ? v * (radius / length) : Vector3{radius, 0.0f, 0.0f};
+    }
+    case SpawnShape::Disc: {
+        const float angle = random.Range(0.0f, kTwoPi);
+        const float reach = std::sqrt(random.Below(1.0f)) * spawn.radius.Run(env, 1.0f);
+        return {lib::Cos(angle) * reach, lib::Sin(angle) * reach, 0.0f};
+    }
+    case SpawnShape::Ring: {
+        const float angle = random.Range(0.0f, kTwoPi);
+        const float reach = spawn.radius.Run(env, 1.0f);
+        return {lib::Cos(angle) * reach, lib::Sin(angle) * reach, 0.0f};
+    }
+    case SpawnShape::FlatBall: {
+        float x, y;
+        for (int tries = 10;;) {
+            x = random.Range(-1.0f, 1.0f);
+            y = random.Range(-1.0f, 1.0f);
+            if (LengthSquared2D(y, x) < 1.0f) break;   // random: never NaN
+            if (!(--tries > 0)) break;
+        }
+        return Vector3{x, y, 0.0f} * spawn.radius.Run(env, 1.0f);
+    }
+    case SpawnShape::Segment: {
+        const Vector3 from = {spawn.from[0].Run(env), spawn.from[1].Run(env), spawn.from[2].Run(env)};
+        const Vector3 to = {spawn.to[0].Run(env, SourceValueOf(env, SourceValue::ExtentX)),
+                            spawn.to[1].Run(env, SourceValueOf(env, SourceValue::ExtentY)),
+                            spawn.to[2].Run(env, SourceValueOf(env, SourceValue::ExtentZ))};
+        const float t = random.Range(0.0f, 1.0f);
+        return from + (to - from) * t;
+    }
+    }
+    return {};
+}
 
 State::State(std::shared_ptr<const Record> effect) : record(std::move(effect)) {
     source.assign(kSourceValues + record->anchors.size(), 0.0f);
@@ -900,6 +1027,9 @@ State::State(std::shared_ptr<const Record> effect) : record(std::move(effect)) {
             inputs[input.slot + 2] = input.start.z;
         }
     }
+    lists.resize(record->lists);
+    for (const Input& input : record->inputs)
+        if (input.type == InputType::List) SetList(input.name, input.points);
     pendingEvents.assign(record->inputValues, 0);
     vars.assign(record->vars.size(), 0.0f);
 }
@@ -934,6 +1064,16 @@ bool State::SetEnum(std::string_view input, std::string_view value) {
     return true;
 }
 
+bool State::SetList(std::string_view input, const std::vector<Vector3>& points) {
+    const Input* found = record->FindInput(input);
+    if (!found || found->type != InputType::List) return false;
+    std::vector<float>& list = lists[found->list];
+    list.clear();
+    for (const Vector3& point : points) list.insert(list.end(), {point.x, point.y, point.z});
+    inputs[found->slot] = static_cast<float>(points.size());
+    return true;
+}
+
 bool State::Fire(std::string_view event) {
     const Input* found = record->FindInput(event);
     if (!found || found->type != InputType::Event) return false;
@@ -948,9 +1088,11 @@ Env State::SourceEnv(IsaacRandom* random) const {
     env.scopes[static_cast<int>(Scope::SourceVar)] = vars.data();
     env.tables = &record->tables;
     env.curves = &record->curves;
+    env.lists = &lists;
     env.random = random;
     env.measure = measure;
     env.measureContext = measureContext;
+    env.ground = ground;
     return env;
 }
 
@@ -988,8 +1130,7 @@ void State::Step(IsaacRandom& random) {
     }
     if (stopPending) {
         stopPending = false;
-        for (const Reaction& reaction : record->reactions)
-            if (reaction.on == Reaction::On::Stop && Holds(reaction, random)) Run(reaction.actions, random);
+        React(Reaction::On::Stop, random);
     }
     const int stageBefore = stage;
     for (const Reaction& reaction : record->reactions) {
@@ -997,8 +1138,7 @@ void State::Step(IsaacRandom& random) {
             Holds(reaction, random))
             Run(reaction.actions, random);
     }
-    for (const Reaction& reaction : record->reactions)
-        if (reaction.on == Reaction::On::Tick && Holds(reaction, random)) Run(reaction.actions, random);
+    React(Reaction::On::Tick, random);
     if (stage >= 0 && stage == stageBefore && !first) {
         const Stage& current = record->stages[stage];
         int to = -1;
@@ -1025,9 +1165,31 @@ void State::Step(IsaacRandom& random) {
     ++stageAge;
 }
 
-void State::Emitted(IsaacRandom& random) {
+void State::React(Reaction::On on, IsaacRandom& random) {
     for (const Reaction& reaction : record->reactions)
-        if (reaction.on == Reaction::On::Emit && Holds(reaction, random)) Run(reaction.actions, random);
+        if (reaction.on == on && Holds(reaction, random)) Run(reaction.actions, random);
+}
+
+void State::Emitted(IsaacRandom& random) { React(Reaction::On::Emit, random); }
+
+void State::BeforeEmission(IsaacRandom& random) { React(Reaction::On::BeforeEmit, random); }
+
+void State::Died(const ParticleKind& kind, const Env& env, const Vector3& place) {
+    for (const Action& action : kind.onDeath) {
+        switch (action.kind) {
+        case Action::Kind::Emit: {
+            const int count = Count(action.count.Run(env));
+            for (int n = 0; n < count; ++n) queue.push_back({action.particleKind, -1, true, place});
+            break;
+        }
+        case Action::Kind::Effect: effects.push_back({action.effect, true, place}); break;
+        case Action::Kind::Set:
+            if (action.target >= 0) inputs[action.target] = action.value.Run(env);
+            break;
+        case Action::Kind::SetVar: vars[action.target] = action.value.Run(env); break;
+        default: break;   // refused at the read
+        }
+    }
 }
 
 bool State::Holds(const Reaction& reaction, IsaacRandom& random) const {
@@ -1046,8 +1208,7 @@ void State::Start(IsaacRandom& random) {
     for (std::size_t i = 0; i < record->vars.size(); ++i)
         if (!record->vars[i].atCreate) vars[i] = record->vars[i].start.Run(env);
     MakeAnchors(random);
-    for (const Reaction& reaction : record->reactions)
-        if (reaction.on == Reaction::On::Start && Holds(reaction, random)) Run(reaction.actions, random);
+    React(Reaction::On::Start, random);
     if (!record->stages.empty() && stage == -1) Enter(0, random);
 }
 
@@ -1092,7 +1253,7 @@ void State::Run(const std::vector<Action>& actions, IsaacRandom& random, int dep
             sourceWrites.push_back(action.target);
             break;
         case Action::Kind::Stage: Enter(action.target, random, depth); break;
-        case Action::Kind::Effect: effects.push_back(action.effect); break;
+        case Action::Kind::Effect: effects.push_back({action.effect}); break;
         case Action::Kind::End: ended = true; break;
         case Action::Kind::Stop:
             stopRequested = true;
@@ -1101,6 +1262,9 @@ void State::Run(const std::vector<Action>& actions, IsaacRandom& random, int dep
             stopEmitting = true;
             break;
         case Action::Kind::LetGo: letGo = true; break;
+        case Action::Kind::AddAnchor:
+            if (action.anchor >= 0) AddAnchors(action.anchor, Count(action.count.Run(SourceEnv(&random))), random);
+            break;
         }
     }
 }
@@ -1128,24 +1292,36 @@ void Place(const Anchor& group, const Env& env, AnchorState& anchor) {
 } // namespace
 
 void State::MakeAnchors(IsaacRandom& random) {
-    for (std::size_t g = 0; g < record->anchors.size(); ++g) {
-        const Anchor& group = record->anchors[g];
-        const int count = Count(group.count.Run(SourceEnv(&random)));
-        for (int i = 0; i < count; ++i) {
-            const int index = static_cast<int>(anchors.size());
-            AnchorState& anchor = anchors.emplace_back();
-            anchor.group = static_cast<int>(g);
-            anchor.values[static_cast<int>(AnchorValue::Index)] = static_cast<float>(i);
-            anchor.values[static_cast<int>(AnchorValue::GroupSize)] = static_cast<float>(count);
-            anchor.vars.assign(group.vars.size(), 0.0f);
-            const Env env = AnchorEnv(index, &random);
-            anchor.values[static_cast<int>(AnchorValue::Ticks)] =
-                group.ticks.Empty() ? -1.0f : static_cast<float>(Count(group.ticks.Run(env)));
-            for (std::size_t v = 0; v < group.vars.size(); ++v) anchor.vars[v] = group.vars[v].start.Run(env);
-            Place(group, env, anchor);
-        }
-        source[kSourceValues + g] = static_cast<float>(count);
+    for (std::size_t g = 0; g < record->anchors.size(); ++g)
+        AddAnchors(static_cast<int>(g), Count(record->anchors[g].count.Run(SourceEnv(&random))), random);
+}
+
+void State::AddAnchors(int group, int count, IsaacRandom& random) {
+    const Anchor& spec = record->anchors[group];
+    int made = 0;
+    for (const AnchorState& anchor : anchors) made += anchor.group == group ? 1 : 0;
+    count = std::min(count, kMaxAnchors - made);
+    const float size = static_cast<float>(made + count);
+    for (AnchorState& anchor : anchors)
+        if (anchor.group == group) anchor.values[static_cast<int>(AnchorValue::GroupSize)] = size;
+    for (int i = 0; i < count; ++i) {
+        const int index = static_cast<int>(anchors.size());
+        AnchorState& anchor = anchors.emplace_back();
+        anchor.group = group;
+        anchor.values[static_cast<int>(AnchorValue::Index)] = static_cast<float>(made + i);
+        anchor.values[static_cast<int>(AnchorValue::GroupSize)] = size;
+        anchor.vars.assign(spec.vars.size(), 0.0f);
+        Env env = AnchorEnv(index, &random);
+        const Vector3 point = SpawnPoint(spec.spawn, env, random);
+        anchor.values[static_cast<int>(AnchorValue::SpawnX)] = point.x;
+        anchor.values[static_cast<int>(AnchorValue::SpawnY)] = point.y;
+        anchor.values[static_cast<int>(AnchorValue::SpawnZ)] = point.z;
+        anchor.values[static_cast<int>(AnchorValue::Ticks)] =
+            spec.ticks.Empty() ? -1.0f : static_cast<float>(Count(spec.ticks.Run(env)));
+        for (std::size_t v = 0; v < spec.vars.size(); ++v) anchor.vars[v] = spec.vars[v].start.Run(env);
+        Place(spec, env, anchor);
     }
+    source[kSourceValues + group] += static_cast<float>(count);
 }
 
 void State::StepAnchors(IsaacRandom& random) {

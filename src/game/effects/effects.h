@@ -238,10 +238,6 @@ struct ParticleElement {
             float power;        // its strength
             std::int32_t pause; // before the next eruption
         } vent;
-        // Shower1-4: a direction (pos); element 0's ticks is the texture frame.
-        struct {
-            std::int32_t age;   // in ticks; element 0: negative until the directions are chosen
-        } ray;
         // Bag: a ball (pos its position, ticks its countdown).
         struct {
             Vector3 step;       // its last step
@@ -468,7 +464,6 @@ public:
     float windStrength = 0.0f;
     bool additiveBlend = false;     // drawn with additive blending
     std::uint32_t tint = 0;         // the particles' colour: Tornado and CurseHolder ARGB
-    int rayCount = 0;               // Shower1-4: the directions chosen (alpha * 8, at least 1)
     GlowKind glowKind = GlowKind::Green;   // ShapeChange
     std::vector<ParticleElement> elements;   // per type
     // A data effect's state (particle_data.h; its type is the effect's id): its inputs, vars, stage and anchors.

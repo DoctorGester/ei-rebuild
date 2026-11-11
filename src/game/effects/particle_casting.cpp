@@ -56,8 +56,8 @@ bool SetUpCasting(ParticleSource& s) {
         e->cast.growth = 1.07f;
     }
     for (int i = 1; i <= s.lifetime; ++i) {
-        s.elements[i].swirl.position = RandomInBall() * 10.0f;
-        s.elements[i].swirl.velocity = RandomInBall() * 0.1f;
+        s.elements[i].swirl.position = effectdata::RandomInBall(g_particleRandom) * 10.0f;
+        s.elements[i].swirl.velocity = effectdata::RandomInBall(g_particleRandom) * 0.1f;
     }
     return true;
 }
@@ -92,7 +92,7 @@ int EmitCasting(ParticleSource& s, Particle& p, int) {
     Vector3 v;
     float lengthSquared;
     for (;;) {
-        v = RandomInCube();
+        v = effectdata::RandomInCube(g_particleRandom);
         lengthSquared = LengthSquared(v);
         if (lengthSquared > 1.0f) continue;
         if (lengthSquared <= 0.0f) continue;   // random: never NaN

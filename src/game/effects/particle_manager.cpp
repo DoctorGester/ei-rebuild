@@ -444,8 +444,6 @@ int EmitParticle(ParticleSource& s, Particle& p, int index) {
     case ParticleType::CastingDivination:
         return EmitCasting(s, p, index);
     case ParticleType::Mushroom: case ParticleType::Transform: return EmitMushroom(s, p, index);
-    case ParticleType::Shower1: case ParticleType::Shower2: case ParticleType::Shower3: case ParticleType::Shower4:
-        return EmitShower(s, p, index);
     case ParticleType::Link: return EmitLink(s, p, index);
     case ParticleType::ClayRing: return EmitClayRing(s, p, index);
     case ParticleType::Modifier1: case ParticleType::Modifier2: case ParticleType::Modifier3:
@@ -480,8 +478,6 @@ int UpdateParticle(ParticleSource& s, Particle& p) {
     case ParticleType::CastingDivination:
         return UpdateCasting(s, p);
     case ParticleType::Mushroom: case ParticleType::Transform: return UpdateMushroom(s, p);
-    case ParticleType::Shower1: case ParticleType::Shower2: case ParticleType::Shower3: case ParticleType::Shower4:
-        return UpdateShower(s, p);
     case ParticleType::Link: return UpdateLink(s, p);
     case ParticleType::ClayRing: return UpdateClayRing(s, p);
     case ParticleType::Modifier1: case ParticleType::Modifier2: case ParticleType::Modifier3:
@@ -521,9 +517,6 @@ void TickSource(ParticleSource& s) {
         TickCasting(s);
         break;
     case ParticleType::Mushroom: case ParticleType::Transform: EachElement(s, TickMushroom); break;
-    case ParticleType::Shower1: case ParticleType::Shower2: case ParticleType::Shower3: case ParticleType::Shower4:
-        EachElement(s, TickShower);
-        break;
     case ParticleType::Link: EachElement(s, TickLink); break;
     case ParticleType::ClayRing: EachElement(s, TickClayRing); break;
     case ParticleType::Modifier1: case ParticleType::Modifier2: case ParticleType::Modifier3:

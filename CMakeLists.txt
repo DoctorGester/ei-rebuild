@@ -507,7 +507,8 @@ if(WIN32)
     target_link_libraries(ei_perf_check PRIVATE ei_render)
 else()
     # The POSIX checks (ctest; Linux without a display: xvfb-run ctest): the POSIX platform's (paths, files, the .ini
-    # reader, the one-instance lock, sockets, the settings document, IPv4 text, the maths functions, the Bink container;
+    # reader, the one-instance lock, sockets, the settings document, IPv4 text, the maths functions, the Bink container,
+    # the data effects' records;
     # tests/port/port_check.cpp), the interface's glyph cases on Vulkan or Metal (tests/render/glyph_cases.cpp,
     # as tools/ui_check runs them on Direct3D 12), the game window's pixels and the cursor's hold, and on Linux the
     # window's present after resizes, read back from the X server.
@@ -519,6 +520,7 @@ else()
                    tests/unit/map_folder.cpp src/game/map/map_folder.cpp src/lib/png.cpp
                    tests/unit/figure_gltf.cpp src/game/models/figure_gltf.cpp src/game/models/figure_gltf_animation.cpp src/lib/json.cpp src/lib/vecmath.cpp tests/unit/lua_number.cpp
                    tests/unit/spell_behaviour.cpp src/game/spells/spell_behaviour.cpp
+                   tests/unit/particle_record.cpp src/game/effects/particle_expr.cpp src/game/effects/particle_record.cpp src/game/core/random.cpp src/lib/crt.cpp
                    ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS} ${EI_SDL_CALLS})
     target_include_directories(ei_port_check PRIVATE src third_party)
     target_link_libraries(ei_port_check PRIVATE ei_platform tomlc17 stb_dxt wuffs cgltf eris SDL3::SDL3-static miniz)

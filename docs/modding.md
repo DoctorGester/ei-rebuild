@@ -640,8 +640,18 @@ frame = { start = "pick(16)", delay = 1 }
 - **Particles that change the source**: `source = { size = "..." }` in a particle kind sets the source's value at
   each of its updates (the particles after it read the new value), as a fading mark that shrinks its source; `drop =
   "..."` throws a particle away once it is made (its random draws stay drawn); `anchor_index = "p.gust"` starts it at
-  the anchor of that number, chosen after its vars; the spawn shape `flat_ball` draws a point of the flat disc as
-  `ball` draws one of the ball.
+  the anchor of that number, chosen after its vars, and `pick = "first"` at the group's first live one; the spawn
+  shape `flat_ball` draws a point of the flat disc as `ball` draws one of the ball, `segment` a point between `from`
+  and `to` (by default the source's extent: a beam's or a wall's length).
+- **Anchors made as it goes**: `{ add_anchor = "orb", count = 3 }` makes anchors at any time (`count = 0` in the
+  `[[anchor]]` makes none at the start), and an anchor's own `spawn = { shape = "ball" }` gives each a random point
+  (`a.spawn.x/y/z`) to place it by; `[[on]] event = "before_emit"` runs before each particle is made, so the first
+  particle can find its anchors ready (`when = "anchors.orb == 0"`).
+- **The ground and lists**: `ground(x, y)` is the ground's height there (a kill plane: `kill = "p.z < ground(p.x,
+  p.y)"`); an input `{ type = "list" }` holds points the game gives (`path.count`, `path.x[i]`, `path.y[i]`,
+  `path.z[i]`), with a `default = [[x, y, z], ...]`.
+- **When a particle dies**: `on_death = [{ emit = 4, kind = "ember" }, { effect = "Sparks" }]` emits particles of
+  another kind where it died, at once, or starts an effect there.
 - **Layers**: a mod's file of the name merges over a lower one field by field, a particle kind or stage by its `name`;
   `replace = true` replaces it whole.
 - **Placing a particle yourself**: `position = [x, y, z]` starts it where the expressions say (`origin.x`, the
@@ -651,7 +661,8 @@ frame = { start = "pick(16)", delay = 1 }
   FireStar, AcidStar, CurseStars, PortalStar, Sparks, FeebleMind, ZoneExit, the trails FireBall, FireArrow,
   RikArrowSmoke, AcidRay, the fires and smokes CampFire, Fire, Smoke, Tendril, VulcanSmoke, and Portal, TeleportRing,
   Teleport, Banshee, BlueGas, Nuke, the marks on units Stun, Regeneration, VisionStar1-4, FeetCloud1 / 2, StartTrans,
-  the leaves Falling1-4, the protection spheres SphereAcid, SphereElectricity, SphereFire and Antimagic so far); a mod's
+  the leaves Falling1-4, the protection spheres SphereAcid, SphereElectricity, SphereFire and Antimagic, the blood
+  showers Shower1-4 so far); a mod's
   `Res\effects\FireStar.effect.toml` retunes the fire arrow's flash with only
   the fields it names, and `Res\effects\ZoneExit.effect.toml` the glow over every zone exit.
 - **Problems** are `warning: effects: <file>:<line>: ...` lines in `ei-rebuild.log`; an effect with an error shows

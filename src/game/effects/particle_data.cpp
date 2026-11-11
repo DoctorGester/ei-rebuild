@@ -168,7 +168,6 @@ void Registry::Reset() {
 
 namespace {
 
-constexpr float kTwoPi = kPi + kPi;
 static_assert(sizeof(Particle::vars) / sizeof(float) == kParticleVars);
 
 float& Value(std::vector<float>& values, SourceValue which) { return values[static_cast<int>(which)]; }
@@ -199,6 +198,9 @@ void MeasureCarrier(void* context) {
     Value(state.source, SourceValue::CarrierRadius) = carrier.radius;
     Value(state.source, SourceValue::CarrierZ) = carrier.offset.z;
 }
+
+// The ground's height for `ground(x, y)` (State::ground).
+float GroundHeight(float x, float y) { return g_clientWorld.RawSurfaceHeightAt(x, y); }
 
 // The carrier's unit values (SourceValue::CarrierUnit...): its feet as ParticleSource::PartPoint finds a part.
 void WriteCarrier(ParticleSource& s, std::vector<float>& v) {
@@ -358,57 +360,12 @@ int ChooseAnchor(const State& state, int group, AnchorPick pick) {
         if (state.anchors[i].group == group && state.anchors[i].live) live.push_back(static_cast<int>(i));
     if (live.empty()) return -1;
     const std::uint32_t n = static_cast<std::uint32_t>(live.size());
-    const std::uint32_t at = pick == AnchorPick::Random ? g_particleRandom.Next() % n : static_cast<std::uint32_t>(state.total) % n;
-    return live[at];
-}
-
-// The spawn's offset from its centre, by shape (the draws in the order x, y, z; a ball's as RandomInBall's).
-Vector3 SpawnOffset(const ParticleSource& s, const ParticleKind& kind, const Env& env) {
-    switch (kind.shape) {
-    case SpawnShape::Point: return {};
-    case SpawnShape::Box: {
-        auto axis = [&](int i, float low, float high) {
-            const float from = kind.boxMin[i].Run(env, low);
-            const float to = kind.boxMax[i].Run(env, high);
-            return g_particleRandom.Range(from, to);
-        };
-        const float x = axis(0, s.spreadMin.x, s.spreadMax.x);
-        const float y = axis(1, s.spreadMin.y, s.spreadMax.y);
-        const float z = axis(2, s.spreadMin.z, s.spreadMax.z);
-        return {x, y, z};
+    switch (pick) {
+    case AnchorPick::Random: return live[g_particleRandom.Next() % n];
+    case AnchorPick::First: return live[0];
+    case AnchorPick::Cycle: break;
     }
-    case SpawnShape::Ball: {
-        const Vector3 v = RandomInBall();
-        return v * kind.radius.Run(env, 1.0f);
-    }
-    case SpawnShape::Shell: {
-        const Vector3 v = RandomInBall();
-        const float length = Length(v);
-        const float radius = kind.radius.Run(env, 1.0f);
-        return length > 0.0f ? v * (radius / length) : Vector3{radius, 0.0f, 0.0f};
-    }
-    case SpawnShape::Disc: {
-        const float angle = g_particleRandom.Range(0.0f, kTwoPi);
-        const float reach = std::sqrt(g_particleRandom.Below(1.0f)) * kind.radius.Run(env, 1.0f);
-        return {lib::Cos(angle) * reach, lib::Sin(angle) * reach, 0.0f};
-    }
-    case SpawnShape::Ring: {
-        const float angle = g_particleRandom.Range(0.0f, kTwoPi);
-        const float reach = kind.radius.Run(env, 1.0f);
-        return {lib::Cos(angle) * reach, lib::Sin(angle) * reach, 0.0f};
-    }
-    case SpawnShape::FlatBall: {
-        float x, y;
-        for (int tries = 10;;) {
-            x = g_particleRandom.Range(-1.0f, 1.0f);
-            y = g_particleRandom.Range(-1.0f, 1.0f);
-            if (LengthSquared2D(y, x) < 1.0f) break;   // random: never NaN
-            if (!(--tries > 0)) break;
-        }
-        return Vector3{x, y, 0.0f} * kind.radius.Run(env, 1.0f);
-    }
-    }
-    return {};
+    return live[static_cast<std::uint32_t>(state.total) % n];
 }
 
 std::uint32_t Rgb(const ParticleKind& kind, const Env& env, std::uint32_t current) {
@@ -433,10 +390,11 @@ int NumberedAnchor(const State& state, int group, float number) {
 // What EmitKind made.
 enum class Emitted { None, Kept, Dropped };
 
-// A particle of kind `kindIndex` (-1: the regular choice) at anchor `anchor` (-1: chosen by the kind) into `p`; the
-// order of its parts is the order of its draws: lifetime, vars, the anchor by its number, the spawn shape, the vars
-// after it, position, velocity, size, colour, frame, then `drop`.
-Emitted EmitKind(ParticleSource& s, Particle& p, int kindIndex, int anchor, int index) {
+// A particle of kind `kindIndex` (-1: the regular choice) at anchor `anchor` (-1: chosen by the kind) into `p`, its
+// spawn's centre `place` when given (a dying particle's); the order of its parts is the order of its draws: lifetime,
+// vars, the anchor by its number, the spawn shape, the vars after it, position, velocity, size, colour, frame, then
+// `drop`.
+Emitted EmitKind(ParticleSource& s, Particle& p, int kindIndex, int anchor, int index, const Vector3* place = nullptr) {
     State& state = *s.data;
     if (kindIndex < 0) kindIndex = ChooseKind(state);
     if (kindIndex < 0) return Emitted::None;
@@ -476,8 +434,8 @@ Emitted EmitKind(ParticleSource& s, Particle& p, int kindIndex, int anchor, int 
         env = ParticleEnv(state, p, values);
     }
 
-    const Vector3 centre = anchor >= 0 ? s.origin + AnchorPosition(state, anchor) : s.origin;
-    Vector3 offset = SpawnOffset(s, kind, env);
+    const Vector3 centre = place ? *place : anchor >= 0 ? s.origin + AnchorPosition(state, anchor) : s.origin;
+    Vector3 offset = SpawnPoint(kind.spawn, env, g_particleRandom);
     values[ParticleValue::SpawnX] = offset.x;
     values[ParticleValue::SpawnY] = offset.y;
     values[ParticleValue::SpawnZ] = offset.z;
@@ -485,7 +443,7 @@ Emitted EmitKind(ParticleSource& s, Particle& p, int kindIndex, int anchor, int 
         if (kind.vars[i].afterSpawn) p.vars[i] = kind.vars[i].start.Run(env);
     if (!kind.offset[0].Empty() || !kind.offset[1].Empty() || !kind.offset[2].Empty())
         offset = offset + Vector3{kind.offset[0].Run(env), kind.offset[1].Run(env), kind.offset[2].Run(env)};
-    const bool placed = kind.shape != SpawnShape::Point || !kind.offset[0].Empty() || !kind.offset[1].Empty() ||
+    const bool placed = kind.spawn.shape != SpawnShape::Point || !kind.offset[0].Empty() || !kind.offset[1].Empty() ||
                         !kind.offset[2].Empty();
     if (!kind.position[0].Empty()) {
         const float x = kind.position[0].Run(env);
@@ -522,13 +480,43 @@ Emitted EmitKind(ParticleSource& s, Particle& p, int kindIndex, int anchor, int 
     return Emitted::Kept;
 }
 
-// After a particle of the emission: the "emit" reactions and what their actions did.
-void AfterEmission(ParticleSource& s, State& state) {
-    state.Emitted(g_particleRandom);
+// What the actions of an emission's reactions did, at once (the emission's later tries and particles see it).
+void ApplyEmissionActions(ParticleSource& s, State& state) {
     ApplyActions(s, state);
     if (state.ended) s.flags &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
     state.sawEmitting = lib::Has(s.flags, ParticleSourceFlag::Emitting);
     Value(state.source, SourceValue::Emitting) = state.sawEmitting ? 1.0f : 0.0f;
+}
+
+// Before a particle of the emission: the "before_emit" reactions.
+void BeforeEmission(ParticleSource& s, State& state) {
+    if (!state.record->beforeEmit) return;
+    state.BeforeEmission(g_particleRandom);
+    ApplyEmissionActions(s, state);
+}
+
+// After a particle of the emission: the "emit" reactions.
+void AfterEmission(ParticleSource& s, State& state) {
+    state.Emitted(g_particleRandom);
+    ApplyEmissionActions(s, state);
+}
+
+// The effects the actions started: free sources of their own, at the source's origin or at their place.
+void StartEffects(ParticleSource& s, State& state) {
+    for (const Started& started : state.effects) {
+        int type = kNoParticleType;
+        if (std::shared_ptr<const Record> sub = g_effects.Find(started.name)) type = sub->id;
+        else type = ParticleTypeByName(started.name);
+        if (type == kNoParticleType) {
+            game::Warning("effects: %s: no effect %s to start", state.record->name, started.name);
+            continue;
+        }
+        ParticleSource* child = s.Manager()->CreateSource(type);
+        if (!child) continue;
+        child->localPosition = started.placed ? started.place : s.origin;
+        child->Attach(nullptr);
+    }
+    state.effects.clear();
 }
 
 } // namespace
@@ -562,6 +550,7 @@ void SetUp(ParticleSource& s, std::shared_ptr<const Record> record) {
     s.data = std::make_unique<State>(std::move(record));
     s.data->measure = MeasureCarrier;
     s.data->measureContext = &s;
+    s.data->ground = GroundHeight;
     if (std::any_of(r.vars.begin(), r.vars.end(), [](const Var& var) { return var.atCreate; })) {
         WriteSource(s, *s.data);
         s.data->Create(g_particleRandom);
@@ -581,20 +570,7 @@ void TickData(ParticleSource& s) {
     if (state.ended) s.flags &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
     state.sawEmitting = lib::Has(s.flags, ParticleSourceFlag::Emitting);
     Value(state.source, SourceValue::Emitting) = state.sawEmitting ? 1.0f : 0.0f;
-
-    for (const std::string& name : state.effects) {
-        int type = kNoParticleType;
-        if (std::shared_ptr<const Record> sub = g_effects.Find(name)) type = sub->id;
-        else type = ParticleTypeByName(name);
-        if (type == kNoParticleType) {
-            game::Warning("effects: %s: no effect %s to start", state.record->name, name);
-            continue;
-        }
-        ParticleSource* child = s.Manager()->CreateSource(type);
-        if (!child) continue;
-        child->localPosition = s.origin;
-        child->Attach(nullptr);
-    }
+    StartEffects(s, state);
 }
 
 int EmitData(ParticleSource& s, Particle& p, int index) {
@@ -602,6 +578,7 @@ int EmitData(ParticleSource& s, Particle& p, int index) {
     Value(state.source, SourceValue::Index) = static_cast<float>(index);
     Value(state.source, SourceValue::Particles) = static_cast<float>(s.particles.size());
     Value(state.source, SourceValue::Total) = static_cast<float>(state.total);
+    BeforeEmission(s, state);
     const Emitted made = EmitKind(s, p, -1, -1, index);
     if (made == Emitted::Kept && state.record->once) {
         s.flags &= ~ParticleSourceFlag::Emitting;
@@ -620,7 +597,8 @@ void EmitQueued(ParticleSource& s) {
         Particle* p = pool->AcquireParticle();
         Value(state.source, SourceValue::Particles) = static_cast<float>(s.particles.size());
         Value(state.source, SourceValue::Total) = static_cast<float>(state.total);
-        const Emitted made = EmitKind(s, *p, queued.kind, queued.anchor, index++);
+        BeforeEmission(s, state);
+        const Emitted made = EmitKind(s, *p, queued.kind, queued.anchor, index++, queued.placed ? &queued.place : nullptr);
         if (made == Emitted::Kept) s.AddParticle(p);
         else pool->ReleaseParticle(p);
         if (made != Emitted::None) AfterEmission(s, state);
@@ -628,10 +606,10 @@ void EmitQueued(ParticleSource& s) {
     state.queue.clear();
 }
 
-int UpdateData(ParticleSource& s, Particle& p) {
-    State& state = *s.data;
-    if (p.kind < 0 || p.kind >= std::ssize(state.record->particles)) return 0;
-    const ParticleKind& kind = state.record->particles[p.kind];
+namespace {
+
+// One particle of `kind` moved (0: it dies).
+int UpdateKind(ParticleSource& s, State& state, const ParticleKind& kind, Particle& p) {
     --p.life;
     ++p.age;
     if (p.life <= 0) return 0;
@@ -697,6 +675,24 @@ int UpdateData(ParticleSource& s, Particle& p) {
     return 1;
 }
 
+} // namespace
+
+int UpdateData(ParticleSource& s, Particle& p) {
+    State& state = *s.data;
+    if (p.kind < 0 || p.kind >= std::ssize(state.record->particles)) return 0;
+    const ParticleKind& kind = state.record->particles[p.kind];
+    const int alive = UpdateKind(s, state, kind, p);
+    // Its death (the first: a dead particle's update still runs once, "Kept"): its on_death actions, the particles at
+    // this tick's emission, the effects at once.
+    if (!alive && !p.dead && !kind.onDeath.empty()) {
+        ParticleValues values;
+        WriteParticle(p, values);
+        state.Died(kind, ParticleEnv(state, p, values), p.pos);
+        StartEffects(s, state);
+    }
+    return alive;
+}
+
 // ---- The inputs -----------------------------------------------------------------------------------------------------
 
 bool SetInput(ParticleSource& s, std::string_view input, float value) { return s.data && s.data->SetValue(input, value); }
@@ -707,6 +703,10 @@ bool SetInput(ParticleSource& s, std::string_view input, const Vector3& value) {
 
 bool SetInput(ParticleSource& s, std::string_view input, std::string_view value) {
     return s.data && s.data->SetEnum(input, value);
+}
+
+bool SetInput(ParticleSource& s, std::string_view input, const std::vector<Vector3>& points) {
+    return s.data && s.data->SetList(input, points);
 }
 
 bool Fire(ParticleSource& s, std::string_view event) { return s.data && s.data->Fire(event); }

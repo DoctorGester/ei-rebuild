@@ -31,7 +31,6 @@ address,size,name,file
 00787070,960,kActionDefinitions,src/game/ui/ui_options.cpp
 00787C8C,48,kBranchFrequencies,src/game/effects/lightning.cpp
 0078A5DC,56,kBlastAlpha,src/game/effects/particle_blasts.cpp
-0078A6B4,64,kShowerAlpha,src/game/effects/particle_marks.cpp
 0078A6F4,64,kClayReach,src/game/effects/particle_blasts.cpp
 0078A734,56,kClayAlpha,src/game/effects/particle_blasts.cpp
 0078A774,44,kFadeAlpha,src/game/effects/particle_casting.cpp

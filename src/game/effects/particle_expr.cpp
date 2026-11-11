@@ -30,7 +30,7 @@ constexpr FunctionName kFunctions[] = {
     {"max", Function::Max, 2},       {"clamp", Function::Clamp, 3}, {"lerp", Function::Lerp, 3},
     {"pow", Function::Pow, 2},       {"range", Function::Range, 2}, {"below", Function::Below, 1},
     {"chance", Function::Chance, 1}, {"pick", Function::Pick, 1},   {"exp", Function::Exp, 1},
-    {"log", Function::Log, 1},
+    {"log", Function::Log, 1},       {"ground", Function::Ground, 2},
 };
 
 bool IsNameStart(char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'; }
@@ -210,10 +210,14 @@ private:
         if (Take("(")) return Call(name);
         const Resolved meaning = Lookup(name);
         if (Take("[")) {
-            if (meaning.kind != Resolved::Kind::Table) return Fail("'" + std::string(name) + "' is no table");
+            if (meaning.kind != Resolved::Kind::Table && meaning.kind != Resolved::Kind::ListAxis)
+                return Fail("'" + std::string(name) + "' is no table");
             Ternary();
             if (!Take("]")) return Fail("']' expected");
-            Emit(Op::Index, meaning.index);
+            if (meaning.kind == Resolved::Kind::ListAxis)
+                Emit(Op::ListAt, meaning.index, 0.0f, Scope::Source, meaning.axis);
+            else
+                Emit(Op::Index, meaning.index);
             return;
         }
         switch (meaning.kind) {
@@ -228,6 +232,7 @@ private:
             return;
         case Resolved::Kind::Table: return Fail("table '" + std::string(name) + "' needs an index: " + std::string(name) + "[i]");
         case Resolved::Kind::Curve: return Fail("curve '" + std::string(name) + "' needs a value: " + std::string(name) + "(t)");
+        case Resolved::Kind::ListAxis: return Fail("list '" + std::string(name) + "' needs an index: " + std::string(name) + "[i]");
         case Resolved::Kind::None: return Fail("unknown name '" + std::string(name) + "'");
         }
     }
@@ -270,7 +275,8 @@ private:
     std::vector<Instruction> code;
 };
 
-float CallFunction(Function f, const float* a, IsaacRandom* random) {
+float CallFunction(Function f, const float* a, const Env& env) {
+    IsaacRandom* random = env.random;
     switch (f) {
     case Function::Sin: return lib::Sin(a[0]);
     case Function::Cos: return lib::Cos(a[0]);
@@ -299,6 +305,7 @@ float CallFunction(Function f, const float* a, IsaacRandom* random) {
         const float n = a[0] < 4294967295.0f ? a[0] : 4294967295.0f;
         return static_cast<float>(word % static_cast<std::uint32_t>(n));
     }
+    case Function::Ground: return env.ground ? env.ground(a[0], a[1]) : 0.0f;
     }
     return 0.0f;
 }
@@ -310,6 +317,16 @@ float TableAt(const std::vector<float>& table, float at) {
     const float last = static_cast<float>(table.size() - 1);
     if (at >= last) return table.back();
     return table[static_cast<std::size_t>(at)];
+}
+
+// Axis `axis` of point `at` of a list (x y z each), truncated and held to the ends as a table's entry (empty: 0).
+float ListAt(const std::vector<float>& points, float at, int axis) {
+    const std::size_t count = points.size() / 3;
+    if (count == 0) return 0.0f;
+    std::size_t point = 0;
+    if (at >= static_cast<float>(count - 1)) point = count - 1;
+    else if (at >= 1.0f) point = static_cast<std::size_t>(at);
+    return points[point * 3 + static_cast<std::size_t>(axis)];
 }
 
 } // namespace
@@ -380,13 +397,16 @@ float Expr::Run(const Env& env, float fallback) const {
             break;
         case Op::Call:
             top -= i.count - 1;
-            stack[top] = CallFunction(static_cast<Function>(i.index), &stack[top], env.random);
+            stack[top] = CallFunction(static_cast<Function>(i.index), &stack[top], env);
             break;
         case Op::Index:
             stack[top] = env.tables && i.index < env.tables->size() ? TableAt((*env.tables)[i.index], stack[top]) : 0.0f;
             break;
         case Op::CurveAt:
             stack[top] = env.curves && i.index < env.curves->size() ? (*env.curves)[i.index].At(stack[top]) : 0.0f;
+            break;
+        case Op::ListAt:
+            stack[top] = env.lists && i.index < env.lists->size() ? ListAt((*env.lists)[i.index], stack[top], i.count) : 0.0f;
             break;
         }
     }

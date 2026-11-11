@@ -40,19 +40,26 @@ struct Env {
     const float* scopes[kScopes] = {};
     const std::vector<std::vector<float>>* tables = nullptr;
     const std::vector<Curve>* curves = nullptr;
+    const std::vector<std::vector<float>>* lists = nullptr;     // the list inputs' points, x y z each
     IsaacRandom* random = nullptr;
     // Called before a LoadMeasured: fills the values measured at their first read (null: they stand as they are).
     void (*measure)(void* context) = nullptr;
     void* measureContext = nullptr;
+    // The ground's height at (x, y) for `ground(x, y)` (null: 0).
+    float (*ground)(float x, float y) = nullptr;
 };
 
 // What a name means where an expression is compiled.
 struct Resolved {
-    enum class Kind : std::uint8_t { None, Value, Constant, Table, Curve };
+    enum class Kind : std::uint8_t {
+        None, Value, Constant, Table, Curve,
+        ListAxis,   // one axis (`axis`) of a list input's points, read as a table
+    };
     Kind kind = Kind::None;
     Scope scope = Scope::Source;
-    std::uint16_t index = 0;    // the value's place in its scope, or the table's or curve's
+    std::uint16_t index = 0;    // the value's place in its scope, or the table's, curve's or list's
     float constant = 0.0f;
+    std::uint8_t axis = 0;      // a list axis's: 0, 1, 2 for x, y, z
 };
 // The names of the context an expression is compiled in: a dotted name (`p.size`, `stage.glow`) to its meaning.
 using Resolver = std::function<Resolved(std::string_view name)>;
@@ -71,6 +78,7 @@ enum class Op : std::uint8_t {
     Call,           // a Function with `count` arguments
     Index,          // a table's entry by the top
     CurveAt,        // a curve's value at the top
+    ListAt,         // a list input's point by the top, its axis `count`
 };
 
 // The functions an expression can call (`range` and `below` draw the effect's generator once, `chance` and `pick`
@@ -82,12 +90,13 @@ enum class Function : std::uint8_t {
     Below,      // below(k): IsaacRandom::Below
     Chance,     // chance(percent): 1 when Next() % 100 is below it
     Pick,       // pick(n): Next() % n, 0 for n below 1
+    Ground,     // ground(x, y): the ground's height there (Env::ground)
 };
 
 struct Instruction {
     Op op = Op::Constant;
     Scope scope = Scope::Source;
-    std::uint8_t count = 0;     // a call's arguments
+    std::uint8_t count = 0;     // a call's arguments, a list's axis
     std::uint16_t index = 0;    // a load's place, a function, a table, a curve or a jump's target
     float value = 0.0f;         // a constant's
 };
