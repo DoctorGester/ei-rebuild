@@ -598,8 +598,7 @@ void TickHealing(ParticleSource& s, ParticleElement& e) {
 
 namespace {
 
-// Alpha rising and falling: a spark by its life (from the start), a marker one entry on, a column backwards
-// from the last (ColumnAlpha).
+// Alpha rising and falling: a spark by its life (from the start), a marker one entry on.
 constexpr std::int32_t kRiseFallAlpha[19] = /*0078A914*/ {0, 0, 32, 64, 112, 160, 208, 255, 255, 255, 255, 255, 255, 255, 207, 159, 111,
                                                  63, 15};
 
@@ -743,77 +742,6 @@ void TickCastSwirl(ParticleSource& s, ParticleElement& e) {
     relative.y = y;
     e.pos = s.origin + relative;
 }
-
-// --- TeleportRing: sparks rising in a ring around the carrier ----------------------------------------------
-
-namespace {
-
-// The alpha by remaining life (1-12), read backwards from kRiseFallAlpha's end. The update after death (life -1)
-// reads past the table: 0 there (the original read the next table's first entry).
-std::uint32_t ColumnAlpha(int life) { return life < 0 ? 0 : static_cast<std::uint32_t>(kRiseFallAlpha[19 - life]); }
-
-// The ring from the carrier's figure (the first emission). False without a carrier.
-bool SetUpColumn(ParticleSource& s) {
-    if (!s.attachedTo) {
-        game::DebugLog("Particle effect CastingElemental without carrier\n");
-        return false;
-    }
-    auto [offset, radius] = s.AttachmentOffset();
-    float height = radius + radius;
-    float foot = -offset.z - height * 0.3f;
-    float ring = s.attachedTo->GetClassId() == ClassId::Unit ? s.attachedTo->Radius() : radius * 0.8f;
-    s.elements.resize(1);
-    ParticleElement* e = s.elements.data();
-    e->column.radius = ring + ring;
-    e->column.height = height;
-    e->column.foot = foot;
-    e->ticks = 1;
-    return true;
-}
-
-} // namespace
-
-// TeleportRing: a spark on a ring of random radius around the carrier (0.9-1.1 of the ring),
-// at a random height of the spread box above the ring's foot, rising faster and faster.
-int EmitColumn(ParticleSource& s, Particle& p, int) {
-    Vector3& offset = p.velocity;  // from the source
-    float& rise = p.aux.z;         // added to offset.z per tick
-    if (s.elements.empty() && !SetUpColumn(s)) return 0;
-    p.color = 0xFFFFFFFF;
-    p.frame = 1;
-    p.life = 13;
-    p.frameTimer = 1;
-    rise = (g_particleRandom.Below(0.6f) + 0.7f) * s.elements[0].column.height * 0.1f;
-    float ring = g_particleRandom.Below(0.2f) + 0.9f;
-    float angle = g_particleRandom.Range(0.0f, 6.28318f);
-    offset.x = lib::Sin(angle) * ring;
-    offset.y = lib::Cos(angle) * ring;
-    float z = g_particleRandom.Range(s.spreadMin.z, s.spreadMax.z);
-    offset.z = z;
-    offset.z = z + s.elements[0].column.foot;
-    p.pos = s.origin + offset;
-    p.size = (g_particleRandom.Below(0.8f) + 0.6f) * s.size * 0.25f;
-    return 1;
-}
-
-// TeleportRing sparks: fade by life, step a frame, follow the source at their offset, shrink
-// to 0.97 per tick and rise (the rise growing by 5% per tick).
-int UpdateColumn(ParticleSource& s, Particle& p) {
-    Vector3& offset = p.velocity;
-    float& rise = p.aux.z;
-    int life = --p.life;
-    if (life == 0) return 0;
-    float oldSize = p.size;
-    p.color = (ColumnAlpha(life) << 24) | 0xFFFFFF;
-    ++p.frame;
-    p.pos = s.origin + offset;
-    p.size = oldSize * 0.97f;
-    offset.z += rise;
-    rise *= 1.05f;
-    return 1;
-}
-
-void TickColumn(ParticleSource&, ParticleElement& e) { ++e.ticks; }
 
 // --- Cylinder1 / Cylinder2: two stars circling the carrier -------------------------------------------------
 
@@ -1253,76 +1181,4 @@ void TickLink(ParticleSource& s, ParticleElement& e) {
     if (!(s.flags & ParticleSourceFlag::Emitting)) e.ticks -= 16;
     std::int32_t cap = e.ticks;
     e.ticks = cap < 0 ? 0 : cap;
-}
-
-// --- BlueGas (the Stench texture): gas swirling up around the carrier --------------------------------------
-
-// BlueGas: the first call measures the carrier (5 * size + 0.5 puffs per tick). A puff starts at a random
-// point of the disc around the carrier's figure, turning about the axis faster the nearer it is, and rising.
-int EmitStench(ParticleSource& s, Particle& p, int) {
-    Vector3& around = p.velocity;  // the offset from the carrier's axis
-    float& spinSin = p.drift.x;    // the offset's turn per tick
-    float& spinCos = p.drift.y;
-    float& rise = p.drift.z;       // added to around.z per tick
-    if (s.elements.empty()) {
-        if (!s.attachedTo) {
-            game::DebugLog("Particle effect Link without carrier\n");
-            return 0;
-        }
-        auto [offset, radius] = s.AttachmentOffset();
-        s.elements.resize(1);
-        s.elements[0].pos = offset;
-        s.elements[0].gas.radius = radius * 0.3f;
-        s.elements[0].gas.height = radius + radius;
-        int rate = static_cast<int>(s.size * 5.0f + 0.5f);
-        s.emitCount = rate < 1 ? 1 : rate;
-    }
-    float radius = s.elements[0].gas.radius;
-    float carrierHeight = s.elements[0].gas.height;
-    float t = g_particleRandom.Range(0.0f, radius);
-    float twoPi = kPi + kPi;
-    float angle = g_particleRandom.Range(0.0f, twoPi);
-    p.color = 0xFFFFFFFF;
-    p.frame = 0;
-    p.life = s.lifetime;
-    p.frameTimer = s.frameDelay;
-    float turn = t * 0.3f / radius;
-    float low = radius * -0.3f;
-    float vx = lib::Sin(angle) * t;
-    float vy = lib::Cos(angle) * t;
-    float vz = g_particleRandom.Range(low, radius * 0.3f);
-    around = {vx, vy, vz};
-    float riseLow = carrierHeight * 0.02f;
-    spinSin = lib::Sin(turn);
-    spinCos = lib::Cos(turn);
-    rise = g_particleRandom.Range(riseLow, carrierHeight * 0.03f);
-    p.pos = s.origin + s.elements[0].pos + around;
-    p.size = radius * 0.7f;
-    return 1;
-}
-
-// BlueGas puffs: step through the frames (dropped after the last), turn their offset
-// about the axis, rise faster and faster, swell, and fade over the last 8 ticks.
-int UpdateStench(ParticleSource& s, Particle& p) {
-    Vector3& around = p.velocity;
-    const float& spinSin = p.drift.x;
-    const float& spinCos = p.drift.y;
-    float& rise = p.drift.z;
-    int life = --p.life;
-    if (life == 0) return 0;
-    if (--p.frameTimer == 0) {
-        if (++p.frame >= s.frameCount) return 0;
-        p.frameTimer = s.frameDelay;
-    }
-    p.pos -= around;
-    float turnedY = Dot2D(around.x, around.y, spinSin, spinCos);
-    float turnedX = spinCos * around.x - around.y * spinSin;
-    around.x = turnedX;
-    around.y = turnedY;
-    around.z = rise + around.z;
-    rise *= 1.02f;
-    p.pos += around;
-    p.size *= 1.01f;
-    if (life < 8) p.color = ((p.color & 0xFF000000u) - 0x1F000001u) | 0xFFFFFF;
-    return 1;
 }

@@ -1,0 +1,48 @@
+# Banshee (0x200D): a ring that widens around a unit. The carrier is measured at the first tick that emits: the ring
+# sits at 1.5 of its radius over the source, and the source's height becomes a 18th of that radius (the ring's speed;
+# the game's resize scales it). That tick fills the source (a burst up to its limit), then 72 sparks a tick for 7
+# ticks while the ring's radius eases out towards 30 times the height, halving the distance a tick. A spark sits at a
+# random point between the ring and its eased inner edge and lives a few ticks (longer while the ring is young).
+# The original types on data: docs/notes/effects.md, "The original effects on data".
+
+texture = "Banshee"
+attach = "attached_only"
+
+[server]
+one_shot = 60
+
+[emit]
+rate = "set_up && !first ? 72 : 1073741823"
+
+[vars]
+first = { start = "emitting && attached", tick = "!set_up && emitting && attached" }   # this tick measures
+ticks = { start = "first ? 8 : 0", tick = "first ? 8 : (set_up ? ticks - 1 : ticks)" }
+radius = { start = 0, tick = "first ? 0 : (set_up && ticks != 0 ? (radius - height * 30) * 0.5 + height * 30 : radius)" }
+ring_z = { start = "first ? carrier_radius * 3 * 0.5 : 0", tick = "first ? carrier_radius * 3 * 0.5 : ring_z" }
+skip = { start = "first ? pick(1) : 0", tick = "first ? pick(1) : 0" }   # the original's first try made no spark
+set_up = { start = "first", tick = "set_up || first" }
+
+[[on]]
+event = "tick"
+when = "first"
+do = [{ set = "height", value = "carrier_radius * 0.027777778 + carrier_radius * 0.027777778" }]
+
+[[on]]
+event = "tick"
+when = "set_up && !first && ticks == 0"
+do = [{ stop_emitting = true }]
+
+[[particle]]
+name = "spark"
+lifetime = 2147483647                           # its span below (kill)
+size = "size * 0.15"
+frame = { start = 0, delay = 1 }
+kill = "p.age >= p.span"
+
+[particle.vars]
+angle = "range(0, pi + pi)"
+span = "pick(3) + min(ticks, 5) + 1"
+reach = "(radius - height * 30) * 0.5 + radius + 0.001 >= radius ? (radius - height * 30) * 0.5 + radius : range((radius - height * 30) * 0.5 + radius, radius)"
+
+[particle.position]
+start = ["sin(p.angle) * p.reach + origin.x", "cos(p.angle) * p.reach + origin.y", "origin.z + ring_z"]

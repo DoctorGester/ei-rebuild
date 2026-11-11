@@ -263,23 +263,12 @@ struct ParticleElement {
             Vector3 velocity;
             std::int32_t age;   // its kind, then its age (indexes the sizes)
         } ball;
-        // TeleportRing: the ring around the carrier (ticks its age).
-        struct {
-            float radius;
-            float height;       // the carrier's
-            float foot;         // the ring's offset below the carrier's centre
-        } column;
         // Mushroom and Transform.
         struct {
             float spread;       // the puffs'
             float capHeight;
             Vector3 stem;       // the stem's foot
         } mushroom;
-        // BlueGas: pos the carrier's figure offset.
-        struct {
-            float radius;       // the gas radius
-            float height;       // the carrier's
-        } gas;
         // Tornado and CurseHolder: a ring of the funnel (pos its centre); element 0 also holds the funnel's own
         // values.
         struct {
@@ -295,11 +284,6 @@ struct ParticleElement {
             float orbit;        // the orbit radius
             float rise;         // per tick
         } star;
-        // Banshee: ticks the countdown.
-        struct {
-            float radius;       // easing towards 30 times the source's height
-            float height;       // the ring's
-        } banshee;
         // ClayRing: a point on the ground (pos; ticks the countdown).
         struct {
             Vector3 previous;   // its previous position

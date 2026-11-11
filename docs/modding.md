@@ -624,16 +624,22 @@ frame = { start = "pick(16)", delay = 1 }
 - **Anchors** (`[[anchor]]`) are moving points it owns (orbs, rings); a particle kind with `at = "<anchor>"` starts at
   them, and with `space = "anchor"` rides them.
 - **Inputs**: `float`, `vector`, `bool`, `enum` (named values) and `event` (fired; `[[on]] event = "..."` reacts).
-- **Expressions**: arithmetic, comparisons, `? :`, `sin`, `cos`, `min`, `max`, `clamp`, `lerp`, random `range`,
-  `chance`, `pick`; tables (`fade[p.age]`) and curves (`glow(p.t)`) from `[tables]` and `[curves]`.
+- **Expressions**: arithmetic, comparisons, `? :`, `sin`, `cos`, `min`, `max`, `clamp`, `lerp`, `pow`, `exp`, `log`,
+  random `range`, `chance`, `pick`; tables (`fade[p.age]`) and curves (`glow(p.t)`) from `[tables]` and `[curves]`;
+  the world's wind (`wind.x/y/z`, `wind_strength`) and the carrier unit's `carrier_radius` and `carrier_z`. A
+  particle's own vars may not reuse the built-in names (`p.age`, `p.life`, `p.x`...).
+- **Reactions** (`[[on]] event = "tick"`, with a `when` condition) run actions each tick: `{ set = "height", value =
+  ... }` changes an input or the source's own `size`, `height`, `growth`, `alpha` or `param`, `{ stop_emitting =
+  true }` ends the emission (the particles live on), `{ stop = true }` stops the source.
 - **Layers**: a mod's file of the name merges over a lower one field by field, a particle kind or stage by its `name`;
   `replace = true` replaces it whole.
 - **Placing a particle yourself**: `position = [x, y, z]` starts it where the expressions say (`origin.x`, the
   source's motion, its `side` and `up` axes), and `position = { tick = [...] }` moves it each tick by your own sum
   instead of its velocity.
 - **The game's own effects** are written the same way as they move to data (`assets/effects` in the source:
-  FireStar, AcidStar, CurseStars, PortalStar, Sparks, FeebleMind, ZoneExit and the trails FireBall, FireArrow,
-  RikArrowSmoke, AcidRay so far); a mod's `Res\effects\FireStar.effect.toml` retunes the fire arrow's flash with only
+  FireStar, AcidStar, CurseStars, PortalStar, Sparks, FeebleMind, ZoneExit, the trails FireBall, FireArrow,
+  RikArrowSmoke, AcidRay, the fires and smokes CampFire, Fire, Smoke, Tendril, VulcanSmoke, and Portal, TeleportRing,
+  Teleport, Banshee, BlueGas, Nuke so far); a mod's `Res\effects\FireStar.effect.toml` retunes the fire arrow's flash with only
   the fields it names, and `Res\effects\ZoneExit.effect.toml` the glow over every zone exit.
 - **Problems** are `warning: effects: <file>:<line>: ...` lines in `ei-rebuild.log`; an effect with an error shows
   nothing. An unknown key is only noted.

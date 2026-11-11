@@ -20,28 +20,22 @@
 
 namespace {
 
-// The particle types CreateParticleSource accepts: name, EffectParticle type, lifetime in ticks (-1 forever).
-constexpr ScriptParticleType kScriptParticleTypes[kScriptParticleTypeCount] = /*0078B120*/ {
-    {"CampFire", 0x2001, -1},
+// The C++ particle types CreateParticleSource accepts (data effects are found by name after them):
+// name, EffectParticle type, lifetime in ticks (-1 forever).
+constexpr ScriptParticleType kScriptParticleTypes[kScriptParticleTypeCount] = {
     {"FireBlast", 0x2002, 200},
     {"LightningBlast", 0x2030, 200},
-    {"Fire", 0x2003, -1},
-    {"Smoke", 0x2004, -1},
-    {"VulcanSmoke", 0x2005, -1},
     {"Healing", 0x2006, 200},
     {"PoisonFog", 0x2007, -1},
     {"Geyser", 0x2009, -1},
     {"Tornado", 0x200A, -1},
     {"Casting", 0x200B, 200},
-    {"Nuke", 0x200C, 200},
     {"Mushroom", 0x200E, 200},
     {"Link", 0x2014, -1},
-    {"BlueGas", 0x2013, -1},
     {"SphereAcid", 0x2015, -1},
     {"SphereElectricity", 0x2016, -1},
     {"SphereFire", 0x2017, -1},
     {"ClayRing", 0x2018, 200},
-    {"Teleport", 0x2019, 200},
     {"Modifier1", 0x201B, 200},
     {"Modifier2", 0x201C, 200},
     {"Modifier3", 0x201D, 200},
@@ -63,7 +57,6 @@ constexpr ScriptParticleType kScriptParticleTypes[kScriptParticleTypeCount] = /*
     {"CastingDomination", 0x202C, -1},
     {"CastingEnchantment", 0x202D, -1},
     {"CastingHealing", 0x202E, -1},
-    {"Portal", 0x203E, -1},
     {"Cylinder1", 0x203F, 200},
     {"Cylinder2", 0x2040, 200},
     {"VisionStar1", 0x2044, -1},

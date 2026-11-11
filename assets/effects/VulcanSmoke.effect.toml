@@ -1,0 +1,40 @@
+# VulcanSmoke (0x2005): lava drops and smoke from a vent. Three in five are drops, thrown out at the vent's height (a
+# random part of spread_min.y around spread_max.y) in a random direction by spread_min.x a tick, slowing by 0.965 and
+# growing by the source's growth, a frame every 8 ticks; the others smoke at a random point of the vent (spread_max.x
+# around it), rising by the source's height a tick and growing by 1.02, a frame every 4 ticks. Both end after their
+# last frame.
+# The original types on data: docs/notes/effects.md, "The original effects on data".
+
+texture = "Vulkan"
+
+[source]
+size = 2.5
+height = 0.0625                                 # the spread's top y (4) / 64
+growth = 0.99
+spread_min = [0.2, 0.5, 0]
+spread_max = [0.3, 4, 0]
+
+[emit]
+rate = 2
+chance = 88
+max = 400
+
+[[particle]]
+name = "drop"
+when = "chance(60)"
+lifetime = 128
+vars = { lift = "range(0, spread_min.y * 0.5 - spread_min.y * -0.5) + spread_max.y + origin.z + spread_min.y * -0.5", angle = "range(0, deg * 360)", growth = "growth" }
+position = ["origin.x", "origin.y", "p.lift"]
+velocity = ["sin(p.angle) * spread_min.x", "cos(p.angle) * spread_min.x", 0]
+drag = 0.965
+size = { start = "size", growth = "p.growth" }
+frame = { start = 0, delay = 8, mode = "die" }
+
+[[particle]]
+name = "smoke"
+lifetime = 64
+vars = { reach = "range(0, spread_max.x)", angle = "range(0, deg * 360)" }
+position = ["sin(p.angle) * p.reach + origin.x", "cos(p.angle) * p.reach + origin.y", "origin.z"]
+velocity = [0, 0, "height"]
+size = { start = "size * 0.3", growth = 1.02 }
+frame = { start = 0, delay = 4, mode = "die" }
