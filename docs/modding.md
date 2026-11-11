@@ -627,7 +627,7 @@ frame = { start = "pick(16)", delay = 1 }
 - **Expressions**: arithmetic, comparisons, `? :`, `sin`, `cos`, `min`, `max`, `clamp`, `lerp`, `pow`, `exp`, `log`,
   random `range`, `chance`, `pick`; tables (`fade[p.age]`) and curves (`glow(p.t)`) from `[tables]` and `[curves]`;
   the world's wind (`wind.x/y/z`, `wind_strength`) and the carrier's `carrier_radius` and `carrier_z`; when it is a
-  unit, `carrier_unit` (1), `carrier_running`, `carrier_dead`, its own x and y axes `carrier_axis.x/y/z` and
+  unit, `carrier_unit` (1), `carrier_unit_radius` (its own radius), `carrier_running`, `carrier_dead`, its own x and y axes `carrier_axis.x/y/z` and
   `carrier_axis_y.x/y/z`, its feet
   `carrier_left_foot.x/y/z` and `carrier_right_foot.x/y/z`. A particle's own vars may not reuse the built-in names
   (`p.age`, `p.life`, `p.x`...). A var with `at_create = true` starts when the source is made (a random count drawn
@@ -646,7 +646,17 @@ frame = { start = "pick(16)", delay = 1 }
   "..."` throws a particle away once it is made (its random draws stay drawn); `anchor_index = "p.gust"` starts it at
   the anchor of that number, chosen after its vars, and `pick = "first"` at the group's first live one; the spawn
   shape `flat_ball` draws a point of the flat disc as `ball` draws one of the ball, `segment` a point between `from`
-  and `to` (by default the source's extent: a beam's or a wall's length).
+  and `to` (by default the source's extent: a beam's or a wall's length). `source` also writes an effect var by its
+  name and the particle's anchor's vars (`source = { a.size = "p.drawn" }`: the wisps of an orb read how big
+  the orb is). `jump = "<condition>"` makes a particle jump: on an update where it holds, its previous place, size and colour
+  are its new ones (drawn there, not moving there from the old place); `jump = { when = "...", size = "..." }` also
+  gives the previous size (a ball thrown back to its start).
+- **More than one anchor's values**: `swirl.px[2]` reads the var `px` of the group `swirl`'s anchor number 2 (counted
+  from 0 in the order they were made, held to the first and last), `swirl.x[0]` its place; a light that takes the
+  first light's orbit, a spark pulled towards a random swirl.
+- **Random points**: `ball_x()` draws a random point in the unit ball and gives its x, then `ball_y()` and `ball_z()`
+  the same point's y and z (a random direction for three vars). The `ball` and `shell` spawns take `tries` (10: the
+  draws before the last is kept; 0: draw until the point is inside).
 - **Anchors made as it goes**: `{ add_anchor = "orb", count = 3 }` makes anchors at any time (`count = 0` in the
   `[[anchor]]` makes none at the start), and an anchor's own `spawn = { shape = "ball" }` gives each a random point
   (`a.spawn.x/y/z`) to place it by; `[[on]] event = "before_emit"` runs before each particle is made, so the first
@@ -668,7 +678,9 @@ frame = { start = "pick(16)", delay = 1 }
   Teleport, Banshee, BlueGas, Nuke, the marks on units Stun, Regeneration, VisionStar1-4, FeetCloud1 / 2, StartTrans,
   the leaves Falling1-4, the protection spheres SphereAcid, SphereElectricity, SphereFire and Antimagic, the blood
   showers Shower1-4, the poison clouds PoisonFog and PoisonCloud, the mushroom and its Transform, the dust GroundDust1
-  / 2, the beam Link, the rings Modifier1-12 and ClayRing, the casting circles Cylinder1 / 2 so far); a mod's
+  / 2, the beam Link, the rings Modifier1-12 and ClayRing, the casting circles Cylinder1 / 2, the casts Casting,
+  Healing, CastingFire, CastingElectricity, CastingAcid, CastingDivination, CastingIllusion, CastingDomination,
+  CastingEnchantment and CastingHealing, the regeneration orbs Silence and the bag's balls Bag so far); a mod's
   `Res\effects\FireStar.effect.toml` retunes the fire arrow's flash with only
   the fields it names, and `Res\effects\ZoneExit.effect.toml` the glow over every zone exit.
 - **Problems** are `warning: effects: <file>:<line>: ...` lines in `ei-rebuild.log`; an effect with an error shows

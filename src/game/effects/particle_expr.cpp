@@ -33,6 +33,7 @@ constexpr FunctionName kFunctions[] = {
     {"log", Function::Log, 1},       {"ground", Function::Ground, 2},
     {"platform_height", Function::PlatformHeight, 2},     {"platform_normal_x", Function::PlatformNormalX, 2},
     {"platform_normal_y", Function::PlatformNormalY, 2},  {"platform_normal_z", Function::PlatformNormalZ, 2},
+    {"ball_x", Function::BallX, 0},  {"ball_y", Function::BallY, 0}, {"ball_z", Function::BallZ, 0},
 };
 
 bool IsNameStart(char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'; }
@@ -212,12 +213,15 @@ private:
         if (Take("(")) return Call(name);
         const Resolved meaning = Lookup(name);
         if (Take("[")) {
-            if (meaning.kind != Resolved::Kind::Table && meaning.kind != Resolved::Kind::ListAxis)
+            if (meaning.kind != Resolved::Kind::Table && meaning.kind != Resolved::Kind::ListAxis &&
+                meaning.kind != Resolved::Kind::AnchorAt)
                 return Fail("'" + std::string(name) + "' is no table");
             Ternary();
             if (!Take("]")) return Fail("']' expected");
             if (meaning.kind == Resolved::Kind::ListAxis)
                 Emit(Op::ListAt, meaning.index, 0.0f, Scope::Source, meaning.axis);
+            else if (meaning.kind == Resolved::Kind::AnchorAt)
+                Emit(Op::AnchorAt, meaning.index, 0.0f, meaning.scope, meaning.group);
             else
                 Emit(Op::Index, meaning.index);
             return;
@@ -235,6 +239,8 @@ private:
         case Resolved::Kind::Table: return Fail("table '" + std::string(name) + "' needs an index: " + std::string(name) + "[i]");
         case Resolved::Kind::Curve: return Fail("curve '" + std::string(name) + "' needs a value: " + std::string(name) + "(t)");
         case Resolved::Kind::ListAxis: return Fail("list '" + std::string(name) + "' needs an index: " + std::string(name) + "[i]");
+        case Resolved::Kind::AnchorAt:
+            return Fail("'" + std::string(name) + "' is an anchor's: it needs the anchor's number: " + std::string(name) + "[i]");
         case Resolved::Kind::None: return Fail("unknown name '" + std::string(name) + "'");
         }
     }
@@ -308,6 +314,13 @@ float CallFunction(Function f, const float* a, const Env& env) {
         return static_cast<float>(word % static_cast<std::uint32_t>(n));
     }
     case Function::Ground: return env.ground ? env.ground(a[0], a[1]) : 0.0f;
+    case Function::BallX: {
+        const Vector3 v = random ? RandomInBall(*random) : Vector3{};
+        if (env.ball) *env.ball = v;
+        return v.x;
+    }
+    case Function::BallY: return env.ball ? env.ball->y : 0.0f;
+    case Function::BallZ: return env.ball ? env.ball->z : 0.0f;
     case Function::PlatformHeight:
     case Function::PlatformNormalX:
     case Function::PlatformNormalY:
@@ -340,6 +353,33 @@ float ListAt(const std::vector<float>& points, float at, int axis) {
 }
 
 } // namespace
+
+Vector3 RandomInCube(IsaacRandom& random) {
+    const float x = random.Range(-1.0f, 1.0f);
+    const float y = random.Range(-1.0f, 1.0f);
+    return {x, y, random.Range(-1.0f, 1.0f)};
+}
+
+Vector3 RandomInBall(IsaacRandom& random, float* lengthSquared, int tries) {
+    Vector3 v;
+    float length2 = 0.0f;
+    if (tries <= 0) {
+        for (;;) {
+            v = RandomInCube(random);
+            length2 = LengthSquared(v);
+            if (length2 <= 1.0f && length2 > 0.0f) break;   // random: never NaN
+        }
+    } else {
+        for (;;) {
+            v = RandomInCube(random);
+            length2 = LengthSquared(v);
+            if (length2 < 1.0f) break;   // random: never NaN
+            if (!(--tries > 0)) break;
+        }
+    }
+    if (lengthSquared) *lengthSquared = length2;
+    return v;
+}
 
 float Curve::At(float t) const {
     if (x.empty()) return 0.0f;
@@ -417,6 +457,9 @@ float Expr::Run(const Env& env, float fallback) const {
             break;
         case Op::ListAt:
             stack[top] = env.lists && i.index < env.lists->size() ? ListAt((*env.lists)[i.index], stack[top], i.count) : 0.0f;
+            break;
+        case Op::AnchorAt:
+            stack[top] = env.anchorAt ? env.anchorAt(env.anchorContext, i.count, i.scope, i.index, stack[top]) : 0.0f;
             break;
         }
     }

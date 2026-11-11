@@ -436,20 +436,10 @@ int EmitParticle(ParticleSource& s, Particle& p, int index) {
     if (s.data) return effectdata::EmitData(s, p, index);
     switch (ParticleTypeOf(s.type)) {
     case ParticleType::FireBlast: return EmitBlast(s, p, index);
-    case ParticleType::Healing: return EmitHealing(s, p, index);
     case ParticleType::Geyser: return EmitGeyser(s, p, index);
     case ParticleType::Tornado: case ParticleType::CurseHolder: return EmitTornado(s, p, index);
-    case ParticleType::Casting: return EmitCastRing(s, p, index);
-    case ParticleType::CastingFire: case ParticleType::CastingElectricity: case ParticleType::CastingAcid:
-    case ParticleType::CastingDivination:
-        return EmitCasting(s, p, index);
     case ParticleType::LightningBlast: return EmitLightning(s, p, index);
-    case ParticleType::CastingIllusion: case ParticleType::CastingDomination:
-    case ParticleType::CastingEnchantment: case ParticleType::CastingHealing:
-        return EmitCastSwirl(s, p, index);
     case ParticleType::ShapeChange: return EmitGlow(s, p, index);
-    case ParticleType::Bag: return EmitBag(s, p, index);
-    case ParticleType::Silence: return EmitSilence(s, p, index);
     }
     return 0;
 }
@@ -459,20 +449,10 @@ int UpdateParticle(ParticleSource& s, Particle& p) {
     if (s.data) return effectdata::UpdateData(s, p);
     switch (ParticleTypeOf(s.type)) {
     case ParticleType::FireBlast: return UpdateBlast(s, p);
-    case ParticleType::Healing: return UpdateHealing(s, p);
     case ParticleType::Geyser: return UpdateGeyser(s, p);
     case ParticleType::Tornado: case ParticleType::CurseHolder: return UpdateTornado(s, p);
-    case ParticleType::Casting: return UpdateCastRing(s, p);
-    case ParticleType::CastingFire: case ParticleType::CastingElectricity: case ParticleType::CastingAcid:
-    case ParticleType::CastingDivination:
-        return UpdateCasting(s, p);
     case ParticleType::LightningBlast: return UpdateLightning(s, p);
-    case ParticleType::CastingIllusion: case ParticleType::CastingDomination:
-    case ParticleType::CastingEnchantment: case ParticleType::CastingHealing:
-        return UpdateCastSwirl(s, p);
     case ParticleType::ShapeChange: return UpdateGlow(s, p);
-    case ParticleType::Bag: return UpdateBag(s, p);
-    case ParticleType::Silence: return UpdateSilence(s, p);
     }
     return 0;
 }
@@ -487,21 +467,10 @@ void TickSource(ParticleSource& s) {
     if (s.data) return effectdata::TickData(s);
     switch (ParticleTypeOf(s.type)) {
     case ParticleType::FireBlast: EachElement(s, TickBlast); break;
-    case ParticleType::Healing: EachElement(s, TickHealing); break;
     case ParticleType::Geyser: EachElement(s, TickGeyser); break;
     case ParticleType::Tornado: case ParticleType::CurseHolder: TickTornado(s); break;
-    case ParticleType::Casting: EachElement(s, TickCastRing); break;
-    case ParticleType::CastingFire: case ParticleType::CastingElectricity: case ParticleType::CastingAcid:
-    case ParticleType::CastingDivination:
-        TickCasting(s);
-        break;
     case ParticleType::LightningBlast: EachElement(s, TickLightning); break;
-    case ParticleType::CastingIllusion: case ParticleType::CastingDomination:
-    case ParticleType::CastingEnchantment: case ParticleType::CastingHealing:
-        EachElement(s, TickCastSwirl);
-        break;
     case ParticleType::ShapeChange: TickGlow(s); break;
-    case ParticleType::Bag: EachElement(s, TickBag); break;
     default: break;
     }
 }

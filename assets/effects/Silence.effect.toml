@@ -1,0 +1,82 @@
+# Silence (0x2048, the Stun texture; the regeneration spell's mark): two orbs circling the carrier's body on a tilted
+# circle (half its radius out, a quarter of it up, the two half a turn apart), flickering in size, with wisps
+# thrown out along a random orb's last step that shrink by 0.8 a tick for 7 ticks. Once the source stops emitting or
+# loses its carrier, each orb shrinks the source by 0.85 a tick, and everything goes when it is below 0.02.
+# The original read the orb's last step from the particle's pool slot before the orb had made one (a stale value of
+# whatever used the slot before); here a new orb's last step is zero.
+# The original types on data: docs/notes/effects.md, "The original effects on data".
+
+texture = "Stun"
+blend = "additive"
+attach = "attached_only"
+part = "body"
+
+[emit]
+rate = 4
+max = 300
+
+# An orb's anchor, made with its particle (the first two of the emission).
+[[on]]
+event = "before_emit"
+when = "count <= 1"
+do = [{ add_anchor = "orb" }]
+
+# An orb: its circle's radius (r, kept while the carrier is gone), its place (p*), its last step (d*) and its angles;
+# its particle writes its size, which the wisps read.
+[[anchor]]
+name = "orb"
+count = 0
+
+[anchor.vars]
+size = 0
+r = { start = 1, tick = "attached ? carrier_bounds_radius * 0.5 : a.r" }
+k = { start = 0, tick = "a.r / sqrt(cos(a.ang) * cos(a.ang) + sin(a.ang) * sin(a.ang) + sin(a.tilt) * 0.5 * (sin(a.tilt) * 0.5))" }
+nx = { start = 0, tick = "cos(a.ang) * a.k + origin.x" }
+ny = { start = 0, tick = "sin(a.ang) * a.k + origin.y" }
+nz = { start = 0, tick = "a.r * 0.5 + (sin(a.tilt) * 0.5 * a.k + origin.z)" }
+dx = { start = 0, tick = "a.nx - a.px" }
+dy = { start = 0, tick = "a.ny - a.py" }
+dz = { start = 0, tick = "a.nz - a.pz" }
+px = { start = "origin.x", tick = "a.nx" }
+py = { start = "origin.y", tick = "a.ny" }
+pz = { start = "origin.z", tick = "a.nz" }
+ang = { start = "count > 0 ? 0 : 3.1416", tick = "a.ang + 0.1" }
+tilt = { start = "count > 0 ? 0 : 3.1416", tick = "a.tilt + 0.12" }
+
+[[particle]]
+name = "orb"
+when = "count <= 1"
+at = "orb"
+anchor_index = "anchors.orb - 1"
+lifetime = 1000000000
+frame = 6
+size = { start = 0, tick = "p.drawn" }
+alpha = { start = 0, tick = 255 }
+kill = "(!emitting || !attached) && p.shrunk < 0.02"
+source = { size = "p.shrunk", a.size = "p.drawn" }
+
+[particle.position]
+start = ["origin.x", "origin.y", "origin.z"]
+tick = ["a.px", "a.py", "a.pz"]
+
+[particle.vars]
+shrunk = { start = 0, tick = "!emitting || !attached ? size * 0.85 : size" }
+drawn = { start = 0, tick = "(!emitting || !attached) && p.shrunk < 0.02 ? p.size : (below(0.2) + 0.9) * p.shrunk * 0.22" }
+
+[[particle]]
+name = "wisp"
+at = "orb"
+anchor_index = "anchors.orb - 2 + p.which"
+lifetime = 7
+frame = 6
+spawn = { shape = "ball" }
+position = ["p.spawn.x * a.size * 0.8 + (a.px - p.along * a.dx)", "p.spawn.y * a.size * 0.8 + (a.py - p.along * a.dy)", "p.spawn.z * a.size * 0.8 + (a.pz - p.along * a.dz)"]
+size = { start = 0, tick = "p.now" }
+kill = "(!emitting || !attached) && size < 0.02"
+
+# The size it shows this tick (now) and the next (next, 0.8 of it).
+[particle.vars]
+which = "pick(2)"
+along = "range(0, 1)"
+now = { start = 0, tick = "p.next" }
+next = { start = "(below(0.4) + 0.8) * size * 0.08", tick = "p.next * 0.8", after_spawn = true }

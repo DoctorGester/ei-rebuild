@@ -87,6 +87,7 @@ enum class SourceValue : std::uint16_t {
     CarrierLeftFootX, CarrierLeftFootY, CarrierLeftFootZ,
     CarrierRightFootX, CarrierRightFootY, CarrierRightFootZ,
     CarrierAxisYX, CarrierAxisYY, CarrierAxisYZ,    // its own y axis (0 when free)
+    CarrierUnitRadius,  // a unit carrier's own radius (Unit::Radius, by its size class; 0 for any other carrier)
     Values
 };
 inline constexpr int kSourceValues = static_cast<int>(SourceValue::Values);
@@ -207,13 +208,9 @@ struct Spawn {
     Expr radius;
     Expr boxMin[3], boxMax[3];  // the box's (empty: the source's spread)
     Expr from[3], to[3];        // the segment's ends (empty: 0 and the source's extent)
+    int tries = 10;             // a ball's and a shell's draws of the cube (RandomInBall; 0: until inside)
 };
 
-// A random point of the cube [-1, 1)^3, drawn x, y, z.
-Vector3 RandomInCube(IsaacRandom& random);
-// A random point in the unit ball (ten tries of the cube, the last one kept); `lengthSquared` (when given) gets its
-// squared length.
-Vector3 RandomInBall(IsaacRandom& random, float* lengthSquared = nullptr);
 // The point of `spawn` in `env`: the shape's expressions and draws in the order x, y, z (the defaults read the
 // source's spread and extent there).
 Vector3 SpawnPoint(const Spawn& spawn, const Env& env, IsaacRandom& random);
@@ -265,7 +262,17 @@ struct ParticleKind {
     FrameMode frameMode = FrameMode::Loop;
     Expr kill;
     Expr drop;              // holds at the end of the emission: the particle is not kept (its draws were made)
-    std::vector<std::pair<int, Expr>> sourceWrites;   // each update: the source's value (SourceValue) set, in order
+    // Each update, in order: a source value (SourceValue), an effect var or a var of its anchor set.
+    struct Write {
+        enum class To : std::uint8_t { Source, Var, AnchorVar };
+        To to = To::Source;
+        int index = 0;
+        Expr value;
+    };
+    std::vector<Write> writes;
+    Expr jump;              // holds after an update: the particle jumps (its previous place, size and colour made its
+                            // new ones, so it is not drawn moving from the old)
+    Expr jumpSize;          // given: the previous size a jump gives instead of its size
     std::vector<Action> onDeath;    // at its death: particles emitted and effects started at its place, values set
 };
 
@@ -411,6 +418,7 @@ public:
     std::vector<std::vector<float>> lists;  // the list inputs' points, x y z each
     std::vector<float> vars;
     std::vector<AnchorState> anchors;   // never removed (a particle reads its anchor's last values)
+    mutable Vector3 ball;           // the point the last ball_x() drew (Env::ball)
     int stage = -1;
     int stageAge = 0;               // steps since the current stage began
     int stageTicks = -1;            // the current stage's length (-1: none)
@@ -434,6 +442,8 @@ public:
     std::vector<ShakeRequest> shakes;
 
 private:
+    // Env::anchorAt: a field of group `group`'s anchor numbered `number` (as made, held to the ends), 0 when it has none.
+    static float AnchorAt(const void* context, int group, Scope scope, int field, float number);
     void Start(IsaacRandom& random);
     void Enter(int index, IsaacRandom& random, int depth = 0);
     void Run(const std::vector<Action>& actions, IsaacRandom& random, int depth = 0);

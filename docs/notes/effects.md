@@ -1,7 +1,7 @@
 # Particles and world effects
 
 Code: `particle_manager.cpp` (the manager, attach, draw, tick), `particle_create.cpp` (the spec table, Create), the
-effects by family (`particle_casting.cpp`, `particle_marks.cpp`, `particle_blasts.cpp`, `particle_world.cpp`),
+effects still in code by family (`particle_blasts.cpp`, `particle_world.cpp`),
 `particle_common.h`, `effects.h`, `effects_weather.cpp`, `world_effect*.cpp`. Scenarios:
 `particles.txt` (every source type it can make), `effects.txt`, `spells*`, `effects_bow`.
 
@@ -22,8 +22,8 @@ effects by family (`particle_casting.cpp`, `particle_marks.cpp`, `particle_blast
   ("CParticle::Create(). Unknown ETypeID."), which an original client still would, but none gets a data effect's id
   ("In multiplayer and saves"). Check: `ei-convert --lua-check`'s `CheckUnknownParticleType`.
 - Each effect is a section of its family's file: its set-up, `Emit*` (fill one particle; 0 returns it to the pool),
-  `Update*` (move one; 0 drops it) and `Tick*` (one element of the source's array, or the whole array for Tornado,
-  Casting*, Cylinder* and ShapeChange), free functions over the source declared in
+  `Update*` (move one; 0 drops it) and `Tick*` (one element of the source's array, or the whole array for Tornado and
+  ShapeChange), free functions over the source declared in
   `particle_common.h`. The tick picks them by type in `EmitParticle`, `UpdateParticle` and `TickSource`
   (particle_manager.cpp); a type without an element tick has none.
 - `Tick` computes the source motion, runs the type's element tick and its update per particle (saving / restoring
@@ -54,23 +54,24 @@ Kept:
   AcidRay's spread and size (to 16; its file's tables), ClayRing's alpha at the first ticks (12, 13), Modifier's fade (10), FireBlast's
   frame (to 16), TeleportRing's column alpha in the update after death (its file's fade table); the tables carry the
   zeros or the reads are guarded.
-- An update that counts the life down then reads its life table at index -1 (Casting, CastSwirl; ClayRing its
-  countdown table; the spheres' and Shower's files): the original read the previous table's last entry; `ByLife` (effects.h)
+- An update that counts the life down then reads its life table at index -1 (ClayRing its countdown table; the
+  spheres', Shower's and the casting family's files): the original read the previous table's last entry; `ByLife` (effects.h)
   gives that value. FireBlast's flame frame can step to 16 (read as alpha 0); Link sparks are emitted on a frame up to
   frameCount, one past the grid (drawn with the first frame).
-- `EmitLightning` never counts its bursts; CastSwirl reads its locals one slot off (an element gets sign * carrier
-  radius instead of the size); Mushroom's spread is ln(1) = 0; Falling's direction spread is ftol(10 degrees) = 0 (its files);
+- `EmitLightning` never counts its bursts; CastingIllusion ... CastingHealing read their locals one slot off (a light
+  gets sign * carrier radius instead of the size; their files); Mushroom's spread is ln(1) = 0; Falling's direction spread is ftol(10 degrees) = 0 (its files);
   Teleport adds its alpha step as an unsigned sum capped at 255 (a fade out below 19 jumps back to opaque; its file);
   LightningBlast sparks shift the alpha table by 22, not 24; FireBlast keeps odd counters (see the code), Shower its
   rays' age from -100 before they are chosen (a free Shower stops after 106 ticks; its file);
-  Casting's swirl pick 0 is element 0, the effect's state, read as a swirl (its radius and size as x and y, z 0).
+  CastingFire ... Divination's swirl pick 0 is the effect's state read as a swirl (its radius and size as x and y, z
+  0; their files).
 
 ## Data effects
 
 An effect written as data (MF15c; plan: the MF15 study, approved by the user 2026-11-11):
 `Res\effects\<name>.effect.toml`, read through the mod layers and run by one C++ runtime inside the generic source tick
 above. The end state (MF15g) is every original effect on this path and the per-type `Emit*` / `Update*` / `Tick*`
-deleted: the original effects and a modder's use the same runtime, so nothing below is mod-only (65 of the 83 types are
+deleted: the original effects and a modder's use the same runtime, so nothing below is mod-only (77 of the 83 types are
 there now: "The original effects on data"). Game code (and later Lua) drives an effect only through the typed inputs it
 declares; the data maps them to rates, curves, stages, anchors and sub-effects.
 
@@ -196,11 +197,15 @@ numbers), `[curves]` (name = `[[t, value], ...]`, linear, held at the ends).
   was held to the last frame, a change of the schema's behaviour), `kill` (it dies once this holds), `drop` (it holds at
   the end of the emission: the particle is not kept, its draws made; the "emit" reactions still run), `source = { size =
   ..., ... }` (each update sets these source values after the colour and before `kill`, in order; the particles after it
-  and the emission read them: Regeneration's shrinking source), `on_death` (actions at its death, the first only: the
+  and the emission read them: Regeneration's shrinking source; an effect var by its name, and `a.<var>` a var of the
+  particle's anchor: Silence's orb size), `jump = "<when>" | { when, size }` (after the update, where it holds, the
+  previous place and colour are the new ones and the previous size `size`'s value, else the size: the particle is
+  drawn at its new place, not moving from the old; Bag's thrown balls), `on_death` (actions at its death, the first only: the
   update a dead particle still gets fires nothing; `{ emit = n, kind = ... }` queues n particles of the kind whose
   spawn's centre is its place, emitted at this tick's emission, emitting or not; `{ effect = ... }` starts one there at
   once; `set` an input or a var; the counts and values may read `p.*`; nothing else). `flat_ball` draws x and y in [-1,
-  1) until y * y + x * x < 1 (ten tries, the last kept), z 0, times `radius`.
+  1) until y * y + x * x < 1 (ten tries, the last kept), z 0, times `radius`. `ball` and `shell` take `tries` (10: the
+  draws of the cube before the last is kept; 0: until 0 < length squared <= 1, CastingFire's).
 
 ### Expressions
 
@@ -210,14 +215,17 @@ lerp pow exp log`, `ground(x, y)` (the ground's height there, as `on_ground` rea
 effect_check's empty terrain), `platform_height(x, y)`, `platform_normal_x(x, y)`, `_y`, `_z` (the plane of a platform
 there, `PlatformSet::SurfacePlane`: 0 and the normal (0, 0, 1) where there is none; GroundDust), random `range(lo, hi)`
 (IsaacRandom::Range), `below(k)`, `chance(percent)`, `pick(n)` (Next() % n), a curve `name(t)`, a table `name[i]`
-(truncated, held to the ends), a list input's `name.x[i]`. Constants `pi`, `deg`. Names, by where the expression runs:
+(truncated, held to the ends), a list input's `name.x[i]`, an anchor group's values `<group>.<var>[i]`,
+`<group>.x[i]`, `<group>.age[i]` ... (its anchor number i in the order made, truncated and held to the ends; 0 without
+one), `ball_x()` (a point drawn in the unit ball, `effectdata::RandomInBall`; its x) with `ball_y()`, `ball_z()` (the
+last drawn point's y and z). Constants `pi`, `deg`. Names, by where the expression runs:
 - everywhere: the inputs, the vars, the source's values (`size`, `height`, `growth`, `alpha`, `param`, `base_size`,
   `age`, `stage_age`, `stage`, `carrier_radius`, `carrier_z`, `attached`, `distance`, `motion.x/y/z`, `origin.x/y/z`,
   `count`, `index`, `total`, `wind.x/y/z`, `wind_strength`, `extent.x/y/z`, `turn_cos`, `turn_sin`, `emitting`: the
   source's emission flag, which the game's StopEmitting and Stop and an effect's `once` clear, `spread_min.x/y/z`,
   `spread_max.x/y/z` (the spread box, scaled by ScaleSize), `side.x/y/z`, `up.x/y/z` (the motion's side and up axes this
   tick, zero while the source moves 0.001 or less: the trails' across directions), the carrier as a unit:
-  `carrier_unit`, `carrier_running`, `carrier_dead` (0 / 1), `carrier_axis.x/y/z`, `carrier_axis_y.x/y/z` (its own x and
+  `carrier_unit`, `carrier_running`, `carrier_dead` (0 / 1), `carrier_unit_radius` (the unit's own radius, 0 else), `carrier_axis.x/y/z`, `carrier_axis_y.x/y/z` (its own x and
   y axes; 0 when free), `carrier_bounds_radius` (its bounds' radius as it stands, not measured again),
   `carrier_left_foot.x/y/z`, `carrier_right_foot.x/y/z` (its "ll3" / "rl3" parts, else its body, else its position
   raised by its bounds' top, as ParticleSource::PartPoint; the origin without a unit carrier); written at the tick's
@@ -263,11 +271,11 @@ RikArrowSmoke, AcidRay (MF15g), the smoke family CampFire, Fire, Smoke, Tendril,
 TeleportRing, Teleport, Banshee, BlueGas and Nuke (MF15g2), the carrier readers Stun, Regeneration, VisionStar1-4,
 FeetCloud1 / 2, StartTrans, Falling1-4, SphereAcid, SphereElectricity, SphereFire and Antimagic (MF15g3), Shower1-4
 (MF15g3b), PoisonFog, PoisonCloud, Mushroom, Transform, GroundDust1 / 2, Link, Modifier1-12, ClayRing and Cylinder1 / 2
-(MF15g4) run from
+(MF15g4), Casting, Healing, CastingFire, CastingElectricity, CastingAcid, CastingDivination, CastingIllusion,
+CastingDomination, CastingEnchantment, CastingHealing, Silence and Bag (MF15g5) run from
 `assets/effects/<Name>.effect.toml`, built into the executable (src/game/effects/embed_effects.cmake writes them as
 bytes at build time; `effectdata::BuiltinText`). Their C++ emitters and their `kSpecs` entries are gone. The rest is
-MF15g5 (the casting family, Casting, Healing, Silence, Bag) and MF15g6 (FireBlast, LightningBlast, Geyser, Tornado /
-CurseHolder, ShapeChange).
+MF15g6 (FireBlast, LightningBlast, Geyser, Tornado / CurseHolder, ShapeChange).
 - **The built-in file is the bottom layer.** The registry reads it below the mod layers' files of the same name
   (`Res\effects\FireStar.effect.toml` in a mod retunes the field it names), unless a mod's file says `replace = true`.
 - **The id is the original type** (`ParticleTypeByName`; 0x2041 for FireStar), so the world objects, the delta field,
@@ -275,9 +283,9 @@ CurseHolder, ShapeChange).
   `FindById` answers an original type's id from its built-in file; a type still in code has none, and a mod's file of
   such a type's name is left out (and not listed by `Scan`).
 - **What the C++ tables held moved into the file**: `[server] one_shot` (FireStar, AcidStar, Sparks, Banshee, Nuke,
-  Shower1-4, Mushroom, Modifier1-12, ClayRing, Cylinder1 / 2: 60; Teleport 120;
+  Shower1-4, Mushroom, Modifier1-12, ClayRing, Cylinder1 / 2, Casting, Healing: 60; Teleport 120;
   `OneShotTicks` reads the record), `script_lifetime` (FireStar, AcidStar: 20; Sparks 60; Teleport, Nuke, StartTrans,
-  Mushroom, Transform, Modifier1-12, ClayRing, Cylinder1 / 2: 200; the others -1, the default;
+  Mushroom, Transform, Modifier1-12, ClayRing, Cylinder1 / 2, Casting, Healing: 200; the others -1, the default;
   their `kScriptParticleTypes` entries are gone, and CreateParticleSource finds the name in the registry), the spec's
   texture, flags, part, rates, limits and starting values (`[source]`: ZoneExit's alpha and param 5, the trails' size,
   growth and spread).
@@ -296,7 +304,9 @@ CurseHolder, ShapeChange).
   "before_emit" reactions, `add_anchor`, an anchor's `spawn` with `a.spawn.*`, and the shared ball draw
   `effectdata::RandomInBall`, for Shower; MF15g4's kinds emitted by "emit" reactions, the `shake` action, the
   `platform_*` functions, `carrier_axis_y`, the spread and extent settable, the frame start past the grid, and TOML
-  integers read exactly, so `max = 2147483647` is not rounded through a float).
+  integers read exactly, so `max = 2147483647` is not rounded through a float; MF15g5's `ball_x()` / `ball_y()` /
+  `ball_z()`, a spawn's `tries`, an anchor group's values by number `<group>.<var>[i]`, particle `source` writes to
+  effect vars and to the anchor's vars `a.<var>`, a kind's `jump` and `carrier_unit_radius`).
 - **Exactness rules found**: an expression's operations are float operations in the written order, so
   `(below(0.4) + 0.8) * size * 0.04` is the C++'s `(Below(0.4f) + 0.8f) * s.size * 0.04f` bit for bit; a draw the C++
   makes before the position goes into a var (vars draw before the position: CurseStars's `cell = "pick(16)"`, which
@@ -353,80 +363,37 @@ CurseHolder, ShapeChange).
   value of the table after it) is the value it gives (0 alpha). Modifier's retry of a projection of length zero is
   left out (it practically never happens); PoisonFog's grid is laid about the origin where the C++ took the local
   position, the same for the free source the spell makes.
+- **MF15g5's rules**: state the C++ keeps per element and a particle reads from another element (the swirl a
+  CastingFire spark is pulled by, the first light's orbit a later CastingIllusion light takes, the Bag ball a spark
+  sits on) is anchor vars read by number, `swirl.px[k]`, `orb.rx[0]`. A C++ ball draw whose three values feed three
+  places (Bag's kick, CastingFire's swirls) is `ball_x()` (the draw) then `ball_y()`, `ball_z()` (its other two); an
+  unbounded draw loop is `tries = 0`. A C++ update that writes its element (Silence's orb size, which the wisps read)
+  is a `source` write to `a.<var>`; one that writes the effect's state (Casting's emission phase) an effect var. A
+  particle the C++ moves without a trail (Bag's balls thrown again) is a `jump` with the previous size it shows. A
+  carrier's own radius the C++ asks of a unit (CastingFire's three times it) is `carrier_unit_radius`, 0 for a stone.
+  Two changes: Casting's restarted close sparks wrap their frame at 16 where the C++'s grew without a bound (past 15
+  updates of a restart, which no script makes); Silence's wisps read their orb's last
+  step, which the original read from the particle's pool slot before the orb had made one (a stale value of whatever
+  used the slot before): a new orb's step is zero here, a fix by judgement (MF15g5; unseen in effect_check, whose
+  pool is fresh).
 
 ### The original state machines on inputs (MF15g's path)
 
 The 14 behaviours (34 types) the study left as code become anchors, vars, stages and kinds, with what game code
-decides today as inputs. Two written out (equivalence to the C++ is MF15d's check, not claimed here):
-
-Healing (rings of flames rising around the carrier):
-```toml
-texture = "Healing"
-blend = "additive"
-attach = "attached_only"
-[server]
-one_shot = 60
-script_lifetime = 200
-[source]
-size = 0.5
-[vars]
-step = { start = "carrier_radius * 1.1 / 18" }            # the rings' radius step (the C++ keeps it in height)
-flame_growth = { start = "(size + 1) / 144" }
-[emit]
-rate = "anchors.ring * 3"                                 # sparks at random rings
-[[stage]]
-name = "rings"
-until = "anchors.ring == 0"                               # the emission ends with the rings
-next = "end"
-[[on]]
-event = "start"
-do = [{ emit = 1, kind = "flame", at = "ring" }]          # one flame per ring
-[[anchor]]
-name = "ring"
-count = "round(size * 6 + 2)"
-ticks = 36
-vars.lift = { start = "range(-0.2 * carrier_radius, 0.2 * carrier_radius)" }
-vars.radius = { start = 0, tick = "a.ticks >= 18 ? a.radius + step : a.radius - step" }
-vars.angle = { start = "a.index * 2 * pi / a.count", tick = "a.angle + 10 * deg" }
-vars.height = { start = "carrier_z - carrier_radius + a.lift", tick = "a.height + (2 * carrier_radius - a.lift) / 36" }
-x = "sin(a.angle) * a.radius"
-y = "cos(a.angle) * a.radius"
-z = "a.height"
-[[particle]]
-name = "flame"                                            # rides its ring 36 ticks, then burns out for 8
-when = false
-at = "ring"
-space = "anchor"
-lifetime = 44
-size = { start = "(size + 1) * 0.1", tick = "p.age < 18 ? p.size + flame_growth : p.age < 36 ? p.size - flame_growth : p.size" }
-alpha = { tick = "p.age < 36 ? 255 : p.alpha - 30" }
-frame = { tick = "p.age < 36 ? p.age % 8 : p.frame" }
-[[particle]]
-name = "spark"
-at = "ring"
-pick = "random"
-lifetime = 8
-spawn = { shape = "box", min = ["-0.15 * a.radius", "-0.15 * a.radius", "-0.15 * a.radius"], max = ["0.15 * a.radius", "0.15 * a.radius", "0"] }
-size = "(size + 1) * 0.07"
-frame = { start = 8, delay = 1 }
-```
-
-Casting: the same rings (three, 45 ticks; the radius `tick` grows to 27, shrinks to 9, then eases to `step * 20`; the
-angle and height turn only while `a.ticks >= 9`) with the source's phase as two stages, `turn` (`ticks = 36`, `rate =
-27`, sparks at random rings) and `close` (`ticks = 9`, `rate = 72`, `next = "end"`), and two spark kinds chosen by
-`when = "stage == stage.close"`: the close sparks spawn on ring 0's circle (`at = "ring"` with `pick = "first"`, an
-extension below; `spawn = { shape = "ring", radius = "range(inner, a.radius)" }`).
+decides today as inputs. Healing and Casting (rings of flames rising around the carrier) are on data since MF15g5
+(assets/effects/Healing.effect.toml, Casting.effect.toml: ring anchors, the emission's phase an effect var advanced
+by "emit" reactions).
 
 The others, by what drives them:
 
 | Behaviour | Anchors / vars / stages | Inputs game code drives |
 |---|---|---|
-| CastingFire ... Divination (swirls) | swirls: anchors random-walking (vars with `range` kicks); the envelope a var | `casting` (bool: the C++'s "attached and emitting" freeze) |
-| CastSwirl orbiters | one anchor added per emission (needs the action below) | |
+| CastingFire ... Divination (swirls) | on data (MF15g5): 5 swirl anchors random-walking, the fade an effect var | |
+| CastingIllusion ... Healing (orbiters) | on data (MF15g5): one light anchor added per emission | |
 | Cylinder1 / 2 | on data (MF15g4): 2 star anchors added at the first particle, a countdown var | |
 | Modifier1-12 | on data (MF15g4): ring-point anchors; the direction still the size's sign | |
 | Link | on data (MF15g4): the beam's frame from `extent` (game code still sets the extent) | |
-| Silence, Bag | orb anchors on a tilted circle; 80 ball anchors kicked (vars), colour by age tables | |
+| Silence, Bag | on data (MF15g5): orb anchors on a tilted circle; 80 ball anchors kicked (vars), colour by tables | |
 | FireBlast, LightningBlast | fragment / bolt-point anchors with velocity vars, sub-effects | |
 | ClayRing, Geyser | ClayRing on data (MF15g4): ten ground-point anchors on `ground`; Geyser: vents with eruption / pause vars | |
 | Tornado, CurseHolder | 6 funnel-ring anchors leaning with `motion.x/y` | `tint` (vector: the sun's colour, today read by the C++) |
@@ -442,7 +409,7 @@ client replicates (today only the client's sources take SetInput / Fire; MF15j2)
 ### Checks
 
 - `ei-convert --effect-check` (build checks; ctest `port_effects`; tools/convert/effect_check.cpp): every original type
-  on data against the run recorded from its C++ (tests/effects/reference.txt, built into the tool): 110 cases, 3771
+  on data against the run recorded from its C++ (tests/effects/reference.txt, built into the tool): 126 cases, 4522
   lines (carried, free, a fast carrier's distance tries, rescaled, StopEmitting / StartEmitting / Stop, the carrier
   removed and back, the world's wind; the carrier a stone, or a hero that runs, walks, dies and turns), each tick's
   particles (position, size, colour, frame, their previous values, the dead flag), origin,
@@ -457,8 +424,9 @@ client replicates (today only the client's sources take SetInput / Fire; MF15j2)
   reactions adding anchors with a ball spawn (their draws in turn), `ground(x, y)`, a list input by default and set,
   `pick = "first"`, the segment's one draw, `on_death` queueing placed particles and an effect, the actions refused in
   `on_death` and "before_emit", MF15g4's "emit" reactions queueing a kind (and refused a kindless emit), the `shake`
-  action and its form refused without a time, the `platform_*` functions, and every whole effect written out in this
-  file and in docs/modding.md read without a problem (EI_SOURCE_DIR). The POSIX port check (`port_platform`) runs the
+  action and its form refused without a time, the `platform_*` functions, MF15g5's `ball_x/y/z`, a spawn's `tries`,
+  `<group>.<var>[i]`, the particle writes to vars and anchor vars and `jump`, and every whole effect written out in
+  docs/modding.md (and in this file, which has none now) read without a problem (EI_SOURCE_DIR). The POSIX port check (`port_platform`) runs the
   same checks.
 - `mod_effect` (both installs; the showcase mod's `Res\effects\showcase_aura.effect.toml`): CreateParticleSource by
   name, the client's source and its stages (`effect ... check`), inputs set by value and by enum name, the burst's
@@ -535,8 +503,8 @@ A separate exe would need all of that again, and it could draw no unit without a
 - **Check**: the `effect_viewer` scenario (the showcase mod).
   - Portal from its built-in file: pause, scrub, step, a field edited and the file saved into the run's output folder.
   - showcase_aura on the hero, with its enum, float and event inputs and its stages.
-  - CastingFire from code, on the hero.
-  - Bag converted to data (no problems, set up as the code does) and back to code.
+  - Tornado from code, on the hero.
+  - Tornado converted to data (no problems, set up as the code does) and back to code.
   - A new effect from the template with a tick reaction that starts Teleport: the sub-effect's particles hold while
     paused and are the same after a scrub to the same tick.
   - Captures `viewer_portal`, `viewer_portal_edited`, `viewer_aura`, `viewer_code`, `viewer_new`.

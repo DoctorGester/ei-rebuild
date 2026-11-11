@@ -2,7 +2,7 @@
 
 // What the particle files (particle_*.cpp) share: each effect's functions, which the source's set-up
 // (particle_create.cpp) and tick (particle_manager.cpp) pick by its type, and their constants. The ball and cube
-// draws are particle_record.h's (shared with the data effects). More: docs/notes/effects.md, "Particle sources".
+// draws are particle_expr.h's (shared with the data effects). More: docs/notes/effects.md, "Particle sources".
 //
 // An Emit fills a particle from the pool (`index`: the emission's count this tick; 0 returns the particle to the pool),
 // an Update moves one (0 drops it), a Tick works on one element of the source's array (taking the source alone: on the
@@ -19,30 +19,6 @@
 
 // The bounds a tick starts from: empty (each minimum above its maximum).
 inline constexpr float kBoundsFar = 100000.0f;
-
-// Bag: its balls (the elements, and the first particles).
-constexpr int kBagBalls = 80;
-
-// particle_casting.cpp.
-int EmitCasting(ParticleSource& s, Particle& p, int index);
-int UpdateCasting(ParticleSource& s, Particle& p);
-void TickCasting(ParticleSource& s);
-int EmitCastRing(ParticleSource& s, Particle& p, int index);
-int UpdateCastRing(ParticleSource& s, Particle& p);
-void TickCastRing(ParticleSource& s, ParticleElement& e);
-int EmitHealing(ParticleSource& s, Particle& p, int index);
-int UpdateHealing(ParticleSource& s, Particle& p);
-void TickHealing(ParticleSource& s, ParticleElement& e);
-int EmitCastSwirl(ParticleSource& s, Particle& p, int index);
-int UpdateCastSwirl(ParticleSource& s, Particle& p);
-void TickCastSwirl(ParticleSource& s, ParticleElement& e);
-
-// particle_marks.cpp.
-int EmitSilence(ParticleSource& s, Particle& p, int index);
-int UpdateSilence(ParticleSource& s, Particle& p);
-int EmitBag(ParticleSource& s, Particle& p, int index);
-int UpdateBag(ParticleSource& s, Particle& p);
-void TickBag(ParticleSource& s, ParticleElement& e);
 
 // particle_blasts.cpp.
 void SetupFireBlast(ParticleSource& s);

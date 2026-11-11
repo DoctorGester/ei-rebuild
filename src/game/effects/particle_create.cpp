@@ -52,34 +52,10 @@ struct ParticleSpec {
     Vector3 extent;
 };
 
-constexpr ParticleSourceFlag kCarried = ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly;
 constexpr ParticleSourceFlag kOnPart = ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
-constexpr ParticleSourceFlag kCarriedOnPart = kCarried | ParticleSourceFlag::OnPart;
 constexpr ParticleSourceFlag kPausedToo = ParticleSourceFlag::Emitting | ParticleSourceFlag::TicksWhilePaused;
-constexpr int kEndless = 0x7FFFFFFF;    // an emission or particle count without a limit
 
 using enum ParticleType;
-
-constexpr ParticleSpec kCasting = {.texture = "FireSmoke", .flags = kCarriedOnPart, .emitCount = 20, .lifetime = 5,
-                                   .frameDelay = 5};
-constexpr ParticleSpec kCastSwirl = {.texture = "Casting2", .flags = kCarried, .emitCount = 10, .maxParticles = 600,
-                                     .lifetime = 2, .frameDelay = 1, .spreadMin = {-0.04f, -0.04f, -0.04f},
-                                     .spreadMax = {0.04f, 0.04f, 0.04f}};
-constexpr ParticleSpec kMark = {.texture = "Stun", .flags = kCarriedOnPart, .attachPoint = AttachPoint::Body,
-                                .additiveBlend = true, .emitCount = 1, .maxParticles = 300};
-
-// The entry of `base` for `type`, with `change` applied to it.
-template <class Change>
-constexpr ParticleSpec Like(const ParticleSpec& base, ParticleType type, Change change) {
-    ParticleSpec spec = base;
-    spec.type = type;
-    change(spec);
-    return spec;
-}
-
-constexpr ParticleSpec Like(const ParticleSpec& base, ParticleType type) {
-    return Like(base, type, [](ParticleSpec&) {});
-}
 
 // One entry per type still in code, in the order of ParticleType; the others are data (assets/effects,
 // ParticleSource::Create).
@@ -87,44 +63,15 @@ constexpr ParticleSpec kSpecs[] = {
     {.type = FireBlast, .texture = "Explosion", .emitCount = 60, .maxParticles = 600, .lifetime = 15,
      .frameDelay = 1, .size = 0.6f, .height = 1.0f, .growth = 0.8f, .elementCount = 15,
      .spreadMin = {-0.02f, -0.02f, -0.02f}, .spreadMax = {0.02f, 0.02f, 0.02f}},
-    {.type = Healing, .texture = "Healing", .flags = ParticleSourceFlag::AttachedOnly, .additiveBlend = true,
-     .emitCount = kEndless, .lifetime = 8, .frameDelay = 1, .size = 0.5f},
     {.type = Geyser, .texture = "Fireworks", .additiveBlend = true, .emitChance = 88, .emitCount = 20,
      .frameDelay = 100, .height = 0.3f, .elementCount = 3, .spreadMin = {-0.1f, -0.1f, -0.02f},
      .spreadMax = {0.1f, 0.1f, 0.02f}},
     {.type = Tornado, .texture = "Tornado", .emitCount = 4, .maxParticles = 800, .frameDelay = 1, .height = 0.2f,
      .elementCount = 6},
-    {.type = Casting, .texture = "FireSmoke", .flags = kCarried, .emitCount = kEndless, .frameDelay = 1},
-    Like(kCasting, CastingFire),
-    Like(kCasting, CastingElectricity, [](ParticleSpec& spec) {
-        spec.texture = "Casting8";
-        spec.frameDelay = 1;
-    }),
-    Like(kCasting, CastingAcid, [](ParticleSpec& spec) { spec.texture = "Casting7"; }),
-    Like(kCasting, CastingDivination, [](ParticleSpec& spec) {
-        spec.texture = "Casting4";
-        spec.attachPoint = AttachPoint::AboveHead;
-        spec.additiveBlend = true;
-        spec.emitCount = 6;
-        spec.frameDelay = 1;
-    }),
-    Like(kCastSwirl, CastingIllusion),
-    Like(kCastSwirl, CastingDomination, [](ParticleSpec& spec) {
-        spec.texture = "Casting3";
-        spec.lifetime = 1;
-    }),
-    Like(kCastSwirl, CastingEnchantment, [](ParticleSpec& spec) { spec.texture = "Casting6"; }),
-    Like(kCastSwirl, CastingHealing, [](ParticleSpec& spec) {
-        spec.texture = "Casting1";
-        spec.lifetime = 1;
-    }),
     {.type = LightningBlast, .texture = "TendriLight", .additiveBlend = true, .emitChance = 88, .emitCount = 250,
      .maxParticles = 600, .lifetime = 15, .frameCount = 15, .frameDelay = 1, .spreadMin = {-0.2f, -0.2f, -0.2f},
      .spreadMax = {0.2f, 0.2f, 0.2f}},
     {.type = ShapeChange, .texture = "ShapeChange", .flags = kPausedToo, .emitCount = 2500, .maxParticles = 2500},
-    {.type = Bag, .texture = "Bag", .flags = kCarried, .emitCount = 100, .maxParticles = 800,
-     .elementCount = kBagBalls},
-    Like(kMark, Silence, [](ParticleSpec& spec) { spec.emitCount = 4; }),
     {.type = CurseHolder, .texture = "Tornado", .flags = kOnPart, .attachPoint = AttachPoint::Body, .emitCount = 4,
      .maxParticles = 800, .height = 0.2f, .tint = 0x19000000, .elementCount = 6},
 };

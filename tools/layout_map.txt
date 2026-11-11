@@ -375,8 +375,6 @@ particle_common.h           effects/particle_common.h
 particle_create.cpp         effects/particle_create.cpp
 particle_manager.cpp        effects/particle_manager.cpp
 particle_blasts.cpp         effects/particle_blasts.cpp
-particle_casting.cpp        effects/particle_casting.cpp
-particle_marks.cpp          effects/particle_marks.cpp
 particle_world.cpp          effects/particle_world.cpp
 particle_expr.h             effects/particle_expr.h
 particle_expr.cpp           effects/particle_expr.cpp
