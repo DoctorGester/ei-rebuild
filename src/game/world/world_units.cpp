@@ -121,7 +121,6 @@ constexpr std::uint32_t kFlagsNewEffect = 0x180000;
 
 // The timed objects' types (world_effect.h).
 constexpr int kTimedAmbientSound = 0x49, kTimedSound = 0x48, kTimedLight = 0x4B, kTimedParticle = 0x4A;
-constexpr std::uint32_t kTorchLightKind = static_cast<std::uint32_t>(ParticleType::CampFire);   // the torch's smoke particles
 
 } // namespace
 
@@ -341,7 +340,8 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         object->name = spec->texture;
         companionTexts(companion);
         race(object);
-        torch->SetLightSlot(kTorchLightKind, &flame->offset.x, flame->volume);
+        torch->SetLightSlot(static_cast<std::uint32_t>(EffectTypeNamed(flame->effect).value_or(0)), &flame->offset.x,
+                            flame->volume);
         const float colour[4] = {0.8f, 0.8f, 0.8f, 1.0f};
         float radius = flame->volume * kTorchLightScale;
         torch->SetFlameSlot(&flame->offset.x, radius, colour);
@@ -482,7 +482,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         auto* particleSpec = static_cast<mapspec::ParticleSpec*>(message);
         auto* particle = timedManager->CreateObjectAs<EffectParticle>(kTimedParticle, base.id);
         particle->localPosition = base.position;
-        particle->type = particleSpec->type;
+        particle->type = EffectTypeNamed(particleSpec->effect).value_or(0);
         particle->size = particleSpec->scale;
         AddTimedObject(particle);
         return particle->id;
