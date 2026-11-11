@@ -22,6 +22,7 @@ int RunMapFolderChecks();      // map_folder.cpp: maps as folders and back, the 
 int RunFigureGltfChecks();     // figure_gltf.cpp: figure models as glTF and back
 int RunLuaNumberChecks();      // lua_number.cpp: script floats across the Lua boundary, NaN payloads kept
 int RunSpellBehaviourChecks(); // spell_behaviour.cpp: the spells' behaviours and record fields over a fake table
+int RunParticleRecordChecks(); // particle_record.cpp: the data effects' expressions, records and state machine
 
 int main() {
     std::setvbuf(stdout, nullptr, _IONBF, 0);   // what was printed survives a crashing check
@@ -30,7 +31,8 @@ int main() {
                          RunBoundedTextChecks() + RunTaggedStreamChecks() + RunGameBufferChecks() +
                          RunPlatformTextChecks() + RunModHashChecks() + RunPathLayersChecks() + RunWeatherFieldChecks() + RunTomlChecks() +
                          RunTexturePngChecks() + RunMapFolderChecks() +
-                         RunFigureGltfChecks() + RunLuaNumberChecks() + RunSpellBehaviourChecks();
+                         RunFigureGltfChecks() + RunLuaNumberChecks() + RunSpellBehaviourChecks() +
+                         RunParticleRecordChecks();
     std::printf("ei_unit_check: %d problems\n", failures);
     return failures ? 1 : 0;
 }

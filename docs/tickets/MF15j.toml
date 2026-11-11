@@ -1,0 +1,9 @@
+id = "MF15j"
+title = "Data effects: the extensions the state-machine types still need"
+group = "mods"
+size = 2
+model = "opus"
+depends = ["MF15c"]
+files = ["src/game/effects/particle_expr.cpp", "src/game/effects/particle_record.cpp", "src/game/effects/particle_data.cpp"]
+note = "From MF15c (docs/notes/effects.md, 'The original state machines on inputs'): ground(x, y) in expressions (anchors on the ground, kill planes); an action that adds an anchor (CastSwirl orbiters); anchor pick 'first' and an anchor by index (Casting's close sparks); scorch and shake actions (FireBlast, LightningBlast starts, EffectParticle::Spawn today); a list input (ShapeChange's path); an emission or sub-effect on a particle's death; a segment spawn shape (Link); inputs the server sets and replicates (today only the client's sources take SetInput / Fire). Also: RunParticleRecordChecks in the POSIX port check. Needed before MF15g's state-machine half."
+order = 1362

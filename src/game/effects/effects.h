@@ -22,10 +22,15 @@
 #include <cstdint>
 #include <deque>
 #include <limits>
+#include <memory>
+#include <string_view>
 #include <vector>
 
 namespace weather {
 enum class Kind;   // weather_field.h
+}
+namespace effectdata {
+class State;       // particle_record.h
 }
 
 // The particle source / effect types (EngineObject::type of a ParticleSource and a EffectParticle). The names
@@ -141,6 +146,10 @@ struct Particle {
     std::uint32_t color = 0;    // ARGB
     std::uint32_t prevColor = 0;
     int dead = 0;               // set by the tick when the update returned 0
+    // A data effect's particle (particle_data.cpp): its ticks since emission, its kind and its vars.
+    int age = 0;
+    int kind = 0;
+    float vars[6] = {};
 };
 
 // A table read by a particle's remaining life, unchecked as the original reads it. The tick updates a particle
@@ -504,6 +513,8 @@ public:
     int rayCount = 0;               // Shower1-4: the directions chosen (alpha * 8, at least 1)
     GlowKind glowKind = GlowKind::Green;   // ShapeChange
     std::vector<ParticleElement> elements;   // per type
+    // A data effect's state (particle_data.h; its type is the effect's id): its inputs, vars, stage and anchors.
+    std::unique_ptr<effectdata::State> data;
     Vector3 boundsMin;              // over the particles, rebuilt every tick
     Vector3 boundsMax;
     // The bounds the renderer clips by: BoundsFlag::Box set by the tick, the box (boundsMin and boundsMax less the
@@ -522,6 +533,8 @@ constexpr int kNoParticleType = -1;
 // The type a source of `type` is made as: `type` itself when this build knows it, else kNoParticleType, logged once per
 // type (a peer's or a save's effect from a mod or a newer build: the effect's world object stays, showing nothing).
 int ShownParticleType(int type);
+// The original type named `name` (ParticleType's names, any case), or kNoParticleType.
+int ParticleTypeByName(std::string_view name);
 
 // The particle renderer's shared arrays: one SpritePoint (position and size, interpolated between the last two
 // ticks) and one sprite (colour, texture frame) per particle.

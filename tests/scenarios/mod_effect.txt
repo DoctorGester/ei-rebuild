@@ -1,0 +1,43 @@
+# A data effect (docs/notes/effects.md, "Data effects"): the showcase mod's Res\effects\showcase_aura.effect.toml,
+# started by a script's CreateParticleSource by its name and driven through its typed inputs. Checked:
+# - the name finds the effect through the layers (read from the mod's Res\effects),
+#   the server's world object carries its id and the client's source runs it: particles, and its stages by their ticks
+#   (rise for 18 ticks, then glow);
+# - the inputs: `mode` set to "storm" by its value's name, `charge` set to 1 (the glow stage's until moves it to burst,
+#   whose enter emits sparks at the orbs and sets charge back to 0, then back to glow), the event `pulse` fired;
+# - an unknown name still makes nothing;
+# - captures: the calm aura beside the hero, then the storm with its sparks.
+# prepare: make_showcase_mod.py
+mod harness_saves\showcase_mod
+reject Script error
+waitmenu
+console thingamabob
+
+newgame
+waitline 20 Showcase mod: the island loads
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @GodMode(0,1)
+console @CreateParticleSource(61,Add(GetX(GetLeader()),3),GetY(GetLeader()),GetZ(GetLeader()),2,"no_such_effect")
+console @CreateParticleSource(60,Add(GetX(GetLeader()),3),GetY(GetLeader()),GetZ(GetLeader()),2,"showcase_aura")
+frames 2
+effect showcase_aura check 5 rise
+wait 1500
+effect showcase_aura check 20 glow
+capture calm
+
+effect showcase_aura set mode storm
+effect showcase_aura value mode 1
+effect showcase_aura set charge 1
+effect showcase_aura value charge 1
+wait 300
+effect showcase_aura value charge 0
+effect showcase_aura check 20 glow
+effect showcase_aura fire pulse
+frames 3
+effect showcase_aura check 40 glow
+capture storm
+wait 1000
+effect showcase_aura check 40 glow
+read mod Res\effects\showcase_aura.effect.toml yes
+report
+quit

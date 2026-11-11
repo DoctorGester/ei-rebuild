@@ -5,6 +5,7 @@
 
 #include "game/core/base_manager.h"
 #include "game/world/world.h"
+#include "game/effects/particle_data.h"
 #include "game/effects/world_effect.h"
 #include "game/app/singletons.h"
 
@@ -199,8 +200,9 @@ void Script::CreateLightning(ScriptArgs args) {
     g_serverWorld.AddTimedObject(bolt);
 }
 
-// CreateParticleSource(id, x, y, z, size, type name). Unknown type names make nothing. A
-// negative id takes the next automatic one; an existing source with the id gets the new effect.
+// CreateParticleSource(id, x, y, z, size, type name). A name the table lacks is a data effect's (Res\effects, with its
+// [server] script_lifetime); a name neither knows makes nothing. A negative id takes the next automatic one; an
+// existing source with the id gets the new effect.
 void Script::CreateParticleSource(ScriptArgs args) {
     const int requestedId = lib::RoundEven(args.Float());
     const float x = args.Float();
@@ -215,9 +217,16 @@ void Script::CreateParticleSource(ScriptArgs args) {
             break;
         }
     }
-    if (!type || type->type == 0) return;
-    int particleType = type->type;
-    int lifetime = type->lifetime;
+    int particleType = 0;
+    int lifetime = -1;
+    if (type) {
+        particleType = type->type;
+        lifetime = type->lifetime;
+    } else if (std::shared_ptr<const effectdata::Record> effect = effectdata::g_effects.Find(name)) {
+        particleType = effect->id;
+        lifetime = effect->scriptLifetime;
+    }
+    if (particleType == 0) return;
 
     int id = requestedId;
     if (id < 0) id = nextParticleId--;

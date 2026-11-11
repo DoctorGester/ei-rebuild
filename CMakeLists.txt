@@ -432,7 +432,8 @@ if(WIN32)
     # The unit checks (tests/unit): the settings file's format, lib::HashMap's walk order, the .ini reader,
     # lib::ParseIpv4, lib/maths.h, the save pictures, the bounded text reads, the tagged stream blocks and the byte
     # buffers with their cursor and coder, the mod's path map, the weather's particle field, the TOML writer and reader,
-    # the PNG textures, the glTF figure models, the script floats through Lua, the spells' behaviours, without the
+    # the PNG textures, the glTF figure models, the script floats through Lua, the spells' behaviours, the data
+    # effects' records, without the
     # game. build.cmd runs it.
     add_executable(ei_unit_check tests/unit/unit_check.cpp tests/unit/settings_file.cpp tests/unit/hash_map.cpp
                    tests/unit/ini_file.cpp tests/unit/ipv4.cpp tests/unit/maths.cpp tests/unit/save_picture.cpp
@@ -443,6 +444,7 @@ if(WIN32)
                    tests/unit/texture_png.cpp src/game/models/texture_png.cpp tests/unit/map_folder.cpp
                    src/game/map/map_folder.cpp src/lib/png.cpp src/game/effects/weather_field.cpp src/game/core/buffer.cpp src/game/core/coder.cpp
                    tests/unit/figure_gltf.cpp src/game/models/figure_gltf.cpp src/game/models/figure_gltf_animation.cpp src/lib/json.cpp src/lib/vecmath.cpp tests/unit/lua_number.cpp
+                   tests/unit/particle_record.cpp src/game/effects/particle_expr.cpp src/game/effects/particle_record.cpp src/game/core/random.cpp src/lib/crt.cpp
                    src/audio/audio.cpp src/game/app/settings_document.cpp src/game/core/core_streams.cpp src/game/data/ini_file.cpp
                    src/game/saves/save_picture.cpp src/lib/qoi.cpp src/game/core/asset_text.cpp src/lib/hash_map.cpp src/lib/ipv4.cpp
                    src/lib/text_case.cpp src/lib/calendar.cpp src/lib/str.cpp src/lib/crt_format.cpp

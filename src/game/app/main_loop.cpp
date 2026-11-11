@@ -19,6 +19,7 @@
 #include "game/scene/device.h"
 #include "game/models/dib.h"
 #include "game/scene/drawn_motion.h"
+#include "game/effects/particle_data.h"
 #include "game/terrain/ground_print.h"
 #include "game/items/item_db.h"
 #include "game/spells/spell_db.h"
@@ -197,6 +198,7 @@ void LoadDatabases() {
     LoadFresh(g_leverTable, options->resourcesPath);
     LoadFresh(g_ackDatabase, options->resourcesPath);
     LoadFresh(g_printsDatabase, options->resourcesPath);
+    effectdata::g_effects.Reset();
 }
 
 // One step of a switch's loading screen (the zone's own steps, 8 and up, follow in the first zone's load): the
