@@ -1,0 +1,6 @@
+id = "MF15h1"
+title = "Wall class and the fire wall's scorch from the effect record, not by type"
+group = "mods"
+depends = ["MF15h"]
+note = "From MF15h: SpellEffect::WallParticle makes an EffectWall (with a direction) only for Tendril and Link by type id, and EffectWall::Unpack lays the fire wall's scorch only for Tendril. A mod's wall effect (cast:Effect with direction) is refused. Move both onto the effect record: [server] wall = true (the study's plan, build/mf15_particles.md 2.1) and the scorch as the wall effect's start reaction (or a [server]/[client] flag), with Tendril and Link's built-in files giving today's choice; goldens the same. Touches src/engine/particles/particle_record.cpp, so after MF15l1/MF15l2."
+order = 1405

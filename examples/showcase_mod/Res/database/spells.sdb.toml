@@ -1,8 +1,9 @@
 # The mod's spell (docs/modding.md, "Spells"): Chain Spark, a new record after the game's 42. Its `script` makes it
 # scripted: Res\spells\chain_spark.lua runs each cast, on the server. The spark it throws and the sparks of a strike are
 # the mod's data effects Res\effects\ChainSpark.effect.toml and ChainSparkHit.effect.toml, the shock it leaves on a
-# struck unit (its own active effect: `look`) ChainSparkShock.effect.toml; its pictures are
-# Res\textures\spell0101.png and prototype0101.png (icon 101). The island's quest gives it (Maps\zone1.lua).
+# struck unit (its own active effect: `look`) ChainSparkShock.effect.toml, the caster's while it casts (`cast_look`)
+# ChainSparkCast.effect.toml; its pictures are Res\textures\spell0101.png and prototype0101.png (icon 101). The
+# island's quest gives it (Maps\zone1.lua).
 
 [[spell]]
 name = "Chain Spark"
@@ -30,6 +31,7 @@ ai = "attack"                   # a unit given it casts it at its enemies, its d
 damage_type = "lightning"
 offensive = true                # the HUD's cast at once aims it at the nearest enemy
 look = "ChainSparkShock"        # its own effect on a struck unit shows Res\effects\ChainSparkShock.effect.toml
+cast_look = "ChainSparkCast"    # the caster shows Res\effects\ChainSparkCast.effect.toml while it casts
 
 # The mod's buff (docs/modding.md, "Active effects"): Ember Brand, a curse on a unit, the spell's own active effect.
 # Res\spells\ember_brand.lua gives it: OnStats saps the victim's strength (a stat none of the game's buffs touches),

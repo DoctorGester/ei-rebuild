@@ -111,6 +111,15 @@ particle side, the inputs). The guide for modders: docs/modding.md, "Effects".
   effect or an original type by its ParticleType name (`ParticleTypeByName`).
 - Res\effects counts in the mod's content hash (`modhash::Counted`, mods.md "Mods in multiplayer"): peers with other
   effect files are refused, since `[server]` decides when the world objects go.
+- Records name the effects they show (MF15h; docs/modding.md, "Records that name effects"): a spell's `cast_look`
+  (else spells.sdb's `[cast_looks]` by school), `look`, `look_ring`; a model's `blood_look` (else units.udb's
+  `[blood_looks]` by blood kind) and `shock_look` (else the file's); a map flame's and a particle object's `effect`.
+  The game's choices are built-in data (assets/spells/spells.sdb.toml, assets/units/units.udb.toml, the flame's
+  default). Game code turns a name into the type through `EffectTypeNamed` (world_effect.h; a missing name warns once).
+  Still chosen in code by type: the world's own visuals with no record behind them (the bird's Bag, the weather's
+  Tornado), the interface's markers (path ShapeChange, flag GroundDust1 / 2, wisp Stun, the zone exits' ZoneExit), the
+  wall class and the fire wall's scorch (`SpellEffect::WallParticle`, `EffectWall::Unpack`: Tendril and Link, MF15h1),
+  the unreached link spell's Link and the unreached placed trap's Mushroom.
 
 ### In multiplayer and saves
 

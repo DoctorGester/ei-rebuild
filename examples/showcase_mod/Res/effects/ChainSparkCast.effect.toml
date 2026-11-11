@@ -1,0 +1,10 @@
+# The showcase mod's cast (docs/modding.md, "Spells"): the look on a caster while it casts Chain Spark (the spell
+# record's `cast_look`). The game's lightning cast (CastingElectricity: sparks drawn in towards the caster from the
+# swirls around it) in the spell's own sparks, tinted the shock's blue.
+
+like = "CastingElectricity"
+texture = "chainspark"          # Res\textures\chainspark.png: 16 pictures of a spark, 4 x 4
+
+[[particle]]
+name = "spark"
+color = "A0D8FF"

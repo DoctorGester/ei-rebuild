@@ -506,6 +506,8 @@ call_radius = 5.0
   ei-convert writes them).
 - `position` is `[x, y, z]` in world units (z above the ground); `rotation` a quaternion `[w, x, y, z]`; `scale`
   `[x, y, z]`.
+- A `flame`'s and a `particle`'s `effect` name particle effects ([Records that name effects](#records-that-name-effects)):
+  the torch's fire (`CampFire` unless given), the effect a `particle` record stands for.
 - The order of the records is the order the zone creates them: keep the game's order and add new records at the end.
 - An unknown kind or key, or a value of the wrong type, is logged (`warning: map objects: <file> line n: ...`) and left
   out.
@@ -1132,6 +1134,39 @@ frame = { start = "pick(16)", delay = 1 }
   nothing. An unknown key is only noted.
 - In a network game every player needs the same effect files: they count in the mod's content hash.
 
+### Records that name effects
+
+Spells, units and map objects name the particle effects they show, each by an effect's name (yours from
+`Res\effects`, or a game's: `CastingFire`, `Shower1`, `Sparks`, `CampFire`, ...). The game's own choices are data
+built into the executable below every layer (the source's `assets/spells/spells.sdb.toml` and
+`assets/units/units.udb.toml`), so a mod's file changes them like any record's fields:
+
+| Where | Field | Shown |
+|---|---|---|
+| spell (`spells.sdb.toml` `[[spell]]`) | `cast_look` | on the caster while it casts the spell (a unit whose model has `cast_effect`); without it its school's, below |
+| `spells.sdb.toml` `[cast_looks]` | by school: `fire`, `lightning`, `acid`, `illusion`, `divination`, `enchantment`, `healing`, `domination`, `none` | on the caster of a spell of that school (or of the record's `cast_school`) without a `cast_look`; the game's: CastingFire, CastingElectricity, CastingAcid, CastingIllusion, CastingDivination, CastingEnchantment, CastingHealing, CastingDomination, and Casting for `none` |
+| spell | `look`, `look_ring` | on a unit while an effect of the spell's kind lasts on it, and as it comes and goes ([Active effects](#active-effects)) |
+| model (`units.udb.toml` `[[model]]`) | `blood_look` | on a unit of the model where a blow hits it (at the part hit, sized by it); without it its `blood` kind's, below |
+| `units.udb.toml` `[blood_looks]` | by blood kind: `none`, `red`, `green`, `blue`, `brown`, `red_spray`, `green_spray`, `blue_spray`, `brown_spray` | on a unit whose model has that `blood` and no `blood_look`; the game's: Shower1 to Shower4 for red, green, blue and brown (a spray as its colour), nothing for `none` |
+| model | `shock_look` | on a unit of the model hit by lightning (sized by the unit); without it the file's top-level `shock_look`, the game's `Sparks` |
+| map object `flame` (`Maps\<zone>.mob.toml`) | `effect` | the torch's fire and smoke (the game's `CampFire`, the default) |
+| map object `particle` | `effect` | the effect the object stands for (ei-convert writes the game's by name: `effect = "Fire"`); none when empty |
+| a spell's script | `cast:Effect(name)`, `cast:Missile { effect = name }` | a cast's effects and its missile ([Spells](#spells)) |
+| a zone's script | `CreateParticleSource(id, x, y, z, size, name)` | an effect at a point ([Lights, particles and sounds](#lights-particles-and-sounds)) |
+
+```toml
+# Res\database\units.udb.toml: the golem bleeds stone chips; every red-blooded creature a darker shower.
+[[model]]
+name = "Showcase Golem"
+blood_look = "golem_chips"     # Res\effects\golem_chips.effect.toml
+
+[blood_looks]
+red = "dark_blood"             # Res\effects\dark_blood.effect.toml
+```
+
+A name no effect has is a `warning: effects: ...` line in the log, and nothing shows. The blood kind still decides the
+stain on the ground (`red` to `brown` leave one, the sprays none).
+
 ### The effect viewer
 
 `ei-rebuild --effects [<effect>] [--zone <zone>]` starts straight in a new game, with a panel on its left. There are
@@ -1209,14 +1244,16 @@ ai = "attack"                  # how the AI casts it (none: never, the default)
 damage_type = "lightning"
 offensive = true
 look = "ChainSparkShock"       # its own effect's look on a struck unit (Res\effects; Active effects)
+cast_look = "ChainSparkCast"   # the caster's look while it casts (without it: its school's, CastingElectricity)
 ```
 
 - **What the game reads of the record** besides its numbers: `ai` (`none`, `attack`, `area_attack`, `lasting_area`,
   `curse`, `protect`, `enhance`, `heal`), `damage_type` (the AI's estimate), `offensive` (the HUD's use at once aims at
   the nearest enemy), `turns_victim` (the unit it is cast at turns on the caster) and `fighting` (casting it starts the
   battle music; both as `offensive` unless given), `ai_effect` (the code of the spell whose effect the AI looks for
-  before casting a curse or a protection again; without it the spell's own `effect`), `cast_school` (the school whose
-  casting look the caster shows, when not its own), `item_heals` (on an item the spell heals: armour casts it when
+  before casting a curse or a protection again; without it the spell's own `effect`), `cast_look` (the particle effect
+  on the caster while it casts, by name; without it the look of its school, or of `cast_school` when given, from the
+  database's `[cast_looks]`: [Records that name effects](#records-that-name-effects)), `item_heals` (on an item the spell heals: armour casts it when
   its wearer is not hit, where other armour spells go off when it is, and an item's periodic cast of it waits until
   the wearer is hurt, one such cast a tick; the game's healing has it).
 - **What its effect on a unit does**: `effect` names it, for every active effect of the spell (`cast:Apply(unit,
@@ -1776,7 +1813,7 @@ Read its files as a recipe for each kind of new content:
 | A quest | `Maps\zone1.lua` (the quest's variable `q.<zone>.<quest>`, its reward), `quests.qdb.toml` (its experience), `Res\texts\texts.toml` (`quest <name>`: the title, the description, `#subobj` lines) |
 | A spell | `spells.sdb.toml` (Chain Spark's record, `script` naming its file), `Res\spells\chain_spark.lua` (its mechanic: a missile with `OnHit`, the next victim by `FindUnits`, `Damage`, `Apply`, `Effect`, `Bolt`, a timer for the leap; [Spells](#spells)), `Res\textures\spell0101.png`, `prototype0101.png` (its pictures, `icon = 101`), `Maps\zone1.lua` (`GiveItem` of its spell container); `tests/scenarios/mod_showcase_spell.txt` casts it |
 | A buff | `spells.sdb.toml` (Ember Brand's record, `code = "ember"`), `Res\spells\ember_brand.lua` (a curse: `OnStats` lowers the victim's `Strength`, `OnEffectTick` burns it every 20 ticks with `effect:Damage`, `OnEffectEnded` says how it went; [Active effects](#active-effects)); `tests/scenarios/mod_showcase_buff.txt` casts it with `CastSpellUnit` |
-| An effect | `Res\effects\showcase_aura.effect.toml` (orbs trailing light and rising motes, driven by its inputs; `tests/scenarios/mod_effect.txt` starts it from the console); the spell's `ChainSpark.effect.toml` (the missile's spark and its trail) , `ChainSparkHit.effect.toml` (a strike's flash and ring of sparks) and `ChainSparkShock.effect.toml` (the look of the shock a strike leaves: the record's `look`, [Active effects](#active-effects)), all on the mod's own texture `Res\textures\chainspark.png` (16 pictures, 4 x 4) |
+| An effect | `Res\effects\showcase_aura.effect.toml` (orbs trailing light and rising motes, driven by its inputs; `tests/scenarios/mod_effect.txt` starts it from the console); the spell's `ChainSpark.effect.toml` (the missile's spark and its trail) , `ChainSparkHit.effect.toml` (a strike's flash and ring of sparks), `ChainSparkShock.effect.toml` (the look of the shock a strike leaves: the record's `look`, [Active effects](#active-effects)) and `ChainSparkCast.effect.toml` (the caster's look while it casts: the record's `cast_look`, a variant of the game's CastingElectricity; [Records that name effects](#records-that-name-effects)), all on the mod's own texture `Res\textures\chainspark.png` (16 pictures, 4 x 4) |
 
 What it cannot do yet: add a zone beside the game's (it replaces zone 1: the zone list is one text read whole), show
 a new weapon in the hero's hand or a new helmet or body armour on him (those are parts of the hero's figure), and its
