@@ -200,8 +200,6 @@ namespace {
 
 // --- The spell types ----------------------------------------------------------------------------
 
-}
-
 // Fireworks (five numbered sounds).
 void StartFirework(SpellEffect* e) {
     Vector3 centre = e->targetPoint;
