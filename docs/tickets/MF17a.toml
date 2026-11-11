@@ -1,0 +1,7 @@
+id = "MF17a"
+title = "Spell behaviour from the record: Spell::Behaviour() apart from Type(); ai, damage_type, offensive fields"
+group = "mods"
+size = 2
+model = "opus"
+note = "From build/mf17_spells.md (MF17's design), sections 1.3 and 2.1. Every per-type table (Start/UpdateMissile/UpdateLasting/UpdateFootprint, DamageKindOf, GetDamageType, IsOffensive, IsHostileType, IsFighting, kSpellKinds, client ParticleSourceType/MergesParticles/SoundFolder) reads Behaviour(); vanilla records keep their own index (every golden the same); a scripted or unknown behaviour reads the record's ai / damage_type / offensive; more than 256 spell records refused at load (prototypeIndex and MapEffect::type are bytes); the client draws nothing (no error log) for a buff type it has no look for. MF13b's kind = '<vanilla spell>' becomes a small follow-on on this split. Checks: unit check over a fake table, --golden and --converted suites the same."
+order = 1354

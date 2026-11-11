@@ -1,0 +1,8 @@
+id = "MF17e"
+title = "Chain Spark in the showcase mod: record, Lua script, own particle effects, icon, enemies to jump between"
+group = "mods"
+size = 2
+model = "opus"
+depends = ["MF17c", "MF17d", "MF15c"]
+note = "From build/mf17_spells.md (the MF17 design), section 3. spells.sdb.toml spark with script; Res/spells/chain_spark.lua (a spark missile with on_hit, jumps to the nearest enemy not struck, each strike 0.6 of the one before, up to target_count); ChainSpark / ChainSparkHit data effects (MF15c); icon art from make_showcase_mod.py; two more enemies on the island; the quest gives the spell. Checks: mod_showcase_spell (three strikes 12 / 7.2 / 4.32 in the digest, save and load mid-chain the same), captures on the captures page; mods.md showcase table."
+order = 1359
