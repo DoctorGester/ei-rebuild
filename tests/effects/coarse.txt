@@ -561,11 +561,11 @@ coarse Casting on a moving stone, let go: births 1067.00 deaths 1067.00 life 7.1
   q1 particles 192.00 size 0.1280 color 255.0 255.0 255.0 255.0 centre -0.148 -0.048 0.865 spread 0.359 0.345 0.140
   q2 particles 57.00 size 0.1232 color 255.0 255.0 255.0 253.3 centre -0.195 -0.067 1.141 spread 0.252 0.241 0.078
   q3 particles 0.46 size 0.0004 color 255.0 255.0 255.0 53.5 centre -0.375 -0.150 1.420 spread 0.034 0.026 0.002
-coarse Casting carried late, stopped, started again: births 2209.88 deaths 1709.88 life 6.66
+coarse Casting carried late, stopped, started again: births 2444.00 deaths 2372.00 life 5.08
   q0 particles 261.53 size 0.0990 color 255.0 255.0 255.0 255.0 centre 0.000 -0.001 0.363 spread 0.074 0.074 0.103
   q1 particles 127.20 size 0.0977 color 255.0 255.0 255.0 255.0 centre -0.002 0.002 0.815 spread 0.309 0.307 0.172
-  q2 particles 237.00 size 0.0987 color 255.0 255.0 255.0 254.5 centre -0.001 -0.001 1.330 spread 0.258 0.258 0.132
-  q3 particles 376.10 size 0.0999 color 255.0 255.0 255.0 254.9 centre -0.003 -0.002 1.450 spread 0.462 0.463 0.001
+  q2 particles 237.00 size 0.0987 color 255.0 255.0 255.0 254.5 centre -0.001 0.000 1.330 spread 0.260 0.257 0.132
+  q3 particles 182.36 size 0.0999 color 255.0 255.0 255.0 254.8 centre -0.008 0.001 1.450 spread 0.449 0.448 0.001
 coarse Healing on a unit: births 905.00 deaths 905.00 life 8.20
   q0 particles 303.93 size 0.1069 color 255.0 255.0 255.0 255.0 centre 0.000 -0.000 0.369 spread 0.062 0.061 0.092
   q1 particles 121.79 size 0.1129 color 255.0 255.0 255.0 255.0 centre 0.004 0.013 0.847 spread 0.343 0.348 0.140

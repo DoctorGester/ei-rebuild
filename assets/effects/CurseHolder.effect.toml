@@ -14,16 +14,12 @@ height = 0.2
 rate = 4
 max = 800
 
-# The funnel's height (fh) and the particles' colour (black). Each tick: the bottom ring's height over the source
-# (z0) and the sway (w*), the bottom ring's place less the motion, damped.
+# The funnel's height (fh). Each tick: the bottom ring's height over the source (z0) and the sway (w), the bottom
+# ring's place less the motion, damped.
 [vars]
 fh = "12 * 0.4"
-tr = 0
-tg = 0
-tb = 0
-z0 = { start = "ground(origin.x, origin.y) - origin.z + 1", tick = "ground(origin.x, origin.y) - origin.z + 1" }
-wx = { start = "(ring.rx[0] - motion.x) * 0.95", tick = "(ring.rx[0] - motion.x) * 0.95" }
-wy = { start = "(ring.ry[0] - motion.y) * 0.95", tick = "(ring.ry[0] - motion.y) * 0.95" }
+z0 = { tick = "ground(origin) - origin.z + 1" }
+w = { tick = "(ring.r[0].xy - motion.xy) * 0.95" }
 
 [[on]]
 event = "tick"
@@ -34,37 +30,28 @@ do = [{ stop = true }]
 [[anchor]]
 name = "ring"
 count = 6
-x = "a.rx"
-y = "a.ry"
-z = "a.rz"
 
 [anchor.vars]
-rx = { start = "wx * cos(a.index / 5 * pi * 0.5)", tick = "wx * cos(a.index / 5 * pi * 0.5)" }
-ry = { start = "wy * cos(a.index / 5 * pi * 0.5)", tick = "wy * cos(a.index / 5 * pi * 0.5)" }
-rz = { start = "a.index == 0 ? z0 : 0", tick = "a.index == 0 ? z0 : 0" }
+r = { tick = "vec3(w * cos(a.index / 5 * pi * 0.5), a.index == 0 ? z0 : 0)" }
 
-# A particle: its height up the funnel (lv, 0..1) and its climb (cl), debris or dust (st), its life (l0), its turn
-# about the funnel's centre (ang) and the turn's step (sp), its distance (rad) and opacity (op). At the end of its life
-# it stays as it was for the one update the original still gives it (docs/notes/effects.md, "Kept").
+# A particle: its height up the funnel (lv, 0..1) and its climb (cl), debris or dust (st), its turn about the funnel's
+# centre (ang) and the turn's step (sp), its distance (rad) and opacity (op); placed between the two rings about its
+# height.
 [[particle]]
 name = "piece"
-lifetime = 1000000000
+lifetime = "pick(9) + 100"
+position = { tick = "origin + vec3(circle(p.ang).yx * p.rad + lerp(ring.r[min(floor(p.lv * 5), 4)].xy, ring.r[min(floor(p.lv * 5), 4) + 1].xy, min(p.lv * 5 - min(floor(p.lv * 5), 4), 1)), p.lv * fh + ring.r[0].z)" }
 size = { start = "p.st != 0 ? (p.rad + 0.3) * size : size * 0.15", tick = "p.st != 0 ? (p.rad + 0.3) * size : p.size" }
-color = ["tr", "tg", "tb"]
+color = "vec3(0)"
 alpha = { start = 25, tick = "round(sqrt(1 - p.lv) * p.op * 255)" }
 frame = { start = "p.st != 0 ? pick(12) : pick(4) + 12", tick = "p.st != 0 ? (p.frame + 1) % 12 : (p.frame + 1) % 4 + 12" }
-kill = "p.age == p.l0 || p.lv > 1"
-
-[particle.position]
-start = ["sin(p.ang) * p.rad + origin.x + (min(p.lv * 5 - min(round(p.lv * 5), 4), 1) * ring.rx[min(round(p.lv * 5), 4) + 1] + (1 - min(p.lv * 5 - min(round(p.lv * 5), 4), 1)) * ring.rx[min(round(p.lv * 5), 4)])", "cos(p.ang) * p.rad + (min(p.lv * 5 - min(round(p.lv * 5), 4), 1) * ring.ry[min(round(p.lv * 5), 4) + 1] + (1 - min(p.lv * 5 - min(round(p.lv * 5), 4), 1)) * ring.ry[min(round(p.lv * 5), 4)]) + origin.y", "p.lv * fh + (origin.z + ring.rz[0])"]
-tick = ["sin(p.ang) * p.rad + origin.x + (min(p.lv * 5 - min(floor(p.lv * 5), 4), 1) * ring.rx[min(floor(p.lv * 5), 4) + 1] + (1 - min(p.lv * 5 - min(floor(p.lv * 5), 4), 1)) * ring.rx[min(floor(p.lv * 5), 4)])", "cos(p.ang) * p.rad + origin.y + (min(p.lv * 5 - min(floor(p.lv * 5), 4), 1) * ring.ry[min(floor(p.lv * 5), 4) + 1] + (1 - min(p.lv * 5 - min(floor(p.lv * 5), 4), 1)) * ring.ry[min(floor(p.lv * 5), 4)])", "fh * p.lv + (ring.rz[0] + origin.z)"]
+kill = "p.lv > 1"
 
 [particle.vars]
-lv = { start = "range(0, 1)", tick = "p.age == p.l0 ? p.lv : p.lv + p.cl" }
+lv = { start = "range(0, 1)", tick = "p.lv + p.cl" }
 st = "pick(3)"
-l0 = "pick(9) + 100"
-ang = { start = "range(-pi, pi)", tick = "p.age == p.l0 ? p.ang : p.ang + p.sp" }
-rad = { start = "range(0.8, 2) * ((1 - p.lv) * (1 - p.lv) * ((1 - p.lv) * (1 - p.lv)) + 0.2) * 2", tick = "p.age == p.l0 ? p.rad : 0.997 * p.rad" }
-sp = { start = "range(pi * 0.06, pi * 0.07) * (1.1 - (1 - p.lv) * (1 - p.lv)) * 1.5", tick = "p.age == p.l0 ? p.sp : p.sp * 1.01" }
-op = { start = 0.1, tick = "p.age == p.l0 ? p.op : (p.l0 - p.age > 8 ? min(p.op + 0.1, 1) : max(0.1, p.op))" }
-cl = { start = 0, tick = "p.age == p.l0 ? p.cl : p.cl + 0.0001" }
+ang = { start = "range(-pi, pi)", tick = "p.ang + p.sp" }
+rad = { start = "range(0.8, 2) * ((1 - p.lv) * (1 - p.lv) * ((1 - p.lv) * (1 - p.lv)) + 0.2) * 2", tick = "0.997 * p.rad" }
+sp = { start = "range(pi * 0.06, pi * 0.07) * (1.1 - (1 - p.lv) * (1 - p.lv)) * 1.5", tick = "p.sp * 1.01" }
+op = { start = 0.1, tick = "p.life > 8 ? min(p.op + 0.1, 1) : max(0.1, p.op)" }
+cl = { start = 0, tick = "p.cl + 0.0001" }

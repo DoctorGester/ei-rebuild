@@ -43,23 +43,18 @@ when = "t == 0"
 do = [{ stop_emitting = true }]
 
 # A ring: its random lift, its leading flame's angle (each ring's the one before's plus its share of the circle), its
-# radius (growing by the source's height a tick, then shrinking), its rise a tick and its flame point (p*, relative to
+# radius (growing by the source's height a tick, then shrinking), its rise a tick and its flame point (p, relative to
 # the source).
 [[anchor]]
 name = "ring"
 count = 0
-x = "a.px"
-y = "a.py"
-z = "a.pz"
 
 [anchor.vars]
 lift = "range((carrier_radius + carrier_radius) * -0.1, (carrier_radius + carrier_radius) * 0.1)"
 angle = { start = "a.index == 0 ? 0 : ring.angle[a.index - 1] + deg * (360 / a.count)", tick = "t == 0 ? a.angle : deg * 10 + a.angle" }
 radius = { start = 0, tick = "t == 0 ? a.radius : t >= 18 ? height + a.radius : a.radius - height" }
 rise = "(carrier_radius + carrier_radius - a.lift) * 0.027777778"
-px = { start = 0, tick = "t == 0 ? a.px : sin(a.angle) * a.radius + 0" }
-py = { start = 0, tick = "t == 0 ? a.py : cos(a.angle) * a.radius + 0" }
-pz = { start = "a.lift + (carrier_z - carrier_radius)", tick = "t == 0 ? a.pz : a.rise + a.pz" }
+p = { start = "vec3(0, 0, a.lift + (carrier_z - carrier_radius))", tick = "t == 0 ? a.p : vec3(sin(a.angle) * a.radius, cos(a.angle) * a.radius, a.rise + a.p.z)" }
 
 # A ring's flame: rides it 36 ticks, then burns out where it is.
 [[particle]]
@@ -68,13 +63,10 @@ when = "emit_state < anchors.ring"
 at = "ring"
 anchor_index = "emit_state"
 lifetime = 44
+position = { tick = "p.age < 36 ? origin + a.p : p.position" }
 size = { start = "(size + 1) * 0.1", tick = "p.age <= 18 ? growth + p.size : p.age < 36 ? p.size - growth : p.size" }
 alpha = { tick = "p.age > 36 ? p.alpha - 31 : 255" }
-frame = { start = 0, tick = "p.age < 36 ? (p.frame + 1 >= 8 ? 0 : p.frame + 1) : p.frame" }
-
-[particle.position]
-start = ["a.px + origin.x", "a.py + origin.y", "a.pz + origin.z"]
-tick = ["p.age < 36 ? origin.x + a.px : p.x", "p.age < 36 ? origin.y + a.py : p.y", "p.age < 36 ? origin.z + a.pz : p.z"]
+frame = { start = 0, tick = "p.age < 36 ? (p.frame + 1) % 8 : p.frame" }
 
 # The try after the flames emits nothing.
 [[particle]]
@@ -83,17 +75,12 @@ when = "emit_state == anchors.ring"
 lifetime = 1
 drop = true
 
-# A spark in a box of 0.15 of a ring's radius about its flame point (the original's z spread both ways from the low
-# end).
+# A spark in a box of 0.15 of a ring's radius about its flame point, the point its top.
 [[particle]]
 name = "spark"
 at = "ring"
-anchor_index = "p.which"
+pick = "random"
 lifetime = 8
+position = "origin + a.p + range(vec3(-1, -1, -1), vec3(1, 1, 0)) * (a.radius * 0.15)"
 size = "(size + 1) * 0.07"
 frame = { start = 8, tick = "p.frame + 1" }
-position = ["range(0, p.sp - -p.sp) + a.px + origin.x + -p.sp", "range(0, p.sp - -p.sp) + a.py + origin.y + -p.sp", "a.pz - range(0, -p.sp) + origin.z + -p.sp"]
-
-[particle.vars]
-which = "pick(anchors.ring)"
-sp = { start = "a.radius * 0.15", after_spawn = true }

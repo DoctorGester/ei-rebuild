@@ -38,14 +38,14 @@ do = [{ stop_emitting = true }]
 # A glow: its point's order (o) and its life (l), set at its first update.
 [[particle]]
 name = "glow"
-lifetime = 1000000000
-position = ["path.x[index]", "path.y[index]", "surface(path.x[index], path.y[index]) + 0.15"]
+lifetime = 1000000000                           # until l runs out
+position = "vec3(path[index].xy, surface(path[index]) + 0.15)"
 size = 0.07
 frame = 15
-color = ["cr[kind]", "cg[kind]", "cb[kind]"]
+color = "vec3(cr[kind], cg[kind], cb[kind])"
 alpha = { start = 0, tick = "glow_alpha[p.l]" }
 kill = "p.l < 0"
-drop = "index >= path.count || (index > 0 && path.x[index] == path.x[index - 1] && path.y[index] == path.y[index - 1] && path.z[index] == path.z[index - 1])"
+drop = "index >= path.count || (index > 0 && distance(path[index], path[index - 1]) == 0)"
 
 [particle.vars]
 o = "index"

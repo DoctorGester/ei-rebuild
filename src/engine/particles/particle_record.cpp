@@ -372,8 +372,8 @@ using Widths = std::map<std::string, int, std::less<>>;
 class Reader {
 public:
     Reader(const RawNode& root, std::string_view name, std::vector<std::string>* errors, std::int32_t id,
-           const Widths& known)
-        : root(root), errors(errors), widths(known) {
+           const Widths& known, bool loose)
+        : root(root), errors(errors), widths(known), loose(loose) {
         record = std::make_shared<Record>();
         record->name = std::string(name);
         record->id = id != 0 ? id : IdOf(name);
@@ -403,6 +403,8 @@ public:
 
     // The widths the vars' expressions gave.
     Widths found;
+    // A loose read's swizzle read past a value's lanes (its record is not the file's: a strict read follows).
+    bool loosened = false;
 
 private:
     void Error(const RawNode& at, const std::string& what) {
@@ -774,7 +776,7 @@ private:
         case RawNode::Kind::String: {
             std::string error;
             Expr expr = Compile(node.text, [this, context](std::string_view name) { return Resolve(name, context); },
-                                &error);
+                                &error, loose ? &loosened : nullptr);
             if (expr.Empty()) Error(node, "\"" + node.text + "\": " + error);
             for (Instruction& i : expr.code) {
                 if (i.op == Op::Load && i.scope == Scope::Source &&
@@ -1242,6 +1244,7 @@ private:
     const RawNode& root;
     std::vector<std::string>* errors = nullptr;
     const Widths& widths;     // the vars' widths an earlier read found
+    const bool loose;         // a width pass: a swizzle past a value's lanes reads its last lane
     std::shared_ptr<Record> record;
     bool fatal = false;
 };
@@ -1256,11 +1259,13 @@ std::shared_ptr<const Record> Read(const RawNode& root, std::string_view name, s
     }
     // A var takes the widest lanes of its expressions, which may read vars declared after it: the record is read again
     // with the widths found until none widens (a vector var's start widens it at the first read, so most files take
-    // one read and vector vars two).
+    // one read and vector vars two). The reads are loose (a swizzle past a value's lanes reads its last lane, so a var
+    // whose expression swizzles itself or one that widens with it still widens); one that loosened a swizzle is read
+    // again strictly, which reports a swizzle past a value that stayed narrow.
     Widths widths;
     for (int pass = 0;; ++pass) {
         std::vector<std::string> problems;
-        Reader reader(root, name, &problems, id, widths);
+        Reader reader(root, name, &problems, id, widths, true);
         std::shared_ptr<const Record> record = reader.Run();
         bool widened = false;
         for (const auto& [var, width] : reader.found) {
@@ -1271,6 +1276,11 @@ std::shared_ptr<const Record> Read(const RawNode& root, std::string_view name, s
             }
         }
         if (!widened || pass == 4) {
+            if (reader.loosened) {
+                problems.clear();
+                Reader strict(root, name, &problems, id, widths, false);
+                record = strict.Run();
+            }
             errors->insert(errors->end(), problems.begin(), problems.end());
             return record;
         }

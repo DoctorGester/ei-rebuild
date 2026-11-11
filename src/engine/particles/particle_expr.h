@@ -177,8 +177,9 @@ Vector3 RandomInBall(IsaacRandom& random, float* lengthSquared = nullptr, int tr
                      const Vector3* shift = nullptr);
 
 // `text` compiled against `resolve`; an empty Expr and `error` set (the column and what is wrong) when it does not
-// compile.
-Expr Compile(std::string_view text, const Resolver& resolve, std::string* error);
+// compile. With `loosened` given, a swizzle past a value's lanes reads its last lane and sets `*loosened` (the
+// effect reader's width passes: a vector var whose own expression swizzles it, `g = "vec3(g.xy, 1)"`, still widens).
+Expr Compile(std::string_view text, const Resolver& resolve, std::string* error, bool* loosened = nullptr);
 // The number `value` as an expression.
 Expr ConstantExpr(float value);
 // The expressions `parts` (each given) joined into one vector, lane by lane in order (vec3(a, b, c)); `error` set when

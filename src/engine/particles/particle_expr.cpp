@@ -94,7 +94,8 @@ std::vector<int> SwizzleLanes(std::string_view text) {
 
 class Compiler {
 public:
-    Compiler(std::string_view text, const Resolver& resolve) : text(text), resolve(resolve) {}
+    Compiler(std::string_view text, const Resolver& resolve, bool* loosened)
+        : text(text), resolve(resolve), loosened(loosened) {}
 
     bool Run(Expr* out) {
         const int width = Ternary();
@@ -273,14 +274,19 @@ private:
         }
         std::uint16_t packed = 0;
         bool ascending = true;
+        bool loose = false;
         for (std::size_t k = 0; k < lanes.size(); ++k) {
-            if (lanes[k] >= width) {
+            int lane = lanes[k];
+            if (lane >= width && loosened) {
+                *loosened = loose = true;
+                lane = width - 1;
+            } else if (lane >= width) {
                 Fail("'." + std::string(letters) + "' reads past a value of " + std::to_string(width) +
                      (width == 1 ? " lane" : " lanes"));
                 return width;
             }
-            packed = static_cast<std::uint16_t>(packed | lanes[k] << (2 * k));
-            ascending = ascending && (k == 0 || lanes[k] == lanes[k - 1] + 1);
+            packed = static_cast<std::uint16_t>(packed | lane << (2 * k));
+            ascending = ascending && !loose && (k == 0 || lane == lanes[k - 1] + 1);
         }
         const int result = static_cast<int>(lanes.size());
         // A load's consecutive lanes are a narrower load (`origin.x` reads the one float).
@@ -493,6 +499,7 @@ private:
 
     std::string_view text;
     const Resolver& resolve;
+    bool* loosened = nullptr;   // given: a swizzle past a value's lanes reads its last lane and sets it
     std::size_t at = 0;
     int depth = 0;
     std::size_t constantAt = static_cast<std::size_t>(-1);   // the last Constant's place
@@ -944,9 +951,9 @@ Vector3 Expr::RunVector(const Env& env, const Vector3& fallback) const {
     return {lanes.v[0], lanes.v[1], lanes.v[2]};
 }
 
-Expr Compile(std::string_view text, const Resolver& resolve, std::string* error) {
+Expr Compile(std::string_view text, const Resolver& resolve, std::string* error, bool* loosened) {
     Expr expr;
-    Compiler compiler(text, resolve);
+    Compiler compiler(text, resolve, loosened);
     if (!compiler.Run(&expr)) {
         if (error) *error = compiler.error;
         return {};

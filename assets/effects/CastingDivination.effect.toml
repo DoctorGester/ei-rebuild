@@ -28,7 +28,7 @@ life_alpha = [0, 32, 64, 112, 160, 208, 255, 255, 224, 192, 128, 64, 32, 16]
 
 [[on]]
 event = "before_emit"
-do = [{ set = "r08", value = "carrier_radius * 0.8" }, { set = "radius", value = "(carrier_unit ? carrier_unit_radius : r08) * reach" }, { add_anchor = "swirl", count = 5 }, { set = "made", value = 1 }, { set = "first", value = 1 }]
+do = [{ set = "radius", value = "(carrier_unit ? carrier_unit_radius : carrier_radius * 0.8) * reach" }, { add_anchor = "swirl", count = 5 }, { set = "made", value = 1 }, { set = "first", value = 1 }]
 
 [[on]]
 event = "emit"
@@ -39,16 +39,12 @@ do = [{ set = "first", value = 0 }]
 name = "marker"
 before = "spark"
 when = "first == 1"
-lifetime = 1000000000
+lifetime = 1000000000                           # until the cast's fade ends
+position = { tick = "origin" }
 size = { start = 0, tick = "cap == 0 ? p.size : (below(0.3) + 0.85) * radius * 0.3" }
 alpha = { start = 0, tick = "cap" }
 kill = "cap == 0"
 
-[particle.position]
-start = ["origin.x", "origin.y", "origin.z"]
-tick = ["origin.x", "origin.y", "origin.z"]
-
 [[particle]]
 name = "spark"
-alpha = { tick = "min(13 - p.age < 0 ? 255 : life_alpha[13 - p.age], cap)" }
 frame = { tick = "p.frame - 1" }

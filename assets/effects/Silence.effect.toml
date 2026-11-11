@@ -21,8 +21,8 @@ event = "before_emit"
 when = "count <= 1"
 do = [{ add_anchor = "orb" }]
 
-# An orb: its circle's radius (r, kept while the carrier is gone), its place (p*), its last step (d*) and its angles;
-# its particle writes its size, which the wisps read.
+# An orb: its circle's radius (r, kept while the carrier is gone), its next place (n), its place (p), its last step
+# (d) and its angles; its particle writes its size, which the wisps read.
 [[anchor]]
 name = "orb"
 count = 0
@@ -30,16 +30,9 @@ count = 0
 [anchor.vars]
 size = 0
 r = { start = 1, tick = "attached ? carrier_bounds_radius * 0.5 : a.r" }
-k = { start = 0, tick = "a.r / sqrt(cos(a.ang) * cos(a.ang) + sin(a.ang) * sin(a.ang) + sin(a.tilt) * 0.5 * (sin(a.tilt) * 0.5))" }
-nx = { start = 0, tick = "cos(a.ang) * a.k + origin.x" }
-ny = { start = 0, tick = "sin(a.ang) * a.k + origin.y" }
-nz = { start = 0, tick = "a.r * 0.5 + (sin(a.tilt) * 0.5 * a.k + origin.z)" }
-dx = { start = 0, tick = "a.nx - a.px" }
-dy = { start = 0, tick = "a.ny - a.py" }
-dz = { start = 0, tick = "a.nz - a.pz" }
-px = { start = "origin.x", tick = "a.nx" }
-py = { start = "origin.y", tick = "a.ny" }
-pz = { start = "origin.z", tick = "a.nz" }
+n = { tick = "origin + normalize(vec3(cos(a.ang), sin(a.ang), sin(a.tilt) * 0.5)) * a.r + vec3(0, 0, a.r * 0.5)" }
+d = { start = 0, tick = "a.n - a.p" }
+p = { start = "origin", tick = "a.n" }
 ang = { start = "count > 0 ? 0 : 3.1416", tick = "a.ang + 0.1" }
 tilt = { start = "count > 0 ? 0 : 3.1416", tick = "a.tilt + 0.12" }
 
@@ -48,35 +41,31 @@ name = "orb"
 when = "count <= 1"
 at = "orb"
 anchor_index = "anchors.orb - 1"
-lifetime = 1000000000
+lifetime = 1000000000                           # until the source has shrunk
+position = { tick = "a.p" }
 frame = 6
 size = { start = 0, tick = "p.drawn" }
 alpha = { start = 0, tick = 255 }
 kill = "(!emitting || !attached) && p.shrunk < 0.02"
 source = { size = "p.shrunk", a.size = "p.drawn" }
 
-[particle.position]
-start = ["origin.x", "origin.y", "origin.z"]
-tick = ["a.px", "a.py", "a.pz"]
-
 [particle.vars]
 shrunk = { start = 0, tick = "!emitting || !attached ? size * 0.85 : size" }
 drawn = { start = 0, tick = "(!emitting || !attached) && p.shrunk < 0.02 ? p.size : (below(0.2) + 0.9) * p.shrunk * 0.22" }
 
+# A wisp: at a random part (along) of its orb's last step, off it by a point of the ball of the orb's size.
 [[particle]]
 name = "wisp"
 at = "orb"
-anchor_index = "anchors.orb - 2 + p.which"
+pick = "random"
 lifetime = 7
 frame = 6
-spawn = { shape = "ball" }
-position = ["p.spawn.x * a.size * 0.8 + (a.px - p.along * a.dx)", "p.spawn.y * a.size * 0.8 + (a.py - p.along * a.dy)", "p.spawn.z * a.size * 0.8 + (a.pz - p.along * a.dz)"]
+position = "a.p - p.along * a.d + ball() * (a.size * 0.8)"
 size = { start = 0, tick = "p.now" }
 kill = "(!emitting || !attached) && size < 0.02"
 
 # The size it shows this tick (now) and the next (next, 0.8 of it).
 [particle.vars]
-which = "pick(2)"
 along = "range(0, 1)"
 now = { start = 0, tick = "p.next" }
-next = { start = "(below(0.4) + 0.8) * size * 0.08", tick = "p.next * 0.8", after_spawn = true }
+next = { start = "(below(0.4) + 0.8) * size * 0.08", tick = "p.next * 0.8" }

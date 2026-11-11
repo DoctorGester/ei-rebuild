@@ -39,29 +39,20 @@ event = "before_emit"
 when = "anchors.orb < orbiters"
 do = [{ add_anchor = "orb" }]
 
-# A light: its place relative to the source (r*), in the world (w*) and last tick (o*). A later light takes the
-# first's orbit and carrier radius from its values (the original's reads; equal while the first has not turned).
+# A light: its place relative to the source (r), in the world (w) and last tick (o). A later light takes the first's
+# orbit and carrier radius from its values (the original's reads; equal while the first has not turned).
 [[anchor]]
 name = "orb"
 count = 0
 
 [anchor.vars]
 carrier = "a.index == 0 ? carrier_radius : orb.scale[0]"
-orbit = "a.index == 0 ? carrier_radius * 0.5 : orb.rx[0]"
+orbit = "a.index == 0 ? carrier_radius * 0.5 : orb.r[0].x"
 angle = "(a.index * pi + a.index * pi) / orbiters"
-tc = "cos(turn)"
-ts = "sin(turn)"
 scale = "sign * a.carrier"
-rz = "a.carrier * lift"
-ox = { start = "origin.x + cos(a.angle) * a.orbit", tick = "a.wx" }
-oy = { start = "origin.y + sin(a.angle) * a.orbit", tick = "a.wy" }
-oz = { start = "origin.z + a.rz", tick = "a.wz" }
-orx = { start = 0, tick = "a.rx" }
-rx = { start = "cos(a.angle) * a.orbit", tick = "a.rx * a.tc + a.ry * a.ts" }
-ry = { start = "sin(a.angle) * a.orbit", tick = "a.tc * a.ry - a.orx * a.ts" }
-wx = { start = "origin.x + a.rx", tick = "origin.x + a.rx" }
-wy = { start = "origin.y + a.ry", tick = "origin.y + a.ry" }
-wz = { start = "origin.z + a.rz", tick = "origin.z + a.rz" }
+r = { start = "vec3(cos(a.angle) * a.orbit, sin(a.angle) * a.orbit, a.carrier * lift)", tick = "vec3(a.r.x * cos(turn) + a.r.y * sin(turn), a.r.y * cos(turn) - a.r.x * sin(turn), a.r.z)" }
+o = { start = "origin + a.r", tick = "a.w" }
+w = { tick = "origin + a.r" }
 
 # A light's marker: on it, flickering; once the cast ends it fades by the table (l: its countdown).
 [[particle]]
@@ -69,43 +60,31 @@ name = "marker"
 when = "anchors.orb > seen"
 at = "orb"
 anchor_index = "anchors.orb - 1"
-lifetime = 1000000000
+lifetime = 1000000000                           # until its fade ends
+position = { tick = "a.w" }
 size = { start = 0, tick = "(below(0.4) + 0.8) * size * 0.4" }
 alpha = { start = 255, tick = "emitting && attached ? p.alpha : fade[p.l0 + 1]" }
 kill = "!(emitting && attached) && p.l0 < 0"
-
-[particle.position]
-start = ["a.wx", "a.wy", "a.wz"]
-tick = ["a.wx", "a.wy", "a.wz"]
 
 [particle.vars]
 l0 = { start = 6, tick = "p.l" }
 l = { start = 6, tick = "emitting && attached || p.l < 0 ? p.l : p.l - 1" }
 
-# A spark: from the light's last place plus the spread to a point between its last place and its place now (a*);
-# then up by its rise, which grows by 1.03 a tick. It dies at its 28th update; the update after still moves it, so
-# its state does not change at the 28th.
+# A spark: from the light's last place plus the spread to a point between its last place and its place now (s); then
+# up by its rise, which grows by 1.03 a tick.
 [[particle]]
 name = "spark"
 at = "orb"
-anchor_index = "p.j"
-lifetime = 30
-spawn = { shape = "box" }
-size = { start = "(below(0.8) + 0.6) * size * 0.2", growth = 0.97 }
-alpha = { start = 255, tick = "28 - p.age < 7 ? fade[28 - p.age] : p.alpha" }
+pick = "random"
+lifetime = 28
+spawn = "range(spread_min, spread_max)"
+position = { start = "a.o + p.spawn", tick = "p.s" }
+size = { start = "(below(0.8) + 0.6) * size * 0.2", tick = "p.size * 0.97" }
+alpha = { start = 255, tick = "p.life < 7 ? fade[p.life] : p.alpha" }
 frame = { start = 1, tick = "p.frame + 1 == 16 ? 12 : p.frame + 1" }
-kill = "p.age == 28"
-
-[particle.position]
-start = ["a.ox + p.spawn.x", "a.oy + p.spawn.y", "a.oz + p.spawn.z"]
-tick = ["p.ax", "p.ay", "p.oz"]
 
 [particle.vars]
-j = "pick(orbiters)"
 along = "range(0, 1)"
 rb = "below(0.35)"
-oz = { start = 0, tick = "p.az" }
-ax = { start = "p.spawn.x + (p.along * a.ox + (1 - p.along) * a.wx)", after_spawn = true }
-ay = { start = "p.spawn.y + (p.along * a.oy + (1 - p.along) * a.wy)", after_spawn = true }
-az = { start = "p.spawn.z + (p.along * a.oz + (1 - p.along) * a.wz)", tick = "p.age == 28 ? p.az : p.az + p.rise", after_spawn = true }
-rise = { start = "(p.rb + 0.85) * a.scale * 0.03", tick = "p.age == 28 ? p.rise : 1.03 * p.rise", after_spawn = true }
+s = { start = "p.spawn + lerp(a.w, a.o, p.along)", tick = "p.s + vec3(0, 0, p.rise)" }
+rise = { start = "(p.rb + 0.85) * a.scale * 0.03", tick = "1.03 * p.rise" }

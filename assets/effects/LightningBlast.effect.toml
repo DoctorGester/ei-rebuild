@@ -49,43 +49,26 @@ event = "tick"
 when = "point.age[0] >= 10"
 do = [{ stop_emitting = true }]
 
-# A bolt point in the world: its direction (d*: none for point 0) at a random reach (r) and angle (ang), its place
-# (p*), its place before this tick's move (o*, b*) and its fork (f*), whose height falls.
+# A bolt point in the world: its direction (d: none for point 0) at a random reach and angle, its place (p), its place
+# before this tick's move (b) and its fork (f), whose height falls.
 [[anchor]]
 name = "point"
 count = 0
 
 [anchor.vars]
-r = "range(0, 1)"
-ang = "range(0, 6.28318)"
-dx = "a.index == 0 ? 0 : sin(a.ang) * a.r"
-dy = "a.index == 0 ? 0 : cos(a.ang) * a.r"
-ox = { start = 0, tick = "a.px" }
-oy = { start = 0, tick = "a.py" }
-oz = { start = 0, tick = "a.pz" }
-px = { start = "size * a.dx * 0.3 + origin.x", tick = "a.px + a.fx" }
-py = { start = "size * a.dy * 0.3 + origin.y", tick = "a.py + a.fy" }
-pz = { start = "ground(a.px, a.py) + 0.3", tick = "a.pz + a.fz" }
-bx = { start = "a.px", tick = "a.ox" }
-by = { start = "a.py", tick = "a.oy" }
-bz = { start = "a.pz", tick = "a.oz" }
-inv = "1 / sqrt(a.dy * a.dy + a.dx * a.dx + 0.25)"
-fx = "a.dx * a.inv * 0.5"
-fy = "a.dy * a.inv * 0.5"
-fz = { start = "a.inv * 0.5 * 0.5", tick = "a.fz - 0.075" }
+d = "a.index == 0 ? vec3(0) : circle(range(0, 6.28318)) * range(0, 1)"
+p = { start = "on_ground(origin + a.d * (size * 0.3), 0.3)", tick = "a.p + a.f" }
+b = { tick = "a.p - a.f" }
+f = { start = "normalize(vec3(a.d.xy, 0.5)) * 0.5", tick = "a.f - vec3(0, 0, 0.075)" }
 
 # Along the bolt: the even ones ride point idx at 0.1; the odd ones flash on a random frame (12-15) for one tick.
 [[particle]]
 name = "along"
 when = "along < 20"
-lifetime = 11
-size = { start = "p.fl == 1 ? p.ss : 0", tick = "p.size == 0 ? p.ss : p.size" }
+lifetime = "along % 2 == 1 ? 1 : 11"
+position = { tick = "point.p[p.idx]" }
+size = { start = "p.fl == 1 ? p.ss : 0", tick = "p.ss" }
 frame = "p.fr"
-kill = "p.fl == 1 && p.size != 0"
-
-[particle.position]
-start = ["point.px[p.idx]", "point.py[p.idx]", "point.pz[p.idx]"]
-tick = ["point.px[p.idx]", "point.py[p.idx]", "point.pz[p.idx]"]
 
 [particle.vars]
 idx = "floor(along / 2)"
@@ -95,44 +78,35 @@ fr = "p.fl == 1 ? pick(4) + 12 : 0"
 ss = "p.fl == 0 ? 0.1 : p.idx == 0 ? size * 0.4 : p.r * size * 0.2"
 
 # A burst from the impact point: out at a random angle (an) and spread (sp), slowing by 0.6, shrinking by 0.9 and
-# cycling four frames over its life (l). Its first draw and the point of the disc it draws (flat_ball) are kept unused.
+# cycling four frames over its life (l).
 [[particle]]
 name = "burst"
 when = "count < 200 && point.age[0] < 5"
-lifetime = 1000000000
-spawn = { shape = "flat_ball" }
-position = ["point.px[0] + cos(p.an) * p.sp * (size * 0.3)", "point.py[0] + sin(p.an) * p.sp * (size * 0.3)", "(1 - p.sp) * size * 0.1 + point.pz[0]"]
-velocity = ["cos(p.an) * p.sp * (size * 0.3)", "sin(p.an) * p.sp * (size * 0.3)", 0]
-drag = 0.6
+lifetime = 1000000000                           # until l runs out
+position = "point.p[0] + circle(p.an) * (p.sp * size * 0.3) + vec3(0, 0, (1 - p.sp) * size * 0.1)"
+velocity = { start = "circle(p.an) * (p.sp * size * 0.3)", tick = "p.velocity * 0.6" }
 size = { start = 0, tick = "p.age == 1 ? p.ss : p.size * 0.9" }
 alpha = { start = 64, tick = "light_alpha[p.l]" }
 frame = { start = 8, tick = "p.frame - p.frame % 4 + (p.frame + 1) % 4" }
 kill = "p.l < 0"
 
 [particle.vars]
-kept = "pick(1)"
 u = "range(0, 1)"
 sp = "1 - p.u * p.u"
 an = "range(0, 6.28)"
 l = { start = "round(9 - p.sp * 3)", tick = "p.l - 1" }
-ss = { start = "range(0.1, 0.14) * (2 - p.sp) * size", after_spawn = true }
+ss = "range(0.1, 0.14) * (2 - p.sp) * size"
 
-# A spark at a random point that jumps to a random place (t*) between the point and where it was.
+# A spark at a random point that jumps to a random place (to) between the point and where it was.
 [[particle]]
 name = "spark"
 lifetime = 7
+position = { start = "point.p[p.idx]", tick = "p.to" }
 size = { start = 0, tick = "p.age == 1 ? p.ss : p.size * 0.9" }
 alpha = { start = 255, tick = "light_alpha[p.life - 1]" }
 frame = { start = 1, tick = "p.frame + 1" }
 
-[particle.position]
-start = ["point.px[p.idx]", "point.py[p.idx]", "point.pz[p.idx]"]
-tick = ["p.tx", "p.ty", "p.tz"]
-
 [particle.vars]
 idx = "pick(10)"
 ss = "range(0, 0.01) * 3 + 0.06"
-u = "range(0, 1)"
-tx = "p.u * point.px[p.idx] + (1 - p.u) * point.bx[p.idx]"
-ty = "p.u * point.py[p.idx] + (1 - p.u) * point.by[p.idx]"
-tz = "p.u * point.pz[p.idx] + (1 - p.u) * point.bz[p.idx]"
+to = "lerp(point.b[p.idx], point.p[p.idx], range(0, 1))"

@@ -1056,7 +1056,8 @@ remove = true
 }
 
 // Vector values: a vector input and vars of three lanes, vec3, swizzles, the vector functions, a var that reads a var
-// declared after it (the reader's second pass widens that one), ball(), and the refusals.
+// declared after it (the reader's second pass widens that one), one whose expression swizzles itself (the loose width
+// passes widen it), ball(), and the refusals.
 constexpr const char* kVectors = R"toml(
 texture = "Stun"
 [inputs]
@@ -1069,6 +1070,17 @@ turned = "cross(vec3(1, 0, 0), vec3(0, 1, 0)).z + aim.yx.x"
 point = "ball()"
 mid = "lerp(vec3(0), vec3(10, 20, 30), 0.5) + dir.y"
 later = "vec3(1, 2, 3)"
+grows = { tick = "vec3(grows.xy + vec2(1, 2), 3)" }
+[[particle]]
+name = "spark"
+lifetime = 1
+)toml";
+
+constexpr const char* kNarrowSwizzle = R"toml(
+texture = "Stun"
+[vars]
+s = 1
+v = "s.xy"
 [[particle]]
 name = "spark"
 lifetime = 1
@@ -1101,7 +1113,8 @@ void CheckVectors() {
     };
     auto width = [&](std::string_view name) { return find(name) ? find(name)->width : 0; };
     Expect("vars take their expressions' lanes", width("dir") == 3 && width("far") == 1 && width("point") == 3 &&
-                                                     width("later") == 3 && record->varFloats == 15);
+                                                     width("later") == 3 && width("grows") == 3 &&
+                                                     record->varFloats == 18);
     Expect("normalize", std::fabs(lane("dir", 0) - 0.6f) < 1e-6f && std::fabs(lane("dir", 1) - 0.8f) < 1e-6f);
     Expect("length and dot", lane("far") == 8.0f);
     Expect("cross and a swizzle", lane("turned") == 5.0f);
@@ -1109,11 +1122,17 @@ void CheckVectors() {
     Expect("ball() is RandomInBall", lane("point", 0) == ball.x && lane("point", 1) == ball.y && lane("point", 2) == ball.z);
     Expect("a per-lane lerp plus a scalar", std::fabs(lane("mid", 2) - 15.8f) < 1e-5f);
     Expect("a var reads a later vector var (0 at the start: it starts after)", lane("early") == 1.0f);
+    Expect("a var swizzling itself is a vector", lane("grows", 0) == 1.0f && lane("grows", 1) == 2.0f &&
+                                                     lane("grows", 2) == 3.0f);
 
     Names names;
     std::string error;
     Run("vec3(1, 2, 3) + vec2(1, 1)", names, nullptr, &error);
     Expect("vectors of different widths are refused", !error.empty());
+    errors.clear();
+    Expect("a swizzle past a scalar var is refused",
+           Read(Parse(kNarrowSwizzle, "narrow.effect.toml"), "Narrow", &errors) == nullptr && errors.size() == 1 &&
+               errors[0].find("reads past a value of 1 lane") != std::string::npos);
     errors.clear();
     Expect("a particle's vars hold at most eight floats",
            Read(Parse(kWideParticle, "wide.effect.toml"), "Wide", &errors) == nullptr && !errors.empty() &&
