@@ -9,6 +9,8 @@
 # draw on WARP here). build-verify uploads the harness exe and its map (build/verify/ei-rebuild.exe and .map: code
 # only, no game data) for the smoke job; the map names a crashed run's stack (tools/resolve_crash.py). A failed build
 # check on verify is a warning when the exe was built, so the smoke still runs.
+# The compiler cache (tools/compiler_cache.py: sccache) on, as on a desktop: build/compiler_cache/<configuration> kept
+# between runs with actions/cache (a key per commit, the latest earlier one restored), as suites-macos.yml's ccache.
 #
 # smoke: the stub game data (H41) fetched from the private repository with the read-only token (the variable
 # EI_STUB_DATA_REPO and the secrets EI_STUB_DATA_TOKEN / EI_STUB_DATA_KEY, as suites-linux.yml and suites-macos.yml).
@@ -46,7 +48,6 @@ permissions:
 
 env:
   EI_GPU_D3D12_WARP: "1"
-  EI_COMPILER_CACHE: "0"
 
 jobs:
   build-release:
@@ -69,6 +70,12 @@ jobs:
           echo "EI_VSROOT=$vs" >> $GITHUB_ENV
           echo "Visual Studio: $vs"
           ls "$(cygpath -u "$vs")/VC/Tools/MSVC"
+      - name: Compiler cache
+        uses: actions/cache@v5
+        with:
+          path: build/compiler_cache/release
+          key: sccache-windows-release-${{ github.sha }}
+          restore-keys: sccache-windows-release-
       - name: Build release
         run: |
           start=$(date +%s)
@@ -100,6 +107,12 @@ jobs:
           echo "EI_VSROOT=$vs" >> $GITHUB_ENV
           echo "Visual Studio: $vs"
           ls "$(cygpath -u "$vs")/VC/Tools/MSVC"
+      - name: Compiler cache
+        uses: actions/cache@v5
+        with:
+          path: build/compiler_cache/verify
+          key: sccache-windows-verify-${{ github.sha }}
+          restore-keys: sccache-windows-verify-
       - name: Build verify
         run: |
           start=$(date +%s)
