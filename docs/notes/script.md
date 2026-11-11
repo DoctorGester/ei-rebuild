@@ -4,9 +4,7 @@ Files: `src/game/script/` (`script.h`, the records and `Script`; `script_*.cpp`:
 parse_load, ir, exec, exec_run, exec_helpers, blocks, effects, save, load, addon* (Rebirth, `rebirth.md`)),
 `src/game/world/quest_database.cpp`, `src/engine/data/text_manager.cpp`. Scenarios: the sections `script_parse`,
 `script_exec`, `script_quest`; `script_copy`, `script_fx`, `script_file`, `script_quest_save`, `console`,
-`zone_gz2g_traps`. Every script runs on Lua: the runtime, the writer of converted scripts, the scheduler and the
-old-save shim are in `lua-scripting.md`; this file holds the parser, the built-ins' records and the rules the
-scheduler keeps.
+`zone_gz2g_traps`. The Lua runtime, writer, scheduler and old-save shim: `lua-scripting.md`.
 
 ## Data structures
 
@@ -56,19 +54,15 @@ not in a save: effects, instances and definitions made by `@` lines are gone aft
 run's `harness_saves`; tools/make_gap_script.py, script_file.txt). A multiplayer client (a hosted game too) cannot run
 `@` lines at all.
 
-1. Reset the error state ("No errors found").
-2. Preprocess line by line: `#define name value` lines are collected (and become empty lines); in every other line
-   each define's name is replaced by its value (in list order, restarting after each replacement; `AddDefine` inserts
-   before the first shorter name else before the last define; a value containing its name never finishes expanding).
-3. `Tokenize` into tokens (text + line; "no token" is "None", -1).
-4. Sections by keyword id: `WorldScript(` commands `)` (at most one per file; run at the end when `runWorldScript`),
-   `Script name(` params `)(` body `)` (a definition not declared before; after `DeclareScript` it is `Script name(`
-   body `)`, once), `DeclareScript name(` params `)` ("Duplicate script" if it exists), `GlobalVars(` declarations `)`,
-   anything else "Unexpected '%s'".
-5. On success the loaded flag is set and the file counter incremented; a failed load does not count the file but
-   definitions and globals added before the error stay.
-
-A zone's mission script that fails (`WorldServer::LoadZoneScripts`) says so on the console, `Script error: <zone>.mob
+1. Reset the error state ("No errors found"). 2. Preprocess line by line: `#define name value` lines are collected (and
+become empty lines); in every other line each define's name is replaced by its value (in list order, restarting after
+each replacement; `AddDefine` inserts before the first shorter name else before the last define; a value containing its
+name never finishes expanding). 3. `Tokenize` into tokens (text + line; "no token" is "None", -1). 4. Sections by
+keyword id: `WorldScript(` commands `)` (at most one per file; run at the end when `runWorldScript`), `Script name(`
+params `)(` body `)` (a definition not declared before; after `DeclareScript` it is `Script name(` body `)`, once),
+`DeclareScript name(` params `)` ("Duplicate script" if it exists), `GlobalVars(` declarations `)`, anything else
+"Unexpected '%s'". 5. On success the loaded flag is set and the file counter incremented; a failed load does not count
+the file but definitions and globals added before the error stay. A zone's mission script that fails (`WorldServer::LoadZoneScripts`) says so on the console, `Script error: <zone>.mob
 line <n>: <error>` (ours; the original said nothing; Lost in Astral's bz23k, mods.md); so does an AddMob'd file's
 (`MobFile::Load`), whose scripts stay dropped when a name clashes (Lost in Astral's zone10hunter.mob, scenario
 `mod_lost_in_astral_addmob_error`).
