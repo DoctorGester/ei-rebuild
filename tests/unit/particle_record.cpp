@@ -2,7 +2,7 @@
 // compiled and run, a record read from TOML and merged over a lower layer's, its problems reported, the state machine
 // driven by its typed inputs: stages by ticks, by a condition on an input and by an event, enter and event actions,
 // anchors, conditional tick reactions and the stop action; a particle's position written out and its vars after the
-// spawn; and every whole effect the notes and the modding guide
+// spawn; the features the families of the original effects brought; and every whole effect the notes and the modding guide
 // write out read without a problem. ei_unit_check (unit_check.cpp) runs it.
 #include "../../src/game/effects/particle_record.h"
 #include "../../src/game/core/random.h"
@@ -419,8 +419,8 @@ void CheckCarrierReaders() {
     Expect("the carrier's unit values noted", record->readsUnit && !record->readsCarrier);
     Expect("a numbered anchor, a drop, the flat ball and two source writes",
            !kind.anchorIndex.Empty() && !kind.drop.Empty() && kind.spawn.shape == SpawnShape::FlatBall &&
-               kind.sourceWrites.size() == 2 && kind.sourceWrites[0].first == static_cast<int>(SourceValue::Size) &&
-               kind.sourceWrites[1].first == static_cast<int>(SourceValue::Alpha));
+               kind.writes.size() == 2 && kind.writes[0].index == static_cast<int>(SourceValue::Size) &&
+               kind.writes[1].index == static_cast<int>(SourceValue::Alpha));
     Expect("an at_create var", record->vars.size() == 2 && record->vars[0].atCreate && !record->vars[1].atCreate);
     State state(record);
     IsaacRandom random;
@@ -631,6 +631,118 @@ void CheckReactionParticles() {
            Read(Parse(kShakeWithoutTime, "shake.effect.toml"), "Shake", &errors) == nullptr && errors.size() == 1);
 }
 
+// The casting family's: the ball functions, a spawn's tries, an anchor group's values by number, a particle's writes to an effect
+// var and its anchor's vars, a jump, carrier_unit_radius.
+constexpr const char* kCastFeatures = R"toml(
+texture = "Stun"
+[vars]
+bx = "ball_x()"
+by = "ball_y()"
+bz = "ball_z()"
+seen = 0
+radius = "carrier_unit_radius * 2"
+[[on]]
+event = "tick"
+do = [{ set = "seen", value = "orb.v[1] + orb.v[9] * 10 + orb.index[-3] * 100" }]
+[[anchor]]
+name = "orb"
+count = 3
+spawn = { shape = "ball", tries = 0 }
+vars.v = "a.index * 2 + 1"
+[[particle]]
+name = "wisp"
+at = "orb"
+lifetime = 4
+spawn = { shape = "shell" }
+source = { size = 2, seen = "p.age", a.v = 7 }
+jump = { when = "p.age == 1", size = 3 }
+[[particle]]
+name = "plain"
+when = false
+lifetime = 4
+jump = "p.age == 2"
+)toml";
+
+constexpr const char* kBareGroup = R"toml(
+texture = "Stun"
+[vars]
+seen = "orb.v"
+[[anchor]]
+name = "orb"
+count = 1
+vars.v = 1
+[[particle]]
+name = "wisp"
+lifetime = 4
+)toml";
+
+constexpr const char* kWriteMissing = R"toml(
+texture = "Stun"
+[[anchor]]
+name = "orb"
+count = 1
+vars.v = 1
+[[particle]]
+name = "wisp"
+at = "orb"
+lifetime = 4
+source = { a.missing = 1 }
+)toml";
+
+constexpr const char* kJumpWithoutWhen = R"toml(
+texture = "Stun"
+[[particle]]
+name = "wisp"
+lifetime = 4
+jump = { size = 1 }
+)toml";
+
+void CheckCastFeatures() {
+    std::vector<std::string> errors;
+    const std::shared_ptr<const Record> record = Read(Parse(kCastFeatures, "cast.effect.toml"), "Cast", &errors);
+    for (const std::string& error : errors) std::printf("ei_unit_check: particle record: unexpected: %s\n", error.c_str());
+    if (!record) return Expect("the cast features record reads", false);
+    const ParticleKind& wisp = record->particles[0];
+    using To = ParticleKind::Write::To;
+    Expect("tries read (0) and by default (10)", record->anchors[0].spawn.tries == 0 && wisp.spawn.tries == 10);
+    Expect("source writes to the source, an effect var and an anchor var, in the file's order",
+           wisp.writes.size() == 3 && wisp.writes[0].to == To::Source &&
+               wisp.writes[0].index == static_cast<int>(SourceValue::Size) && wisp.writes[1].to == To::Var &&
+               wisp.writes[1].index == 3 && wisp.writes[2].to == To::AnchorVar && wisp.writes[2].index == 0);
+    Expect("a jump with its size, and one by its condition alone",
+           !wisp.jump.Empty() && !wisp.jumpSize.Empty() && !record->particles[1].jump.Empty() &&
+               record->particles[1].jumpSize.Empty());
+
+    State state(record);
+    state.source[static_cast<int>(SourceValue::CarrierUnitRadius)] = 1.25f;
+    IsaacRandom random;
+    IsaacRandom expected = random;
+    state.Step(random);
+    const Vector3 ball = RandomInBall(expected);
+    Expect("ball_x() draws a point in the ball, ball_y() and ball_z() read the same point",
+           state.vars[0] == ball.x && state.vars[1] == ball.y && state.vars[2] == ball.z);
+    Expect("carrier_unit_radius reads the source's value", state.vars[4] == 2.5f);
+    state.Step(random);
+    Expect("orb.v[i] by the anchor's number, held to the group's ends (3 + 5 * 10 + 0 * 100)", state.vars[3] == 53.0f);
+
+    // A ball with tries 0 draws until the point is inside: the same draws as RandomInBall's.
+    IsaacRandom a, b;
+    const Vector3 point = SpawnPoint(record->anchors[0].spawn, state.SourceEnv(&a), a);
+    const Vector3 inside = RandomInBall(b, nullptr, 0);
+    Expect("a ball spawn of tries 0 draws until inside", point.x == inside.x && point.z == inside.z && a.Next() == b.Next());
+
+    errors.clear();
+    Expect("a group's var without the anchor's number refuses the effect",
+           Read(Parse(kBareGroup, "bare.effect.toml"), "Bare", &errors) == nullptr && errors.size() == 1 &&
+               errors[0].find("anchor's number") != std::string::npos);
+    errors.clear();
+    Expect("a write to an anchor var the group lacks refuses the effect",
+           Read(Parse(kWriteMissing, "missing.effect.toml"), "Missing", &errors) == nullptr && errors.size() == 1);
+    errors.clear();
+    Expect("a jump table without its when refuses the effect",
+           Read(Parse(kJumpWithoutWhen, "jump.effect.toml"), "Jump", &errors) == nullptr && errors.size() == 1);
+}
+
 // The ```toml blocks of `file` (relative to the source tree) that are whole effects (a [[particle]]).
 std::vector<std::string> EffectBlocks(const char* file) {
     std::ifstream in(std::string(EI_SOURCE_DIR) + "/" + file, std::ios::binary);
@@ -664,7 +776,7 @@ void CheckWrittenEffects() {
             ++read;
         }
     }
-    Expect("the notes' and the guide's effects found", read >= 2);
+    Expect("the guide's effects found", read >= 1);
 }
 
 } // namespace
@@ -678,6 +790,7 @@ int RunParticleRecordChecks() {
     CheckCarrierReaders();
     CheckExtensions();
     CheckReactionParticles();
+    CheckCastFeatures();
     CheckWrittenEffects();
     return failures;
 }

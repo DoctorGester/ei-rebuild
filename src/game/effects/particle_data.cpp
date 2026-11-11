@@ -235,6 +235,7 @@ void WriteCarrier(ParticleSource& s, std::vector<float>& v) {
     Value(v, SourceValue::CarrierAxisY) = axis.y;
     Value(v, SourceValue::CarrierAxisZ) = axis.z;
     Value(v, SourceValue::CarrierBoundsRadius) = carrier ? carrier->bounds.radius : 0.0f;
+    Value(v, SourceValue::CarrierUnitRadius) = unit ? unit->Radius() : 0.0f;
     const Vector3 axisY = carrier ? carrier->localRotation.AxisY() : Vector3{};
     Value(v, SourceValue::CarrierAxisYX) = axisY.x;
     Value(v, SourceValue::CarrierAxisYY) = axisY.y;
@@ -725,14 +726,29 @@ int UpdateKind(ParticleSource& s, State& state, const ParticleKind& kind, Partic
     else if (!kind.growth.Empty()) p.size = p.size * kind.growth.Run(env);
     const std::uint32_t alpha = kind.alphaTick.Empty() ? p.color >> 24 : Channel(kind.alphaTick.Run(env));
     p.color = alpha << 24 | Rgb(kind, env, p.color);
-    // The source's values this particle sets: the next particles' updates and the emission read them.
-    for (const auto& [which, value] : kind.sourceWrites) {
-        const float written = value.Run(env);
-        state.source[which] = written;
-        WriteBack(s, which, written);
+    // The values this particle sets (the source's, the effect's vars, its anchor's): the next particles' updates and the
+    // emission read them.
+    for (const ParticleKind::Write& write : kind.writes) {
+        const float written = write.value.Run(env);
+        switch (write.to) {
+        case ParticleKind::Write::To::Source:
+            state.source[write.index] = written;
+            WriteBack(s, write.index, written);
+            break;
+        case ParticleKind::Write::To::Var: state.vars[write.index] = written; break;
+        case ParticleKind::Write::To::AnchorVar:
+            if (p.state >= 0) state.anchors[p.state].vars[write.index] = written;
+            break;
+        }
     }
 
     if (!kind.kill.Empty() && kind.kill.Run(env) != 0.0f) return 0;
+    // A jump: drawn at its new place this tick, not moving there from the old.
+    if (!kind.jump.Empty() && kind.jump.Run(env) != 0.0f) {
+        p.prevPos = p.pos;
+        p.prevColor = p.color;
+        p.prevSize = kind.jumpSize.Run(env, p.size);
+    }
     return 1;
 }
 

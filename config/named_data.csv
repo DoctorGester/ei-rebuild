@@ -31,10 +31,6 @@ address,size,name,file
 00787070,960,kActionDefinitions,src/game/ui/ui_options.cpp
 00787C8C,48,kBranchFrequencies,src/game/effects/lightning.cpp
 0078A5DC,56,kBlastAlpha,src/game/effects/particle_blasts.cpp
-0078A914,76,kRiseFallAlpha,src/game/effects/particle_casting.cpp
-0078A964,28,kCastAlphaByCountdown,src/game/effects/particle_casting.cpp
-0078A980,56,kCastAlphaByLifeWide,src/game/effects/particle_casting.cpp
-0078A9BC,56,kCastAlphaByLife,src/game/effects/particle_casting.cpp
 0078A9F8,64,kLightningAlpha,src/game/effects/particle_blasts.cpp
 0078AA78,64,kGlowAlpha,src/game/effects/particle_world.cpp
 0078B0E8,4,g_nextPartyId,src/game/players/party_manager.cpp

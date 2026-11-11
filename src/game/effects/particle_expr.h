@@ -2,8 +2,9 @@
 
 // The data effects' expressions (docs/notes/effects.md, "Data effects"): a small fixed grammar, compiled once when an
 // effect loads into a stack program over floats and run every tick. Numbers, names, + - * / %, comparisons, ! && ||
-// (both short), a ? b : c, calls of the functions below or of a curve, and a table's entry `name[i]`. Every operation
-// is a float operation in the order written, operands left to right, so the random draws come in that order too.
+// (both short), a ? b : c, calls of the functions below or of a curve, a table's entry `name[i]` and an anchor's field by
+// its number `group.field[i]`. Every operation is a float operation in the order written, operands left to right, so the
+// random draws come in that order too.
 
 #include <cstdint>
 #include <functional>
@@ -12,6 +13,7 @@
 #include <vector>
 
 class IsaacRandom;
+struct Vector3;
 
 namespace effectdata {
 
@@ -50,6 +52,12 @@ struct Env {
     // The top platform's plane at (x, y) for `platform_height` and `platform_normal_x/y/z` (`which` 0: its height, 1-3:
     // its normal; null: height 0 and normal (0, 0, 1), as off every platform).
     float (*platform)(float x, float y, int which) = nullptr;
+    // A field of an anchor group's anchor by its number (`<group>.<field>[i]`): `scope` Anchor (its own values) or
+    // AnchorVar (its vars) (null: 0).
+    float (*anchorAt)(const void* context, int group, Scope scope, int field, float number) = nullptr;
+    const void* anchorContext = nullptr;
+    // The point the last `ball_x()` drew, which `ball_y()` and `ball_z()` read (null: no point kept, they answer 0).
+    Vector3* ball = nullptr;
 };
 
 // What a name means where an expression is compiled.
@@ -57,12 +65,14 @@ struct Resolved {
     enum class Kind : std::uint8_t {
         None, Value, Constant, Table, Curve,
         ListAxis,   // one axis (`axis`) of a list input's points, read as a table
+        AnchorAt,   // a field (`index`, of `scope` Anchor or AnchorVar) of anchor group `group`'s anchor by number
     };
     Kind kind = Kind::None;
     Scope scope = Scope::Source;
     std::uint16_t index = 0;    // the value's place in its scope, or the table's, curve's or list's
     float constant = 0.0f;
     std::uint8_t axis = 0;      // a list axis's: 0, 1, 2 for x, y, z
+    std::uint8_t group = 0;     // an AnchorAt's anchor group
 };
 // The names of the context an expression is compiled in: a dotted name (`p.size`, `stage.glow`) to its meaning.
 using Resolver = std::function<Resolved(std::string_view name)>;
@@ -82,6 +92,7 @@ enum class Op : std::uint8_t {
     Index,          // a table's entry by the top
     CurveAt,        // a curve's value at the top
     ListAt,         // a list input's point by the top, its axis `count`
+    AnchorAt,       // a field (`index` of `scope`) of anchor group `count`'s anchor by the top
 };
 
 // The functions an expression can call (`range` and `below` draw the effect's generator once, `chance` and `pick`
@@ -96,6 +107,9 @@ enum class Function : std::uint8_t {
     Ground,     // ground(x, y): the ground's height there (Env::ground)
     // platform_height(x, y), platform_normal_x / _y / _z(x, y): the plane of the top platform there (Env::platform)
     PlatformHeight, PlatformNormalX, PlatformNormalY, PlatformNormalZ,
+    // ball_x(): a point drawn in the unit ball (RandomInBall: ten tries of the cube, the last kept), its x;
+    // ball_y(), ball_z(): the same point's y and z (no draw)
+    BallX, BallY, BallZ,
 };
 
 struct Instruction {
@@ -117,6 +131,13 @@ public:
     std::string text;
     std::vector<Instruction> code;
 };
+
+// A random point of the cube [-1, 1)^3, drawn x, y, z.
+Vector3 RandomInCube(IsaacRandom& random);
+// A random point in the unit ball: `tries` draws of the cube, the first inside kept, else the last; `tries` 0: drawn
+// until inside, its surface included, and off its centre (0 < length squared <= 1). `lengthSquared` (when given) gets
+// its squared length.
+Vector3 RandomInBall(IsaacRandom& random, float* lengthSquared = nullptr, int tries = 10);
 
 // `text` compiled against `resolve`; an empty Expr and `error` set (the column and what is wrong) when it does not
 // compile.

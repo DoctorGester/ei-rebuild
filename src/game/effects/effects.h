@@ -177,14 +177,6 @@ struct ParticleElement {
             float sizeFactor;   // 0 or 1
             std::int32_t age;   // in ticks
         } fragment = {};
-        // CastingIllusion ... CastingHealing: an orbiting light (pos its world position).
-        struct {
-            float turnCos;      // the cosine and sine of its turn per tick
-            float turnSin;
-            float scale;        // the carrier's radius (times -1 for CastingDomination)
-            Vector3 relative;   // its position relative to the source (element 0's x: the orbit)
-            Vector3 previous;   // its last world position
-        } orbiter;
         // LightningBlast (EmitLightning, TickLightning): a point of the bolt, on the ground; the heads move by fork
         // and remember their position in base.
         struct {
@@ -192,25 +184,6 @@ struct ParticleElement {
             Vector3 base;       // pos as placed
             std::int32_t emitted;   // point 0: particles emitted along the bolt
         } bolt;
-        // CastingFire ... CastingDivination: element 0 the effect's state (pos.x 1 once set up, ticks the countdown
-        // the alpha follows), elements 1.. the swirls.
-        struct {
-            float growth;       // the particles' growth per tick
-            float radius;
-            float size;         // the particles' size
-            std::int32_t alpha;
-        } cast;
-        struct {
-            Vector3 position;   // drifting by velocity
-            Vector3 velocity;
-        } swirl;
-        // Casting and Healing: a ring of flames (pos its centre, relative to the source; ticks its countdown).
-        struct {
-            float radius;
-            float angle;        // of its leading flame
-            float rise;         // per tick
-            Vector3 centre;     // its starting centre
-        } flames;
         // Geyser (the fireworks): a vent (ticks the eruption's remaining ticks).
         struct {
             float yaw;          // the jet's direction (radians)
@@ -218,12 +191,6 @@ struct ParticleElement {
             float power;        // its strength
             std::int32_t pause; // before the next eruption
         } vent;
-        // Bag: a ball (pos its position, ticks its countdown).
-        struct {
-            Vector3 step;       // its last step
-            Vector3 velocity;
-            std::int32_t age;   // its kind, then its age (indexes the sizes)
-        } ball;
         // Tornado and CurseHolder: a ring of the funnel (pos its centre); element 0 also holds the funnel's own
         // values.
         struct {

@@ -25,19 +25,8 @@ namespace {
 constexpr ScriptParticleType kScriptParticleTypes[kScriptParticleTypeCount] = {
     {"FireBlast", 0x2002, 200},
     {"LightningBlast", 0x2030, 200},
-    {"Healing", 0x2006, 200},
     {"Geyser", 0x2009, -1},
     {"Tornado", 0x200A, -1},
-    {"Casting", 0x200B, 200},
-    {"CastingFire", 0x2027, -1},
-    {"CastingElectricity", 0x2028, -1},
-    {"CastingAcid", 0x2029, -1},
-    {"CastingDivination", 0x202A, -1},
-    {"CastingIllusion", 0x202B, -1},
-    {"CastingDomination", 0x202C, -1},
-    {"CastingEnchantment", 0x202D, -1},
-    {"CastingHealing", 0x202E, -1},
-    {"Silence", 0x2048, -1},
     {"CurseHolder", 0x2050, -1},
 };
 

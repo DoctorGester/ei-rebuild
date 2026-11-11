@@ -134,6 +134,7 @@ constexpr std::string_view kSourceNames[kSourceValues] = {
     "carrier_running", "carrier_dead", "carrier_axis.x", "carrier_axis.y", "carrier_axis.z", "carrier_bounds_radius",
     "carrier_left_foot.x", "carrier_left_foot.y", "carrier_left_foot.z", "carrier_right_foot.x",
     "carrier_right_foot.y", "carrier_right_foot.z", "carrier_axis_y.x", "carrier_axis_y.y", "carrier_axis_y.z",
+    "carrier_unit_radius",
 };
 // The source values a `set` action may write (the [source] table's numbers).
 constexpr std::string_view kSettableSourceNames[] = {
@@ -530,6 +531,27 @@ private:
                 return {};
             }
         }
+        if (const std::size_t dot = name.find('.'); dot != std::string_view::npos) {
+            // An anchor group's field by the anchor's number: `ring.angle[i]`.
+            const std::string_view group = name.substr(0, dot), field = name.substr(dot + 1);
+            for (std::size_t g = 0; g < record->anchors.size() && g < 256; ++g) {
+                if (record->anchors[g].name != group) continue;
+                Resolved at{Resolved::Kind::AnchorAt, Scope::Anchor, 0, 0.0f};
+                at.group = static_cast<std::uint8_t>(g);
+                if (const int i = IndexIn(kAnchorNames, field); i >= 0) {
+                    at.index = static_cast<std::uint16_t>(i);
+                    return at;
+                }
+                const auto& vars = record->anchors[g].vars;
+                for (std::size_t i = 0; i < vars.size(); ++i) {
+                    if (vars[i].name != field) continue;
+                    at.scope = Scope::AnchorVar;
+                    at.index = static_cast<std::uint16_t>(i);
+                    return at;
+                }
+                return {};
+            }
+        }
         if (const Input* input = record->FindInput(name))
             return input->type == InputType::Vector || input->type == InputType::List ? Resolved{}
                                                                                       : value(Scope::Input, input->slot);
@@ -776,6 +798,7 @@ private:
     // A spawn shape (`spawn = { shape, radius, min, max, from, to }`); `known`: the table's keys where it is read.
     void ReadSpawn(const RawNode& spawn, Context context, Spawn* out, std::initializer_list<std::string_view> known) {
         Known(spawn, known);
+        Integer(spawn["tries"], &out->tries);
         static constexpr std::string_view kShapes[] = {"point", "box", "ball", "shell", "disc", "ring", "flat_ball",
                                                        "segment"};
         out->shape = static_cast<SpawnShape>(Choice(spawn["shape"], kShapes, 0));
@@ -792,7 +815,7 @@ private:
         const Context context{group, -1};
         anchor.count = Field(node["count"], {});
         if (anchor.count.Empty()) Error(node, "anchor '" + anchor.name + "': no count");
-        ReadSpawn(node["spawn"], context, &anchor.spawn, {"shape", "radius", "min", "max", "from", "to"});
+        ReadSpawn(node["spawn"], context, &anchor.spawn, {"shape", "radius", "min", "max", "from", "to", "tries"});
         anchor.ticks = Field(node["ticks"], context);
         ReadVars(node["vars"], context, &anchor.vars);
         anchor.cylindrical = node["radius"].Exists() || node["angle"].Exists();
@@ -808,7 +831,7 @@ private:
     void ReadParticle(const RawNode& node, int index) {
         Known(node, {"name", "when", "lifetime", "vars", "at", "pick", "anchor_index", "space", "spawn", "position",
                      "velocity", "speed", "drag", "gravity", "wind", "size", "color", "alpha", "frame", "kill", "drop",
-                     "source", "on_death"});
+                     "source", "jump", "on_death"});
         ParticleKind& kind = record->particles[index];
         std::string group;
         if (Text(node["at"], &group)) kind.anchor = GroupIndex(node["at"], group);
@@ -834,7 +857,8 @@ private:
         if (kind.space == Space::Anchor && kind.anchor < 0) Error(node, "particle '" + kind.name + "': space anchor needs at");
 
         const RawNode& spawn = node["spawn"];
-        ReadSpawn(spawn, context, &kind.spawn, {"shape", "radius", "min", "max", "from", "to", "offset", "on_ground"});
+        ReadSpawn(spawn, context, &kind.spawn,
+                  {"shape", "radius", "min", "max", "from", "to", "tries", "offset", "on_ground"});
         Fields3(spawn["offset"], context, kind.offset);
         kind.onGround = Field(spawn["on_ground"], context);
         const RawNode& position = node["position"];
@@ -898,16 +922,15 @@ private:
         }
         kind.kill = Field(node["kill"], context);
         kind.drop = Field(node["drop"], context);
-        const RawNode& writes = node["source"];
-        if (writes.Exists() && writes.kind != RawNode::Kind::Table)
-            Error(writes, "particle '" + kind.name + "': source is a table of the source's values");
-        for (const auto& [name, value] : writes.keys) {
-            if (IndexIn(kSettableSourceNames, name) < 0) {
-                Error(value, "particle '" + kind.name + "': source sets " + std::string(kSettableText) + ", not '" +
-                                 name + "'");
-                continue;
-            }
-            kind.sourceWrites.emplace_back(IndexIn(kSourceNames, name), Field(value, context));
+        ReadWrites(node["source"], kind, context);
+        const RawNode& jump = node["jump"];
+        if (jump.kind == RawNode::Kind::Table) {
+            Known(jump, {"when", "size"});
+            kind.jump = Field(jump["when"], context);
+            kind.jumpSize = Field(jump["size"], context);
+            if (kind.jump.Empty()) Error(jump, "particle '" + kind.name + "': jump needs its when");
+        } else {
+            kind.jump = Field(jump, context);
         }
         kind.onDeath = Actions(node["on_death"], context);
         for (const Action& action : kind.onDeath) {
@@ -917,6 +940,42 @@ private:
             if (!placed)
                 Error(node["on_death"], "particle '" + kind.name + "': on_death emits a kind (emit with kind), "
                                         "starts an effect or sets an input or a var");
+        }
+    }
+    // A particle's `source = { ... }`: the source's values, the effect's vars and (`a.<var>`) its anchor's vars it sets
+    // at each update, in the file's order.
+    void ReadWrites(const RawNode& writes, ParticleKind& kind, Context context) {
+        if (!writes.Exists()) return;
+        if (writes.kind != RawNode::Kind::Table)
+            return Error(writes, "particle '" + kind.name + "': source is a table of the values it sets");
+        using To = ParticleKind::Write::To;
+        for (const auto& [name, value] : writes.keys) {
+            if (name == "a" && value.kind == RawNode::Kind::Table) {
+                const int group = kind.anchor;
+                for (const auto& [var, expr] : value.keys) {
+                    int index = -1;
+                    if (group >= 0)
+                        for (std::size_t i = 0; i < record->anchors[group].vars.size(); ++i)
+                            if (record->anchors[group].vars[i].name == var) index = static_cast<int>(i);
+                    if (index < 0) {
+                        Error(expr, "particle '" + kind.name + "': source sets a.<var>, a var of its anchor (at), not 'a." +
+                                        var + "'");
+                        continue;
+                    }
+                    kind.writes.push_back({To::AnchorVar, index, Field(expr, context)});
+                }
+                continue;
+            }
+            if (const int var = IndexOfVar(name); var >= 0) {
+                kind.writes.push_back({To::Var, var, Field(value, context)});
+                continue;
+            }
+            if (IndexIn(kSettableSourceNames, name) < 0) {
+                Error(value, "particle '" + kind.name + "': source sets " + std::string(kSettableText) +
+                                 ", an effect var or a.<var>, not '" + name + "'");
+                continue;
+            }
+            kind.writes.push_back({To::Source, IndexIn(kSourceNames, name), Field(value, context)});
         }
     }
     static bool ReadsAnchor(const Expr& expr) {
@@ -961,25 +1020,6 @@ float SourceValueOf(const Env& env, SourceValue which) {
 
 } // namespace
 
-Vector3 RandomInCube(IsaacRandom& random) {
-    const float x = random.Range(-1.0f, 1.0f);
-    const float y = random.Range(-1.0f, 1.0f);
-    return {x, y, random.Range(-1.0f, 1.0f)};
-}
-
-Vector3 RandomInBall(IsaacRandom& random, float* lengthSquared) {
-    Vector3 v;
-    float length2 = 0.0f;
-    for (int tries = 10;;) {
-        v = RandomInCube(random);
-        length2 = LengthSquared(v);
-        if (length2 < 1.0f) break;   // random: never NaN
-        if (!(--tries > 0)) break;
-    }
-    if (lengthSquared) *lengthSquared = length2;
-    return v;
-}
-
 Vector3 SpawnPoint(const Spawn& spawn, const Env& env, IsaacRandom& random) {
     constexpr float kTwoPi = kPi + kPi;
     switch (spawn.shape) {
@@ -996,11 +1036,11 @@ Vector3 SpawnPoint(const Spawn& spawn, const Env& env, IsaacRandom& random) {
         return {x, y, z};
     }
     case SpawnShape::Ball: {
-        const Vector3 v = RandomInBall(random);
+        const Vector3 v = RandomInBall(random, nullptr, spawn.tries);
         return v * spawn.radius.Run(env, 1.0f);
     }
     case SpawnShape::Shell: {
-        const Vector3 v = RandomInBall(random);
+        const Vector3 v = RandomInBall(random, nullptr, spawn.tries);
         const float length = Length(v);
         const float radius = spawn.radius.Run(env, 1.0f);
         return length > 0.0f ? v * (radius / length) : Vector3{radius, 0.0f, 0.0f};
@@ -1052,6 +1092,23 @@ State::State(std::shared_ptr<const Record> effect) : record(std::move(effect)) {
         if (input.type == InputType::List) SetList(input.name, input.points);
     pendingEvents.assign(record->inputValues, 0);
     vars.assign(record->vars.size(), 0.0f);
+}
+
+float State::AnchorAt(const void* context, int group, Scope scope, int field, float number) {
+    const State& state = *static_cast<const State*>(context);
+    int count = 0;
+    for (const AnchorState& anchor : state.anchors) count += anchor.group == group ? 1 : 0;
+    if (count == 0) return 0.0f;
+    // Truncated and held to the group's ends, as a table's entry.
+    int wanted = 0;
+    if (number >= static_cast<float>(count - 1)) wanted = count - 1;
+    else if (number >= 1.0f) wanted = static_cast<int>(number);
+    for (const AnchorState& anchor : state.anchors) {
+        if (anchor.group != group || wanted-- > 0) continue;
+        if (scope == Scope::AnchorVar) return field < std::ssize(anchor.vars) ? anchor.vars[field] : 0.0f;
+        return field < kAnchorValues ? anchor.values[field] : 0.0f;
+    }
+    return 0.0f;
 }
 
 bool State::SetValue(std::string_view input, float value) {
@@ -1114,6 +1171,9 @@ Env State::SourceEnv(IsaacRandom* random) const {
     env.measureContext = measureContext;
     env.ground = ground;
     env.platform = platform;
+    env.anchorAt = AnchorAt;
+    env.anchorContext = this;
+    env.ball = &ball;
     return env;
 }
 

@@ -1,5 +1,5 @@
-# Particles: sources of the types in particle_casting.cpp, particle_marks.cpp, particle_blasts.cpp and
-# particle_world.cpp, placed around the hero, and a few buffs on the hero (spell modifiers carry Modifier particles),
+# Particles: sources of types in particle_blasts.cpp and particle_world.cpp and of original types on data,
+# placed around the hero, and a few buffs on the hero (spell modifiers carry Modifier particles),
 # then deleted. Every source runs CParticleSource::Tick, AddParticle
 # and the particle pool (particle_manager.cpp) each world update; the camera and units use the
 # quaternion helpers (core_maths.cpp); the new game seeds the generator (IsaacRandom::Init).

@@ -1,0 +1,118 @@
+# Casting (0x200B, the FireSmoke texture): a cast without a school, three rings of flames round the carrier. At the
+# first particle the effect places them as Healing does; for 36 ticks each ring's flame point turns 10 degrees a tick
+# about its centre and rises, the ring widening for 18 ticks and narrowing for 18; then for 9 ticks the rings ease
+# towards 20 times the source's height and sparks fly off ring 0's circle (72 a tick, between the ring and a spread
+# that narrows), and the emission ends. Each ring's flame rides it 36 ticks, then burns out over 8, shrinking; before
+# the close the sparks start round a random ring's centre (27 a tick).
+# The original types on data: docs/notes/effects.md, "The original effects on data".
+
+texture = "FireSmoke"
+attach = "attached_only"
+
+[server]
+one_shot = 60
+script_lifetime = 200
+
+[emit]
+rate = "rate_now"
+
+# The rings' countdown (t, from the first particle), the emission's count and the flames made so far (one per ring,
+# then one empty try).
+[vars]
+t = { start = -1000, tick = "t - 1" }
+rate_now = 2147483647
+emit_state = 0
+
+[[on]]
+event = "before_emit"
+when = "anchors.ring == 0"
+do = [{ set = "height", value = "carrier_radius * 1.1 * 0.027777778 + carrier_radius * 1.1 * 0.027777778" }, { set = "t", value = 45 }, { set = "rate_now", value = 27 }, { add_anchor = "ring", count = 3 }]
+
+# The close's sparks set the count of the next ticks (before the flames' count moves on).
+[[on]]
+event = "emit"
+when = "t < 9 && emit_state > anchors.ring"
+do = [{ set = "rate_now", value = 72 }]
+
+[[on]]
+event = "emit"
+when = "emit_state <= anchors.ring"
+do = [{ set = "emit_state", value = "emit_state + 1" }]
+
+[[on]]
+event = "tick"
+when = "t == 0"
+do = [{ stop_emitting = true }]
+
+# A ring, as Healing's; past the turning it eases to 20 times the source's height.
+[[anchor]]
+name = "ring"
+count = 0
+x = "a.px"
+y = "a.py"
+z = "a.pz"
+
+[anchor.vars]
+lift = "range((carrier_radius + carrier_radius) * -0.1, (carrier_radius + carrier_radius) * 0.1)"
+angle = { start = "a.index == 0 ? 0 : ring.angle[a.index - 1] + deg * (360 / a.count)", tick = "t >= 9 ? deg * 10 + a.angle : a.angle" }
+radius = { start = 0, tick = "t == 0 ? a.radius : t >= 27 ? height + a.radius : t >= 9 ? a.radius - height : (a.radius - height * 20) * 0.5 + height * 20" }
+rise = "(carrier_radius + carrier_radius - a.lift) * 0.027777778"
+px = { start = 0, tick = "t >= 9 ? sin(a.angle) * a.radius + 0 : a.px" }
+py = { start = 0, tick = "t >= 9 ? cos(a.angle) * a.radius + 0 : a.py" }
+pz = { start = "a.lift + (carrier_z - carrier_radius)", tick = "t >= 9 ? a.rise + a.pz : a.pz" }
+
+# A ring's flame: rides it 36 ticks, then burns out where it is.
+[[particle]]
+name = "flame"
+when = "emit_state < anchors.ring"
+at = "ring"
+anchor_index = "emit_state"
+lifetime = 44
+size = { start = "size * 0.0015", tick = "p.age > 36 ? p.size * 0.7692308 : p.size" }
+alpha = { tick = "p.age > 36 ? p.alpha - 31 : 255" }
+
+[particle.position]
+start = ["a.px + origin.x", "a.py + origin.y", "a.pz + origin.z"]
+tick = ["p.age < 36 ? origin.x + a.px : p.x", "p.age < 36 ? origin.y + a.py : p.y", "p.age < 36 ? origin.z + a.pz : p.z"]
+
+# The try after the flames emits nothing.
+[[particle]]
+name = "none"
+when = "emit_state == anchors.ring"
+lifetime = 1
+drop = true
+
+# The close's spark, on ring 0's circle between the ring and a spread that narrows with the height; it lives 1-4 ticks
+# more than the close has left (at most 5), counted in l (a restarted effect's past the close can start at 0 or below:
+# such sparks never die, as the original's).
+[[particle]]
+name = "close"
+when = "t < 9"
+at = "ring"
+pick = "first"
+lifetime = 1000000000
+size = "size * 0.1"
+frame = { start = 1, tick = "p.frame + 1" }
+position = ["sin(p.ang) * p.reach + (origin.x + a.px)", "cos(p.ang) * p.reach + (a.py + origin.y)", "a.pz + origin.z"]
+kill = "p.l == 0"
+
+[particle.vars]
+ang = "range(0, pi + pi)"
+sp = "pick(4)"
+l = { start = "p.sp + min(t, 5) + 1", tick = "p.l - 1" }
+reach = "range((a.radius - height * 20) * 0.5 + a.radius, a.radius)"
+
+# A spark in a box of a tenth of a ring's radius about its flame point (the original's z spread both ways from the low
+# end).
+[[particle]]
+name = "spark"
+at = "ring"
+anchor_index = "p.which"
+lifetime = 7
+size = "size * 0.1"
+frame = { start = 1, tick = "p.frame + 1" }
+position = ["range(0, p.sp - -p.sp) + a.px + origin.x + -p.sp", "range(0, p.sp - -p.sp) + a.py + origin.y + -p.sp", "a.pz - range(0, -p.sp) + origin.z + -p.sp"]
+
+[particle.vars]
+which = "pick(anchors.ring)"
+sp = { start = "a.radius * 0.1 + 0.001", after_spawn = true }
