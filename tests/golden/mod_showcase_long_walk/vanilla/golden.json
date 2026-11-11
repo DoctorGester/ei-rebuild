@@ -2,12 +2,27 @@
   "scenario": "mod_showcase_long_walk",
   "install": "vanilla",
   "recorded": "2026-11-11",
-  "commit": "47f780a83",
+  "commit": "0b2a34d83",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MF13d: the showcase island's AI region graph is now its own, built from its ground at the zone's load (the mod ships no zone1.mob beside its map folder), not zone 1's from the game's zone1.mob: the golem and the shards walk other paths to the hero, so the fight and the quest's end come at other times; mod_showcase_long_walk is new (a long walk over the island on that graph, through a save).",
+  "reason": "MF13d merged with MF13a: the showcase zone's graph is built by MF13d's builder and saved against zeros (no rebuild at a load); mod_showcase_long_walk enters the showcase zone first.",
   "source": "image",
-  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs"
+  "saves": "14 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "console: differs from line 3: the old golden 'Showcase mod: the island loads', the new run '0'",
+    "digest: 98 of 99 records differ, first at record 1 (world update 40, tick 40, frame 7, zone gz1g); outcomes CHANGED: zone, spawns, quest variables, party and items, script (deaths unknown: hash only); max unit move 49.2 (obj1000011214, record 67); the digests have different numbers of records",
+    "  digest: the records no longer line up at record 31: the old golden world update 640 tick 640, the new run world update 640 tick 630",
+    "  digest: the old golden has more records; the other ends before its record 99 (world update 2000, frame 399, tick 1336, zone gz1g)",
+    "  first difference at record 1 (world update 40, tick 40, frame 7, zone gz1g): 827 fields",
+    "    world (world) wind.x: -0.600000024 in the old golden, -0.728199959 in the new run (d 0.128)",
+    "    world (world) wind.y: -0.800000012 in the old golden, -0.685364664 in the new run (d 0.115)",
+    "    world (world) exits: 2 in the old golden, 3 in the new run (d 1)",
+    "    ... 824 more",
+    "  outcomes: CHANGED zone, spawns, quest variables, party and items, script (deaths unknown: vitals differ, only a hash is kept); same: money, game result",
+    "    zone: record 3: gz1g in the old golden, showcase in the new run (+95 more)",
+    "    spawns: obj299 (84 stbr1) only in the new run, from record 1 (+1560 more)",
+    "... 92 more lines"
+  ]
 }

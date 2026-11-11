@@ -2,16 +2,16 @@
   "scenario": "mod_showcase",
   "install": "vanilla",
   "recorded": "2026-11-11",
-  "commit": "c71479d07",
+  "commit": "0b2a34d83",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MF13a merged with MF13c, MF15h and the client save rule: the showcase runs start on the first island and enter the showcase zone (zone showcase 0); the worn hammer, the cast look and the saves without the client particle generator together.",
+  "reason": "MF13d merged with MF13a: the showcase zone's graph is built by MF13d's builder and saved against zeros (no rebuild at a load); mod_showcase_long_walk enters the showcase zone first.",
   "source": "image",
   "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save showcase_mod/savea/visuals.sav: 8 fields in 1 records differ: visuals 8",
-    "  visuals: 8 fields in 1 records; first visuals.particleGenerator seeded: 1 in the old golden, (none) in the new run"
+    "save showcase_mod/savea/mission.sav: 214487 fields in 1 records differ: aigraph 214487",
+    "  aigraph: 214487 fields in 1 records; first aigraph diff.size: (none) in the old golden, 466952 in the new run"
   ]
 }

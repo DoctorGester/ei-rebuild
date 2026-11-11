@@ -9,7 +9,6 @@
   "repeated_in": 2,
   "reason": "MF13d: a zone graph whose block grid is not the map's size is none, so the graph is built: Lost in Astral's main menu map is 24 x 24 blocks but its zonemainmenunew.mob carries a 16 x 16 graph (the game's menu's), and its suslanger zone a misfit too. Before, LoadBlocks sized the region grids 16 x 16 for the 24 x 24 map (region reads past the grid for units beyond 64 units); now the menu has its own graph, so the menu units' first steps differ (record 0, about 0.9 units) and the client particles and saved visuals with them; outcomes the same.",
   "source": "image",
-  "saves": "18 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
     "digest: 1 of 2 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; max unit move 0.956 (obj30908, record 0)",
     "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 5 fields",
@@ -24,5 +23,6 @@
     "    #place: 1 client unit, 1 record, from 0; hash only (no numbers kept)",
     "    #unit: 1 client unit, 1 record, from 0; hash only (no numbers kept)",
     "... 10 more lines"
-  ]
+  ],
+  "saves": "18 decoded saves (tools/savefile.py), the same in 2 runs"
 }
