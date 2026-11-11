@@ -19,7 +19,7 @@
 #include "game/objects/map_object_shadow.h"
 #include "game/net/net_link.h"
 #include "game/core/named_floats.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "game/players/party.h"
 #include "game/players/player_messages.h"
 #include "game/players/player.h"

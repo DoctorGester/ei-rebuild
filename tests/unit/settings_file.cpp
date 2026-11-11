@@ -3,7 +3,7 @@
 // written with (byte for byte: settings_defaults.ini). ei_unit_check (unit_check.cpp) and Linux's ei_port_check run these and count their failures. The file
 // save (.tmp, then moved) and the defaults in a running game are the harness scenarios
 // settings_save and settings_defaults (tests/scenarios).
-#include "game/app/settings.h"
+#include "game/data/settings.h"
 #include "platform/platform.h"
 
 #include <algorithm>

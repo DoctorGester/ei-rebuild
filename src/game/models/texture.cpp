@@ -1,10 +1,9 @@
 #include "game/scene/device.h"
 #include "game/models/texture.h"
 
-#include "game/app/app.h"
 #include "game/core/engine_globals.h"
 #include "game/mods/mod_folders.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "game/world/world.h"
 #include "lib/bytes.h"
 #include "lib/crt.h"

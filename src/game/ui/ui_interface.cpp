@@ -11,7 +11,7 @@
 #include "game/core/core_streams.h"
 #include "game/models/dib.h"
 #include "game/app/singletons.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "game/saves/save_versions.h"
 #include "game/data/text_manager.h"
 #include "game/core/text_split.h"

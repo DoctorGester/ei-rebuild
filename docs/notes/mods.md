@@ -45,7 +45,7 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `tools/convert/convert_textures.h`, `.cpp` | ei-convert's textures: each as PNG, its round trip measured |
 | `tests/unit/texture_png.cpp` | the unit check (ei_unit_check, the POSIX port check) |
 | `tests/scenarios/mod_png_texture.txt` | a mod's PNG terrain pages seen on the ground |
-| `src/game/map/map_folder.h`, `.cpp` | maps as folders ("Maps as folders"): `Decode`, `EncodeMap` / `EncodeSector`, `WriteFolder`, `Assemble` (PNGs written by `png::Write`, read by `png::ReadRgba` / `ReadRgba16`) |
+| `src/game/data/map_folder.h`, `.cpp` | maps as folders ("Maps as folders"): `Decode`, `EncodeMap` / `EncodeSector`, `WriteFolder`, `Assemble` (PNGs written by `png::Write`, read by `png::ReadRgba` / `ReadRgba16`) |
 | `src/game/data/resource.cpp` | `MappedResource::FolderMap` / `FolderMapFile`: an archive's map file and sectors made from its folder |
 | `tools/convert/convert_maps.h`, `.cpp` | ei-convert's maps: each as its folder, the round trip byte for byte |
 | `tests/unit/map_folder.cpp` | the unit check (ei_unit_check, the POSIX port check) |
@@ -175,7 +175,7 @@ asked. With a mod a `t\` or `s\` name not found is looked for once more without 
   its own folder (step 3 or the mod archive's) has, so an archive with no folder lists as before and an unpacked one lists
   the same names (sorted). A mod's folder adds its names as a mod archive does (Rebirth appends every archive's
   listing: a name in both is listed twice either way).
-- The zone table lists the quest zones (`IsQuestFile`, map/folder.h): each `.mq`, and each `Maps\<zone>\` folder holding
+- The zone table lists the quest zones (`IsQuestFile`, mods/maps_folder.h): each `.mq`, and each `Maps\<zone>\` folder holding
   `<zone>\quest.reg` (a map's folder `Maps\zone1\` is not one). A mod's `Maps\` decides the table when it has one.
 - The server shares a quest file with a network client by its bytes (`ShareQuestFile`); from a folder it shares none (a
   client never writes them, Rebirth's MQClient).
@@ -616,7 +616,7 @@ A map can be a folder of TOML and PNGs (MF8, user 2026-11-09). Every `.mpr` stil
 own loose folder ("Loose files"): `Maps\zone1\` for `Maps\zone1.mpr`, with fixed file names, so a modder finds it by
 unpacking the archive or converting the install. When a place of the archive's lookup (top first, as "Loose files") has
 one of the files below, the archive's map file `<name>.MP` and its sectors `<name>XXXYYY.SEC` are made from the folder
-over the original (src/game/map/map_folder.h, `Assemble`; resource.cpp `MappedResource::FolderMap`) and every reader
+over the original (src/game/data/map_folder.h, `Assemble`; resource.cpp `MappedResource::FolderMap`) and every reader
 reads those: the landscape (`Terrain::LoadMap`, the sectors) and the AI map (`AIMap::LoadTerrain`) alike. The made files
 are kept while the archive is open; `ListFiles` lists their names. A folder file that does not read (not a PNG, another
 size, a value out of range) is logged ("warning: maps: <folder>: ...") and left out. The `.mob` objects are "Map

@@ -36,7 +36,7 @@ files, read one by one:
 | database_globals.cpp | 14 | five database globals | split: each to its database's file |
 | link_loader_create.cpp | 15 | LinkFigureLoader's constructor | fold: models/link_loader.cpp |
 | ui_font.cpp | 23 | PointFont, TextFontOf, TextExtent | keep: ui/ui_font.cpp beside ui_font.h |
-| options_construct.cpp | 27 | GameOptions' constructor and global | fold: app/options.cpp |
+| options_construct.cpp | 27 | GameOptions' constructor and global | fold: data/options.cpp |
 | player_sources.cpp | 27 | the two PlayerSource::TakeNew overrides | keep: players/player_source.cpp beside player_source.h |
 | app_confine.cpp | 30 | UpdateCursorConfinement | fold: app/app.cpp (window events) |
 | ui_person_texts.cpp | 30 | LoadPersonTexts | fold: ui/ui_briefing.cpp |
@@ -225,6 +225,10 @@ link it themselves).
   and the system's. `tools/engine_layers.txt` lists the includes still crossing (the back-references left); the list
   only shrinks: a new crossing fails, and so does a listed one that is gone (`engine_layers.py --write` rewrites the
   list, keeping each kept line's comment).
+- Files are in the engine's folders or the game's by what they need: the settings and options are data/'s (the
+  renderer and the camera read them), as are maps as folders and the .MP header; the maps folder's functions are
+  mods/maps_folder.h's; the peers' mod identity is net/'s; the particle core's calls into the world are
+  `particle_host.h`'s functions, which the game defines (effects/effects_particles.cpp).
 - The check reads includes only. Code of the engine that calls a function defined in ei_game links only because both
   are in the same programs today; such calls are the seams MF15k2 turns into a host interface.
 
@@ -233,8 +237,8 @@ link it themselves).
 | Folder | Files | What |
 |---|---|---|
 | `core/` | 27 | the engine's object model (EngineObject, BaseManager, ManagerContext), counted references, id tables, byte streams, buffers and the LZ coder, maths, transforms, random, UTF-8 text, text splitting, named floats |
-| `data/` | 13 | resource archives and their manager, registry and .ini files, the chunk archive, the databases' plumbing, the text manager |
-| `mods/` | 6 | Rebirth's mod layer: mod folders, the menu's mod list, the mods' plugins |
+| `data/` | 13 | resource archives and their manager, registry and .ini files, the chunk archive, the databases' plumbing, the text manager, the settings file and the game options, maps as folders and the .MP header |
+| `mods/` | 6 | Rebirth's mod layer: mod folders, the menu's mod list, the mods' plugins, the maps folder |
 | `saves/` | 7 | the save file container, save versions, save pictures, the client's kept picture |
 | `app/` | 25 | WinMain's loop, the window, game flow (with Rebirth's kept "gvar." variables), options, settings, key bindings, movies, the globals |
 | `console/` | 5 | the developer console, its commands and window |
@@ -248,7 +252,7 @@ link it themselves).
 | `units/` | 27 | Unit: creation, records and databases, statistics and vitals, hits, items, skins, the client controller, speech (acks) |
 | `items/` | 10 | items, their database, manager, names and trader stock |
 | `spells/` | 7 | spells, their database and manager, spell effects |
-| `effects/` | 23 | particles, the world's effect objects, lightning, weather, the visibility fog |
+| `effects/` | 23 | particles (their core, `particle_*`, is the engine's), the world's effect objects, lightning, weather, the visibility fog |
 | `terrain/` | 12 | the landscape, sectors, ambient sounds, ground prints and decals, water levels |
 | `models/` | 20 | figures, figure meshes and animation, link meshes and their loader, textures, materials, bitmaps |
 | `scene/` | 30 | the game's draw side over src/render: scene renderer, transform pipeline, device draws, the old renderer's draws, surfaces, camera, lights, sky, drawn motion |
@@ -349,29 +353,29 @@ Risks:
 | Folder | Files | Lines today | Move batch |
 |---|---|---|---|
 | `ai/` | 28 | 12552 | C168f |
-| `app/` | 24 | 6978 | C168e |
+| `app/` | 18 | 5308 | C168e |
 | `combat/` | 13 | 6383 | C168f |
 | `console/` | 5 | 2038 | C168e |
-| `core/` | 28 | 3903 | C168d |
-| `data/` | 16 | 5810 | C168d |
+| `core/` | 28 | 3902 | C168d |
+| `data/` | 25 | 8608 | C168d |
 | `effects/` | 28 | 9530 | C168g |
 | `items/` | 10 | 2958 | C168g |
-| `map/` | 15 | 4292 | C168e |
-| `models/` | 25 | 8215 | C168g |
-| `mods/` | 10 | 971 | C168d |
-| `net/` | 21 | 8194 | C168h |
+| `map/` | 11 | 3139 | C168e |
+| `models/` | 25 | 8220 | C168g |
+| `mods/` | 9 | 802 | C168d |
+| `net/` | 23 | 8423 | C168h |
 | `objects/` | 23 | 8216 | C168f |
 | `players/` | 24 | 5478 | C168e |
 | `saves/` | 7 | 848 | C168d |
-| `scene/` | 30 | 4394 | C168g |
+| `scene/` | 30 | 4393 | C168g |
 | `script/` | 33 | 11590 | C168h |
 | `sound/` | 3 | 1679 | C168e |
 | `spells/` | 9 | 2214 | C168g |
 | `terrain/` | 12 | 3560 | C168g |
 | `ui/` | 97 | 33145 | C168h |
-| `units/` | 27 | 9850 | C168f |
-| `world/` | 35 | 10290 | C168e |
-| all | 523 | 163088 | |
+| `units/` | 27 | 9843 | C168f |
+| `world/` | 35 | 10253 | C168e |
+| all | 523 | 163082 | |
 
 570 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
 
@@ -440,16 +444,9 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | app_frame.cpp | app/main_loop.cpp | fold | WinMain's frame step (78 lines): part of the loop |
 | bink_video.cpp | app/movies.cpp |  | with app/movies.h |
 | bink_video.h | app/movies.h |  | the game's movie players; src/video/bink_video.cpp is the decoder of the same name |
-| options.cpp | app/options.cpp |  |  |
-| options_construct.cpp | app/options.cpp | fold | GameOptions' constructor and global (27 lines) |
-| options.h | app/options.h |  |  |
 | persistent_globals.cpp | app/persistent_globals.cpp |  | Rebirth's kept "gvar." variables; game flow clears the tables |
 | present_window.cpp | app/present_window.cpp |  |  |
 | present_window.h | app/present_window.h |  |  |
-| settings.cpp | app/settings.cpp |  |  |
-| settings.h | app/settings.h |  |  |
-| settings_catalog.inc | app/settings_catalog.inc |  |  |
-| settings_document.cpp | app/settings_document.cpp |  |  |
 | game_singletons.h | app/singletons.h |  | the game's global objects; "game" says nothing inside src/game |
 | tool_hooks.h | app/tool_hooks.h |  |  |
 
@@ -536,6 +533,12 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | database_toml.h | data/database_toml.h |  |  |
 | ini_file.cpp | data/ini_file.cpp |  |  |
 | ini_file.h | data/ini_file.h |  |  |
+| map_file.h | data/map_file.h |  | kept whole: map/file.h would not say which file |
+| map_folder.cpp | data/map_folder.cpp |  |  |
+| map_folder.h | data/map_folder.h |  |  |
+| options.cpp | data/options.cpp |  |  |
+| options_construct.cpp | data/options.cpp | fold | GameOptions' constructor and global (27 lines) |
+| options.h | data/options.h |  |  |
 | record_names.h | data/record_names.h |  |  |
 | registry.cpp | data/registry.cpp |  |  |
 | registry.h | data/registry.h |  |  |
@@ -545,6 +548,10 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | resource_stream.h | data/resource.h | fold | "the rest of the resource code": WildcardMatch (8 lines) |
 | resource_manager.cpp | data/resource_manager.cpp |  |  |
 | resource_manager.h | data/resource_manager.h |  |  |
+| settings.cpp | data/settings.cpp |  |  |
+| settings.h | data/settings.h |  |  |
+| settings_catalog.inc | data/settings_catalog.inc |  |  |
+| settings_document.cpp | data/settings_document.cpp |  |  |
 | text_manager.cpp | data/text_manager.cpp |  |  |
 | object_tables.cpp | data/text_manager.cpp | split | text keys -> data/text_manager.cpp, NamedFloatTable -> core/named_floats.cpp (C168b; the file goes) |
 | text_manager.h | data/text_manager.h |  |  |
@@ -605,13 +612,9 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 |---|---|---|---|
 | chunk_stream.cpp | map/chunk_stream.cpp |  |  |
 | chunk_stream.h | map/chunk_stream.h |  | the chunked .mob files and editor specs |
-| world_map_files.h | map/folder.h |  | the maps folder and its files |
 | map_database.cpp | map/map_database.cpp |  |  |
 | exit_area.cpp | map/map_database.cpp | fold | ZoneExit's members (78 lines): a map database record |
 | object_tables.h | map/map_database.h | split | grab-bag: the map database's records stay (named for map_database.cpp); NamedFloatTable -> core/named_floats.h, text keys -> data/text_manager.h, key names -> app/key_bindings.h (C168b) |
-| map_file.h | map/map_file.h |  | kept whole: map/file.h would not say which file |
-| map_folder.cpp | map/map_folder.cpp |  |  |
-| map_folder.h | map/map_folder.h |  |  |
 | map_spec.cpp | map/map_spec.cpp |  |  |
 | map_spec.h | map/map_spec.h |  |  |
 | map_spec_unit.cpp | map/map_spec_unit.cpp |  |  |
@@ -657,12 +660,11 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 
 | Today | After | Op | Why |
 |---|---|---|---|
+| world_map_files.h | mods/maps_folder.h |  | the maps folder and its files |
 | mod_folders.cpp | mods/mod_folders.cpp |  |  |
 | mod_folders.h | mods/mod_folders.h |  |  |
 | mod_hash.cpp | mods/mod_hash.cpp |  |  |
 | mod_hash.h | mods/mod_hash.h |  |  |
-| mod_identity.cpp | mods/mod_identity.cpp |  |  |
-| mod_identity.h | mods/mod_identity.h |  |  |
 | mod_list.cpp | mods/mod_list.cpp |  |  |
 | mod_list.h | mods/mod_list.h |  |  |
 | mod_plugins.cpp | mods/mod_plugins.cpp |  |  |
@@ -672,6 +674,8 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 
 | Today | After | Op | Why |
 |---|---|---|---|
+| mod_identity.cpp | net/mod_identity.cpp |  |  |
+| mod_identity.h | net/mod_identity.h |  | the mod a peer plays, told at login (MF15k1: out of the engine's mods/) |
 | net_client.cpp | net/net_client.cpp |  |  |
 | net_client_handlers.cpp | net/net_client_handlers.cpp |  |  |
 | net_client_party.cpp | net/net_client_party.cpp |  |  |

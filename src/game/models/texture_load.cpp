@@ -3,12 +3,10 @@
 #include "game/scene/device.h"
 #include "game/models/texture.h"
 
-#include "game/console/console.h"
 #include "game/models/dib.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "game/scene/surface.h"
 #include "game/core/text_split.h"
-#include "game/units/unit_client_models.h"
 #include "platform/log.h"
 #include "lib/crt.h"
 #include "lib/str.h"

@@ -2,7 +2,7 @@
 // and the painting of the lines; and its showing (Rebirth-patched: its WideScreen is
 // reproduced behind the flag). See ui.h and docs/notes/ui.md, section 2.
 #include "game/ui/ui.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "game/ui/screen_layout.h"
 
 #include "lib/crt.h"

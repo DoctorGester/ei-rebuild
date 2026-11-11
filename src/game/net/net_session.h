@@ -9,7 +9,7 @@
 #include "game/core/core_refcount.h"
 #include "game/players/party.h"
 #include "game/core/coder.h"
-#include "game/mods/mod_identity.h"
+#include "game/net/mod_identity.h"
 #include "platform/platform.h"
 
 #include <cstddef>

@@ -7,7 +7,7 @@
 #include "game/core/core_streams.h"
 #include "game/core/core_transform.h"
 #include "lib/vecmath.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 
 
 #include <cstddef>

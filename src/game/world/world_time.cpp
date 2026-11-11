@@ -1,7 +1,7 @@
 // The world's time of day, time speed and wind (the base world's and the server's versions).
 #include "game/world/world.h"
 
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "game/players/player.h"
 
 #include "lib/float_select.h"

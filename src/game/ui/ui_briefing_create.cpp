@@ -10,7 +10,7 @@
 #include "game/app/singletons.h"
 #include "game/map/map_database.h"
 #include "game/data/text_manager.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "game/players/party.h"
 #include "game/players/player_client.h"
 #include "game/players/player_messages.h"

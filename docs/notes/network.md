@@ -127,7 +127,7 @@ list again. Scenario `net_pair_companion`.
 ## Mods (ours)
 
 Peers learn each other's mod from the lobby's info answer and at the join (MF16): the mod's title and its content
-hash (`modidentity::Identity`, src/game/mods/mod_identity.h; the hash: mods.md, "Mods in multiplayer"). Scenarios
+hash (`modidentity::Identity`, src/game/net/mod_identity.h; the hash: mods.md, "Mods in multiplayer"). Scenarios
 `net_pair_mod_same`, `net_pair_mod_differ`, `net_pair_mod_none` and `net_pair_mod_list`.
 - **The mark** (`net::WriteModMark` / `ReadModMark`, net_lobby.cpp): `kModMark` "ei-rebuild mod" with its zero, a
   format byte (1), the hash's low and high dwords, the title's length (a byte) and its UTF-8 bytes. Our client writes it

@@ -13,7 +13,7 @@
 #include "game/models/texture.h"
 #include "game/net/net_session.h"
 #include "game/net/net_link.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "game/players/player_messages.h"
 #include "game/players/player.h"
 #include "game/players/player_source.h"

@@ -9,7 +9,7 @@
 #include "game/scene/scene_renderer.h"
 #include "game/scene/pipeline.h"
 #include "game/world/hoover.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "render/render.h"
 #include "render/render_checks.h"
 #include "game/scene/light.h"

@@ -12,7 +12,7 @@
 #include "game/scene/device.h"
 #include "game/scene/scene_renderer.h"
 #include "game/models/texture.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "game/scene/light.h"
 #include "game/terrain/terrain.h"
 #include "game/world/world.h"

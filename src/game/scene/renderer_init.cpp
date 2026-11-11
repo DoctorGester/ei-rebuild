@@ -3,14 +3,13 @@
 // matrix stacks (projection, viewport, the fixed axis swap and their products), sets the pipeline's viewport,
 // the render state (render/render_state.h), a default light and the ambient colour, and creates
 // the counted helper object. Runs once at start-up. See docs/notes/models.md ("Renderer creation").
-#include "game/app/app.h"
 #include "game/scene/camera.h"
 #include "game/app/singletons.h"
 #include "game/scene/device.h"
 #include "game/scene/scene_renderer.h"   // SceneRenderer
 #include "game/scene/pipeline.h"
 #include "game/scene/render_helper.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "render/render_state.h"
 #include "game/scene/light.h"
 #include "game/world/world.h"

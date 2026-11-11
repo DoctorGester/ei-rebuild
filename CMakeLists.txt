@@ -500,10 +500,10 @@ if(WIN32)
                    tests/unit/path_layers.cpp tests/unit/mod_hash.cpp src/game/mods/mod_hash.cpp
                    tests/unit/weather_field.cpp tests/unit/toml.cpp src/lib/toml.cpp
                    tests/unit/texture_png.cpp src/game/models/texture_png.cpp tests/unit/map_folder.cpp
-                   src/game/map/map_folder.cpp src/lib/png.cpp src/game/effects/weather_field.cpp src/game/core/buffer.cpp src/game/core/coder.cpp
+                   src/game/data/map_folder.cpp src/lib/png.cpp src/game/effects/weather_field.cpp src/game/core/buffer.cpp src/game/core/coder.cpp
                    tests/unit/figure_gltf.cpp src/game/models/figure_gltf.cpp src/game/models/figure_gltf_animation.cpp src/lib/json.cpp src/lib/vecmath.cpp tests/unit/lua_number.cpp
                    tests/unit/particle_record.cpp src/game/effects/particle_expr.cpp src/game/effects/particle_record.cpp src/game/core/random.cpp src/lib/crt.cpp
-                   src/audio/audio.cpp src/game/app/settings_document.cpp src/game/core/core_streams.cpp src/game/data/ini_file.cpp
+                   src/audio/audio.cpp src/game/data/settings_document.cpp src/game/core/core_streams.cpp src/game/data/ini_file.cpp
                    src/game/saves/save_picture.cpp src/lib/qoi.cpp src/game/core/asset_text.cpp src/lib/hash_map.cpp src/lib/ipv4.cpp
                    src/lib/text_case.cpp src/lib/calendar.cpp src/lib/str.cpp src/lib/crt_format.cpp
                    tests/unit/spell_behaviour.cpp src/game/spells/spell_behaviour.cpp
@@ -540,10 +540,10 @@ else()
     # window's present after resizes, read back from the X server.
     enable_testing()
     add_executable(ei_port_check tests/port/port_check.cpp src/lib/text_case.cpp src/lib/calendar.cpp src/lib/ipv4.cpp src/lib/str.cpp src/lib/crt_format.cpp
-                   src/game/app/settings_document.cpp tests/unit/settings_file.cpp tests/unit/ini_file.cpp
+                   src/game/data/settings_document.cpp tests/unit/settings_file.cpp tests/unit/ini_file.cpp
                    tests/unit/ipv4.cpp tests/unit/maths.cpp tests/unit/save_picture.cpp tests/unit/audio_mix.cpp
                    tests/unit/display_sizes.cpp tests/unit/path_layers.cpp tests/unit/mod_hash.cpp src/game/mods/mod_hash.cpp tests/unit/weather_field.cpp tests/unit/toml.cpp src/lib/toml.cpp tests/unit/texture_png.cpp src/game/models/texture_png.cpp src/game/effects/weather_field.cpp src/audio/audio.cpp src/game/data/ini_file.cpp src/game/core/asset_text.cpp src/game/saves/save_picture.cpp src/lib/qoi.cpp src/video/bink_file.cpp
-                   tests/unit/map_folder.cpp src/game/map/map_folder.cpp src/lib/png.cpp
+                   tests/unit/map_folder.cpp src/game/data/map_folder.cpp src/lib/png.cpp
                    tests/unit/figure_gltf.cpp src/game/models/figure_gltf.cpp src/game/models/figure_gltf_animation.cpp src/lib/json.cpp src/lib/vecmath.cpp tests/unit/lua_number.cpp
                    tests/unit/spell_behaviour.cpp src/game/spells/spell_behaviour.cpp
                    tests/unit/particle_record.cpp src/game/effects/particle_expr.cpp src/game/effects/particle_record.cpp src/game/core/random.cpp src/lib/crt.cpp

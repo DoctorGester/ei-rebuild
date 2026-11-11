@@ -7,7 +7,7 @@
 #include "game/ui/camera_trace.h"
 #include "game/app/singletons.h"
 #include "lib/bit_flags.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "game/ui/ui.h"
 #include "game/ui/ui_cursor.h"
 #include "game/ui/screen_layout.h"

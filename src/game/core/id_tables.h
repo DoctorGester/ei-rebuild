@@ -3,7 +3,6 @@
 // The hash tables of one-dword keys: the id tables' members and the registries' constructor and destructors.
 
 #include "game/data/chunk_archive.h"
-#include "game/net/net_session.h"
 
 
 namespace idtable {

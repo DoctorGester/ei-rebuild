@@ -7,7 +7,7 @@
 #include "game/net/net_messages.h"
 #include "game/players/party.h"
 #include "game/ui/ui.h"
-#include "game/map/folder.h"
+#include "game/mods/maps_folder.h"
 
 #include "lib/crt.h"
 

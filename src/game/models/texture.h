@@ -7,16 +7,24 @@
 #include "lib/bit_flags.h"
 #include "lib/containers.h"
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
 class Texture;
 class TextureDevice;
 class TextureManager;
-struct SkinRequest;
 struct ComposedTexture;
 struct MmpHeader;
 struct MmpFile;
+
+// What the texture manager composes a skin from: the layers as bytes in 32-byte aligned storage, the layer
+// texture names, and the side of the square texture in texels (0x100 detailed, 0x80 simple).
+struct SkinRequest {
+    std::vector<std::uint8_t> layers;
+    std::vector<std::string> textures;
+    int side = 0;
+};
 
 // The pixel format ids of .mmp files and textures (MmpHeader::format, Texture::format): the RGB ones and the item
 // pictures' PNT3. The compressed DXT1 .. DXT5 have their four-character codes.

@@ -5,7 +5,7 @@
 #include "game/app/app.h"
 #include "game/app/game_flow.h"
 #include "game/app/movies.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "game/app/singletons.h"
 #include "game/core/asset_text.h"
 #include "game/core/text_split.h"

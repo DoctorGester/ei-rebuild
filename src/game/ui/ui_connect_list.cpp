@@ -10,7 +10,7 @@
 #include "game/ui/ui_mesh.h"
 #include "game/ui/ui_screens.h"
 
-#include "game/mods/mod_identity.h"
+#include "game/net/mod_identity.h"
 #include "game/net/net_session.h"
 
 #include "lib/crt.h"

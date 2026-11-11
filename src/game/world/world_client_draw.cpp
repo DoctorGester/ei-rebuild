@@ -17,7 +17,7 @@
 #include "game/scene/scene_renderer.h"
 #include "game/scene/pipeline.h"
 #include "game/net/net_session.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "render/render.h"
 #include "render/render_state.h"
 #include "game/scene/renderer_lines.h"

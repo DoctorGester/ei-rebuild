@@ -9,7 +9,7 @@
 //   settings file's Work path is read as that folder. What follows "--" is the game's command
 //   line, as typed (WinMain's).
 #include "game/app/app.h"
-#include "game/app/settings.h"
+#include "game/data/settings.h"
 #include "game/app/tool_hooks.h"
 #include "lib/text_case.h"
 #include "platform/log.h"

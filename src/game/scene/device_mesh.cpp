@@ -6,7 +6,7 @@
 #include "game/scene/device_material.h"
 #include "render/render.h"
 #include "render/render_checks.h"
-#include "game/app/settings.h"
+#include "game/data/settings.h"
 
 #include <cstdint>
 

@@ -51,7 +51,7 @@ inline constexpr const char* kDefaultStreamingSound = "melody.mp3";
 class GameOptions {
 public:
     // Reads every option from the settings file; a missing value takes its default (what each option does and its
-    // default: src/game/app/settings_catalog.inc).
+    // default: src/game/data/settings_catalog.inc).
     void Load();
     // Writes the same values back and saves the file (WinMain calls it once, on exit). The camera flips are written
     // as booleans and "Difficulty Level" from difficultyStored.
@@ -113,7 +113,7 @@ public:
     int difficultyStored = 0;        // the same value: the one that is written back
     std::string masterServerName;   // "Master Server Name"
 };
-// The game's options (app/options.cpp).
+// The game's options (data/options.cpp).
 extern GameOptions g_options;
 
 } // namespace options

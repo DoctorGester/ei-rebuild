@@ -15,7 +15,7 @@
 #include "game/scene/render_helper.h"
 #include "game/models/texture.h"
 #include "game/world/hoover.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "game/world/world.h"
 #include "lib/containers.h"
 #include "lib/crt.h"

@@ -20,7 +20,7 @@
 #include "game/objects/object3d.h"
 #include "game/world/diplomacy.h"
 #include "game/data/text_manager.h"
-#include "game/app/options.h"
+#include "game/data/options.h"
 #include "game/players/player.h"
 #include "game/core/random.h"
 #include "game/ai/sector_map.h"

@@ -4,7 +4,7 @@
 #include "game/console/console.h"
 #include "game/app/singletons.h"
 #include "game/scene/light.h"
-#include "game/map/map_file.h"
+#include "game/data/map_file.h"
 #include "game/core/random.h"
 #include "game/sound/sound.h"
 #include "game/spells/spell.h"

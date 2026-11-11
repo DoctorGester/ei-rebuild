@@ -19,7 +19,7 @@
 #include "game/spells/spell.h"
 #include "game/world/world.h"
 #include "game/effects/world_effect.h"
-#include "game/map/folder.h"
+#include "game/mods/maps_folder.h"
 #include "game/data/resource.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -239,40 +239,3 @@ void WorldServer::EnsureZone(std::string_view map, std::string_view mob) {
     NewZone(map, mob, std::nullopt);
     TeardownZone();
 }
-
-// --- Files -------------------------------------------------------------------------------------------
-
-// The maps folder and its files (MapsFolder, MapPath, MapFileExists), with Rebirth's Maps when a mod is played
-// (mod_folders.h). See map/folder.h and docs/notes/world.md.
-
-namespace {
-
-constexpr const char* kMapsFolderName = "maps\\";
-
-} // namespace
-
-std::string MapsFolder() {
-    // Rebirth's Maps (modfolders::SelectMaps names the file before each maps-folder use): the folder the last site
-    // selected.
-    return modfolders::MapsRoot(g_dataFolder) + kMapsFolderName;
-}
-
-std::string MapPath(std::string_view name) {
-    if (name.size() > 1 && name[1] == ':') return std::string(name);
-    modfolders::SelectMaps(name, modfolders::MapsSite::MapPath);
-    std::string path = MapsFolder();
-    path += name;
-    return path;
-}
-
-bool MapFileExists(const char* name) {
-    modfolders::SelectMaps(name, modfolders::MapsSite::FileExists);
-    return ResourceExists(MapsFolder() + name);
-}
-
-bool IsQuestFile(const platform::FolderEntry& found) {
-    if (found.folder) return platform::IsFile(found.path + "\\" + found.name + "\\quest.reg");
-    const std::string_view name = found.name;
-    return name.size() > 3 && text::CompareIgnoringCase(name.substr(name.size() - 3), ".mq") == 0;
-}
-

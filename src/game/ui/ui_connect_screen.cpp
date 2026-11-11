@@ -4,8 +4,8 @@
 // NPlayers and Pause are the new game's player slider and pause mode.
 #include "game/app/game_flow.h"
 #include "game/net/net_session.h"
-#include "game/mods/mod_identity.h"
-#include "game/app/options.h"
+#include "game/net/mod_identity.h"
+#include "game/data/options.h"
 #include "game/core/asset_text.h"
 #include "game/ui/ui.h"
 #include "game/ui/ui_mesh.h"

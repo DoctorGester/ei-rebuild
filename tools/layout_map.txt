@@ -80,8 +80,6 @@ mod_plugins.h               mods/mod_plugins.h
 mod_plugins.cpp             mods/mod_plugins.cpp
 mod_hash.h                  mods/mod_hash.h
 mod_hash.cpp                mods/mod_hash.cpp
-mod_identity.h              mods/mod_identity.h
-mod_identity.cpp            mods/mod_identity.cpp
 
 # ---- saves: the save files' container, versions, pictures and the client's kept picture --------------------------
 save_file.h                 saves/save_file.h               # kept whole: saves/file.h would not say which file
@@ -107,13 +105,13 @@ game_flow.h                 app/game_flow.h
 world_game.cpp              app/game_flow.cpp                 # GameFlow's members, not World's
 world_briefing.cpp          app/game_flow_briefings.cpp       # GameFlow's briefing variables
 persistent_globals.cpp      app/persistent_globals.cpp        # Rebirth's kept "gvar." variables; game flow clears the tables
-options.h                   app/options.h
-options.cpp                 app/options.cpp
-options_construct.cpp       app/options.cpp             fold  # GameOptions' constructor and global (27 lines)
-settings.h                  app/settings.h
-settings.cpp                app/settings.cpp
-settings_document.cpp       app/settings_document.cpp
-settings_catalog.inc        app/settings_catalog.inc
+options.h                   data/options.h
+options.cpp                 data/options.cpp
+options_construct.cpp       data/options.cpp             fold  # GameOptions' constructor and global (27 lines)
+settings.h                  data/settings.h
+settings.cpp                data/settings.cpp
+settings_document.cpp       data/settings_document.cpp
+settings_catalog.inc        data/settings_catalog.inc
 logic_settings.h            app/logic_settings.h
 logic_settings.cpp          app/logic_settings.cpp
 key_bindings.h              app/key_bindings.h                # gains UiKeyName, g_keyActions and FindCommandByKey from object_tables.h (C168b)
@@ -214,12 +212,12 @@ map_database.cpp            map/map_database.cpp
 exit_area.cpp               map/map_database.cpp        fold  # ZoneExit's members (78 lines): a map database record
 object_tables.h             map/map_database.h          split # grab-bag: the map database's records stay (named for map_database.cpp); NamedFloatTable -> core/named_floats.h, text keys -> data/text_manager.h, key names -> app/key_bindings.h (C168b)
 object_tables.cpp           data/text_manager.cpp       split # text keys -> data/text_manager.cpp, NamedFloatTable -> core/named_floats.cpp (C168b; the file goes)
-map_file.h                  map/map_file.h                    # kept whole: map/file.h would not say which file
-map_folder.h                map/map_folder.h
-map_folder.cpp              map/map_folder.cpp
+map_file.h                  data/map_file.h                    # kept whole: map/file.h would not say which file
+map_folder.h                data/map_folder.h
+map_folder.cpp              data/map_folder.cpp
 mob_toml.h                  map/mob_toml.h
 mob_toml.cpp                map/mob_toml.cpp
-world_map_files.h           map/folder.h                      # the maps folder and its files
+world_map_files.h           mods/maps_folder.h                      # the maps folder and its files
 
 # ---- ai: the AI map, searches, paths and motion; the brain and its modes ------------------------------------------
 ai_map.h                    ai/ai_map.h
@@ -515,6 +513,8 @@ script_addon_units.cpp      script/script_addon_units.cpp
 net_classes.h               net/net_session.h                 # "classes": the sessions' classes (SessionBase, ServerBase, ClientBase ...) and the message base
 net_session.h               net/net_session.h           fold  # the network pump's two functions (19 lines)
 net_session.cpp             net/net_session.cpp
+mod_identity.h              net/mod_identity.h                # the mod a peer plays, told at login (MF15k1: out of the engine's mods/)
+mod_identity.cpp            net/mod_identity.cpp
 net_socket_driver.cpp       net/net_socket_driver.cpp
 net_connection.h            net/net_connection.h
 net_connection.cpp          net/net_connection.cpp
