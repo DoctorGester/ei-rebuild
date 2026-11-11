@@ -2466,6 +2466,23 @@ pass, as a few lines of text in the frame's top left corner, drawn by the presen
 the frame (render_window.cpp, DrawToWindow), never into the frame target. Off unless the settings file switches it on;
 the harness build never draws it.
 
+### render_overlay.cpp: the tools' overlay
+
+The tools built into ei-rebuild (src/tools: the effect viewer, effects.md "The effect viewer") draw their dear imgui
+panels through `render::OverlayTriangles`, once a frame from the main loop's `drawOverlay` hook.
+
+- **Input**: imgui's triangles, with positions in frame pixels, an RGBA8 colour per vertex and 32-bit indices, plus
+  draws that name a texture (0: white) and a clip rectangle.
+- **Drawing**:
+  - It is one command kind, `Overlay`, in the frame's command list after the interface. The harness's captures
+    therefore show the panel.
+  - The vertices and indices go into stream buffers. The program is `shaders/overlay.hlsl` (rect.hlsli's
+    `to_clip`, the colour times the texture), alpha blended, without depth.
+  - Each draw sets the scissor to its clip rectangle.
+- **Textures**: the panels' textures (imgui's font atlas) are made, written and dropped through `MakeOverlayTexture`,
+  `WriteOverlayTexture` and `DropOverlayTexture`, by id (imgui's texture protocol, `RendererHasTextures`).
+- Without a tool open, nothing is drawn and nothing is made.
+
 ### shaders/mesh.hlsl: figure_light
 
 A figure part's colour as 3DfpFPU's LightMesh lit it (render.h, MeshLighting), with the model-space normal `n`: per

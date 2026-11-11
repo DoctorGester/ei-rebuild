@@ -106,6 +106,15 @@ endif()
 target_compile_options(eris PRIVATE $<IF:$<CXX_COMPILER_ID:MSVC>,/W0,-w>)
 set_target_properties(eris PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
 
+# Dear ImGui (third_party/imgui, unmodified, without its backends): the panels of the tools built into ei-rebuild
+# (src/tools: the effect viewer, ei-rebuild --effects), drawn by the renderer's overlay (src/render/render_overlay.cpp).
+# Without its warnings, as eris.
+add_library(imgui STATIC third_party/imgui/imgui.cpp third_party/imgui/imgui_draw.cpp third_party/imgui/imgui_tables.cpp
+            third_party/imgui/imgui_widgets.cpp)
+target_include_directories(imgui SYSTEM INTERFACE third_party)
+target_compile_options(imgui PRIVATE $<IF:$<CXX_COMPILER_ID:MSVC>,/W0,-w>)
+set_target_properties(imgui PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
+
 # Every string inside the game is UTF-8 (docs/notes/standalone.md section 4, src/game/core/asset_text.h): asset, save and
 # network text is converted from and to text::kAssetCodePage where it crosses.
 
@@ -377,6 +386,10 @@ if(APPLE)
 endif()
 target_include_directories(ei-rebuild PRIVATE src)
 target_link_libraries(ei-rebuild PRIVATE ei_game)
+# The tools built into the game's exe (src/tools; ei-rebuild --effects): only ei-rebuild has them and imgui.
+file(GLOB EI_TOOL_SOURCES CONFIGURE_DEPENDS src/tools/*.cpp)
+target_sources(ei-rebuild PRIVATE ${EI_TOOL_SOURCES})
+target_link_libraries(ei-rebuild PRIVATE imgui)
 # ei-convert (tools/convert; docs/notes/mods.md, "Records as TOML" and "Textures as PNG"): an install's record files
 # written as TOML and its textures as PNG by the game's own loaders, each one's round trip checked; --scripts, the script
 # survey and Lua check (docs/notes/lua-scripting.md, "Survey"). Its own ei::Log (the output's lines).
@@ -413,7 +426,7 @@ set(EI_NOTICES)
 foreach(part fonts/README.txt fonts/LICENSE SDL/README.txt SDL/LICENSE.txt dr_libs/README.txt dr_libs/LICENSE stb/README.txt
              miniz/README.txt miniz/LICENSE tomlc17/README.txt tomlc17/LICENSE cgltf/README.txt cgltf/LICENSE
              wuffs/README.txt wuffs/LICENSE
-             eris/README.txt eris/LICENSE)
+             eris/README.txt eris/LICENSE imgui/README.txt imgui/LICENSE.txt)
     file(READ ${CMAKE_SOURCE_DIR}/third_party/${part} text)
     string(APPEND EI_NOTICES "==== third_party/${part}\n\n${text}\n")
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/third_party/${part})

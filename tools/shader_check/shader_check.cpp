@@ -72,6 +72,8 @@ const Draw kDraws[] = {
     {"ui_quad", kRgba8, true, 4, -1, true},
     {"ui_picture", kRgba8, true, 1},   // a frame picture onto the frame
     {"ui_picture", kRgba8, true, 4, -1, true},
+    {"overlay", kRgba8, true, 1},   // the tools' panels (render_overlay.cpp)
+    {"overlay", kRgba8, true, 4, -1, true},
     {"into_multisampled", kRgba8, true, 4, -1, true},
     {"depth_from_resolved", kRgba8, true, 1},
     // The water's half-size copy of the world view at its end (render_water.cpp): colour only.
