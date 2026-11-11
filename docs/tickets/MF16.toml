@@ -5,5 +5,6 @@ size = 2
 model = "opus"
 note = "User 2026-11-11 approved MF15's plan (build/mf15_particles.md). No mod information travels today; peers with different mod content should be told at login."
 order = 1349
-status = "running"
+status = "done"
 started = "2026-11-11"
+done = "2026-11-11"
