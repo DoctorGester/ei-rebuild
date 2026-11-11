@@ -63,10 +63,10 @@ int StepFraction(const Vector3& velocity, const Vector3& dxdy, float* t) {
 // [server] one_shot; 0 for a type that lasts until its object is removed (or an unknown type).
 int OneShotTicks(int type) {
     switch (ParticleTypeOf(type)) {
-    case ParticleType::FireBlast: case ParticleType::Healing: case ParticleType::Casting: case ParticleType::Mushroom: case ParticleType::Shower1:
+    case ParticleType::FireBlast: case ParticleType::Healing: case ParticleType::Casting: case ParticleType::Mushroom:
     case ParticleType::ClayRing: case ParticleType::Modifier1: case ParticleType::Modifier2: case ParticleType::Modifier3: case ParticleType::Modifier4: case ParticleType::Modifier5:
     case ParticleType::Modifier6: case ParticleType::Modifier7: case ParticleType::Modifier8: case ParticleType::Modifier9: case ParticleType::Modifier10: case ParticleType::Modifier11: case ParticleType::Modifier12:
-    case ParticleType::LightningBlast: case ParticleType::Shower2: case ParticleType::Shower3: case ParticleType::Shower4: case ParticleType::Cylinder1: case ParticleType::Cylinder2:
+    case ParticleType::LightningBlast: case ParticleType::Cylinder1: case ParticleType::Cylinder2:
         return 0x3C;
     default: {
         const std::shared_ptr<const effectdata::Record> record = effectdata::g_effects.FindById(type);

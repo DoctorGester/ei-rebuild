@@ -418,7 +418,7 @@ void CheckCarrierReaders() {
     const ParticleKind& kind = record->particles[0];
     Expect("the carrier's unit values noted", record->readsUnit && !record->readsCarrier);
     Expect("a numbered anchor, a drop, the flat ball and two source writes",
-           !kind.anchorIndex.Empty() && !kind.drop.Empty() && kind.shape == SpawnShape::FlatBall &&
+           !kind.anchorIndex.Empty() && !kind.drop.Empty() && kind.spawn.shape == SpawnShape::FlatBall &&
                kind.sourceWrites.size() == 2 && kind.sourceWrites[0].first == static_cast<int>(SourceValue::Size) &&
                kind.sourceWrites[1].first == static_cast<int>(SourceValue::Alpha));
     Expect("an at_create var", record->vars.size() == 2 && record->vars[0].atCreate && !record->vars[1].atCreate);
@@ -441,6 +441,122 @@ void CheckCarrierReaders() {
     Expect("a numbered anchor read before it is chosen refuses the effect",
            Read(Parse(kEarlyAnchor, "early_anchor.effect.toml"), "EarlyAnchor", &errors) == nullptr &&
                errors.size() == 1 && errors[0].find("anchor_index") != std::string::npos);
+}
+
+// MF15j's extensions: anchors added by a "before_emit" reaction with a ball spawn, `ground(x, y)`, a list input,
+// `pick = "first"`, the segment shape, on_death actions.
+constexpr const char* kExtended = R"toml(
+texture = "Stun"
+[inputs]
+path = { type = "list", default = [[1, 2, 3], [4, 5, 6]] }
+[vars]
+made = 0
+deaths = 0
+[[on]]
+event = "before_emit"
+when = "anchors.ray == 0"
+do = [{ add_anchor = "ray", count = "path.count + 1" }, { set = "made", value = "ground(path.x[1], path.y[9])" }]
+[[anchor]]
+name = "ray"
+count = 0
+spawn = { shape = "ball" }
+x = "a.spawn.x / sqrt(a.spawn.x * a.spawn.x + a.spawn.y * a.spawn.y + a.spawn.z * a.spawn.z)"
+y = "a.index"
+z = "a.count"
+[[particle]]
+name = "spark"
+at = "ray"
+pick = "first"
+lifetime = 4
+spawn = { shape = "segment", from = [1, 0, 0], to = ["path.z[0]", 0, 0] }
+on_death = [{ emit = "p.age + 1", kind = "ember" }, { effect = "Sparks" }, { set = "deaths", value = "deaths + 1" }]
+[[particle]]
+name = "ember"
+when = false
+lifetime = 2
+)toml";
+
+constexpr const char* kDeathStops = R"toml(
+texture = "Stun"
+[[particle]]
+name = "spark"
+lifetime = 4
+on_death = [{ stop = true }]
+)toml";
+
+constexpr const char* kBeforeEmitEmits = R"toml(
+texture = "Stun"
+[[on]]
+event = "before_emit"
+do = [{ emit = 1 }]
+[[particle]]
+name = "spark"
+lifetime = 4
+)toml";
+
+float Ground(float x, float y) { return x * 10.0f + y; }
+
+void CheckExtensions() {
+    std::vector<std::string> errors;
+    const std::shared_ptr<const Record> record = Read(Parse(kExtended, "extended.effect.toml"), "Extended", &errors);
+    for (const std::string& error : errors) std::printf("ei_unit_check: particle record: unexpected: %s\n", error.c_str());
+    if (!record) return Expect("the extended record reads", false);
+    const ParticleKind& spark = record->particles[0];
+    Expect("before_emit noted, pick first, the segment, three on_death actions",
+           record->beforeEmit && spark.pick == AnchorPick::First && spark.spawn.shape == SpawnShape::Segment &&
+               spark.onDeath.size() == 3 && record->lists == 1);
+    State state(record);
+    state.ground = Ground;
+    IsaacRandom random;
+    state.Step(random);
+    Expect("an anchor group of count 0 makes none at the start", state.anchors.empty() && state.source[kSourceValues] == 0.0f);
+    IsaacRandom expected = random;
+    state.BeforeEmission(random);
+    Expect("before_emit adds path.count + 1 anchors", state.anchors.size() == 3 && state.source[kSourceValues] == 3.0f);
+    Expect("ground(x, y) over the list's held points (x[1] = 4, y[9] = 5)", state.vars[0] == 45.0f);
+    bool drawn = true;
+    for (const AnchorState& anchor : state.anchors) {
+        float length2 = 0.0f;
+        const Vector3 v = RandomInBall(expected, &length2);
+        const float* values = anchor.values;
+        drawn = drawn && values[static_cast<int>(AnchorValue::SpawnX)] == v.x &&
+                values[static_cast<int>(AnchorValue::SpawnZ)] == v.z &&
+                values[static_cast<int>(AnchorValue::X)] == v.x / std::sqrt(length2);
+    }
+    Expect("each added anchor draws its ball in turn, its x reads a.spawn", drawn && random.Next() == expected.Next());
+    Expect("a.index counts the group, a.count is its size",
+           state.anchors[2].values[static_cast<int>(AnchorValue::Y)] == 2.0f &&
+               state.anchors[0].values[static_cast<int>(AnchorValue::Z)] == 3.0f);
+    state.BeforeEmission(random);
+    Expect("its condition then keeps it from adding more", state.anchors.size() == 3);
+    Expect("a list input set from game code", state.SetList("path", {{7.0f, 8.0f, 9.0f}}) && !state.SetList("made", {}) &&
+                                                  state.inputs[record->FindInput("path")->slot] == 1.0f);
+
+    // The segment: one draw between its ends.
+    IsaacRandom a, b;
+    const Vector3 point = SpawnPoint(spark.spawn, state.SourceEnv(&a), a);
+    const float t = b.Range(0.0f, 1.0f);
+    Expect("the segment from 1 to path.z[0] (9)", point.x == 1.0f + 8.0f * t && point.y == 0.0f && a.Next() == b.Next());
+
+    // A death: the particle's age in its count, the ember queued at its place, the effect there, the var set.
+    float particle[kParticleValues] = {};
+    particle[static_cast<int>(ParticleValue::Age)] = 2.0f;
+    Env env = state.SourceEnv(&random);
+    env.scopes[static_cast<int>(Scope::Particle)] = particle;
+    state.queue.clear();
+    state.Died(spark, env, {5.0f, 6.0f, 7.0f});
+    Expect("on_death: three embers at the place, the effect, the var",
+           state.queue.size() == 3 && state.queue[0].kind == 1 && state.queue[0].placed &&
+               state.queue[2].place.y == 6.0f && state.effects.size() == 1 && state.effects[0].placed &&
+               state.effects[0].name == "Sparks" && state.vars[1] == 1.0f);
+
+    errors.clear();
+    Expect("an on_death that stops refuses the effect",
+           Read(Parse(kDeathStops, "death.effect.toml"), "Death", &errors) == nullptr && errors.size() == 1 &&
+               errors[0].find("on_death") != std::string::npos);
+    errors.clear();
+    Expect("a before_emit reaction that emits refuses the effect",
+           Read(Parse(kBeforeEmitEmits, "before.effect.toml"), "Before", &errors) == nullptr && errors.size() == 1);
 }
 
 // The ```toml blocks of `file` (relative to the source tree) that are whole effects (a [[particle]]).
@@ -488,6 +604,7 @@ int RunParticleRecordChecks() {
     CheckReactions();
     CheckPlacement();
     CheckCarrierReaders();
+    CheckExtensions();
     CheckWrittenEffects();
     return failures;
 }

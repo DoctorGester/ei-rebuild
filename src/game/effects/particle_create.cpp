@@ -64,10 +64,6 @@ constexpr ParticleSpec kPoison = {.texture = "PoisonCloud", .emitChance = 50, .e
                                   .maxParticles = kEndless, .lifetime = 0xCA4, .frameCount = 15, .frameDelay = 1};
 constexpr ParticleSpec kMushroom = {.texture = "ChangeHero", .emitCount = 10, .maxParticles = 4000, .frameDelay = 1,
                                     .height = 1.0f};
-constexpr ParticleSpec kShower = {.texture = "RainSnow", .flags = kOnPart, .attachPoint = AttachPoint::Body,
-                                  .emitCount = 10, .maxParticles = 300, .lifetime = 6, .frameDelay = 15,
-                                  .elementCount = 1, .spreadMin = {-0.2f, -0.2f, -0.2f},
-                                  .spreadMax = {0.2f, 0.2f, 0.2f}};
 constexpr ParticleSpec kModifier = {.texture = "Stun", .flags = kCarried, .emitCount = 80, .lifetime = 14,
                                     .frameDelay = 2};
 constexpr ParticleSpec kCasting = {.texture = "FireSmoke", .flags = kCarriedOnPart, .emitCount = 20, .lifetime = 5,
@@ -112,7 +108,6 @@ constexpr ParticleSpec kSpecs[] = {
      .elementCount = 6},
     {.type = Casting, .texture = "FireSmoke", .flags = kCarried, .emitCount = kEndless, .frameDelay = 1},
     Like(kMushroom, Mushroom),
-    Like(kShower, Shower1),
     {.type = Link, .texture = "Link", .emitChance = 80, .emitCount = 10, .lifetime = 45, .frameCount = 15,
      .frameDelay = 3, .spreadMin = {-0.2f, -0.2f, -0.2f}, .spreadMax = {0.2f, 0.2f, 0.2f},
      .extent = {-10.0f, 0.0f, 0.0f}},
@@ -156,9 +151,6 @@ constexpr ParticleSpec kSpecs[] = {
     {.type = LightningBlast, .texture = "TendriLight", .additiveBlend = true, .emitChance = 88, .emitCount = 250,
      .maxParticles = 600, .lifetime = 15, .frameCount = 15, .frameDelay = 1, .spreadMin = {-0.2f, -0.2f, -0.2f},
      .spreadMax = {0.2f, 0.2f, 0.2f}},
-    Like(kShower, Shower2),
-    Like(kShower, Shower3),
-    Like(kShower, Shower4),
     {.type = ShapeChange, .texture = "ShapeChange", .flags = kPausedToo, .emitCount = 2500, .maxParticles = 2500},
     Like(kGroundDust, GroundDust1),
     Like(kGroundDust, GroundDust2, [](ParticleSpec& spec) {
@@ -223,7 +215,6 @@ void SetupElements(ParticleSource& s) {
     case FireBlast: SetupFireBlast(s); break;
     case Tornado: SetupTornado(s); break;
     case CurseHolder: SetupCurseHolder(s); break;
-    case Shower1: case Shower2: case Shower3: case Shower4: SetupShower(s); break;
     case ClayRing: SetupClayRing(s); break;
     case GroundDust1: case GroundDust2: SetupGroundDust(s); break;
     case Cylinder1: case Cylinder2: SetupCylinder(s); break;
@@ -287,7 +278,6 @@ void ParticleSource::Reset() {
     windStrength = 0.0f;
     additiveBlend = false;
     tint = 0;
-    rayCount = 0;
     glowKind = GlowKind::Green;
     lib::FreeStorage(elements);
     data.reset();

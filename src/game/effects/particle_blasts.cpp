@@ -91,7 +91,7 @@ int EmitBlast(ParticleSource& s, Particle& p, int) {
     }
     if (kind < 0) {
         p.life = 0;
-        Vector3 v = RandomInBall();
+        Vector3 v = effectdata::RandomInBall(g_particleRandom);
         float outside = 1.0f - LengthSquared(v);
         v *= s.size;
         p.pos = v * s.elements[0].fragment.radius + s.origin;

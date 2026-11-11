@@ -52,7 +52,7 @@ int EmitSilence(ParticleSource& s, Particle& p, int) {
     const Particle* orb = *node;
     float t = g_particleRandom.Range(0.0f, 1.0f);
     Vector3 start = orb->pos - t * orb->drift;
-    Vector3 v = RandomInBall();
+    Vector3 v = effectdata::RandomInBall(g_particleRandom);
     p.size = 0.0f;
     p.pos = v * orb->size * 0.8f + start;
     wispSize = (g_particleRandom.Below(0.4f) + 0.8f) * s.size * 0.08f;
@@ -103,90 +103,6 @@ int UpdateSilence(ParticleSource& s, Particle& p) {
     tilt = tiltStep + tilt;
     p.size = (g_particleRandom.Below(0.2f) + 0.9f) * s.size * 0.22f;
     return 1;
-}
-
-// --- Shower1-4: sparks thrown out in a few random directions -----------------------------------------------
-
-namespace {
-
-constexpr std::int32_t kShowerAlpha[16] = /*0078A6B4*/ {0, 64, 128, 192, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
-
-// alpha * 8 random unit directions (at least one) in the elements.
-void ChooseShowerRays(ParticleSource& s) {
-    s.rayCount = std::lround(s.alpha * 8.0f);
-    if (s.rayCount < 1) s.rayCount = 1;
-    int rays = s.rayCount;
-    s.emitCount = rays * 10;
-    s.elements.resize(rays);
-    for (int i = 0; i < s.rayCount; ++i) {
-        float lengthSquared;
-        Vector3 v = RandomInBall(lengthSquared);
-        s.elements[i].pos = v / std::sqrt(lengthSquared);
-        s.elements[i].ray.age = 0;
-    }
-}
-
-} // namespace
-
-// Shower1-4 (the RainSnow texture): the element's ticks pick the frame; its age waits for the directions.
-void SetupShower(ParticleSource& s) {
-    s.elements[0].ray.age = -100;
-    switch (ParticleTypeOf(s.type)) {
-    case ParticleType::Shower1: s.elements[0].ticks = 12; break;
-    case ParticleType::Shower2: s.elements[0].ticks = 13; break;
-    case ParticleType::Shower3: s.elements[0].ticks = 14; break;
-    case ParticleType::Shower4: s.elements[0].ticks = 15; break;
-    default: break;
-    }
-}
-
-// Shower: the first call chooses the directions. A spark leaves the source along a
-// random direction (jittered by +-0.03, scaled to the source's size and 1/6 of it per tick, one in
-// eight half as fast again), already a random part of its first step out.
-int EmitShower(ParticleSource& s, Particle& p, int) {
-    float& speedKept = p.velocity.x;   // the speed's factor per tick
-    float& sizeKept = p.velocity.y;    // the size's factor per tick
-    if (s.elements[0].ray.age < 0) ChooseShowerRays(s);
-    p.color = 0xFFFFFFFF;
-    p.life = s.lifetime;
-    p.frame = s.elements[0].ticks;
-    Vector3 jitter = {g_particleRandom.Range(-0.03f, 0.03f), g_particleRandom.Range(-0.03f, 0.03f),
-                      g_particleRandom.Range(-0.03f, 0.03f)};
-    const ParticleElement& ray = s.elements[g_particleRandom.Next() % static_cast<std::uint32_t>(s.rayCount)];
-    p.pos = s.origin;
-    p.size = s.typeParam;
-    Vector3 d = s.size * (jitter + ray.pos);
-    float speed = 1.0f / std::sqrt(LengthSquared(d)) * s.size * 0.16666667f;   // 1/6
-    if ((g_particleRandom.Next() & 7) == 0) speed = speed * 1.5f;
-    p.drift = speed * d;
-    speedKept = 0.9f;
-    sizeKept = 0.8f;
-    float t = g_particleRandom.Range(0.0f, 1.0f);
-    p.pos += t * p.drift;
-    return 1;
-}
-
-// Shower sparks move, slow down, fall by 0.05 size per tick, shrink and fade by the life table.
-int UpdateShower(ParticleSource& s, Particle& p) {
-    const float& speedKept = p.velocity.x;
-    const float& sizeKept = p.velocity.y;
-    int life = --p.life;
-    if (life == 0) return 0;
-    p.pos += p.drift;
-    p.color = (static_cast<std::uint32_t>(ByLife(kShowerAlpha, life, 0)) << 24) | 0xFFFFFF;   // before: AcidRay's size table's zero tail
-    p.size = sizeKept * p.size;
-    float keep = speedKept;
-    p.drift *= keep;
-    p.drift.z -= s.size * 0.05f;
-    return 1;
-}
-
-// Shower directions age; after 5 ticks the source stops emitting and lets go of its carrier.
-void TickShower(ParticleSource& s, ParticleElement& e) {
-    if (++e.ray.age > 5) {
-        s.flags &= ~ParticleSourceFlag::Emitting;
-        s.Attach(nullptr);
-    }
 }
 
 // --- Bag: eighty coloured balls bouncing around the carrier ------------------------------------------------
@@ -306,14 +222,14 @@ void TickBag(ParticleSource& s, ParticleElement& e) {
         e.pos.y = r + low + e.pos.y;
         r = BagSpread(s, low, high);
         e.pos.z = r + e.pos.z + low;
-        e.ball.velocity = RandomInBall() * s.size * 0.2f;
+        e.ball.velocity = effectdata::RandomInBall(g_particleRandom) * s.size * 0.2f;
         e.ticks = static_cast<int>(g_particleRandom.Next() % 3) + 7;
         e.ball.step = {};
         return;
     }
     ++e.ball.age;
     if (g_particleRandom.Next() % 6 == 0) {
-        e.ball.velocity += RandomInBall() * s.size * 0.05f;
+        e.ball.velocity += effectdata::RandomInBall(g_particleRandom) * s.size * 0.05f;
     }
     const Vector3& velocity = e.ball.velocity;
     e.pos += velocity;

@@ -12,6 +12,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <vector>
 
 class ParticleSource;
 struct Particle;
@@ -71,6 +72,8 @@ bool SetInput(ParticleSource& s, std::string_view input, float value);
 bool SetInput(ParticleSource& s, std::string_view input, const Vector3& value);
 // An enum input by its value's name.
 bool SetInput(ParticleSource& s, std::string_view input, std::string_view value);
+// A list input's points.
+bool SetInput(ParticleSource& s, std::string_view input, const std::vector<Vector3>& points);
 // An event input fired: its reactions and stage moves run at the next tick.
 bool Fire(ParticleSource& s, std::string_view event);
 

@@ -1,14 +1,15 @@
 #pragma once
 
 // What the particle files (particle_*.cpp) share: each effect's functions, which the source's set-up
-// (particle_create.cpp) and tick (particle_manager.cpp) pick by its type, the random helpers and the random scales
-// that are not a Range draw. More: docs/notes/effects.md, "Particle sources".
+// (particle_create.cpp) and tick (particle_manager.cpp) pick by its type, and their constants. The ball and cube
+// draws are particle_record.h's (shared with the data effects). More: docs/notes/effects.md, "Particle sources".
 //
 // An Emit fills a particle from the pool (`index`: the emission's count this tick; 0 returns the particle to the pool),
 // an Update moves one (0 drops it), a Tick works on one element of the source's array (taking the source alone: on the
 // whole array), a Setup starts the elements the source's spec made.
 
 #include "game/effects/effects.h"
+#include "game/effects/particle_record.h"
 #include "game/core/random.h"
 
 #include "lib/vecmath.h"
@@ -21,27 +22,6 @@ inline constexpr float kBoundsFar = 100000.0f;
 
 // Bag: its balls (the elements, and the first particles).
 constexpr int kBagBalls = 80;
-
-// A random point of the cube [-1, 1)^3, drawn x, y, z.
-inline Vector3 RandomInCube() {
-    return {g_particleRandom.Range(-1.0f, 1.0f), g_particleRandom.Range(-1.0f, 1.0f), g_particleRandom.Range(-1.0f, 1.0f)};
-}
-
-// A random point in the unit ball (ten tries, the last one kept) and its squared length.
-inline Vector3 RandomInBall(float& lengthSquared) {
-    Vector3 v;
-    for (int tries = 10;;) {
-        v = RandomInCube();
-        lengthSquared = LengthSquared(v);
-        if (lengthSquared < 1.0f) return v;   // random: never NaN
-        if (!(--tries > 0)) return v;
-    }
-}
-
-inline Vector3 RandomInBall() {
-    float lengthSquared;
-    return RandomInBall(lengthSquared);
-}
 
 // particle_casting.cpp.
 int EmitCasting(ParticleSource& s, Particle& p, int index);
@@ -70,10 +50,6 @@ void TickLink(ParticleSource& s, ParticleElement& e);
 // particle_marks.cpp.
 int EmitSilence(ParticleSource& s, Particle& p, int index);
 int UpdateSilence(ParticleSource& s, Particle& p);
-void SetupShower(ParticleSource& s);
-int EmitShower(ParticleSource& s, Particle& p, int index);
-int UpdateShower(ParticleSource& s, Particle& p);
-void TickShower(ParticleSource& s, ParticleElement& e);
 int EmitBag(ParticleSource& s, Particle& p, int index);
 int UpdateBag(ParticleSource& s, Particle& p);
 void TickBag(ParticleSource& s, ParticleElement& e);

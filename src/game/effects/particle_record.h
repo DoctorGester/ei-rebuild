@@ -91,7 +91,13 @@ enum class SourceValue : std::uint16_t {
 inline constexpr int kSourceValues = static_cast<int>(SourceValue::Values);
 
 // An anchor's own values (Scope::Anchor, `a.<name>`).
-enum class AnchorValue : std::uint16_t { Index, GroupSize, Age, Ticks, X, Y, Z, Values };
+enum class AnchorValue : std::uint16_t {
+    Index,          // its number in its group
+    GroupSize,      // the anchors its group made so far
+    Age, Ticks, X, Y, Z,
+    SpawnX, SpawnY, SpawnZ,     // its spawn shape's point, drawn when it is made
+    Values
+};
 inline constexpr int kAnchorValues = static_cast<int>(AnchorValue::Values);
 
 // A particle's own values (Scope::Particle, `p.<name>`); the values before this tick's update.
@@ -111,6 +117,7 @@ enum class InputType : std::uint8_t {
     Bool,       // 0 or 1
     Event,      // fired: its value is the times it fired before this tick, for one tick
     Enum,       // a value's index; `<name>.<value>` are the constants
+    List,       // points: `<name>.count`, and `<name>.x[i]`, `.y[i]`, `.z[i]` (held to the ends)
 };
 
 struct Input {
@@ -118,7 +125,9 @@ struct Input {
     InputType type = InputType::Float;
     Vector3 start;                      // a float's, bool's or enum's value in x
     std::vector<std::string> values;    // an enum's
-    int slot = 0;                       // its first value in the input array
+    std::vector<Vector3> points;        // a list's default
+    int slot = 0;                      // its first value in the input array (a list's: its count)
+    int list = -1;                      // a list's place in State::lists
 };
 
 // A named value with its start and its change per tick (an empty `tick` keeps it).
@@ -144,6 +153,7 @@ struct Action {
                     // the effect goes on, and the game may start it again
         StopEmitting,   // the source's emission flag cleared, nothing else (the game may set it again)
         LetGo,      // the source lets go of its carrier (stays where it is; its flags unchanged)
+        AddAnchor,  // `count` anchors of group `anchor` made now
     };
     Kind kind = Kind::Emit;
     Expr count;
@@ -173,6 +183,7 @@ struct Reaction {
         Stop,
         Tick,   // every tick
         Emit,   // after each particle the emission makes (kept or dropped); its actions take effect at once
+        BeforeEmit,     // before each particle the emission makes (after its try's chance roll), the same way
         Event,
     };
     On on = On::Start;
@@ -182,28 +193,46 @@ struct Reaction {
     std::vector<Action> actions;
 };
 
-// A group of moving points the source owns (rings, orbs, bolt points): made at the effect's start, each with its own
-// vars and position relative to the source's origin.
+// FlatBall: x and y drawn in the square [-1, 1) until y * y + x * x < 1 (ten tries, the last kept), z 0: the plane's
+// `ball`. Segment: one draw t in [0, 1), then from + t * (to - from).
+enum class SpawnShape : std::uint8_t { Point, Box, Ball, Shell, Disc, Ring, FlatBall, Segment };
+
+// A random point relative to a centre (a particle's or an anchor's), by shape.
+struct Spawn {
+    SpawnShape shape = SpawnShape::Point;
+    Expr radius;
+    Expr boxMin[3], boxMax[3];  // the box's (empty: the source's spread)
+    Expr from[3], to[3];        // the segment's ends (empty: 0 and the source's extent)
+};
+
+// A random point of the cube [-1, 1)^3, drawn x, y, z.
+Vector3 RandomInCube(IsaacRandom& random);
+// A random point in the unit ball (ten tries of the cube, the last one kept); `lengthSquared` (when given) gets its
+// squared length.
+Vector3 RandomInBall(IsaacRandom& random, float* lengthSquared = nullptr);
+// The point of `spawn` in `env`: the shape's expressions and draws in the order x, y, z (the defaults read the
+// source's spread and extent there).
+Vector3 SpawnPoint(const Spawn& spawn, const Env& env, IsaacRandom& random);
+
+// A group of moving points the source owns (rings, orbs, bolt points): made at the effect's start (`count`) or by an
+// `add_anchor` action, each with its own vars and position relative to the source's origin.
 struct Anchor {
     std::string name;
     Expr count;
+    Spawn spawn;        // drawn first when one is made (a.spawn.*)
     Expr ticks;         // each one's life (empty: lasts)
     std::vector<Var> vars;
     Expr x, y, z;       // or, cylindrical: x = cos(angle) * radius, y = sin(angle) * radius
     Expr radius, angle;
     bool cylindrical = false;
 };
-
-// FlatBall: x and y drawn in the square [-1, 1) until y * y + x * x < 1 (ten tries, the last kept), z 0: the plane's
-// `ball`.
-enum class SpawnShape : std::uint8_t { Point, Box, Ball, Shell, Disc, Ring, FlatBall };
 enum class Space : std::uint8_t {
     World,      // a particle moves on its own once emitted
     Source,     // its offset rides the source's origin
     Anchor,     // its offset rides its anchor
 };
 enum class FrameMode : std::uint8_t { Loop, Hold, Die };
-enum class AnchorPick : std::uint8_t { Cycle, Random };
+enum class AnchorPick : std::uint8_t { Cycle, Random, First };
 
 // One kind of particle the effect emits.
 struct ParticleKind {
@@ -215,9 +244,7 @@ struct ParticleKind {
     AnchorPick pick = AnchorPick::Cycle;
     Expr anchorIndex;       // given: the anchor is the group's live one of this number (wrapped), taken after the vars
     Space space = Space::World;
-    SpawnShape shape = SpawnShape::Point;
-    Expr radius;
-    Expr boxMin[3], boxMax[3];   // the box's (empty: the source's spread)
+    Spawn spawn;
     Expr offset[3];
     Expr position[3];       // given: the start's position, instead of the spawn's point plus offset and centre
     Expr positionTick[3];   // given: the position each tick (world space; the offset in source and anchor space)
@@ -235,6 +262,7 @@ struct ParticleKind {
     Expr kill;
     Expr drop;              // holds at the end of the emission: the particle is not kept (its draws were made)
     std::vector<std::pair<int, Expr>> sourceWrites;   // each update: the source's value (SourceValue) set, in order
+    std::vector<Action> onDeath;    // at its death: particles emitted and effects started at its place, values set
 };
 
 // Whether the source emits only while it is attached to an object (particle_data.cpp makes it ParticleSourceFlag).
@@ -255,6 +283,7 @@ struct Record {
     bool keepAlive = false;     // a free source lasts without particles until it ends (else only while it has some)
     bool readsCarrier = false;  // an expression reads carrier_radius or carrier_z
     bool readsUnit = false;     // an expression reads one of the carrier's unit values (SourceValue::CarrierUnit...)
+    bool beforeEmit = false;    // it has "before_emit" reactions
 
     // [server]: read by the server.
     int oneShot = 0;            // the world object lives this many ticks (0: until removed)
@@ -272,6 +301,7 @@ struct Record {
 
     std::vector<Input> inputs;
     int inputValues = 0;
+    int lists = 0;              // its list inputs
     std::vector<Var> vars;
     std::vector<Stage> stages;
     std::vector<Reaction> reactions;
@@ -306,10 +336,20 @@ struct AnchorState {
     std::vector<float> vars;
 };
 
-// A directed emission an action asked for: a particle of `kind` at anchor `anchor` (-1: none).
+// A directed emission an action asked for: a particle of `kind` at anchor `anchor` (-1: none); `placed`: its spawn's
+// centre is `place` (a dying particle's).
 struct Queued {
     int kind = -1;
     int anchor = -1;
+    bool placed = false;
+    Vector3 place;
+};
+
+// An effect an action started: at the source's origin, or at `place` (a dying particle's).
+struct Started {
+    std::string name;
+    bool placed = false;
+    Vector3 place;
 };
 
 // One source's effect state: what the game drives (inputs, events) and what the data steps (vars, stage, anchors).
@@ -321,6 +361,7 @@ public:
     bool SetValue(std::string_view input, float value);
     bool SetVector(std::string_view input, float x, float y, float z);
     bool SetEnum(std::string_view input, std::string_view value);
+    bool SetList(std::string_view input, const std::vector<Vector3>& points);
     bool Fire(std::string_view event);
     // The source stopped emitting by the game's hand: the "stop" reactions run at the next step.
     void Stopped() { stopPending = true; }
@@ -329,6 +370,10 @@ public:
     void Create(IsaacRandom& random);
     // The "emit" reactions, after a particle of the emission (particle_data.cpp then applies their actions).
     void Emitted(IsaacRandom& random);
+    // The "before_emit" reactions, before a particle of the emission (the same way).
+    void BeforeEmission(IsaacRandom& random);
+    // A particle of `kind` died at `place`: its `on_death` actions, their values computed in `env` (the particle's).
+    void Died(const ParticleKind& kind, const Env& env, const Vector3& place);
 
     // One tick: the game has written `source` (SourceValue) first. Afterwards rate, chance, emitting, queue, burst,
     // effects and ended say what the source does this tick.
@@ -339,6 +384,8 @@ public:
     void (*measure)(void* context) = nullptr;
     void* measureContext = nullptr;
     bool measured = false;
+    // The ground's height at a point (`ground(x, y)`; null: 0, as in the unit checks).
+    float (*ground)(float x, float y) = nullptr;
 
     // The Env of the source's scopes (an anchor's and a particle's are added by the caller).
     Env SourceEnv(IsaacRandom* random) const;
@@ -348,6 +395,7 @@ public:
     std::shared_ptr<const Record> record;
     std::vector<float> source;      // kSourceValues, then the anchors' live counts
     std::vector<float> inputs;
+    std::vector<std::vector<float>> lists;  // the list inputs' points, x y z each
     std::vector<float> vars;
     std::vector<AnchorState> anchors;   // never removed (a particle reads its anchor's last values)
     int stage = -1;
@@ -369,13 +417,15 @@ public:
     bool emitting = true;
     int burst = 0;                  // regular tries added this tick
     std::vector<Queued> queue;
-    std::vector<std::string> effects;
+    std::vector<Started> effects;
 
 private:
     void Start(IsaacRandom& random);
     void Enter(int index, IsaacRandom& random, int depth = 0);
     void Run(const std::vector<Action>& actions, IsaacRandom& random, int depth = 0);
+    void React(Reaction::On on, IsaacRandom& random);
     void MakeAnchors(IsaacRandom& random);
+    void AddAnchors(int group, int count, IsaacRandom& random);
     void StepAnchors(IsaacRandom& random);
     bool Holds(const Reaction& reaction, IsaacRandom& random) const;
 
