@@ -93,6 +93,7 @@ ParticleSource* ParticleManager::CreateSource(int newType) {
 
 int ParticleManager::TickSources(char paused) {
     ReleaseHeld(this, [paused](EngineObject* object) {
+        if (object->flags & ParticleSourceFlag::OwnClock) return false;
         if (paused != 0 && !(object->flags & ParticleSourceFlag::TicksWhilePaused)) return false;
         return !object->RunTick();
     });

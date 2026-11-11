@@ -3,6 +3,7 @@
 #include "game/app/app.h"
 #include "game/app/game_flow.h"
 #include "game/app/harness_hooks.h"
+#include "game/app/tool_hooks.h"
 #include "game/app/logic_settings.h"
 #include "game/app/movies.h"
 #include "game/app/options.h"
@@ -335,6 +336,7 @@ bool RunWorlds() {
         if (g_clock.clientBacklog >= TickLength() &&
             (g_clientWorld.PumpHasIncoming() || !g_clientWorld.IsLocalViewSendingCamera())) {
             if (!ei::mainloop::CallOr(hooks.clientSegment, &WorldClient::RunTick, &g_clientWorld)) return false;
+            if (g_toolHooks.clientTicked) g_toolHooks.clientTicked();
             const std::uint32_t tick = TickLength();
             g_clock.clientBacklog -= tick;
             camera::NoteViewBeforeTick(&g_camera);
@@ -454,6 +456,7 @@ int RunMainLoop() {
             ei::Log("exit: the quit request");
             return event.quitCode;
         }
+        if (interfaceInput && g_toolHooks.takeEvent && g_toolHooks.takeEvent(event)) continue;
         if (interfaceInput) DispatchInput(event);
         else HandleWindowEvent(event);
     }
@@ -476,6 +479,7 @@ void EmptyWorlds() {
 // audio device and the settings stay, holding nothing of the worlds: the sun light, the textures bound to the stages
 // and the material let go first.
 void StopGame() {
+    if (g_toolHooks.worldsEnding) g_toolHooks.worldsEnding();
     ForgetComposedTextures();
     g_interface.Shutdown();
     g_cursor.Shutdown();
@@ -662,6 +666,7 @@ void FrameStep(bool draw) {
         return;
     }
     if (!Running()) return;
+    if (g_toolHooks.drawOverlay) g_toolHooks.drawOverlay();
     // The harness's frame capture reads the finished frame here (game/app/harness_hooks.h).
     if (auto hook = ei::mainloop::g_harnessHooks.beforePresent) hook();
     CursorDrawFrame(&g_cursor);

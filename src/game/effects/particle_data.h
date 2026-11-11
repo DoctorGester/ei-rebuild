@@ -30,6 +30,9 @@ public:
     std::shared_ptr<const Record> FindById(std::int32_t id);
     // Every effect forgotten (a switch of mods; LoadDatabases).
     void Reset();
+    // `record` stands for the effect `name` until Reset (the effect viewer's edit, src/tools/effect_viewer.cpp): Find
+    // and FindById answer it, so the game's own sources of it and the effects that start it take it too.
+    void Put(std::string_view name, std::shared_ptr<const Record> record);
 
 private:
     struct Entry {

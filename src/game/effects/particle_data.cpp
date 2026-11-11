@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <utility>
 #include <vector>
 
 namespace effectdata {
@@ -162,6 +163,13 @@ void Registry::Reset() {
     byName.clear();
     idNames.clear();
     scanned = false;
+}
+
+void Registry::Put(std::string_view name, std::shared_ptr<const Record> record) {
+    Entry& entry = EntryOf(name);
+    entry.loaded = true;
+    if (record) idNames[record->id] = Lower(name);
+    entry.record = std::move(record);
 }
 
 // ---- The particle side ------------------------------------------------------------------------------------------------
