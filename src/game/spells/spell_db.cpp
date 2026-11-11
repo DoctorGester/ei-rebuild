@@ -160,7 +160,7 @@ void Fields(SpellRecord& r, Visit& v) {
     v("code", r.code);
     v.Unread("unread_text", r.unreadText);
     v("price", r.price);
-    v("cast_type", r.castType);
+    v("magic", Enum<int>{r.castType, recordnames::kMagic});
     v("school", Enum<SpellSchool>{r.school, kSchools});
     v("mana", r.mana);
     v("complexity", r.complexity);

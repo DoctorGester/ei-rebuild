@@ -14,6 +14,8 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -153,6 +155,9 @@ bool FromToml(const toml::Value& from, RegistryValue* value) {
     if (from.IsString()) {
         value->type = RegistryType::String;
         value->strings.emplace_back(from.String());
+    } else if (from.IsBool()) {
+        value->type = RegistryType::Int;
+        value->words.push_back(from.Bool() ? 1u : 0u);
     } else if (from.IsInt() || from.IsFloat()) {
         value->type = from.IsFloat() ? RegistryType::Float : RegistryType::Int;
         value->words.push_back(word(from, from.IsFloat()));
@@ -176,6 +181,21 @@ bool FromToml(const toml::Value& from, RegistryValue* value) {
         return false;
     }
     return true;
+}
+
+// The keys that hold 0 or 1 as a switch, written as false / true (`section`, `key`): a mod's config.reg's [MOD]
+// flags, for the starter's list (Single and Multi: mods::ModEntry's label; GameSaves and ForceShowTutorial: read by
+// nothing of ours, docs/notes/mods.md "A mod's config.reg"). Any registry value read from TOML takes true or false as
+// the integer 1 or 0.
+constexpr std::pair<std::string_view, std::string_view> kSwitches[] = {
+    {"MOD", "Single"}, {"MOD", "Multi"}, {"MOD", "GameSaves"}, {"MOD", "ForceShowTutorial"}};
+
+bool IsSwitch(std::string_view section, const RegistryValue& value) {
+    if (value.type != RegistryType::Int || value.words.size() != 1 || value.words.front() > 1) return false;
+    for (const auto& [switchSection, key] : kSwitches)
+        if (text::CompareIgnoringCase(section, switchSection) == 0 && text::CompareIgnoringCase(value.name, key) == 0)
+            return true;
+    return false;
 }
 
 // The value's TOML text.
@@ -335,7 +355,8 @@ std::string FileRegistry::ToToml() const {
     toml::Writer writer;
     for (const RegistrySection& section : sections) {
         writer.Table(toml::Key(section.name));
-        for (const RegistryValue& value : section.values) writer.Pair(value.name, ::ToToml(value));
+        for (const RegistryValue& value : section.values)
+            writer.Pair(value.name, IsSwitch(section.name, value) ? toml::Bool(value.words.front() != 0) : ::ToToml(value));
     }
     return writer.text;
 }

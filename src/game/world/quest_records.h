@@ -31,7 +31,7 @@ struct QuestRecord {
     float exp = 0.0f;
     std::uint32_t unreadField = 0;  // archive field 2 (4 bytes; 0 when loaded from the quests); nothing reads it
     float money = 0.0f;
-    int zone = 0;                   // the zone index
+    int unreadZone = 0;             // the zone index (a quest file's "zone index"); nothing reads it
     int order = 0;
     std::vector<float> places;     // x and y in turn
     std::string text;

@@ -3,5 +3,5 @@
 Title = "Example mod"
 Author = "The Evil Islands rebuild"
 Version = "1.0"
-Single = 1
-Multi = 0
+Single = true
+Multi = false

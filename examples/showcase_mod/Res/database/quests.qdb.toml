@@ -5,5 +5,4 @@
 name = "showcase_golem"
 text = "Break the golem"
 exp = 30.0
-zone = 1
 order = 1

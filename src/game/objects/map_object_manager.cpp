@@ -199,7 +199,8 @@ constexpr Name kWeapons[] = {
 constexpr std::string_view kWeaponNumbers = "a weapon type number 0..14";
 constexpr Name kMoves[] = {{1, "stop"}, {2, "walk"}, {4, "crawl"}, {6, "lie"}};   // AnimationMoveBits >> 15
 constexpr Name kPlays[] = {{1, "once"}, {2, "looped"}};                           // AnimationKeyFlag >> 30
-// A Special's number (SkillAnimation).
+// A Special's number (SkillAnimation): the skills' and the interface's by name; another is the number a briefing
+// phrase plays (ui_briefing_phrases.cpp: any number the phrase gives).
 constexpr Name kSkills[] = {
     {0x1, "briefing01"}, {0x2, "briefing02"}, {0x3, "briefing03"}, {0x4, "briefing04"}, {0x5, "briefing05"},
     {0x6, "briefing06"}, {0x7, "briefing07"}, {0x8, "briefing08"}, {0x9, "briefing09"}, {0xA, "briefing10"},
@@ -213,6 +214,16 @@ constexpr Name kSides[] = {{1, "back"}, {2, "front"}, {3, "minus_x"}, {4, "plus_
 // (kKeyFallWalking), while it moves otherwise (kKeyFall: HitWhileMoving's fall), or no fall (kKeyDeath: a hit
 // standing or turning, a death, a lying hero, every other unit).
 constexpr Name kFalls[] = {{1, "running"}, {2, "moving"}, {3, "none"}};
+// A walk's or run's number: a hero's legs' damage level (AnimationKeyFlag::DamageLevel1 / 2: the lowest leg slot's
+// hit points at most ai.reg's [RPG] DamageLevel1Value / DamageLevel2Value; UnitServer::BuildMoveSteps,
+// NextAnimation), the tired walk "cwalk08" and "cwalk06".
+constexpr Name kLegs[] = {{1, "wounded"}, {2, "badly_wounded"}};
+// An idle's number: every idle a unit asks for has number 1 (kAnimationSpecialIdleKey: FillIdle's, a client's special
+// idle mode); no request has number 2, so such an entry never plays.
+constexpr Name kIdles[] = {{1, "special"}, {2, "unused"}};
+// A cross's number: the movement mode it goes into (EnterBits; `move` is the one it leaves): 1 a hero's own walk (Walk
+// without onGuard, whose key has no move bits), 2 the guarded walk or another unit's.
+constexpr Name kCrossTo[] = {{1, "hero_walk"}, {2, "walk"}, {3, "crawl"}, {4, "lie"}, {5, "stop"}};
 // AnimationFlag: the bits the code reads (the others are cleared at the load).
 constexpr Name kFlagBits[] = {
     {static_cast<std::int64_t>(AnimationFlag::Arrow), "arrow"},
@@ -225,7 +236,7 @@ constexpr std::uint32_t kFallMask = 0x6000000;
 
 // The parts of the key's number (bits 22..29), which mean what the kind says: written as the parts the kind has
 // when they hold the whole number, else as `number`; the reader takes each.
-enum class NumberPart { Number, Skill, Height, Blow, Side, Fall };
+enum class NumberPart { Number, Skill, Height, Blow, Side, Fall, Legs, Idle, To };
 
 struct KeyNumber {
     std::uint32_t& key;
@@ -235,8 +246,11 @@ struct KeyNumber {
     static bool ByParts(std::uint32_t key, NumberPart part) {
         const int number = AnimationNumber(key);
         switch (AnimationKindOf(key)) {
-        case AnimationKind::Special:
-            return part == NumberPart::Skill && !dbtoml::NameOf(kSkills, number).empty();
+        case AnimationKind::Special: return part == NumberPart::Skill;
+        case AnimationKind::Walk:
+        case AnimationKind::Run: return part == NumberPart::Legs && !dbtoml::NameOf(kLegs, number).empty();
+        case AnimationKind::Idle: return part == NumberPart::Idle && !dbtoml::NameOf(kIdles, number).empty();
+        case AnimationKind::Cross: return part == NumberPart::To && !dbtoml::NameOf(kCrossTo, number).empty();
         case AnimationKind::Attack:
         case AnimationKind::Cast:
             return (part == NumberPart::Height || part == NumberPart::Blow) && (number & ~0xE) == 0;
@@ -252,13 +266,17 @@ struct KeyNumber {
         case NumberPart::Height: return {key, kHeightMask, kHeights};
         case NumberPart::Side: return {key, kBlowSideMask, kSides};
         case NumberPart::Fall: return {key, kFallMask, kFalls};
+        case NumberPart::Legs: return {key, kAnimationNumberMask, kLegs};
+        case NumberPart::Idle: return {key, kAnimationNumberMask, kIdles};
+        case NumberPart::To: return {key, kAnimationNumberMask, kCrossTo};
         default: return {key, kAnimationNumberMask, {}};
         }
     }
     bool Skipped() const {
         if ((key & AsCode().mask) == 0 || (part == NumberPart::Blow && (key & kBlowBit) == 0)) return true;
         bool byParts = false;
-        for (NumberPart other : {NumberPart::Skill, NumberPart::Height, NumberPart::Blow, NumberPart::Side, NumberPart::Fall})
+        for (NumberPart other : {NumberPart::Skill, NumberPart::Height, NumberPart::Blow, NumberPart::Side,
+                                 NumberPart::Fall, NumberPart::Legs, NumberPart::Idle, NumberPart::To})
             byParts = byParts || ByParts(key, other);
         return part == NumberPart::Number ? byParts : !ByParts(key, part);
     }
@@ -290,6 +308,9 @@ void Fields(FigureAnimationRecord& r, Visit& v) {
     v("blow", KeyNumber{r.key, NumberPart::Blow});
     v("side", KeyNumber{r.key, NumberPart::Side});
     v("fall", KeyNumber{r.key, NumberPart::Fall});
+    v("legs", KeyNumber{r.key, NumberPart::Legs});
+    v("idle", KeyNumber{r.key, NumberPart::Idle});
+    v("to", KeyNumber{r.key, NumberPart::To});
     v("number", KeyNumber{r.key, NumberPart::Number});
     v("flags", dbtoml::Bits{r.flags, kFlagBits});
     v("death_side", Code{r.flags, kBlowSideMask, kSides});

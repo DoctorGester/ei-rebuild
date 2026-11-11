@@ -43,7 +43,9 @@ struct SpellRecord {
     std::string code;
     std::string unreadText;             // archive field 2; nothing reads it
     float price = 0.0f;                 // a loot item's price when it stands for the spell (ItemLoot::GetPrice)
-    int castType = 0;                   // 1: cast without noise and without slowing the caster; 0: planned as kind 2; the item info shows it
+    // The magic (0 elemental, 1 sense, 2 astral; the item info's "school_<n>" line, the inventory's spell tab): sense
+    // spells are cast without noise and without slowing the caster, elemental ones are planned as kind 2.
+    int castType = 0;
     SpellSchool school = SpellSchool::Fire;
     float mana = 0.0f;
     // fields 6-14: what Spell::InitFromPrototype / SpellContainer::Build copy into the spell, and the item
