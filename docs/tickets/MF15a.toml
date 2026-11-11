@@ -1,0 +1,9 @@
+id = "MF15a"
+title = "Particles get their own client generator (one golden re-record)"
+group = "mods"
+size = 1
+model = "opus"
+note = "User 2026-11-11 approved MF15's plan (build/mf15_particles.md). Particle code draws g_clientRandom, shared with idle animations and scorch prints, so any particle change moves visuals.sav and the digest. Give particles their own generator (seeded like R34a's), one re-record."
+order = 1341
+status = "review"
+started = "2026-11-11"
