@@ -1,0 +1,6 @@
+id = "MF15k1c"
+title = "Move the engine to its own folder: src/engine/{core,data,models,scene,mods,particles}"
+group = "mods"
+size = 2
+note = "User 2026-11-11 after MF15k1: move ei_engine's files out of src/game into src/engine (core, data, models, scene, mods; the particle core from game/effects/particle_* to engine/particles, the game-side effects stay in game/effects). File names keep their folder word (file-layout decisions 2026-11-05), so particle_*.cpp keep their names. Includes, CMake (ei_engine globs the folder), tools/layout.py / layout_map.txt / file-layout.md, engine_layers.py (the rule becomes: src/engine never includes game/), config CSV paths, the harness and docs follow. Mechanical: goldens, effect_check, Linux build unchanged. Do it before MF15k2/k1a/k1b start (they edit the same files)."
+order = 1395
