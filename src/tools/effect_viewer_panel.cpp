@@ -63,7 +63,8 @@ void DrawEffects(Viewer& v) {
             const EffectEntry& entry = v.entries[i];
             if (!filter.PassFilter(entry.name.c_str())) continue;
             char label[160];
-            std::snprintf(label, sizeof(label), "%-22s %s", entry.name.c_str(), OriginLabel(entry.origin));
+            std::snprintf(label, sizeof(label), "%-22s %s", entry.name.c_str(),
+                          entry.madeText.empty() ? OriginLabel(entry.origin) : "made");
             const bool selected = v.picked == static_cast<int>(i);
             if (ImGui::Selectable(label, selected)) v.Pick(static_cast<int>(i));
             if (selected && ImGui::IsWindowAppearing()) ImGui::SetScrollHereY();
@@ -75,6 +76,9 @@ void DrawEffects(Viewer& v) {
         v.Scan();
         v.picked = name.empty() ? -1 : v.Find(name);
     }
+    InputString("##newname", &v.newName);
+    ImGui::SameLine();
+    if (ImGui::Button("New effect")) v.NewEffect(v.newName);
 }
 
 // ---- Playing ----------------------------------------------------------------------------------------------------------
@@ -250,6 +254,11 @@ void DrawState(const Viewer& v) {
     const ParticleSource* s = v.source;
     if (!s) return;
     ImGui::Text("tick %d   particles %d%s", v.tick, static_cast<int>(s->particles.size()), v.ended ? "   ended" : "");
+    if (!v.children.empty()) {
+        int particles = 0;
+        for (const ParticleSource* child : v.children) particles += static_cast<int>(child->particles.size());
+        ImGui::Text("sub-effects %d (particles %d)", static_cast<int>(v.children.size()), particles);
+    }
     ImGui::Text("texture %s", s->texture ? s->texture->name.c_str() : "(none)");
     if (s->data) {
         const effectdata::State& state = *s->data;
@@ -391,10 +400,18 @@ void DrawPanel(Viewer& v) {
         if (ImGui::CollapsingHeader("Drive", ImGuiTreeNodeFlags_DefaultOpen)) DrawDriving(v);
         if (ImGui::CollapsingHeader("Timeline")) DrawTimeline(v);
         if (v.hasDocument) {
-            if (ImGui::CollapsingHeader("File", ImGuiTreeNodeFlags_DefaultOpen)) DrawDocument(v);
+            if (ImGui::CollapsingHeader("File", ImGuiTreeNodeFlags_DefaultOpen)) {
+                if (entry.origin == Origin::Code) {
+                    ImGui::TextWrapped("Converted from code: the game reads a file of this name once %s is on data.",
+                                       entry.name.c_str());
+                    if (ImGui::Button("Back to code")) v.BackToCode();
+                }
+                if (v.hasDocument) DrawDocument(v);
+            }
         } else if (ImGui::CollapsingHeader("Values as made", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::TextDisabled("%s plays from code: these are what its set-up gave the source.", entry.name.c_str());
             DrawMade(v.made);
+            if (ImGui::Button("Convert to data")) v.ConvertToData();
         }
     }
     if (!v.status.empty()) ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.4f, 1.0f), "%s", v.status.c_str());

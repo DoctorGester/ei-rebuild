@@ -485,6 +485,12 @@ A separate exe would need all of that again, and it could draw no unit without a
   - It is placed as EffectParticle::Spawn places a spawned effect (localPosition, ScaleSize(size / baseSize),
     Attach). On a unit outside the party it draws only while its unit is shown (`AttachedToHiddenUnit`).
   - The viewer lets go of it before the worlds are emptied (`worldsEnding`, from StopGame).
+- **Sub-effects** (a data effect's `effect` actions, `on_death` too): StartEffects makes those of a source with
+  OwnClock through `effectdata::g_startOwnClock`, which the viewer sets at Open (`StartChild`): unheld, one reference
+  of the viewer's, OwnClock too, so their own sub-effects come the same way.
+  - Step ticks them before the source, with the viewer's generator (those made at a tick begin at the next), and lets
+    go of each whose tick says it is done. The effect has ended when the source and every sub-effect have.
+  - Restart, a pick and `worldsEnding` let go of them with the source; Freeze holds their particles too.
 - **Time**:
   - What the panel changes (emission, the source's alpha / param / extent / turn, the inputs, the events) goes on a
     timeline at the tick it was made. Changes dragged within one tick count as one.
@@ -505,10 +511,21 @@ A separate exe would need all of that again, and it could draw no unit without a
   - The default folder is the active mod's folder when it lies outside the game folder, else
     `<user data>\ei-rebuild-effects` (`platform::UserDataFolder`). It is never the install unless the player types it
     in.
+- **New effects and conversions** (an entry's `madeText`, played through `EffectDocument::Start`; kept through a
+  Scan, a pick again comes back to its text as typed):
+  - New effect: `kTemplate` (docs/modding.md's first example) under a name no entry and no original type has.
+  - Convert to data (a type still in code): `ConvertedText` writes the source's values as made (texture, frames,
+    blend, attach, part, flags, `[source]`, `[emit]` rate / chance / spacing / max) and one `[[particle]]` kind from
+    its lifetime and frame delay. The type's motion and elements stay to write by hand.
+  - It plays as a data effect of the type's name (`IdOf(name)`, `Registry::Put`): the type's own sources keep their
+    code (FindSpec comes first), so only the viewer and the effects that start it by name play it. Back to code puts
+    a null record under the name, as the registry answers a type in code.
+  - The check (`SetUpDifferences`): the data source's set-up against the code's in what a file sets; the status says
+    "as the code does" or names what differs. The motion cannot match `ei-convert --effect-check`'s reference until
+    it is written; the reference covers Bag of the types still in code.
 - **Limits**:
-  - Effects that a data effect starts (its `effects` actions) are held by the manager and tick with the world, so
-    they neither pause nor scrub.
-  - A type still in code shows the values its set-up gave the source (`MadeValues`), with no fields to edit.
+  - A type still in code shows the values its set-up gave the source (`MadeValues`), with no fields to edit until it
+    is converted.
   - The viewer's source is in no save and on no network.
 - **Interface**:
   - Dear ImGui v1.93.0 (third_party/imgui, unmodified, no backends of its own).
@@ -519,7 +536,10 @@ A separate exe would need all of that again, and it could draw no unit without a
   - Portal from its built-in file: pause, scrub, step, a field edited and the file saved into the run's output folder.
   - showcase_aura on the hero, with its enum, float and event inputs and its stages.
   - CastingFire from code, on the hero.
-  - Captures `viewer_portal`, `viewer_portal_edited`, `viewer_aura`, `viewer_code`.
+  - Bag converted to data (no problems, set up as the code does) and back to code.
+  - A new effect from the template with a tick reaction that starts Teleport: the sub-effect's particles hold while
+    paused and are the same after a scrub to the same tick.
+  - Captures `viewer_portal`, `viewer_portal_edited`, `viewer_aura`, `viewer_code`, `viewer_new`.
 
 ## Missiles and visibility
 

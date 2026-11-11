@@ -18,13 +18,17 @@
 #include "game/world/world.h"
 
 #include "lib/maths.h"
+#include "lib/bit_flags.h"
 #include "lib/text_case.h"
+#include "lib/toml.h"
 #include "platform/log.h"
 #include "platform/platform.h"
 
 #include <algorithm>
 #include <charconv>
 #include <cstdlib>
+#include <format>
+#include <iterator>
 #include <utility>
 
 namespace tools::effect_viewer {
@@ -41,6 +45,39 @@ constexpr int kLoopPause = 15;            // client ticks between an ended effec
 constexpr float kNearbyRange = 40.0f;     // the units listed around the camera's focus
 constexpr std::size_t kMostUnits = 24;
 constexpr float kDegrees = kPi / 180.0f;
+constexpr int kNoFrameStep = 10000;       // a code type's frame delay that never steps (ParticleSource::Reset's)
+
+// The `part` names of an effect file, in AttachPoint's order (particle_record.cpp).
+constexpr std::string_view kPartNames[] = {
+    "effect_point", "head", "above_head", "left_hand", "right_hand", "left_leg", "right_leg", "body",
+    "body00", "body01", "body02", "body03", "body04",
+};
+
+// The source flags an effect file sets (the others are the game's at run time).
+constexpr ParticleSourceFlag kFileFlags = ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart |
+                                          ParticleSourceFlag::KeepAlive | ParticleSourceFlag::TicksWhilePaused |
+                                          ParticleSourceFlag::IdlesOffScreen;
+
+// A new effect's file (NewEffect): docs/modding.md's first example, which every install's textures can show.
+constexpr std::string_view kTemplate = R"toml(texture = "Teleport"          # an effects texture (Res\textures), 16 frames in 4 columns
+blend = "additive"
+
+[inputs]                      # the values the game (or a script) sets
+charge = { type = "float", default = 0.0 }
+
+[emit]
+rate = "2 + charge * 6"       # particles per tick: any value can be an expression
+
+[[particle]]
+name = "spark"
+lifetime = "range(10, 20)"    # ticks; range() draws a random number
+spawn = { shape = "disc", radius = "size", on_ground = 0.05 }
+velocity = [0, 0, 0.03]
+size = { start = 0.2, growth = 0.95 }
+color = "FFD890"
+alpha = { tick = "255 * (1 - p.t)" }   # p.t: the particle's age, 0 to 1
+frame = { start = "pick(16)", delay = 1 }
+)toml";
 
 std::string Lower(std::string_view text) {
     std::string lower(text);
@@ -76,6 +113,105 @@ std::string DefaultSaveFolder() {
     const std::string user = platform::UserDataFolder();
     return user.empty() ? std::string() : user + "ei-rebuild-effects";
 }
+
+// A name an effect file can have: letters, digits, '_' and '-'.
+bool FileStem(std::string_view name) {
+    if (name.empty()) return false;
+    for (const char c : name)
+        if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-'))
+            return false;
+    return true;
+}
+
+bool SameVector(const Vector3& a, const Vector3& b) { return a.x == b.x && a.y == b.y && a.z == b.z; }
+
+std::string VectorText(const Vector3& v) { return toml::Array({toml::Float(v.x), toml::Float(v.y), toml::Float(v.z)}); }
+
+// A code type's values as made, written as the start of its data file: what its set-up gives the source (the look,
+// the emission, the sizes, the spread) and one particle kind to begin from. Its emitter's motion and its elements
+// stay to write by hand (docs/notes/effects.md, "The original effects on data").
+std::string ConvertedText(const EffectEntry& entry, const MadeValues& m) {
+    toml::Writer w;
+    w.Comment(std::format("{} (0x{:X}): written by the effect viewer from the values its code's set-up gives the source.",
+                          entry.name, static_cast<unsigned>(entry.id)));
+    w.Comment("Its particles' motion is still the code's: write it in the [[particle]] kinds below.");
+    if (m.elements > 0) w.Comment(std::format("The code keeps {} elements of its own (on data: [[anchor]] groups).", m.elements));
+    w.Comment("The game reads this file once the type is on data; until then only the viewer plays it.");
+    w.Pair("texture", toml::Text(m.texture));
+    w.Pair("frames", toml::Int(m.frames));
+    w.Pair("columns", toml::Int(m.columns));
+    if (m.additive) w.Pair("blend", toml::Text("additive"));
+    const auto flags = static_cast<ParticleSourceFlag>(m.flags);
+    if (lib::Has(flags, ParticleSourceFlag::AttachedOnly)) w.Pair("attach", toml::Text("attached_only"));
+    if (lib::Has(flags, ParticleSourceFlag::OnPart) && m.attachPoint >= 0 && m.attachPoint < std::ssize(kPartNames))
+        w.Pair("part", toml::Text(kPartNames[m.attachPoint]));
+    std::vector<std::string> named;
+    if (lib::Has(flags, ParticleSourceFlag::TicksWhilePaused)) named.push_back(toml::Text("ticks_while_paused"));
+    if (lib::Has(flags, ParticleSourceFlag::IdlesOffScreen)) named.push_back(toml::Text("idles_off_screen"));
+    if (lib::Has(flags, ParticleSourceFlag::KeepAlive)) named.push_back(toml::Text("keep_alive"));
+    if (!named.empty()) w.Pair("flags", toml::Array(named));
+
+    w.Table("source");
+    w.Pair("size", toml::Float(m.size));
+    w.Pair("height", toml::Float(m.height));
+    w.Pair("growth", toml::Float(m.growth));
+    w.Pair("alpha", toml::Float(m.alpha));
+    w.Pair("param", toml::Float(m.param));
+    w.Pair("spread_min", VectorText(m.spreadMin));
+    w.Pair("spread_max", VectorText(m.spreadMax));
+    w.Pair("extent", VectorText(m.extent));
+
+    w.Table("emit");
+    w.Pair("rate", toml::Int(m.emitCount));
+    if (m.emitChance != 100) w.Pair("chance", toml::Int(m.emitChance));
+    w.Pair("spacing", toml::Float(m.emitSpacing));
+    w.Pair("max", toml::Int(m.maxParticles));
+
+    w.ArrayTable("particle");
+    w.Pair("name", toml::Text("particle"));
+    w.Pair("lifetime", toml::Int(m.lifetime > 0 ? m.lifetime : 20));
+    const auto axes = [](std::string_view prefix) {
+        return toml::Array({toml::Text(std::string(prefix) + ".x"), toml::Text(std::string(prefix) + ".y"),
+                            toml::Text(std::string(prefix) + ".z")});
+    };
+    w.Pair("spawn", toml::InlineTable({{"shape", toml::Text("box")}, {"min", axes("spread_min")}, {"max", axes("spread_max")}}));
+    w.Pair("size", toml::Text("size"));
+    std::vector<std::pair<std::string, std::string>> frames = {{"start", toml::Int(0)}};
+    if (m.frameDelay < kNoFrameStep) frames.emplace_back("delay", toml::Int(m.frameDelay));
+    w.Pair("frame", toml::InlineTable(frames));
+    return w.text;
+}
+
+// What a file sets where the source a data effect set up differs from the code's (not the emission's count, chance
+// and lifetime, which a data effect's tick sets): their names, empty when none.
+std::vector<std::string> SetUpDifferences(const MadeValues& code, const MadeValues& data) {
+    std::vector<std::string> differ;
+    const auto check = [&differ](bool same, const char* name) {
+        if (!same) differ.emplace_back(name);
+    };
+    const auto fileFlags = [](std::uint32_t flags) { return static_cast<ParticleSourceFlag>(flags) & kFileFlags; };
+    check(SameText(code.texture, data.texture), "texture");
+    check(code.frames == data.frames && code.columns == data.columns, "frames");
+    check(code.maxParticles == data.maxParticles, "max");
+    check(code.emitSpacing == data.emitSpacing, "spacing");
+    check(code.size == data.size && code.height == data.height && code.growth == data.growth, "size");
+    check(code.alpha == data.alpha && code.param == data.param, "alpha / param");
+    check(SameVector(code.spreadMin, data.spreadMin) && SameVector(code.spreadMax, data.spreadMax), "spread");
+    check(SameVector(code.extent, data.extent), "extent");
+    check(code.additive == data.additive, "blend");
+    check(fileFlags(code.flags) == fileFlags(data.flags), "flags");
+    check(!lib::Has(fileFlags(code.flags), ParticleSourceFlag::OnPart) || code.attachPoint == data.attachPoint, "part");
+    return differ;
+}
+
+std::string Joined(const std::vector<std::string>& names) {
+    std::string text;
+    for (const std::string& name : names) text += (text.empty() ? "" : ", ") + name;
+    return text;
+}
+
+// effectdata::g_startOwnClock while the viewer is open: its source's sub-effects.
+ParticleSource* StartOwnClock(ParticleManager& manager, int type) { return g_viewer.StartChild(manager, type); }
 
 MadeValues MadeOf(const ParticleSource& s) {
     MadeValues m;
@@ -135,6 +271,9 @@ void DrawOverlay() {
 // ---- The effects -----------------------------------------------------------------------------------------------------
 
 void Viewer::Scan() {
+    std::vector<EffectEntry> kept;   // the new effects and conversions, kept through the scan
+    for (EffectEntry& entry : entries)
+        if (!entry.madeText.empty()) kept.push_back(std::move(entry));
     entries.clear();
     for (int type = kFirstType; type <= kLastType; ++type) {
         const std::string name(ParticleTypeName(type));
@@ -149,6 +288,11 @@ void Viewer::Scan() {
             if (ParticleTypeByName(stem) != kNoParticleType || Find(stem) >= 0) continue;
             entries.push_back({stem, effectdata::IdOf(stem), Origin::Mod});
         }
+    }
+    for (EffectEntry& entry : kept) {
+        const int index = Find(entry.name);
+        if (index >= 0) entries[static_cast<std::size_t>(index)].madeText = std::move(entry.madeText);
+        else entries.push_back(std::move(entry));
     }
 }
 
@@ -165,7 +309,12 @@ void Viewer::Pick(int index) {
     furthest = 0;
     playing = true;
     const EffectEntry& entry = entries[static_cast<std::size_t>(index)];
-    hasDocument = entry.origin != Origin::Code && document.Load(entry.name, entry.id);
+    if (!entry.madeText.empty()) {
+        document.Start(entry.name, entry.madeText);
+        hasDocument = true;
+    } else {
+        hasDocument = entry.origin != Origin::Code && document.Load(entry.name, entry.id);
+    }
     if (hasDocument && document.record) effectdata::g_effects.Put(entry.name, document.record);
     if (!placed) {
         placed = true;
@@ -179,28 +328,106 @@ void Viewer::Pick(int index) {
     Restart(0);
     status.clear();
     ei::Log("effect viewer: %s (0x%X, %s)", entry.name, static_cast<unsigned>(entry.id),
-            entry.origin == Origin::Code ? "code" : entry.origin == Origin::Builtin ? "built-in data" : "a mod's data");
+            !entry.madeText.empty()          ? "made in the viewer"
+            : entry.origin == Origin::Code   ? "code"
+            : entry.origin == Origin::Builtin ? "built-in data"
+                                              : "a mod's data");
+}
+
+bool Viewer::NewEffect(std::string_view name) {
+    if (!FileStem(name)) {
+        status = "a new effect's name is its file's: letters, digits, _ and -";
+        return false;
+    }
+    if (Find(name) >= 0 || ParticleTypeByName(name) != kNoParticleType) {
+        status = "there is an effect named " + std::string(name) + " already";
+        return false;
+    }
+    EffectEntry entry{std::string(name), effectdata::IdOf(name), Origin::Mod};
+    entry.madeText = std::format("# {}: a new effect, made in the effect viewer from its template. The schema: "
+                                 "docs/modding.md, \"Effects\".\n",
+                                 name) +
+                     std::string(kTemplate);
+    entries.push_back(std::move(entry));
+    Pick(static_cast<int>(entries.size()) - 1);
+    return true;
+}
+
+void Viewer::ConvertToData() {
+    if (picked < 0 || hasDocument) return;
+    EffectEntry& entry = entries[static_cast<std::size_t>(picked)];
+    if (entry.origin != Origin::Code) return;
+    const MadeValues code = made;
+    entry.madeText = ConvertedText(entry, code);
+    Pick(picked);
+    if (!document.record) {
+        status = "converted, but it does not load: " + (document.problems.empty() ? std::string() : document.problems.front());
+        return;
+    }
+    const std::vector<std::string> differ = SetUpDifferences(code, made);
+    status = differ.empty() ? "converted: the file sets the source up as the code does"
+                            : "converted: the file sets up differently: " + Joined(differ);
+}
+
+void Viewer::BackToCode() {
+    if (picked < 0) return;
+    EffectEntry& entry = entries[static_cast<std::size_t>(picked)];
+    if (entry.origin != Origin::Code || entry.madeText.empty()) return;
+    entry.madeText.clear();
+    effectdata::g_effects.Put(entry.name, nullptr);   // as the registry answers a type still in code
+    Pick(picked);
 }
 
 // ---- Playing ---------------------------------------------------------------------------------------------------------
 
+namespace {
+
+// A source of the viewer's let go: it goes back to the manager's spares for the game's sources.
+void LetGo(ParticleSource* s) {
+    s->StopAndClear();
+    s->flags &= ~ParticleSourceFlag::OwnClock;
+    s->Release();
+}
+
+// One tick of a source on the viewer's clock (the viewer's generator swapped in); false when it is done.
+bool TickOwn(ParticleSource& s) {
+    const bool alive = s.RunTick();
+    s.flags |= ParticleSourceFlag::OwnClock;   // kept whatever the type's tick wrote into its flags
+    return alive;
+}
+
+} // namespace
+
 void Viewer::Drop() {
+    for (ParticleSource* child : children) LetGo(child);
+    children.clear();
     if (!source) return;
-    source->StopAndClear();
-    source->flags &= ~ParticleSourceFlag::OwnClock;   // it goes back to the spares for the game's sources
-    source->Release();
+    LetGo(source);
     source = nullptr;
+}
+
+ParticleSource* Viewer::StartChild(ParticleManager& owner, int type) {
+    const int shown = ShownParticleType(type);
+    if (shown == kNoParticleType) return nullptr;
+    ParticleSource* child = owner.CreateObjectAs<ParticleSource>(shown, -1);
+    if (!child) return nullptr;
+    child->AddRef();
+    child->flags |= ParticleSourceFlag::OwnClock;
+    children.push_back(child);
+    return child;
 }
 
 void Viewer::Restart(int target) {
     Drop();
     manager = g_clientWorld.ClientParticleManager();
     tick = 0;
+    sourceEnded = false;
     ended = false;
     endedTicks = 0;
     if (!manager || picked < 0) return;
     const EffectEntry& entry = entries[static_cast<std::size_t>(picked)];
-    const int shown = ShownParticleType(entry.id);
+    // A document's id: a conversion plays as a data effect of the type's name, not as the type.
+    const int shown = ShownParticleType(hasDocument ? document.id : entry.id);
     if (shown == kNoParticleType) {
         status = entry.name + " does not load: it shows nothing";
         return;
@@ -229,12 +456,21 @@ void Viewer::Step() {
     for (const Change& change : timeline)
         if (change.tick == tick) Make(change, false);
     std::swap(g_particleRandom, random);
-    const bool alive = source->RunTick();
+    // The sub-effects started before this tick first (those it starts now begin at the next), then the source.
+    const std::size_t before = children.size();
+    std::vector<ParticleSource*> kept;
+    for (std::size_t i = 0; i < before; ++i) {
+        ParticleSource* child = children[i];   // by index: a child's own sub-effects join the list as it ticks
+        if (TickOwn(*child)) kept.push_back(child);
+        else LetGo(child);
+    }
+    if (!sourceEnded && !TickOwn(*source)) sourceEnded = true;
+    kept.insert(kept.end(), children.begin() + static_cast<std::ptrdiff_t>(before), children.end());
+    children = std::move(kept);
     std::swap(g_particleRandom, random);
-    source->flags |= ParticleSourceFlag::OwnClock;   // kept whatever the type's tick wrote into its flags
     ++tick;
     furthest = std::max(furthest, tick);
-    if (!alive) ended = true;
+    ended = sourceEnded && children.empty();
 }
 
 void Viewer::Make(const Change& change, bool record) {
@@ -270,12 +506,16 @@ void Viewer::Make(const Change& change, bool record) {
 
 void Viewer::Freeze() {
     if (!source) return;
-    for (Particle* p : source->particles) {
-        p->prevPos = p->pos;
-        p->prevSize = p->size;
-        p->prevColor = p->color;
-        p->prevFrame = p->frame;
-    }
+    const auto hold = [](ParticleSource& s) {
+        for (Particle* p : s.particles) {
+            p->prevPos = p->pos;
+            p->prevSize = p->size;
+            p->prevColor = p->color;
+            p->prevFrame = p->frame;
+        }
+    };
+    hold(*source);
+    for (ParticleSource* child : children) hold(*child);
 }
 
 void Viewer::ClientTicked() {
@@ -342,6 +582,9 @@ void Viewer::PlaceFree(const Vector3& at) {
 void Viewer::Edited(bool fromTree) {
     if (!hasDocument) return;
     const bool loaded = fromTree ? document.ApplyTree() : document.Apply();
+    // A made effect's text as typed: a pick again comes back to it.
+    if (picked >= 0 && !entries[static_cast<std::size_t>(picked)].madeText.empty())
+        entries[static_cast<std::size_t>(picked)].madeText = document.text;
     if (!loaded) {
         status = "not played: " + (document.problems.empty() ? std::string("the file does not load") : document.problems.front());
         return;
@@ -365,6 +608,7 @@ void Open(std::string_view effect) {
     if (!v.open) {
         imgui_layer::Start();
         app::g_toolHooks = {&TakeEvent, &ClientTicked, &DrawOverlay, &WorldsEnding};
+        effectdata::g_startOwnClock = &StartOwnClock;
         IsaacRandom seed;
         for (int i = 0; i < 256; ++i) seed.memory[i] = static_cast<std::uint32_t>(i) * 0x9E3779B9u;
         v.start.InitFrom(seed);
@@ -428,6 +672,17 @@ std::string ExpectStep(const Viewer& v, const std::vector<std::string>& w) {
         const float have = v.source ? static_cast<float>(v.source->particles.size()) : 0.0f;
         return have >= wanted ? "" : "effectviewer: " + std::to_string(static_cast<int>(have)) + " particles, wanted at least " + w[2];
     }
+    if (w[1] == "children" && Number(w[2], &wanted)) {
+        const auto have = static_cast<float>(v.children.size());
+        return have >= wanted ? "" : "effectviewer: " + std::to_string(v.children.size()) + " sub-effects, wanted at least " + w[2];
+    }
+    if (w[1] == "subparticles" && Number(w[2], &wanted)) {
+        std::size_t have = 0;
+        for (const ParticleSource* child : v.children) have += child->particles.size();
+        return static_cast<float>(have) == wanted
+                   ? ""
+                   : "effectviewer: " + std::to_string(have) + " particles in the sub-effects, wanted " + w[2];
+    }
     if (w[1] == "tick" && Number(w[2], &wanted))
         return v.tick == static_cast<int>(wanted) ? "" : "effectviewer: at tick " + std::to_string(v.tick) + ", wanted " + w[2];
     if (w[1] == "stage") {
@@ -466,6 +721,30 @@ std::string Command(std::string_view line) {
         const int index = v.Find(w[1]);
         if (index < 0) return "effectviewer: no effect named " + w[1];
         v.Pick(index);
+        return "";
+    }
+    if (verb == "new" && w.size() > 1) {
+        if (v.entries.empty()) v.Scan();
+        return v.NewEffect(w[1]) ? "" : "effectviewer: " + v.status;
+    }
+    if (verb == "convert") {
+        if (v.picked < 0 || v.hasDocument) return "effectviewer convert: the effect picked is not code";
+        v.ConvertToData();
+        return v.hasDocument ? "" : "effectviewer: " + v.status;
+    }
+    if (verb == "code") {
+        v.BackToCode();
+        return "";
+    }
+    if (verb == "append" && w.size() > 1) {
+        // The rest of the line added to the document's text as typed in its Text tab; "\n" starts a new line.
+        if (!v.hasDocument) return "effectviewer: the effect has no file";
+        std::string added(line.substr(line.find("append") + 6));
+        added.erase(0, added.find_first_not_of(' '));
+        for (std::size_t at = added.find("\\n"); at != std::string::npos; at = added.find("\\n", at + 1)) added.replace(at, 2, "\n");
+        if (!v.document.text.empty() && v.document.text.back() != '\n') v.document.text += '\n';
+        v.document.text += added + "\n";
+        v.Edited(false);
         return "";
     }
     if (verb == "place" && w.size() > 1) {

@@ -232,8 +232,9 @@
 //                             pick <effect>, place party|unit <id>|focus [dx dy dz]|free <x> <y> <z>, play, pause,
 //                             step [n], scrub <tick>, restart, loop on|off, size <s>, emit start|stop, stop,
 //                             input <name> <value>|<x y z>|<enum value>, fire <event>, field <path> <value>, tab
-//                             fields|text, folder out [<name>]|<folder>, save, expect particles <least>|tick <n>|
-//                             stage <name>|problems <n>|status <text>
+//                             fields|text, folder out [<name>]|<folder>, save, new <name>, convert, code,
+//                             append <text, \n for a line end>, expect particles <least>|tick <n>|stage <name>|
+//                             problems <n>|status <text>|children <least>|subparticles <n>
 //   waitline <seconds> <text> wait until the console has printed <text> (at any time in the run)
 //   read mod|game <path> yes|no, wrote mod|game <path> yes|no, waitread <seconds> mod|game <path>
 //                             whether the game touched (read, listed, asked about) or wrote the file below the mod

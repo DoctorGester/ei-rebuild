@@ -69,5 +69,30 @@ wait 800
 effectviewer expect particles 5
 capture viewer_code
 frames 3
+effectviewer pick Bag
+effectviewer convert
+effectviewer expect problems 0
+effectviewer expect status as the code does
+effectviewer code
+wait 300
+effectviewer expect particles 5
+
+effectviewer new viewer_new
+effectviewer expect problems 0
+effectviewer place focus 3 0 0
+effectviewer append [[on]]\nevent = "tick"\nwhen = "age == 3"\ndo = [{ effect = "Teleport" }]
+effectviewer expect problems 0
+effectviewer pause
+effectviewer scrub 9
+effectviewer expect children 1
+effectviewer expect subparticles 100
+wait 600
+effectviewer expect subparticles 100
+effectviewer scrub 9
+effectviewer expect subparticles 100
+effectviewer play
+wait 300
+capture viewer_new
+frames 3
 report
 quit
