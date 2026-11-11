@@ -2,8 +2,8 @@
 // type lists its fields once (`Fields(record, visit)`), which the writer, the reader and the comparison all walk.
 #include "game/map/mob_toml.h"
 
-#include "game/data/record_names.h"
-#include "game/data/resource.h"
+#include "engine/data/record_names.h"
+#include "engine/data/resource.h"
 #include "lib/crt.h"
 #include "lib/text_case.h"
 #include "lib/toml.h"

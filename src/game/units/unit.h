@@ -3,7 +3,7 @@
 // Units (creatures; class id 0x50), their controllers, statistics and party records.
 
 #include "game/units/ack_kind.h"
-#include "game/core/engine_object.h"
+#include "engine/core/engine_object.h"
 #include "game/items/item.h"
 #include "game/objects/map_object.h"
 #include "lib/vecmath.h"

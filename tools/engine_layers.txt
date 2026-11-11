@@ -1,39 +1,39 @@
 # The engine's includes of game headers still left (tools/engine_layers.py; docs/notes/file-layout.md, "The engine
 # library"): ENGINE_FILE GAME_HEADER [# what it needs], relative to src/. The list only shrinks: a line goes when its
 # include does (python tools/engine_layers.py --write).
-game/data/text_manager.cpp       game/items/item.h               # GetItemTexts: an item's texts by its kind and record (the items' side: a free function in items/)
-game/data/text_manager.cpp       game/spells/spell.h             # GetItemTexts: a spell's record
-game/data/text_manager.cpp       game/spells/spell_db.h          # GetItemTexts: the spell and modifier records by index
-game/models/animation.cpp        game/objects/object3d.h         # the animation types (FigureAnimationState, FigureBone) and their owner Object3D (MF15k3)
-game/models/animation.cpp        game/world/world.h              # MapObjectFlag::Preview of the owner (MF15k3)
-game/models/animation_bones.cpp  game/objects/object3d.h         # the owner's AnimationFactor, scale and name (MF15k3)
-game/models/dib.cpp              game/app/app.h                  # app::ShowLibraryMessageBox on a bad bitmap
-game/models/figure_manager.cpp   game/objects/object3d.h         # the animation types (FigureBone, FigureAnimationState) (MF15k3)
-game/models/figure_manager.cpp   game/ui/ui_mesh.h               # the factory's UiMesh (FigureObjectType::UiMesh)
-game/models/figure_manager.h     game/world/world.h              # ResourceManager, the animation types, FigureModel, ClipBounds and more through world.h: its own includes instead
-game/models/figure_part_draw.cpp game/objects/object3d.h         # the owner's figure (Object3D::figure) (MF15k3)
-game/models/figure_part_draw.cpp game/world/world.h              # g_clientWorld's tick and tick fraction: the animation clock
-game/models/texture.cpp          game/world/world.h              # Texture::Manager: the client world's texture manager
-game/scene/camera.cpp            game/app/singletons.h           # g_clientWorld: the camera's ground, sound listener and followed object
-game/scene/camera.cpp            game/objects/object3d.h         # the followed object (FindObjectAs<Object3D>)
-game/scene/camera.cpp            game/sound/sound.h              # SoundManager::SetListener
-game/scene/camera.cpp            game/terrain/terrain.h          # the terrain's size and calm surface height
-game/scene/camera.cpp            game/world/world.h              # WorldClient: terrain, sounds, objectManager
-game/scene/camera_object.cpp     game/app/singletons.h           # g_clientWorld
-game/scene/camera_object.cpp     game/objects/object3d.h         # the followed object
-game/scene/camera_object.cpp     game/saves/save_versions.h      # kVersionCameraViews (the save's version of the views)
-game/scene/camera_object.cpp     game/ui/screen_layout.h         # screen_layout::AxisScale, AxisScaleY
-game/scene/camera_object.cpp     game/world/world.h              # WorldClient::ObjectsInRange, WorldClientFlag
-game/scene/device_draw.cpp       game/app/present_window.h       # present_window::Update
-game/scene/device_draw.cpp       game/app/singletons.h           # g_clientWorld's texture manager
-game/scene/device_draw.cpp       game/terrain/ground_print.h     # NamedTexture
-game/scene/device_draw.cpp       game/world/world.h              # g_clientWorld's texture manager
-game/scene/drawn_motion.cpp      game/objects/map_object.h       # MapObjectFlag of the drawn object
-game/scene/drawn_motion.cpp      game/objects/object3d.h         # the drawn Object3D
-game/scene/renderer_init.cpp     game/app/singletons.h           # g_clientWorld's light factory
-game/scene/renderer_init.cpp     game/world/world.h              # g_clientWorld's light factory
-game/scene/renderer_scene.cpp    game/app/singletons.h           # g_clientWorld
-game/scene/renderer_scene.cpp    game/ui/screen_layout.h         # screen_layout::AxisScale, AxisScaleY
-game/scene/renderer_scene.cpp    game/ui/ui.h                    # the interface's draw and textures
-game/scene/renderer_scene.cpp    game/world/world.h              # the client world's draw
-game/scene/sky_object.cpp        game/world/world.h              # GameTime: the sky's turn
+engine/data/text_manager.cpp       game/items/item.h               # GetItemTexts: an item's texts by its kind and record (the items' side: a free function in items/)
+engine/data/text_manager.cpp       game/spells/spell.h             # GetItemTexts: a spell's record
+engine/data/text_manager.cpp       game/spells/spell_db.h          # GetItemTexts: the spell and modifier records by index
+engine/models/animation.cpp        game/objects/object3d.h         # the animation types (FigureAnimationState, FigureBone) and their owner Object3D (MF15k3)
+engine/models/animation.cpp        game/world/world.h              # MapObjectFlag::Preview of the owner (MF15k3)
+engine/models/animation_bones.cpp  game/objects/object3d.h         # the owner's AnimationFactor, scale and name (MF15k3)
+engine/models/dib.cpp              game/app/app.h                  # app::ShowLibraryMessageBox on a bad bitmap
+engine/models/figure_manager.cpp   game/objects/object3d.h         # the animation types (FigureBone, FigureAnimationState) (MF15k3)
+engine/models/figure_manager.cpp   game/ui/ui_mesh.h               # the factory's UiMesh (FigureObjectType::UiMesh)
+engine/models/figure_manager.h     game/world/world.h              # ResourceManager, the animation types, FigureModel, ClipBounds and more through world.h: its own includes instead
+engine/models/figure_part_draw.cpp game/objects/object3d.h         # the owner's figure (Object3D::figure) (MF15k3)
+engine/models/figure_part_draw.cpp game/world/world.h              # g_clientWorld's tick and tick fraction: the animation clock
+engine/models/texture.cpp          game/world/world.h              # Texture::Manager: the client world's texture manager
+engine/scene/camera.cpp            game/app/singletons.h           # g_clientWorld: the camera's ground, sound listener and followed object
+engine/scene/camera.cpp            game/objects/object3d.h         # the followed object (FindObjectAs<Object3D>)
+engine/scene/camera.cpp            game/sound/sound.h              # SoundManager::SetListener
+engine/scene/camera.cpp            game/terrain/terrain.h          # the terrain's size and calm surface height
+engine/scene/camera.cpp            game/world/world.h              # WorldClient: terrain, sounds, objectManager
+engine/scene/camera_object.cpp     game/app/singletons.h           # g_clientWorld
+engine/scene/camera_object.cpp     game/objects/object3d.h         # the followed object
+engine/scene/camera_object.cpp     game/saves/save_versions.h      # kVersionCameraViews (the save's version of the views)
+engine/scene/camera_object.cpp     game/ui/screen_layout.h         # screen_layout::AxisScale, AxisScaleY
+engine/scene/camera_object.cpp     game/world/world.h              # WorldClient::ObjectsInRange, WorldClientFlag
+engine/scene/device_draw.cpp       game/app/present_window.h       # present_window::Update
+engine/scene/device_draw.cpp       game/app/singletons.h           # g_clientWorld's texture manager
+engine/scene/device_draw.cpp       game/terrain/ground_print.h     # NamedTexture
+engine/scene/device_draw.cpp       game/world/world.h              # g_clientWorld's texture manager
+engine/scene/drawn_motion.cpp      game/objects/map_object.h       # MapObjectFlag of the drawn object
+engine/scene/drawn_motion.cpp      game/objects/object3d.h         # the drawn Object3D
+engine/scene/renderer_init.cpp     game/app/singletons.h           # g_clientWorld's light factory
+engine/scene/renderer_init.cpp     game/world/world.h              # g_clientWorld's light factory
+engine/scene/renderer_scene.cpp    game/app/singletons.h           # g_clientWorld
+engine/scene/renderer_scene.cpp    game/ui/screen_layout.h         # screen_layout::AxisScale, AxisScaleY
+engine/scene/renderer_scene.cpp    game/ui/ui.h                    # the interface's draw and textures
+engine/scene/renderer_scene.cpp    game/world/world.h              # the client world's draw
+engine/scene/sky_object.cpp        game/world/world.h              # GameTime: the sky's turn

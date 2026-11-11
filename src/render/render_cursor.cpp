@@ -1,7 +1,7 @@
 // The game's cursor as the system's (render::Cursor, docs/notes/renderer.md section 9): at each present the frame's
 // cursor picture is shown as a platform cursor shape, made from the picture's frame at the window's scale and through
 // the gamma ramp, one shape per picture frame kept until the scale or the ramp changes; a frame without one hides it.
-#include "game/scene/surface.h"
+#include "engine/scene/surface.h"
 #include "../platform/log.h"
 #include "../platform/platform.h"
 #include "render.h"

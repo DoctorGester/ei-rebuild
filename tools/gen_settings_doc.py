@@ -1,4 +1,4 @@
-"""docs/settings.md from the settings catalog (src/game/data/settings_catalog.inc): every setting of ei_settings.ini with
+"""docs/settings.md from the settings catalog (src/engine/data/settings_catalog.inc): every setting of ei_settings.ini with
 its default (the text of the row's typed default), its values and what it does (C69, C171).
 
 usage: python tools/gen_settings_doc.py            writes docs/settings.md
@@ -14,12 +14,12 @@ names.
 import decimal, os, re, struct, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import layout   # src/game's files wherever they are now (tools/layout_map.txt)
+import layout   # src/game's and src/engine's files wherever they are now (tools/layout_map.txt)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CATALOG_REL = 'src/game/' + layout.now('settings_catalog.inc')
+CATALOG_REL = layout.src_path(layout.now('settings_catalog.inc'))
 CATALOG = os.path.join(ROOT, *CATALOG_REL.split('/'))
-SETTINGS_H = os.path.join(layout.GAME, *layout.now('settings.h').split('/'))
+SETTINGS_H = os.path.join(ROOT, *layout.src_path(layout.now('settings.h')).split('/'))
 DOC = os.path.join(ROOT, 'docs', 'settings.md')
 # The settings_defaults scenario's expected file: the defaults' description comments come from the catalog too.
 EXPECTED_DEFAULTS = os.path.join(ROOT, 'tests', 'scenarios', 'settings', 'settings_defaults.ini')

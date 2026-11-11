@@ -4,8 +4,8 @@
 // draw itself (the fog's own draw through the scene renderer: effects_weather.cpp). Main thread. See
 // docs/notes/script.md.
 #include "game/effects/effects.h"
-#include "game/scene/scene_renderer.h"     // SceneRenderer
-#include "game/models/texture.h"
+#include "engine/scene/scene_renderer.h"     // SceneRenderer
+#include "engine/models/texture.h"
 #include "game/world/world.h"     // ClientArrayManager
 
 #include <cstddef>

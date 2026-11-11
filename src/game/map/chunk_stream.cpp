@@ -2,7 +2,7 @@
 // Every file operation asks for the file again through File(), as the game does.
 #include "game/map/chunk_stream.h"
 
-#include "game/core/asset_text.h"
+#include "engine/core/asset_text.h"
 #include "game/console/console.h"
 
 #include "platform/platform.h"

@@ -4,7 +4,7 @@
 // client (player_messages.h: PlayerConnection, PlayerServer). Members in player.cpp. See docs/notes/objects.md
 // ("Players").
 
-#include "game/core/engine_object.h"
+#include "engine/core/engine_object.h"
 #include "game/players/party.h"
 
 #include "lib/bit_flags.h"

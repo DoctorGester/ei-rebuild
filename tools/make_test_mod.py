@@ -14,7 +14,7 @@ The mod, as Rebirth's starter\\MODS\\<mod> folders hold one (docs/notes/rebirth.
   Maps\\traps.mob       zone2's magic traps (tools/make_trap_mob.py): AddMob("traps.mob") finds it there (Maps)
   Camera\\s19b.cam      a copy of the game's camera\\bz3g.cam: PlayCamera("s19b.cam") plays it (CameraPatch)
 
-config.reg is the game's binary registry (src/game/data/registry.h); the archive the game's .res (src/game/data/resource.h).
+config.reg is the game's binary registry (src/engine/data/registry.h); the archive the game's .res (src/engine/data/resource.h).
 """
 import argparse, os, shutil, struct, subprocess, sys
 

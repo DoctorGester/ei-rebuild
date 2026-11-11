@@ -3,9 +3,9 @@
 // item_names.cpp; the item constructor and manager item_manager.cpp. See item.h and docs/notes/items_spells.md.
 #include "game/items/item.h"
 
-#include "game/core/base_manager.h"
-#include "game/core/core_streams.h"
-#include "game/core/random.h"
+#include "engine/core/base_manager.h"
+#include "engine/core/core_streams.h"
+#include "engine/core/random.h"
 #include "game/spells/spell.h"
 #include "game/spells/spell_db.h"
 #include "game/world/world.h"

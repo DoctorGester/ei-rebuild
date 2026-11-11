@@ -3,10 +3,10 @@
 // (rule 7). See docs/notes/objects.md, "Zone files and unit records".
 #include "game/ai/ai_map.h"
 
-#include "game/core/base_manager.h"
-#include "game/core/core_transform.h"
+#include "engine/core/base_manager.h"
+#include "engine/core/core_transform.h"
 #include "game/app/singletons.h"
-#include "game/scene/light.h"
+#include "engine/scene/light.h"
 #include "game/objects/map_object.h"
 #include "game/objects/object3d.h"
 #include "game/map/map_spec.h"

@@ -2,7 +2,7 @@
 // the definitions, the four kinds of variables, the scheduler's state in the old format's fields and the areas. The
 // program is the scheduler's state; the old format's blocks are written empty. See script.h and docs/notes/script.md.
 // Every piece goes through the stream's Write in the save's order and in its pieces.
-#include "game/core/core_streams.h"
+#include "engine/core/core_streams.h"
 #include "game/script/script.h"
 #include "game/script/script_lua_scheduler.h"
 #include "game/console/console.h"

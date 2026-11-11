@@ -3,7 +3,7 @@
 // ei-convert's figure models (docs/notes/mods.md, "Models as glTF"): an archive's figure files grouped into figures,
 // each written as one .glb, read back as the game reads it and its files compared with the originals.
 
-#include "game/models/figure_gltf.h"
+#include "engine/models/figure_gltf.h"
 
 #include <map>
 #include <string>

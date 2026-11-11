@@ -1,9 +1,9 @@
 // The effect viewer's document (effect_document.h): an effect's layers read as the registry reads them
-// (src/game/effects/particle_data.cpp, Registry::Load), the edited text read over them, written back as TOML.
+// (src/engine/particles/particle_data.cpp, Registry::Load), the edited text read over them, written back as TOML.
 #include "tools/effect_document.h"
 
-#include "game/data/resource.h"
-#include "game/effects/particle_data.h"
+#include "engine/data/resource.h"
+#include "engine/particles/particle_data.h"
 
 #include "lib/toml.h"
 #include "platform/platform.h"

@@ -4,9 +4,9 @@
 // (UiSurface::RelayoutAll). See docs/notes/ui-native.md, section 3.
 #include "game/app/app.h"
 
-#include "game/core/asset_text.h"
+#include "engine/core/asset_text.h"
 #include "game/ui/screen_layout.h"
-#include "game/scene/surface.h"
+#include "engine/scene/surface.h"
 #include "game/ui/ui.h"
 #include "game/ui/ui_font.h"
 #include "lib/crt.h"

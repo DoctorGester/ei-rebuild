@@ -3,7 +3,7 @@
 #include "game/combat/combat.h"
 
 #include "game/combat/combat_internal.h"
-#include "game/core/random.h"
+#include "engine/core/random.h"
 #include "game/items/item.h"
 #include "game/objects/object3d.h"
 #include "game/units/unit.h"

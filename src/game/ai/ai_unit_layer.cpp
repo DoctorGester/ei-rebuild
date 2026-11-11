@@ -3,7 +3,7 @@
 
 #include "game/ai/ai_map.h"
 #include "game/ai/unit_shape.h"
-#include "game/core/core_refcount.h"
+#include "engine/core/core_refcount.h"
 
 #include "lib/crt.h"
 

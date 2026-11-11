@@ -6,7 +6,7 @@
 #include "game/app/singletons.h"
 #include "game/items/item.h"
 #include "game/players/saved_parties.h"
-#include "game/data/text_manager.h"
+#include "engine/data/text_manager.h"
 #include "game/objects/object3d.h"
 #include "game/players/party.h"
 #include "game/ui/ui.h"
@@ -17,7 +17,7 @@
 #include "game/units/unit.h"
 #include "game/units/unit_db.h"
 #include "game/world/world.h"
-#include "game/core/random.h"
+#include "engine/core/random.h"
 
 #include "lib/containers.h"
 #include "platform/platform.h"

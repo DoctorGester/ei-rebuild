@@ -54,7 +54,7 @@ check (`app.md`).
   its manager from `First` on and drops the count in its destructor, so the manager must outlive the iterator.
 - A manager has no owner, so its count never reaches a release: the worlds hold theirs as `std::unique_ptr`s, without
   a count of their own.
-- A counted field is a `Ref<T>` (src/game/core/ref.h): `Assign(p)` takes p's reference, then drops the old one; `Reset()`
+- A counted field is a `Ref<T>` (src/engine/core/ref.h): `Assign(p)` takes p's reference, then drops the old one; `Reset()`
   nulls, then drops; `Take()` hands the reference on. There is no raw store. The destructor drops the reference, so
   an owner resets a Ref by hand only where the release must come before other work or in another order than the
   members' reverse declaration order. T must be complete where the owner's constructor and destructor are defined.

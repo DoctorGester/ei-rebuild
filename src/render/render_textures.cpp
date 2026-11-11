@@ -2,7 +2,7 @@
 // uploaded as their blocks; RGB of any mask layout decoded; the file's levels only) and textures drawn on the GPU
 // (render_compose.cpp), kept as GPU textures until the holder goes. Also the cursor pictures' pixels as RGBA8
 // (render::PictureFromMmp).
-#include "game/models/texture.h"
+#include "engine/models/texture.h"
 #include "../platform/log.h"
 #include "render_internal.h"
 

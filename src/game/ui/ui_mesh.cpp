@@ -3,15 +3,15 @@
 #include "game/ui/ui.h"
 #include "game/ui/ui_mesh.h"
 
-#include "game/models/figure_mesh.h"
-#include "game/models/material.h"
-#include "game/scene/scene_renderer.h"
-#include "game/scene/pipeline.h"
+#include "engine/models/figure_mesh.h"
+#include "engine/models/material.h"
+#include "engine/scene/scene_renderer.h"
+#include "engine/scene/pipeline.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/maths.h"
 #include "lib/vecmath.h"
-#include "game/models/link_figure.h"   // FigureMeshDrawer
+#include "engine/models/link_figure.h"   // FigureMeshDrawer
 
 #include <cmath>
 #include <cstdint>

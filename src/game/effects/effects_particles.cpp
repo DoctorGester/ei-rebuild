@@ -1,10 +1,10 @@
 // The game's answers to the particle core (particle_host.h): the client world's ground, platforms, wind, tick fraction
 // and scorch marks, and the map objects and units the sources follow.
-#include "game/effects/particle_host.h"
+#include "engine/particles/particle_host.h"
 
 #include "game/app/singletons.h"
-#include "game/effects/particle_record.h"
-#include "game/effects/particle_source.h"
+#include "engine/particles/particle_record.h"
+#include "engine/particles/particle_source.h"
 #include "game/objects/map_object.h"
 #include "game/units/unit.h"
 #include "game/world/world.h"

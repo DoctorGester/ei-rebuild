@@ -1,7 +1,7 @@
 // ei-convert's textures: convert_textures.h. The tolerances and why: docs/notes/mods.md, "Textures as PNG".
 #include "convert_textures.h"
 
-#include "game/models/texture_png.h"
+#include "engine/models/texture_png.h"
 
 #include <algorithm>
 #include <chrono>

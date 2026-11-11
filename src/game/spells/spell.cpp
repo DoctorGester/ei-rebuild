@@ -1,6 +1,6 @@
 #include "game/spells/spell.h"
 
-#include "game/core/core_streams.h"
+#include "engine/core/core_streams.h"
 #include "game/objects/map_object.h"
 #include "game/spells/spell_db.h"
 #include "game/units/unit.h"

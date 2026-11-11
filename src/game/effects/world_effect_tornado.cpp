@@ -3,7 +3,7 @@
 #include "game/effects/effects.h"
 #include "game/app/singletons.h"
 #include "game/objects/map_object.h"
-#include "game/core/random.h"
+#include "engine/core/random.h"
 #include "game/ai/sector_map.h"
 #include "game/sound/sound.h"
 #include "game/units/unit.h"

@@ -6,13 +6,13 @@
 #include "game/app/singletons.h"
 #include "game/objects/map_object.h"
 #include "game/objects/object3d.h"
-#include "game/scene/scene_renderer.h"
-#include "game/scene/pipeline.h"
+#include "engine/scene/scene_renderer.h"
+#include "engine/scene/pipeline.h"
 #include "game/world/hoover.h"
-#include "game/data/options.h"
+#include "engine/data/options.h"
 #include "render/render.h"
 #include "render/render_checks.h"
-#include "game/scene/light.h"
+#include "engine/scene/light.h"
 #include "game/units/unit.h"                 // Unit
 #include "game/units/unit_client_models.h"   // UnitClientSpecific
 #include "game/world/world.h"   // g_clientWorld

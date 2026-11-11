@@ -10,7 +10,7 @@
 #include "game/players/player.h"
 #include "game/ui/screen_layout.h"
 #include "game/spells/spell.h"
-#include "game/data/text_manager.h"
+#include "engine/data/text_manager.h"
 #include "game/ui/ui.h"
 #include "game/ui/ui_battle.h"
 #include "game/ui/ui_float.h"

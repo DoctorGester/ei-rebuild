@@ -1,19 +1,19 @@
 // Drawing a 3D object on the client (Object3DClientSpecific::Draw). See map_object_shadow.h and
 // docs/notes/map_objects.md ("Drawing").
-#include "game/scene/drawn_motion.h"
-#include "game/scene/device.h"
-#include "game/core/engine_object.h"
-#include "game/models/link_figure.h"
+#include "engine/scene/drawn_motion.h"
+#include "engine/scene/device.h"
+#include "engine/core/engine_object.h"
+#include "engine/models/link_figure.h"
 #include "game/objects/map_object.h"
 #include "game/objects/object3d.h"
 #include "game/objects/map_object_shadow.h"
 #include "game/world/hoover.h"
-#include "game/scene/light.h"
+#include "engine/scene/light.h"
 #include "game/terrain/terrain.h"
-#include "game/scene/scene_renderer.h"
-#include "game/scene/pipeline.h"
+#include "engine/scene/scene_renderer.h"
+#include "engine/scene/pipeline.h"
 #include "game/world/world.h"                // WorldClient
-#include "game/data/options.h"
+#include "engine/data/options.h"
 #include "render/render.h"
 
 #include "lib/containers.h"

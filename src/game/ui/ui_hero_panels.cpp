@@ -10,7 +10,7 @@
 #include "lib/crt.h"
 #include "lib/rect.h"
 #include "game/players/party.h"
-#include "game/data/text_manager.h"
+#include "engine/data/text_manager.h"
 #include "game/ui/ui.h"
 #include "game/ui/ui_mesh.h"
 #include "game/ui/ui_camp.h"
@@ -18,8 +18,8 @@
 #include "game/units/unit.h"
 #include "game/world/world.h"
 #include "game/ui/screen_layout.h"
-#include "game/scene/scene_renderer.h"
-#include "game/models/texture.h"
+#include "engine/scene/scene_renderer.h"
+#include "engine/models/texture.h"
 #include "game/ui/ui_item_info.h"
 
 #include <cstdint>

@@ -43,14 +43,14 @@ EXE = os.path.join(BUILD, 'ei-rebuild.exe')
 MAGIC = b'EICOV1\0\0'
 
 # The areas of the report, gameplay first (the ticket's order: units, combat, spells, AI, scripts, network, saves).
-# A file in a src/game folder goes to its folder's area (GAME_FOLDER_AREAS; docs/notes/file-layout.md); the other
-# folders of src are areas of their own.
+# A file in a src/game or src/engine folder goes to its folder's area (GAME_FOLDER_AREAS; docs/notes/file-layout.md);
+# the other folders of src are areas of their own.
 GAME_FOLDER_AREAS = {'saves': 'saves', 'ai': 'AI', 'units': 'units', 'combat': 'combat', 'spells': 'spells and items',
                      'items': 'spells and items', 'script': 'scripts', 'net': 'network', 'world': 'world',
                      'players': 'world', 'map': 'world', 'objects': 'world', 'ui': 'interface', 'app': 'app',
                      'console': 'app', 'mods': 'app', 'sound': 'sound and video', 'effects': 'game drawing',
                      'terrain': 'game drawing', 'models': 'game drawing', 'scene': 'game drawing',
-                     'core': 'game core', 'data': 'game core'}
+                     'particles': 'game drawing', 'core': 'game core', 'data': 'game core'}
 FOLDER_AREAS = {'render': 'renderer', 'platform': 'platform', 'lib': 'lib', 'audio': 'sound and video',
                 'video': 'sound and video'}
 AREA_ORDER = ['saves', 'AI', 'units', 'combat', 'spells and items', 'scripts', 'network', 'world', 'interface', 'app',
@@ -62,9 +62,9 @@ def area_of(rel):
     parts = rel.split('/')
     if len(parts) == 2:   # src/main.cpp
         return 'app'
-    if parts[1] != 'game':
+    if parts[1] not in ('game', 'engine'):
         return FOLDER_AREAS.get(parts[1], 'game core')
-    return GAME_FOLDER_AREAS.get(parts[2], 'game core')   # src/game/units/unit.cpp
+    return GAME_FOLDER_AREAS.get(parts[2], 'game core')   # src/game/units/unit.cpp, src/engine/core/ref.cpp
 
 
 def source_rel(path, cache={}):
@@ -79,7 +79,7 @@ def source_rel(path, cache={}):
     if at >= 0 and 'third_party' not in norm[:at].lower() and '/build/' not in norm[:at].lower():
         candidate = 'src/' + norm[at + 5:]
         top = candidate.split('/')[1]
-        if top in FOLDER_AREAS or top == 'game' or candidate == 'src/main.cpp':
+        if top in FOLDER_AREAS or top in ('game', 'engine') or candidate == 'src/main.cpp':
             rel = candidate
     cache[path] = rel
     return rel

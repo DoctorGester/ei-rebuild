@@ -2,7 +2,7 @@
 
 // The AI map embeds the sector map, so ai_map.h includes this header first and the AI
 // map's declaration comes last, for the files that include only this one.
-#include "game/core/engine_object.h"
+#include "engine/core/engine_object.h"
 #include "lib/vecmath.h"
 
 

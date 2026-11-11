@@ -3,13 +3,13 @@
 // Spells: prototypes in the spell database (spell_db.h), Spell instances built from them plus up to eight
 // modifiers, and the spell effects that turn them into damage.
 
-#include "game/core/core_refcount.h"
-#include "game/core/engine_object.h"
+#include "engine/core/core_refcount.h"
+#include "engine/core/engine_object.h"
 #include "game/app/singletons.h"
 #include "game/items/item_db.h"
 #include "game/spells/spell_db.h"
 #include "lib/vecmath.h"
-#include "game/data/resource_manager.h"
+#include "engine/data/resource_manager.h"
 
 #include "lib/bit_flags.h"
 

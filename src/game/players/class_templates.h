@@ -4,7 +4,7 @@
 // items, spells and modifiers that class may use (the records' class masks). Built at new game into
 // PartyManager::templates.
 
-#include "game/core/core_refcount.h"
+#include "engine/core/core_refcount.h"
 #include "game/items/item_stock.h"
 #include "game/players/party.h"
 #include "game/spells/spell_db.h"

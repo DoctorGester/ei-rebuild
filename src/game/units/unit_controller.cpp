@@ -5,7 +5,7 @@
 #include "lib/crt.h"
 #include "game/objects/map_object.h"
 #include "game/players/player.h"
-#include "game/models/texture.h"
+#include "engine/models/texture.h"
 #include "game/units/unit.h"
 #include "game/units/unit_client_models.h"
 

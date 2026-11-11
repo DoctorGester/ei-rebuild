@@ -1,4 +1,4 @@
-# Rebirth's Maps at the zone table and the quest files (S19d; src/game/mods/mod_folders.h, docs/notes/rebirth.md "Resources
+# Rebirth's Maps at the zone table and the quest files (S19d; src/engine/mods/mod_folders.h, docs/notes/rebirth.md "Resources
 # and paths"): hosting a multiplayer game builds the zone table (GameFlow::BuildZoneTable: the maps folder's "*.mq"
 # list, and for each quest file LoadZoneQuests, whose sites name the file again). A mod of our own: tools/make_mod_s19d.py
 # maps writes it into the run's harness_saves\s19d_mod, which "mod" makes the settings' Mod (either install). Its Maps\ holds z9q2.mq (a copy of the install's) and files that are no quest files; so the zone table's

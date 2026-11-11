@@ -5,9 +5,9 @@
 // - VisibilityFog ("VisibilityFog"): a hash_map of fog cells, one per visible map square; each
 // cell fades in while visible and out once not, and is dropped when nearly transparent.
 
-#include "game/effects/particle_source.h"
-#include "game/scene/clip.h"   // TLVertex
-#include "game/core/core_streams.h"
+#include "engine/particles/particle_source.h"
+#include "engine/scene/clip.h"   // TLVertex
+#include "engine/core/core_streams.h"
 #include "game/ai/search_grid.h"
 
 #include "lib/containers.h"

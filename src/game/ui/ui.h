@@ -6,9 +6,9 @@
 // mouse position before hit testing. Each window family has its own header (ui_battle.h, ui_options.h, ui_camp.h ...;
 // docs/notes/ui.md lists them).
 
-#include "game/core/engine_object.h"
+#include "engine/core/engine_object.h"
 #include "game/saves/save_picture.h"
-#include "game/models/texture.h"   // TextureKind
+#include "engine/models/texture.h"   // TextureKind
 #include "game/ui/ui_font.h"
 #include "game/units/unit.h"   // LockKey
 

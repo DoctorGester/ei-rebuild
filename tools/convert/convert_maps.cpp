@@ -1,8 +1,8 @@
 // ei-convert's maps: convert_maps.h. The folder's layout: docs/notes/mods.md, "Maps as folders".
 #include "convert_maps.h"
 
-#include "game/data/resource.h"
-#include "game/data/map_folder.h"
+#include "engine/data/resource.h"
+#include "engine/data/map_folder.h"
 
 #include "lib/bytes.h"
 #include "lib/text_case.h"

@@ -4,7 +4,7 @@
 // margin) and ExtendedServerName behind its flag (wider columns, the servers' names and the new game's row drawn shortened
 // with an ellipsis, the selected server's name wrapped). Ours: the host's mod in the details, and the rows of hosts
 // this game cannot join for the mods dimmed. See ui_screens.h and docs/notes/ui.md, section 5.
-#include "game/core/asset_text.h"
+#include "engine/core/asset_text.h"
 #include "game/ui/ui.h"
 #include "game/ui/ui_scrollbar.h"
 #include "game/ui/ui_mesh.h"

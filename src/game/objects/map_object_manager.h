@@ -3,8 +3,8 @@
 // The map object manager and the types its factory makes. Its members are all in map_object_manager.cpp. See
 // docs/notes/units.md ("Creation, databases, save").
 
-#include "game/core/manager_context.h"
-#include "game/data/resource_manager.h"
+#include "engine/core/manager_context.h"
+#include "engine/data/resource_manager.h"
 
 #include <cstdint>
 #include <memory>

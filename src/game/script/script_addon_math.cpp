@@ -1,10 +1,10 @@
 // Rebirth's arithmetic script functions. Each reads its float arguments and stores the result as a float.
 #include "game/script/script_addon_handlers.h"
 
-#include "game/core/asset_text.h"
+#include "engine/core/asset_text.h"
 #include "game/console/console.h"
 #include "game/net/net_session.h"
-#include "game/core/random.h"
+#include "engine/core/random.h"
 #include "game/world/world.h"
 #include "lib/crt.h"
 #include "lib/str.h"

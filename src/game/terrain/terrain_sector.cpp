@@ -3,8 +3,8 @@
 #include "game/terrain/terrain_sector.h"
 
 #include "game/app/singletons.h"
-#include "game/scene/scene_renderer.h"
-#include "game/scene/pipeline.h"
+#include "engine/scene/scene_renderer.h"
+#include "engine/scene/pipeline.h"
 #include "render/render.h"
 #include "game/terrain/terrain.h"
 

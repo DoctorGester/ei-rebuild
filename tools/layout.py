@@ -1,6 +1,8 @@
-"""src/game's folder layout (C168; docs/notes/file-layout.md) from tools/layout_map.txt.
+"""src/game's and src/engine's folder layout (C168, MF15k1c; docs/notes/file-layout.md) from tools/layout_map.txt.
+The map's destinations are folder/name; the engine's folders (ENGINE_FOLDERS) are under src/engine, the rest under
+src/game.
 
-  python tools/layout.py check      the map against src/game: every file has one line, every destination one owner,
+  python tools/layout.py check      the map against the two trees: every file has one line, every destination one owner,
                                     every rename says why, every line's file is where the map's state allows (flat,
                                     moved, not made yet, or folded early into a flat owner); exit 1 on a problem
   python tools/layout.py listing    rewrites the generated part of docs/notes/file-layout.md (the tree's counts and
@@ -29,6 +31,9 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GAME = os.path.join(ROOT, 'src', 'game')
+ENGINE = os.path.join(ROOT, 'src', 'engine')
+# The map's folders that are src/engine's (the engine library: docs/notes/file-layout.md, "The engine library").
+ENGINE_FOLDERS = ('core', 'data', 'models', 'scene', 'mods', 'particles')
 MAP = os.path.join(ROOT, 'tools', 'layout_map.txt')
 DOC = os.path.join(ROOT, 'docs', 'notes', 'file-layout.md')
 BEGIN = '<!-- layout.py listing: generated from tools/layout_map.txt, do not edit by hand -->'
@@ -58,12 +63,23 @@ def read_map():
 
 
 def present():
-    """Paths of src/game's files, relative to src/game (forward slashes)."""
+    """Paths of src/game's and src/engine's files, each relative to its tree (forward slashes): the map's form."""
     found = set()
-    for dirpath, _, names in os.walk(GAME):
-        for name in names:
-            found.add(os.path.relpath(os.path.join(dirpath, name), GAME).replace(os.sep, '/'))
+    for tree in (GAME, ENGINE):
+        for dirpath, _, names in os.walk(tree):
+            for name in names:
+                found.add(os.path.relpath(os.path.join(dirpath, name), tree).replace(os.sep, '/'))
     return found
+
+
+def top_of(new):
+    """The src/ folder a map path is in: 'engine' for the engine's folders, else 'game' (a flat name too)."""
+    return 'engine' if '/' in new and new.split('/')[0] in ENGINE_FOLDERS else 'game'
+
+
+def src_path(new):
+    """A map path (core/ref.h, units/unit.cpp, a flat name) as the repo's path (src/engine/core/ref.h)."""
+    return f'src/{top_of(new)}/{new}'
 
 
 def owners_of(lines):
@@ -159,7 +175,7 @@ def listing(lines, batches):
     total_files = total_lines = 0
     for folder in folders:
         moved = [l for l in lines if l.new.split('/')[0] == folder and l.op != 'new']
-        size = sum(lines_counted(os.path.join(GAME, l.old)) or lines_counted(os.path.join(GAME, l.new))
+        size = sum(lines_counted(os.path.join(GAME, l.old)) or lines_counted(os.path.join(ROOT, src_path(l.new)))
                    for l in moved)
         out.append(f'| `{folder}/` | {len(owned[folder])} | {size} | {batches[folder]} |')
         total_files += len(owned[folder])
@@ -248,7 +264,7 @@ def moved_map(lines=None, files=None, planned=()):
 
 
 def now(name):
-    """A src/game file named by its flat name (or by its path now): its path under src/game now."""
+    """A src/game file named by its flat name (or by its path now): its map path now (src_path gives the repo's)."""
     global _now
     if _now is None:
         _now = moved_map() if os.path.exists(MAP) else {}
@@ -256,22 +272,22 @@ def now(name):
 
 
 def game_paths(*names):
-    """src/game/... paths for flat names or name prefixes ('ui_cursor', 'game_buffer', 'random.cpp'): each file of
+    """src/game/... and src/engine/... paths for flat names or name prefixes ('ui_cursor', 'game_buffer', 'random.cpp'): each file of
     the flat tree whose name starts with one, where it is now (a fold: the file it joined), and each flat file the
     map does not know yet."""
     lines = read_map()[0] if os.path.exists(MAP) else []
     flat = sorted(n for n in os.listdir(GAME) if os.path.isfile(os.path.join(GAME, n)))
     out = []
     for name in names:
-        out += ['src/game/' + now(l.old) for l in lines if l.old.startswith(name)]
+        out += [src_path(now(l.old)) for l in lines if l.old.startswith(name)]
         out += ['src/game/' + n for n in flat if n.startswith(name)]
     return tuple(dict.fromkeys(out))
 
 
 def flat_name(rel):
-    """The flat name of a src/game path (src/game/core/coder.cpp -> net_coder.cpp: the owner's line; a name the map
-    does not know is its own)."""
-    base = rel[len('src/game/'):] if rel.startswith('src/game/') else rel
+    """The flat name of a src/game or src/engine path (src/engine/core/coder.cpp -> net_coder.cpp: the owner's line; a
+    name the map does not know is its own)."""
+    base = rel.split('/', 2)[2] if rel.startswith(('src/game/', 'src/engine/')) else rel
     if '/' not in base:
         return base
     global _flat
@@ -323,12 +339,12 @@ def root_include(path, target, moved):
     """`#include "TARGET"` in PATH as src/game's rooted form ("game/units/unit.h"), or None when it names no game file.
     A bare name or a relative path is found as the compiler finds it (beside the includer), a flat name the map moved
     at its path now."""
-    if target.startswith(('game/', 'lib/', 'platform/', 'render/', 'audio/', 'video/')):
+    if target.startswith(('game/', 'engine/', 'lib/', 'platform/', 'render/', 'audio/', 'video/')):
         return None
     src = os.path.join(ROOT, 'src')
-    in_game = os.path.normcase(path).startswith(os.path.normcase(GAME + os.sep))
+    in_game = os.path.normcase(path).startswith((os.path.normcase(GAME + os.sep), os.path.normcase(ENGINE + os.sep)))
     if in_game and '/' not in target and target in moved:
-        return 'game/' + moved[target]
+        return src_path(moved[target])[len('src/'):]
     found = os.path.normpath(os.path.join(os.path.dirname(path), target))
     if not os.path.isfile(found) and in_game and '/' not in target:
         found = os.path.join(GAME, target)
@@ -337,7 +353,7 @@ def root_include(path, target, moved):
     rel = os.path.relpath(found, src).replace(os.sep, '/')
     if rel.startswith('../'):
         return None
-    if rel.startswith('game/') or in_game:
+    if rel.startswith(('game/', 'engine/')) or in_game:
         return rel
     return None
 
@@ -389,7 +405,8 @@ class Rewrite:
 
         def path_ref(m):
             self.counts['paths'] += 1
-            return m.group(1) + self.moved[m.group(2)]
+            new = self.moved[m.group(2)]
+            return m.group(1).replace('game/', top_of(new) + '/') + new
         text = self.paths.sub(path_ref, text)
 
         def bare_ref(m):
@@ -407,7 +424,7 @@ def other_names():
     for top in ('src', 'tests', 'tools'):
         for dirpath, dirs, names in os.walk(os.path.join(ROOT, top)):
             dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
-            if os.path.normcase(dirpath).startswith(os.path.normcase(GAME)):
+            if os.path.normcase(dirpath).startswith((os.path.normcase(GAME), os.path.normcase(ENGINE))):
                 continue
             out.update(names)
     return out
@@ -448,7 +465,7 @@ def no_repeats(text, rewrite):
                 return ''
             seen.add(t.group(1))
             return t.group(0)
-        return re.sub(r'[ \t]*\b(src/game/[\w/]+\.cpp)\b', token, m.group(0))
+        return re.sub(r'[ \t]*\b(src/(?:game|engine)/[\w/]+\.cpp)\b', token, m.group(0))
     return re.sub(r'\b(?:add_executable|add_library|target_sources)\s*\([^()]*\)', command, text)
 
 
@@ -537,10 +554,10 @@ def apply(lines, batches, batch, dry_run):
         rewrite(moved_map(lines, files, planned), True)
         return 0
     for l in moves:
-        os.makedirs(os.path.dirname(os.path.join(GAME, l.new)), exist_ok=True)
-        git('mv', f'src/game/{l.old}', f'src/game/{l.new}')
+        os.makedirs(os.path.dirname(os.path.join(ROOT, src_path(l.new))), exist_ok=True)
+        git('mv', f'src/game/{l.old}', src_path(l.new))
     for l in folds:
-        owner_path, folded_path = os.path.join(GAME, l.new), os.path.join(GAME, l.old)
+        owner_path, folded_path = os.path.join(ROOT, src_path(l.new)), os.path.join(GAME, l.old)
         with open(owner_path, encoding='utf-8', newline='') as f:
             owner = f.read()
         with open(folded_path, encoding='utf-8', newline='') as f:

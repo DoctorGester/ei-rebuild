@@ -1,8 +1,10 @@
-# Where every file of src/game goes (C168; the plan and its rules: docs/notes/file-layout.md).
-# tools/layout.py checks this file against src/game and writes the listing in the notes; the batches move by it.
+# Where every file of the flat src/game went (C168; the plan and its rules: docs/notes/file-layout.md).
+# tools/layout.py checks this file against src/game and src/engine and writes the listing in the notes; the batches
+# moved by it.
 #
-# A line: OLD NEW [OP] [# why]. OLD is a file name in src/game today (or, for `new`, the flat name a split batch
-# gives a new file); NEW its path under src/game after the moves. OP:
+# A line: OLD NEW [OP] [# why]. OLD is a file name of the flat src/game (or, for `new`, the flat name a split batch
+# gives a new file); NEW its path after the moves: under src/engine for the engine's folders (core, data, models,
+# scene, mods, particles; MF15k1c), else under src/game. OP:
 #   (none)  moved under the same name; a name change says why (a meaning rename)
 #   fold    OLD's content joins NEW, which another line moves there (thin split of one class or subject)
 #   split   OLD is divided by meaning in a split batch (C168b, C168c); NEW keeps OLD's main part, `# ->` the rest
@@ -13,7 +15,7 @@
 batch C168d: core data mods saves
 batch C168e: app console sound world players map
 batch C168f: ai combat objects units
-batch C168g: items spells effects terrain models scene
+batch C168g: items spells effects particles terrain models scene
 batch C168h: script net ui
 
 # ---- core: the engine's object model, references, streams, buffers, maths, random, text helpers -----------------
@@ -364,25 +366,27 @@ spell_effect.cpp            spells/spell_effect.cpp
 spell_effect_update.cpp     spells/spell_effect_update.cpp
 spell_effect_internal.h     spells/spell_effect_internal.h
 
-# ---- effects: particles, the world's effect objects, lightning, weather, the visibility fog ------------------------
+# ---- particles (src/engine): the particle core: its sources and manager, the data effects, the built-in effects --
+particle_create.cpp         particles/particle_create.cpp
+particle_manager.cpp        particles/particle_manager.cpp
+particle_expr.h             particles/particle_expr.h
+particle_expr.cpp           particles/particle_expr.cpp
+particle_record.h           particles/particle_record.h
+particle_record.cpp         particles/particle_record.cpp
+particle_data.h             particles/particle_data.h
+particle_data.cpp           particles/particle_data.cpp
+particle_source.h           particles/particle_source.h
+particle_host.h             particles/particle_host.h
+embed_effects.cmake         particles/embed_effects.cmake
+
+# ---- effects: the game's particle effects, the world's effect objects, lightning, weather, the visibility fog ------
 effects.h                   effects/effects.h
 effects_weather.cpp         effects/effects_weather.cpp
 effects_particles.cpp       effects/effects_particles.cpp
 weather_particles.cpp       effects/weather_particles.cpp
 weather_field.h             effects/weather_field.h
 weather_field.cpp           effects/weather_field.cpp
-embed_effects.cmake         effects/embed_effects.cmake
 vis_fog_manager.cpp         effects/vis_fog_manager.cpp
-particle_create.cpp         effects/particle_create.cpp
-particle_manager.cpp        effects/particle_manager.cpp
-particle_expr.h             effects/particle_expr.h
-particle_expr.cpp           effects/particle_expr.cpp
-particle_record.h           effects/particle_record.h
-particle_record.cpp         effects/particle_record.cpp
-particle_data.h             effects/particle_data.h
-particle_data.cpp           effects/particle_data.cpp
-particle_source.h           effects/particle_source.h
-particle_host.h             effects/particle_host.h
 lightning.h                 effects/lightning.h
 lightning.cpp               effects/lightning.cpp
 world_effect.h              effects/world_effect.h

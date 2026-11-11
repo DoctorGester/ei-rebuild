@@ -7,7 +7,7 @@
 #include "game/ai/unit_ai.h"
 #include "game/app/singletons.h"
 #include "game/combat/combat_internal.h"
-#include "game/core/base_manager.h"
+#include "engine/core/base_manager.h"
 #include "game/items/item.h"
 #include "game/items/item_db.h"
 #include "game/objects/map_object.h"

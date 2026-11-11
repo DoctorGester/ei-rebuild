@@ -169,6 +169,8 @@ installs' (`tools/exe_path.py`).
 
 ## Layout
 
+- `src/engine/` the engine the game runs on: data and archives, models, the scene, core objects, the mods' file layers,
+  the particle core (`docs/notes/file-layout.md`, "The engine library").
 - `src/game/` the game code.
 - `src/lib/` small shared pieces: the CRT parts behaviour depends on (formatting, the game CRT's pow / acos / asin / hypot), file and text helpers, byte copies.
 - `src/render/` the renderer (SDL3's GPU API through `src/render/gpu.h`; `docs/notes/renderer.md`).

@@ -1,16 +1,16 @@
 vtable,slots,rtti,kind,installed_by,slot0,class,file,note
-0073B870,25,,game,00402B20 00402DF0,00402DD0,BaseManager,src/game/core/base_manager.h,"CBaseManager's own table (ConstructBase / DestructBody; slots 11, 12, 14 _purecall)"
+0073B870,25,,game,00402B20 00402DF0,00402DD0,BaseManager,src/engine/core/base_manager.h,"CBaseManager's own table (ConstructBase / DestructBody; slots 11, 12, 14 _purecall)"
 0073B8D4,3,,game,00402B20 00402DF0 00404040 00405130 00594AB0 00594BC0 00594CE0 00598EC0 0066E7D0,007005E3,TempListClass,-,CList (a pointer list built around each item creation (world quests)); stored only by game.exe (ours is a std::list)
-0073B8E0,13,,game,00402B20 0040CB20 00455930 00468680 004D6970 004DDD6F 004E2290 0050AF40 00515BD0 0052D0D0 005612F0 00561E50 005AABC0 00664BF0 00675DD0 00677510 0068B1F0 0068BA80 0068CED0 0068DBC0 00691810 006B4350 006B6040,00402D20,EngineObject,src/game/core/engine_object.h,"CEngineObject's own table (the constructor bodies, DestructBase; slots 2, 3, 11, 12 _purecall)"
+0073B8E0,13,,game,00402B20 0040CB20 00455930 00468680 004D6970 004DDD6F 004E2290 0050AF40 00515BD0 0052D0D0 005612F0 00561E50 005AABC0 00664BF0 00675DD0 00677510 0068B1F0 0068BA80 0068CED0 0068DBC0 00691810 006B4350 006B6040,00402D20,EngineObject,src/engine/core/engine_object.h,"CEngineObject's own table (the constructor bodies, DestructBase; slots 2, 3, 11, 12 _purecall)"
 0073B984,2,,game,00405820 00405C40 00405EB0 00406300 00406640 00406D10 00406EE0 004070B0 0040AA80 0040AE00 0040BAC0 0040BC30 0040C500 0040C6E0 00421800 004269A0 0042AA90 0042AFD0 0042B9C0 00438B70 00439F20 00461750 004626E0 004632A0 004639D0 00464F30 004833B0 00484010 00499820 0049CAF0 0049DCB0 004A8D90 004A8F40 004A9FC0 004AA270 004AA520 004AC940 004AEA90 004AEC40 004AEDF0 004AEFA0 004AF150 004AF300 004CEF00 004DC830 004DD650 004E2BC0 004E3450 004EC980 004ECB90 004FAF60 004FC320 004FE470 004FFD40 00514D50 00514F70 0053B4B0 0053B650 0053B800 0053BA00 0053BC00 0053DDF0 0053E050 0055AC40 0055B670 0055BBF0 0055CEB0 00571050 00572160 005722C0 005725E0 00576F30 00581790 00581940 00581AF0 00581CA0 00581E70 005822D0 00582580 005829B0 00582BB0 00582E90 00583180 00583490 00583770 00583F50 00584100 005849F0 00584A40 005985E0 00598790 00598B20 00598C50 0059B580 0059BB40 0059BD60 0059E3C0 0059E6C0 005A9A50 005AA070 005AE430 005B32E0 005BCCD0 005BEA80 005BF1B0 00609C10 0060B740 0061A650 0061E960 006636D0 00666220 00666690 0066B320 0066B900 006729E0 00672C10 00672EC0 006738B0 00673C80 00688840 00689B70 00689E80 0068ADE0 0068E3F0 0068F2A0 0069DF30 0069E090 0069EB70 006AFCF0 006AFFC0 006BBF90 006BC2B0 006BD840 006BDC00 006CE720 006D0CC0 006D0E90 006D2240 006D2490 006D9110 006D92A0 006D9480 006DA460 006DB520 006DB770 006DCD90,0040C4E0,length_error,-,"stlp length_error (stored only by game.exe: 0040C2A0, 0040C6E0, 00421800, 004269A0, 0042B700; our ports never throw it); 0073B984 is also the end of __stl_prime_list (the compares)"
 0073B98C,2,,game,0040C440 0040C500,0040C4B0,exception subclass,-,stored only by game.exe's 0040C440 and ~exception 0040C500
 0073B994,2,,game,0040C440 0040C500 0040C6E0 004219A0 004269A0 004410A0,0040C480,NamedException,-,"__Named_exception (out_of_range's base; stored only by game.exe: our ports never throw out_of_range)"
-0073B9E0,18,,game,0040C8B0 0040CE60,0040CE10,Camera,src/game/scene/camera.h,the camera (CCamera)
-0073BA38,18,,game,0040C8B0 0040CB70 0040CE60 00453400 004545C0 00454830 00476FB0 004981B0 00498310 004A0350 00515BD0 00515D70 00562B80 0059F030 005AABC0 005FE930 00675DD0 00675FB0 006760A0 00676760 00676980 00677510 006776E0 00677D30 00677FC0 006787B0 00678990 006799E0 00679FC0 0067A0B0 0067B050 0067B1C0 0067B390 0067BB90 0067BCD0 0067C340 0067C490 0067C950 0067CAF0 0067D670 0067D800 0068CFE0,0040CB50,TransformObject,src/game/core/core_transform.h,"CTransformObject's own table (ConstructBase and the derived classes' destructor bodies; slots 2, 3, 11, 12 _purecall)"
+0073B9E0,18,,game,0040C8B0 0040CE60,0040CE10,Camera,src/engine/scene/camera.h,the camera (CCamera)
+0073BA38,18,,game,0040C8B0 0040CB70 0040CE60 00453400 004545C0 00454830 00476FB0 004981B0 00498310 004A0350 00515BD0 00515D70 00562B80 0059F030 005AABC0 005FE930 00675DD0 00675FB0 006760A0 00676760 00676980 00677510 006776E0 00677D30 00677FC0 006787B0 00678990 006799E0 00679FC0 0067A0B0 0067B050 0067B1C0 0067B390 0067BB90 0067BCD0 0067C340 0067C490 0067C950 0067CAF0 0067D670 0067D800 0068CFE0,0040CB50,TransformObject,src/engine/core/core_transform.h,"CTransformObject's own table (ConstructBase and the derived classes' destructor bodies; slots 2, 3, 11, 12 _purecall)"
 0073BB28,6,,game,00412370 00412590 00412750 004128E0 0041A7E0 0041D420 0041D600,004128C0,ServerEntry,src/game/net/net_session.h,the lobby's server entry
 0073BB40,6,,game,00412590 004413E0,00412970,ServerEntryBase,src/game/net/net_session.h,the server entry's base; slots 2-5 _purecall
-0073BB58,4,,game,00412590 00413440 00413930 00413D20 004140D0 00414500 00414A00 00414E80 00415350 00415620 00415A30 00415E00 00416220 00416720 00416A10 00416E30 00417420 004176A0 00419720 00432DA0 00433060 00434110 004343C0 00477E60 004784D0 00478610 00478960 00478A50 00478B10 00479A30 0047CC60 0058FB60 005B34F0 005ED710,00412700,RefObject,src/game/core/core_refcount.h,the counted value's base part (CRefObject; the net messages'
-0073BB68,2,,game,00412720 00412730 00412750 004128E0 00412960 00413430 00413570 00413800 00413A50 00413C40 00413E40 00414060 00414130 00414270 00414650 004148E0 00414AC0 00414D10 00414FA0 004152A0 004153B0 004154D0 00415740 00415930 00415B60 00415D00 00415F20 00416110 00416390 00416640 00416780 004168E0 00416B30 00416D70 00416EB0 00416FC0 004174F0 00417620 004177A0 004178F0 00433320 004334E0 00434430 004344C0 00436770 004368C0 00436A50 00457740 004577E0 00478050 00478610 004787A0 00478B10 00478CC0 00479B90 00479C10 00479D40 0047C3A0 0047CD40 0047CEB0 004A5BD0 004A5E90 004A6580 004A6A90 004BA2D0 004BA320 004BA330 004BA3F0 004BA440 004BA510 004BA5B0 004BA6A0 004BA6B0 004BA700 004BA7C0 004BA8C0 004BA950 004BA9B0 00551EC0 00552000 005520D0 00552180 0055F1E0 0055F280 0055F2E0 0055F6B0 0055F7B0 005626D0 00562770 0058FB90 0058FBE0 005B3540 005B3590 005D1140 005D1240 005D28F0 005D2950 005ED760 005ED7A0 0067E510 0067E5D0,00412730,RefCounted,src/game/core/core_refcount.h,the counted root (CRefCounted; every counted class's destructor leaves it)
+0073BB58,4,,game,00412590 00413440 00413930 00413D20 004140D0 00414500 00414A00 00414E80 00415350 00415620 00415A30 00415E00 00416220 00416720 00416A10 00416E30 00417420 004176A0 00419720 00432DA0 00433060 00434110 004343C0 00477E60 004784D0 00478610 00478960 00478A50 00478B10 00479A30 0047CC60 0058FB60 005B34F0 005ED710,00412700,RefObject,src/engine/core/core_refcount.h,the counted value's base part (CRefObject; the net messages'
+0073BB68,2,,game,00412720 00412730 00412750 004128E0 00412960 00413430 00413570 00413800 00413A50 00413C40 00413E40 00414060 00414130 00414270 00414650 004148E0 00414AC0 00414D10 00414FA0 004152A0 004153B0 004154D0 00415740 00415930 00415B60 00415D00 00415F20 00416110 00416390 00416640 00416780 004168E0 00416B30 00416D70 00416EB0 00416FC0 004174F0 00417620 004177A0 004178F0 00433320 004334E0 00434430 004344C0 00436770 004368C0 00436A50 00457740 004577E0 00478050 00478610 004787A0 00478B10 00478CC0 00479B90 00479C10 00479D40 0047C3A0 0047CD40 0047CEB0 004A5BD0 004A5E90 004A6580 004A6A90 004BA2D0 004BA320 004BA330 004BA3F0 004BA440 004BA510 004BA5B0 004BA6A0 004BA6B0 004BA700 004BA7C0 004BA8C0 004BA950 004BA9B0 00551EC0 00552000 005520D0 00552180 0055F1E0 0055F280 0055F2E0 0055F6B0 0055F7B0 005626D0 00562770 0058FB90 0058FBE0 005B3540 005B3590 005D1140 005D1240 005D28F0 005D2950 005ED760 005ED7A0 0067E510 0067E5D0,00412730,RefCounted,src/engine/core/core_refcount.h,the counted root (CRefCounted; every counted class's destructor leaves it)
 0073BB70,17,,game,00412D80,00417A10,ServerSession,src/game/net/net_session.h,the game server (ServerSession)
 0073BBB4,17,,game,00412D80,004132D0,ServerBase,src/game/net/net_session.h,the server base (ServerBase; slot 15 _purecall)
 0073BBF8,6,,game,00413350 00413440 00413570 00413800 004170A0 0041BC40,004137E0,LoginMessage,src/game/net/net_messages.h,message type 5
@@ -30,9 +30,9 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073BD48,6,,game,00416940 00416A10 00416B30 00416D70 00419D90 00428550,00416D50,AwardMessage,src/game/net/net_messages.h,message type 14
 0073BD60,6,,game,00416D70 00416E30 00416EB0 00416FC0 0041B7A0 004288E0,00416FA0,TradeMessage,src/game/net/net_messages.h,message type 17
 0073BD78,6,,game,00417250 00417420 004174F0 00417620 0041DA50 00427C40 004287D0,00417600,PartyMemberMessage,src/game/net/net_messages.h,message type 16
-0073BD90,2,,game,00417250 004173D0 00417420 004174F0 00417620 0041DD70 00463390 004645A0 00468A00 00478FF0 004790A0 00479410 00479810 00479980 00479A30 00479B90 00479C10 00479D40 0047A030 0047A080 0047CBF0 0047CC60 0047CD40 0047CEB0 004A4AF0 004A5AF0 004A6050 004A6360 004A6C40 004A8310 004A8560 0050E2D0 0050E580 0050E660 0050FBC0 005101A0 00510340 0051FF40 00520220 0053A200 0053A7B0 00579E60 00579FB0 0057A060 0057A780 0057ABA0 0057B3B0 0057BDF0 0058C890 00595480 00596350 00596E70 00597BD0 0061B2C0 0061D1C0 00661300 006613C0 006617F0 00662AC0 00662DD0 00666D10 00666FD0 00667810 00667A30 00669010 006690F0 006691C0 00669A30 00669C90 00669FA0 0066A280 0066A300 0066B080 0066C540 0066C770 0066D100 0066D270 0066D490 0066E7D0 0066EF80 0066F0C0 00670B60 00675FB0 006760A0 00676980 006776E0 00677EC0 00677FC0 00678990 006799E0 0067A0B0 0067B050 0067B390 0067BCD0 0067C490 0067C6B0 0067C7A0 0067CAF0 0067D800 00684550 006A67A0 006A6E50 006A7110 006A73B0 006AE3A0 006D0630 006D7620,004173B0,MemoryStream,src/game/core/core_streams.h,the memory stream (CMemoryStream)
-0073BD98,6,,game,00463390 006AE3A0 006D0630,004A53F0,MemoryStream,src/game/core/core_streams.h,the tail of 0073BD90 (a devirtualised slot call)
-0073BDB0,8,,game,004173D0 00417400 004174E0 004174F0 00417620 00463390 004645A0 00468A00 00477E60 00477FB0 00478050 00478470 004784D0 00478610 004787A0 00478960 00478A50 00478B10 00478CC0 004790A0 00479B10 00479B90 00479C10 00479D40 0047A080 0047A200 0047CD40 0047CEB0 004A6050 004A6360 004A8310 004A8560 0050E580 0050E660 0050FBC0 00510340 0051FF40 00520220 0057A060 0057A780 0057ABA0 0057B3B0 0057BDF0 005813A0 00596140 00596350 00596E70 00597BD0 0061B2C0 0061D1C0 00655550 00655D40 006570E0 00662AC0 00662DD0 00666FD0 00667810 00669A30 00669FA0 0066A280 0066C770 0066D270 0066D490 0066E7D0 00675FB0 006760A0 00676980 006776E0 00677FC0 00678990 006799E0 0067A0B0 0067B390 0067BCD0 0067C490 0067CAF0 0067D800 006A67A0 006A6E50 006A7110 006A73B0 006AE3A0 006D0630,00417400,ByteStream,src/game/core/core_streams.h,the abstract stream (CStream; slots 1-6 _purecall)
+0073BD90,2,,game,00417250 004173D0 00417420 004174F0 00417620 0041DD70 00463390 004645A0 00468A00 00478FF0 004790A0 00479410 00479810 00479980 00479A30 00479B90 00479C10 00479D40 0047A030 0047A080 0047CBF0 0047CC60 0047CD40 0047CEB0 004A4AF0 004A5AF0 004A6050 004A6360 004A6C40 004A8310 004A8560 0050E2D0 0050E580 0050E660 0050FBC0 005101A0 00510340 0051FF40 00520220 0053A200 0053A7B0 00579E60 00579FB0 0057A060 0057A780 0057ABA0 0057B3B0 0057BDF0 0058C890 00595480 00596350 00596E70 00597BD0 0061B2C0 0061D1C0 00661300 006613C0 006617F0 00662AC0 00662DD0 00666D10 00666FD0 00667810 00667A30 00669010 006690F0 006691C0 00669A30 00669C90 00669FA0 0066A280 0066A300 0066B080 0066C540 0066C770 0066D100 0066D270 0066D490 0066E7D0 0066EF80 0066F0C0 00670B60 00675FB0 006760A0 00676980 006776E0 00677EC0 00677FC0 00678990 006799E0 0067A0B0 0067B050 0067B390 0067BCD0 0067C490 0067C6B0 0067C7A0 0067CAF0 0067D800 00684550 006A67A0 006A6E50 006A7110 006A73B0 006AE3A0 006D0630 006D7620,004173B0,MemoryStream,src/engine/core/core_streams.h,the memory stream (CMemoryStream)
+0073BD98,6,,game,00463390 006AE3A0 006D0630,004A53F0,MemoryStream,src/engine/core/core_streams.h,the tail of 0073BD90 (a devirtualised slot call)
+0073BDB0,8,,game,004173D0 00417400 004174E0 004174F0 00417620 00463390 004645A0 00468A00 00477E60 00477FB0 00478050 00478470 004784D0 00478610 004787A0 00478960 00478A50 00478B10 00478CC0 004790A0 00479B10 00479B90 00479C10 00479D40 0047A080 0047A200 0047CD40 0047CEB0 004A6050 004A6360 004A8310 004A8560 0050E580 0050E660 0050FBC0 00510340 0051FF40 00520220 0057A060 0057A780 0057ABA0 0057B3B0 0057BDF0 005813A0 00596140 00596350 00596E70 00597BD0 0061B2C0 0061D1C0 00655550 00655D40 006570E0 00662AC0 00662DD0 00666FD0 00667810 00669A30 00669FA0 0066A280 0066C770 0066D270 0066D490 0066E7D0 00675FB0 006760A0 00676980 006776E0 00677FC0 00678990 006799E0 0067A0B0 0067B390 0067BCD0 0067C490 0067CAF0 0067D800 006A67A0 006A6E50 006A7110 006A73B0 006AE3A0 006D0630,00417400,ByteStream,src/engine/core/core_streams.h,the abstract stream (CStream; slots 1-6 _purecall)
 0073BDD0,6,,game,00417620 004176A0 004177A0 004178F0 0041E270 00427AC0 00428690,004178D0,PartyMessage,src/game/net/net_messages.h,message type 15
 0073BDEC,17,,game,0041BC40,0041C8B0,ClientSession,src/game/net/net_session.h,the game client (ClientSession)
 0073BE30,17,,game,0041BC40,0041C450,ClientBase,src/game/net/net_session.h,the client base (ClientBase; slot 16 _purecall)
@@ -69,7 +69,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073C1AC,3,,game,004509E0 004543E0 00454F80 004A20B0,007005E3,NodeItemsAClass,-,CArray (inside the scene loader's 0x120-byte node records (00454F80)); stored only by game.exe (ours is a std::vector)
 0073C1B8,3,,game,00450B90 004543E0 00454F80 004A20D0,007005E3,NodeItemsBClass,-,CArray (the scene loader's node records' 24-byte items); stored only by game.exe (ours is a std::vector)
 0073C1C4,24,,game,00453240 005AA8E0,004543A0,PlainFigureMesh,-,class 0x42: stored by game.exe's constructors (ours is FigureMesh; the factory's 0x41 and 0x42 share it)
-0073C224,20,,game,00453240 00476FB0 004A0350 004D9110 0059F030 005AABC0,00453470,FigureMesh,src/game/models/figure_mesh.h,the figures' base
+0073C224,20,,game,00453240 00476FB0 004A0350 004D9110 0059F030 005AABC0,00453470,FigureMesh,src/engine/models/figure_mesh.h,the figures' base
 0073C274,18,,game,004545C0,00454810,SceneMesh,-,"CFakeFigure (the scene's meshes); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
 0073C2BC,3,,game,00454830 00454A50 00454CE0 0046F1F0 00471B10,007005E3,FaceGroupArrayClass,-,"CArray<FaceGroup> (a scene mesh's face groups); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
 0073C350,1,,game,00456440 004578D0,004578B0,DirectInputMouse,-,the DirectInput mouse (CDirectInputMouse); gone (PL16: platform::TakeMouseMotion)
@@ -116,21 +116,21 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073C860,3,,game,0046F1F0 00471B10 00474F30,007005E3,FilePointArrayClass,-,CArray (a model file's points); stored only by game.exe (ours is a std::vector)
 0073C86C,3,,game,00471B10 00476930 00476AB0,007005E3,NormalArrayClass,-,CArray (a model file's normals); stored only by game.exe (ours is a std::vector)
 0073C8A4,13,,game,00477E60 004782E0 004784D0 00478610 00478960 00478A50 00478B10 00479A30 0047CC60,00478030,NetLink,src/game/net/net_link.h,the link base (NetLink; slots 2-6 and 11 _purecall)
-0073C8D8,8,,game,00477E60 00477FB0 00478050 00478470 004784D0 00478610 004787A0 00478960 00478A50 00478B10 00478CC0 00479B10 00479B90 00479C10 00479D40 0047CD40 0047CEB0 0051FF40 0057A060 0057A780 0057ABA0 0057B3B0 0057BDF0 005813A0 00596140 00596350 0061B2C0 0061D1C0 00655550 00655D40 006570E0 00662AC0 00662DD0,00477F90,FileStream,src/game/core/core_streams.h,the file stream (FileStream; the recordings and the save files)
+0073C8D8,8,,game,00477E60 00477FB0 00478050 00478470 004784D0 00478610 004787A0 00478960 00478A50 00478B10 00478CC0 00479B10 00479B90 00479C10 00479D40 0047CD40 0047CEB0 0051FF40 0057A060 0057A780 0057ABA0 0057B3B0 0057BDF0 005813A0 00596140 00596350 0061B2C0 0061D1C0 00655550 00655D40 006570E0 00662AC0 00662DD0,00477F90,FileStream,src/engine/core/core_streams.h,the file stream (FileStream; the recordings and the save files)
 0073C8F8,13,,game,004782E0 004784D0 00478610 004787A0,00478780,LoopbackLink,src/game/net/net_link.h,the loopback link (LoopbackLink)
 0073C92C,13,,game,00478960 00478A50 00478B10 00478CC0,00478CA0,ReplayLink,-,"the replay link; stored only by game.exe's 00478960 (dead, config/dead_code.csv; ours deleted in C53d)"
-0073C960,8,,game,00478FF0 00479410 0047A080 0050E2D0 005101A0 00589ED0 00666D10 00667810 00667A30 0066A300 0066C4F0 0066C540 0066D100 0066D270 00675DD0 00677510 00677EC0 0067B050,004790D0,MemoryStream,src/game/core/core_streams.h,the network queue's memory streams (0066C4F0's copy of CMemoryStream's table; one class here)
+0073C960,8,,game,00478FF0 00479410 0047A080 0050E2D0 005101A0 00589ED0 00666D10 00667810 00667A30 0066A300 0066C4F0 0066C540 0066D100 0066D270 00675DD0 00677510 00677EC0 0067B050,004790D0,MemoryStream,src/engine/core/core_streams.h,the network queue's memory streams (0066C4F0's copy of CMemoryStream's table; one class here)
 0073C990,14,,game,00479980 00479A30 00479C10 00479D40 0047A030,00479D20,DriverLink,src/game/net/net_link.h,the driver link (DriverLink)
 0073C9C8,14,,game,00479A30 0047CBF0 0047CC60 0047CFA0,00479B70,FramedLink,src/game/net/net_link.h,the framed link (FramedLink; slots 2-5 / 11 / 13 _purecall)
 0073CA00,2,,game,0047C280 0047C3A0 0047C520 0047C680 0047CFA0,0047C380,dead class,-,stored only by dead code 0047C280 / 0047C3A0 / 0047C680 / 0047CFA0
 0073CA08,1,,game,0047C8E0,0047C9E0,dead class,-,stored only by dead code 0047C8E0
 0073CA0C,1,,game,0047C8E0 0047C9C0 0047CA00 0047CA70,0047C9C0,dead class,-,stored only by dead code 0047C8E0 / 0047CA00 / 0047CA70
 0073CA10,14,,game,0047CAA0 0047CC60 0047CD40 0047CEB0 0047CFA0,0047CE90,dead class,-,stored only by dead code 0047CAA0 / 0047CC60 / 0047CD40 / 0047CEB0 / 0047CFA0
-0073CA48,7,,game,0047D7F0 0047D910 0047D960 0047D970 004DA850 004DA910 00579B80 00580DF0 00580E60,006E73EB,GameBuffer,src/game/core/coder.h,the byte buffer base (the views' destructors leave it)
-0073CA64,7,,game,0047D7F0 0047D970 00579B80,004DA580,BufferView,src/game/core/coder.h,a fixed view over memory owned elsewhere
+0073CA48,7,,game,0047D7F0 0047D910 0047D960 0047D970 004DA850 004DA910 00579B80 00580DF0 00580E60,006E73EB,GameBuffer,src/engine/core/coder.h,the byte buffer base (the views' destructors leave it)
+0073CA64,7,,game,0047D7F0 0047D970 00579B80,004DA580,BufferView,src/engine/core/coder.h,a fixed view over memory owned elsewhere
 0073CAB0,1,,game,004800E0 00481560 00481580 004815D0,00481580,GameException,-,the thrown error object's base; stored only by game.exe (ours throws std::runtime_error)
 0073CAB4,1,,game,00480250 00480300,004815B0,DXException,-,the thrown error object; stored only by game.exe
-0073CFD0,18,,game,004981B0 00498310,004982F0,ParticleSource,src/game/effects/particle_source.h,a particle source (CParticleSource)
+0073CFD0,18,,game,004981B0 00498310,004982F0,ParticleSource,src/engine/particles/particle_source.h,a particle source (CParticleSource)
 0073D018,3,,game,004981B0 00498310 00498CA0 005627C0 0056FD40,007005E3,ClientListClass,-,CList (the client map's lists (world_client_maps 0056FD40)); stored only by game.exe (ours is a std::list)
 0073D024,3,,game,00498E60 00498E80,007005E3,ParticleDepthArrayClass,-,CArray (the particles' draw order 007A9C50); stored only by game.exe (ours is a std::vector)
 0073D030,3,,game,00499DC0 00499E30 00499E90,006E73EB,CCloudNoise,-,the cloud noise base (slots 0 / 1 _purecall); stored only by game.exe (00499DC0 / 00499E30 / 00499E90: its constructor and destructors); ours is the one class CGlobalMapClouds
@@ -190,28 +190,28 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073D4C0,3,,game,004D6310 004D6340,007005E3,DefineListClass,-,CList (the script's #define list); stored only by game.exe (ours is a std::list)
 0073D4F4,25,,game,004D6900 004D6960,004D6940,ServerSpecificManager,src/game/objects/side_managers.h,
 0073D558,19,,game,004D6970 004D6BA0 0052D0D0 0052D1D0,004D6B80,TorchObjectSpec,src/game/objects/torch.h,
-0073D5B8,24,,game,004D9110,004D9290,SkyObject,src/game/scene/sky_object.h,
-0073D624,7,,game,004DA7F0 004DA910 004DA9E0,004DA630,GrowingBuffer,src/game/core/coder.h,the growing byte buffer
+0073D5B8,24,,game,004D9110,004D9290,SkyObject,src/engine/scene/sky_object.h,
+0073D624,7,,game,004DA7F0 004DA910 004DA9E0,004DA630,GrowingBuffer,src/engine/core/coder.h,the growing byte buffer
 0073D644,13,,game,004DDD6F 004DDE75,004DE8B0,CSysInfo,-,"the system information: stored only by game.exe's 004DDD6F / 004DDE75 (its constructor and destructor); nothing of ours read it, so it is not made"
 0073D6B4,13,,game,004E2290 004E24E0,004E24C0,VisibilityFog,src/game/effects/effects.h,the visibility fog (CVisibilityFog)
-0073D760,1,,game,004E5E50 004E68A0,004E6880,TextureDevice,src/game/scene/device.h,the device object (CTextureDevice)
+0073D760,1,,game,004E5E50 004E68A0,004E6880,TextureDevice,src/engine/scene/device.h,the device object (CTextureDevice)
 0073D764,1,,game,004E72A0 004E76B0 004E7700,004E7690,dead render object,-,stored only by dead code 004E72A0 / 004E76B0 / 004E7700 (config/dead_code.csv)
-0073D768,1,,game,004E76B0 004E77D0 004E77E0 004E7800 004EDD70 004EE330 004EFD20 004F0B90 004F0E10,004E7800,RendererBase,src/game/scene/renderer_base.h,"the renderer's counted base (the surface holder, the device object, the pipeline)"
+0073D768,1,,game,004E76B0 004E77D0 004E77E0 004E7800 004EDD70 004EE330 004EFD20 004F0B90 004F0E10,004E7800,RendererBase,src/engine/scene/renderer_base.h,"the renderer's counted base (the surface holder, the device object, the pipeline)"
 0073D770,1,,game,004EDD70 004EE330,004EE310,CTextureDevice's base,-,"the device object's DirectDraw base CDXDirectDraw, stored only by game.exe's 004EDD70 / 004EE330 (ours folds it into CTextureDevice, R27c)"
-0073D774,1,,game,004EEE30 004EF690 004EF7B0 004EFA60 004EFC60 004EFD20,004EF790,Surface,src/game/scene/surface.h,the surface holder (CDXSurface; ours is Surface)
-0073D778,1,,game,004F0B90 004F0E10,004F0DF0,TransformPipeline,src/game/scene/pipeline.h,the transform pipeline (CTransformPipeline)
-0073D790,15,,game,004F2C00 004F2E40,004F2E20,LinkMesh,src/game/models/link_figure.h,a figure's mesh (the link loader 004F7480 / 004F7860)
+0073D774,1,,game,004EEE30 004EF690 004EF7B0 004EFA60 004EFC60 004EFD20,004EF790,Surface,src/engine/scene/surface.h,the surface holder (CDXSurface; ours is Surface)
+0073D778,1,,game,004F0B90 004F0E10,004F0DF0,TransformPipeline,src/engine/scene/pipeline.h,the transform pipeline (CTransformPipeline)
+0073D790,15,,game,004F2C00 004F2E40,004F2E20,LinkMesh,src/engine/models/link_figure.h,a figure's mesh (the link loader 004F7480 / 004F7860)
 0073D7CC,15,,game,004F2C00 004F2D40 004F2E40,004F2E00,LinkMeshBase,-,LinkMesh's base class: stored by game.exe's constructor and destructors 004F2C00 / 004F2D40 / 004F2E40 (ours is LinkMesh alone)
-0073D808,7,,game,004F68C0 004F6BD0,004F6A30,LinkFigureLoader,src/game/models/link_loader.h,the link figure loader (CLinkFigureLoader)
+0073D808,7,,game,004F68C0 004F6BD0,004F6A30,LinkFigureLoader,src/engine/models/link_loader.h,the link figure loader (CLinkFigureLoader)
 0073D824,7,,game,004F68C0,004F6A00,CLinkFigureLoader's base,-,the figure loader's abstract base (slots 1-6 _purecall)
-0073D840,8,,game,004FCA60 004FCD50,004FCC20,RenderHelper,src/game/scene/render_helper.h,the renderer's helper (CRenderHelper)
+0073D840,8,,game,004FCA60 004FCD50,004FCC20,RenderHelper,src/engine/scene/render_helper.h,the renderer's helper (CRenderHelper)
 0073D860,8,,game,004FCA60,004FCD30,CRenderHelper's base,-,stored only by game.exe's 004FCA60 (the compiler's constructor stores none)
-0073D880,2,,game,004FD2A0,004FD880,RenderPreset,src/game/scene/render_helper.h,a render state preset (CRenderPreset)
+0073D880,2,,game,004FD2A0,004FD880,RenderPreset,src/engine/scene/render_helper.h,a render state preset (CRenderPreset)
 0073D888,2,,game,004FD2A0,004FD900,render helper local,-,stored only by game.exe's 004FD2A0 (CRenderHelper::Record stores none)
 0073D8A0,25,,game,00500440 00500480,006E73EB,CVisualizator,-,stored only by game.exe's 00500440 / 00500480: the scene renderer's abstract base (slots 0 / 4-6 / 8-24 _purecall); folded into CSceneRenderer
 0073D93C,26,,game,00500A70 00500AC0,00501AB0,SceneRenderer,-,stored only by game.exe's 00500A70 / 00500AC0: the scene renderer's (ours has no virtual functions)
 0073D9BC,3,,game,00506710 005068C0 0050A1C0,007005E3,AlignedAt8ArrayClass,-,CArray (an animation node's 24-byte records with an aligned block at +8); stored only by game.exe (ours is a std::vector)
-0073D9D8,13,,game,0050A5D0 0050A720,0050A700,AnimationTrack,src/game/models/animation.h,class 0x300B (the figure factory)
+0073D9D8,13,,game,0050A5D0 0050A720,0050A700,AnimationTrack,src/engine/models/animation.h,class 0x300B (the figure factory)
 0073DA0C,13,,game,0050AF40 0050B1D0,0050B1B0,FigureBone,src/game/objects/object3d.h,class 0x300C (the figure factory)
 0073DA40,3,,game,0050AF40 0050B1D0 0050C5F0 0050C730 0050DBC0,007005E3,BoneListClass,-,CList (a figure bone's children and an animation state's bones); stored only by game.exe (ours is a std::list)
 0073DA4C,13,,game,0050C5F0 0050C730,0050C710,FigureAnimationState,src/game/objects/object3d.h,class 0x300D (the figure and map object factories)
@@ -277,7 +277,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073F234,3,,game,0055EAB0 0055EC80 0055EE20 005604B0,007005E3,CountdownArrayClass,-,CArray (the world's countdowns); stored only by game.exe (ours is a std::vector)
 0073F240,7,,game,0055EE40 0055F1A0 0055F1E0 0055F280,0055F260,WorldHandle,src/game/world/world.h,the server world's counted helper (a player source)
 0073F25C,26,,game,0055EE40 0055F400 006614F0,0055F3E0,ItemManager,src/game/items/item_manager.h,
-0073F2C4,25,,game,0055EE40 0055F3A0,0055F380,EffectManager,src/game/core/base_manager.h,
+0073F2C4,25,,game,0055EE40 0055F3A0,0055F380,EffectManager,src/engine/core/base_manager.h,
 0073F328,25,,game,0055EE40 0055F350,0055F330,PlayerManager,src/game/players/player_manager.h,
 0073F38C,7,,game,0055F1A0 0055F410 0055F550 0055F6B0,0055F2F0,PlayerSource,src/game/players/player_source.h,the player sources' base
 0073F3A8,7,,game,0055F410 0055F550 0055F6B0 0055F7B0,0055F790,DriverSession,src/game/net/net_link.h,the network session (DriverSession)
@@ -292,10 +292,10 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073F5B8,25,,game,00561E50,00562EA0,LightningManager,src/game/effects/lightning.h,
 0073F61C,3,,game,00561E50 00562EC0 00571F10,007005E3,ClientObjectList2Class,-,CList (engine objects in the client maps); stored only by game.exe (ours is a std::list)
 0073F628,7,,game,00561E50 005626B0 005626D0,00562750,ClientHandle,src/game/world/world.h,the client world's player source
-0073F644,25,,game,00561E50 005627C0,005627A0,ParticleManager,src/game/effects/particle_source.h,
+0073F644,25,,game,00561E50 005627C0,005627A0,ParticleManager,src/engine/particles/particle_source.h,
 0073F6A8,16,,game,00561E50 00562B80,00562B60,Terrain,src/game/terrain/terrain.h,the client's terrain
 0073F6E8,2,,lib,006E81C2,00401510,Terrain,src/game/terrain/terrain.h,the tail of 0073F6A8 (a byte match in 006E81C2)
-0073F6F0,13,,game,00561E50 005629B0,00562990,TextManager,src/game/data/text_manager.h,the client's text manager
+0073F6F0,13,,game,00561E50 005629B0,00562990,TextManager,src/engine/data/text_manager.h,the client's text manager
 0073F724,3,,game,00562B80 00570EA0 00570ED0,007005E3,ClientList2Class,-,CList (00570EA0's list); stored only by game.exe (ours is a std::list)
 0073F730,3,,game,00562B80 005711C0 005711E0,007005E3,ClientMapArrayClass,-,CArray (the client world's water levels); stored only by game.exe (ours is a std::vector)
 0073F73C,3,,game,00562DF0 005715D0 00571600,007005E3,ClientList3Class,-,CList (005715D0's list); stored only by game.exe (ours is a std::list)
@@ -325,9 +325,9 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073FAD4,2,,game,00596030,0042BEE0,RootChunk,src/game/map/chunk_stream.h,the .mob object file's root (CWorldServer::LoadMapObjects)
 0073FADC,1,,game,0059DF90 005BFCD0 005C0600,0059E080,Sector,src/game/ai/sector_map.h,a world sector
 0073FAE0,3,,game,0059DF90 0059E0A0 005BFCD0 005C0600,007005E3,SectorOccluderArrayClass,-,CArray (a sector's occluders; after the sector's one-slot table 0073FADC); stored only by game.exe (ours is a std::vector)
-0073FB10,13,,game,005A7010,005A7060,FigureMeshDrawer,src/game/models/link_figure.h,class 0x36 CFigureClientSpecific (the client-specific factory 0042D700)
+0073FB10,13,,game,005A7010,005A7060,FigureMeshDrawer,src/engine/models/link_figure.h,class 0x36 CFigureClientSpecific (the client-specific factory 0042D700)
 0073FB44,13,,game,005A7080 005A70C0,005A70A0,FigureDrawerBase,-,the drawer's base class: stored by game.exe's destructors 005A7080 / 005A70C0 (ours is FigureMeshDrawer alone)
-0073FB88,26,,game,005AA070 005AA1C0,005AA1A0,FigureManager,src/game/models/figure_manager.h,
+0073FB88,26,,game,005AA070 005AA1C0,005AA1A0,FigureManager,src/engine/models/figure_manager.h,
 0073FBF0,22,,game,005AA8E0,005AADA0,SharedFigureMesh,-,class 0x41: stored by game.exe's constructors (ours is FigureMesh)
 0073FC48,24,,game,005AA8E0 005AAD00,005AACE0,UiMesh,src/game/ui/ui_mesh.h,class 0x43 (CI3DFigure)
 0073FCF0,3,,game,005B0600 005B19A0,007005E3,AiMapListClass,-,CList (the AI map's lists); stored only by game.exe (ours is a std::list)
@@ -484,18 +484,18 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00742FD8,2,,game,0065ED30 0065EDE0,0065F170,UiScrollingSurface,src/game/ui/ui_credits.h,the titles' scrolling text surface (CUiScrollingSurface)
 00742FF4,3,,game,0065F2D0 00661050 006611D0 006613C0 00663410 00664160,007005E3,PartyMemberArrayClass,-,CArray (a party's unit records); stored only by game.exe (ours is a std::vector)
 00743000,27,,game,0065F2D0 00661050 006611D0 006613C0 00662FB0 00663410,00661190,Party,src/game/players/party.h,the party (Party)
-0074306C,27,,game,00661050 006613C0,006611B0,ManagerContext,src/game/core/manager_context.h,Party's base (the manager context's getters null)
+0074306C,27,,game,00661050 006613C0,006611B0,ManagerContext,src/engine/core/manager_context.h,Party's base (the manager context's getters null)
 00743104,13,,game,00664BF0 00664E20,00664E00,Player,src/game/players/player.h,a world player (Player)
 00743138,3,,game,00664BF0 00664E20 00665FF0,007005E3,PlayerListClass,-,CList (a player's list); stored only by game.exe (ours is a std::list)
 00743180,24,,game,00666D10 00666FD0,00666FB0,PlayerClient,src/game/players/player_client.h,a player's client side (CPlayerClient)
 007431E0,24,,game,00666D10 00666EC0 00666FD0 0066C540 0066C770,00666F70,PlayerConnection,src/game/players/player_messages.h,the player connection's base (CPlayerConnection; slots 13 / 23 pure)
 00743280,24,,game,0066C540 0066C770,0066C750,PlayerServer,src/game/players/player_messages.h,a player's server side (CPlayerServer)
-007432E0,7,,game,00671280 006714A0 006721D0 006722F0,006713A0,MappedResource,src/game/data/resource.h,
-007432FC,1,,game,006714A0 006722F0,00672040,MappedResource,src/game/data/resource.h,the tail of 007432E0 (its slot 7) and 00743300 (devirtualised calls of FreeAllFiles in 006714A0 / 006722F0)
-00743300,8,,game,006721D0 006722F0,006722D0,MMIOResource,src/game/data/resource.h,
+007432E0,7,,game,00671280 006714A0 006721D0 006722F0,006713A0,MappedResource,src/engine/data/resource.h,
+007432FC,1,,game,006714A0 006722F0,00672040,MappedResource,src/engine/data/resource.h,the tail of 007432E0 (its slot 7) and 00743300 (devirtualised calls of FreeAllFiles in 006714A0 / 006722F0)
+00743300,8,,game,006721D0 006722F0,006722D0,MMIOResource,src/engine/data/resource.h,
 00743320,1,,game,00674280 006742C0,006742A0,ResourceStream,-,the sound system's file reader; stored only by game.exe (ours reads a music file whole with platform::ReadWholeFile)
-00743324,1,,game,00674790 006747C0 00674810,006747C0,ResourceBase,src/game/data/resource.h,the archive readers' base
-00743338,26,,game,00674D90 00674DF0,00674DD0,ResourceManager,src/game/data/resource_manager.h,"CResourceManager's own table (Construct / Destruct; slots 11, 12, 14, 25 _purecall)"
+00743324,1,,game,00674790 006747C0 00674810,006747C0,ResourceBase,src/engine/data/resource.h,the archive readers' base
+00743338,26,,game,00674D90 00674DF0,00674DD0,ResourceManager,src/engine/data/resource_manager.h,"CResourceManager's own table (Construct / Destruct; slots 11, 12, 14, 25 _purecall)"
 007433EC,24,,game,00675DD0 006760A0 0067AE30 0067B1C0,00676080,EffectSound,src/game/effects/world_effect.h,positional sound
 0074344C,24,,game,00676760 00676980,00676960,EffectSoundSeq,src/game/effects/world_effect.h,sound sequence
 007434AC,24,,game,00676760 00677510 0067B050 0067C340,00676910,Effect,src/game/effects/world_effect.h,the effects' abstract base
@@ -524,13 +524,13 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00743AC8,5,,game,0068BA80 0068BC50,0068BC30,SpellContainer,src/game/spells/spell.h,spell container
 00743ADC,3,,game,0068BC50,0068BE20,SpellContainer,src/game/spells/spell.h,the tail of 00743AC8 (0068BC50 calls slot 5 through the table's memory)
 00743AE8,5,,lib,006E81C2,00402CF0,SpellContainer,src/game/spells/spell.h,the tail of 00743ADC (a byte match in 006E81C2)
-00743AFC,18,,game,0068CED0,0068CFC0,Light,src/game/scene/light.h,light
-00743B50,25,,game,0068D850 0068D990,0068D970,LightFactory,src/game/scene/light.h,
-00743BB4,13,,game,0068DBC0 0068DE30,0068DD20,Material,src/game/models/material.h,
-00743C38,26,,game,0068E3F0 0068E540 0068E640,0068E520,MaterialManager,src/game/models/material.h,
-00743CB0,26,,game,00691140 00691250,00691230,TextureManager,src/game/models/texture.h,
+00743AFC,18,,game,0068CED0,0068CFC0,Light,src/engine/scene/light.h,light
+00743B50,25,,game,0068D850 0068D990,0068D970,LightFactory,src/engine/scene/light.h,
+00743BB4,13,,game,0068DBC0 0068DE30,0068DD20,Material,src/engine/models/material.h,
+00743C38,26,,game,0068E3F0 0068E540 0068E640,0068E520,MaterialManager,src/engine/models/material.h,
+00743CB0,26,,game,00691140 00691250,00691230,TextureManager,src/engine/models/texture.h,
 00743D18,3,,game,00691140 00691250 00694160,007005E3,TextureListClass,-,CList (the texture manager's list); stored only by game.exe (ours is a std::list)
-00743D24,13,,game,00691810 00691950,00691930,Texture,src/game/models/texture.h,
+00743D24,13,,game,00691810 00691950,00691930,Texture,src/engine/models/texture.h,
 00743DA4,22,,game,0069FCA0 0069FD70 006A05B0 006A2FC0 006A3B30 006A4420 006A4A00 006A5740,0069FD30,Item,src/game/items/item.h,item (the base)
 00743DFC,22,,game,006A0540,006A0590,ItemWeapon,src/game/items/item.h,weapon
 00743E54,22,,game,006A2F20,006A2FA0,ItemArmor,src/game/items/item.h,armour
@@ -558,7 +558,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00744228,3,,game,006CC530 006CDA20,007005E3,TerrainArrayCClass,-,CArray (the terrain builder's arrays; 006CC530); stored only by game.exe (ours is a std::vector)
 00744264,1,,game,006D26E0 006D2E40 006D3430 006D38C0 006D3CB0 006D3DE0 006D3F10 006D4050,006D41D0,PrintRecord,src/game/terrain/ground_print.h,a prints.db record
 00744268,1,,game,006D2830 006D3120 006D3680 006D3F10 006D4050,006D4270,PrintRecord2,src/game/terrain/ground_print.h,prints.db's second record type
-00744288,3,,game,006D49E0 006D4AA0 006D4B30 006D4CD0,006D4A60,Dib,src/game/models/dib.h,CDib
+00744288,3,,game,006D49E0 006D4AA0 006D4B30 006D4CD0,006D4A60,Dib,src/engine/models/dib.h,CDib
 00745DF4,21,.?AVCFile@@,lib,00701036 0070106C 0070108B 0070112B,0070BE58,CFile,-,"stored only by game.exe's constructors / destructor 00701036 / 0070106C / 0070108B / 0070112B, which no code of ours calls (the game's files are lib::File since C14d)"
 00745E4C,5,.?AVCFileException@@,lib,006E6335 0070108B 00701BD4 007031D5,0070CF4C,CFileException,-,"stored only by game.exe's 006E6335 / 0070108B / 00701BD4 / 007031D5, which no code of ours calls (a failed file call throws lib::FileError since C14d)"
 00745EE8,19,.?AVCFileFind@@,lib,006E6370 006E63AD,0070BE5E,CFileFind,-,"stored only by game.exe's constructor / destructor 006E6370 / 006E63AD, which no code of ours calls (lib::FileFind since C14d)"

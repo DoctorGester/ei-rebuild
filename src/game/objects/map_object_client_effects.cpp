@@ -3,11 +3,11 @@
 // parts' alpha / tint when an invisibility or stun effect ends.
 
 #include "game/effects/effects.h"
-#include "game/scene/light.h"
+#include "engine/scene/light.h"
 #include "game/objects/map_object.h"
 #include "game/objects/object3d.h"
 #include "game/objects/map_object_shadow.h"
-#include "game/core/base_manager.h"
+#include "engine/core/base_manager.h"
 #include "game/spells/spell.h"
 #include "game/sound/sound.h"
 #include "game/terrain/terrain.h"
@@ -22,7 +22,7 @@
 #include <utility>
 
 #include "game/app/singletons.h"
-#include "game/data/options.h"
+#include "engine/data/options.h"
 #include "game/world/world.h"
 
 #include <list>

@@ -5,8 +5,8 @@
 #include "convert_mobs.h"
 #include "convert_scripts.h"
 
-#include "game/data/resource.h"
-#include "game/models/texture_png.h"
+#include "engine/data/resource.h"
+#include "engine/models/texture_png.h"
 #include "lib/png.h"
 #include "lib/text_case.h"
 #include "platform/platform.h"

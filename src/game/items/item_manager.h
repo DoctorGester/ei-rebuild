@@ -4,7 +4,7 @@
 // The items themselves are item.h.
 
 #include "game/items/item.h"
-#include "game/data/resource_manager.h"
+#include "engine/data/resource_manager.h"
 
 #include <cstdint>
 #include <optional>

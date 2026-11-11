@@ -1,7 +1,7 @@
-// A mod's content hash (src/game/mods/mod_hash.h) on a mod folder of its own in the temporary folder: the files it
+// A mod's content hash (src/engine/mods/mod_hash.h) on a mod folder of its own in the temporary folder: the files it
 // counts, a zip of the same folder hashing as the folder, a counted file's change changing it and an uncounted one's
 // not. ei_unit_check (unit_check.cpp) and the POSIX port check run it.
-#include "../../src/game/mods/mod_hash.h"
+#include "../../src/engine/mods/mod_hash.h"
 #include "miniz/miniz.h"
 
 #include <algorithm>

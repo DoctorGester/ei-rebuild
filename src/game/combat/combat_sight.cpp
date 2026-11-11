@@ -6,7 +6,7 @@
 #include "game/ai/ai_map.h"
 #include "game/ai/unit_ai.h"
 #include "game/combat/combat_internal.h"
-#include "game/core/core_maths.h"
+#include "engine/core/core_maths.h"
 #include "game/items/item.h"
 #include "game/items/item_db.h"
 #include "game/spells/spell_db.h"

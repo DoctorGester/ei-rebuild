@@ -13,12 +13,12 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `src/platform/files.cpp` | `FolderEntries`: each layer's search (the backends' `SearchFolder`) merged |
 | `src/main.cpp` | reads `[game] Mod` after EI_Plugin's values, calls `app::UseMod` (app/main_loop.cpp: the folder in full, `platform::SwitchMod`, the log) |
 | `src/game/app/main_loop.cpp` | `StartGame` / `StopGame` (the game's half of the start and the stop), `app::RequestModSwitch` and the switch (`TakeModSwitch`) |
-| `src/game/mods/mod_list.h`, `.cpp` | the main menu's list of mods: `Scan` (starter\Mods\*\config.reg), `IndexOf`, `SettingOf` |
+| `src/engine/mods/mod_list.h`, `.cpp` | the main menu's list of mods: `Scan` (starter\Mods\*\config.reg), `IndexOf`, `SettingOf` |
 | `src/game/ui/ui_main_menu.cpp` | `MainMenu::AddModList` (the list's drop-down control) and the pick's `RequestModSwitch` (in `Update`) |
-| `src/game/mods/mod_folders.cpp` | Rebirth's mod-folder patches (rebirth.md, "Resources and paths"), whenever a mod is played: `ModPath()` is the Mod folder, `Active()` whether there is one; `Reset` at a switch |
-| `src/game/mods/mod_plugins.h`, `.cpp` | the mods' plugins carried as code ("The mods' plugins"): `modplugins::FourShopClasses` |
-| `src/game/mods/mod_hash.h`, `.cpp`, `mod_identity.h`, `.cpp` | the mod's content hash and the mod a game plays as our peers tell it at login, the refusal texts ("Mods in multiplayer"; network.md, "Mods") |
-| `src/game/effects/particle_data.h`, `.cpp`, `particle_record.*`, `particle_expr.*` | the data effects, `Res\effects\<name>.effect.toml` merged through the layers (effects.md, "Data effects") |
+| `src/engine/mods/mod_folders.cpp` | Rebirth's mod-folder patches (rebirth.md, "Resources and paths"), whenever a mod is played: `ModPath()` is the Mod folder, `Active()` whether there is one; `Reset` at a switch |
+| `src/engine/mods/mod_plugins.h`, `.cpp` | the mods' plugins carried as code ("The mods' plugins"): `modplugins::FourShopClasses` |
+| `src/engine/mods/mod_hash.h`, `.cpp`, `mod_identity.h`, `.cpp` | the mod's content hash and the mod a game plays as our peers tell it at login, the refusal texts ("Mods in multiplayer"; network.md, "Mods") |
+| `src/engine/particles/particle_data.h`, `.cpp`, `particle_record.*`, `particle_expr.*` | the data effects, `Res\effects\<name>.effect.toml` merged through the layers (effects.md, "Data effects") |
 | `src/game/script/script_spell_host.h`, `.cpp` | the scripted spells, `Res\spells\<file>.lua` through the layers (items_spells.md, "Scripted spells") |
 | `tests/unit/mod_hash.cpp`, `tools/make_mod_pair.py`, `tests/scenarios/net_pair_mod_*.txt` | their checks: the hash of a folder and of its zip, the pairs with the same mod, another version and none |
 | `tests/verify/harness.cpp` | `Layers` / `MapPath` / `MapSearches`: the run's overlay as the map's top layer |
@@ -26,27 +26,27 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `tests/scenarios/mod_lost_in_astral.txt` | a new game in Lost in Astral (Rebirth's data) |
 | `tests/scenarios/mod_switch.txt`, `mod_switch_plain.txt` | a switch to Lost in Astral and back, then a new game; the same new game from the start |
 | `tests/scenarios/mod_menu_list.txt` | the menu's list picked through the UI, and the settings file written |
-| `src/game/data/resource.h`, `.cpp` | the archives and the loose files over them ("Loose files"): `MappedResource::Sources`, `LooseFolderOf`, `ResourceExists` |
+| `src/engine/data/resource.h`, `.cpp` | the archives and the loose files over them ("Loose files"): `MappedResource::Sources`, `LooseFolderOf`, `ResourceExists` |
 | `tools/unpack_install.py` | an install's archives unpacked into their folders; run_all.py `--unpacked` |
 | `tests/scenarios/mod_loose_files.txt` | loose files of a mod over its archives and the game's |
 | `src/platform/zip_folders.h`, `.cpp` | a .zip read as a folder ("Zip mods"): `InZip`, `ZipFile`, `SearchZip`, on miniz (third_party/miniz) |
 | `tests/scenarios/mod_zip_archives.txt`, `mod_zip_loose_files.txt`, `mod_zip_menu.txt` | zip mods: rebirth_mod_archives' and mod_loose_files' mods zipped, the menu's list finding one |
 | `src/lib/toml.h`, `.cpp`; `third_party/tomlc17/` | TOML read (tomlc17) and written ("Records as TOML") |
-| `src/game/data/resource.h`, `.cpp` | `RecordFile`, `FindRecordFile`, `MappedResource::FindRecord` / `FindText`, `MergeTomls` |
+| `src/engine/data/resource.h`, `.cpp` | `RecordFile`, `FindRecordFile`, `MappedResource::FindRecord` / `FindText`, `MergeTomls` |
 | `tools/convert/convert.cpp` | ei-convert: an install's records as TOML, each round trip checked |
 | `tools/convert_install.py` | an unpacked copy converted; run_all.py `--converted` |
 | `tests/scenarios/mod_toml_records.txt` | a mod's TOML text and record seen by the game |
-| `src/game/data/database_toml.h`, `.cpp` | the game databases as TOML ("Databases as TOML"): field lists, `WriteRecords`, `MergeRecords` |
+| `src/engine/data/database_toml.h`, `.cpp` | the game databases as TOML ("Databases as TOML"): field lists, `WriteRecords`, `MergeRecords` |
 | `tools/convert/convert_databases.h`, `.cpp` | ei-convert's databases: each round trip, compared by the records' own serialisers |
 | `tests/scenarios/mod_toml_databases.txt` | a mod's items.idb.toml: a weapon changed and one added, given in a new game |
-| `src/game/models/texture_png.h`, `.cpp`; `third_party/stb/` | textures as PNG and back ("Textures as PNG"): `ToPng`, `FromPng`, `ReadLevel`; stb_dxt |
+| `src/engine/models/texture_png.h`, `.cpp`; `third_party/stb/` | textures as PNG and back ("Textures as PNG"): `ToPng`, `FromPng`, `ReadLevel`; stb_dxt |
 | `src/lib/png.h`, `.cpp`; `third_party/wuffs/` | PNG files written (in segments) and read (Wuffs; a segmented one on threads): `png::Write`, `png::ReadRgba` ("Loading cost") |
-| `src/game/data/resource.cpp` | `MappedResource::PngTexture`: an .mmp's PNG made into it where it is found |
+| `src/engine/data/resource.cpp` | `MappedResource::PngTexture`: an .mmp's PNG made into it where it is found |
 | `tools/convert/convert_textures.h`, `.cpp` | ei-convert's textures: each as PNG, its round trip measured |
 | `tests/unit/texture_png.cpp` | the unit check (ei_unit_check, the POSIX port check) |
 | `tests/scenarios/mod_png_texture.txt` | a mod's PNG terrain pages seen on the ground |
-| `src/game/data/map_folder.h`, `.cpp` | maps as folders ("Maps as folders"): `Decode`, `EncodeMap` / `EncodeSector`, `WriteFolder`, `Assemble` (PNGs written by `png::Write`, read by `png::ReadRgba` / `ReadRgba16`) |
-| `src/game/data/resource.cpp` | `MappedResource::FolderMap` / `FolderMapFile`: an archive's map file and sectors made from its folder |
+| `src/engine/data/map_folder.h`, `.cpp` | maps as folders ("Maps as folders"): `Decode`, `EncodeMap` / `EncodeSector`, `WriteFolder`, `Assemble` (PNGs written by `png::Write`, read by `png::ReadRgba` / `ReadRgba16`) |
+| `src/engine/data/resource.cpp` | `MappedResource::FolderMap` / `FolderMapFile`: an archive's map file and sectors made from its folder |
 | `tools/convert/convert_maps.h`, `.cpp` | ei-convert's maps: each as its folder, the round trip byte for byte |
 | `tests/unit/map_folder.cpp` | the unit check (ei_unit_check, the POSIX port check) |
 | `tests/scenarios/mod_map_heights.txt` | a mod's heights.png seen as the ground's height (`ground`) |
@@ -54,9 +54,9 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `src/game/map/mob_toml.h`, `.cpp` | a .mob's objects as TOML and back ("Map objects as TOML"): `Write`, `Read`, `Find`, `FieldImages` |
 | `src/game/map/mob_reader.cpp`, `map_spec.h` | `MobContents` (what a .mob holds), `MobFile::ReadChunks`, `LoadMob` (applied to the server) |
 | `tools/convert/convert_mobs.h`, `.cpp` | ei-convert's map objects: each .mob's TOML, its round trip compared field by field |
-| `src/game/models/figure_gltf.h`, `.cpp`; `third_party/cgltf/` | figure models as glTF and back ("Models as glTF"): `FromFiles`, `Files`, `ToGlb` (our writer), `FromGltf` (cgltf, reading only) |
+| `src/engine/models/figure_gltf.h`, `.cpp`; `third_party/cgltf/` | figure models as glTF and back ("Models as glTF"): `FromFiles`, `Files`, `ToGlb` (our writer), `FromGltf` (cgltf, reading only) |
 | `src/lib/json.h`, `.cpp` | a small JSON reader (the glTF's extras) and the writer's strings and floats |
-| `src/game/data/resource.cpp` | `MappedResource::ModelFile`, `HasModelFile`, `MadeModel`: a figure file answered from a glTF where it is found |
+| `src/engine/data/resource.cpp` | `MappedResource::ModelFile`, `HasModelFile`, `MadeModel`: a figure file answered from a glTF where it is found |
 | `tools/convert/convert_models.h`, `.cpp` | ei-convert's models: an archive's figure files grouped into figures, each as a .glb, its round trip compared |
 | `tests/unit/figure_gltf.cpp` | the unit check (ei_unit_check, the POSIX port check) |
 | `tests/scenarios/mod_gltf_model.txt` | a mod's glTF hero (no extras, 1.5 times as large) seen in a new game |
@@ -65,7 +65,7 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `tests/scenarios/mod_example.txt` | the example mod played: its text, weapons, pig, red ground (`hues world 0.2 1 red`) and reads |
 | `examples/showcase_mod/`, `tools/make_showcase_mod.py` | the showcase mod, all our own files ("The showcase mod"); the tool writes its pictures and models and copies it for a run |
 | `tests/scenarios/mod_showcase.txt` | the showcase mod played: the island, the golem's fight, the quest and its reward |
-| `src/game/models/figure_gltf_animation.cpp`, `figure_gltf_glb.h` | a set's animations as glTF animations and back ("Animations as glTF"); the pieces the two files share (the .glb's writer, the reader's accessors) |
+| `src/engine/models/figure_gltf_animation.cpp`, `figure_gltf_glb.h` | a set's animations as glTF animations and back ("Animations as glTF"); the pieces the two files share (the .glb's writer, the reader's accessors) |
 | `tests/scenarios/mod_gltf_animation.txt` | a mod's glTF hero whose idle is twice as slow, played in a new game |
 | `src/game/script/script_lua_mission.cpp` | a .mob's script from a .lua ("Scripts in Lua"): `Script::LoadLua`; `Script::Runner`, `GlobalValues`, `GlobalGroup` and the scheduler's views for the digest and the saves |
 | `src/game/map/mob_toml.h`, `.cpp` | `FindScriptLua` (a .mob's .lua through the layers), `ScriptFile` (a TOML's `script` key), `ScriptLuaName` |
@@ -147,7 +147,7 @@ zone's `.mq`; the mod's `[RES]` archives and extra figure and texture archives t
 extension standing over it: `Res\textures\` over `Res\textures.res`, `Maps\zone1\` over `Maps\zone1.mpr`, `Maps\z3q1\`
 over `Maps\z3q1.mq`. A file there is read in place of the archive's entry of that name.
 
-`textures.res : foo.mmp` is looked for in this order (`MappedResource::Sources`, src/game/data/resource.cpp):
+`textures.res : foo.mmp` is looked for in this order (`MappedResource::Sources`, src/engine/data/resource.cpp):
 1. the folder in each layer of the path map over the game folder, top first: the mod's `<mod>\Res\textures\` (and in a
    harness run the overlay's `harness_saves\Res\textures\` above it);
 2. the mod's `[RES]` archives for textures.res (Rebirth's ResOverride), each its own folder (`<mod>\Res\textures\` for
@@ -293,7 +293,7 @@ read as bytes for the briefings), a `.mob`'s scripts and AI graph.
 ### Merging by field
 
 Every record file of these tables (acks.db, prints.db, the .adb animations, and the game databases of "Databases as
-TOML") merges one way (user 2026-11-10; the shared code is `dbtoml::MergeRecords`, src/game/data/database_toml.h): a TOML
+TOML") merges one way (user 2026-11-10; the shared code is `dbtoml::MergeRecords`, src/engine/data/database_toml.h): a TOML
 record is matched to the first record of its key (the name) that this file has not merged yet and gives the fields it
 has; the others keep what the original, or a TOML file below, had. A key no record has is a new record at the end of its
 table, so every record keeps its index. Each record type lists its fields once (`Fields(record, visit)`, in acks_db.cpp,
@@ -496,7 +496,7 @@ A texture can be a PNG (MF4, user 2026-11-09). Every .mmp still loads; `<name>.p
 (each place of "Loose files", top first: a folder's file or an archive's entry) stands for it there: at each place the
 PNG is asked before the .mmp, so a mod's PNG hides the game's .mmp and a converted copy's PNG its removed one
 (`MappedResource::PngTexture`, resource.cpp). The PNG is made into the .mmp file the game would have read
-(src/game/models/texture_png.h, `FromPng`): its header, its extra block, every level. So every reader of an .mmp sees one
+(src/engine/models/texture_png.h, `FromPng`): its header, its extra block, every level. So every reader of an .mmp sees one
 as before: the texture loads, the item and inventory pictures, the cursors, the composed skins' layers, the terrain's
 `HasFile`. A made file is shared like a loose one, and kept after its last close ("Loading cost"). A PNG that does not
 decode, or whose settings name a format it does not make, is logged ("warning: textures: ...") and the .mmp is read.
@@ -616,7 +616,7 @@ A map can be a folder of TOML and PNGs (MF8, user 2026-11-09). Every `.mpr` stil
 own loose folder ("Loose files"): `Maps\zone1\` for `Maps\zone1.mpr`, with fixed file names, so a modder finds it by
 unpacking the archive or converting the install. When a place of the archive's lookup (top first, as "Loose files") has
 one of the files below, the archive's map file `<name>.MP` and its sectors `<name>XXXYYY.SEC` are made from the folder
-over the original (src/game/data/map_folder.h, `Assemble`; resource.cpp `MappedResource::FolderMap`) and every reader
+over the original (src/engine/data/map_folder.h, `Assemble`; resource.cpp `MappedResource::FolderMap`) and every reader
 reads those: the landscape (`Terrain::LoadMap`, the sectors) and the AI map (`AIMap::LoadTerrain`) alike. The made files
 are kept while the archive is open; `ListFiles` lists their names. A folder file that does not read (not a PNG, another
 size, a value out of range) is logged ("warning: maps: <folder>: ...") and left out. The `.mob` objects are "Map
@@ -906,7 +906,7 @@ A figure model can be a glTF 2.0 file (MF6, user 2026-11-09). Every original sti
 `<name>.glb` found where the figure's files would be (each place of "Loose files", top first: a folder's file or an
 archive's entry) stands for them there (`MappedResource::ModelFile`, resource.cpp). At each place, before its own file, a
 request for a `.mod`, `.bon`, `.lnk`, `.fig` or `.anm` ("Animations as glTF") asks the glTF models of that place whose name begins the file's stem
-(the longest first): the glTF is read once (src/game/models/figure_gltf.h, `FromGltf`, on cgltf), made into the files
+(the longest first): the glTF is read once (src/engine/models/figure_gltf.h, `FromGltf`, on cgltf), made into the files
 the game would have read (`Files`), and the one asked for is answered from them, shared like a loose file. So both
 loaders (the figure manager's `<name>.mod`/`.bon`, the link loader's set or its `<name>.lnk` and `<name><part>.fig` /
 `.bon`) and the item models' `<name>.fig` see the files as before. A `.gltf` comes before a `.glb` of its name; its
@@ -990,7 +990,7 @@ millisecond a figure (a converted install's load: "Textures as PNG", "Loading co
 
 A set's animations can be glTF animations (MF7, user 2026-11-09). Every `.anm` still loads; the set's glTF ("Models as
 glTF") stands for its `<name>.anm` too when it has animations (or `extras.ei.anm`): `ModelFile` answers the `.anm` from
-the files made of the glTF (src/game/models/figure_gltf_animation.cpp makes the archive the game would have read), so
+the files made of the glTF (src/engine/models/figure_gltf_animation.cpp makes the archive the game would have read), so
 the figure manager's `FindModel` / `FindAnimation` and the link loader's figure sets read it as before. A glTF without
 animations does not stand for the `.anm`: the one below it is read (a mod's model alone keeps the game's animations).
 A layer's glTF is read as that layer's own file (`ReadSource` through `platform::ReadLayerFile`): a read through the
@@ -1071,7 +1071,7 @@ PNG", "Loading cost").
 
 ## A mod's config.reg
 
-The game's registry format (src/game/data/registry.h), or `config.reg.toml` ("Records as TOML"). Sections in Rebirth's
+The game's registry format (src/engine/data/registry.h), or `config.reg.toml` ("Records as TOML"). Sections in Rebirth's
 mods:
 - `[MOD]`: Title, Author, Version, Date_DMY, URL, AuthorEmail, GameSaves, Single, Multi, ForceShowTutorial: the
   starter's list (the menu's list, MOD3). The four switches are `true` / `false` in config.reg.toml ("Readable
@@ -1093,7 +1093,7 @@ same files.
 ## The mods' plugins
 
 A `.plg` is a DLL the starter loads into game.exe (1.06) when the mod's config.reg names it; it writes bytes into the
-code. Read with a disassembler, never loaded. `src/game/mods/mod_plugins.cpp` reads the mod's config.reg (`ModPath()`) at
+code. Read with a disassembler, never loaded. `src/engine/mods/mod_plugins.cpp` reads the mod's config.reg (`ModPath()`) at
 each question, so a plugin's change is on exactly while the chosen mod names it.
 
 - Lost in Astral's `fixshops.plg` (`modplugins::FourShopClasses`, used by party_manager.cpp) makes two changes:

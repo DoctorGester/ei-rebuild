@@ -4,11 +4,11 @@
 // surface holds it. See docs/notes/renderer.md, section 8.
 #include "game/app/app.h"
 #include "game/app/movies.h"
-#include "game/mods/mod_folders.h"
+#include "engine/mods/mod_folders.h"
 #include "game/net/net_session.h"
 #include "game/sound/sound.h"
-#include "game/scene/device.h"
-#include "game/scene/scene_renderer.h"
+#include "engine/scene/device.h"
+#include "engine/scene/scene_renderer.h"
 
 #include "lib/crt.h"
 #include "lib/rect.h"
@@ -20,7 +20,7 @@
 #include <vector>
 #include "game/ui/ui_cursor.h"
 #include "game/app/singletons.h"
-#include "game/data/options.h"
+#include "engine/data/options.h"
 #include "game/world/world.h"
 
 // Set while a .mob file loads (WorldServer::LoadMobFile, AddMobEx): the loading screen's movie stays as it is.

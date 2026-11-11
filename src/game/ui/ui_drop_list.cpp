@@ -5,7 +5,7 @@
 #include "game/ui/ui_scrollbar.h"
 #include "game/ui/ui_drop_list.h"
 
-#include "game/models/texture.h"
+#include "engine/models/texture.h"
 #include "lib/rect.h"
 #include "platform/platform.h"
 #include "game/ui/screen_layout.h"

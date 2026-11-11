@@ -3,7 +3,7 @@
 #include "game/items/item_db.h"
 
 #include "game/app/logic_settings.h"
-#include "game/data/options.h"
+#include "engine/data/options.h"
 #include "game/ui/ui.h"
 #include "game/units/unit.h"
 #include "game/units/unit_db.h"

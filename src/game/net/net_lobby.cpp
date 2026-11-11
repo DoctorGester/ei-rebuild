@@ -5,9 +5,9 @@
 // docs/notes/network.md. The game announcement record (GameInfoRecord) is at the end.
 
 #include "game/console/console.h"
-#include "game/core/coder.h"
-#include "game/core/core_refcount.h"
-#include "game/data/chunk_archive.h"
+#include "engine/core/coder.h"
+#include "engine/core/core_refcount.h"
+#include "engine/data/chunk_archive.h"
 #include "game/net/net_messages.h"
 #include "game/net/net_session.h"
 #include "lib/crt.h"

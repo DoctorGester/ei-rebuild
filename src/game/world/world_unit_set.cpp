@@ -1,7 +1,7 @@
 // The unit set's writer, used by the server's SendZone (world_sync.cpp), and the client's reader of the unit
 // looks. See docs/notes/world.md ("Client maps", the unit set). The set's three hash maps walk in the game's
 // order (lib::HashMap).
-#include "game/core/core_streams.h"
+#include "engine/core/core_streams.h"
 
 #include "game/items/item_db.h"
 #include "game/units/unit.h"

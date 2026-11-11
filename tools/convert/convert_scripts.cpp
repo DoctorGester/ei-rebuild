@@ -18,7 +18,7 @@
 #include "lua_globals.h"
 
 #include "game/console/console.h"
-#include "game/core/core_streams.h"
+#include "engine/core/core_streams.h"
 #include "game/map/mob_script_decoder.h"
 #include "game/script/script.h"
 #include "game/script/script_ir.h"

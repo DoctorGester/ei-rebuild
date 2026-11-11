@@ -26,12 +26,12 @@
 // (relative to the source), which tools/convert_install.py removes from its copy.
 // Each file's round trip: the original read by the game's loader, written as TOML, the TOML read back by the game's
 // loader, every field compared (floats by their bits). Exit code 0 when every round trip holds.
-#include "game/data/registry.h"
-#include "game/data/resource.h"
-#include "game/core/asset_text.h"
-#include "game/models/material.h"
+#include "engine/data/registry.h"
+#include "engine/data/resource.h"
+#include "engine/core/asset_text.h"
+#include "engine/models/material.h"
 #include "game/objects/object3d.h"
-#include "game/scene/camera.h"
+#include "engine/scene/camera.h"
 #include "game/terrain/ground_print.h"
 #include "game/units/acks_db.h"
 #include "lib/text_case.h"

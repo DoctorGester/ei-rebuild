@@ -10,7 +10,7 @@
 #include "game/objects/map_object.h"
 #include "game/players/player_messages.h"
 #include "game/players/player.h"
-#include "game/core/random.h"
+#include "engine/core/random.h"
 #include "game/ai/sector_map.h"
 #include "game/units/unit.h"
 #include "game/ai/unit_ai.h"

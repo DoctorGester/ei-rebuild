@@ -4,7 +4,7 @@
 // event dispatcher; a real virtual class); player_manager.cpp holds its lifetime and class virtuals. Creating a
 // player for a lobby session is Rebirth-patched (PlayerNumbers, reproduced behind its flag).
 
-#include "game/core/base_manager.h"
+#include "engine/core/base_manager.h"
 
 #include <cstdint>
 

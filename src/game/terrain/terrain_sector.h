@@ -6,7 +6,7 @@
 // are grouped into four 8x8-tile quarters; each quarter keeps, per texture page, a list of tile entries
 // (3x3 vertices each).
 
-#include "game/scene/pipeline.h"   // ClipBounds, TransformPipeline
+#include "engine/scene/pipeline.h"   // ClipBounds, TransformPipeline
 #include "game/terrain/terrain.h"
 
 #include "lib/vecmath.h"

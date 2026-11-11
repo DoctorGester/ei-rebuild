@@ -281,7 +281,7 @@ FeetCloud1 / 2, StartTrans, Falling1-4, SphereAcid, SphereElectricity, SphereFir
 (MF15g4), Casting, Healing, CastingFire, CastingElectricity, CastingAcid, CastingDivination, CastingIllusion,
 CastingDomination, CastingEnchantment, CastingHealing, Silence and Bag (MF15g5), FireBlast, LightningBlast, Geyser,
 Tornado, CurseHolder and ShapeChange (MF15g6): all 83, from `assets/effects/<Name>.effect.toml`, built into the
-executable (src/game/effects/embed_effects.cmake writes them as bytes at build time; `effectdata::BuiltinText`). The
+executable (src/engine/particles/embed_effects.cmake writes them as bytes at build time; `effectdata::BuiltinText`). The
 C++ emitters, the spec table (`kSpecs`), the per-type dispatch and the elements' views are gone (MF15g6).
 - **The built-in file is the bottom layer.** The registry reads it below the mod layers' files of the same name
   (`Res\effects\FireStar.effect.toml` in a mod retunes the field it names), unless a mod's file says `replace = true`.

@@ -7,7 +7,7 @@
 #include "game/ui/ui_credits.h"
 #include "game/ui/screen_layout.h"
 
-#include "game/data/resource.h"
+#include "engine/data/resource.h"
 #include "game/world/world.h"
 
 #include "lib/crt.h"

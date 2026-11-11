@@ -2,7 +2,7 @@ r"""Saved games: their plain bytes, and which code wrote the bytes that differ b
 
 A save file (scenario.sav, mission.sav, saves\current\<zone>.sav) is written by SaveFileWrite 00579B80: magic and
 version, above version 0x6B a checksum of the plain data, above 0x71 a flag byte, then the data LZ-compressed (the coder
-in src/game/core/coder.cpp) or, with flag 0, as it is. A harness run with EI_SAVETRACE=1 (tests/verify/harness_savetrace.h)
+in src/engine/core/coder.cpp) or, with flag 0, as it is. A harness run with EI_SAVETRACE=1 (tests/verify/harness_savetrace.h)
 writes savetrace.txt in its run folder: every memory stream write (position, size, callers) up to each .sav file the
 game opens for writing.
 

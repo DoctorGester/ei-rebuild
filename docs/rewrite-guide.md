@@ -4,7 +4,8 @@ How to write and change the game's code (fixes, cleanup, new features). Every ru
 
 ## Where code goes
 
-- `src/game/`: the game. Classes are normal C++: real virtual functions, members of their real types, no
+- `src/engine/`, `src/game/`: the engine (no game header included: `docs/notes/file-layout.md`, "The engine
+  library") and the game. Classes are normal C++: real virtual functions, members of their real types, no
   hand-built vtables, no layout asserts. Keep a byte layout only where bytes leave the process or come from a fixed
   format (saves, packets, resource files, GPU structs), and say so there (`docs/notes/core.md`, "Values read and
   written as bytes").
@@ -81,8 +82,8 @@ compare function pointers for identity.
   `using` alias for a container used once.
 - Parameters and fields carry their types: no `void*` that every caller casts. Manager objects come typed
   (`BaseManager::CreateObjectAs<T>` / `FindObjectAs<T>`, `itemdb::RecordAs<T>`). A counted pointer field is a
-  `Ref<T>` (src/game/core/ref.h), a container element holding a reference a `HeldRef<T>`; a counted object is tested with
-  `IsLive(object)`. A record that starts with another's fields derives from it.
+  `Ref<T>` (src/engine/core/ref.h), a container element holding a reference a `HeldRef<T>`; a counted object is tested
+  with `IsLive(object)`. A record that starts with another's fields derives from it.
 - Lifetimes: every field has a default initialiser (counted: a scalar, pointer or enum field without one). An embedded object is a plain member: the compiler builds and
   destroys it, and the member order gives the teardown order (no constructor or destructor called by hand). A
   reset assigns the fields (`Reset()`), never destroys and builds the object again in place.

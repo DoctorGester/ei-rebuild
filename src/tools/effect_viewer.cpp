@@ -10,10 +10,10 @@
 #include "game/app/singletons.h"
 #include "game/app/tool_hooks.h"
 #include "game/effects/effects.h"
-#include "game/effects/particle_data.h"
-#include "game/models/texture.h"
+#include "engine/particles/particle_data.h"
+#include "engine/models/texture.h"
 #include "game/objects/map_object.h"
-#include "game/scene/camera.h"
+#include "engine/scene/camera.h"
 #include "game/units/unit.h"
 #include "game/world/world.h"
 

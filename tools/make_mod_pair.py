@@ -7,7 +7,7 @@ A scenario's prepare line: <saves dir> is the run's harness_saves; the peer's is
 (tools/run_all.py launch). Each mod is:
   showcase   examples/showcase_mod copied as harness_saves\\showcase_mod (make_showcase_mod.py)
   changed    the same, its Maps\\zone1.lua one comment line longer: the same title, other files (a counted file:
-             src/game/mods/mod_hash.h), so the content hash differs
+             src/engine/mods/mod_hash.h), so the content hash differs
   spell      the same with MF17d's scripted spell added (tools/make_spell_mod.py's add_spell), its blow 20 so
              that the target's hit points drop (net_pair_mod_spell's clienthurt)
   none       nothing

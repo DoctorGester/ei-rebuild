@@ -1,14 +1,14 @@
 // The visible effects: EffectPointLight, EffectParticle, EffectWall, EffectLightning. See
 // world_effect.h and docs/notes/effects.md.
 
-#include "game/scene/camera.h"
+#include "engine/scene/camera.h"
 #include "game/effects/effects.h"
 #include "game/app/singletons.h"
-#include "game/scene/light.h"
+#include "engine/scene/light.h"
 #include "game/effects/lightning.h"
-#include "game/effects/particle_data.h"
+#include "engine/particles/particle_data.h"
 #include "game/net/net_delta.h"
-#include "game/core/random.h"
+#include "engine/core/random.h"
 #include "game/saves/save_versions.h"
 #include "game/script/script.h"
 #include "game/spells/spell.h"

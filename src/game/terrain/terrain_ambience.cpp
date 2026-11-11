@@ -5,7 +5,7 @@
 #include "game/terrain/terrain.h"
 #include "game/terrain/terrain_sector.h"
 #include "game/app/singletons.h"
-#include "game/core/random.h"
+#include "engine/core/random.h"
 #include "game/sound/sound.h"
 #include "game/world/world.h"
 

@@ -3,7 +3,7 @@
 #include "game/app/app.h"
 #include "game/app/movies.h"   // g_loadingMovieOff
 #include "game/map/chunk_stream.h"
-#include "game/core/core_refcount.h"
+#include "engine/core/core_refcount.h"
 #include "game/app/game_flow.h"
 #include "game/app/singletons.h"
 #include "game/objects/map_object.h"
@@ -16,7 +16,7 @@
 #include "game/units/unit.h"
 #include "game/units/unit_db.h"
 #include "game/world/world.h"
-#include "game/mods/maps_folder.h"
+#include "engine/mods/maps_folder.h"
 
 #include "lib/crt.h"
 #include "lib/str.h"

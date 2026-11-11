@@ -7,7 +7,7 @@
 #include "game/ai/ai_motion.h"
 #include "game/combat/combat.h"
 #include "game/combat/combat_internal.h"
-#include "game/core/core_maths.h"
+#include "engine/core/core_maths.h"
 #include "game/app/singletons.h"
 #include "game/objects/map_object.h"
 #include "game/objects/object3d.h"

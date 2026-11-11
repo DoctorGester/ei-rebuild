@@ -1,11 +1,11 @@
-// The data effects' records without the game (src/game/effects/particle_expr.h, particle_record.h): expressions
+// The data effects' records without the game (src/engine/particles/particle_expr.h, particle_record.h): expressions
 // compiled and run, a record read from TOML and merged over a lower layer's, its problems reported, the state machine
 // driven by its typed inputs: stages by ticks, by a condition on an input and by an event, enter and event actions,
 // anchors, conditional tick reactions and the stop action; a particle's position written out and its vars after the
 // spawn; the features the families of the original effects brought; and every whole effect the notes and the modding guide
 // write out read without a problem. ei_unit_check (unit_check.cpp) runs it.
-#include "../../src/game/effects/particle_record.h"
-#include "../../src/game/core/random.h"
+#include "../../src/engine/particles/particle_record.h"
+#include "../../src/engine/core/random.h"
 #include "../../src/lib/toml.h"
 
 #include <cmath>

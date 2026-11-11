@@ -4,7 +4,7 @@
 
 #include "game/app/singletons.h"
 #include "game/console/console.h"
-#include "game/core/random.h"
+#include "engine/core/random.h"
 #include "game/effects/world_effect_internal.h"
 #include "game/net/net_delta.h"
 #include "game/net/net_link.h"

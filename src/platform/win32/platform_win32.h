@@ -6,7 +6,7 @@
 // Text at the system boundary in UTF-8 (docs/notes/standalone.md section 4). Every string inside the game is UTF-8,
 // so the backend calls the wide (UTF-16) Windows functions, converting with Wide and Narrow at the call. Text going
 // in that is not valid UTF-8 is taken in the ANSI code page, as the ANSI calls took it (8-bit text that has not
-// crossed text::FromAssetText, game/core/asset_text.h). Text coming out is UTF-8.
+// crossed text::FromAssetText, engine/core/asset_text.h). Text coming out is UTF-8.
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN   // windows.h without its rarely used parts (shell, OLE, ...): 1.8 MB less to preprocess

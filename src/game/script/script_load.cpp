@@ -3,8 +3,8 @@
 // arrays, the four kinds of variables, script instances and runs (an old-format save's program and state, for the
 // old-save shim; ours writes the blocks empty: script_save.cpp). See docs/notes/script.md. Every piece is read
 // through the stream's Read in the save's order and in its pieces.
-#include "game/core/base_manager.h"
-#include "game/core/core_streams.h"
+#include "engine/core/base_manager.h"
+#include "engine/core/core_streams.h"
 #include "game/script/script.h"
 #include "game/script/script_lua_scheduler.h"
 #include "game/console/console.h"

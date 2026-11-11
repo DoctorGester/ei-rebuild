@@ -3,8 +3,8 @@
 // See core/coder.h for the coder and docs/notes/world.md.
 #include "game/saves/save_file.h"
 
-#include "game/core/core_streams.h"
-#include "game/core/coder.h"
+#include "engine/core/core_streams.h"
+#include "engine/core/coder.h"
 #include "game/world/hoover.h"
 #include "game/saves/save_versions.h"
 #include "lib/bytes.h"

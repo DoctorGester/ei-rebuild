@@ -5,7 +5,7 @@
 // Two kinds: the counted helper at World + 0x5C (WorldHandle, world.h: hands over a
 // pending link once) and the network session at World + 0x60 (netlink::DriverSession, net_link.h).
 
-#include "game/core/core_refcount.h"
+#include "engine/core/core_refcount.h"
 
 #include <cstdint>
 #include <vector>

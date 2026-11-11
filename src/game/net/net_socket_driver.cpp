@@ -3,7 +3,7 @@
 // an outgoing and an incoming growing buffer, the socket, a state), on the platform's sockets. See
 // docs/notes/network.md.
 #include "game/net/net_session.h"
-#include "game/core/coder.h"
+#include "engine/core/coder.h"
 #include "platform/platform.h"
 
 #include "lib/ipv4.h"

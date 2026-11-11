@@ -4,7 +4,7 @@
 
 #include "game/combat/combat.h"
 #include "game/players/party.h"
-#include "game/core/random.h"
+#include "engine/core/random.h"
 #include "game/players/player.h"
 #include "game/players/saved_parties.h"
 #include "game/ui/ui_screens.h"   // MpHeroRecord (the party outside a game)

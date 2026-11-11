@@ -1,7 +1,7 @@
 // The readable Lua of a script text. See script_lua_writer.h and docs/notes/lua-scripting.md, "Converted scripts".
 #include "game/script/script_lua_writer.h"
 
-#include "game/core/asset_text.h"
+#include "engine/core/asset_text.h"
 #include "game/script/script_lua.h"
 
 #include <algorithm>

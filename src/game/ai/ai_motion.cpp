@@ -3,7 +3,7 @@
 #include "game/ai/ai_motion.h"
 
 #include "game/ai/ai_map.h"
-#include "game/core/core_streams.h"
+#include "engine/core/core_streams.h"
 #include "game/objects/map_object.h"
 #include "game/world/world.h"
 

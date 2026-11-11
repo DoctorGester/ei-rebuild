@@ -1,9 +1,9 @@
 // The terrain: the zone's ground and water as two meshes on the GPU, each sector's tiles in a place of their own, built
 // when the game builds the sector and written again only where the game says it changed; a pass draws its layer's mesh
 // whole. See docs/notes/renderer.md, "The renderer's source files".
-#include "game/scene/scene_renderer.h"
-#include "game/scene/pipeline.h"
-#include "game/models/texture.h"
+#include "engine/scene/scene_renderer.h"
+#include "engine/scene/pipeline.h"
+#include "engine/models/texture.h"
 #include "game/terrain/terrain_sector.h"
 #include "../platform/log.h"
 #include "render.h"

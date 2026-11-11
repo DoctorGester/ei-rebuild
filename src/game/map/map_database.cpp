@@ -5,9 +5,9 @@
 
 #include "game/app/singletons.h"
 #include "game/console/console.h"
-#include "game/core/core_maths.h"
-#include "game/core/core_streams.h"
-#include "game/data/text_manager.h"
+#include "engine/core/core_maths.h"
+#include "engine/core/core_streams.h"
+#include "engine/data/text_manager.h"
 #include "game/saves/save_versions.h"
 #include "game/world/world.h"
 

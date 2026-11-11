@@ -2,14 +2,14 @@
 // picture").
 #include "game/saves/client_visuals.h"
 
-#include "game/core/core_streams.h"
+#include "engine/core/core_streams.h"
 #include "game/app/singletons.h"
 #include "game/terrain/ground_print.h"
-#include "game/core/random.h"
+#include "engine/core/random.h"
 #include "game/saves/save_file.h"
 #include "game/saves/save_versions.h"
 #include "game/terrain/terrain.h"
-#include "game/models/texture.h"
+#include "engine/models/texture.h"
 #include "game/world/world.h"
 
 #include "lib/str.h"

@@ -49,14 +49,15 @@ class MoverTest(unittest.TestCase):
                 f.write(text)
         for args in (['init', '-q'], ['add', '-A'], ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'x']):
             subprocess.run(['git', *args], cwd=self.root, check=True)
-        self.saved = layout.ROOT, layout.GAME, layout.MAP, layout.DOC
+        self.saved = layout.ROOT, layout.GAME, layout.ENGINE, layout.MAP, layout.DOC
         layout.ROOT = self.root
         layout.GAME = os.path.join(self.root, 'src', 'game')
+        layout.ENGINE = os.path.join(self.root, 'src', 'engine')
         layout.MAP = os.path.join(self.root, 'tools', 'layout_map.txt')
         layout.DOC = os.path.join(self.root, 'docs', 'notes', 'file-layout.md')
 
     def tearDown(self):
-        layout.ROOT, layout.GAME, layout.MAP, layout.DOC = self.saved
+        layout.ROOT, layout.GAME, layout.ENGINE, layout.MAP, layout.DOC = self.saved
         shutil.rmtree(self.root, onerror=lambda f, p, e: (os.chmod(p, 0o700), f(p)))
 
     def read(self, rel):

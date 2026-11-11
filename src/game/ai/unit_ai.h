@@ -6,8 +6,8 @@
 // brain owns its modes (one list) and points at the one in charge.
 
 #include "game/ai/ai_map.h"
-#include "game/core/core_refcount.h"
-#include "game/core/engine_object.h"
+#include "engine/core/core_refcount.h"
+#include "engine/core/engine_object.h"
 #include "game/map/map_spec.h"
 
 #include "lib/enum_array.h"

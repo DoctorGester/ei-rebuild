@@ -1,7 +1,7 @@
 // The random trace's observers in the image (image_side.h; harness_clock.cpp).
 #include "image_side.h"
 
-#include "game/core/random.h"
+#include "engine/core/random.h"
 #include "lib/crt.h"
 
 namespace ei::verify::image {

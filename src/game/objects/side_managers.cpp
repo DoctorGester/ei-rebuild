@@ -2,7 +2,7 @@
 #include "game/objects/side_managers.h"
 
 #include "game/combat/combat.h"
-#include "game/models/link_figure.h"
+#include "engine/models/link_figure.h"
 #include "game/objects/map_object_shadow.h"
 #include "game/players/player_client.h"
 #include "game/players/player_messages.h"

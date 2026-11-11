@@ -4,7 +4,7 @@
 // a player) undoes the taming when it was the tamer's side doing it, and counts as an attack. See
 // docs/notes/combat.md ("Order lifecycle").
 #include "game/combat/combat.h"
-#include "game/core/engine_object.h"
+#include "engine/core/engine_object.h"
 #include "game/objects/map_object.h"
 #include "game/world/diplomacy.h"
 #include "game/players/player.h"

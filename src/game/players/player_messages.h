@@ -6,7 +6,7 @@
 // and unit events all go through them. See docs/notes/objects.md.
 
 #include "game/units/ack_kind.h"
-#include "game/core/engine_object.h"
+#include "engine/core/engine_object.h"
 #include "lib/vecmath.h"
 #include "game/net/net_delta.h"
 #include "game/players/party.h"

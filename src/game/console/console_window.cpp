@@ -2,8 +2,8 @@
 // See docs/notes/console.md and docs/notes/ui.md ("Console window").
 #include "game/console/console.h"
 
-#include "game/core/asset_text.h"
-#include "game/core/text_split.h"
+#include "engine/core/asset_text.h"
+#include "engine/core/text_split.h"
 #include "game/ui/screen_layout.h"
 #include "game/ui/ui.h"
 

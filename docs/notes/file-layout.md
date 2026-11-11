@@ -2,11 +2,12 @@
 
 src/game's folders and file names: the plan (C168, 2026-11-05, with the user's decisions of the same day: "The
 user's decisions" below). Until the moves land, src/game is the flat folder this file describes under "Today". The
-map of every file is `tools/layout_map.txt`; `python tools/layout.py check` checks it against src/game (and that each
-line's file is where the map's state allows: flat, moved, folded, or not made yet), `listing` writes the generated
-part at the end of this file, `where <old name>` answers where a file of the flat tree goes and whether it moved,
-`sizes` counts what each move batch rewrites, `apply <batch>` moves a batch (`--dry-run` first) and `rewrite`
-brings a branch's includes and references to where the files are now.
+map of every file is `tools/layout_map.txt`; `python tools/layout.py check` checks it against src/game and src/engine
+(the engine's folders went there after the moves: "The engine library") and that each line's file is where the map's
+state allows (flat, moved, folded, or not made yet); `listing` writes the generated part at the end of this file,
+`where <old name>` answers where a file of the flat tree goes and whether it moved, `sizes` counts what each move
+batch rewrites, `apply <batch>` moves a batch (`--dry-run` first) and `rewrite` brings a branch's includes and
+references to where the files are now.
 
 ## Today (measured 2026-11-05)
 
@@ -214,25 +215,29 @@ ui/ui_float.h; its raw-bit constants are a cleanup of their own (they should be 
 
 `ei_engine` (CMakeLists.txt, MF15k1) is the part of the code a program without the game links: the effect viewer's own
 exe (MF15k4) after the particle core's host interface (MF15k2) and a figure drawn without a unit (MF15k3). It is
-`src/lib` and `src/game`'s `core/`, `data/`, `models/`, `scene/` and `mods/` folders, and the particle core in
-`effects/` (its `particle_*` files: the sources, their manager and set-up, the data effects' records, expressions and
-runtime, the built-in effects); `ei_game` is the rest of src/game with src/audio and src/video. Both are object
-libraries; a program that links ei_game links ei_engine too (an object library's objects reach only the targets that
-link it themselves).
+`src/lib` and `src/engine` (MF15k1c): `core/`, `data/`, `models/`, `scene/`, `mods/` and `particles/`, the particle
+core (its `particle_*` files: the sources, their manager and set-up, the data effects' records, expressions and
+runtime, the built-in effects and `embed_effects.cmake`, which writes them and the scripted spells as bytes); `ei_game`
+is src/game (the game-side effects stay in `game/effects/`) with src/audio and src/video. Both are object libraries;
+a program that links ei_game links ei_engine too (an object library's objects reach only the targets that link it
+themselves). Includes name the tree: `#include "engine/core/ref.h"`, `#include "game/units/unit.h"`.
 
-- **The engine includes no game header.** `tools/engine_layers.py` (a build check) fails on an include from an
-  engine file of any other src/game file; the engine may include its own files, src/render, src/platform, third_party
-  and the system's. `tools/engine_layers.txt` lists the includes still crossing (the back-references left); the list
-  only shrinks: a new crossing fails, and so does a listed one that is gone (`engine_layers.py --write` rewrites the
-  list, keeping each kept line's comment).
+- **The engine includes no game header.** `tools/engine_layers.py` (a build check) fails on an include from a file
+  of src/engine or src/lib of a src/game file (or src/audio's, src/video's); the engine may include its own files,
+  src/render, src/platform, third_party and the system's. `tools/engine_layers.txt` lists the includes still
+  crossing (the back-references left); the list only shrinks: a new crossing fails, and so does a listed one that is
+  gone (`engine_layers.py --write` rewrites the list, keeping each kept line's comment).
 - Files are in the engine's folders or the game's by what they need: the settings and options are data/'s (the
   renderer and the camera read them), as are maps as folders and the .MP header; the maps folder's functions are
   mods/maps_folder.h's; the peers' mod identity is net/'s; the particle core's calls into the world are
-  `particle_host.h`'s functions, which the game defines (effects/effects_particles.cpp).
+  `particle_host.h`'s functions, which the game defines (game/effects/effects_particles.cpp).
 - The check reads includes only. Code of the engine that calls a function defined in ei_game links only because both
   are in the same programs today; such calls are the seams MF15k2 turns into a host interface.
 
 ## The target tree
+
+`core/`, `data/`, `mods/`, `models/`, `scene/` and `particles/` are src/engine's (MF15k1c: "The engine library"), the
+rest src/game's.
 
 | Folder | Files | What |
 |---|---|---|
@@ -252,7 +257,8 @@ link it themselves).
 | `units/` | 27 | Unit: creation, records and databases, statistics and vitals, hits, items, skins, the client controller, speech (acks) |
 | `items/` | 10 | items, their database, manager, names and trader stock |
 | `spells/` | 7 | spells, their database and manager, spell effects |
-| `effects/` | 23 | particles (their core, `particle_*`, is the engine's), the world's effect objects, lightning, weather, the visibility fog |
+| `particles/` | 11 | src/engine's: the particle core (`particle_*`: sources, manager, the data effects) and the built-in effects' embed |
+| `effects/` | 17 | the game's particle effects (the core's world calls), the world's effect objects, lightning, weather, the visibility fog |
 | `terrain/` | 12 | the landscape, sectors, ambient sounds, ground prints and decals, water levels |
 | `models/` | 20 | figures, figure meshes and animation, link meshes and their loader, textures, materials, bitmaps |
 | `scene/` | 30 | the game's draw side over src/render: scene renderer, transform pipeline, device draws, the old renderer's draws, surfaces, camera, lights, sky, drawn motion |
@@ -358,24 +364,25 @@ Risks:
 | `console/` | 5 | 2038 | C168e |
 | `core/` | 27 | 3783 | C168d |
 | `data/` | 25 | 8597 | C168d |
-| `effects/` | 28 | 9530 | C168g |
+| `effects/` | 17 | 4999 | C168g |
 | `items/` | 10 | 2958 | C168g |
 | `map/` | 11 | 3139 | C168e |
 | `models/` | 25 | 8220 | C168g |
 | `mods/` | 9 | 802 | C168d |
 | `net/` | 23 | 8423 | C168h |
 | `objects/` | 23 | 8245 | C168f |
+| `particles/` | 11 | 4531 | C168g |
 | `players/` | 24 | 5486 | C168e |
 | `saves/` | 7 | 848 | C168d |
 | `scene/` | 30 | 4393 | C168g |
-| `script/` | 33 | 11752 | C168h |
+| `script/` | 33 | 11833 | C168h |
 | `sound/` | 3 | 1679 | C168e |
 | `spells/` | 11 | 2157 | C168g |
 | `terrain/` | 12 | 3560 | C168g |
 | `ui/` | 97 | 33145 | C168h |
 | `units/` | 27 | 9835 | C168f |
 | `world/` | 36 | 10307 | C168e |
-| all | 525 | 163153 | |
+| all | 525 | 163234 | |
 
 570 files today; 55 fold into an owner, 10 split by meaning, 14 new files come out of the splits, 36 moves rename for meaning.
 
@@ -562,19 +569,8 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | effects.h | effects/effects.h |  |  |
 | effects_particles.cpp | effects/effects_particles.cpp |  |  |
 | effects_weather.cpp | effects/effects_weather.cpp |  |  |
-| embed_effects.cmake | effects/embed_effects.cmake |  |  |
 | lightning.cpp | effects/lightning.cpp |  |  |
 | lightning.h | effects/lightning.h |  |  |
-| particle_create.cpp | effects/particle_create.cpp |  |  |
-| particle_data.cpp | effects/particle_data.cpp |  |  |
-| particle_data.h | effects/particle_data.h |  |  |
-| particle_expr.cpp | effects/particle_expr.cpp |  |  |
-| particle_expr.h | effects/particle_expr.h |  |  |
-| particle_host.h | effects/particle_host.h |  |  |
-| particle_manager.cpp | effects/particle_manager.cpp |  |  |
-| particle_record.cpp | effects/particle_record.cpp |  |  |
-| particle_record.h | effects/particle_record.h |  |  |
-| particle_source.h | effects/particle_source.h |  |  |
 | vis_fog_manager.cpp | effects/vis_fog_manager.cpp |  |  |
 | weather_field.cpp | effects/weather_field.cpp |  |  |
 | weather_field.h | effects/weather_field.h |  |  |
@@ -734,6 +730,22 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | magic_trap.cpp | objects/traps.cpp |  | with objects/traps.h |
 | magic_trap.h | objects/traps.h |  | MagicTrap and TrapObject: TrapObject's code is in magic_trap.cpp already |
 | trap_object.h | objects/traps.h | fold | TrapObject's class (51 lines) |
+
+#### `particles/` (C168g)
+
+| Today | After | Op | Why |
+|---|---|---|---|
+| embed_effects.cmake | particles/embed_effects.cmake |  |  |
+| particle_create.cpp | particles/particle_create.cpp |  |  |
+| particle_data.cpp | particles/particle_data.cpp |  |  |
+| particle_data.h | particles/particle_data.h |  |  |
+| particle_expr.cpp | particles/particle_expr.cpp |  |  |
+| particle_expr.h | particles/particle_expr.h |  |  |
+| particle_host.h | particles/particle_host.h |  |  |
+| particle_manager.cpp | particles/particle_manager.cpp |  |  |
+| particle_record.cpp | particles/particle_record.cpp |  |  |
+| particle_record.h | particles/particle_record.h |  |  |
+| particle_source.h | particles/particle_source.h |  |  |
 
 #### `players/` (C168e)
 

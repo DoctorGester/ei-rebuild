@@ -3,9 +3,9 @@
 // The game's global objects, named once (they were per-file copies): the game flow, the interface manager, the client
 // and server worlds and what they hold (the managers, the mission script, the sector map), the cursor, the map
 // database and the party manager. The engine's (the scene renderer, the camera, the folders) are in
-// game/core/engine_globals.h, included here. The global random generator is g_random.
+// engine/core/engine_globals.h, included here. The global random generator is g_random.
 
-#include "game/core/engine_globals.h"
+#include "engine/core/engine_globals.h"
 
 struct GameFlow;
 class Interface3D;

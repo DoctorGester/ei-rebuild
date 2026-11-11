@@ -8,7 +8,7 @@
 #include "game/players/player_client.h"
 
 #include "game/app/singletons.h"
-#include "game/core/named_floats.h"
+#include "engine/core/named_floats.h"
 #include "game/players/player.h"
 
 #include <memory>

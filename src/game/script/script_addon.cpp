@@ -8,7 +8,7 @@
 #include "game/script/script_addon.h"
 #include "game/script/script_addon_handlers.h"
 
-#include "game/core/engine_object.h"
+#include "engine/core/engine_object.h"
 #include "game/combat/combat.h"
 #include "game/units/unit.h"
 

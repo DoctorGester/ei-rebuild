@@ -6,8 +6,8 @@
 // the cursor. Clone (with the copy constructor) is only for the messages that are shared twice (RefObject::Clone).
 
 #include "game/net/net_session.h"
-#include "game/core/core_refcount.h"
-#include "game/core/core_streams.h"
+#include "engine/core/core_refcount.h"
+#include "engine/core/core_streams.h"
 
 #include <cstddef>
 #include <cstdint>

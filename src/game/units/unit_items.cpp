@@ -4,7 +4,7 @@
 #include "game/units/unit.h"
 
 #include "game/items/item.h"
-#include "game/core/random.h"
+#include "engine/core/random.h"
 #include "game/units/unit_db.h"
 #include "lib/crt.h"
 #include "lib/rounding.h"

@@ -1,9 +1,9 @@
 // ei-convert's game databases: the round trip of each (convert_databases.h).
 #include "convert_databases.h"
 
-#include "game/core/core_streams.h"
-#include "game/data/chunk_archive.h"
-#include "game/data/resource.h"
+#include "engine/core/core_streams.h"
+#include "engine/data/chunk_archive.h"
+#include "engine/data/resource.h"
 #include "game/items/item_db.h"
 #include "game/objects/lever.h"
 #include "game/spells/spell_db.h"

@@ -4,7 +4,7 @@
 // at a load factor above 1, nodes kept in one list with each bucket's range in it), lets the game clear the
 // table, then sets the entries again in the order of that list.
 // More: docs/notes/rebirth.md, "PersistentGlobalVars".
-#include "game/core/named_floats.h"
+#include "engine/core/named_floats.h"
 
 
 #include <cstring>

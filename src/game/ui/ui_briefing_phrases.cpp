@@ -1,18 +1,18 @@
 // The briefing / base screen's phrases (BriefingScreen::NextPhrase, ui_briefing.h): a dialogue
 // text's commands and phrases, the rewards after the last one, the camera and the speakers'
 // animations. See docs/notes/ui.md, "Briefing / base screen".
-#include "game/core/core_maths.h"
-#include "game/core/asset_text.h"
+#include "engine/core/core_maths.h"
+#include "engine/core/asset_text.h"
 #include "game/combat/combat.h"
 #include "game/console/console.h"
 #include "game/app/singletons.h"
 #include "game/items/item.h"
 #include "game/items/item_manager.h"
-#include "game/data/text_manager.h"
+#include "engine/data/text_manager.h"
 #include "game/objects/object3d.h"
 #include "game/world/quest_records.h"
 #include "game/sound/sound.h"
-#include "game/core/text_split.h"
+#include "engine/core/text_split.h"
 #include "game/ui/ui.h"
 #include "game/ui/ui_scroll_text.h"
 #include "game/ui/ui_briefing.h"
@@ -20,7 +20,7 @@
 #include "game/ai/unit_ai.h"
 #include "game/units/unit_client_models.h"
 #include "game/world/world.h"
-#include "game/core/random.h"
+#include "engine/core/random.h"
 #include "game/players/player.h"
 
 #include "lib/containers.h"

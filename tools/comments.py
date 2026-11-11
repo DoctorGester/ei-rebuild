@@ -60,7 +60,7 @@ PAREN_TAIL = re.compile(r'\s*[;,]\s*(?:see\s+)?' + TICKET + r'(?:\s*[,/]\s*' + T
 PAREN_HEAD = re.compile(r'(?<=\()\s*' + TICKET + r'(?:\s*[,/]\s*' + TICKET + r')*\s*[;,]\s*')
 
 # Words that narrate the decompilation instead of saying what the code does (C41): x87 instruction names, stack
-# slots, "as a dword", "the inlined ...", vtable slot numbers, and in src/game the MFC / STLport operation and class
+# slots, "as a dword", "the inlined ...", vtable slot numbers, and in src/game and src/engine the MFC / STLport operation and class
 # names of code that is now std. They stay out of comments; src/lib keeps the ones that name what a helper
 # emulates (CString's answers, MFC's CFont).
 BANNED_COMMON = re.compile(
@@ -219,7 +219,7 @@ def line_comments(text):
 def banned_count(body, path):
     """Banned narration words in one comment (see BANNED_COMMON); `path` is the file's path under the repo, or None."""
     n = len(BANNED_COMMON.findall(body))
-    if path is None or path.startswith('src/game/'):
+    if path is None or path.startswith(('src/game/', 'src/engine/')):
         n += len(BANNED_GAME.findall(body))
     return n
 

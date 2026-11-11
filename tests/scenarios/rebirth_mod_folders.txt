@@ -1,4 +1,4 @@
-# Rebirth's mod-folder patches (S19b; src/game/mods/mod_folders.h, docs/notes/rebirth.md "Resources and paths")
+# Rebirth's mod-folder patches (S19b; src/engine/mods/mod_folders.h, docs/notes/rebirth.md "Resources and paths")
 # with a mod of our own: tools/make_test_mod.py writes it into the run's harness_saves\s19b_mod, which "mod" makes
 # the settings' Mod. The patches apply whenever a mod is played, on either install.
 # - ResOverride: config.reg [RES] puts Res\s19b_gfx.res before the game's gfx.res. "modfile" opens gfx.res as

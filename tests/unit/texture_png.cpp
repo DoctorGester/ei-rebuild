@@ -1,8 +1,8 @@
-// game/models/texture_png.h: textures as PNG and back (docs/notes/mods.md, "Textures as PNG"). Every 16-bit texel of
+// engine/models/texture_png.h: textures as PNG and back (docs/notes/mods.md, "Textures as PNG"). Every 16-bit texel of
 // the RGB formats and every premultiplied texel come back exactly; PNT3's runs; DXT1's transparent texels stay
 // transparent and its colours within the compressor's error; the settings from the chunk, from the .mmp below, or a
 // new texture's; the box filter's levels.
-#include "game/models/texture_png.h"
+#include "engine/models/texture_png.h"
 
 #include "lib/png.h"
 

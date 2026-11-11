@@ -2,10 +2,10 @@
 // bolts during a storm; WorldServer::UpdateWeather (then, and after the clock is set): the day-time value and the
 // weather's effects. See world.h and docs/notes/world.md.
 #include "game/ai/ai_map.h"
-#include "game/core/base_manager.h"
-#include "game/core/core_maths.h"
+#include "engine/core/base_manager.h"
+#include "engine/core/core_maths.h"
 #include "game/objects/map_object.h"
-#include "game/core/random.h"
+#include "engine/core/random.h"
 #include "game/script/script.h"
 #include "game/world/world.h"
 #include "game/effects/world_effect.h"

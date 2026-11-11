@@ -1,14 +1,14 @@
 // The torch map object: lifetime, update, save / load, its spec and the
 // network state. See torch.h and docs/notes/units.md.
-#include "game/core/core_streams.h"
+#include "engine/core/core_streams.h"
 
-#include "game/core/core_maths.h"
+#include "engine/core/core_maths.h"
 #include "game/effects/effects.h"   // ParticleSource, ParticleManager
 #include "game/app/singletons.h"
 #include "game/objects/map_object.h"   // MapObject::position
 #include "game/net/net_delta.h"
 #include "game/sound/sound.h"        // SoundManager
-#include "game/scene/light.h"
+#include "engine/scene/light.h"
 #include "game/terrain/terrain.h"
 #include "game/objects/torch.h"
 #include "game/world/world.h"

@@ -7,7 +7,7 @@
 
 #include "game/ui/camera_trace.h"
 #include "game/console/console.h"
-#include "game/core/core_streams.h"
+#include "engine/core/core_streams.h"
 #include "game/ui/global_map_clouds.h"
 #include "game/ui/ui_cursor.h"
 #include "game/ui/ui_screens.h"

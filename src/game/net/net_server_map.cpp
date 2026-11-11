@@ -1,11 +1,11 @@
 // The game server's map change. A literal transcription: the helpers it calls are game
 // code outside this file (or STLport strings) and are reached through their original addresses.
 // See net/net_session.h and docs/notes/network.md.
-#include "game/core/core_refcount.h"
+#include "engine/core/core_refcount.h"
 
 #include "game/app/game_flow.h"
 #include "game/app/singletons.h"
-#include "game/core/coder.h"
+#include "engine/core/coder.h"
 #include "game/net/net_connection.h"
 #include "game/net/net_messages.h"
 #include "game/world/quest_records.h"

@@ -5,7 +5,7 @@
 #include "game/objects/map_object.h"
 #include "game/units/unit.h"
 
-#include "game/data/text_manager.h"
+#include "engine/data/text_manager.h"
 #include "game/units/unit_db.h"
 
 #include "game/app/logic_settings.h"

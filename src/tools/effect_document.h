@@ -3,7 +3,7 @@
 // A data effect being edited in the effect viewer (effect_viewer.h): its file's text, the layers below it and the record
 // the text reads as over them (docs/notes/effects.md, "The effect viewer").
 
-#include "game/effects/particle_record.h"
+#include "engine/particles/particle_record.h"
 
 #include <cstdint>
 #include <memory>

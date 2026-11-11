@@ -98,12 +98,12 @@ STATUS = {
  'AddNewConsoleCommands': 'implemented: Execute 005DC620 (src/game/console/console.cpp) + new rewrite CBattleScreenSetup::Draw 00636020 (src/game/ui/ui_battle.cpp); commands in src/game/console/console_addon.cpp',
  'AutoExec': 'implemented: new rewrites GameFlow::LoadGame 0057ABA0, GameFlow::StartNewGame 0057BD10, GameFlow::ProcessRequest 0057C700 (src/game/app/game_flow.cpp); lines in src/game/console/console_addon.cpp',
  'PersistentGlobalVars': 'implemented: new rewrites GameFlow::AfterServerStart 0057EB10, GameFlow::UpdateFromServer 005800C0, SavedPartyList::Reload 00662FB0 (src/game/app/game_flow.cpp); addon\'s container order in src/game/app/persistent_globals.cpp',
- 'NivalRegistry': 'dropped: the image keeps one settings file for both installs (src/game/data/settings.h); hooked Rebirth runs keep the original WinMain',
- 'Maps': 'implemented in the standalone image: src/game/mods/mod_folders.cpp (S19b; hooked Rebirth runs keep addon.dll); scenario rebirth_mod_folders',
- 'ResOverride': 'implemented in the standalone image: src/game/mods/mod_folders.cpp (S19b; hooked Rebirth runs keep addon.dll); scenario rebirth_mod_folders',
- 'MoviesPatch': 'implemented in the standalone image: src/game/mods/mod_folders.cpp (S19b; hooked Rebirth runs keep addon.dll); scenario rebirth_mod_folders',
- 'CameraPatch': 'implemented in the standalone image: src/game/mods/mod_folders.cpp (S19b; hooked Rebirth runs keep addon.dll); scenario rebirth_mod_folders',
- 'StreamPatch': 'implemented in the standalone image: src/game/mods/mod_folders.cpp (S19b; hooked Rebirth runs keep addon.dll); scenario rebirth_mod_folders',
+ 'NivalRegistry': 'dropped: the image keeps one settings file for both installs (src/engine/data/settings.h); hooked Rebirth runs keep the original WinMain',
+ 'Maps': 'implemented in the standalone image: src/engine/mods/mod_folders.cpp (S19b; hooked Rebirth runs keep addon.dll); scenario rebirth_mod_folders',
+ 'ResOverride': 'implemented in the standalone image: src/engine/mods/mod_folders.cpp (S19b; hooked Rebirth runs keep addon.dll); scenario rebirth_mod_folders',
+ 'MoviesPatch': 'implemented in the standalone image: src/engine/mods/mod_folders.cpp (S19b; hooked Rebirth runs keep addon.dll); scenario rebirth_mod_folders',
+ 'CameraPatch': 'implemented in the standalone image: src/engine/mods/mod_folders.cpp (S19b; hooked Rebirth runs keep addon.dll); scenario rebirth_mod_folders',
+ 'StreamPatch': 'implemented in the standalone image: src/engine/mods/mod_folders.cpp (S19b; hooked Rebirth runs keep addon.dll); scenario rebirth_mod_folders',
 }
 SITE_STATUS = {
  ('FixSpellSelfCasting', 0x0068B770): 'implemented: CSpell::IsOffensive (src/game/spells/spell.cpp)',
