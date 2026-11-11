@@ -1,0 +1,55 @@
+# 1.2 release notes: screenshot of the showcase mod (docs/screenshots/showcase_mod.png): its island, the stone golem
+# and its shards, the hero's Chain Spark arcing between them (mod_showcase_spell's cast, the AI modes cleared).
+# Not in the suites (run_all leaves screenshots_* out): run it by name, one game per work.py call (docs/notes/harness.md,
+# "Screenshots"), and look at the frame before it replaces the PNG. Frames only, no golden.
+# prepare: make_showcase_mod.py
+mod harness_saves\showcase_mod
+resolution 3840x2160
+widescreen 1
+msaa 8
+anisotropy 16
+timeout 60
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitwindow 15 battle
+zone showcase 0
+waitzone 30 showcase
+waitline 20 Showcase mod: the party has the Chain Spark
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitwindow 10 battle
+console @GodMode(0,1)
+console @FixWorldTime(13)
+climate 0
+console @UMClear(GetObject(4001))
+console @UMClear(GetObject(4002))
+console @UMClear(GetObject(4003))
+screen 5
+waitwindow 15 camp
+clickregion 5
+wait 500
+campputon 3008 1
+frames 3
+key esc
+waitwindow 15 battle
+waitfor 15 IsGreater(HP(GetLeader()),0)
+click 793 15
+frames 3
+click 7 15
+frames 3
+click 400 560
+frames 3
+console @MoveToPoint(GetLeader(),80,122)
+waitidle 30
+camera 82 117 0 12 50
+frames 3
+waitunit 10 #4001
+key 3
+frames 2
+clickunit #4001
+wait 400
+capture showcase 24
+report
+quit

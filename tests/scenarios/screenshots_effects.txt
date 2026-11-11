@@ -1,0 +1,21 @@
+# 1.2 release notes: screenshot of ei-effects, the effect viewer (docs/screenshots/effect_viewer.png), on the showcase
+# mod: CastingFire on the casting hand, then the mod's ChainSparkCast on the figure. ei-effects takes no resolution, msaa or
+# anisotropy steps: its own window size (1600x900 in a harness run).
+# Not in the suites (run_all leaves screenshots_* out): run it by name, one game per work.py call (docs/notes/harness.md,
+# "Screenshots"), and look at the frame before it replaces the PNG. Frames only, no golden.
+# exe: ei-effects
+# arguments: CastingFire
+# prepare: make_showcase_mod.py
+mod harness_saves\showcase_mod
+timeout 60
+wait 1200
+effectviewer camera 6
+wait 600
+capture viewer_casting
+frames 3
+effectviewer pick ChainSparkCast
+wait 1200
+capture viewer_spark
+frames 3
+report
+quit
