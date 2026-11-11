@@ -1,8 +1,8 @@
-LostInAstral/current/gz13g.sav 495b2a3db3100785
+LostInAstral/current/gz13g.sav fb018ef06a7d9d86
 LostInAstral/current/gz13g.visuals.sav 53d2cb3b009c4e79
-LostInAstral/current/gz1g.sav 68b58c2f85b7128d
+LostInAstral/current/gz1g.sav da7cd25d569657e8
 LostInAstral/current/gz1g.visuals.sav 0830ea88f5be5f4e
-LostInAstral/savea/gz13g.sav 495b2a3db3100785
+LostInAstral/savea/gz13g.sav fb018ef06a7d9d86
 LostInAstral/savea/gz13g.visuals.sav 53d2cb3b009c4e79
 LostInAstral/savea/info.sav ead652b9eedbe542
 LostInAstral/savea/mission.sav 785c39d6c362284a

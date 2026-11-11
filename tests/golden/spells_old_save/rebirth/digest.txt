@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 4F87D5C9 n 172
+@ 0 update 20 frame 3 tick 20 zone - hash B94622C7 n 172
 + world world
 world tick 20
 world updates 20
@@ -1234,7 +1234,7 @@ timed387 # 7505AFA0
 + timed5147050 75 CEffectPointLight
 timed5147050 # 2E28BE64
 + missile0 spell 39
-missile0 # FEC14634
+missile0 # 32FA1123
 + aievents events
 aievents tick 20
 aievents width 9
@@ -1311,7 +1311,7 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 7 tick 90 zone gz1g hash E9F05E28 n 831
+@ 1 update 40 frame 7 tick 90 zone gz1g hash 754EF374 n 831
 world tick 90
 world updates 42
 world timeBase 5.97222233
@@ -7422,9 +7422,9 @@ obj1007638425 #vitals ED91BFD0
 - timed358
 - timed387
 - timed5147050
-missile0 # B0806AEA
+missile0 # F74502A1
 + missile1 spell 39
-missile1 # D437A5EF
+missile1 # 93F2CDA4
 aievents tick 90
 aievents width 33
 aievents height 25
@@ -7472,7 +7472,7 @@ cunit1007638424 #vitals F4C997B8
 cunit1007638425 #place 3C6E5B88
 cunit1007638425 #unit 626A5A21
 cunit1007638425 #vitals F4C997B8
-@ 2 update 60 frame 11 tick 110 zone gz1g hash 4A218C80 n 833
+@ 2 update 60 frame 11 tick 110 zone gz1g hash A3DCB461 n 833
 world tick 110
 world updates 62
 world timedObjects 1
@@ -7502,8 +7502,6 @@ obj1007638425 #ai 30618F2F
 obj1007638425 #unit 82F0B4F5
 + timed5147053 75 CEffectPointLight
 timed5147053 # 21A10BCC
-missile0 # 5CBBF475
-missile1 # 380C3B70
 + missile2 spell 1
 missile2 # AB422598
 aievents tick 110
@@ -7515,7 +7513,7 @@ cunit1884 #place AE30F036
 cunit1000011214 #place FF01FC81
 cunit1007638424 #place B3D01634
 cunit1007638425 #place 97729256
-@ 3 update 80 frame 15 tick 130 zone gz1g hash D34353EC n 833
+@ 3 update 80 frame 15 tick 130 zone gz1g hash 508BF9F6 n 833
 world tick 130
 world updates 82
 random isaac.count 88
@@ -7535,8 +7533,6 @@ obj1936 #vitals 024EBADD
 obj1000011214 #ai DE9E6D59
 obj1000011214 #vitals AC51EDE6
 timed5147053 # A7D6893C
-missile0 # B3865195
-missile1 # D7319E90
 aievents tick 130
 client tick 129
 client ticksRun 52

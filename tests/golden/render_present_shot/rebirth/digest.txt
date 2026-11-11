@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 4F87D5C9 n 172
+@ 0 update 20 frame 3 tick 20 zone - hash B94622C7 n 172
 + world world
 world tick 20
 world updates 20
@@ -1234,7 +1234,7 @@ timed387 # 7505AFA0
 + timed5147050 75 CEffectPointLight
 timed5147050 # 2E28BE64
 + missile0 spell 39
-missile0 # FEC14634
+missile0 # 32FA1123
 + aievents events
 aievents tick 20
 aievents width 9
@@ -1311,7 +1311,7 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 13 tick 40 zone gz1g hash 732E9F75 n 832
+@ 1 update 40 frame 13 tick 40 zone gz1g hash 7CBD5B60 n 832
 world tick 40
 world updates 40
 world timeBase 5.96111107
@@ -7414,9 +7414,9 @@ timed1288868 # 938EF6DE
 + timed1288891 75 CEffectPointLight
 timed1288891 # 32B9446A
 - timed5147050
-missile0 # 98C6655E
+missile0 # 712EB802
 + missile1 spell 39
-missile1 # 6AFBF25E
+missile1 # 27D9F871
 aievents tick 40
 aievents width 33
 aievents height 25
@@ -7456,7 +7456,7 @@ cunit1884 #vitals C3E01DE4
 cunit1000011214 #place B5FCCE44
 cunit1000011214 #unit 3C3127AE
 cunit1000011214 #vitals 7D2D89BA
-@ 2 update 60 frame 17 tick 60 zone gz1g hash FF404DCC n 832
+@ 2 update 60 frame 17 tick 60 zone gz1g hash EE3F05F1 n 832
 world tick 60
 world updates 60
 random isaac.count 82
@@ -7488,8 +7488,6 @@ obj1937 #ai 17F9E56A
 obj1937 #place 74D19E38
 obj1937 #vitals 559F1F72
 obj1000011214 #vitals 9BA26E9A
-missile0 # 74FDFBC1
-missile1 # 86C06CC1
 aievents tick 60
 script #gobject 3656F9F8
 script #inst AA0C8751
@@ -7505,7 +7503,7 @@ cunit1804 #unit 5C45B653
 cunit1884 #place AE30F036
 cunit1000011214 #place 962700A3
 cunit1000011214 #unit F0FA8793
-@ 3 update 80 frame 21 tick 80 zone gz1g hash 6BAB117E n 832
+@ 3 update 80 frame 21 tick 80 zone gz1g hash 86BE5F73 n 832
 world tick 80
 world updates 80
 random isaac.count 223
@@ -7539,8 +7537,6 @@ obj1937 #ai EF2ED17C
 obj1937 #place 569C4777
 obj1937 #vitals 024EBADD
 obj1000011214 #vitals AC51EDE6
-missile0 # 9DCC28DF
-missile1 # 6FF1BFDF
 aievents tick 80
 client tick 80
 client ticksRun 42

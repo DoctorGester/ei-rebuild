@@ -1,8 +1,8 @@
 lua_mod/save1/info.sav 26e45c74fb1dce82
-lua_mod/save1/mission.sav 549fdfaa032305ae
+lua_mod/save1/mission.sav 249d6c382ce3e4e8
 lua_mod/save1/scenario.sav f6eb555a77009902
 lua_mod/save1/visuals.sav 72d0d035ad65c64c
 lua_mod/savea/info.sav 1a6467a48a11b9cd
-lua_mod/savea/mission.sav 092a70f01e4b31cd
+lua_mod/savea/mission.sav 98a3b69133992cce
 lua_mod/savea/scenario.sav 84889297446d64b6
 lua_mod/savea/visuals.sav c0983602f27de0e3

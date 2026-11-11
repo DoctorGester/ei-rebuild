@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 4F87D5C9 n 172
+@ 0 update 20 frame 3 tick 20 zone - hash B94622C7 n 172
 + world world
 world tick 20
 world updates 20
@@ -1234,7 +1234,7 @@ timed387 # 7505AFA0
 + timed5147050 75 CEffectPointLight
 timed5147050 # 2E28BE64
 + missile0 spell 39
-missile0 # FEC14634
+missile0 # 32FA1123
 + aievents events
 aievents tick 20
 aievents width 9
@@ -1311,7 +1311,7 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 7 tick 40 zone gz1g hash 82C9D00B n 832
+@ 1 update 40 frame 7 tick 40 zone gz1g hash FFBB8C11 n 832
 world tick 40
 world updates 40
 world timeBase 5.97222233
@@ -7418,9 +7418,9 @@ timed1288868 # FAF7FDBB
 + timed1288891 75 CEffectPointLight
 timed1288891 # 5BC04F0F
 - timed5147050
-missile0 # EF58B7AE
+missile0 # 712EB802
 + missile1 spell 39
-missile1 # 1D6520AE
+missile1 # 27D9F871
 aievents tick 40
 aievents width 33
 aievents height 25
@@ -7458,7 +7458,7 @@ cunit1884 #vitals C3E01DE4
 cunit1000011214 #place DFCF543E
 cunit1000011214 #unit C6081760
 cunit1000011214 #vitals 7D2D89BA
-@ 2 update 60 frame 11 tick 60 zone gz1g hash 3DD6F453 n 836
+@ 2 update 60 frame 11 tick 60 zone gz1g hash 1EDC9FC6 n 836
 world tick 60
 world updates 60
 world objects 817
@@ -7516,8 +7516,6 @@ obj1000066550 #ai 9FCE9733
 obj1000066550 #place 059A951E
 obj1000066550 #unit 6163B70F
 obj1000066550 #vitals 213B448F
-missile0 # 066964B0
-missile1 # F454F3B0
 aievents tick 60
 client tick 60
 client ticksRun 32
@@ -7537,7 +7535,7 @@ cunit1000066549 #vitals 8FC93AF9
 cunit1000066550 #place 16CD3F55
 cunit1000066550 #unit 55497142
 cunit1000066550 #vitals 8FC93AF9
-@ 3 update 80 frame 15 tick 80 zone gz1g hash EDDF611F n 834
+@ 3 update 80 frame 15 tick 80 zone gz1g hash 7C68B731 n 834
 world tick 80
 world updates 80
 world objects 816
@@ -7580,8 +7578,6 @@ obj1000011214 #vitals 9BA26E9A
 - obj1000066549
 obj1000066550 #ai 02812C57
 obj1000066550 #vitals ED91BFD0
-missile0 # BDAF7E80
-missile1 # 4F92E980
 aievents tick 80
 client tick 80
 client ticksRun 52
@@ -7592,7 +7588,7 @@ cunit1804 #place DF969219
 cunit1804 #unit 618078DC
 - cunit1000066549
 cunit1000066550 #place 886D3723
-@ 4 update 100 frame 19 tick 100 zone gz1g hash 2FAF8898 n 832
+@ 4 update 100 frame 19 tick 100 zone gz1g hash 7939F6C7 n 832
 world tick 100
 world updates 100
 world objects 815
@@ -7621,8 +7617,6 @@ obj1937 #vitals 024EBADD
 obj1000011214 #ai DE1E58AD
 obj1000011214 #vitals AC51EDE6
 - obj1000066550
-missile0 # 5194E01F
-missile1 # A3A9771F
 aievents tick 100
 client tick 100
 client ticksRun 72

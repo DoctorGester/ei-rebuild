@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; dump loaded_gap
 # compact (tools/golden.py): objects as hashes of their fields
-@ 7 update 150 frame 30 tick 91 zone gz1g hash 239EE362 n 795
+@ 7 update 150 frame 30 tick 91 zone gz1g hash 0FE0A848 n 795
 + world world
 world tick 91
 world updates 152
@@ -5803,9 +5803,9 @@ timed263 # 1F3D0C22
 + timed264 77 CEffectLightning
 timed264 # 542834B1
 + missile0 spell 39
-missile0 # 29620CEB
+missile0 # F4D9D63D
 + missile1 spell 39
-missile1 # 4DD5C3EE
+missile1 # 27D9F871
 + aievents events
 aievents tick 91
 aievents width 33

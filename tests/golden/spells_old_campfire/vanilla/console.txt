@@ -1,0 +1,10 @@
+  Activated!
+  Cannot open file autoexec.cfg for reading
+  Loaded save2
+  1
+  1
+  1
+  0
+  0
+  1
+  1

@@ -314,6 +314,7 @@ void WorldServer::Destroy() {
     }
 
     hoover.reset();
+    projectiles.clear();   // the casts before the scripts that run them
     MainScript()->Reset();
     SecondScript()->Reset();
     ResetState();

@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install vanilla; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 9E7DB87B n 68
+@ 0 update 20 frame 3 tick 20 zone - hash BF80D1BB n 68
 + world world
 world tick 20
 world updates 20
@@ -529,7 +529,7 @@ timed259 # DC6D7850
 + timed260 75 CEffectPointLight
 timed260 # 72979814
 + missile0 spell 39
-missile0 # FEC14634
+missile0 # 32FA1123
 + aievents events
 aievents tick 20
 aievents width 9
@@ -602,7 +602,7 @@ cunit148 #vitals C17C1FEE
 cunit187 #place F3DF9084
 cunit187 #unit D3B5CFA9
 cunit187 #vitals 1DDF30F4
-@ 1 update 40 frame 7 tick 20 zone - hash EB2D4E1A n 69
+@ 1 update 40 frame 7 tick 20 zone - hash C4FD94F6 n 69
 world updates 40
 world paused 1
 random isaac.count 160
@@ -621,10 +621,10 @@ cunit187 #place B7CE4832
 cunit1000011214 #place 125B38F9
 cunit1000011214 #unit 3C61455D
 cunit1000011214 #vitals A7CF3098
-@ 2 update 60 frame 11 tick 20 zone - hash D42805CC n 69
+@ 2 update 60 frame 11 tick 20 zone - hash FBF8DF20 n 69
 world updates 60
 client ticksRun 57
-@ 3 update 80 frame 15 tick 5 zone - hash 9F2C57CE n 68
+@ 3 update 80 frame 15 tick 5 zone - hash 5A14EEAF n 68
 world tick 5
 world updates 5
 world paused 0
@@ -638,7 +638,6 @@ obj148 pos.x 25.085659
 obj148 pos.y 29.1971645
 obj148 #ai 4F174234
 obj148 #place 53FE2FCF
-missile0 # 63AD74E9
 aievents tick 5
 client tick 5
 client paused 0
@@ -655,7 +654,7 @@ cunit148 #unit 99605BC3
 cunit187 #place 5E2DB4F7
 cunit187 #unit 2A41A5CA
 - cunit1000011214
-@ 4 update 100 frame 19 tick 20 zone - hash C1CC5F5D n 69
+@ 4 update 100 frame 19 tick 20 zone - hash EE1C85B1 n 69
 world tick 20
 world updates 25
 world paused 1
@@ -669,7 +668,6 @@ obj148 pos.x 25.9189377
 obj148 pos.y 29.4773026
 obj148 #ai 5AFC3A47
 obj148 #place 89A4A136
-missile0 # FEC14634
 aievents tick 20
 client tick 21
 client paused 1
@@ -689,10 +687,10 @@ cunit187 #unit D3B5CFA9
 cunit1000011214 #place 125B38F9
 cunit1000011214 #unit 73BA4D14
 cunit1000011214 #vitals A7CF3098
-@ 5 update 120 frame 23 tick 20 zone - hash 133FDF69 n 69
+@ 5 update 120 frame 23 tick 20 zone - hash 3CEF0585 n 69
 world updates 45
 client ticksRun 42
 cunit1000011214 #unit 8A4E2777
-@ 6 update 140 frame 27 tick 20 zone - hash EFD95A03 n 69
+@ 6 update 140 frame 27 tick 20 zone - hash C00980EF n 69
 world updates 65
 client ticksRun 62

@@ -7,6 +7,8 @@
 #include "game/effects/world_effect.h"
 
 #include <cstdint>
+#include <map>
+#include <string>
 
 ScriptBlock* Script::NewCommandList() {
     ScriptBlock& block = blocks.emplace_back();
@@ -56,6 +58,10 @@ ScriptErrorInfo* Script::GetError(ScriptErrorInfo* out) {
 // See script.h and docs/notes/script.md.
 
 void Script::Reset() {
+    // The spell casts going carry over to the new runner (ScriptSpellHost::Hand).
+    std::string casts;
+    std::map<int, SpellEffect*> carried;
+    if (runner) runner->spells.Hand(&casts, &carried);
     DropRunner();
     loaded = 0;
     fileCount = 0;
@@ -80,6 +86,7 @@ void Script::Reset() {
     nextFxId = -2;
     definitions.clear();
     blocks.clear();
+    if (!carried.empty()) Runner().spells.Take(casts, carried);
 }
 
 // Script::Load calls it before each `Script` section: no rules, the variables emptied, not killed, the parameters

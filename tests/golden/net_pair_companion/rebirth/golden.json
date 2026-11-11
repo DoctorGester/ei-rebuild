@@ -2,18 +2,22 @@
   "scenario": "net_pair_companion",
   "install": "rebirth",
   "recorded": "2026-11-11",
-  "commit": "325c1b848",
+  "commit": "da6e624e0",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "P12 merged onto L11/H70 main: the village camera distance moves base clicks, the Rebirth net games play out differently",
+  "reason": "MF17g4a: the campfire runs on Campfire.lua (its missile records are the scripted cast's, its entry in the Lua state's casts), the casts carry over a base's script reset; outcomes and units the same.",
   "source": "image",
   "saves": "2 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save current/z3q2.sav: 2681 fields in 190 records differ: obj 2666, world 15",
-    "  obj: 2666 fields in 188 records; first obj4632 controller.queue.extra: 1259 in the old golden, 1269 in the new run; largest numeric d 1e+09 at obj4651 controller.brain.memory.nearby.8: 1000000013 -> 4517",
-    "  world: 15 fields in 2 records; first world tick: 5057 in the old golden, 5052 in the new run; largest numeric d 5e+03 at world lastRainBoltTick: 0 -> 4995",
-    "save current/z3q2.visuals.sav: differs (decoded 159f7ea20b862291 in the old golden, b07094f6da86a3e2 in the new run; the store has no copy of 159f7ea20b862291)"
+    "digest: 336 of 336 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; no unit position differs",
+    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 1 fields",
+    "    missile0 (spell 39) #: FEC14634 in the old golden, 32FA1123 in the new run",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  missiles: 4 of 4 differ",
+    "    #: 4 missiles, 336 records, from 0; hash only (no numbers kept)",
+    "save current/z3q2.sav: 24 fields in 4 records differ: missile 24",
+    "  missile: 24 fields in 4 records; first missile0 position.z: 6.89079666 in the old golden, 0.0 in the new run; largest numeric d 3.92e+03 at missile0 timer: 3915 -> 0"
   ]
 }

@@ -448,3 +448,16 @@ ai = "none"
 offensive = false
 turns_victim = false
 fighting = false
+
+# The campfire: each flame a zone places on the ground casts one, with no caster; it burns what stands in it every
+# 4th tick for ever (it never ends: max_ticks 0). It deals fire, but the game's tables read no damage type of it.
+[[spell]]
+code = "campfire"
+script = "Campfire.lua"
+per_target = true
+ends_with_target = true
+max_ticks = 0
+ai = "none"
+offensive = false
+turns_victim = false
+fighting = false

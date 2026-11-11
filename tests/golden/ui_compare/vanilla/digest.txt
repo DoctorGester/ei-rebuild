@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install vanilla; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 9E7DB87B n 68
+@ 0 update 20 frame 3 tick 20 zone - hash BF80D1BB n 68
 + world world
 world tick 20
 world updates 20
@@ -529,7 +529,7 @@ timed259 # DC6D7850
 + timed260 75 CEffectPointLight
 timed260 # 72979814
 + missile0 spell 39
-missile0 # FEC14634
+missile0 # 32FA1123
 + aievents events
 aievents tick 20
 aievents width 9
@@ -602,7 +602,7 @@ cunit148 #vitals C17C1FEE
 cunit187 #place F3DF9084
 cunit187 #unit D3B5CFA9
 cunit187 #vitals 1DDF30F4
-@ 1 update 40 frame 7 tick 20 zone - hash EEB8582E n 68
+@ 1 update 40 frame 7 tick 20 zone - hash CF4531EE n 68
 world updates 40
 world paused 1
 client tick 21
@@ -613,37 +613,37 @@ cunit129 #place 3302A9EB
 cunit148 #place 871EB996
 cunit148 #unit 381DC2F0
 cunit187 #place B7CE4832
-@ 2 update 60 frame 11 tick 20 zone - hash 3F5E1EDF n 68
+@ 2 update 60 frame 11 tick 20 zone - hash 1EA3771F n 68
 world updates 60
 client ticksRun 57
-@ 3 update 80 frame 18 tick 20 zone - hash C2C04CEC n 68
+@ 3 update 80 frame 18 tick 20 zone - hash E33D252C n 68
 world updates 80
 client ticksRun 77
-@ 4 update 100 frame 22 tick 20 zone - hash F56B5140 n 68
+@ 4 update 100 frame 22 tick 20 zone - hash D4963880 n 68
 world updates 100
 client ticksRun 97
-@ 5 update 120 frame 26 tick 20 zone - hash 5178E762 n 68
+@ 5 update 120 frame 26 tick 20 zone - hash 70858EA2 n 68
 world updates 120
 client ticksRun 117
-@ 6 update 140 frame 33 tick 20 zone - hash BB4586B4 n 68
+@ 6 update 140 frame 33 tick 20 zone - hash 9AB8EF74 n 68
 world updates 140
 client ticksRun 137
-@ 7 update 160 frame 37 tick 20 zone - hash B6CD8946 n 68
+@ 7 update 160 frame 37 tick 20 zone - hash 9730E086 n 68
 world updates 160
 client ticksRun 157
-@ 8 update 180 frame 44 tick 20 zone - hash 3C3FEE01 n 68
+@ 8 update 180 frame 44 tick 20 zone - hash 1DC287C1 n 68
 world updates 180
 client ticksRun 177
-@ 9 update 200 frame 48 tick 20 zone - hash FF71615A n 68
+@ 9 update 200 frame 48 tick 20 zone - hash DE8C089A n 68
 world updates 200
 client ticksRun 197
-@ 10 update 220 frame 52 tick 20 zone - hash 8E67558D n 68
+@ 10 update 220 frame 52 tick 20 zone - hash AF9A3C4D n 68
 world updates 220
 client ticksRun 217
-@ 11 update 240 frame 59 tick 20 zone - hash EEF0EF20 n 68
+@ 11 update 240 frame 59 tick 20 zone - hash CF0D86E0 n 68
 world updates 240
 client ticksRun 237
-@ 12 update 260 frame 63 tick 30 zone - hash E7DAAE20 n 68
+@ 12 update 260 frame 63 tick 30 zone - hash 51774AEC n 68
 world tick 30
 world updates 260
 world paused 0
@@ -661,7 +661,6 @@ obj148 #ai 235DABA9
 obj148 #place C6D23A4C
 obj148 #vitals 83049DF2
 obj187 #vitals 9BCCD591
-missile0 # 8C55D945
 aievents tick 30
 client tick 30
 client paused 0

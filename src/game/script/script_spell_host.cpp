@@ -605,6 +605,35 @@ SpellEffect& ScriptSpellHost::Self(lua_State* L, const char* method, bool inResu
     return *found->second;
 }
 
+bool ScriptSpellHost::Hand(std::string* data, std::map<int, SpellEffect*>* effects) {
+    if (live.empty()) return false;
+    lua_createtable(L, 0, 2);
+    Save(lua_gettop(L));
+    std::string error;
+    if (!scheduler.lua.Persist(data, &error)) {
+        Report(std::format("the spell casts going did not carry over a script reset ({}); they end", error));
+        return false;
+    }
+    *effects = std::move(live);
+    live.clear();
+    return true;
+}
+
+void ScriptSpellHost::Take(std::string_view data, const std::map<int, SpellEffect*>& effects) {
+    std::string error;
+    if (!scheduler.lua.Unpersist(data, &error)) {
+        Report(std::format("the spell casts going did not carry over a script reset ({}); they end", error));
+        for (const auto& [key, effect] : effects) effect->host = nullptr;
+        return;
+    }
+    Restore(lua_gettop(L));
+    lua_pop(L, 1);
+    for (const auto& [key, effect] : effects) {
+        effect->host = this;
+        live[key] = effect;
+    }
+}
+
 // cast:FindUnits(at, radius [, filter]): the units within `radius` of `at`, nearest first (then by id), that pass
 // every key the filter sets: enemies / friends (of the caster: either regards the other's side as hostile; with no
 // caster every unit is an enemy), alive, area (those area spells hit), sight (the line of sight the spell needs, from

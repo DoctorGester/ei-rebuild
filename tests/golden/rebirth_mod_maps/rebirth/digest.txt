@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 4F87D5C9 n 172
+@ 0 update 20 frame 3 tick 20 zone - hash B94622C7 n 172
 + world world
 world tick 20
 world updates 20
@@ -1234,7 +1234,7 @@ timed387 # 7505AFA0
 + timed5147050 75 CEffectPointLight
 timed5147050 # 2E28BE64
 + missile0 spell 39
-missile0 # FEC14634
+missile0 # 32FA1123
 + aievents events
 aievents tick 20
 aievents width 9
@@ -1311,7 +1311,7 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 7 tick 40 zone gz1g hash 82C9D00B n 832
+@ 1 update 40 frame 7 tick 40 zone gz1g hash FFBB8C11 n 832
 world tick 40
 world updates 40
 world timeBase 5.97222233
@@ -7418,9 +7418,9 @@ timed1288868 # FAF7FDBB
 + timed1288891 75 CEffectPointLight
 timed1288891 # 5BC04F0F
 - timed5147050
-missile0 # EF58B7AE
+missile0 # 712EB802
 + missile1 spell 39
-missile1 # 1D6520AE
+missile1 # 27D9F871
 aievents tick 40
 aievents width 33
 aievents height 25
@@ -7458,7 +7458,7 @@ cunit1884 #vitals C3E01DE4
 cunit1000011214 #place DFCF543E
 cunit1000011214 #unit C6081760
 cunit1000011214 #vitals 7D2D89BA
-@ 2 update 60 frame 11 tick 60 zone gz2g hash F495DD1A n 758
+@ 2 update 60 frame 11 tick 60 zone gz2g hash B1A54558 n 758
 world tick 60
 world updates 60
 world timeBase 5.96444464
@@ -13194,7 +13194,7 @@ timed1464 # 15DD8ABA
 - timed1288862
 - timed1288868
 - timed1288891
-missile0 # 2C5594AA
+missile0 # AD7A1912
 - missile1
 aievents tick 60
 aievents width 17
@@ -13228,7 +13228,7 @@ cunit1319 #vitals B073BCC9
 - cunit1884
 cunit1000011214 #place 11FDA130
 cunit1000011214 #unit 2A98EE6D
-@ 3 update 80 frame 15 tick 80 zone gz2g hash 8684C541 n 758
+@ 3 update 80 frame 15 tick 80 zone gz2g hash 55984D01 n 758
 world tick 80
 world updates 80
 random isaac.count 151
@@ -13257,7 +13257,6 @@ obj1319 #ai FE031344
 obj1319 #place 09E7253A
 obj1319 #vitals D8A54B8A
 obj1000011214 #vitals 9BA26E9A
-missile0 # C06E0A35
 aievents tick 80
 client tick 80
 client ticksRun 22

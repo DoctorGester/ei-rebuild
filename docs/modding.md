@@ -746,7 +746,8 @@ spells are on the same path: the lightning arc and curse magic are `Res\spells\L
 magic and the acid ray `Res\spells\Missile.lua`, the fireball `Res\spells\Fireball.lua`, the light strike and the
 acid column `Res\spells\Strike.lua`, the twenty buffs (protections to shrink) `Res\spells\Buff.lua`, the fire wall,
 the light wall and the poison cloud `Res\spells\LastingArea.lua`, healing `Healing.lua`, teleport `Teleport.lua`,
-clairvoyance `Clairvoyance.lua`, fireworks `Fireworks.lua` and vision fog `VisionFog.lua` (built into the game; the
+clairvoyance `Clairvoyance.lua`, fireworks `Fireworks.lua`, vision fog `VisionFog.lua` and the campfire (each flame
+a zone places on the ground casts one) `Campfire.lua` (built into the game; the
 source's `assets/spells/` has them and the fields the game's records get), which a mod's file of that name replaces.
 The showcase mod's Chain Spark ([The showcase mod](#the-showcase-mod)) is this example: a spark that strikes its
 target, then leaps to the nearest enemy it has not struck, each strike 0.6 of the one before, each slowing its victim.
