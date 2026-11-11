@@ -192,8 +192,8 @@ what modders get), so the code they ran and the switches and table rows that key
 lightning arc and curse magic (assets/spells/Lightning.lua), the missiles: fire arrow, Rick magic and acid ray
 (Missile.lua), the fireball (Fireball.lua), the area strikes: light strike and acid column (Strike.lua), the lasting
 areas: fire wall, light wall and poison cloud (LastingArea.lua), the 20 buffs (Buff.lua), healing (Healing.lua),
-teleport (Teleport.lua), clairvoyance (Clairvoyance.lua), fireworks (Fireworks.lua) and vision fog (VisionFog.lua).
-Still in code: the campfire (MF17g4a), and possession, link and charm (cut from the game, unreached: only a save's
+teleport (Teleport.lua), clairvoyance (Clairvoyance.lua), fireworks (Fireworks.lua), vision fog (VisionFog.lua) and
+the campfire (Campfire.lua). Still in code: possession, link and charm (cut from the game, unreached: only a save's
 cast of one starts them).
 
 - **Built in.** `assets/spells/` holds the scripts (CamelCase, by the spell they run) and `spells.sdb.toml`, the
@@ -253,7 +253,8 @@ cast of one starts them).
 - **What differs.** The `SpellEffect` record of a live cast is the scripted one (state 4, no visual / sound / light,
   its objects in `owned`; the digest's missile group, a save's projectile record) and its entry is in the Lua state's
   `casts` until it ends. The world, the units and the timed objects are the same. The saved `nextCast` is the key
-  after the live casts' (1 with none), so a save with no cast going is the same as before the port.
+  after the live casts' (1 with none), so a save with no cast going is the same as before the port. The casts outlive
+  a script reset (lua-scripting.md, "Scheduler"): the campfires a base's objects cast before its scripts load go on.
 - **Old saves.** A save's cast of a ported spell in the C++'s states (1, 2) goes to its script's `OnResume(cast, old)`
   (`SpellEffect::ResumeScripted`, `ScriptSpellHost::Resume`, after the Lua state loaded): the cast gets an entry, the
   C++'s visual, sound and light become its owned objects (an EffectArrow a missile with a nil payload, so OnHit runs
@@ -309,8 +310,16 @@ cast of one starts them).
   - The C++'s spell effect kept its point in `position` (the ground + 1 for fireworks and clairvoyance): their
     OnResume read it as `cast.from`. Their use rows are their records' fields (healing `ai = "heal"`, the others
     none; none offensive or fighting).
-- **Next**: MF17g4a the campfire (every zone's flames on the ground cast one, so every golden's missile records and
-  zone saves change; it counts up forever: `max_ticks = 0`).
+- **The campfire** (Campfire.lua): every flame a zone places on the ground (world_units.cpp `SpecKind::Flame`, its
+  height below 0.7) casts one with no caster (CreateSpellFromText "campfire"), so every zone has some (gz1g two,
+  Lost in Astral's gz10g 31). No objects, no footprint: the torch is its look. OnCast keeps the point's ground + 1
+  (`Ground`, the C++'s position) and schedules from the duration: the C++'s count went up from it for ever, a hit at
+  each count divisible by 4, its first lasting update at tick 1, so the first `Pulse` at `-count % 4 + 1` and then
+  every 4 ticks (`max_ticks = 0`: it never ends). The pulse: `FindUnits` at that point, the radius, area, unsorted;
+  `Damage` fire, area, split by the duration, the credit every pulse (no caster; the C++ never set flags bit 0).
+  OnResume: the point is `cast.from` (the C++'s position), the schedule from `old.ticks` (the C++'s count at the
+  next update). Its use row is its record's fields (none, not offensive or fighting, no damage type: the C++ row's).
+  Cost: a timer call every 4 ticks and the host's table walk on the others, per campfire (measured below).
 - The rest: `spells`, `combat`, `units`, `world`, `particles` and the other healing casts, `unit_ai_heal` (the AI's),
   `spells_more` (fireworks by script, the hero's teleport), `spells_cast` (clairvoyance and vision fog without a
   caster), `spells_hero` (the hero's vision fog), and `spells_old_rest` (tests/saves/rest_old, made by the C++ build:
@@ -318,6 +327,11 @@ cast of one starts them).
   arrives, a healing's light; all resume and end at their counts, the hero arrives; against the C++ build's run of it
   only the missile records differ); `--lua-check` (Position, IsDead, IsHurt, silent, Shout, Reveal, Wake, Notice,
   Vision's arguments).
+- The campfire: every golden (every zone has some; the base and network zones' too, which load their scripts after
+  their objects: the casts carry over that reset; only the missile records and the saves' missile records differ),
+  and `spells_old_campfire` (tests/saves/campfire_old, made by the C++ build: four campfires at counts in two phases,
+  two with blocked WolfTutor wolves in them; all resume, the wolves are burnt and die on the same ticks; against the
+  C++ build's run of it only the missile records differ).
 - Checked by `spells`, `combat_skills` and the other lightning and missile scenarios (the digest's missile records
   differ, all else the same), `spells_old_save` (tests/saves/lightning_old, made by the C++ build: both casts end at
   the load), `spells_old_missile` (tests/saves/missile_old, made by the C++ build: an acid ray lasting, a fire arrow in
@@ -471,7 +485,7 @@ effect objects dropped). The three counted effect objects
 Spell behaviours: 0 / 0x28 fire arrow, 1 / 0x29 lightning, 2 acid ray, 3 fireball, 4 light strike, 5 acid column, 6 fire
 wall, 7 light wall, 8 poison cloud (all eleven on scripts), 9-0x11, 0x13, 0x19, 0x1A, 0x1D-0x22, 0x25, 0x26 buffs (on Buff.lua: the target gets a
 record with byte 1 = trunc(power x 16)), 0x12 fireworks, 0x14 clairvoyance, 0x17 vision fog, 0x18 healing, 0x1C
-teleport (on their scripts), 0x15 possession, 0x1B link, 0x24 charm (cut, in code), 0x27 campfire. `SpellType` names all 42 after the spell database's
+teleport, 0x27 campfire (on their scripts), 0x15 possession, 0x1B link, 0x24 charm (cut, in code). `SpellType` names all 42 after the spell database's
 prototypes (0x16 shapechange and 0x23 comprehend start nothing).
 
 "Power": `pow(clamp(damage / prototype effect, 1, 8), 0.33) - 0.2`, or 1 when the prototype's effect compares equal to 0
@@ -482,8 +496,8 @@ Lights: the prototype's fields 23-27 are its light (`lightColor`, `lightRange`, 
 `lightRange / max(lightRiseDivisor, 1)` a tick, the impact lights 1.5 times faster and further.
 
 Hits: HitUnit skips units the spell may not affect (only checked with a caster) and calls the controller's TakeHit;
-HitUnitsInRadius (the campfire, every 4th tick) hits units that area spells hit (size class set, or the prototype's
-height below 0.5); the walls' FindUnits `along` only those within 0.5 of the vertical plane along their direction.
+FindUnits `area` keeps the units that area spells hit (size class set, or the prototype's height below 0.5); the walls'
+FindUnits `along` only those within 0.5 of the vertical plane along their direction.
 
 Kept: healing and charm read the
 target's class without a null check; charm with a

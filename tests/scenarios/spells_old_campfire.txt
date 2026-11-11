@@ -1,0 +1,30 @@
+# A save from before the campfire moved onto its script (MF17g4a; docs/notes/items_spells.md, "The game's spells on
+# scripts"). tests/saves/campfire_old was made on vanilla data by a build from before the port: a new game, the
+# god-mode hero at (54, 138), WolfTutor wolves added 8 east and 8 west of it and blocked, a script cast of campfire at
+# the east one and a frame later campfire{d2} (three times the duration: its hits a third as strong) at the west one,
+# and F5 2 frames later: both wolves burnt a few times, the zone's two campfires (cast by its flames on the ground) and
+# the two cast ones burning, their counts at 225, 225, 170 and 465 (pulsing in two phases). Loaded now, all four go on
+# through Campfire.lua's OnResume: the wolves are burnt on the ticks the C++ build's run of this scenario burnt them
+# (the dumps at the first hit after the load and at each death, the digest's hit points between), every 4th tick of
+# each count, which goes up for ever.
+# prepare: copy_save.py tests/saves/campfire_old save2
+reject Script error
+waitmenu
+console thingamabob
+load save2
+waitwindow 30 battle
+console @BlockUnit(GetObjectByName("FireWolf"),1) BlockUnit(GetObjectByName("SlowWolf"),1) GSSetVar(0,"cf.hp",HP(GetObjectByName("FireWolf"))) GSSetVar(0,"cf.hp2",HP(GetObjectByName("SlowWolf")))
+dump loaded
+waitfor 5 IsLess(HP(GetObjectByName("FireWolf")),GSGetVar(0,"cf.hp"))
+dump firsthit
+waitfor 5 IsLess(HP(GetObjectByName("SlowWolf")),GSGetVar(0,"cf.hp2"))
+dump slowhit
+waitfor 10 Not(IsAlive(GetObjectByName("FireWolf")))
+dump firedead
+waitfor 20 Not(IsAlive(GetObjectByName("SlowWolf")))
+dump slowdead
+frames 20
+dump later
+check IsAlive(GetLeader())
+report
+quit

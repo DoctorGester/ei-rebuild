@@ -182,8 +182,6 @@ public:
     SpellEffect();
     ~SpellEffect() override;
 
-    // Split between the targets when there are several.
-    void GetDamage(DamageInfo* out);
     // A hit shared by `targets` (more than 1): its amount and multiplier x 4 / targets, as the area spells' split.
     static void SplitHit(DamageInfo* hit, int targets);
     // A spell's hit: no defence roll (attackRoll FLT_MAX), every body part (location 6), `amount` of `type` (its
@@ -193,10 +191,6 @@ public:
     // When the spell may affect `unit` (no caster, or Spell::CanAffect). The attacker is the caster unless
     // flags bit 0 is set.
     void HitUnit(DamageInfo* hit, MapObject* unit);
-
-    // Every unit within `radius` of `position` that area spells hit (units with a size class, and those whose
-    // prototype's height is below 0.5 or NaN) and the spell may affect.
-    void HitUnitsInRadius();
 
     // The casting state of the behaviour `type` (Spell::Behaviour()): its effect objects, the instant hits, the
     // next state (2 lasting, 3 done, 4 scripted; some failed casts leave it at 0) and the timer.
@@ -254,8 +248,8 @@ public:
 
     // One tick. Returns 0 when the effect has ended (the world then removes it) or without a world.
     int Update();
-    // State 2: the lasting spells still in code (the campfire hits every 4th tick); every case counts the timer and
-    // ends the effect.
+    // State 2: the lasting spells still in code (the cut possession and link); every case counts the timer and ends
+    // the effect.
     void UpdateLasting(SpellType type);
     void ReleaseVisual();
     void ReleaseSound();

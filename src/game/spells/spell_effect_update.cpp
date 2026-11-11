@@ -19,13 +19,6 @@ namespace {
 
 // --- State 2 -------------------------------------------------------------------------------------
 
-// Campfire: hits every 4th tick, counting up, forever (until something else ends it).
-void CountingCloud(SpellEffect* e) {
-    int ticks = e->timer;
-    e->timer = ticks + 1;
-    if ((ticks & 3) == 0) e->HitUnitsInRadius();
-}
-
 // Possession: the caster's player sees the target, its controller's two lists and its id;
 // the target is flagged (0x2000000) and the units around it wake.
 // Unreached in the shipped game: CastSpell refuses possession, only a saved projectile of that type gets here.
@@ -100,7 +93,6 @@ void SpellEffect::UpdateLasting(SpellType type) {
     switch (type) {
     case SpellType::Possession: Possession(this); break;
     case SpellType::Link: Link(this); break;
-    case SpellType::Campfire: CountingCloud(this); break;
     default: state = kStateEnded; break;   // a save's cast of a spell that runs on its script now
     }
 }

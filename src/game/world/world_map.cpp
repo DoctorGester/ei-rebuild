@@ -63,12 +63,12 @@ int WorldServer::LoadMap(std::string_view map, std::string_view mob, ByteStream*
     if (graph->Size() != 0 && !aiMap.regionMap.LoadBlocks(graph)) return 0;
 
     if (text::CompareIgnoringCase(mobName, mob) == 0) {
-        // The same zone again: start over.
+        // The same zone again: start over (the casts before the scripts that run them).
+        projectiles.clear();
         MainScript()->Reset();
         SecondScript()->Reset();
         diplomacy.Reset();
         ClearMapObjects();
-        projectiles.clear();
         EndTimedObjects(this);
         keepsState = 0;
         loadedFresh = fromSave == 0;
@@ -115,9 +115,9 @@ void WorldServer::ResetZone() {
     mobFiles.clear();
     countdowns.entries.clear();
     exits.clear();
+    projectiles.clear();   // the casts before the scripts that run them
     MainScript()->Reset();
     SecondScript()->Reset();
-    projectiles.clear();
     ReleaseAndClear(counted);
 
     if (PlayerList()) {
@@ -161,13 +161,12 @@ void WorldServer::TeardownZone() {
     sharedObjects.clear();
     mobFiles.clear();
     aiMap.refreshUnits = false;    // refreshes off
+    // The missiles released (16-bit count, deleted at zero), before the scripts that run them.
+    projectiles.clear();
     MainScript()->Reset();
     SecondScript()->Reset();
     diplomacy.Reset();
     ClearMapObjects();
-
-    // The missiles released (16-bit count, deleted at zero).
-    projectiles.clear();
 
     EndTimedObjects(this);
     CloseSession();

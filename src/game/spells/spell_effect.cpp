@@ -40,32 +40,6 @@ void SpellEffect::HitUnit(DamageInfo* hit, MapObject* unit) {
     unit->ReceiveHit(hit, attacker, caster);
 }
 
-void SpellEffect::HitUnitsInRadius() {
-    DamageInfo hit;
-    GetDamage(&hit);
-    for (Unit* unit : world->aiMap.sectorMap.FindUnitsInRadius(position, HeldSpell()->radius)) {
-        if (!AcceptsAreaSpells(unit)) continue;
-        HitUnit(&hit, unit);
-    }
-}
-
-namespace {
-
-// What a behaviour deals: its damage type, and a hitKind of 1 for the spells that burn an area over time.
-struct SpellDamageKind {
-    DamageType type = {};
-    int hitKind = 0;
-};
-
-constexpr SpellDamageKind kFireArea{DamageType::Fire, 1};
-
-// The damage kind of the behaviour `type`; null for the spells that deal no damage.
-const SpellDamageKind* DamageKindOf(SpellType type) {
-    return type == SpellType::Campfire ? &kFireArea : nullptr;
-}
-
-} // namespace
-
 DamageInfo SpellEffect::TypedHit(DamageType type, float amount, int hitKind) {
     DamageInfo hit;
     hit.location = 6;
@@ -76,19 +50,6 @@ DamageInfo SpellEffect::TypedHit(DamageType type, float amount, int hitKind) {
     hit.amount = amount;
     hit.hitKind = hitKind;
     return hit;
-}
-
-void SpellEffect::GetDamage(DamageInfo* out) {
-    const Spell* record = HeldSpell();
-    if (const SpellDamageKind* kind = DamageKindOf(record->Behaviour())) {
-        *out = TypedHit(kind->type, record->damage, kind->hitKind);
-    } else {
-        *out = TypedHit(DamageType::Other, 0.0f, 0);
-        out->Weight(DamageType::Other) = 0.0f;   // a behaviour that deals no damage: a hit of no type
-    }
-
-    // The duration is the number of targets the damage is split between.
-    SplitHit(out, static_cast<int>(record->duration));
 }
 
 void SpellEffect::SplitHit(DamageInfo* hit, int targets) {
@@ -191,7 +152,7 @@ void SpellEffect::ResumeScripted() {
 
 // A spell effect's casting state (SpellEffect::Update state 0) and the helpers that create its effect
 // objects. A scripted spell's cast (the game's own spells are on scripts: assets/spells) starts its script; the cut
-// spells still in code (possession, link, charm) and the campfire start here. Also the cast spell's lifetime. See
+// spells still in code (possession, link, charm) start here. Also the cast spell's lifetime. See
 // docs/notes/items_spells.md.
 
 using namespace spellfx;
@@ -262,14 +223,6 @@ void StartScripted(SpellEffect* e) {
     e->state = e->world->MainScript()->Runner().spells.Cast(*e) ? kStateScripted : kStateEnded;
 }
 
-// Campfire: the effect only moves to the ground point.
-void StartAtGround(SpellEffect* e) {
-    Vector3 centre = e->targetPoint;
-    centre.z = e->world->GridHeightAt(centre.x, centre.y) + 1.0f;
-    e->position = centre;
-    EnterLasting(e);
-}
-
 } // namespace
 
 void SpellEffect::Start(SpellType type) {
@@ -279,7 +232,6 @@ void SpellEffect::Start(SpellType type) {
     case SpellType::Possession: StartPossession(this); break;
     case SpellType::Link: StartLink(this); break;
     case SpellType::Charm: StartCharm(this); break;
-    case SpellType::Campfire: StartAtGround(this); break;
     case SpellType::Scripted: StartScripted(this); break;
     default: state = kStateEnded; break;   // Shapechange, Comprehend and None
     }

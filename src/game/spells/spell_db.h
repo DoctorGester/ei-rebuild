@@ -80,7 +80,7 @@ enum class SpellType : int {
     Charm = 0x24,
     Enlarge = 0x25,
     Shrink = 0x26,
-    Campfire = 0x27,                // StartAtGround: the effect stands at the ground point
+    Campfire = 0x27,
     RickMagic = 0x28,               // "rick_magic", school fire: a fire arrow with the RikArrowSmoke trail
     CurseMagic = 0x29,              // "curse_magic", school lightning: lightning (CreateLightning's flag 1)
     Scripted = 0xFE,                // its record's script runs every cast (SpellRecord::script); the tables read its fields

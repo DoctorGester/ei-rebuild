@@ -427,7 +427,12 @@ Su1 = Script {
 What exists (L4): `src/game/script/script_lua_scheduler.h` (`ScriptLuaScheduler`), owning a `ScriptLua` on a
 `Script` (whose effects, temporaries and quest builder the bindings use) and filling its `startScript`; every text the
 script loads comes to it ("Texts at runtime"). Every world script runs on one (`Script::runner`, made by
-`Script::Runner` at the first load after a Reset). Checked by the goldens and `--lua-check` ("Verification").
+`Script::Runner` at the first load after a Reset). A Reset carries the spell casts going over to the next runner
+(`ScriptSpellHost::Hand` persists their entries with Eris, `Take` restores them in the new state with their keys and
+effects): a base's or a network zone's objects cast its campfires (items_spells.md) before `LoadZoneScripts` resets
+the main script for the zone's own scripts, and the world keeps the casts. The teardowns (ResetZone, TeardownZone,
+the same zone loaded again, Destroy) clear the world's casts before the scripts, so nothing carries there; a save's
+load (`LoadState`) drops the runner without carrying. Checked by the goldens and `--lua-check` ("Verification").
 
 - **Load(text, name, runWorldScript).** The chunk runs; its `WorldScript` is taken out of the globals and kept (load
   order) for the zone reset, and with `runWorldScript` started as a run at the head of the list, first resumed by the

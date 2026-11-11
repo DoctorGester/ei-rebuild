@@ -14,6 +14,7 @@
 #include <functional>
 #include <map>
 #include <string>
+#include <string_view>
 
 class ScriptLuaScheduler;
 class SpellEffect;
@@ -50,6 +51,13 @@ public:
     // persisted table at `root`, and back.
     void Save(int root);
     void Restore(int root);
+
+    // A script reset (Script::Reset) moves the casts going to the new scheduler's host, as the zone's world keeps
+    // them: a base's objects cast its campfires before its scripts load. Hand persists their entries (Save's table)
+    // into *data and moves their effects into *effects, this host then holding none; false when no cast lives. Take
+    // gives them their entries, keys and this host.
+    bool Hand(std::string* data, std::map<int, SpellEffect*>* effects);
+    void Take(std::string_view data, const std::map<int, SpellEffect*>& effects);
 
     // A module file's text by its name below Res\spells\ (the top layer that has it); false when there is none. Its
     // default reads the files through the mod layers, then the game's own (assets/spells, built in).
