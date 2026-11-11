@@ -1,18 +1,14 @@
 // The particle manager's own members: create / destroy, making sources it holds, ticking every source and
 // letting go of the held ones. See effects.h (ParticleManager) and docs/notes/effects.md, "Particle sources".
-#include "game/effects/effects.h"
+#include "game/effects/particle_source.h"
 #include "game/effects/particle_data.h"
+#include "game/effects/particle_host.h"
 
 #include "game/scene/camera.h"
 #include "game/core/engine_object.h"
-#include "game/app/singletons.h"
-#include "game/objects/map_object.h"
-#include "game/objects/object3d.h"
 #include "game/scene/scene_renderer.h"
 #include "game/scene/pipeline.h"
 #include "game/core/random.h"
-#include "game/units/unit.h"
-#include "game/world/world.h"
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -120,58 +116,12 @@ void ParticleManagerClearQuietStart(ParticleManager* manager) {
 
 // --- Particle attach ---------------------------------------------------------------------------------
 
-// Particle sources that follow an object: Attach, the attachment point and its part lookup, the attachment offset
-// and StopAndClear. The object a source follows is a map object (attachedTo). With ParticleSourceFlag::OnPart a
-// source on a unit sits on the part attachPoint names; otherwise on top of the object's bounds.
-
-namespace {
-
-// The part each AttachPoint asks for (EffectPoint none); Body asks for "bd" twice (the fallback part).
-const char* const kPartNames[13] = {nullptr, "hd", "hd", "lh2", "rh2", "ll2", "rl2", "bd",
-                                    "body00", "body01", "body02", "body03", "body04"};
-
-} // namespace
+// Particle sources that follow an object: Attach and StopAndClear. The object a source follows is a map object
+// (attachedTo); where the source sits on it is the host's (particlehost::CarrierPoint).
 
 void ParticleSource::ReleaseAllParticles() {
     for (Particle* p : particles) Manager()->ReleaseParticle(p);
     particles.clear();
-}
-
-Vector3 ParticleSource::PartPoint(Object3D* object, const char* prefix) {
-    FigureMesh* part = object->FindPartByPrefix(prefix);
-    if (!part) part = object->FindPartByPrefix("bd");
-    if (part) {
-        Vector3 point = object->PartWorldPosition(part);
-        return point;
-    }
-    return {object->localPosition.x, object->localPosition.y, object->localPosition.z + object->bounds.boxMax.z};
-}
-
-Vector3 ParticleSource::AttachmentPoint(Object3D* object) {
-    if (!object) return {0.0f, 0.0f, 0.0f};
-    if (!(flags & ParticleSourceFlag::OnPart)) return object->localPosition;
-    if (Unit* unit = UnitOrNull(object)) {
-        if (attachPoint == AttachPoint::EffectPoint) return unit->EffectPoint();
-        Vector3 at = PartPoint(object, kPartNames[static_cast<int>(attachPoint)]);
-        if (attachPoint == AttachPoint::AboveHead) at.z = at.z + 1.0f;
-        return at;
-    }
-    float rise = lib::Has(object->bounds.flags, BoundsFlag::Sphere) ? object->bounds.radius * 1.6f
-                                                                  : object->bounds.boxMax.z - object->bounds.boxMin.z;
-    return {object->localPosition.x, object->localPosition.y, rise + object->localPosition.z};
-}
-
-ParticleSource::Attachment ParticleSource::AttachmentOffset() {
-    Object3D* object = attachedTo;
-    if (!object) return {{0.0f, 0.0f, 0.0f}, 0.1f};
-    object->ComputeBounds();
-    float radius;
-    if (lib::Has(object->bounds.flags, BoundsFlag::Sphere)) {
-        radius = object->bounds.radius;
-    } else {
-        radius = std::sqrt(LengthSquared(object->bounds.boxMax - object->bounds.boxMin)) * 0.5f;
-    }
-    return {{0.0f, 0.0f, object->bounds.center.z}, radius};
 }
 
 void ParticleSource::Attach(MapObject* object) {
@@ -184,20 +134,18 @@ void ParticleSource::Attach(MapObject* object) {
     if (old) {
         if (!object) {
             // Let go where the source is: the attachment point becomes part of the position.
-            localPosition = AttachmentPoint(old) + localPosition;
+            localPosition = particlehost::CarrierPoint(*this, old) + localPosition;
         }
         // Drops the source and calls Attach(null) again (nothing to do then but the origin).
-        old->RemoveEffectSource(this);
+        particlehost::LetGo(old, this);
     }
     attachedTo = object;
     if (!object) {
         origin = localPosition;
         return;
     }
-    object->ComputeBounds();
-    // Adds the source and calls Attach(object) again (already attached: nothing).
-    attachedTo->AddEffectSource(this);
-    origin = AttachmentPoint(attachedTo);
+    particlehost::Follow(object, this);
+    origin = particlehost::CarrierPoint(*this, attachedTo);
 }
 
 void ParticleSource::StopAndClear() {
@@ -234,19 +182,12 @@ namespace {
 // The particles' draw order, reused by every frame.
 std::vector<ParticleDepth> g_drawOrder;
 
-// A source attached to a unit is drawn only while the unit has MapObjectFlag::InParty.
-bool AttachedToHiddenUnit(const ParticleSource* s) {
-    EngineObject* object = s->attachedTo;
-    if (!object) return false;
-    return object->GetClassId() == ClassId::Unit && !(object->flags & MapObjectFlag::InParty);
-}
-
 } // namespace
 
 // The attachment point plus the local position, or the local position alone.
 Vector3 ParticleSource::WorldPosition() {
     if (attachedTo) {
-        return AttachmentPoint(attachedTo) + localPosition;
+        return particlehost::CarrierPoint(*this, attachedTo) + localPosition;
     }
     return localPosition;
 }
@@ -275,7 +216,7 @@ int ParticleManager::DrawAll(SceneRenderer* renderer) {
     for (int i = 0; i < std::ssize(order); ++i) {
         ParticleSource* s = order[i].source;
         if (s->flags & ParticleSourceFlag::NotDrawn) continue;
-        if (AttachedToHiddenUnit(s)) continue;
+        if (particlehost::Hidden(s->attachedTo)) continue;
         if (s->additiveBlend && !additive) {
             renderer->SetBlend(render::Blend::SourceAlpha, render::Blend::One);
             additive = true;
@@ -309,7 +250,7 @@ constexpr int kReserve = 0x1000;
 
 // How far the frame is between the last tick and the next, clamped to [0, 1] (NaN gives 1).
 float Interpolation() {
-    float fraction = g_clientWorld.tickFraction;
+    float fraction = particlehost::TickFraction();
     float clamped = MinKeepA(1.0f, fraction);
     return MaxKeepB(clamped, 0.0f);
 }
@@ -398,7 +339,7 @@ void RestorePrevious(Particle* p) {
 // position alone); the emission point moves there.
 void Follow(ParticleSource& s) {
     if (s.attachedTo) {
-        Vector3 at = s.AttachmentPoint(s.attachedTo) + s.localPosition;
+        Vector3 at = particlehost::CarrierPoint(s, s.attachedTo) + s.localPosition;
         s.motion = at - s.origin;
         s.origin = at;
     } else {
@@ -517,12 +458,12 @@ void ParticleSource::AddParticle(Particle* p) {
 // alive (ParticleSourceFlag::KeepAlive) or has particles, an attached one while it emits or has particles.
 bool ParticleSource::RunTick() {
     if (hiddenTicks >= kIdleAfterHidden && (flags & ParticleSourceFlag::IdlesOffScreen)) return true;
-    const WorldClient* world = &g_clientWorld;
-    windDirection = world->windDirection;
-    windStrength = world->windStrength;
+    const particlehost::Wind wind = particlehost::CurrentWind();
+    windDirection = wind.direction;
+    windStrength = wind.strength;
     boundsMin = {kBoundsFar, kBoundsFar, kBoundsFar};
     boundsMax = {-kBoundsFar, -kBoundsFar, -kBoundsFar};
-    if (attachedTo && (attachedTo->flags & MapObjectFlag::Removed)) Attach(nullptr);
+    if (attachedTo && particlehost::Removed(attachedTo)) Attach(nullptr);
 
     Follow(*this);
     BuildBasis(*this);

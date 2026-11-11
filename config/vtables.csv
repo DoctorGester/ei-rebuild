@@ -130,7 +130,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073CA64,7,,game,0047D7F0 0047D970 00579B80,004DA580,BufferView,src/game/core/coder.h,a fixed view over memory owned elsewhere
 0073CAB0,1,,game,004800E0 00481560 00481580 004815D0,00481580,GameException,-,the thrown error object's base; stored only by game.exe (ours throws std::runtime_error)
 0073CAB4,1,,game,00480250 00480300,004815B0,DXException,-,the thrown error object; stored only by game.exe
-0073CFD0,18,,game,004981B0 00498310,004982F0,ParticleSource,src/game/effects/effects.h,a particle source (CParticleSource)
+0073CFD0,18,,game,004981B0 00498310,004982F0,ParticleSource,src/game/effects/particle_source.h,a particle source (CParticleSource)
 0073D018,3,,game,004981B0 00498310 00498CA0 005627C0 0056FD40,007005E3,ClientListClass,-,CList (the client map's lists (world_client_maps 0056FD40)); stored only by game.exe (ours is a std::list)
 0073D024,3,,game,00498E60 00498E80,007005E3,ParticleDepthArrayClass,-,CArray (the particles' draw order 007A9C50); stored only by game.exe (ours is a std::vector)
 0073D030,3,,game,00499DC0 00499E30 00499E90,006E73EB,CCloudNoise,-,the cloud noise base (slots 0 / 1 _purecall); stored only by game.exe (00499DC0 / 00499E30 / 00499E90: its constructor and destructors); ours is the one class CGlobalMapClouds
@@ -292,7 +292,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073F5B8,25,,game,00561E50,00562EA0,LightningManager,src/game/effects/lightning.h,
 0073F61C,3,,game,00561E50 00562EC0 00571F10,007005E3,ClientObjectList2Class,-,CList (engine objects in the client maps); stored only by game.exe (ours is a std::list)
 0073F628,7,,game,00561E50 005626B0 005626D0,00562750,ClientHandle,src/game/world/world.h,the client world's player source
-0073F644,25,,game,00561E50 005627C0,005627A0,ParticleManager,src/game/effects/effects.h,
+0073F644,25,,game,00561E50 005627C0,005627A0,ParticleManager,src/game/effects/particle_source.h,
 0073F6A8,16,,game,00561E50 00562B80,00562B60,Terrain,src/game/terrain/terrain.h,the client's terrain
 0073F6E8,2,,lib,006E81C2,00401510,Terrain,src/game/terrain/terrain.h,the tail of 0073F6A8 (a byte match in 006E81C2)
 0073F6F0,13,,game,00561E50 005629B0,00562990,TextManager,src/game/data/text_manager.h,the client's text manager

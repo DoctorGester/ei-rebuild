@@ -367,6 +367,7 @@ spell_effect_internal.h     spells/spell_effect_internal.h
 # ---- effects: particles, the world's effect objects, lightning, weather, the visibility fog ------------------------
 effects.h                   effects/effects.h
 effects_weather.cpp         effects/effects_weather.cpp
+effects_particles.cpp       effects/effects_particles.cpp
 weather_particles.cpp       effects/weather_particles.cpp
 weather_field.h             effects/weather_field.h
 weather_field.cpp           effects/weather_field.cpp
@@ -380,6 +381,8 @@ particle_record.h           effects/particle_record.h
 particle_record.cpp         effects/particle_record.cpp
 particle_data.h             effects/particle_data.h
 particle_data.cpp           effects/particle_data.cpp
+particle_source.h           effects/particle_source.h
+particle_host.h             effects/particle_host.h
 lightning.h                 effects/lightning.h
 lightning.cpp               effects/lightning.cpp
 world_effect.h              effects/world_effect.h

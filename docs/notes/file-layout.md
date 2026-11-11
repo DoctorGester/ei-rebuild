@@ -354,7 +354,7 @@ Risks:
 | `console/` | 5 | 2038 | C168e |
 | `core/` | 28 | 3903 | C168d |
 | `data/` | 16 | 5810 | C168d |
-| `effects/` | 25 | 9450 | C168g |
+| `effects/` | 28 | 9530 | C168g |
 | `items/` | 10 | 2958 | C168g |
 | `map/` | 15 | 4292 | C168e |
 | `models/` | 25 | 8215 | C168g |
@@ -371,9 +371,9 @@ Risks:
 | `ui/` | 97 | 33145 | C168h |
 | `units/` | 27 | 9850 | C168f |
 | `world/` | 35 | 10290 | C168e |
-| all | 520 | 163008 | |
+| all | 523 | 163088 | |
 
-567 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
+570 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
 
 ### Every file
 
@@ -554,6 +554,7 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | Today | After | Op | Why |
 |---|---|---|---|
 | effects.h | effects/effects.h |  |  |
+| effects_particles.cpp | effects/effects_particles.cpp |  |  |
 | effects_weather.cpp | effects/effects_weather.cpp |  |  |
 | embed_effects.cmake | effects/embed_effects.cmake |  |  |
 | lightning.cpp | effects/lightning.cpp |  |  |
@@ -563,9 +564,11 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | particle_data.h | effects/particle_data.h |  |  |
 | particle_expr.cpp | effects/particle_expr.cpp |  |  |
 | particle_expr.h | effects/particle_expr.h |  |  |
+| particle_host.h | effects/particle_host.h |  |  |
 | particle_manager.cpp | effects/particle_manager.cpp |  |  |
 | particle_record.cpp | effects/particle_record.cpp |  |  |
 | particle_record.h | effects/particle_record.h |  |  |
+| particle_source.h | effects/particle_source.h |  |  |
 | vis_fog_manager.cpp | effects/vis_fog_manager.cpp |  |  |
 | weather_field.cpp | effects/weather_field.cpp |  |  |
 | weather_field.h | effects/weather_field.h |  |  |
