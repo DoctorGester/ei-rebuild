@@ -9,7 +9,9 @@
 #include "game/effects/particle_data.h"
 #include "game/models/texture.h"
 #include "game/objects/map_object.h"
+#include "game/objects/map_object_manager.h"
 #include "game/terrain/terrain.h"
+#include "game/units/unit.h"
 #include "game/world/world.h"
 
 #include "lib/bit_flags.h"
@@ -43,6 +45,10 @@ enum class Event : std::uint8_t {
     Turn,           // turnCos and turnSin of the angle `value` (a zone exit's)
     Extent,         // the source's extent (a zone exit's red: x not 0; a wall's length)
     Wind,           // the world's wind: its direction `vector` and strength `value`
+    Yaw,            // the carrier turned to `value` radians about z
+    Run,            // a unit carrier runs (MoveMode::Run)
+    Walk,           // a unit carrier walks
+    Die,            // a unit carrier dies (IsDead)
 };
 
 struct Step {
@@ -59,6 +65,7 @@ struct Case {
     float size;             // the effect object's size (ScaleSize(size / baseSize), as EffectParticle::Spawn)
     int ticks;
     std::vector<Step> steps;
+    bool unit = false;      // the carrier is a hero (Unit) instead of a stone
 };
 
 const Vector3 kStill = {0.0f, 0.0f, 0.0f};
@@ -146,6 +153,41 @@ const std::vector<Case>& Cases() {
          {{1, Velocity, 0.0f, {0.05f, 0.03f, 0.0f}}, {10, Scale, 0.5f}, {30, Remove}, {35, Attach}, {50, StopEmitting}}},
         {"Nuke", Nuke, false, 1.0f, 60, {}},
         {"Nuke rescaled, started again", Nuke, false, 2.5f, 50, {{5, Scale, 0.8f}, {20, StartEmitting}, {28, StopEmitting}}},
+        {"VisionStar1 on a unit, stopped", VisionStar1, true, 1.0f, 40, {{20, StopEmitting}}, true},
+        {"VisionStar2 on a walking unit, stopped, started again", VisionStar2, true, 1.2f, 45,
+         {{1, Velocity, 0.0f, {0.05f, 0.02f, 0.0f}}, {20, StopEmitting}, {30, StartEmitting}}, true},
+        {"VisionStar3 let go, carried again", VisionStar3, true, 0.8f, 40, {{12, Remove}, {20, Attach}}},
+        {"VisionStar4 rescaled, stopped", VisionStar4, true, 1.0f, 30, {{5, Scale, 2.0f}, {15, Stop}}, true},
+        {"Regeneration on a unit, stopped", Regeneration, true, 1.0f, 35, {{15, StopEmitting}}, true},
+        {"Regeneration on a turning stone, let go", Regeneration, true, 1.4f, 40,
+         {{1, Yaw, 0.6f}, {8, Yaw, 2.5f}, {12, Remove}, {16, Attach}, {25, Stop}}},
+        {"Stun on a unit that runs, then dies", Stun, true, 1.0f, 30,
+         {{5, Run}, {10, Walk}, {12, Run}, {18, Walk}, {22, Die}}, true},
+        {"Stun on a stone", Stun, true, 1.0f, 8, {}},
+        {"Stun on a unit, let go", Stun, true, 1.3f, 20, {{3, Run}, {8, Remove}}, true},
+        {"Stun carried late, rescaled", Stun, false, 1.0f, 20, {{3, Attach}, {8, Scale, 2.0f}, {14, StopEmitting}}, true},
+        {"FeetCloud1 on a walking unit, stopped", FeetCloud1, true, 1.0f, 35,
+         {{1, Velocity, 0.0f, {0.05f, -0.02f, 0.0f}}, {20, StopEmitting}}, true},
+        {"FeetCloud2 on a stone, rescaled, let go", FeetCloud2, true, 1.0f, 35,
+         {{5, Scale, 1.5f}, {15, Remove}, {20, Attach}}},
+        {"StartTrans on a unit", StartTrans, true, 1.0f, 50, {}, true},
+        {"StartTrans rescaled, let go", StartTrans, true, 1.0f, 30, {{4, Scale, 2.0f}, {10, Remove}}},
+        {"Shower1 on a unit", Shower1, true, 1.0f, 15, {}, true},
+        {"Shower2 with few rays", Shower2, true, 0.8f, 15, {{1, Alpha, 0.3f}}},
+        {"Shower3 carried late, rescaled", Shower3, false, 1.0f, 20, {{3, Attach}, {5, Scale, 2.0f}}},
+        {"Shower4 on a fast unit, started again", Shower4, true, 1.0f, 15,
+         {{1, Velocity, 0.0f, {1.2f, 0.0f, 0.3f}}, {9, StartEmitting}}, true},
+        {"Falling1 on a unit", Falling1, true, 1.0f, 40, {}, true},
+        {"Falling2 on a stone, started again", Falling2, true, 1.0f, 40, {{3, StartEmitting}}},
+        {"Falling3 on a fast stone", Falling3, true, 1.0f, 40, {{1, Velocity, 0.0f, {900.0f, 0.0f, 0.0f}}, {2, Velocity, 0.0f, kStill}}},
+        {"Falling4 large", Falling4, true, 2.0f, 40, {}, true},
+        {"SphereAcid on a unit", SphereAcid, true, 1.0f, 30, {}, true},
+        {"SphereElectricity on a walking unit", SphereElectricity, true, 1.0f, 40,
+         {{1, Velocity, 0.0f, {0.05f, 0.03f, 0.0f}}, {25, Velocity, 0.0f, kStill}}, true},
+        {"SphereFire rescaled, let go", SphereFire, true, 1.0f, 35, {{10, Scale, 0.5f}, {20, Remove}, {25, Attach}}},
+        {"Antimagic on a fast unit, stopped, started again", Antimagic, true, 1.0f, 30,
+         {{1, Velocity, 0.0f, {0.3f, -0.1f, 0.02f}}, {15, StopEmitting}, {20, StartEmitting}}, true},
+        {"SphereAcid small", SphereAcid, true, 0.05f, 15, {}},
     };
     return cases;
 }
@@ -196,11 +238,26 @@ std::vector<std::string> Run(const Case& c, int index, std::ofstream* dump) {
 
     g_clientWorld.particleManager = std::make_unique<ParticleManager>();
     g_clientWorld.particleManager->Init(&g_clientWorld);
-    auto* carrier = new CStone();   // no manager: deleted at the end, as lua_check's stones
+    // No manager: deleted at the end, as lua_check's stones. A hero is the particle manager's (a unit's effect point
+    // asks its world).
+    MapObject* carrier = nullptr;
+    Unit* unit = nullptr;
+    if (c.unit) {
+        unit = new Unit();
+        unit->type = static_cast<int>(MapObjectType::Hero);
+        unit->SetOwner(g_clientWorld.particleManager.get());
+        carrier = unit;
+    } else {
+        carrier = new CStone();
+    }
     carrier->localPosition = {12.5f, -7.25f, 3.0f};
     carrier->bounds.flags |= lib::Bits(BoundsFlag::Sphere);
     carrier->bounds.radius = 0.55f;
     carrier->bounds.center = {0.0f, 0.0f, 0.9f};
+    if (unit) {
+        carrier->bounds.boxMin = {-0.4f, -0.4f, -0.9f};
+        carrier->bounds.boxMax = {0.4f, 0.4f, 0.9f};
+    }
 
     ParticleSource* s = g_clientWorld.particleManager->CreateSource(static_cast<int>(c.type));
     if (!s) {
@@ -241,6 +298,10 @@ std::vector<std::string> Run(const Case& c, int index, std::ofstream* dump) {
                     g_clientWorld.windDirection = step.vector;
                     g_clientWorld.windStrength = step.value;
                     break;
+                case Event::Yaw: carrier->localRotation = Quaternion::AxisAngle({0.0f, 0.0f, 1.0f}, step.value); break;
+                case Event::Run: if (unit) unit->moveMode = MoveMode::Run; break;
+                case Event::Walk: if (unit) unit->moveMode = MoveMode::Walk; break;
+                case Event::Die: if (unit) unit->dead = 1; break;
                 }
             }
             carrier->localPosition += velocity;
@@ -280,8 +341,8 @@ std::vector<std::string> Run(const Case& c, int index, std::ofstream* dump) {
         s->Attach(nullptr);
         s->Release();
     }
-    g_clientWorld.particleManager.reset();
     delete carrier;
+    g_clientWorld.particleManager.reset();
     return lines;
 }
 
