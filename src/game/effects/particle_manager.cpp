@@ -434,7 +434,6 @@ void BuildBasis(ParticleSource& s) {
 int EmitParticle(ParticleSource& s, Particle& p, int index) {
     if (s.data) return effectdata::EmitData(s, p, index);
     switch (ParticleTypeOf(s.type)) {
-    case ParticleType::FireBall: return EmitFireBall(s, p, index);
     case ParticleType::CampFire: case ParticleType::Fire: case ParticleType::Smoke: return EmitSmoke(s, p, index);
     case ParticleType::Tendril: return EmitTendril(s, p, index);
     case ParticleType::FireBlast: return EmitBlast(s, p, index);
@@ -452,8 +451,6 @@ int EmitParticle(ParticleSource& s, Particle& p, int index) {
     case ParticleType::Mushroom: case ParticleType::Transform: return EmitMushroom(s, p, index);
     case ParticleType::Shower1: case ParticleType::Shower2: case ParticleType::Shower3: case ParticleType::Shower4:
         return EmitShower(s, p, index);
-    case ParticleType::FireArrow: case ParticleType::RikArrowSmoke: return EmitArrowSmoke(s, p, index);
-    case ParticleType::AcidRay: return EmitAcidRay(s, p, index);
     case ParticleType::BlueGas: return EmitStench(s, p, index);
     case ParticleType::Link: return EmitLink(s, p, index);
     case ParticleType::SphereAcid: case ParticleType::SphereElectricity: case ParticleType::SphereFire:
@@ -474,19 +471,16 @@ int EmitParticle(ParticleSource& s, Particle& p, int index) {
     case ParticleType::Falling1: case ParticleType::Falling2: case ParticleType::Falling3:
     case ParticleType::Falling4:
         return EmitFalling(s, p, index);
-    case ParticleType::ZoneExit: return EmitZoneExit(s, p, index);
     case ParticleType::ShapeChange: return EmitGlow(s, p, index);
     case ParticleType::GroundDust1: case ParticleType::GroundDust2: return EmitGroundDust(s, p, index);
     case ParticleType::Bag: return EmitBag(s, p, index);
     case ParticleType::Portal: return EmitPortal(s, p, index);
     case ParticleType::Cylinder1: case ParticleType::Cylinder2: return EmitCylinder(s, p, index);
-    case ParticleType::Sparks: return EmitSparks(s, p, index);
     case ParticleType::VisionStar1: case ParticleType::VisionStar2: case ParticleType::VisionStar3:
     case ParticleType::VisionStar4:
         return EmitVisionStar(s, p, index);
     case ParticleType::Regeneration: return EmitRegeneration(s, p, index);
     case ParticleType::Silence: return EmitSilence(s, p, index);
-    case ParticleType::FeebleMind: return EmitFeebleMind(s, p, index);
     case ParticleType::FeetCloud1: case ParticleType::FeetCloud2: return EmitFeetCloud(s, p, index);
     case ParticleType::Stun: return EmitStun(s, p, index);
     case ParticleType::StartTrans: return EmitStartTrans(s, p, index);
@@ -498,7 +492,6 @@ int EmitParticle(ParticleSource& s, Particle& p, int index) {
 int UpdateParticle(ParticleSource& s, Particle& p) {
     if (s.data) return effectdata::UpdateData(s, p);
     switch (ParticleTypeOf(s.type)) {
-    case ParticleType::FireBall: return UpdateFireBall(s, p);
     case ParticleType::CampFire: case ParticleType::Fire: case ParticleType::Smoke: case ParticleType::Tendril:
         return UpdateSmoke(s, p);
     case ParticleType::FireBlast: return UpdateBlast(s, p);
@@ -516,8 +509,6 @@ int UpdateParticle(ParticleSource& s, Particle& p) {
     case ParticleType::Mushroom: case ParticleType::Transform: return UpdateMushroom(s, p);
     case ParticleType::Shower1: case ParticleType::Shower2: case ParticleType::Shower3: case ParticleType::Shower4:
         return UpdateShower(s, p);
-    case ParticleType::FireArrow: case ParticleType::RikArrowSmoke: return UpdateArrowSmoke(s, p);
-    case ParticleType::AcidRay: return UpdateAcidRay(s, p);
     case ParticleType::BlueGas: return UpdateStench(s, p);
     case ParticleType::Link: return UpdateLink(s, p);
     case ParticleType::SphereAcid: case ParticleType::SphereElectricity: case ParticleType::SphereFire:
@@ -538,19 +529,16 @@ int UpdateParticle(ParticleSource& s, Particle& p) {
     case ParticleType::Falling1: case ParticleType::Falling2: case ParticleType::Falling3:
     case ParticleType::Falling4:
         return UpdateFalling(s, p);
-    case ParticleType::ZoneExit: return UpdateZoneExit(s, p);
     case ParticleType::ShapeChange: return UpdateGlow(s, p);
     case ParticleType::GroundDust1: case ParticleType::GroundDust2: return UpdateGroundDust(s, p);
     case ParticleType::Bag: return UpdateBag(s, p);
     case ParticleType::Portal: return UpdatePortal(s, p);
     case ParticleType::Cylinder1: case ParticleType::Cylinder2: return UpdateCylinder(s, p);
-    case ParticleType::Sparks: return UpdateSparks(s, p);
     case ParticleType::VisionStar1: case ParticleType::VisionStar2: case ParticleType::VisionStar3:
     case ParticleType::VisionStar4:
         return UpdateVisionStar(s, p);
     case ParticleType::Regeneration: return UpdateRegeneration(s, p);
     case ParticleType::Silence: return UpdateSilence(s, p);
-    case ParticleType::FeebleMind: return UpdateFeebleMind(s, p);
     case ParticleType::FeetCloud1: case ParticleType::FeetCloud2: return UpdateFeetCloud(s, p);
     case ParticleType::Stun: return UpdateStun(s, p);
     case ParticleType::StartTrans: return UpdateStartTrans(s, p);

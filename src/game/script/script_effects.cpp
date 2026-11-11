@@ -22,9 +22,6 @@ namespace {
 
 // The particle types CreateParticleSource accepts: name, EffectParticle type, lifetime in ticks (-1 forever).
 constexpr ScriptParticleType kScriptParticleTypes[kScriptParticleTypeCount] = /*0078B120*/ {
-    {"AcidRay", 0x2012, -1},
-    {"FireArrow", 0x2011, -1},
-    {"FireBall", 0x2000, -1},
     {"CampFire", 0x2001, -1},
     {"FireBlast", 0x2002, 200},
     {"LightningBlast", 0x2030, 200},
@@ -66,17 +63,14 @@ constexpr ScriptParticleType kScriptParticleTypes[kScriptParticleTypeCount] = /*
     {"CastingDomination", 0x202C, -1},
     {"CastingEnchantment", 0x202D, -1},
     {"CastingHealing", 0x202E, -1},
-    {"ZoneExit", 0x2038, -1},
     {"Portal", 0x203E, -1},
     {"Cylinder1", 0x203F, 200},
     {"Cylinder2", 0x2040, 200},
-    {"Sparks", 0x2043, 60},
     {"VisionStar1", 0x2044, -1},
     {"VisionStar2", 0x2045, -1},
     {"VisionStar3", 0x2046, -1},
     {"Regeneration", 0x2047, -1},
     {"Silence", 0x2048, -1},
-    {"FeebleMind", 0x2049, -1},
     {"FeetCloud1", 0x204A, -1},
     {"FeetCloud2", 0x204B, -1},
     {"CurseHolder", 0x2050, -1},

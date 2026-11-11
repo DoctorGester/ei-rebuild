@@ -129,11 +129,13 @@ constexpr std::string_view kSourceNames[kSourceValues] = {
     "size", "height", "growth", "alpha", "param", "base_size", "age", "stage_age", "stage", "carrier_radius",
     "carrier_z", "attached", "distance", "motion.x", "motion.y", "motion.z", "origin.x", "origin.y", "origin.z",
     "count", "index", "total", "wind.x", "wind.y", "wind_strength", "extent.x", "extent.y", "extent.z", "turn_cos",
-    "turn_sin", "emitting",
+    "turn_sin", "emitting", "spread_min.x", "spread_min.y", "spread_min.z", "spread_max.x", "spread_max.y",
+    "spread_max.z", "side.x", "side.y", "side.z", "up.x", "up.y", "up.z",
 };
 constexpr std::string_view kAnchorNames[kAnchorValues] = {"index", "count", "age", "ticks", "x", "y", "z"};
 constexpr std::string_view kParticleNames[kParticleValues] = {
     "age", "life", "t", "x", "y", "z", "vx", "vy", "vz", "size", "alpha", "frame", "anchor", "index",
+    "spawn.x", "spawn.y", "spawn.z",
 };
 constexpr std::string_view kParts[] = {
     "effect_point", "head", "above_head", "left_hand", "right_hand", "left_leg", "right_leg", "body",
@@ -534,13 +536,27 @@ private:
             const RawNode& spec = table.keys[i].second;
             Var& var = (*vars)[i];
             if (spec.kind == RawNode::Kind::Table) {
-                Known(spec, {"start", "tick"});
+                if (context.particle >= 0) {
+                    Known(spec, {"start", "tick", "after_spawn"});
+                    Flag(spec["after_spawn"], &var.afterSpawn);
+                } else {
+                    Known(spec, {"start", "tick"});
+                }
                 var.start = Field(spec["start"], context);
                 var.tick = Field(spec["tick"], context);
             } else {
                 var.start = Field(spec, context);
             }
+            if (context.particle >= 0 && !var.afterSpawn && ReadsSpawn(var.start))
+                Error(spec, "var '" + var.name + "' reads p.spawn before the spawn draws: give it after_spawn = true");
         }
+    }
+    static bool ReadsSpawn(const Expr& expr) {
+        for (const Instruction& i : expr.code)
+            if (i.op == Op::Load && i.scope == Scope::Particle && i.index >= static_cast<int>(ParticleValue::SpawnX) &&
+                i.index <= static_cast<int>(ParticleValue::SpawnZ))
+                return true;
+        return false;
     }
 
     // ---- [emit], stages, reactions ----
@@ -679,8 +695,8 @@ private:
     }
 
     void ReadParticle(const RawNode& node, int index) {
-        Known(node, {"name", "when", "lifetime", "vars", "at", "pick", "space", "spawn", "velocity", "speed", "drag",
-                     "gravity", "wind", "size", "color", "alpha", "frame", "kill"});
+        Known(node, {"name", "when", "lifetime", "vars", "at", "pick", "space", "spawn", "position", "velocity",
+                     "speed", "drag", "gravity", "wind", "size", "color", "alpha", "frame", "kill"});
         ParticleKind& kind = record->particles[index];
         std::string group;
         if (Text(node["at"], &group)) kind.anchor = GroupIndex(node["at"], group);
@@ -704,6 +720,14 @@ private:
         Fields3(spawn["max"], context, kind.boxMax);
         Fields3(spawn["offset"], context, kind.offset);
         kind.onGround = Field(spawn["on_ground"], context);
+        const RawNode& position = node["position"];
+        if (position.kind == RawNode::Kind::Table) {
+            Known(position, {"start", "tick"});
+            Fields3(position["start"], context, kind.position);
+            Fields3(position["tick"], context, kind.positionTick);
+        } else {
+            Fields3(position, context, kind.position);
+        }
 
         Fields3(node["velocity"], context, kind.velocity);
         kind.speed = Field(node["speed"], context);

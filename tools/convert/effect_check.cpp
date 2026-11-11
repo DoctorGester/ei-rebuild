@@ -9,9 +9,11 @@
 #include "game/effects/particle_data.h"
 #include "game/models/texture.h"
 #include "game/objects/map_object.h"
+#include "game/terrain/terrain.h"
 #include "game/world/world.h"
 
 #include "lib/bit_flags.h"
+#include "lib/maths.h"
 
 #include <bit>
 #include <cstdint>
@@ -36,6 +38,10 @@ enum class Event : std::uint8_t {
     Remove,         // the carrier leaves the world (the tick lets go of it)
     Attach,         // the source follows the carrier (back in the world)
     Velocity,       // the carrier's (or a free source's) movement per tick from now
+    Alpha,          // the source's alpha and typeParam, as game code sets them (a zone exit's half extents)
+    Param,
+    Turn,           // turnCos and turnSin of the angle `value` (a zone exit's)
+    Extent,         // the source's extent (a zone exit's red: x not 0)
 };
 
 struct Step {
@@ -79,6 +85,33 @@ const std::vector<Case>& Cases() {
          {{10, StopEmitting}, {14, StartEmitting}, {16, Scale, 2.0f}, {20, Stop}}},
         {"PortalStar on a moving carrier", PortalStar, true, 0.6f, 16,
          {{1, Velocity, 0.0f, {0.2f, -0.1f, 0.0f}}, {10, Remove}}},
+        {"Sparks on a unit", Sparks, true, 1.2f, 10, {}},
+        {"Sparks on a moving unit, started again", Sparks, true, 0.9f, 16,
+         {{1, Velocity, 0.0f, {1.5f, 0.4f, 0.0f}}, {3, StartEmitting}, {4, Velocity, 0.0f, kStill}, {11, StartEmitting}}},
+        {"Sparks let go", Sparks, true, 1.0f, 10, {{3, Remove}}},
+        {"FeebleMind on a unit", FeebleMind, true, 1.0f, 40, {}},
+        {"FeebleMind rescaled", FeebleMind, true, 1.6f, 60,
+         {{6, Scale, 0.5f}, {12, Scale, 2.5f}, {20, StopEmitting}, {26, StartEmitting}, {40, Stop}}},
+        {"FeebleMind on a walking unit, let go", FeebleMind, true, 0.7f, 45,
+         {{1, Velocity, 0.0f, {0.05f, -0.03f, 0.0f}}, {20, Remove}, {26, Attach}}},
+        {"ZoneExit", ZoneExit, false, 1.0f, 30, {{1, Alpha, 3.0f}, {1, Param, 1.5f}, {1, Turn, 0.7f}}},
+        {"ZoneExit red, resized", ZoneExit, false, 1.0f, 40,
+         {{1, Alpha, 2.0f}, {1, Param, 4.0f}, {1, Turn, -2.1f}, {1, Extent, 0.0f, {1.0f, 0.0f, 0.0f}}, {12, Alpha, 6.5f},
+          {12, Param, 7.0f}, {25, StopEmitting}, {30, StartEmitting}, {35, Stop}}},
+        {"ZoneExit as made", ZoneExit, false, 1.0f, 20, {}},
+        {"FireBall flying", FireBall, false, 1.0f, 30,
+         {{1, Velocity, 0.0f, {0.3f, 0.1f, -0.02f}}, {20, Velocity, 0.0f, kStill}}},
+        {"FireBall on a fast unit, rescaled", FireBall, true, 1.5f, 30,
+         {{1, Velocity, 0.0f, {-0.6f, 0.45f, 0.05f}}, {10, Scale, 0.5f}, {15, StopEmitting}, {18, StartEmitting}, {24, Remove}}},
+        {"FireBall still", FireBall, false, 0.8f, 20, {}},
+        {"FireArrow flying", FireArrow, false, 1.0f, 30,
+         {{1, Velocity, 0.0f, {0.5f, -0.2f, 0.05f}}, {16, StopEmitting}, {20, StartEmitting}}},
+        {"FireArrow still, then flying", FireArrow, false, 1.0f, 25,
+         {{6, Velocity, 0.0f, {0.0f, 0.4f, 0.0f}}, {14, Scale, 2.0f}, {18, Stop}}},
+        {"RikArrowSmoke flying", RikArrowSmoke, false, 0.7f, 25, {{1, Velocity, 0.0f, {-0.35f, -0.35f, 0.1f}}}},
+        {"AcidRay flying", AcidRay, false, 1.0f, 30,
+         {{1, Velocity, 0.0f, {0.25f, 0.3f, 0.0f}}, {12, Scale, 1.5f}, {22, Velocity, 0.0f, kStill}}},
+        {"AcidRay on a rising unit", AcidRay, true, 0.6f, 20, {{1, Velocity, 0.0f, {0.0f, 0.0f, 0.2f}}}},
     };
     return cases;
 }
@@ -157,6 +190,13 @@ std::vector<std::string> Run(const Case& c, int index, std::ofstream* dump) {
                     s->Attach(carrier);
                     break;
                 case Event::Velocity: velocity = step.vector; break;
+                case Event::Alpha: s->alpha = step.value; break;
+                case Event::Param: s->typeParam = step.value; break;
+                case Event::Turn:
+                    s->turnCos = lib::Cos(step.value);
+                    s->turnSin = lib::Sin(step.value);
+                    break;
+                case Event::Extent: s->extent = step.vector; break;
                 }
             }
             carrier->localPosition += velocity;
@@ -222,6 +262,8 @@ int Main(const std::string& record, const std::string& dump) {
     // The sources take their textures by name (no archive opened: the check reads no game data).
     g_clientWorld.textureManager = std::make_unique<TextureManager>();
     g_clientWorld.textureManager->SetContext(&g_clientWorld);
+    // A terrain without sectors: the ground is 0 everywhere (the effects that spawn on the ground).
+    g_clientWorld.terrain = std::make_unique<terrain::Terrain>();
     IsaacRandom::SetDrawObserver(CountDraw);
     std::ofstream dumpFile;
     if (!dump.empty()) dumpFile.open(dump, std::ios::binary);
@@ -234,6 +276,7 @@ int Main(const std::string& record, const std::string& dump) {
     }
     IsaacRandom::SetDrawObserver(nullptr);
     g_clientWorld.textureManager.reset();
+    g_clientWorld.terrain.reset();
 
     if (!record.empty()) {
         std::ofstream file(record, std::ios::binary);

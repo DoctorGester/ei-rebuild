@@ -1030,8 +1030,11 @@ void CheckUnknownParticleType() {
            "a known particle type shows itself");
     g_clientWorld.particleManager.reset();
     g_logCapture = nullptr;
+    // (Sparks, an original type on data, logs its effect's load too.)
     const std::string expected = std::format("particles: unknown particle type 0x{:X}", kUnknownType);
-    Expect(lines.size() == 1 && lines[0].starts_with(expected), "an unknown particle type is logged once");
+    int unknown = 0;
+    for (const std::string& line : lines) unknown += line.starts_with("particles: unknown") ? 1 : 0;
+    Expect(unknown == 1 && lines[0].starts_with(expected), "an unknown particle type is logged once");
 }
 
 } // namespace

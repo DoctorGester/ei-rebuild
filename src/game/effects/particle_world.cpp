@@ -588,57 +588,6 @@ int UpdatePortal(ParticleSource& s, Particle& p) {
 // Portal: |size| * 10 tries per tick (truncated by the game's _ftol).
 void TickPortal(ParticleSource& s) { s.emitCount = static_cast<int>(s.size * 10.0f); }
 
-// --- ZoneExit ----------------------------------------------------------------------------------------------
-
-namespace {
-
-constexpr std::int32_t kZoneExitAlpha[16] = /*0078AA38*/ {0, 80, 176, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 128, 64};   // by life
-
-} // namespace
-
-// ZoneExit: the density follows alpha * typeParam (at most 40 a tick); particles start at a random point of a
-// turned ellipse (radii alpha and typeParam) around the source on the ground, red-tinted when extent.x is set,
-// rising by an amount that is larger near the centre.
-int EmitZoneExit(ParticleSource& s, Particle& p, int) {
-    float& sparkSize = p.velocity.x;
-    int count = std::lround(s.alpha * s.typeParam);
-    if (count > 40) count = 40;
-    s.emitCount = count;
-    p.color = s.extent.x != 0.0f ? 0x00FF6060u : 0x00FFFFFFu;
-    p.frame = static_cast<int>(g_particleRandom.Next() & 15);
-    p.life = 15;
-    p.frameTimer = 1;
-    p.state = 0;
-    float a = g_particleRandom.Range(-1.0f, 1.0f);
-    float b = g_particleRandom.Range(-1.0f, 1.0f);
-    float falloff = (1.9f - a * a) - b * b;
-    float x = (a * s.alpha * s.turnCos + s.origin.x) - b * s.turnSin * s.typeParam;
-    float y = (s.turnSin * s.alpha * a + b * s.turnCos * s.typeParam) + s.origin.y;
-    float ground = g_clientWorld.RawSurfaceHeightAt(x, y);
-    p.pos.x = x;
-    p.pos.y = y;
-    p.size = 0.0f;
-    p.pos.z = ground + 0.1f;
-    float roll = g_particleRandom.Below(0.6f) + 0.7f;
-    sparkSize = roll * falloff * 0.05f;
-    return 1;
-}
-
-// ZoneExit: alpha by the life left (kZoneExitAlpha), dropped past 0; rising 0.05 per tick, aux.x (0, never set)
-// slowing by 0.9, cycling through four frames.
-int UpdateZoneExit(ParticleSource&, Particle& p) {
-    const float& sparkSize = p.velocity.x;
-    int life = p.life;
-    p.color = (p.color & 0xFFFFFF) | (static_cast<std::uint32_t>(ByLife(kZoneExitAlpha, life, 255)) << 24);
-    p.life = --life;
-    if (life < 0) return 0;
-    p.pos.z += 0.05f;
-    p.aux.x *= 0.9f;
-    p.frame = (p.frame & ~3) | ((p.frame + 1) & 3);
-    p.size = sparkSize;
-    return 1;
-}
-
 // --- ShapeChange: the glow of the path markers -------------------------------------------------------------
 
 namespace {

@@ -226,65 +226,6 @@ int UpdateSilence(ParticleSource& s, Particle& p) {
     return 1;
 }
 
-// --- FeebleMind --------------------------------------------------------------------------------------------
-
-namespace {
-
-// By life.
-constexpr std::int32_t kFeebleAlpha[24] = /*0078ABB8*/ {0, 32, 64, 128, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-                                               255, 255, 255, 255, 255, 255, 255};
-
-} // namespace
-
-// FeebleMind: size * 2 tries per tick; each particle starts one step out from the
-// source in a random horizontal direction.
-int EmitFeebleMind(ParticleSource& s, Particle& p, int) {
-    Vector3& offset = p.velocity;  // from the circle's centre
-    float& growingSize = p.aux.z;
-    s.emitCount = std::lround(s.size + s.size);
-    p.color = 0x00FFFFFF;
-    p.frame = static_cast<int>(g_particleRandom.Next() & 15);
-    p.pos = s.origin;
-    p.size = 0.0f;
-    p.life = 20;
-    float twoPi = kPi + kPi;
-    offset.z = 0.0f;
-    float angle = g_particleRandom.Range(0.0f, twoPi);
-    offset.x = lib::Cos(angle) * 0.05f;
-    offset.y = lib::Sin(angle) * 0.05f;
-    p.pos += offset;
-    float grow = (g_particleRandom.Below(0.2f) + 0.9f) * s.size * 0.035f;
-    growingSize = grow;
-    return 1;
-}
-
-// FeebleMind: alpha by the life left (dropped past 0); the particle circles: its offset is taken off, turned by 0.07
-// radians and grown by 1.1, then put back with a rise of 0.05. The size grows by 1.04 per tick, the frame cycles
-// through 16.
-int UpdateFeebleMind(ParticleSource&, Particle& p) {
-    Vector3& offset = p.velocity;
-    float& growingSize = p.aux.z;
-    int life = --p.life;
-    if (life < 0) return 0;
-    float nextSize = growingSize;
-    p.color = (static_cast<std::uint32_t>(kFeebleAlpha[life]) << 24) | 0xFFFFFF;
-    int frame = (p.frame + 1) & 15;
-    p.pos -= offset;
-    float c = lib::Cos(0.07f);
-    float sn = lib::Sin(0.07f);
-    float turnedY = offset.y * c - offset.x * sn;
-    float turnedX = c * offset.x + offset.y * sn;
-    float grow = 1.1f;
-    offset.x = turnedX * grow;
-    offset.y = turnedY * grow;
-    p.pos += offset;
-    p.size = nextSize;
-    p.frame = frame;
-    p.pos.z += 0.05f;
-    growingSize *= 1.04f;
-    return 1;
-}
-
 // --- FeetCloud1 / 2: puffs at the carrier's feet -----------------------------------------------------------
 
 namespace {
@@ -523,61 +464,6 @@ void TickStartTrans(ParticleSource& s, ParticleElement& e) {
     if (!(count < 8)) s.emitCount = 8;
 }
 
-// --- Sparks ------------------------------------------------------------------------------------------------
-
-namespace {
-
-// Alpha tables indexed by the ticks left.
-constexpr std::int32_t kSparkAlpha[8] = /*0078AB98*/ {0, 64, 128, 255, 255, 255, 255, 255};
-
-} // namespace
-
-// Sparks: the first particle marks the source (state 1); after it the source stops
-// emitting and each further one is a spark flying in a random direction (a random point of the
-// unit ball, normalised) with a random speed (squared) and a random part of its first step done.
-int EmitSparks(ParticleSource& s, Particle& p, int) {
-    if (s.particles.empty()) {
-        p.color = 0xFFFFFFFF;
-        p.pos = s.origin;
-        p.size = 0.0f;
-        p.frame = 0;
-        p.state = 1;
-        return 1;
-    }
-    s.flags &= ~ParticleSourceFlag::Emitting;
-    p.color = 0xFFFFFFFF;
-    float speed = g_particleRandom.Below(0.6f) + 0.8f;
-    float lengthSquared;
-    Vector3 v = RandomInBall(lengthSquared);
-    Vector3 direction = v / std::sqrt(lengthSquared);
-    float k = speed * s.size * speed * 0.2f;
-    p.drift = direction * k;
-    float t = g_particleRandom.Range(0.0f, 1.0f);
-    p.pos = t * p.drift + s.origin;
-    p.size = (g_particleRandom.Below(0.4f) + 0.8f) * s.size * 0.2f;
-    p.life = 6;
-    p.state = 0;
-    p.frame = static_cast<int>(g_particleRandom.Next() % 3) + 1;
-    return 1;
-}
-
-// Sparks: the spare ones (state set) get a random size once and are dropped after; the
-// rest fly along their drift, shrinking and slowing, with the alpha from kSparkAlpha.
-int UpdateSparks(ParticleSource& s, Particle& p) {
-    if (p.state != 0) {
-        if (p.size != 0.0f) return 0;
-        p.size = (g_particleRandom.Below(0.4f) + 0.8f) * s.size * 0.55f;
-        return 1;
-    }
-    if (--p.life < 0) return 0;
-    p.color = (static_cast<std::uint32_t>(kSparkAlpha[p.life]) << 24) | 0xFFFFFF;
-    p.pos += p.drift;
-    p.size *= 0.9f;
-    p.drift *= 0.6f;
-    ++p.frame;
-    return 1;
-}
-
 // --- Shower1-4: sparks thrown out in a few random directions -----------------------------------------------
 
 namespace {
@@ -646,7 +532,7 @@ int UpdateShower(ParticleSource& s, Particle& p) {
     int life = --p.life;
     if (life == 0) return 0;
     p.pos += p.drift;
-    p.color = (static_cast<std::uint32_t>(ByLife(kShowerAlpha, life, 0)) << 24) | 0xFFFFFF;   // before: kAcidSize's zero tail
+    p.color = (static_cast<std::uint32_t>(ByLife(kShowerAlpha, life, 0)) << 24) | 0xFFFFFF;   // before: AcidRay's size table's zero tail
     p.size = sizeKept * p.size;
     float keep = speedKept;
     p.drift *= keep;

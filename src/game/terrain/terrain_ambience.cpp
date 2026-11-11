@@ -78,8 +78,9 @@ constexpr int kMaxVolume = 100;
 // The sector containing `v` (v rounded to nearest, then / 32 towards zero).
 int SectorOf(float v) { return std::lround(v) / kSectorCells; }
 
+// A loop without a sound has nothing to stop (a terrain that never played, as ei-convert --effect-check's).
 void StopLoop(Terrain::AmbientLoop& loop) {
-    g_clientWorld.sounds->StopSound(loop.sound);
+    if (loop.sound != kNoSound) g_clientWorld.sounds->StopSound(loop.sound);
     loop.sound = kNoSound;
     loop.soundClass = -1;
 }

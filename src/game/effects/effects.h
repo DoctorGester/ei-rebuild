@@ -149,7 +149,7 @@ struct Particle {
     // A data effect's particle (particle_data.cpp): its ticks since emission, its kind and its vars.
     int age = 0;
     int kind = 0;
-    float vars[6] = {};
+    float vars[8] = {};
 };
 
 // A table read by a particle's remaining life, unchecked as the original reads it. The tick updates a particle
