@@ -437,29 +437,18 @@ int EmitParticle(ParticleSource& s, Particle& p, int index) {
     switch (ParticleTypeOf(s.type)) {
     case ParticleType::FireBlast: return EmitBlast(s, p, index);
     case ParticleType::Healing: return EmitHealing(s, p, index);
-    case ParticleType::PoisonFog: case ParticleType::PoisonCloud: return EmitPoisonFog(s, p, index);
     case ParticleType::Geyser: return EmitGeyser(s, p, index);
     case ParticleType::Tornado: case ParticleType::CurseHolder: return EmitTornado(s, p, index);
     case ParticleType::Casting: return EmitCastRing(s, p, index);
     case ParticleType::CastingFire: case ParticleType::CastingElectricity: case ParticleType::CastingAcid:
     case ParticleType::CastingDivination:
         return EmitCasting(s, p, index);
-    case ParticleType::Mushroom: case ParticleType::Transform: return EmitMushroom(s, p, index);
-    case ParticleType::Link: return EmitLink(s, p, index);
-    case ParticleType::ClayRing: return EmitClayRing(s, p, index);
-    case ParticleType::Modifier1: case ParticleType::Modifier2: case ParticleType::Modifier3:
-    case ParticleType::Modifier4: case ParticleType::Modifier5: case ParticleType::Modifier6:
-    case ParticleType::Modifier7: case ParticleType::Modifier8: case ParticleType::Modifier9:
-    case ParticleType::Modifier10: case ParticleType::Modifier11: case ParticleType::Modifier12:
-        return EmitModifier(s, p, index);
     case ParticleType::LightningBlast: return EmitLightning(s, p, index);
     case ParticleType::CastingIllusion: case ParticleType::CastingDomination:
     case ParticleType::CastingEnchantment: case ParticleType::CastingHealing:
         return EmitCastSwirl(s, p, index);
     case ParticleType::ShapeChange: return EmitGlow(s, p, index);
-    case ParticleType::GroundDust1: case ParticleType::GroundDust2: return EmitGroundDust(s, p, index);
     case ParticleType::Bag: return EmitBag(s, p, index);
-    case ParticleType::Cylinder1: case ParticleType::Cylinder2: return EmitCylinder(s, p, index);
     case ParticleType::Silence: return EmitSilence(s, p, index);
     }
     return 0;
@@ -471,29 +460,18 @@ int UpdateParticle(ParticleSource& s, Particle& p) {
     switch (ParticleTypeOf(s.type)) {
     case ParticleType::FireBlast: return UpdateBlast(s, p);
     case ParticleType::Healing: return UpdateHealing(s, p);
-    case ParticleType::PoisonFog: case ParticleType::PoisonCloud: return UpdateCloud(s, p);
     case ParticleType::Geyser: return UpdateGeyser(s, p);
     case ParticleType::Tornado: case ParticleType::CurseHolder: return UpdateTornado(s, p);
     case ParticleType::Casting: return UpdateCastRing(s, p);
     case ParticleType::CastingFire: case ParticleType::CastingElectricity: case ParticleType::CastingAcid:
     case ParticleType::CastingDivination:
         return UpdateCasting(s, p);
-    case ParticleType::Mushroom: case ParticleType::Transform: return UpdateMushroom(s, p);
-    case ParticleType::Link: return UpdateLink(s, p);
-    case ParticleType::ClayRing: return UpdateClayRing(s, p);
-    case ParticleType::Modifier1: case ParticleType::Modifier2: case ParticleType::Modifier3:
-    case ParticleType::Modifier4: case ParticleType::Modifier5: case ParticleType::Modifier6:
-    case ParticleType::Modifier7: case ParticleType::Modifier8: case ParticleType::Modifier9:
-    case ParticleType::Modifier10: case ParticleType::Modifier11: case ParticleType::Modifier12:
-        return UpdateModifier(s, p);
     case ParticleType::LightningBlast: return UpdateLightning(s, p);
     case ParticleType::CastingIllusion: case ParticleType::CastingDomination:
     case ParticleType::CastingEnchantment: case ParticleType::CastingHealing:
         return UpdateCastSwirl(s, p);
     case ParticleType::ShapeChange: return UpdateGlow(s, p);
-    case ParticleType::GroundDust1: case ParticleType::GroundDust2: return UpdateGroundDust(s, p);
     case ParticleType::Bag: return UpdateBag(s, p);
-    case ParticleType::Cylinder1: case ParticleType::Cylinder2: return UpdateCylinder(s, p);
     case ParticleType::Silence: return UpdateSilence(s, p);
     }
     return 0;
@@ -517,24 +495,13 @@ void TickSource(ParticleSource& s) {
     case ParticleType::CastingDivination:
         TickCasting(s);
         break;
-    case ParticleType::Mushroom: case ParticleType::Transform: EachElement(s, TickMushroom); break;
-    case ParticleType::Link: EachElement(s, TickLink); break;
-    case ParticleType::ClayRing: EachElement(s, TickClayRing); break;
-    case ParticleType::Modifier1: case ParticleType::Modifier2: case ParticleType::Modifier3:
-    case ParticleType::Modifier4: case ParticleType::Modifier5: case ParticleType::Modifier6:
-    case ParticleType::Modifier7: case ParticleType::Modifier8: case ParticleType::Modifier9:
-    case ParticleType::Modifier10: case ParticleType::Modifier11: case ParticleType::Modifier12:
-        EachElement(s, TickModifier);
-        break;
     case ParticleType::LightningBlast: EachElement(s, TickLightning); break;
     case ParticleType::CastingIllusion: case ParticleType::CastingDomination:
     case ParticleType::CastingEnchantment: case ParticleType::CastingHealing:
         EachElement(s, TickCastSwirl);
         break;
     case ParticleType::ShapeChange: TickGlow(s); break;
-    case ParticleType::GroundDust1: case ParticleType::GroundDust2: EachElement(s, TickGroundPlane); break;
     case ParticleType::Bag: EachElement(s, TickBag); break;
-    case ParticleType::Cylinder1: case ParticleType::Cylinder2: TickCylinder(s); break;
     default: break;
     }
 }

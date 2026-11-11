@@ -36,16 +36,6 @@ void TickHealing(ParticleSource& s, ParticleElement& e);
 int EmitCastSwirl(ParticleSource& s, Particle& p, int index);
 int UpdateCastSwirl(ParticleSource& s, Particle& p);
 void TickCastSwirl(ParticleSource& s, ParticleElement& e);
-void SetupCylinder(ParticleSource& s);
-int EmitCylinder(ParticleSource& s, Particle& p, int index);
-int UpdateCylinder(ParticleSource& s, Particle& p);
-void TickCylinder(ParticleSource& s);
-int EmitModifier(ParticleSource& s, Particle& p, int index);
-int UpdateModifier(ParticleSource& s, Particle& p);
-void TickModifier(ParticleSource& s, ParticleElement& e);
-int EmitLink(ParticleSource& s, Particle& p, int index);
-int UpdateLink(ParticleSource& s, Particle& p);
-void TickLink(ParticleSource& s, ParticleElement& e);
 
 // particle_marks.cpp.
 int EmitSilence(ParticleSource& s, Particle& p, int index);
@@ -62,15 +52,6 @@ void TickBlast(ParticleSource& s, ParticleElement& e);
 int EmitLightning(ParticleSource& s, Particle& p, int index);
 int UpdateLightning(ParticleSource& s, Particle& p);
 void TickLightning(ParticleSource& s, ParticleElement& e);
-int EmitMushroom(ParticleSource& s, Particle& p, int index);
-int UpdateMushroom(ParticleSource& s, Particle& p);
-void TickMushroom(ParticleSource& s, ParticleElement& e);
-void SetupClayRing(ParticleSource& s);
-int EmitClayRing(ParticleSource& s, Particle& p, int index);
-int UpdateClayRing(ParticleSource& s, Particle& p);
-void TickClayRing(ParticleSource& s, ParticleElement& e);
-int EmitPoisonFog(ParticleSource& s, Particle& p, int index);
-int UpdateCloud(ParticleSource& s, Particle& p);
 
 // particle_world.cpp.
 int EmitGeyser(ParticleSource& s, Particle& p, int index);
@@ -84,7 +65,3 @@ void TickTornado(ParticleSource& s);
 int EmitGlow(ParticleSource& s, Particle& p, int index);
 int UpdateGlow(ParticleSource& s, Particle& p);
 void TickGlow(ParticleSource& s);
-void SetupGroundDust(ParticleSource& s);
-int EmitGroundDust(ParticleSource& s, Particle& p, int index);
-int UpdateGroundDust(ParticleSource& s, Particle& p);
-void TickGroundPlane(ParticleSource& s, ParticleElement& e);

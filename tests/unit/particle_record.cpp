@@ -559,6 +559,78 @@ void CheckExtensions() {
            Read(Parse(kBeforeEmitEmits, "before.effect.toml"), "Before", &errors) == nullptr && errors.size() == 1);
 }
 
+// MF15g4's: an "emit" reaction that emits a kind, a shake action, the platform functions.
+constexpr const char* kReactionEmits = R"toml(
+texture = "Stun"
+[vars]
+plane = "platform_height(1, 2) + platform_normal_z(1, 2) * 10 + platform_normal_x(1, 2) * 100"
+[[on]]
+event = "emit"
+when = "count == 0"
+do = [{ emit = "2 + 1", kind = "puff" }, { shake = "size * 2", time = 5, decay = 0.25 }]
+[[particle]]
+name = "try"
+lifetime = 1
+drop = true
+[[particle]]
+name = "puff"
+when = false
+lifetime = 4
+)toml";
+
+constexpr const char* kEmitReactionBurst = R"toml(
+texture = "Stun"
+[[on]]
+event = "emit"
+do = [{ emit = 1 }]
+[[particle]]
+name = "spark"
+lifetime = 4
+)toml";
+
+constexpr const char* kShakeWithoutTime = R"toml(
+texture = "Stun"
+[[on]]
+event = "start"
+do = [{ shake = 1, decay = 0.25 }]
+[[particle]]
+name = "spark"
+lifetime = 4
+)toml";
+
+float Platform(float x, float y, int which) { return which == 0 ? x + y : which == 3 ? 0.5f : 0.0f; }
+
+void CheckReactionParticles() {
+    std::vector<std::string> errors;
+    const std::shared_ptr<const Record> record = Read(Parse(kReactionEmits, "reaction.effect.toml"), "Reaction", &errors);
+    for (const std::string& error : errors) std::printf("ei_unit_check: particle record: unexpected: %s\n", error.c_str());
+    if (!record) return Expect("the reaction record reads", false);
+    State unplaced(record);
+    IsaacRandom random;
+    unplaced.Step(random);
+    Expect("platform_* without a platform: height 0, normal (0, 0, 1)", unplaced.vars[0] == 10.0f);
+    State state(record);
+    state.platform = Platform;
+    state.source[static_cast<int>(SourceValue::Size)] = 1.5f;
+    state.Step(random);
+    Expect("platform_height and platform_normal_* through State::platform", state.vars[0] == 8.0f);
+    state.Emitted(random);
+    Expect("an \"emit\" reaction queues its kind and a shake",
+           state.queue.size() == 3 && state.queue[0].kind == 1 && state.queue[0].anchor == -1 &&
+               state.shakes.size() == 1 && state.shakes[0].strength == 3.0f && state.shakes[0].time == 5.0f &&
+               state.shakes[0].decay == 0.25f);
+    state.Step(random);
+    Expect("the step clears the shakes", state.shakes.empty());
+
+    errors.clear();
+    Expect("an \"emit\" reaction's emit without a kind refuses the effect",
+           Read(Parse(kEmitReactionBurst, "burst.effect.toml"), "Burst", &errors) == nullptr && errors.size() == 1 &&
+               errors[0].find("emit with kind") != std::string::npos);
+    errors.clear();
+    Expect("a shake without its time refuses the effect",
+           Read(Parse(kShakeWithoutTime, "shake.effect.toml"), "Shake", &errors) == nullptr && errors.size() == 1);
+}
+
 // The ```toml blocks of `file` (relative to the source tree) that are whole effects (a [[particle]]).
 std::vector<std::string> EffectBlocks(const char* file) {
     std::ifstream in(std::string(EI_SOURCE_DIR) + "/" + file, std::ios::binary);
@@ -605,6 +677,7 @@ int RunParticleRecordChecks() {
     CheckPlacement();
     CheckCarrierReaders();
     CheckExtensions();
+    CheckReactionParticles();
     CheckWrittenEffects();
     return failures;
 }

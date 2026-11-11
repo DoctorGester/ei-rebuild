@@ -60,21 +60,11 @@ constexpr int kEndless = 0x7FFFFFFF;    // an emission or particle count without
 
 using enum ParticleType;
 
-constexpr ParticleSpec kPoison = {.texture = "PoisonCloud", .emitChance = 50, .emitCount = 1,
-                                  .maxParticles = kEndless, .lifetime = 0xCA4, .frameCount = 15, .frameDelay = 1};
-constexpr ParticleSpec kMushroom = {.texture = "ChangeHero", .emitCount = 10, .maxParticles = 4000, .frameDelay = 1,
-                                    .height = 1.0f};
-constexpr ParticleSpec kModifier = {.texture = "Stun", .flags = kCarried, .emitCount = 80, .lifetime = 14,
-                                    .frameDelay = 2};
 constexpr ParticleSpec kCasting = {.texture = "FireSmoke", .flags = kCarriedOnPart, .emitCount = 20, .lifetime = 5,
                                    .frameDelay = 5};
 constexpr ParticleSpec kCastSwirl = {.texture = "Casting2", .flags = kCarried, .emitCount = 10, .maxParticles = 600,
                                      .lifetime = 2, .frameDelay = 1, .spreadMin = {-0.04f, -0.04f, -0.04f},
                                      .spreadMax = {0.04f, 0.04f, 0.04f}};
-constexpr ParticleSpec kCylinder = {.texture = "Casting2", .flags = kCarried, .emitCount = 30, .maxParticles = 600,
-                                    .frameDelay = 1, .elementCount = 2};
-constexpr ParticleSpec kGroundDust = {.texture = "ShapeChange", .flags = kPausedToo, .emitCount = 128,
-                                      .maxParticles = 128, .elementCount = 1};
 constexpr ParticleSpec kMark = {.texture = "Stun", .flags = kCarriedOnPart, .attachPoint = AttachPoint::Body,
                                 .additiveBlend = true, .emitCount = 1, .maxParticles = 300};
 
@@ -99,32 +89,12 @@ constexpr ParticleSpec kSpecs[] = {
      .spreadMin = {-0.02f, -0.02f, -0.02f}, .spreadMax = {0.02f, 0.02f, 0.02f}},
     {.type = Healing, .texture = "Healing", .flags = ParticleSourceFlag::AttachedOnly, .additiveBlend = true,
      .emitCount = kEndless, .lifetime = 8, .frameDelay = 1, .size = 0.5f},
-    Like(kPoison, PoisonFog),
-    Like(kPoison, PoisonCloud),
     {.type = Geyser, .texture = "Fireworks", .additiveBlend = true, .emitChance = 88, .emitCount = 20,
      .frameDelay = 100, .height = 0.3f, .elementCount = 3, .spreadMin = {-0.1f, -0.1f, -0.02f},
      .spreadMax = {0.1f, 0.1f, 0.02f}},
     {.type = Tornado, .texture = "Tornado", .emitCount = 4, .maxParticles = 800, .frameDelay = 1, .height = 0.2f,
      .elementCount = 6},
     {.type = Casting, .texture = "FireSmoke", .flags = kCarried, .emitCount = kEndless, .frameDelay = 1},
-    Like(kMushroom, Mushroom),
-    {.type = Link, .texture = "Link", .emitChance = 80, .emitCount = 10, .lifetime = 45, .frameCount = 15,
-     .frameDelay = 3, .spreadMin = {-0.2f, -0.2f, -0.2f}, .spreadMax = {0.2f, 0.2f, 0.2f},
-     .extent = {-10.0f, 0.0f, 0.0f}},
-    {.type = ClayRing, .texture = "ClayRing", .additiveBlend = true, .emitCount = 80, .lifetime = 15,
-     .frameDelay = 2, .elementCount = 10},
-    Like(kModifier, Modifier1),
-    Like(kModifier, Modifier2),
-    Like(kModifier, Modifier3),
-    Like(kModifier, Modifier4),
-    Like(kModifier, Modifier5),
-    Like(kModifier, Modifier6),
-    Like(kModifier, Modifier7),
-    Like(kModifier, Modifier8),
-    Like(kModifier, Modifier9),
-    Like(kModifier, Modifier10),
-    Like(kModifier, Modifier11),
-    Like(kModifier, Modifier12),
     Like(kCasting, CastingFire),
     Like(kCasting, CastingElectricity, [](ParticleSpec& spec) {
         spec.texture = "Casting8";
@@ -152,19 +122,11 @@ constexpr ParticleSpec kSpecs[] = {
      .maxParticles = 600, .lifetime = 15, .frameCount = 15, .frameDelay = 1, .spreadMin = {-0.2f, -0.2f, -0.2f},
      .spreadMax = {0.2f, 0.2f, 0.2f}},
     {.type = ShapeChange, .texture = "ShapeChange", .flags = kPausedToo, .emitCount = 2500, .maxParticles = 2500},
-    Like(kGroundDust, GroundDust1),
-    Like(kGroundDust, GroundDust2, [](ParticleSpec& spec) {
-        spec.emitCount = 256;
-        spec.maxParticles = 256;
-    }),
     {.type = Bag, .texture = "Bag", .flags = kCarried, .emitCount = 100, .maxParticles = 800,
      .elementCount = kBagBalls},
-    Like(kCylinder, Cylinder1),
-    Like(kCylinder, Cylinder2, [](ParticleSpec& spec) { spec.texture = "Casting1"; }),
     Like(kMark, Silence, [](ParticleSpec& spec) { spec.emitCount = 4; }),
     {.type = CurseHolder, .texture = "Tornado", .flags = kOnPart, .attachPoint = AttachPoint::Body, .emitCount = 4,
      .maxParticles = 800, .height = 0.2f, .tint = 0x19000000, .elementCount = 6},
-    Like(kMushroom, Transform),
 };
 
 constexpr int kTypeCount = static_cast<int>(Transform) - static_cast<int>(FireBall) + 1;
@@ -215,9 +177,6 @@ void SetupElements(ParticleSource& s) {
     case FireBlast: SetupFireBlast(s); break;
     case Tornado: SetupTornado(s); break;
     case CurseHolder: SetupCurseHolder(s); break;
-    case ClayRing: SetupClayRing(s); break;
-    case GroundDust1: case GroundDust2: SetupGroundDust(s); break;
-    case Cylinder1: case Cylinder2: SetupCylinder(s); break;
     default: break;
     }
 }

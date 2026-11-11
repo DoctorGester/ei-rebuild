@@ -31,6 +31,8 @@ constexpr FunctionName kFunctions[] = {
     {"pow", Function::Pow, 2},       {"range", Function::Range, 2}, {"below", Function::Below, 1},
     {"chance", Function::Chance, 1}, {"pick", Function::Pick, 1},   {"exp", Function::Exp, 1},
     {"log", Function::Log, 1},       {"ground", Function::Ground, 2},
+    {"platform_height", Function::PlatformHeight, 2},     {"platform_normal_x", Function::PlatformNormalX, 2},
+    {"platform_normal_y", Function::PlatformNormalY, 2},  {"platform_normal_z", Function::PlatformNormalZ, 2},
 };
 
 bool IsNameStart(char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'; }
@@ -306,6 +308,14 @@ float CallFunction(Function f, const float* a, const Env& env) {
         return static_cast<float>(word % static_cast<std::uint32_t>(n));
     }
     case Function::Ground: return env.ground ? env.ground(a[0], a[1]) : 0.0f;
+    case Function::PlatformHeight:
+    case Function::PlatformNormalX:
+    case Function::PlatformNormalY:
+    case Function::PlatformNormalZ: {
+        const int which = static_cast<int>(f) - static_cast<int>(Function::PlatformHeight);
+        if (env.platform) return env.platform(a[0], a[1], which);
+        return which == 3 ? 1.0f : 0.0f;
+    }
     }
     return 0.0f;
 }

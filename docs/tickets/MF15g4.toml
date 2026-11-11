@@ -7,3 +7,5 @@ depends = ["MF15g", "MF15j"]
 files = ["assets/effects", "src/game/effects/particle_*.cpp", "tools/convert/effect_check.cpp"]
 note = "The last types: PoisonFog / PoisonCloud (a grid laid once on the ground, the byte-wrap fade), Mushroom / Transform (an attractor, camera shake), GroundDust (a fixed pattern along the measured ground plane), and the 14 state-machine behaviours (Casting*, Casting / Healing, CastSwirl, Cylinder, Modifier1-12, Link, Silence, Bag, FireBlast, LightningBlast, ClayRing, Geyser, Tornado / CurseHolder, ShapeChange) once MF15j's extensions are in; may split by family. End state: every original effect on data, kSpecs and the per-type Emit / Update / Tick gone (user rule 2026-11-11)."
 order = 1365
+status = "review"
+started = "2026-11-11"

@@ -627,16 +627,20 @@ frame = { start = "pick(16)", delay = 1 }
 - **Expressions**: arithmetic, comparisons, `? :`, `sin`, `cos`, `min`, `max`, `clamp`, `lerp`, `pow`, `exp`, `log`,
   random `range`, `chance`, `pick`; tables (`fade[p.age]`) and curves (`glow(p.t)`) from `[tables]` and `[curves]`;
   the world's wind (`wind.x/y/z`, `wind_strength`) and the carrier's `carrier_radius` and `carrier_z`; when it is a
-  unit, `carrier_unit` (1), `carrier_running`, `carrier_dead`, its own x axis `carrier_axis.x/y/z`, its feet
+  unit, `carrier_unit` (1), `carrier_running`, `carrier_dead`, its own x and y axes `carrier_axis.x/y/z` and
+  `carrier_axis_y.x/y/z`, its feet
   `carrier_left_foot.x/y/z` and `carrier_right_foot.x/y/z`. A particle's own vars may not reuse the built-in names
   (`p.age`, `p.life`, `p.x`...). A var with `at_create = true` starts when the source is made (a random count drawn
   once, before the first tick).
 - **Reactions** (`[[on]] event = "tick"`, with a `when` condition) run actions each tick: `{ set = "height", value =
   ... }` changes an input, a var or the source's own `size`, `height`, `growth`, `alpha` or `param`, `{ stop_emitting =
   true }` ends the emission (the particles live on), `{ stop = true }` stops the source, `{ let_go = true }` lets go
-  of the carrier (the source stays where it is). `[[on]] event = "emit"` runs after each particle the emission makes,
+  of the carrier (the source stays where it is), `{ shake = "size", time = 5, decay = 0.25 }` shakes the camera by
+  that strength around the source (as the mushroom's burst). `set` also takes the spread box and the extent
+  (`spread_min.x`, `extent.y`...). `[[on]] event = "emit"` runs after each particle the emission makes,
   at once (the next particle of the tick sees it): a count for the next tick by the carrier's state, a stop when the
-  carrier is dead.
+  carrier is dead, or `{ emit = 25, kind = "puff" }` (a burst of another kind made right after it, as the poison fog's
+  grid of puffs at its first particle).
 - **Particles that change the source**: `source = { size = "..." }` in a particle kind sets the source's value at
   each of its updates (the particles after it read the new value), as a fading mark that shrinks its source; `drop =
   "..."` throws a particle away once it is made (its random draws stay drawn); `anchor_index = "p.gust"` starts it at
@@ -648,8 +652,9 @@ frame = { start = "pick(16)", delay = 1 }
   (`a.spawn.x/y/z`) to place it by; `[[on]] event = "before_emit"` runs before each particle is made, so the first
   particle can find its anchors ready (`when = "anchors.orb == 0"`).
 - **The ground and lists**: `ground(x, y)` is the ground's height there (a kill plane: `kill = "p.z < ground(p.x,
-  p.y)"`); an input `{ type = "list" }` holds points the game gives (`path.count`, `path.x[i]`, `path.y[i]`,
-  `path.z[i]`), with a `default = [[x, y, z], ...]`.
+  p.y)"`), `platform_height(x, y)` the height of a platform (a bridge, a floor) there and `platform_normal_x(x, y)`,
+  `_y`, `_z` its slope (0 and an upright normal where there is none); an input `{ type = "list" }` holds points the
+  game gives (`path.count`, `path.x[i]`, `path.y[i]`, `path.z[i]`), with a `default = [[x, y, z], ...]`.
 - **When a particle dies**: `on_death = [{ emit = 4, kind = "ember" }, { effect = "Sparks" }]` emits particles of
   another kind where it died, at once, or starts an effect there.
 - **Layers**: a mod's file of the name merges over a lower one field by field, a particle kind or stage by its `name`;
@@ -662,7 +667,8 @@ frame = { start = "pick(16)", delay = 1 }
   RikArrowSmoke, AcidRay, the fires and smokes CampFire, Fire, Smoke, Tendril, VulcanSmoke, and Portal, TeleportRing,
   Teleport, Banshee, BlueGas, Nuke, the marks on units Stun, Regeneration, VisionStar1-4, FeetCloud1 / 2, StartTrans,
   the leaves Falling1-4, the protection spheres SphereAcid, SphereElectricity, SphereFire and Antimagic, the blood
-  showers Shower1-4 so far); a mod's
+  showers Shower1-4, the poison clouds PoisonFog and PoisonCloud, the mushroom and its Transform, the dust GroundDust1
+  / 2, the beam Link, the rings Modifier1-12 and ClayRing, the casting circles Cylinder1 / 2 so far); a mod's
   `Res\effects\FireStar.effect.toml` retunes the fire arrow's flash with only
   the fields it names, and `Res\effects\ZoneExit.effect.toml` the glow over every zone exit.
 - **Problems** are `warning: effects: <file>:<line>: ...` lines in `ei-rebuild.log`; an effect with an error shows
