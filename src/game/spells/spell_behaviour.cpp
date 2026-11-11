@@ -14,9 +14,9 @@ namespace {
 
 constexpr DamageType kNoDamage = DamageType::Other;
 
-// The game's spells still in code by behaviour: the AI's use, the damage type, and offensive / turns the victim /
-// fighting. Those on scripts (assets/spells) have an empty row: their records' fields (assets/spells/spells.sdb.toml)
-// say it.
+// The game's spells still in code by behaviour (the cut possession, link and charm, shapechange, comprehend and the
+// campfire): the AI's use, the damage type, and offensive / turns the victim / fighting. Those on scripts
+// (assets/spells) have an empty row: their records' fields (assets/spells/spells.sdb.toml) say it.
 constexpr SpellUse kGameSpells[kGameSpellCount] = {
     {},                                                                   // FireArrow: Missile.lua
     {},                                                                   // Lightning: Lightning.lua
@@ -36,17 +36,17 @@ constexpr SpellUse kGameSpells[kGameSpellCount] = {
     {},                                                                   // Invisibility: Buff.lua
     {},                                                                   // Silence: Buff.lua
     {},                                                                   // Lichdom: Buff.lua
-    {SpellAi::None, kNoDamage, false, false, false},                      // Fireworks
+    {},                                                                   // Fireworks: Fireworks.lua
     {},                                                                   // Stench: Buff.lua
-    {SpellAi::None, kNoDamage, false, false, false},                      // Clairvoyance
+    {},                                                                   // Clairvoyance: Clairvoyance.lua
     {SpellAi::None, kNoDamage, false, false, false},                      // Possession
     {SpellAi::None, kNoDamage, false, false, false},                      // Shapechange
-    {SpellAi::None, kNoDamage, false, false, false},                      // VisionFog
-    {SpellAi::Heal, kNoDamage, false, false, false},                      // Healing
+    {},                                                                   // VisionFog: VisionFog.lua
+    {},                                                                   // Healing: Healing.lua
     {},                                                                   // Stun: Buff.lua
     {},                                                                   // Antimagic: Buff.lua
     {SpellAi::None, kNoDamage, false, false, false},                      // Link
-    {SpellAi::None, kNoDamage, false, false, false},                      // Teleport
+    {},                                                                   // Teleport: Teleport.lua
     {},                                                                   // Strengthen: Buff.lua
     {},                                                                   // Weaken: Buff.lua
     {},                                                                   // Regeneration: Buff.lua

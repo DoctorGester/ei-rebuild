@@ -9,6 +9,8 @@
 #include "game/data/record_names.h"
 #include "game/spells/spell.h"
 #include "game/spells/spell_effect_internal.h"
+#include "game/players/player.h"
+#include "game/units/acks_db.h"
 #include "game/units/unit.h"
 
 #include "lib/text_case.h"
@@ -32,6 +34,8 @@ constexpr const char* kFolder = "Res\\spells";
 constexpr lua_Integer kDefaultTickCap = 600;
 // The longest delay a timer takes, in ticks.
 constexpr double kMaxDelay = 1e9;
+// Notice's decay of what the unit noticed (the fireworks' fright's).
+constexpr int kNoticeDecay = -1;
 
 // The file through the mod layers, else the game's own (assets/spells, built in below them).
 bool ReadFromLayers(const std::string& file, std::string* text) {
@@ -265,7 +269,7 @@ ScriptSpellHost::ScriptSpellHost(ScriptLuaScheduler& owner)
     modules = luaL_ref(L, LUA_REGISTRYINDEX);
     // The cast values' metatable and its methods, permanents: a cast value a script keeps in its data persists.
     lua_createtable(L, 0, 1);
-    lua_createtable(L, 0, 27);
+    lua_createtable(L, 0, 35);
     const int methods = lua_gettop(L);
     const auto method = [this, methods](const char* name, lua_CFunction function) {
         lua_pushlightuserdata(L, this);
@@ -301,6 +305,14 @@ ScriptSpellHost::ScriptSpellHost(ScriptLuaScheduler& owner)
     method("Across", Across);
     method("Block", Block);
     method("Unblock", Unblock);
+    method("Position", Position);
+    method("IsDead", IsDead);
+    method("IsHurt", IsHurt);
+    method("Shout", Shout);
+    method("Reveal", Reveal);
+    method("Wake", Wake);
+    method("Notice", Notice);
+    method("Vision", Vision);
     lua_pushvalue(L, methods);
     scheduler.lua.AddPermanent("ei.cast.methods");
     lua_setfield(L, -2, "__index");
@@ -1185,6 +1197,100 @@ int ScriptSpellHost::Unblock(lua_State* L) {
     return 1;
 }
 
+// cast:Position(object): the point {x, y, z} where the object is (its own position, not the ground below it), where
+// the teleport's departure shows.
+int ScriptSpellHost::Position(lua_State* L) {
+    Self(L, "Position");
+    MapObject* object = OptObject(L, 2);
+    if (!object) return luaL_error(L, "Position: an object expected, got nil or one that is gone");
+    PushPoint(L, object->localPosition);
+    return 1;
+}
+
+// cast:IsDead(unit): the unit is dead, as the game's spells test their units (false for nil, one that is gone, or
+// another object).
+int ScriptSpellHost::IsDead(lua_State* L) {
+    Self(L, "IsDead");
+    Unit* unit = UnitOrNull(OptObject(L, 2));
+    lua_pushboolean(L, unit && unit->IsDead());
+    return 1;
+}
+
+// cast:IsHurt(unit): the unit's hit points as the players see them (whole numbers) are not its maximum, as the healing
+// spell tests it for its sound and light (and the items for their healing); false for nil or another object.
+int ScriptSpellHost::IsHurt(lua_State* L) {
+    Self(L, "IsHurt");
+    const Unit* unit = UnitOrNull(OptObject(L, 2));
+    lua_pushboolean(L, unit && unit->packedVitals.hitPoints != unit->packedVitals.maxHitPoints);
+    return 1;
+}
+
+// cast:Shout(unit, ack): the unit says the ack to its player (acks.db's kinds by their TOML names: "cant_teleport",
+// "link_ended", ...), as the teleport's caster says it cannot go; nothing for a unit without a player or a kind units
+// do not shout.
+int ScriptSpellHost::Shout(lua_State* L) {
+    Self(L, "Shout");
+    Unit* unit = UnitOrNull(OptObject(L, 2));
+    const char* name = luaL_checkstring(L, 3);
+    const std::optional<AckKind> kind = acks::KindByName(name);
+    if (!kind) return luaL_error(L, "Shout: no ack %s", name);
+    if (unit) spellfx::ControllerOf(unit)->Shout(*kind);
+    return 0;
+}
+
+// cast:Reveal(unit): the caster's player sees the unit this tick (its party's view takes it in), as clairvoyance shows
+// the units in its radius; nothing without a unit caster that has a player.
+int ScriptSpellHost::Reveal(lua_State* L) {
+    SpellEffect& effect = Self(L, "Reveal");
+    MapObject* object = OptObject(L, 2);
+    Unit* caster = effect.caster;
+    if (object && caster && caster->player) caster->player->Server()->possessedGroup.Insert(object);
+    return 0;
+}
+
+// cast:Wake(at, radius): the units in the map's sectors within `radius` of the position are updated again (sleeping
+// ones wake), as fireworks and clairvoyance wake those around them.
+int ScriptSpellHost::Wake(lua_State* L) {
+    SpellEffect& effect = Self(L, "Wake");
+    Vector3 at;
+    MapObject* atObject = nullptr;
+    CheckPosition(L, 2, &at, &atObject, "Wake");
+    const float radius = scriptlua::FromLuaNumber(luaL_checknumber(L, 3));
+    effect.world->WakeUnitsAround(at, radius);
+    return 0;
+}
+
+// cast:Notice(unit, at, level): the unit's AI notices the position at `level` (a whole number) when that is above the
+// level of what it noticed last, as fireworks frighten the units in their radius (300 falling to 50 over their
+// duration); nothing for another object.
+int ScriptSpellHost::Notice(lua_State* L) {
+    Self(L, "Notice");
+    Unit* unit = UnitOrNull(OptObject(L, 2));
+    Vector3 at;
+    MapObject* atObject = nullptr;
+    CheckPosition(L, 3, &at, &atObject, "Notice");
+    const lua_Integer level = std::clamp<lua_Integer>(luaL_checkinteger(L, 4), INT_MIN, INT_MAX);
+    if (unit) spellfx::ControllerOf(unit)->brain.memory.Notice(at, static_cast<int>(level), kNoticeDecay);
+    return 0;
+}
+
+// cast:Vision(seer, observer [, {lifetime}]): what the unit `seer` sees, with the unit `observer`'s senses, shown in the
+// fog of war while it lasts (`lifetime` ticks, else as long as the cast), as vision fog shows its caster what its
+// target sees. Its handle.
+int ScriptSpellHost::Vision(lua_State* L) {
+    SpellEffect& effect = Self(L, "Vision");
+    const Unit* seer = UnitOrNull(OptObject(L, 2));
+    const Unit* observer = UnitOrNull(OptObject(L, 3));
+    if (!seer || !observer) return luaL_error(L, "Vision: two units expected (the seer, the observer)");
+    CheckOptions(L, 4);
+    const int lifetime = std::max(IntField(L, 4, "lifetime", 0), 0);
+    auto* shown = spellfx::CreateObject<EffectShowVisibility>(&effect, ClassId::EffectShowVisibility);
+    shown->SetUnits(observer->id, seer->id);
+    spellfx::SetPosition(shown, spellfx::kZeroVector);
+    effect.Own(shown, lifetime, 0);
+    return PushHandle(L, shown);
+}
+
 void ScriptSpellHost::PushModule(const SpellEffect& effect) {
     const std::string& file = ScriptOf(effect);
     std::string key = file;
@@ -1247,7 +1353,7 @@ void ScriptSpellHost::PushEntry(lua_State* state, int key) {
 }
 
 void ScriptSpellHost::PushCast(const SpellEffect& effect, int entry) {
-    lua_createtable(L, 0, 23);
+    lua_createtable(L, 0, 24);
     const int cast = lua_gettop(L);
     const Spell& spell = *effect.HeldSpell();
     const itemdb::SpellRecord* record = spell.GetPrototype();
@@ -1277,6 +1383,8 @@ void ScriptSpellHost::PushCast(const SpellEffect& effect, int entry) {
     const auto school = static_cast<std::size_t>(record ? record->school : SpellSchool::None);
     lua_pushstring(L, school < std::size(recordnames::kSpellSchools) ? recordnames::kSpellSchools[school].data() : "");
     lua_setfield(L, cast, "school");
+    lua_pushboolean(L, effect.silentEnd != 0);
+    lua_setfield(L, cast, "silent");
     lua_getfield(L, entry, "data");
     lua_setfield(L, cast, "data");
     lua_rawgeti(L, LUA_REGISTRYINDEX, castMeta);

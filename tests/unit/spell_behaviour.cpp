@@ -43,14 +43,15 @@ int RunSpellBehaviourChecks() {
                                               records[255].behaviour == SpellType::None);
 
     // The game's rows, whatever the record's fields.
-    const itemdb::SpellUse healing = UseOf(records[static_cast<int>(SpellType::Healing)]);
-    Expect("healing: a heal, no damage, not offensive or fighting",
-           healing.ai == SpellAi::Heal && healing.damageType == DamageType::Other && !healing.offensive &&
-               !healing.turnsVictim && !healing.fighting);
+    const itemdb::SpellUse charm = UseOf(records[static_cast<int>(SpellType::Charm)]);
+    Expect("charm: offensive, no AI use or damage, not turning the victim or fighting",
+           charm.ai == SpellAi::None && charm.damageType == DamageType::Other && charm.offensive &&
+               !charm.turnsVictim && !charm.fighting);
     const itemdb::SpellUse stun = UseOf(records[static_cast<int>(SpellType::Stun)]);
     Expect("stun (on Buff.lua): an empty row", stun.ai == SpellAi::None && !stun.offensive && !stun.fighting);
     const itemdb::SpellUse fireworks = UseOf(records[static_cast<int>(SpellType::Fireworks)]);
-    Expect("fireworks: nothing", fireworks.ai == SpellAi::None && !fireworks.offensive && !fireworks.fighting);
+    Expect("fireworks (on Fireworks.lua): an empty row",
+           fireworks.ai == SpellAi::None && !fireworks.offensive && !fireworks.fighting);
 
     // A record past the game's reads its own fields; offensive also turns the victim and is fighting.
     const itemdb::SpellUse added = UseOf(records[42]);

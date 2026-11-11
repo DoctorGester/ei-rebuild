@@ -385,3 +385,66 @@ damage_type = "acid"
 offensive = true
 turns_victim = false
 fighting = true
+
+# The rest of the game's spells, each on a file of its own. None of them is offensive or fighting.
+
+# Fireworks: sparks at the point that wake and frighten the units around it.
+[[spell]]
+code = "fireworks"
+script = "Fireworks.lua"
+per_target = true
+ends_with_target = true
+max_ticks = 0
+ai = "none"
+offensive = false
+turns_victim = false
+fighting = false
+
+# Clairvoyance: the caster's player sees the units around the point.
+[[spell]]
+code = "clairvoyence"
+script = "Clairvoyance.lua"
+per_target = true
+ends_with_target = true
+max_ticks = 0
+ai = "none"
+offensive = false
+turns_victim = false
+fighting = false
+
+# Vision fog: the caster's player sees what the unit it is cast at sees.
+[[spell]]
+code = "vision_fog"
+script = "VisionFog.lua"
+per_target = true
+ends_with_target = true
+max_ticks = 0
+ai = "none"
+offensive = false
+turns_victim = false
+fighting = false
+
+# Healing: heals the unit it is cast at; an item's healing casts it when its wearer is hurt (item_heals).
+[[spell]]
+code = "healing"
+script = "Healing.lua"
+per_target = true
+ends_with_target = true
+item_heals = true
+ai = "heal"
+offensive = false
+turns_victim = false
+fighting = false
+
+# Teleport: the caster goes to the point, stunned for a moment on arrival (its effect: the stun without a look).
+[[spell]]
+code = "teleport"
+script = "Teleport.lua"
+effect = "teleport"
+per_target = true
+ends_with_target = true
+max_ticks = 0
+ai = "none"
+offensive = false
+turns_victim = false
+fighting = false

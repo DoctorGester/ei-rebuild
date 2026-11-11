@@ -7844,7 +7844,7 @@ client tick 240
 client ticksRun 212
 cunit1000011214 #place 62A1C7D9
 cunit1000011214 #unit 9518E509
-@ 12 update 260 frame 51 tick 260 zone gz1g hash 5C853E13 n 836
+@ 12 update 260 frame 51 tick 260 zone gz1g hash F8E702D3 n 836
 world tick 260
 world updates 260
 world lastRainBoltTick 259
@@ -7885,13 +7885,13 @@ timed5147058 # AFDC48F0
 missile0 # 6635D1FB
 missile1 # 940846FB
 + missile2 spell 24
-missile2 # 8BBC9271
+missile2 # 5AC1019D
 aievents tick 260
 client tick 260
 client ticksRun 232
 cunit1000011214 #place 10E3F544
 cunit1000011214 #unit 1AC00B3C
-@ 13 update 280 frame 55 tick 280 zone gz1g hash 94CC1B39 n 837
+@ 13 update 280 frame 55 tick 280 zone gz1g hash 1830AC34 n 837
 world tick 280
 world updates 280
 world objects 816
@@ -7942,7 +7942,6 @@ timed5147057 # 1988C5CF
 - timed5147058
 missile0 # 1D4AA15D
 missile1 # EF77365D
-missile2 # 3323CC9F
 aievents tick 280
 client tick 280
 client ticksRun 252

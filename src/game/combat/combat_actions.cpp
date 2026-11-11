@@ -144,7 +144,7 @@ void UnitServer::TriggerItemSpells(char onHit) {
         if (!spell || !(spell->targetFlags & SpellTargetFlag::ItemTriggered)) continue;
         float cost = spell->manaCost;
         if (cost > item->charge) continue;
-        bool fires = spell->Behaviour() == SpellType::Healing ? onHit == 0 : onHit != 0;   // healing: when not hit
+        bool fires = spell->GetPrototype()->itemHeals ? onHit == 0 : onHit != 0;   // healing: when not hit
         if (!fires) continue;
         UseItemCharge(item, cost);
         Unit* self = unit;

@@ -234,9 +234,7 @@ public:
     // CreateSoundSequence's object (`first`, then `names` at random), not yet in the world.
     EffectSoundSeq* NewSoundSequence(const Vector3& position, const Vector3& velocity, const char* first,
                                      std::vector<std::string> names);
-    // Light flags Specular | Strong; it becomes the light.
-    void CreatePointLight(const Vector3& position, const Vector3& color, float range, const Vector3& velocity);
-    // CreatePointLight's object, not yet in the world.
+    // A point light (flags Specular | Strong), not yet in the world.
     EffectPointLight* NewPointLight(const Vector3& position, const Vector3& color, float range, const Vector3& velocity);
     // The active effect a cast puts on a unit by default (cast:Apply; Buff.lua's buffs): the spell's, its strength
     // trunc(power x 16), the end sound as silentEnd says.
@@ -294,7 +292,7 @@ public:
     SpellFootprint footprint;           // the cells it blocks while footprintStamped
     std::uint8_t footprintStamped = 0;
     int timer = 0;                        // ticks left in the next state
-    std::uint8_t silentEnd = 0;           // copied into the buff record; healing: skip when at full health
+    std::uint8_t silentEnd = 0;           // an item's periodic cast: the buff record's end flag, the cast's `silent`
     // A scripted cast's key in its host's casts, and the host while the cast lives there (null once it ended, or
     // when the host went with its zone's Lua state).
     int castKey = 0;

@@ -7987,7 +7987,7 @@ client partyDanger 2
 cunit1000011214 #place F4042064
 cunit1000275420 #place C8748757
 cunit1000275420 #unit 09BCDF97
-@ 16 update 340 frame 67 tick 340 zone gz1g hash 47844838 n 839
+@ 16 update 340 frame 67 tick 340 zone gz1g hash 341C3D38 n 839
 world tick 340
 world updates 340
 world timedObjects 6
@@ -8028,13 +8028,13 @@ timed5147053 # 3D286596
 missile0 # F27704BD
 missile1 # 004A93BD
 + missile2 spell 24
-missile2 # 3D45D154
+missile2 # AD9F11D9
 aievents tick 340
 client tick 340
 client ticksRun 312
 cunit1000011214 #unit 6BEF9BA0
 cunit1000275420 #place AE4A1321
-@ 17 update 360 frame 71 tick 360 zone gz1g hash DDBBE4E7 n 839
+@ 17 update 360 frame 71 tick 360 zone gz1g hash FAE2DA1F n 839
 world tick 360
 world updates 360
 random isaac.count 203
@@ -8073,7 +8073,6 @@ obj1000275420 #vitals 5151B000
 timed5147053 # 200E9FB0
 missile0 # 1B46D7A3
 missile1 # E97B40A3
-missile2 # 3B33B3A6
 aievents tick 360
 client tick 360
 client ticksRun 332

@@ -288,8 +288,8 @@ public:
     void DeliverAttack(MapObject* target, DamageInfo* hit);
     // Casts the active weapon's spell (SpellTargetFlag::ItemTriggered) at `target` when its charge covers the cost.
     void TriggerWeaponSpell(MapObject* target);
-    // The spells of the armour pieces that trigger on being hit (`onHit`; SpellType::Healing triggers when not
-    // hit) and have the charge for it.
+    // The spells of the armour pieces that trigger on being hit (`onHit`; a spell whose record has item_heals when
+    // not hit) and have the charge for it.
     void TriggerItemSpells(char onHit);
     // Also updates the party's copy of the item.
     void UseItemCharge(Item* item, float cost);

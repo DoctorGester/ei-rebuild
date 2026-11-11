@@ -1,0 +1,30 @@
+# A save from before the last of the game's spells moved onto their scripts (MF17g6; docs/notes/items_spells.md, "The
+# game's spells on scripts"). tests/saves/rest_old was made on vanilla data by a build from before the port: a new
+# game, the god-mode hero with clairvoyance{d2}, vision_fog{d2;d2;d2;d2} and teleport put on in the camp; it casts
+# clairvoyance at a point 8 north, vision fog at a blocked WolfTutor wolf 3 east and teleport at a point on the ground;
+# while the teleport is cast a short fireworks (fireworks{d0}) goes up 8 west, then at the teleport's cast a long one
+# (fireworks{d2}) 8 south and healing on the hero, and F5 a frame later: clairvoyance lasting (134 ticks left), vision
+# fog lasting (183), the short fireworks gone out with its light rising (-27), the teleport 9 ticks before the hero
+# arrives (14), the long fireworks frightening (210) and the healing's light rising (15). Loaded now, all six go on
+# through their scripts' OnResume (Clairvoyance.lua, VisionFog.lua, Fireworks.lua, Teleport.lua, Healing.lua): the hero
+# arrives at the teleport's point, and every cast ends at the end of its count, as the C++ build's run of this scenario
+# did.
+# prepare: copy_save.py tests/saves/rest_old save2
+reject Script error
+waitmenu
+console thingamabob
+load save2
+waitwindow 30 battle
+dump loaded
+waitfor 10 IsGreater(DistanceUnitPoint(GetLeader(),GSGetVar(0,"hx"),GSGetVar(0,"hy")),5)
+dump arrived
+wait 3000
+dump later
+wait 10000
+dump after
+wait 10000
+dump end
+check IsAlive(GetLeader())
+check IsAlive(GetObjectByName("FogWolf"))
+report
+quit

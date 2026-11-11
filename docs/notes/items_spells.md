@@ -148,8 +148,10 @@ record it is; its behaviour (`SpellRecord::behaviour`, `Spell::Behaviour()`) say
 are one number. A record with a `script` gets `SpellType::Scripted` (any place; "Scripted spells"), any other record
 after them (a mod's: the showcase's "spark", 42) `SpellType::None`, which starts nothing.
 
-- What reads the behaviour: `SpellEffect::Start`, `UpdateMissile`, `UpdateLasting`, `UpdateFootprint`, `DamageKindOf`
-  (spell_effect*.cpp), the cut spells in `CastSpell` and the healing item triggers (combat_actions, combat_update).
+- What reads the behaviour: `SpellEffect::Start`, `UpdateLasting`, `DamageKindOf` (spell_effect*.cpp) and the cut
+  spells in `CastSpell`. The healing item triggers (combat_actions `TriggerItemSpells`, combat_update `TickItemSpells`:
+  armour casts it when not hit, the periodic cast only on a hurt wearer, one a tick) read the record's TOML
+  `item_heals` (`SpellRecord::itemHeals`; the game's healing has it in assets/spells/spells.sdb.toml).
 - **What an active effect does** (`MapEffect::Behaviour()`, the record's `activeEffect`, `itemdb::ActiveEffectAt`):
   the kind its TOML `effect` names (`SpellRecord::effect`, spell_db.cpp's `kEffectKinds`: the codes of the game's 20
   buffs and `teleport`, the stun without a look its caster gets; `none`: nothing), else (`own`, the default) its
@@ -189,8 +191,10 @@ The game's own spells move onto the scripted path family by family (MF17g; user 
 what modders get), so the code they ran and the switches and table rows that keyed on them go. On it now: the
 lightning arc and curse magic (assets/spells/Lightning.lua), the missiles: fire arrow, Rick magic and acid ray
 (Missile.lua), the fireball (Fireball.lua), the area strikes: light strike and acid column (Strike.lua), the lasting
-areas: fire wall, light wall and poison cloud (LastingArea.lua), and the 20 buffs (Buff.lua). Still in code: the
-campfire and the rest (fireworks, clairvoyance, vision fog, healing, teleport; possession, link and charm are cut).
+areas: fire wall, light wall and poison cloud (LastingArea.lua), the 20 buffs (Buff.lua), healing (Healing.lua),
+teleport (Teleport.lua), clairvoyance (Clairvoyance.lua), fireworks (Fireworks.lua) and vision fog (VisionFog.lua).
+Still in code: the campfire (MF17g4a), and possession, link and charm (cut from the game, unreached: only a save's
+cast of one starts them).
 
 - **Built in.** `assets/spells/` holds the scripts (CamelCase, by the spell they run) and `spells.sdb.toml`, the
   fields the game's records get: `script`, the use fields (`ai`, `damage_type`, `offensive`, `turns_victim`,
@@ -278,9 +282,42 @@ campfire and the rest (fireworks, clairvoyance, vision fog, healing, teleport; p
   fighting, antimagic's by Rebirth's FixPlaingBattleMusicFromAntimagic). Old saves: an effect on a unit is its
   record's place and numbers (MapEffect, unchanged), read the same; a buff cast never lives past its first update, so
   no save holds one in the C++'s states.
-- **Next families**: MF17g4a the campfire (every zone's flames on the ground cast one, so every golden's missile
-  records and zone saves change; it counts up forever: `max_ticks = 0`), MF17g6 the rest; each ticket names the
-  bindings and fields it lacks.
+- **The rest** (each on a file of its own; OnTick paces the four that act every tick, so their records have
+  `max_ticks = 0` and the script ends them at the C++'s update; all have OnResume for a save's cast in the C++'s
+  lasting state, from `old.ticks`: the C++'s count, the same arithmetic as OnCast's from the duration):
+  - Healing.lua: OnCast ends at once unless the target is a unit; `Heal` by the damage, the free `Healing` glow attached
+    to it (size the power), then, unless `cast.silent` (an item's periodic cast, the C++'s silentEnd) and not `IsHurt`
+    (the packed hit points at their maximum, the C++'s full test), the start sound at the unit and a light at the
+    point of the range negated rising at `lightRise`; `Done` at tick 32 (the C++'s count of 30).
+  - Teleport.lua: the departure sparks at the caster's `Position` (or the cast's start) on the ground + its own z, held;
+    the free inverted ones (size -1) at the point's ground - 0.2 (the float's exact value), the start sound and the
+    light there; OnTick ends the cast at the stun (the duration, at least 1) + 32 or when the caster is gone or
+    `IsDead`, and at tick 30 `Move`s it (Move's check, at its own height, `ResyncWithUnit`; the C++ resynced after the
+    release and the effect, which reads none of them) or `Shout`s cant_teleport; arrived, the sparks released, its own
+    effect (`effect = "teleport"`, power 16: the C++'s EffectRecord, not BuffRecord's power x 16) and the light sent up.
+  - Clairvoyance.lua: the free `ClayRing` at the point (size the radius), the light at the ground + 1 (range the
+    radius) and the start sound; OnTick with a caster `Reveal`s every unit in the radius (`FindUnits` unsorted: the
+    caster's player's possessedGroup, emptied each tick) and `Wake`s those within the radius + 5, then at the count's
+    10 the sinking ring (size -radius) and the end sound, and the end below 0 or without a caster.
+  - Fireworks.lua: the `Geyser` at the ground + 1 (size the power), the light and the `SoundLoop` of the five numbered
+    bangs; OnTick while the count is at least 0 `Wake`s (radius + 5) and has every unit in the radius `Notice` the
+    point at the C++'s FrightLevel (each float step rounded with `Float`, then truncated); at -1 the end sound, the
+    geyser and the bangs released and the light sent up; the end below -80.
+  - VisionFog.lua: OnCast finishes without a caster or a target, else `Vision` (the EffectShowVisibility: the target's
+    sight with the caster's senses, held) and the start sound at the target's eye; OnTick ends it at the duration + 2
+    or when the target is `IsDead` (gone: ends_with_target).
+  - The C++'s spell effect kept its point in `position` (the ground + 1 for fireworks and clairvoyance): their
+    OnResume read it as `cast.from`. Their use rows are their records' fields (healing `ai = "heal"`, the others
+    none; none offensive or fighting).
+- **Next**: MF17g4a the campfire (every zone's flames on the ground cast one, so every golden's missile records and
+  zone saves change; it counts up forever: `max_ticks = 0`).
+- The rest: `spells`, `combat`, `units`, `world`, `particles` and the other healing casts, `unit_ai_heal` (the AI's),
+  `spells_more` (fireworks by script, the hero's teleport), `spells_cast` (clairvoyance and vision fog without a
+  caster), `spells_hero` (the hero's vision fog), and `spells_old_rest` (tests/saves/rest_old, made by the C++ build:
+  clairvoyance and vision fog lasting, a fireworks gone out and one frightening, a teleport 9 ticks before the hero
+  arrives, a healing's light; all resume and end at their counts, the hero arrives; against the C++ build's run of it
+  only the missile records differ); `--lua-check` (Position, IsDead, IsHurt, silent, Shout, Reveal, Wake, Notice,
+  Vision's arguments).
 - Checked by `spells`, `combat_skills` and the other lightning and missile scenarios (the digest's missile records
   differ, all else the same), `spells_old_save` (tests/saves/lightning_old, made by the C++ build: both casts end at
   the load), `spells_old_missile` (tests/saves/missile_old, made by the C++ build: an acid ray lasting, a fire arrow in
@@ -324,7 +361,8 @@ zone's server state that Eris saves. Only the server runs it; clients see what i
   `point` (`{x, y, z}`), `tick` (ticks since the cast; 0 in OnCast), the built `damage`, `range`, `radius`,
   `duration`, `targetCount`, `speed`, `mana`, `power` (`spellfx::Power`), `areaPower` (`spellfx::AreaCurve` of the
   radius over the record's area), `lightRise` (`spellfx::LightRise`),
-  `lightRange` (the record's), `school` (recordnames::kSpellSchools), and
+  `lightRange` (the record's), `school` (recordnames::kSpellSchools), `silent` (the effect's silentEnd: an item's
+  periodic cast), and
   `data`, the script's own table (a new one assigned to `cast.data` is kept). Values are lower camelCase, methods
   CamelCase: `cast:After(ticks, "Name" [, payload])` (at least 1 tick, whole ticks), `cast:Finish()` (the cast ends
   after this hook), and the world methods below.
@@ -345,7 +383,10 @@ zone's server state that Eris saves. Only the server runs it; clients see what i
   `RemoveTimedObject`), `Noise` (`aiMap.events.Noise` from the caster's controller), `Across` (`WallSpan` of `WallDirection`), `Block` /
   `Unblock` (`SpellEffect::Block`: the spells' footprint set `AlongDirection` / `DiscAt`, `StampFootprint` at the
   world's tick, `ClearFootprint`; one per cast, cleared at its end and in the effect's destructor; kept in the entry's
-  `block`, stamped again by Adopt); FindUnits' `unsorted` keeps the sector map's order (HitUnitsInRadius'), its `along`
+  `block`, stamped again by Adopt), `Position` (`localPosition`), `IsDead` (`Unit::IsDead`), `IsHurt` (the packed hit
+  points against their maximum), `Shout` (`UnitServer::Shout`, the kind by `acks::KindByName`), `Reveal` (the caster's
+  player's `possessedGroup`), `Wake` (`WakeUnitsAround`), `Notice` (`brain.memory.Notice`, decay -1), `Vision` (an
+  `EffectShowVisibility` of the seer and the observer, owned); FindUnits' `unsorted` keeps the sector map's order (HitUnitsInRadius'), its `along`
   is the walls' plane test (HitUnitsAlong's: the normal 2 / sqrt(x^2 + y^2) long, |d . n| <= 1), Damage's `split` is
   `SpellEffect::SplitHit` (GetDamage's 4/n), Effect's `param`, `target`, `unit` and `direction` (EffectWall's
   SetDirection, only for Tendril and Link) set the particle's typeParam, target, unitId and extent before it goes into
@@ -429,8 +470,8 @@ effect objects dropped). The three counted effect objects
 
 Spell behaviours: 0 / 0x28 fire arrow, 1 / 0x29 lightning, 2 acid ray, 3 fireball, 4 light strike, 5 acid column, 6 fire
 wall, 7 light wall, 8 poison cloud (all eleven on scripts), 9-0x11, 0x13, 0x19, 0x1A, 0x1D-0x22, 0x25, 0x26 buffs (on Buff.lua: the target gets a
-record with byte 1 = trunc(power x 16)), 0x12 fireworks, 0x14 clairvoyance, 0x15 possession, 0x17 vision fog, 0x18
-healing, 0x1B link, 0x1C teleport, 0x24 charm, 0x27 campfire. `SpellType` names all 42 after the spell database's
+record with byte 1 = trunc(power x 16)), 0x12 fireworks, 0x14 clairvoyance, 0x17 vision fog, 0x18 healing, 0x1C
+teleport (on their scripts), 0x15 possession, 0x1B link, 0x24 charm (cut, in code), 0x27 campfire. `SpellType` names all 42 after the spell database's
 prototypes (0x16 shapechange and 0x23 comprehend start nothing).
 
 "Power": `pow(clamp(damage / prototype effect, 1, 8), 0.33) - 0.2`, or 1 when the prototype's effect compares equal to 0

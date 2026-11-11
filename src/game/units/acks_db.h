@@ -9,6 +9,8 @@
 #include <cstdint>
 #include <string>
 #include <map>
+#include <optional>
+#include <string_view>
 #include <vector>
 #include <unordered_map>
 
@@ -126,4 +128,6 @@ namespace acks {
 const SpeechRecord* SayAck(Unit* unit, AckKind kind);
 // The unit says its named speech `name` as kind 0x2A (0x2B with `alternate`). Returns it, or null.
 const SpeechRecord* SayNamedAck(Unit* unit, std::string_view name, bool alternate);
+// The ack kind of its TOML name (acks.db's lists: "cant_teleport", "link_ended", ...); none for another name.
+std::optional<AckKind> KindByName(std::string_view name);
 } // namespace acks
