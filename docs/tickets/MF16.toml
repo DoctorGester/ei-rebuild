@@ -1,0 +1,9 @@
+id = "MF16"
+title = "Mods in multiplayer: mod name and content hash in the login"
+group = "mods"
+size = 2
+model = "opus"
+note = "User 2026-11-11 approved MF15's plan (build/mf15_particles.md). No mod information travels today; peers with different mod content should be told at login. Done: our login / acceptance / ModMismatch refusal carry a mod mark (title, content hash) past what the original reads; mismatch refused with a box naming both mods and a server chat line; original clients refused by a modded server, our modded client does not join an unmarked host. Hash: FNV-1a 64 over counted files' paths, sizes, CRC-32s (zip CRCs from its list), on a thread from the Multiplayer button. Scenarios net_pair_mod_same/differ/none (both installs)."
+order = 1349
+status = "review"
+started = "2026-11-11"
