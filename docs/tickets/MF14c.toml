@@ -3,5 +3,5 @@ title = "Readable values: an .adb key's number by kind, mob.toml stats arrays as
 group = "mods"
 size = 1
 note = "Found in MF14b: the .adb key's number field is still a plain number for the kinds MF14 gave no parts: walk/run 1 and 2 are AnimationKeyFlag::DamageLevel1/2 (the tired walk/run, cwalk08/cwalk06), idle 1 the special idle (kAnimationSpecialIdleKey), cross 1..5 the movement-mode transitions (read their requests in the code), special numbers not in SkillAnimation the briefing gestures. Name each from the code that asks for it. mob.toml's [object.stats] perception, conspicuity, mode_speeds, damage_weights are still unnamed arrays: use units.udb's names (Sense, ModeSpeedOf, the damage types). Same checks as MF14b: ei-convert --check 0 failed, normal and --converted --golden --rebirth all the same."
-order = 1337
+order = 1338
 status = "later"
