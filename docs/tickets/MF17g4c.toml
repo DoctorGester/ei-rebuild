@@ -4,3 +4,5 @@ group = "mods"
 depends = ["MF17g4b"]
 note = "MF17g4b skipped the idle ticks (0.5 us walked, 0.08 us skipped); a campfire pulse still costs 4.3-4.8 us (docs/notes/items_spells.md, the campfire's Cost), so 31 campfires take 2.9-3.3% of the main thread in Lost in Astral's gz10g against 0.1% for the C++. Measure what the hook's plumbing costs against Campfire.lua's own work (FindUnits, Damage, After): the timer walk (two passes, a std::string name), Call's and Settle's PushModule by file name (the clock has the module's reference), the OnTick call and lookup when the module has none, PushCast's 24 fields and point tables per hook. Trim what is exact; goldens unchanged; the same --quiet profile."
 order = 1398
+status = "running"
+started = "2026-11-11"
