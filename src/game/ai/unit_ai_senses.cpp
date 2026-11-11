@@ -372,8 +372,8 @@ lib::EnumArray<float, ExposureKind, 5> AIMemory::MeasureExposure(UnitServer* sel
         }
         KeepLower(out[ExposureKind::Near],
                   Exposure(distance, theirs->stats.perception[Sense::Near].current * self->stats.conspicuity[Sense::Near].current));
-        KeepLower(out[ExposureKind::Slot4],
-                  Exposure(distance, theirs->stats.perception[Sense::Slot4].current * self->stats.conspicuity[Sense::Slot4].current));
+        KeepLower(out[ExposureKind::Smell],
+                  Exposure(distance, theirs->stats.perception[Sense::Smell].current * self->stats.conspicuity[Sense::Smell].current));
         KeepLower(out[ExposureKind::Hearing],
                   Exposure(distance, theirs->moveFactors[MoveFactor::Hearing] * self->moveFactors[MoveFactor::Noise] *
                                          theirs->stats.perception[Sense::Hearing].current *

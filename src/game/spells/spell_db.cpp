@@ -135,11 +135,8 @@ void SpellDatabase::Read(const RecordFile& file) {
 
 // --- As TOML ---------------------------------------------------------------------------------------
 
-using dbtoml::Bits;
 using dbtoml::Enum;
 using dbtoml::Name;
-using dbtoml::OtherBits;
-using recordnames::kTraders;
 
 namespace {
 
@@ -154,7 +151,6 @@ constexpr Name kModifierKinds[] = {
     {0, "range"}, {1, "targets"}, {2, "area"}, {3, "effect"}, {4, "duration"}, {5, "mana"}, {6, "filter"}, {7, "item"},
 };
 constexpr std::string_view kAllowedModifiers[] = {"range", "targets", "area", "effect", "duration"};
-constexpr std::uint32_t kTraderBits = dbtoml::NamedBits(kTraders);
 
 } // namespace
 
@@ -182,8 +178,7 @@ void Fields(SpellRecord& r, Visit& v) {
     v("icon", r.icon);
     v("allowed_modifiers", dbtoml::Table<std::uint8_t>{r.allowedModifiers, kAllowedModifiers});
     v("skill", r.skill);
-    v("sold_by", Bits{r.classMask, kTraders});
-    v("sold_by_other", OtherBits{r.classMask, kTraderBits});
+    v("sold_by", recordnames::SoldBy(r.classMask));
     v("light_color", r.lightColor);
     v("light_range", r.lightRange);
     v("light_rise_divisor", r.lightRiseDivisor);
@@ -199,8 +194,7 @@ void Fields(SpellModifierRecord& r, Visit& v) {
     v("strength", r.strength);
     v("skill", r.skill);
     v.Unread("unread_text", r.unreadText);
-    v("sold_by", Bits{r.classMask, kTraders});
-    v("sold_by_other", OtherBits{r.classMask, kTraderBits});
+    v("sold_by", recordnames::SoldBy(r.classMask));
 }
 
 template <class Visit>
@@ -209,8 +203,7 @@ void Fields(SpellListRecord& r, Visit& v) {
     v("required", r.required);
     v("optional", r.optional);
     v("repeated", r.repeated);
-    v("sold_by", Bits{r.classMask, kTraders});
-    v("sold_by_other", OtherBits{r.classMask, kTraderBits});
+    v("sold_by", recordnames::SoldBy(r.classMask));
 }
 
 namespace {

@@ -21,16 +21,21 @@ inline constexpr dbtoml::Name kWeaponTypes[] = {
 inline constexpr dbtoml::Name kTraders[] = {
     {0x1, "gipat_smith"}, {0x2, "gipat_witch"}, {0x4, "ingos_trader"}, {0x8, "suslanger_smith"}, {0x10, "rick"},
 };
+// A class mask as the traders by name; a class no vanilla script opens (a mod's) by its number, 6..32.
+inline dbtoml::Bits SoldBy(std::uint32_t& classMask) {
+    return {classMask, kTraders, 0xFFFFFFFFu, 1, "a trader class number 1..32"};
+}
 
 // The damage types (DamageType), as the texts "string dmg_0" .. "dmg_6" name them.
 inline constexpr std::string_view kDamageTypes[] = {"piercing", "slashing", "crushing", "fire",
                                                     "acid",     "lightning", "general"};
 
-// The ground's surface classes (a map tile's class: the footstep sounds, prints.db's tables), by prints.db's names
-// (class 8 has none).
+// The ground's surface classes (a map tile's class: the footstep sounds, prints.db's tables), by prints.db's names.
+// Class 8, which prints.db leaves unnamed, is what Terrain::SurfaceClass answers outside the map and on a tile without
+// a texture (kOutsideClass); aiinfo's tileDesc.reg names it "ASTRAL".
 inline constexpr std::string_view kSurfaces[] = {
     "grass", "ground", "stone",     "sand",      "rock", "field", "water", "road",
-    "surface_8", "snow", "ice", "dry_grass", "snowballs", "lava", "swamp", "high_rock",
+    "astral", "snow", "ice", "dry_grass", "snowballs", "lava", "swamp", "high_rock",
 };
 
 // MapObjectType: a model's and a map object's class (52: the animals, the code's UnitSpare).

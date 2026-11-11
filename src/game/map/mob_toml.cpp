@@ -350,11 +350,16 @@ public:
 };
 
 // Each key of the table `value` read into the record's field of that name, but those of `others`; false when `value`
-// is not a table, or a key is unknown or of a type its field does not take (`bad`: that key).
+// is not a table, or a key is unknown, has a name its field does not have or a value of a type it does not take
+// (`bad`: that key, with the valid names; `line`: its line).
 template <class Record>
 bool ReadKeys(const toml::Value& value, Record& record, std::string* bad = nullptr,
-              std::span<const std::string_view> others = {}) {
-    if (!value.IsTable()) return false;
+              std::span<const std::string_view> others = {}, int* line = nullptr) {
+    if (line) *line = value.Line();
+    if (!value.IsTable()) {
+        if (bad) *bad = "not a table";
+        return false;
+    }
     bool all = true;
     for (int k = 0; k < value.Size(); ++k) {
         bool other = false;
@@ -367,6 +372,7 @@ bool ReadKeys(const toml::Value& value, Record& record, std::string* bad = nullp
             *bad = std::string(value.KeyAt(k)) + (visit.found ? " has a value it does not take" : " is unknown");
             if (!visit.valid.empty()) *bad += " (one of: " + visit.valid + ")";
         }
+        if (line && all) *line = value.ValueAt(k).Line();
         all = false;
     }
     return all;
@@ -680,46 +686,58 @@ void Warn(const std::string& path, int line, const std::string& what) {
     game::Warning("map objects: %s line %d: %s", path, line, what);
 }
 
-// A unit's behaviour records: as many as the array has (at most five).
-void ReadBehaviours(const toml::Value& list, mapspec::UnitSpec& unit, const std::string& path) {
+// A record that fails to load: logged with its line and left out.
+std::unique_ptr<Spec> LeftOut(const std::string& path, int line, const std::string& what) {
+    Warn(path, line, what + "; the record is left out");
+    return nullptr;
+}
+
+// A unit's behaviour records: as many as the array has (at most five). False (with `bad` and its `line`) when one
+// does not load.
+bool ReadBehaviours(const toml::Value& list, mapspec::UnitSpec& unit, std::string& bad, int& line) {
+    line = list.Line();
     if (!list.IsArray()) {
-        Warn(path, list.Line(), "behaviour is not an array of tables");
-        return;
+        bad = "behaviour is not an array of tables";
+        return false;
     }
-    if (list.Size() > kBehaviourCount) Warn(path, list.Line(), "more than five behaviour records: the rest left out");
-    unit.behaviours = list.Size() < kBehaviourCount ? list.Size() : kBehaviourCount;
+    if (list.Size() > kBehaviourCount) {
+        bad = "more than five behaviour records";
+        return false;
+    }
+    unit.behaviours = list.Size();
     for (int i = 0; i < unit.behaviours; ++i) {
-        std::string bad;
-        if (!ReadKeys(list.At(i), unit.behaviour[i], &bad)) Warn(path, list.At(i).Line(), "behaviour: " + bad);
+        if (!ReadKeys(list.At(i), unit.behaviour[i], &bad, {}, &line)) {
+            bad = "behaviour: " + bad;
+            return false;
+        }
     }
+    return true;
 }
 
 std::unique_ptr<Spec> ReadRecord(const toml::Value& item, const std::string& path) {
     std::string kindName;
     if (!toml::Read(item["kind"], &kindName)) {
-        Warn(path, item.Line(), "a record without its kind");
-        return nullptr;
+        return LeftOut(path, item.Line(), "a record without its kind");
     }
     std::unique_ptr<Spec> spec;
     for (const auto& [kind, name] : kKinds)
         if (name == kindName) spec = NewSpec(kind);
     if (!spec) {
-        Warn(path, item.Line(), "unknown kind " + kindName);
-        return nullptr;
+        std::string kinds;
+        for (const auto& [kind, name] : kKinds) kinds += (kinds.empty() ? "" : ", ") + std::string(name);
+        return LeftOut(path, item.Line(), "unknown kind " + kindName + " (one of: " + kinds + ")");
     }
     constexpr std::string_view kApart[] = {"kind", "stats", "behaviour"};
     std::string bad;
-    if (!ReadKeys(item, *spec, &bad, kApart)) Warn(path, item.Line(), bad);
-    const bool unit = spec->kind == SpecKind::Unit;
+    int line = 0;
+    if (!ReadKeys(item, *spec, &bad, kApart, &line)) return LeftOut(path, line, bad);
     if (item["stats"].Exists() || item["behaviour"].Exists()) {
-        if (!unit) {
-            Warn(path, item.Line(), "stats and behaviour are a unit's");
-        } else {
-            auto& unitSpec = static_cast<mapspec::UnitSpec&>(*spec);
-            if (item["stats"].Exists() && !ReadKeys(item["stats"], unitSpec.record.stats, &bad))
-                Warn(path, item["stats"].Line(), "stats: " + bad);
-            if (item["behaviour"].Exists()) ReadBehaviours(item["behaviour"], unitSpec, path);
-        }
+        if (spec->kind != SpecKind::Unit) return LeftOut(path, item.Line(), "stats and behaviour are a unit's");
+        auto& unitSpec = static_cast<mapspec::UnitSpec&>(*spec);
+        if (item["stats"].Exists() && !ReadKeys(item["stats"], unitSpec.record.stats, &bad, {}, &line))
+            return LeftOut(path, line, "stats: " + bad);
+        if (item["behaviour"].Exists() && !ReadBehaviours(item["behaviour"], unitSpec, bad, line))
+            return LeftOut(path, line, bad);
     }
     return spec;
 }
@@ -860,8 +878,10 @@ std::optional<mapspec::MobContents> Read(std::string_view text, const std::strin
         } else if (key == "weather") {
             for (int i = 0; i < value.Size(); ++i) {
                 std::string bad;
-                if (!ReadKeys(value.At(i), contents.weather.emplace_back(), &bad))
-                    Warn(path, value.At(i).Line(), "weather: " + bad);
+                int line = 0;
+                if (ReadKeys(value.At(i), contents.weather.emplace_back(), &bad, {}, &line)) continue;
+                contents.weather.pop_back();
+                Warn(path, line, "weather: " + bad + "; the record is left out");
             }
         } else if (key == "players") {
             ReadPlayers(value, contents.diplomacy, path);

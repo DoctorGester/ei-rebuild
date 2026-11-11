@@ -186,6 +186,21 @@ enum class BlowSide : std::uint32_t {
 inline constexpr std::uint32_t kBlowSideMask = 0x1C00000;
 constexpr std::uint32_t AnimationKeyOf(BlowSide side) { return static_cast<std::uint32_t>(side); }
 
+// The bits of an animation's flags that the code reads. The .adb files set others too (1..3, 15..21, 25, 26: most
+// entries repeat bits of their key there), which have no reader: the load clears them (kAnimationFlagBits).
+enum class AnimationFlag : std::uint32_t {
+    Arrow = 0x1,             // a bow's arrow shows from frame arrowFrom to arrowTo (UnitClientSpecific::UpdateArrow)
+    // A hero plays the animation only if it has the bit for each armour group it wears (Unit::AcceptsAnimation): a
+    // shirt, pants, boots or gloves (HasOtherArmour), a helmet, body armour or leggings (HasMainArmour).
+    WithUnderArmour = 0x10,
+    WithOuterArmour = 0x20,
+};
+template <>
+inline constexpr bool lib::kBitFlags<AnimationFlag> = true;
+inline constexpr std::uint32_t kAnimationFlagBits =
+    static_cast<std::uint32_t>(AnimationFlag::Arrow | AnimationFlag::WithUnderArmour | AnimationFlag::WithOuterArmour) |
+    kBlowSideMask;
+
 // One animation of a figure's animation database as "<figure>.adb" holds it (MapObjectManager::AnimationDatabaseOf
 // reads the file).
 struct FigureAnimationRecord {
@@ -197,7 +212,7 @@ struct FigureAnimationRecord {
     std::uint8_t index = 0;         // its index in the database (a unit keeps it)
     std::uint8_t unused_11[3] = {};
     std::uint32_t key = 0;          // the animation key (above)
-    std::uint32_t flags = 0;        // bit 0: a bow's arrow shows from frame arrowFrom to arrowTo; a death's BlowSide
+    std::uint32_t flags = 0;        // AnimationFlag bits and a death's BlowSide (kAnimationFlagBits)
     std::uint32_t chance = 0;       // percent (a random pick drops entries below a random percent)
     std::uint32_t frameCount = 0;   // the animation's length in frames
     // The distance one play of the animation moves the unit (0: the speed comes from the unit instead).

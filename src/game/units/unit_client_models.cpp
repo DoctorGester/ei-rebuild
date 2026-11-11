@@ -276,7 +276,7 @@ void UnitClientSpecific::UpdateArrow() {
     if (unit->MapType() != MapObjectType::Hero) return;
     const FigureAnimationState* state = unit->AsObject3D()->animation;
     const FigureAnimation* current = state->current;
-    if (current && (current->flags & 1)) {
+    if (current && lib::Has(current->flags, AnimationFlag::Arrow)) {
         float now = state->time;
         if (now == lastAnimationTime) return;   // the same time
         if (Passed(current->arrowFrom, lastAnimationTime, now)) {

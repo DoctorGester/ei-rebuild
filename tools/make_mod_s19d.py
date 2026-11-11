@@ -37,7 +37,8 @@ nothing is committed. Kinds (docs/notes/rebirth.md, "Resources and paths"):
               Res\\database\\acks.db.toml     two records of the game's acks.db changed (Haburu's scenario speeches; the
                                               mercenary warrior's attack speeches alone)
               Res\\database\\prints.db.toml   the stone blood print's wet alpha alone
-              Res\\database\\unanhoco.adb.toml  the cow's animation "cidle01" with another chance, alone
+              Res\\database\\unanhoco.adb.toml  the cow's animation "cidle01" with another chance, alone; "cidle02"
+                                              with another chance and a move no animation has (the record left out)
   databases game databases as TOML (tests/scenarios/mod_toml_databases.txt; docs/notes/mods.md, "Databases as TOML"):
               Res\\database\\items.idb.toml   the weapon "stone axe" with another damage; a weapon "mf5 axe" added
   png       textures as PNG (tests/scenarios/mod_png_texture.txt; docs/notes/mods.md, "Textures as PNG"):
@@ -171,14 +172,16 @@ def toml(root):
     # Records merge by field (MF3a). Haburu's record gives his scenario list, which replaces the game's whole list: s24
     # gets another sound, s25 is gone; his other lists stay. The mercenary warrior's gives his attack list alone (his
     # move list stays), the stone blood print's one wet value (the rest of it stays) and the cow's "cidle01" its
-    # chance (its other fields stay).
+    # chance (its other fields stay). The cow's "cidle02" has a name its field does not have (MF14b): a load error of
+    # the record, which is left out whole (its chance stays the game's).
     write(os.path.join(root, 'Res', 'database', 'acks.db.toml'),
           b'[[unit]]\nname = "Haburu"\nscenario = [\n'
           b'    { sound = "Acks\\\\Haburu\\\\Scenario\\\\MF3.wav", chance = 100, text = "MF3", name = "s24" },\n]\n\n'
           b'[[unit]]\nname = "Human Mercenary Warrior"\nattack = [\n'
           b'    { sound = "Acks\\\\HMW\\\\Attack\\\\MF3a.wav", chance = 50 },\n]\n')
     write(os.path.join(root, 'Res', 'database', 'prints.db.toml'), b'[[blood]]\nname = "stone"\nwet = { alpha = 0.25 }\n')
-    write(os.path.join(root, 'Res', 'database', 'unanhoco.adb.toml'), b'[[animation]]\nname = "cidle01"\nchance = 37\n')
+    write(os.path.join(root, 'Res', 'database', 'unanhoco.adb.toml'),
+          b'[[animation]]\nname = "cidle01"\nchance = 37\n\n[[animation]]\nname = "cidle02"\nchance = 11\nmove = "trot"\n')
 
 
 # A mod's items.idb.toml holds only what it changes: the game's "stone axe" keeps every field but the two given, and

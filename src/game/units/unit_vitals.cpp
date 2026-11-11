@@ -372,7 +372,7 @@ void UnitStats::Recompute(UnitVitals* vitals, Unit* unit) {
     lowered = conspicuity[Sense::Near].current - strongestOf(SpellType::Lichdom);
     l = lowered;
     conspicuity[Sense::Near].current = SelectLess(0.0f, l, l, 0.0f);
-    conspicuity[Sense::Slot4].current = strongestOf(SpellType::Stench) + conspicuity[Sense::Slot4].current;
+    conspicuity[Sense::Smell].current = strongestOf(SpellType::Stench) + conspicuity[Sense::Smell].current;
     float hasteDelta = strongestOf(SpellType::Speed) - strongestOf(SpellType::Slow);
 
     if (keyed) {
