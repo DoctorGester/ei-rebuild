@@ -214,6 +214,8 @@ void ReseedRandom() {
     g_random.Init();
     g_clientRandom.seeded = 0;
     g_clientRandom.InitFrom(g_random);
+    g_particleRandom.seeded = 0;
+    g_particleRandom.InitFrom(g_clientRandom);
 }
 int TextKey(const char* name) { return TextKeyFromName(name); }
 void* LocalWorldPlayer(int player) { return g_serverWorld.GetPlayer(player); }

@@ -223,6 +223,7 @@ bool StartGame(const std::function<bool()>& openDisplay, bool showLoading = fals
     // The generators (and the CRT's rand) seeded again by World::Create, as at the program's start.
     g_random.seeded = 0;
     g_clientRandom.seeded = 0;
+    g_particleRandom.seeded = 0;
     g_clientWorld.Create();
     g_serverWorld.Create();
     // The field of view: pi * 2 / 7 (51.4 degrees).

@@ -13,6 +13,13 @@ effects by family (`particle_casting.cpp`, `particle_marks.cpp`, `particle_blast
   elements (made zeroed) and the texture (kind 6, by name, one UV rectangle per frame of a grid of `frameColumns`
   columns). Code runs only for the types whose elements start other than zero or whose set-up draws (`Setup*`,
   `SetupElements`).
+- An unknown type (a mod's or a newer build's effect, from a peer's update or a save) makes no source:
+  `ParticleManager::CreateSource` asks `ShownParticleType`, which logs "particles: unknown particle type 0x..., no
+  effect shown" once per type and answers `kNoParticleType`, and gets null; `EffectParticle::Spawn` (also a wall's and
+  an arrow's trail) then shows nothing. The world object stays, so the server's lifetime (`IsOneShotType`: none for
+  an unknown type, the object lives until removed) and replication are unchanged. The original ended the game
+  ("CParticle::Create(). Unknown ETypeID."), so a mod type sent to an original client still does. `ShownParticleType`
+  is where a mod effect's declared fallback goes (MF15e). Check: `ei-convert --lua-check`'s `CheckUnknownParticleType`.
 - Each effect is a section of its family's file: its set-up, `Emit*` (fill one particle; 0 returns it to the pool),
   `Update*` (move one; 0 drops it) and `Tick*` (one element of the source's array, or the whole array for Tornado,
   Casting*, Cylinder*, Tendril, Portal and ShapeChange), free functions over the source declared in
@@ -36,7 +43,7 @@ effects by family (`particle_casting.cpp`, `particle_marks.cpp`, `particle_blast
   first tick and every tick copies the position and calls `ScaleSize(size / baseSize)`.
 - Floating point: `double` for values the original kept on the FPU stack, a store to float where it stored one; every
   "below" / "equal" test takes the unordered case the original's way.
-- Random draws (all from `g_clientRandom`): the original stored word * k + lo with k = (hi - lo) * 2^-32; where k is
+- Random draws (all from `g_particleRandom`, the particles' own client generator: core.md, "Random generators"): the original stored word * k + lo with k = (hi - lo) * 2^-32; where k is
   exactly a float's (hi - lo) times 2^-32 the code calls `Range(lo, hi)`, the same value bit for bit (a check:
   `float(hi - lo) * 2^-32 == k` and the low end the same float). The seven scales with a stray low bit are now
   `Below(limit) + lo` (the client's picture only; no frame is a golden).

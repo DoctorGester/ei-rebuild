@@ -101,7 +101,7 @@ int EmitCasting(ParticleSource& s, Particle& p, int) {
     }
     ParticleElement* state = s.elements.data();
     std::uint32_t span = static_cast<std::uint32_t>(s.frameDelay * s.lifetime + 1);
-    int pick = static_cast<int>(g_clientRandom.Next() % span);
+    int pick = static_cast<int>(g_particleRandom.Next() % span);
     if (pick > 0) {
         // Swirls 0 .. lifetime - 1: swirl 0 is element 0, the effect's state, whose radius and size the original
         // read as a swirl's x and y (z 0).
@@ -116,7 +116,7 @@ int EmitCasting(ParticleSource& s, Particle& p, int) {
     inward = reach * (ParticleTypeOf(s.type) == ParticleType::CastingDivination ? 0.03846154f : 0.07692308f);   // 1/26, 1/13
     swell = state->cast.growth;
     p.pos = away * direction + s.origin;
-    p.size = (g_clientRandom.Below(0.8f) + 0.6f) * state->cast.size * away;
+    p.size = (g_particleRandom.Below(0.8f) + 0.6f) * state->cast.size * away;
     return 1;
 }
 
@@ -132,7 +132,7 @@ int UpdateCasting(ParticleSource& s, Particle& p) {
     if (state->cast.alpha == 0) return 0;
     if (p.state) {
         p.pos = s.origin;
-        p.size = (g_clientRandom.Below(0.3f) + 0.85f) * s.elements[0].cast.radius * 0.3f;
+        p.size = (g_particleRandom.Below(0.3f) + 0.85f) * s.elements[0].cast.radius * 0.3f;
         p.color = (static_cast<std::uint32_t>(s.elements[0].cast.alpha) << 24) | 0xFFFFFF;
         return 1;
     }
@@ -174,7 +174,7 @@ void TickCasting(ParticleSource& s) {
         float bound = 0.1f;
         float low = -bound;
         auto kicked = [&](float& v, float at) {
-            float kick = g_clientRandom.Range(0.0f, bound - low);
+            float kick = g_particleRandom.Range(0.0f, bound - low);
             v = kick + v * 0.95f + low - at * 0.0005f;
         };
         kicked(velocity.x, position.x);
@@ -244,13 +244,13 @@ int EmitOrbit(ParticleSource& s, Particle& p, int index) {
     if (index == 0 && !FollowCarrier(s)) return 0;
     float radius = s.elements[0].sphere.radius;
     float big;
-    if (g_clientRandom.Next() % 11 == 0) {
+    if (g_particleRandom.Next() % 11 == 0) {
         float base = ParticleTypeOf(s.type) == ParticleType::Antimagic           ? 2.5f
                      : ParticleTypeOf(s.type) == ParticleType::SphereElectricity ? 3.5f
                                                                                  : 1.5f;
-        big = g_clientRandom.Range(0.0f, 1.0f) + base;
+        big = g_particleRandom.Range(0.0f, 1.0f) + base;
     } else {
-        big = g_clientRandom.Below(0.6f) + 0.7f;
+        big = g_particleRandom.Below(0.6f) + 0.7f;
     }
     sizeFactor = big;
 
@@ -259,7 +259,7 @@ int EmitOrbit(ParticleSource& s, Particle& p, int index) {
     float scale = shell / std::sqrt(LengthSquared(onSphere));
     onSphere *= scale;
     p.color = 0xFFFFFFFF;
-    p.frame = static_cast<int>(g_clientRandom.Next() % 11);
+    p.frame = static_cast<int>(g_particleRandom.Next() % 11);
     p.life = s.lifetime;
     p.frameTimer = 1;
 
@@ -363,7 +363,7 @@ void PlaceRings(ParticleSource& s, int countdown) {
         for (int i = 0; i < s.emitCount; ++i) {
             ParticleElement* e = &s.elements[i];
             e->ticks = countdown;
-            float lift = g_clientRandom.Range(low, high);
+            float lift = g_particleRandom.Range(low, high);
             e->flames.centre = offset;
             e->flames.centre.z = lift + e->flames.centre.z;
             e->pos = e->flames.centre;
@@ -403,9 +403,9 @@ bool EmitRingFlame(ParticleSource& s, Particle& p, int& result) {
 // the offset.
 void PlaceRingSpark(ParticleSource& s, Particle& p, const ParticleElement& ring, float spread) {
     float low = -spread;
-    p.pos.x = g_clientRandom.Range(0.0f, spread - low) + ring.pos.x + s.origin.x + low;
-    p.pos.y = g_clientRandom.Range(0.0f, spread - low) + ring.pos.y + s.origin.y + low;
-    p.pos.z = ring.pos.z - g_clientRandom.Range(0.0f, low) + s.origin.z + low;
+    p.pos.x = g_particleRandom.Range(0.0f, spread - low) + ring.pos.x + s.origin.x + low;
+    p.pos.y = g_particleRandom.Range(0.0f, spread - low) + ring.pos.y + s.origin.y + low;
+    p.pos.z = ring.pos.z - g_particleRandom.Range(0.0f, low) + s.origin.z + low;
 }
 
 void FollowRing(ParticleSource& s, Particle& p, int ring) {
@@ -450,23 +450,23 @@ int EmitCastRing(ParticleSource& s, Particle& p, int) {
         s.emitCount = 72;
         float ringRadius = s.elements[0].flames.radius;
         float twoPi = kPi + kPi;
-        float angle = g_clientRandom.Range(0.0f, twoPi);
+        float angle = g_particleRandom.Range(0.0f, twoPi);
         p.color = 0xFFFFFFFF;
         p.frame = 1;
         int age = s.elements[0].ticks;
         if (age >= 5) age = 5;
-        std::uint32_t spread = g_clientRandom.Next();
+        std::uint32_t spread = g_particleRandom.Next();
         p.frameTimer = 1;
         p.state = -1;
         p.life = static_cast<int>(spread % 4u) + age + 1;
         float inner = (ringRadius - s.height * 20.0f) * 0.5f + ringRadius;
-        float reach = g_clientRandom.Range(inner, ringRadius);
+        float reach = g_particleRandom.Range(inner, ringRadius);
         const ParticleElement& ring = s.elements[0];
         p.pos.x = lib::Sin(angle) * reach + (s.origin.x + ring.pos.x);
         p.pos.y = lib::Cos(angle) * reach + (s.elements[0].pos.y + s.origin.y);
         p.pos.z = s.elements[0].pos.z + s.origin.z;
     } else {
-        const ParticleElement& ring = s.elements[g_clientRandom.Next() % static_cast<std::uint32_t>(std::ssize(s.elements))];
+        const ParticleElement& ring = s.elements[g_particleRandom.Next() % static_cast<std::uint32_t>(std::ssize(s.elements))];
         p.frame = 1;
         p.life = 7;
         p.frameTimer = 1;
@@ -542,7 +542,7 @@ int EmitHealing(ParticleSource& s, Particle& p, int) {
     }
     int result;
     if (EmitRingFlame(s, p, result)) return result;
-    const ParticleElement& ring = s.elements[g_clientRandom.Next() % static_cast<std::uint32_t>(std::ssize(s.elements))];
+    const ParticleElement& ring = s.elements[g_particleRandom.Next() % static_cast<std::uint32_t>(std::ssize(s.elements))];
     p.color = 0xFFFFFFFF;
     p.frame = 8;
     p.life = 8;
@@ -605,8 +605,8 @@ constexpr std::int32_t kRiseFallAlpha[19] = /*0078A914*/ {0, 0, 32, 64, 112, 160
 
 // A random point of the box [low, high), drawn x, y, z.
 Vector3 RandomInBox(const Vector3& low, const Vector3& high) {
-    return {g_clientRandom.Range(low.x, high.x), g_clientRandom.Range(low.y, high.y),
-            g_clientRandom.Range(low.z, high.z)};
+    return {g_particleRandom.Range(low.x, high.x), g_particleRandom.Range(low.y, high.y),
+            g_particleRandom.Range(low.z, high.z)};
 }
 
 // Adds orbiter `k` (the k-th of `lifetime`, evenly spaced around the carrier) and emits its marker
@@ -681,22 +681,22 @@ int EmitCastSwirl(ParticleSource& s, Particle& p, int) {
         }
         return AddOrbiter(s, p);
     }
-    int j = static_cast<int>(g_clientRandom.Next() % static_cast<std::uint32_t>(s.lifetime));
+    int j = static_cast<int>(g_particleRandom.Next() % static_cast<std::uint32_t>(s.lifetime));
     ParticleElement* e = &s.elements[j];
-    float t = g_clientRandom.Range(0.0f, 1.0f);
+    float t = g_particleRandom.Range(0.0f, 1.0f);
     p.color = 0xFFFFFFFF;
     p.frame = 1;
     p.life = 28;
     p.frameTimer = 1;
     p.state = j;
-    rise = (g_clientRandom.Below(0.35f) + 0.85f) * e->orbiter.scale * 0.03f;
+    rise = (g_particleRandom.Below(0.35f) + 0.85f) * e->orbiter.scale * 0.03f;
     riseGrowth = 1.03f;
     ahead = RandomInBox(s.spreadMin, s.spreadMax);
     const Vector3& previous = e->orbiter.previous;
     p.pos = previous + ahead;
     float u = 1.0f - t;
     ahead += t * previous + u * e->pos;
-    p.size = (g_clientRandom.Below(0.8f) + 0.6f) * s.size * 0.2f;
+    p.size = (g_particleRandom.Below(0.8f) + 0.6f) * s.size * 0.2f;
     return 1;
 }
 
@@ -711,7 +711,7 @@ int UpdateCastSwirl(ParticleSource& s, Particle& p) {
     if (state < 0) {
         const ParticleElement& e = s.elements[-(state + 1)];
         p.pos = e.pos;
-        p.size = (g_clientRandom.Below(0.4f) + 0.8f) * s.size * 0.4f;
+        p.size = (g_particleRandom.Below(0.4f) + 0.8f) * s.size * 0.4f;
         if ((s.flags & ParticleSourceFlag::Emitting) && s.attachedTo) return 1;
         int life = p.life;
         if (life < 0) return 0;
@@ -783,16 +783,16 @@ int EmitColumn(ParticleSource& s, Particle& p, int) {
     p.frame = 1;
     p.life = 13;
     p.frameTimer = 1;
-    rise = (g_clientRandom.Below(0.6f) + 0.7f) * s.elements[0].column.height * 0.1f;
-    float ring = g_clientRandom.Below(0.2f) + 0.9f;
-    float angle = g_clientRandom.Range(0.0f, 6.28318f);
+    rise = (g_particleRandom.Below(0.6f) + 0.7f) * s.elements[0].column.height * 0.1f;
+    float ring = g_particleRandom.Below(0.2f) + 0.9f;
+    float angle = g_particleRandom.Range(0.0f, 6.28318f);
     offset.x = lib::Sin(angle) * ring;
     offset.y = lib::Cos(angle) * ring;
-    float z = g_clientRandom.Range(s.spreadMin.z, s.spreadMax.z);
+    float z = g_particleRandom.Range(s.spreadMin.z, s.spreadMax.z);
     offset.z = z;
     offset.z = z + s.elements[0].column.foot;
     p.pos = s.origin + offset;
-    p.size = (g_clientRandom.Below(0.8f) + 0.6f) * s.size * 0.25f;
+    p.size = (g_particleRandom.Below(0.8f) + 0.6f) * s.size * 0.25f;
     return 1;
 }
 
@@ -875,7 +875,7 @@ int EmitCylinder(ParticleSource& s, Particle& p, int) {
         p.size = 0.0f;
         return 1;
     }
-    int j = static_cast<int>(g_clientRandom.Next() % static_cast<std::uint32_t>(stars));
+    int j = static_cast<int>(g_particleRandom.Next() % static_cast<std::uint32_t>(stars));
     const ParticleElement& e = s.elements[j];
     int life = e.ticks + 6;
     if (life > 14) life = 14;
@@ -885,7 +885,7 @@ int EmitCylinder(ParticleSource& s, Particle& p, int) {
     if (step.x == 0.0f && step.y == 0.0f) return 0;
     p.frame = 1;
     p.state = -1;
-    float u = g_clientRandom.Range(-1.0f, 0.0f);
+    float u = g_particleRandom.Range(-1.0f, 0.0f);
     relative = u * step + e.pos;
     spiral = step;
     p.size = 0.1f;
@@ -1007,8 +1007,8 @@ void PlaceModifierPoints(ParticleSource& s) {
         Vector3 v;
         float lengthSq;
         for (;;) {
-            v = {g_clientRandom.Range(-1.0f, 1.0f), g_clientRandom.Range(-1.0f, 1.0f),
-                 g_clientRandom.Range(-1.0f, 1.0f)};
+            v = {g_particleRandom.Range(-1.0f, 1.0f), g_particleRandom.Range(-1.0f, 1.0f),
+                 g_particleRandom.Range(-1.0f, 1.0f)};
             v -= axis * Dot(axis, v);
             lengthSq = LengthSquared(v);
             if (lengthSq != 0.0f) break;   // a NaN ends the search too
@@ -1063,17 +1063,17 @@ int EmitModifier(ParticleSource& s, Particle& p, int index) {
     }
 
     std::uint32_t count = static_cast<std::uint32_t>(std::ssize(s.elements));
-    std::uint32_t pick = g_clientRandom.Next() % count;
-    float u = g_clientRandom.Range(0.0f, 1.0f);
-    std::uint32_t frameRoll = g_clientRandom.Next();
+    std::uint32_t pick = g_particleRandom.Next() % count;
+    float u = g_particleRandom.Range(0.0f, 1.0f);
+    std::uint32_t frameRoll = g_particleRandom.Next();
     float w = 1.0f - u;
     p.life = 5;
     p.frame = static_cast<int>((frameRoll & 3) + 12);
     const ParticleElement& e = s.elements[pick];
     base = u * e.pos + w * e.ring.start;
-    float jz = g_clientRandom.Range(-0.04f, 0.04f);
-    float jy = g_clientRandom.Range(-0.04f, 0.04f);
-    float jx = g_clientRandom.Range(-0.04f, 0.04f);
+    float jz = g_particleRandom.Range(-0.04f, 0.04f);
+    float jy = g_particleRandom.Range(-0.04f, 0.04f);
+    float jx = g_particleRandom.Range(-0.04f, 0.04f);
     scatter = {jx, jy, jz};
     p.pos = s.elements[pick].ring.start;
     p.size = 0.06f;
@@ -1181,9 +1181,9 @@ int EmitLink(ParticleSource& s, Particle& p, int) {
     float& sparkSize = p.drift.z;
     if (s.elements.empty()) SetUpLink(s);
     p.color = 0xFFFFFF;
-    float a = g_clientRandom.Range(-1.0f, 1.0f);
-    float b = g_clientRandom.Range(-1.0f, 1.0f);
-    float c = g_clientRandom.Range(s.spreadMin.z, s.spreadMax.z);
+    float a = g_particleRandom.Range(-1.0f, 1.0f);
+    float b = g_particleRandom.Range(-1.0f, 1.0f);
+    float c = g_particleRandom.Range(s.spreadMin.z, s.spreadMax.z);
     offset.x = a * s.spreadMin.x;
     offset.y = b * s.spreadMin.y;
     offset.z = c;
@@ -1194,17 +1194,17 @@ int EmitLink(ParticleSource& s, Particle& p, int) {
     Vector3 start = offset + s.origin;
     p.pos = start;
     float factor;
-    if ((g_clientRandom.Next() & 3) == 0 && reach < 0.5f) {
-        speed = g_clientRandom.Range(0.1f, 0.12f);
-        factor = g_clientRandom.Range(0.13f, 0.16f);
+    if ((g_particleRandom.Next() & 3) == 0 && reach < 0.5f) {
+        speed = g_particleRandom.Range(0.1f, 0.12f);
+        factor = g_particleRandom.Range(0.13f, 0.16f);
     } else {
-        speed = g_clientRandom.Range(0.17f, 0.25f);
-        factor = g_clientRandom.Range(0.03f, 0.05f);
+        speed = g_particleRandom.Range(0.17f, 0.25f);
+        factor = g_particleRandom.Range(0.03f, 0.05f);
     }
     sparkSize = factor * s.size;
     covered = 0.0f;
     p.size = sparkSize;
-    p.frame = static_cast<int>(g_clientRandom.Next() % static_cast<std::uint32_t>(s.frameCount + 1));
+    p.frame = static_cast<int>(g_particleRandom.Next() % static_cast<std::uint32_t>(s.frameCount + 1));
     return 1;
 }
 
@@ -1279,9 +1279,9 @@ int EmitStench(ParticleSource& s, Particle& p, int) {
     }
     float radius = s.elements[0].gas.radius;
     float carrierHeight = s.elements[0].gas.height;
-    float t = g_clientRandom.Range(0.0f, radius);
+    float t = g_particleRandom.Range(0.0f, radius);
     float twoPi = kPi + kPi;
-    float angle = g_clientRandom.Range(0.0f, twoPi);
+    float angle = g_particleRandom.Range(0.0f, twoPi);
     p.color = 0xFFFFFFFF;
     p.frame = 0;
     p.life = s.lifetime;
@@ -1290,12 +1290,12 @@ int EmitStench(ParticleSource& s, Particle& p, int) {
     float low = radius * -0.3f;
     float vx = lib::Sin(angle) * t;
     float vy = lib::Cos(angle) * t;
-    float vz = g_clientRandom.Range(low, radius * 0.3f);
+    float vz = g_particleRandom.Range(low, radius * 0.3f);
     around = {vx, vy, vz};
     float riseLow = carrierHeight * 0.02f;
     spinSin = lib::Sin(turn);
     spinCos = lib::Cos(turn);
-    rise = g_clientRandom.Range(riseLow, carrierHeight * 0.03f);
+    rise = g_particleRandom.Range(riseLow, carrierHeight * 0.03f);
     p.pos = s.origin + s.elements[0].pos + around;
     p.size = radius * 0.7f;
     return 1;

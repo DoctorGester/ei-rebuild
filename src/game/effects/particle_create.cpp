@@ -9,9 +9,11 @@
 #include "game/world/world.h"
 
 #include "lib/containers.h"
+#include "platform/log.h"
 
 #include <cstdint>
 #include <iterator>
+#include <set>
 
 namespace {
 
@@ -308,7 +310,18 @@ void BuildFrames(ParticleSource* s) {
     }
 }
 
+// The unknown types logged so far.
+std::set<int> g_unknownTypes;
+
 } // namespace
+
+int ShownParticleType(int type) {
+    if (FindSpec(type)) return type;
+    // TODO(MF15e): a mod effect known by name shows its declared fallback type.
+    if (g_unknownTypes.insert(type).second)
+        ei::Log("particles: unknown particle type 0x%X, no effect shown (once per type)", static_cast<unsigned>(type));
+    return kNoParticleType;
+}
 
 // Back to the defaults: no position, attachment or elements; the texture released; unit sizes, a 1000 emission
 // spacing, 10000 frame delay, a one-frame grid.
@@ -357,13 +370,12 @@ void ParticleSource::Clear() {
     Reset();
 }
 
-// Create. Sets the source up for its type from its spec; an unknown type ends the game.
+// Create. Sets the source up for its type from its spec (CreateSource makes known types only).
 void ParticleSource::Create() {
     Reset();
     boundsMin = {kBoundsFar, kBoundsFar, kBoundsFar};
     boundsMax = {-kBoundsFar, -kBoundsFar, -kBoundsFar};
     const ParticleSpec* spec = FindSpec(type);
-    if (!spec) game::FatalExit("CParticle::Create().\nUnknown ETypeID.\n");
     flags = (flags & ~(ParticleSourceFlag::TicksWhilePaused | ParticleSourceFlag::OnPart)) |
             ParticleSourceFlag::Emitting | spec->flags;
     attachPoint = spec->attachPoint;
@@ -393,7 +405,7 @@ void ParticleSource::Create() {
 
 // --- Factory and destructor ----------------------------------------------------------------------
 
-// A source never attached emits distance / emitSpacing tries (each a g_clientRandom draw) from the emission point
+// A source never attached emits distance / emitSpacing tries (each a g_particleRandom draw) from the emission point
 // it was allocated with, so the memory comes zeroed.
 ParticleSource::ParticleSource(int newType) {
     localRotation.SetIdentity();

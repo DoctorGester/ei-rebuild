@@ -72,7 +72,9 @@ void ParticleManager::Destroy() {
 }
 
 ParticleSource* ParticleManager::CreateSource(int newType) {
-    ParticleSource* source = CreateObjectAs<ParticleSource>(newType, -1);
+    const int shown = ShownParticleType(newType);
+    if (shown == kNoParticleType) return nullptr;
+    ParticleSource* source = CreateObjectAs<ParticleSource>(shown, -1);
     source->AddRef();
     int sourceId = source->id;
     if (sourceId > maxHeldId) maxHeldId = sourceId;
@@ -656,7 +658,7 @@ void Emit(ParticleSource& s) {
     if (tries > 0) {
         for (int i = 0; i < tries; ++i) {
             if (std::ssize(s.particles) >= s.maxParticles) break;
-            std::uint32_t roll = g_clientRandom.Next();
+            std::uint32_t roll = g_particleRandom.Next();
             if (static_cast<int>(roll % 100) < s.emitChance) EmitOne(s, emitted++);
         }
         if (emitted != 0) return;

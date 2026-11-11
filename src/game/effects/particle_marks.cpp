@@ -92,7 +92,7 @@ int UpdateVisionStar(ParticleSource& s, Particle& p) {
         p.pos += offset;
     }
     if (ParticleTypeOf(s.type) == ParticleType::VisionStar4) p.pos.z = p.pos.z + 0.7f;
-    float eased = g_clientRandom.Range(0.1f, 1.9f) * s.size * flicker * 0.05f + oldSize * 0.95f;
+    float eased = g_particleRandom.Range(0.1f, 1.9f) * s.size * flicker * 0.05f + oldSize * 0.95f;
     p.size = eased;
     if ((s.flags & ParticleSourceFlag::Emitting) && s.attachedTo) return 1;
     p.size = eased * 0.95f;
@@ -133,7 +133,7 @@ int UpdateRegeneration(ParticleSource& s, Particle& p) {
         float scale = carrier->bounds.radius * sideSign * 0.65f;
         target += carrier->localRotation.AxisX() * scale;
     }
-    p.size = (g_clientRandom.Below(0.4f) + 0.8f) * s.size * 0.25f;
+    p.size = (g_particleRandom.Below(0.4f) + 0.8f) * s.size * 0.25f;
     float keep = 0.7f;
     float pull = 0.3f;
     p.pos.x = p.pos.x * keep + target.x * pull;
@@ -169,14 +169,14 @@ int EmitSilence(ParticleSource& s, Particle& p, int) {
     }
     float& wispSize = p.velocity.x;
     auto node = s.particles.begin();
-    if (g_clientRandom.Next() & 1) ++node;
+    if (g_particleRandom.Next() & 1) ++node;
     const Particle* orb = *node;
-    float t = g_clientRandom.Range(0.0f, 1.0f);
+    float t = g_particleRandom.Range(0.0f, 1.0f);
     Vector3 start = orb->pos - t * orb->drift;
     Vector3 v = RandomInBall();
     p.size = 0.0f;
     p.pos = v * orb->size * 0.8f + start;
-    wispSize = (g_clientRandom.Below(0.4f) + 0.8f) * s.size * 0.08f;
+    wispSize = (g_particleRandom.Below(0.4f) + 0.8f) * s.size * 0.08f;
     p.color = 0xFFFFFFFF;
     p.frame = 6;
     p.state = 0;
@@ -222,7 +222,7 @@ int UpdateSilence(ParticleSource& s, Particle& p) {
     p.pos = next;
     angle = angleStep + angle;
     tilt = tiltStep + tilt;
-    p.size = (g_clientRandom.Below(0.2f) + 0.9f) * s.size * 0.22f;
+    p.size = (g_particleRandom.Below(0.2f) + 0.9f) * s.size * 0.22f;
     return 1;
 }
 
@@ -243,17 +243,17 @@ int EmitFeebleMind(ParticleSource& s, Particle& p, int) {
     float& growingSize = p.aux.z;
     s.emitCount = std::lround(s.size + s.size);
     p.color = 0x00FFFFFF;
-    p.frame = static_cast<int>(g_clientRandom.Next() & 15);
+    p.frame = static_cast<int>(g_particleRandom.Next() & 15);
     p.pos = s.origin;
     p.size = 0.0f;
     p.life = 20;
     float twoPi = kPi + kPi;
     offset.z = 0.0f;
-    float angle = g_clientRandom.Range(0.0f, twoPi);
+    float angle = g_particleRandom.Range(0.0f, twoPi);
     offset.x = lib::Cos(angle) * 0.05f;
     offset.y = lib::Sin(angle) * 0.05f;
     p.pos += offset;
-    float grow = (g_clientRandom.Below(0.2f) + 0.9f) * s.size * 0.035f;
+    float grow = (g_particleRandom.Below(0.2f) + 0.9f) * s.size * 0.035f;
     growingSize = grow;
     return 1;
 }
@@ -318,8 +318,8 @@ int EmitFeetCloud(ParticleSource& s, Particle& p, int) {
     Vector3& spread = p.drift;     // added to the offset per tick
     s.emitCount = std::lround(s.size * 8.0f);
     p.color = 0x00FFFFFF;
-    p.frame = static_cast<int>(g_clientRandom.Next() & 15);
-    int foot = static_cast<int>(g_clientRandom.Next() & 1);
+    p.frame = static_cast<int>(g_particleRandom.Next() & 15);
+    int foot = static_cast<int>(g_particleRandom.Next() & 1);
     p.state = foot;
     const ParticleElement& e = s.elements[foot];
     if (e.foot.countdown >= 0) p.pos = e.pos;
@@ -327,8 +327,8 @@ int EmitFeetCloud(ParticleSource& s, Particle& p, int) {
     p.size = 0.0f;
     float x, y;
     for (int tries = 10;;) {
-        x = g_clientRandom.Range(-1.0f, 1.0f);
-        y = g_clientRandom.Range(-1.0f, 1.0f);
+        x = g_particleRandom.Range(-1.0f, 1.0f);
+        y = g_particleRandom.Range(-1.0f, 1.0f);
         if (LengthSquared2D(y, x) < 1.0f) break;   // integer-sourced: never NaN
         if (!(--tries > 0)) break;
     }
@@ -408,7 +408,7 @@ int EmitStun(ParticleSource& s, Particle& p, int) {
     p.size = 0.0f;
     p.pos = v * (radius * 0.8f) + s.origin;
     p.life = 20;
-    sizeFactor = g_clientRandom.Below(0.6f) + 0.7f;
+    sizeFactor = g_particleRandom.Below(0.6f) + 0.7f;
     Unit* unit = UnitOrNull(s.attachedTo);   // stun rides units (the game reads any carrier as one)
     if (!unit) {
         s.Stop();
@@ -432,7 +432,7 @@ int UpdateStun(ParticleSource& s, Particle& p) {
     const float& sizeFactor = p.velocity.x;
     if (--p.life < 0) return 0;
     p.color = 0xFFFFFFFF;
-    p.size = (g_clientRandom.Below(0.4f) + 0.8f) * s.size * sizeFactor;
+    p.size = (g_particleRandom.Below(0.4f) + 0.8f) * s.size * sizeFactor;
     if (!s.attachedTo) {
         s.Stop();
     }
@@ -453,7 +453,7 @@ constexpr std::int32_t kCurseAlpha[24] = /*0078AC98*/ {0, 32, 64, 128, 255, 255,
 // source, drifting outwards (a tenth of the size per tick), for 20 ticks.
 int EmitCurseStars(ParticleSource& s, Particle& p, int) {
     p.color = 0xFFFFFF;
-    p.frame = static_cast<int>(g_clientRandom.Next() & 15);
+    p.frame = static_cast<int>(g_particleRandom.Next() & 15);
     Vector3 a = RandomInBall() * s.size;
     p.size = 0.0f;
     p.pos = a + s.origin;
@@ -475,7 +475,7 @@ int UpdateCurseStars(ParticleSource& s, Particle& p) {
     if (life < 0) return 0;
     p.color = (static_cast<std::uint32_t>(kCurseAlpha[life]) << 24) | 0xFFFFFF;
     if (p.size == 0.0f) {
-        p.size = (g_clientRandom.Below(0.4f) + 0.8f) * s.size * 0.04f;
+        p.size = (g_particleRandom.Below(0.4f) + 0.8f) * s.size * 0.04f;
     } else {
         p.size *= 0.95f;
     }
@@ -513,7 +513,7 @@ int EmitStartTrans(ParticleSource& s, Particle& p, int) {
     } else {
         p.life = 15;
         p.state = 0;
-        p.frame = static_cast<int>(g_clientRandom.Next() % 12);
+        p.frame = static_cast<int>(g_particleRandom.Next() % 12);
         Vector3& offset = p.velocity;  // the start, from the source
         float& sparkSize = p.aux.x;
         float lengthSquared;
@@ -541,7 +541,7 @@ int UpdateStartTrans(ParticleSource& s, Particle& p) {
             return 1;
         }
         p.color = 0xFFFFFFFF;
-        p.size = (g_clientRandom.Below(0.4f) + 0.8f) * s.elements[0].trans.scale;
+        p.size = (g_particleRandom.Below(0.4f) + 0.8f) * s.elements[0].trans.scale;
         return 1;
     }
     int life = --p.life;
@@ -595,18 +595,18 @@ int EmitSparks(ParticleSource& s, Particle& p, int) {
     }
     s.flags &= ~ParticleSourceFlag::Emitting;
     p.color = 0xFFFFFFFF;
-    float speed = g_clientRandom.Below(0.6f) + 0.8f;
+    float speed = g_particleRandom.Below(0.6f) + 0.8f;
     float lengthSquared;
     Vector3 v = RandomInBall(lengthSquared);
     Vector3 direction = v / std::sqrt(lengthSquared);
     float k = speed * s.size * speed * 0.2f;
     p.drift = direction * k;
-    float t = g_clientRandom.Range(0.0f, 1.0f);
+    float t = g_particleRandom.Range(0.0f, 1.0f);
     p.pos = t * p.drift + s.origin;
-    p.size = (g_clientRandom.Below(0.4f) + 0.8f) * s.size * 0.2f;
+    p.size = (g_particleRandom.Below(0.4f) + 0.8f) * s.size * 0.2f;
     p.life = 6;
     p.state = 0;
-    p.frame = static_cast<int>(g_clientRandom.Next() % 3) + 1;
+    p.frame = static_cast<int>(g_particleRandom.Next() % 3) + 1;
     return 1;
 }
 
@@ -615,7 +615,7 @@ int EmitSparks(ParticleSource& s, Particle& p, int) {
 int UpdateSparks(ParticleSource& s, Particle& p) {
     if (p.state != 0) {
         if (p.size != 0.0f) return 0;
-        p.size = (g_clientRandom.Below(0.4f) + 0.8f) * s.size * 0.55f;
+        p.size = (g_particleRandom.Below(0.4f) + 0.8f) * s.size * 0.55f;
         return 1;
     }
     if (--p.life < 0) return 0;
@@ -699,18 +699,18 @@ int EmitShower(ParticleSource& s, Particle& p, int) {
     p.color = 0xFFFFFFFF;
     p.life = s.lifetime;
     p.frame = s.elements[0].ticks;
-    Vector3 jitter = {g_clientRandom.Range(-0.03f, 0.03f), g_clientRandom.Range(-0.03f, 0.03f),
-                      g_clientRandom.Range(-0.03f, 0.03f)};
-    const ParticleElement& ray = s.elements[g_clientRandom.Next() % static_cast<std::uint32_t>(s.rayCount)];
+    Vector3 jitter = {g_particleRandom.Range(-0.03f, 0.03f), g_particleRandom.Range(-0.03f, 0.03f),
+                      g_particleRandom.Range(-0.03f, 0.03f)};
+    const ParticleElement& ray = s.elements[g_particleRandom.Next() % static_cast<std::uint32_t>(s.rayCount)];
     p.pos = s.origin;
     p.size = s.typeParam;
     Vector3 d = s.size * (jitter + ray.pos);
     float speed = 1.0f / std::sqrt(LengthSquared(d)) * s.size * 0.16666667f;   // 1/6
-    if ((g_clientRandom.Next() & 7) == 0) speed = speed * 1.5f;
+    if ((g_particleRandom.Next() & 7) == 0) speed = speed * 1.5f;
     p.drift = speed * d;
     speedKept = 0.9f;
     sizeKept = 0.8f;
-    float t = g_clientRandom.Range(0.0f, 1.0f);
+    float t = g_particleRandom.Range(0.0f, 1.0f);
     p.pos += t * p.drift;
     return 1;
 }
@@ -742,7 +742,7 @@ void TickShower(ParticleSource& s, ParticleElement& e) {
 
 // Falling1-4 (leaves and the like): four to eight gusts.
 void SetupFalling(ParticleSource& s) {
-    s.elements.resize(static_cast<int>(g_clientRandom.Next() % 5 + 4));
+    s.elements.resize(static_cast<int>(g_particleRandom.Next() % 5 + 4));
 }
 
 // Falling: a leaf at the source blown by a random gust (a random reach up to the gust's, a random direction
@@ -754,22 +754,22 @@ int EmitFalling(ParticleSource& s, Particle& p, int) {
     p.color = 0xFFFFFFFF;
     p.frame = 12;
     p.pos = s.origin;
-    p.size = g_clientRandom.Range(0.1f, 0.2f);
-    const ParticleElement& gust = s.elements[g_clientRandom.Next() % static_cast<std::uint32_t>(std::ssize(s.elements))];
+    p.size = g_particleRandom.Range(0.1f, 0.2f);
+    const ParticleElement& gust = s.elements[g_particleRandom.Next() % static_cast<std::uint32_t>(std::ssize(s.elements))];
     float reach = gust.wind.reach * 0.5f;
     int spread = static_cast<int>(ei::kRadiansPerDegree * 10.0f);
     float turn = spread * gust.wind.direction;
     float lowReach = -reach;
-    float x = g_clientRandom.Range(0.0f, reach - lowReach) + gust.wind.reach + lowReach;
+    float x = g_particleRandom.Range(0.0f, reach - lowReach) + gust.wind.reach + lowReach;
     float lowTurn = -turn;
-    float angle = g_clientRandom.Range(0.0f, turn - lowTurn) + gust.wind.direction + lowTurn;
+    float angle = g_particleRandom.Range(0.0f, turn - lowTurn) + gust.wind.direction + lowTurn;
     sizeFactor = 1.0f;
     gravity = -0.12f;
     p.drift.x = lib::Sin(angle) * x;
     p.drift.y = lib::Cos(angle) * x;
     p.drift.z = 0.0f;
-    gravity = g_clientRandom.Range(0.0f, 0.12f) + gravity - 0.06f;
-    terminal = g_clientRandom.Below(0.4f) - 0.6f;
+    gravity = g_particleRandom.Range(0.0f, 0.12f) + gravity - 0.06f;
+    terminal = g_particleRandom.Below(0.4f) - 0.6f;
     return 1;
 }
 
@@ -792,9 +792,9 @@ int UpdateFalling(ParticleSource&, Particle& p) {
 void TickFalling(ParticleSource& s, ParticleElement& e) {
     int age = e.wind.age;
     if (age == 0) {
-        e.wind.reach = g_clientRandom.Below(0.2f) + 0.1f;
+        e.wind.reach = g_particleRandom.Below(0.2f) + 0.1f;
         float whole = static_cast<float>(static_cast<int>(ei::kRadiansPerDegree * 360.0f));
-        e.wind.direction = g_clientRandom.Range(0.0f, whole);
+        e.wind.direction = g_particleRandom.Range(0.0f, whole);
         age = e.wind.age;
     }
     if (age > 0) {
@@ -839,7 +839,7 @@ std::uint32_t BagRgb(int kind) {
 float BagSpread(const ParticleSource& s, float& low, float& high) {
     high = s.size * 0.2f;
     low = s.size * -0.2f;
-    return g_clientRandom.Range(0.0f, high - low);
+    return g_particleRandom.Range(0.0f, high - low);
 }
 
 } // namespace
@@ -850,7 +850,7 @@ float BagSpread(const ParticleSource& s, float& low, float& high) {
 // ball's last step, in the ball's colour.
 int EmitBag(ParticleSource& s, Particle& p, int) {
     if (std::ssize(s.particles) < kBagBalls) {
-        std::uint32_t r = g_clientRandom.Next();
+        std::uint32_t r = g_particleRandom.Next();
         p.state = lib::Count(s.particles);
         p.color = 0xFFFFFF;
         p.life = 15;
@@ -859,7 +859,7 @@ int EmitBag(ParticleSource& s, Particle& p, int) {
         p.size = 0.0f;
         return 1;
     }
-    const ParticleElement& ball = s.elements[g_clientRandom.Next() % kBagBalls];
+    const ParticleElement& ball = s.elements[g_particleRandom.Next() % kBagBalls];
     int age = ball.ball.age;
     p.color = BagRgb(age);
     int life = ball.ticks + 1;
@@ -867,7 +867,7 @@ int EmitBag(ParticleSource& s, Particle& p, int) {
     p.life = life;
     p.frame = 4;
     p.state = -1;
-    float u = g_clientRandom.Range(-1.0f, 0.0f);
+    float u = g_particleRandom.Range(-1.0f, 0.0f);
     p.pos = u * ball.ball.step + ball.pos;
     p.size = kBagSizes[age] * s.size * 0.1f;
     return 1;
@@ -912,7 +912,7 @@ void TickBag(ParticleSource& s, ParticleElement& e) {
             e.ticks = kBagGone;
             return;
         }
-        e.ball.age = static_cast<int>(g_clientRandom.Next() % 3);
+        e.ball.age = static_cast<int>(g_particleRandom.Next() % 3);
         e.pos = s.origin;
         float low, high;
         float r = BagSpread(s, low, high);
@@ -922,12 +922,12 @@ void TickBag(ParticleSource& s, ParticleElement& e) {
         r = BagSpread(s, low, high);
         e.pos.z = r + e.pos.z + low;
         e.ball.velocity = RandomInBall() * s.size * 0.2f;
-        e.ticks = static_cast<int>(g_clientRandom.Next() % 3) + 7;
+        e.ticks = static_cast<int>(g_particleRandom.Next() % 3) + 7;
         e.ball.step = {};
         return;
     }
     ++e.ball.age;
-    if (g_clientRandom.Next() % 6 == 0) {
+    if (g_particleRandom.Next() % 6 == 0) {
         e.ball.velocity += RandomInBall() * s.size * 0.05f;
     }
     const Vector3& velocity = e.ball.velocity;

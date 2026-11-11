@@ -349,8 +349,8 @@ public:
     Particle* AcquireParticle();                    // from the pool, else new
     void ReleaseParticle(Particle* p);              // back to the pool's tail
     int DrawAll(SceneRenderer* renderer);
-    // CreateObject(type, -1), referenced and held under its id; with quietStart set, CampFire, Fire and Smoke start
-    // without emitting.
+    // CreateObject(ShownParticleType(type), -1), referenced and held under its id; null when the type shows none. With
+    // quietStart set, CampFire, Fire and Smoke start without emitting.
     ParticleSource* CreateSource(int type);
     // Every source's tick (with `paused` only the ones with ParticleSourceFlag::TicksWhilePaused); a held source whose tick returned 0 is
     // released and leaves `held`. Returns 0.
@@ -516,6 +516,12 @@ public:
 
 // The class factory's creator; the register arguments are unused.
 ParticleSource* NewParticleSource(int type);
+
+// ShownParticleType's answer for a type that shows nothing.
+constexpr int kNoParticleType = -1;
+// The type a source of `type` is made as: `type` itself when this build knows it, else kNoParticleType, logged once per
+// type (a peer's or a save's effect from a mod or a newer build: the effect's world object stays, showing nothing).
+int ShownParticleType(int type);
 
 // The particle renderer's shared arrays: one SpritePoint (position and size, interpolated between the last two
 // ticks) and one sprite (colour, texture frame) per particle.

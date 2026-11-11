@@ -67,6 +67,11 @@ extern IsaacRandom g_random;
 // (World::Create); before that it draws from the zero state, as g_random does unseeded.
 extern IsaacRandom g_clientRandom;
 
+// The particle sources' generator (particle_*.cpp): client draws of their own, so a change to an effect moves only the
+// particles, not the other client draws (idle animations, scorch marks, sounds). Seeded from g_clientRandom's state
+// right after it (World::Create).
+extern IsaacRandom g_particleRandom;
+
 // A draw of g_clientRandom in rand()'s range (0..0x7FFF), for the client effects that drew rand().
 int ClientRand();
 // ClientRand() * n / 0x7FFF % n, as libcrt::RandBelow scales rand() (n > 0).

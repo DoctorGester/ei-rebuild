@@ -4,6 +4,7 @@
 #include "game/app/singletons.h"
 #include "game/core/core_streams.h"
 #include "game/core/random.h"
+#include "game/effects/effects.h"
 #include "game/effects/world_effect.h"
 #include "game/objects/map_object.h"
 #include "game/objects/map_object_manager.h"
@@ -32,6 +33,7 @@
 namespace lua_check {
 
 bool g_logMuted = false;
+std::vector<std::string>* g_logCapture = nullptr;
 
 namespace {
 
@@ -739,6 +741,36 @@ void CheckRuntime() {
     Expect(reported.size() == 1 && reported[0] == "broken:1: boom", "a run's Lua error is reported");
 }
 
+// An effect of a particle type this build does not know (a mod's or a newer build's, from a peer or a save): its world
+// object starts, starts again and ticks without a source, no fatal exit; the type is logged once, a known type is
+// not logged.
+void CheckUnknownParticleType() {
+    constexpr int kUnknownType = 0x7123;
+    std::vector<std::string> lines;
+    g_logCapture = &lines;
+    g_clientWorld.particleManager = std::make_unique<ParticleManager>();
+    g_clientWorld.particleManager->Init(&g_clientWorld);
+    {
+        EffectParticle effect;
+        effect.type = kUnknownType;
+        effect.Start(0);
+        Expect(effect.source == nullptr, "an unknown particle type makes no source");
+        effect.Start(1);
+        effect.Start(0);
+        Expect(effect.source == nullptr, "an unknown particle type makes no source when started again");
+        Expect(effect.RunTick(), "an effect of an unknown particle type lives on (until the server removes it)");
+        EffectParticle other;
+        other.type = kUnknownType;
+        other.Start(0);
+    }
+    Expect(ShownParticleType(static_cast<int>(ParticleType::Sparks)) == static_cast<int>(ParticleType::Sparks),
+           "a known particle type shows itself");
+    g_clientWorld.particleManager.reset();
+    g_logCapture = nullptr;
+    const std::string expected = std::format("particles: unknown particle type 0x{:X}", kUnknownType);
+    Expect(lines.size() == 1 && lines[0].starts_with(expected), "an unknown particle type is logged once");
+}
+
 } // namespace
 
 int Main() {
@@ -761,6 +793,7 @@ int Main() {
     CheckSavedDeclarations();
     CheckCases();
     CheckRuntime();
+    CheckUnknownParticleType();
     Expect(world.OnlyWorldReferences(), "every reference released at the end");
     std::printf("lua_check: %d checks, %d failed\n", g_checks, g_failures);
     return g_failures ? 1 : 0;

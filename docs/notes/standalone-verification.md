@@ -176,8 +176,9 @@ always does the close instead of whichever real message came first.
 - The shadow's turn is undone exactly (no ulp drift per re-render).
 - Client-only effects draw from their own generator (`g_clientRandom`, seeded from the game's at World::Create), not from
   ISAAC or rand(): terrain tiles and ambience, particles, lightning shapes, sound and speech picks, decals, the
-  interface's flourishes, the client's idle animation picks and the hero previews' start frames. The server's animation
-  picks keep rand().
+  interface's flourishes, the client's idle animation picks and the hero previews' start frames. The particle sources
+  have their own (`g_particleRandom`, seeded from the client's), so a particle change moves no other client draw. The
+  server's animation picks keep rand().
 - The terrain's sectors are lit once, when built.
 
 **Behaviour that only looks random**:

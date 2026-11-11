@@ -31,11 +31,12 @@ constexpr std::uint32_t kPrintsVersion = 1;
 constexpr std::uint32_t kGeneratorVersion = 1;
 constexpr std::uint32_t kZoneVersion = 1;
 constexpr std::uint32_t kWeatherDelayVersion = 1;
+constexpr std::uint32_t kParticleGeneratorVersion = 1;
 // A section's head: its kind, its version and its size, a u32 each.
 constexpr std::uint32_t kSectionHead = 12;
 // A kept unit in the Units section: its id, wetness and snow.
 constexpr std::uint32_t kUnitBytes = 12;
-// The Generator section: seeded, count, results, memory, aa, bb, cc (a u32 each).
+// The Generator and ParticleGenerator sections: seeded, count, results, memory, aa, bb, cc (a u32 each).
 constexpr std::uint32_t kGeneratorResults = 256;
 constexpr std::uint32_t kGeneratorBytes = 4 * (2 + 2 * kGeneratorResults + 3);
 constexpr const char* kCurrentFolder = "%ssaves\\current\\";
@@ -136,7 +137,7 @@ bool LoadPrints(MemoryStream& body, std::vector<Print>* list) {
     return body.ok;
 }
 
-// The Generator section's state: none when its size is wrong, it was never seeded or its count is past its results.
+// A Generator or ParticleGenerator section's state: none when its size is wrong, it was never seeded or its count is past its results.
 std::optional<IsaacRandom> LoadGenerator(MemoryStream& body) {
     if (body.Size() != kGeneratorBytes) return std::nullopt;
     IsaacRandom random;
@@ -205,6 +206,7 @@ ClientVisuals ClientVisuals::Take(const WorldClient& world) {
     SavePrints(world.scorchMarks, &body);
     kept.prints.assign(body.data.data(), body.data.data() + body.Size());
     if (g_clientRandom.seeded) kept.generator = g_clientRandom;
+    if (g_particleRandom.seeded) kept.particleGenerator = g_particleRandom;
     kept.zone = KeptZone{world.tick, world.shownMap};
     return kept;
 }
@@ -267,6 +269,9 @@ void ClientVisuals::Load(ByteStream* stream) {
                 if (delay <= kWeatherChangeDelay) weatherDelay = delay;
             }
             break;
+        case VisualSection::ParticleGenerator:
+            if (version == kParticleGeneratorVersion) particleGenerator = LoadGenerator(body);
+            break;
         default:
             break;
         }
@@ -306,6 +311,11 @@ void ClientVisuals::Save(ByteStream* stream) const {
         body.WriteValue(*weatherDelay);
         WriteSection(stream, VisualSection::WeatherDelay, kWeatherDelayVersion, body);
     }
+    if (particleGenerator) {
+        body.Resize(0);
+        SaveGenerator(*particleGenerator, &body);
+        WriteSection(stream, VisualSection::ParticleGenerator, kParticleGeneratorVersion, body);
+    }
     stream->WriteValue(static_cast<std::uint32_t>(VisualSection::End));
     stream->WriteValue(std::uint32_t{0});
     stream->WriteValue(std::uint32_t{0});
@@ -325,6 +335,12 @@ void ClientVisuals::Restore(WorldClient& world) {
         if (wavePhase && world.terrain) world.terrain->wavePhase = *wavePhase;
         if (!prints.empty()) RestorePrints(world, away);
         if (generator) g_clientRandom = *generator;
+        if (particleGenerator) {
+            g_particleRandom = *particleGenerator;
+        } else if (generator) {
+            g_particleRandom.seeded = 0;
+            g_particleRandom.InitFrom(*generator);
+        }
         dueUnits = std::move(units);
     }
     weather.reset();
@@ -332,6 +348,7 @@ void ClientVisuals::Restore(WorldClient& world) {
     units.clear();
     prints.clear();
     generator.reset();
+    particleGenerator.reset();
     zone.reset();
     weatherDelay.reset();
 }

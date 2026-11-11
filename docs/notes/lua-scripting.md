@@ -329,7 +329,8 @@ Script (AddMob'd mobs, network quests, quest texts, console lines). The game loa
     reset with an empty WorldScript and an empty then-section, two quests built by QFinish. Each runs straight and
     through a save at every tick (Script::SaveState, LoadState into a new script), every tick's state (the globals,
     instances and runs as the digest reads them, the random draws, the texts loaded) the same as the straight run's
-    and no Lua error; with the bindings, the waits, the sandbox, persistence and the cache, 248 checks.
+    and no Lua error; with the bindings, the waits, the sandbox, persistence, the cache and an effect of an unknown
+    particle type (`CheckUnknownParticleType`: no source, no fatal exit, logged once), 257 checks.
 - **Corpus** (`--scripts build\unpacked\vanilla build\unpacked\rebirth --scenarios tests\scenarios`, 13 s): every text
   loads and checks.
 

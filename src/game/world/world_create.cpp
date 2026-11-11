@@ -74,6 +74,7 @@ void World::Create() {
     ShareAssignOwned(worldHandle, new WorldHandle());
     g_random.Init();
     g_clientRandom.InitFrom(g_random);
+    g_particleRandom.InitFrom(g_clientRandom);
     countdowns.entries.clear();
 }
 
