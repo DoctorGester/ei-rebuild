@@ -1,7 +1,7 @@
 #pragma once
 
-// The image's UTF-8 checks (docs/notes/standalone.md section 4; tests/scenarios/utf8_typing.txt; game.exe's text was
-// in the ANSI code page). The checks are the image's (image/harness_utf8_image.cpp).
+// The image's UTF-8 checks (docs/notes/standalone.md section 4; tests/scenarios/batch_menus_heroes.txt, utf8_typing;
+// game.exe's text was in the ANSI code page). The checks are the image's (image/harness_utf8_image.cpp).
 
 
 #include <string>

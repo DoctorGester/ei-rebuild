@@ -4,8 +4,8 @@ Code (layouts and per-function comments are in `ai_map.h`, `ai_motion.h`, `ai/un
 file's header says what it does): `ai_map*.cpp` (cell queries, heights, line of sight, construction, load),
 `ai_footprint*.cpp`, `ai/ai_footprint.cpp`, `ai/ai_footprint.cpp`, `ai_refresh.cpp`, `ai_region_reach.cpp`,
 `ai_block_search.cpp`, `ai_local_search.cpp`, `ai_path*.cpp`, `ai_movement.cpp`, `ai_motion.cpp`, `ai_unit_layer.cpp`,
-`ai_events.cpp`, `sector_map.cpp`. Scenario: `tests/scenarios/movement.txt` (the map functions
-also run in every scenario).
+`ai_events.cpp`, `sector_map.cpp`. Scenario: the `movement` section of `tests/scenarios/batch_units_death.txt` (the
+map functions also run in every scenario).
 
 ## How a unit moves
 

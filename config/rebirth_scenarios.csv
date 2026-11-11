@@ -5,8 +5,8 @@
 scenario,rebirth,why
 world_load,1,Rebirth's zone 1 map and its objects
 frames_basic,1,Rebirth's textures and models drawn
-items,1,Rebirth's item database
-script_parse,1,Rebirth's scripts parsed (its maps' .mq files)
+batch_items_saves,1,Rebirth's item database (its items section)
+batch_scripts,1,Rebirth's scripts parsed (its maps' .mq files; its script_parse section)
 ui_camp,1,Rebirth's camp prices and deals
 zone_gz15h_tornado,1,CEffectTornado launches only on Rebirth's data
 terrain_water_waves,1,Rebirth's zone 1 and town maps (their water) under SectorData::Animate's waves

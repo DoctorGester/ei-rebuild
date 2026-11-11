@@ -138,8 +138,8 @@ jobs:
       # change, saves written and loaded back, the renderer's frame (scene, present, water, shadows) and units and items.
       # Less render_stats: 616 s of a WARP run for its per-frame statistics.
       SMOKE_LIST: >-
-        boot smoke settings_defaults ui_main_menu ui_screens ui_hud ui_saveload rec_save_load save_flight world_load
-        zone_gz3g render_scene render_present render_water render_shadows units items
+        boot smoke settings_defaults batch_menus ui_screens ui_hud batch_items_saves rec_save_load batch_scripts world_load
+        zone_gz3g render_scene render_present_shot render_water render_shadows
     steps:
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v5

@@ -1,0 +1,12 @@
+{
+  "scenario": "batch_menus_heroes",
+  "install": "vanilla",
+  "recorded": "2026-11-11",
+  "commit": "36f42fc8e",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "H74: merged runs (sections of former scenarios in one game)",
+  "source": "image"
+}

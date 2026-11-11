@@ -1,0 +1,13 @@
+{
+  "scenario": "batch_combat",
+  "install": "vanilla",
+  "recorded": "2026-11-11",
+  "commit": "36f42fc8e",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "H74: merged runs (sections of former scenarios in one game)",
+  "source": "image",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+}

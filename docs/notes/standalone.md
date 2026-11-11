@@ -495,7 +495,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   dispatcher passes the interface each character's code point.
 - **The editors:** the caret stays a byte offset at a character's start. They are the message box's edit field (its
   letter class past ASCII is `platform::IsLetter`), the console line, the chat line and the save window's name.
-- **Check:** tests/scenarios/utf8_typing.txt.
+- **Check:** the utf8_typing section of tests/scenarios/batch_menus_heroes.txt.
   - `typeunicode` types Cyrillic and a character past U+FFFF, and `consoleline` checks the line's bytes and caret after
     editing keys.
   - `diffcapture` checks that "λ" draws differently from "?".

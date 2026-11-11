@@ -1,0 +1,491 @@
+# A merged run (H74): the scripts parsed and run, map objects, the world's client, a save in flight. Each section below was a scenario of its own that started the same way
+# (section names as before: the notes name them); a section after the first starts again from the main menu with a new game.
+# Sections: script_parse, script_exec, map_objects, world_client, save_flight.
+timeout 81
+waitmenu
+console thingamabob
+newgame
+
+# ---- section script_parse
+# Script parser: console lines go through CScript::Load ("@x" loads "WorldScript(x)", "#x" loads
+# "WorldScript( ConsoleFloat( x ))", "$x" loads "WorldScript( ConsoleString( x ))"). Covers nested
+# calls of every argument type, literals and comments, global and local variables, assignments,
+# script definitions and calls, and one deliberate error per parser message (checked with expect;
+# the console prints "Script error: <message>").
+#
+# Names a console line declares are qualified with the number of files loaded so far ("!N!name"),
+# and only a successful load counts a file. So definition lines end with a deliberate top-level error
+# (EndMarker...), and the very next line uses the names. Identifiers avoid keyword prefixes (the
+# lexer splits "Run1" into "Run" and "1").
+waitfor 15 IsGreater(HP(GetLeader()),0)
+
+# Nesting, literals (negative, leading '.', keywords in any case), strings, objects and groups.
+check IsEqual(Mul(Add(1,2),Sub(10,4)),18)
+check IsEqual(Div(Add(Mul(2,3),Sub(9,3)),Add(1,1)),6)
+check IsEqual(Add(-1.5,.5),-1)
+check isequal(ADD(1,2),3)
+check IsEqualString("a b","a b")
+check Not(IsEqualString("abc","abd"))
+check IsEqual(GetObjectID(GetLeader()),GetObjectID(GetLeader()))
+check GroupHas(GetPlayerUnits(GetPlayer(GetLeader())),GetLeader())
+check IsGreater(GroupSize(GroupAdd(GetPlayerUnits(GetPlayer(GetLeader())),GroupSub(GetPlayerUnits(0),GetPlayerUnits(0)))),0)
+# Comments: a quoted "*/" does not end a block comment; "1/*" splits into "1" and a comment.
+check IsEqual(Add(1,/* x "*/" y */2),3)
+check IsEqual(Add(1/* adjacent */,2),3)
+# A string literal keeps spaces, parentheses and commas.
+console $"a (b), c"
+expect a (b), c
+console @GSSetVar(0,"sp.a",Mul(Add(1,2),Sub(10,GetPlayer(GetLeader()))))
+check IsEqual(GSGetVar(0,"sp.a"),Mul(3,Sub(10,GetPlayer(GetLeader()))))
+
+# Global variables of every type, then assignments to them and bindings of them.
+console @) GlobalVars(gT:float, gU:string, gV:object, gW:group) EndMarkerG(
+expect Script error: Unexpected 'EndMarkerG'
+console @gT = Add(1000,234.5) gU = "sp.u" gV = GetLeader() gW = GetPlayerUnits(GetPlayer(GetLeader())) GSSetVar(0,"sp.t",gT) GSSetVar(0,gU,GetObjectID(gV)) GSSetVar(0,"sp.w",GroupSize(gW))
+check IsEqual(GSGetVar(0,"sp.t"),1234.5)
+check IsEqual(GSGetVar(0,"sp.u"),GetObjectID(GetLeader()))
+check IsGreater(GSGetVar(0,"sp.w"),0)
+
+# A script with parameters (local variables) and a For loop with a global loop counter, then a
+# call that starts it.
+console @GSSetVar(0,"sp.for",0)
+console @) GlobalVars(gC:object) Script PTestRun(n:float, s:string)( if(IsEqual(n,7)) then( ConsoleString(s) GSSetVar(0,"sp.run",Add(n,1)) For(gC,GetPlayerUnits(GetPlayer(GetLeader())))( GSSetVar(0,"sp.for",Add(GSGetVar(0,"sp.for"),1)) ) KillScript() ) ) EndMarkerS(
+expect Script error: Unexpected 'EndMarkerS'
+console @PTestRun(7,"script ran")
+waitfor 10 IsEqual(GSGetVar(0,"sp.run"),8)
+expect script ran
+check IsGreater(GSGetVar(0,"sp.for"),0)
+
+# DeclareScript, then the body of the declared script, then a call; an Any() condition with a
+# global loop counter.
+console @) DeclareScript PTestDecl(m:float) GlobalVars(gL:object) Script PTestDecl( if(Any(gL,GetPlayerUnits(GetPlayer(GetLeader())),IsAlive(gL))) then( GSSetVar(0,"sp.decl",Mul(m,5)) KillScript() ) ) EndMarkerD(
+expect Script error: Unexpected 'EndMarkerD'
+console @PTestDecl(2)
+waitfor 10 IsEqual(GSGetVar(0,"sp.decl"),10)
+
+# One error per message.
+console #Add 1,2)
+expect Script error: Expected '('
+console #Add(1 2)
+expect Script error: Expected ','
+console #Add(1)
+expect Script error: Not enough parameters
+# Add takes any number of arguments since C68 (Rebirth's AddNewScriptCommands); the game's "Too much
+# parameters" is tested with IsEqual below.
+console #Add(1,2,3)
+expect 6
+console #IsEqual(1,2,3)
+expect Script error: Too much parameters
+console #Add(GetLeader(),1)
+expect Script error: Parameter of type float expected
+console #IsEqualString(1,"a")
+expect Script error: Parameter of type string expected
+console #HP(1)
+expect Script error: Parameter of type object expected
+console #GroupSize(GetLeader())
+expect Script error: Parameter of type group expected
+console #Any(NoSuchVar,GetPlayerUnits(0),1)
+expect Script error: Only global variables are allowed to be loop counters
+console @NoSuchCommand(1)
+expect Script error: Unexpected token 'NoSuchCommand'
+console #1 // the comment swallows the closing brackets
+expect Script error: Unexpected end of file
+console #Add(1,/* never closed
+expect Script error: End of file before '*/'
+# "/**/" written as one token: the search for "*/" starts after the token.
+console #Add(1,/**/2)
+expect Script error: End of file before '*/'
+# A For whose header fails still parses its body: the '(' check reports the next token instead.
+console @For(NoSuchVar,GetPlayerUnits(0))( Sleep(1) )
+expect Script error: Wrong lexeme ,
+console @) WorldScript(
+expect Script error: Only one WorldScript() per file allowed
+console @) Sleep(1
+expect Script error: Unexpected 'Sleep'
+console @) Script PTestW x
+expect Script error: Wrong lexeme x
+console @) Script PTestF()( if(GetLeader()) then( Sleep(1) )
+expect Script error: Function returning float expected
+console @) Script PTestE()(
+expect should be at least one condition
+# The tokens run out inside the parameter list.
+console @) Script PTestD( x : float
+expect Script error: Unexpected end of file
+console @) Script PTestI()( Sleep(1)
+expect Script error: expected if section
+console @) Script PTestJ()( if IsEqual(1,1)
+expect Script error: If section, ( expected
+console @) Script PTestK()( if(IsEqual(1,2)) Sleep(1)
+expect Script error: then expected after if
+console @) Script PTestL()( if(IsEqual(1,2)) then Sleep(1)
+expect Script error: Expected ( after then
+console @) DeclareScript PTestD1() DeclareScript PTestD1(
+expect Script error: Duplicate script PTestD1
+console @) Script PTestM()( if(IsEqual(1,2)) then( Sleep(1) ) ) Script PTestM(
+expect Script error: Multiple declaration of script
+console @) DeclareScript PTestP1(x:int
+expect Script error: Unknown parameter type
+console @) DeclareScript PTestP2(x:float,x:float
+expect Script error: Duplicate variable name x
+console @) DeclareScript PTestP3(x:float y:float
+expect Script error: Expected , or ) after variable
+console @) DeclareScript PTestP4(x float
+expect Script error: Wrong lexeme float
+console @) GlobalVars(gA:float) Script PTestA()( if(IsEqual(1,2)) then( gA 5 ) )
+expect Script error: Wrong lexeme 5
+
+# The game still parses and runs scripts after all the errors.
+check IsEqual(Add(2,2),4)
+
+# ---- section script_exec
+# Script command execution (ScriptRun::RunCommand and the script runtime): runs as many world script
+# commands as possible through "@..." console lines and checks their effects (and its golden the
+# world they leave).
+#
+# Global variables and scripts declared by a console line can only be used by the very next line,
+# and only when the declaring line failed (see script_parse.txt): those pairs come first, before
+# "reject Script error". Names avoid keyword prefixes (the lexer splits "Run1" into "Run" and "1").
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+
+# Assignments to globals of every type, then AddObject / RemoveObject on the group.
+console @) GlobalVars(gZf:float, gZs:string, gZo:object, gZg:group) EndMarkerA(
+expect Script error: Unexpected 'EndMarkerA'
+console @gZf = 12.5 gZs = "zx.s" gZo = GetLeader() gZg = GetPlayerUnits(GetPlayer(GetLeader())) GSSetVar(0,"zx.f",gZf) GSSetVar(0,gZs,GetObjectID(gZo)) GSSetVar(0,"zx.g",GroupSize(gZg)) RemoveObject(gZg,GetLeader()) GSSetVar(0,"zx.g1",GroupHas(gZg,GetLeader())) AddObject(gZg,GetLeader()) GSSetVar(0,"zx.g2",GroupHas(gZg,GetLeader()))
+check IsEqual(GSGetVar(0,"zx.f"),12.5)
+check IsEqual(GSGetVar(0,"zx.s"),GetObjectID(GetLeader()))
+check IsGreater(GSGetVar(0,"zx.g"),0)
+check IsEqual(GSGetVar(0,"zx.g1"),0)
+check IsEqual(GSGetVar(0,"zx.g2"),1)
+
+# For: once per member of the hero's units.
+console @GSSetVar(0,"zx.for",0)
+console @) GlobalVars(gZc:object) EndMarkerB(
+expect Script error: Unexpected 'EndMarkerB'
+console @For(gZc,GetPlayerUnits(GetPlayer(GetLeader())))( GSSetVar(0,"zx.for",Add(GSGetVar(0,"zx.for"),1)) )
+check IsEqual(GSGetVar(0,"zx.for"),GroupSize(GetPlayerUnits(GetPlayer(GetLeader()))))
+
+# ForIf: only the members the condition holds for (the hero).
+console @GSSetVar(0,"zx.forif",0)
+console @) GlobalVars(gZd:object) EndMarkerC(
+expect Script error: Unexpected 'EndMarkerC'
+console @ForIf(gZd,GetPlayerUnits(GetPlayer(GetLeader())),IsEqual(GetObjectID(gZd),GetObjectID(GetLeader())))( GSSetVar(0,"zx.forif",Add(GSGetVar(0,"zx.forif"),1)) )
+check IsEqual(GSGetVar(0,"zx.forif"),1)
+
+# A script instance with one parameter of each type: KillScript first (the instance is removed in
+# the same tick), then a Sleep, so the rest runs from the run list in later ticks.
+console @) Script ZxRun(n:float, s:string, u:object, w:group)( if(IsGreater(n,0)) then( KillScript() GSSetVar(0,"zx.r1",n) Sleep(20) GSSetVar(0,"zx.r2",GetObjectID(u)) GSSetVar(0,"zx.r3",GroupSize(w)) ConsoleString(s) ) ) EndMarkerD(
+expect Script error: Unexpected 'EndMarkerD'
+console @ZxRun(4,"zx run done",GetLeader(),GetPlayerUnits(GetPlayer(GetLeader())))
+waitfor 10 IsEqual(GSGetVar(0,"zx.r2"),GetObjectID(GetLeader()))
+expect zx run done
+check IsEqual(GSGetVar(0,"zx.r1"),4)
+check IsEqual(GSGetVar(0,"zx.r3"),GroupSize(GetPlayerUnits(GetPlayer(GetLeader()))))
+
+reject Script error
+
+# Waiting commands: Sleep, WaitSegment, SleepUntil.
+console @GSSetVar(0,"zw.a",1) Sleep(200) GSSetVar(0,"zw.a",2)
+check IsEqual(GSGetVar(0,"zw.a"),1)
+waitfor 20 IsEqual(GSGetVar(0,"zw.a"),2)
+console @WaitSegment(60) GSSetVar(0,"zw.b",1)
+waitfor 10 IsEqual(GSGetVar(0,"zw.b"),1)
+console @SleepUntil(IsGreater(GSGetVar(0,"zw.c"),0)) GSSetVar(0,"zw.d",1)
+check IsEqual(GSGetVar(0,"zw.d"),0)
+console @GSSetVar(0,"zw.c",1)
+waitfor 5 IsEqual(GSGetVar(0,"zw.d"),1)
+
+# Quest variables: GSSetVarMax keeps the larger value, GSDelVar removes the variable.
+console @GSSetVar(0,"zv.a",5) GSSetVarMax(0,"zv.a",3)
+check IsEqual(GSGetVar(0,"zv.a"),5)
+console @GSSetVarMax(0,"zv.a",9)
+check IsEqual(GSGetVar(0,"zv.a"),9)
+console @GSDelVar(0,"zv.a")
+check IsEqual(GSGetVar(0,"zv.a"),0)
+
+# Diplomacy between two unused players: allied, enemies, neutral.
+console @SetDiplomacy(5,6,1)
+check IsEqual(GetDiplomacy(5,6),1)
+console @SetDiplomacy(5,6,-1)
+check IsEqual(GetDiplomacy(5,6),-1)
+console @SetDiplomacy(5,6,0)
+check IsEqual(GetDiplomacy(5,6),0)
+
+# Money, god mode, world time, alarms, areas, wind and background colour.
+console @GSSetVar(0,"zm.a",GetMoney(0)) GiveMoney(0,100)
+check IsEqual(GetMoney(0),Add(GSGetVar(0,"zm.a"),100))
+console @GodMode(0,1) GodMode(0,0)
+console @FixWorldTime(10)
+check IsEqual(GetWorldTime(),10)
+console @RunWorldTime(10)
+console @InvokeAlarm(4,123.5,77.25)
+check IsEqual(AlarmPosX(4),123.5)
+check IsEqual(AlarmPosY(4),77.25)
+console @AddRectToArea(907,10,20,30,40) AddRoundToArea(908,100,100,5)
+check IsInArea(907,15,35)
+check Not(IsInArea(907,50,50))
+check IsInArea(908,101,101)
+check Not(IsInArea(908,110,100))
+console @DeleteArea(907) DeleteArea(908)
+check Not(IsInArea(907,15,35))
+console @SetWind(1,0,0,1) SetBackGroundColor(40,60,80)
+
+# Effect lists: a point light that moves for 20 ticks and is then removed; lookups of ids that do
+# not exist in the particle, lightning and FX source lists.
+console @GSSetVar(0,"zu.x",GetX(GetLeader())) GSSetVar(0,"zu.y",GetY(GetLeader()))
+console @CreatePointLight(901,GSGetVar(0,"zu.x"),GSGetVar(0,"zu.y"),3,6,255,200,120) MovePointLight(901,Add(GSGetVar(0,"zu.x"),2),GSGetVar(0,"zu.y"),3,20,1)
+console @DeleteParticleSource(902) AttachParticleSource(902,1) AttachParticles(902,GetLeader()) SetParticleSourceSize(902,2) DeleteLightning(903) DeleteFXSource(904) DeletePointLight(905)
+console $"zx text"
+expect zx text
+
+# A wolf on the hero's side: player, enemies, blocking, hiding, orders and unit modes.
+console @AddUnitToServer("ZxWolf","WolfTutor","ZxWolf",Add(GSGetVar(0,"zu.x"),3),GSGetVar(0,"zu.y"),0)
+waitfor 10 IsAlive(GetObjectByName("ZxWolf"))
+console @SetPlayer(GetObjectByName("ZxWolf"),6) SetEnemy(GetObjectByName("ZxWolf"),5)
+check IsEqual(GetPlayer(GetObjectByName("ZxWolf")),6)
+console @SetPlayer(GetObjectByName("ZxWolf"),0)
+check IsEqual(GetPlayer(GetObjectByName("ZxWolf")),0)
+console @BlockUnit(GetObjectByName("ZxWolf"),1)
+check IsUnitBlocked(GetObjectByName("ZxWolf"))
+console @BlockUnit(GetObjectByName("ZxWolf"),0)
+check Not(IsUnitBlocked(GetObjectByName("ZxWolf")))
+console @HideObject(GetObjectByName("ZxWolf"),1) HideObject(GetObjectByName("ZxWolf"),0)
+console @MoveToPoint(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),6),GSGetVar(0,"zu.y"))
+waitfor 15 IsLess(DistanceUnitPoint(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),6),GSGetVar(0,"zu.y")),1.5)
+console @RotateTo(GetObjectByName("ZxWolf"),GSGetVar(0,"zu.x"),Add(GSGetVar(0,"zu.y"),5)) Stand(GetObjectByName("ZxWolf")) Run(GetObjectByName("ZxWolf")) Walk(GetObjectByName("ZxWolf")) Rest(GetObjectByName("ZxWolf"))
+# PlayAnimation of a name the figure lacks: CUnitServer::PlayAnimation and FindFigureAnimation (00555700, 00512F60) leave the order alone.
+console @PlayAnimation(GetObjectByName("ZxWolf"),"zxnone")
+console @MoveToObject(GetObjectByName("ZxWolf"),GetLeader()) Follow(GetObjectByName("ZxWolf"),GetLeader()) Idle(GetObjectByName("ZxWolf"))
+console @Guard(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),3),GSGetVar(0,"zu.y"),4) Sentry(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),3),GSGetVar(0,"zu.y")) Idle(GetObjectByName("ZxWolf"))
+console @UMClear(GetObjectByName("ZxWolf")) UMSentry(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),3),GSGetVar(0,"zu.y")) UMGuard(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),3),GSGetVar(0,"zu.y"),4) UMGuardEx(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),3),GSGetVar(0,"zu.y"),4,8) UMFollow(GetObjectByName("ZxWolf"),GetLeader())
+console @UMClear(GetObjectByName("ZxWolf")) UMPatrol(GetObjectByName("ZxWolf")) UMPatrolAddPoint(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),3),GSGetVar(0,"zu.y")) UMPatrolAddPoint(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),4),GSGetVar(0,"zu.y")) UMPatrolAddPointLook(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),5),GSGetVar(0,"zu.y"),0)
+console @UMPatrolClear(GetObjectByName("ZxWolf")) UMClear(GetObjectByName("ZxWolf")) UMAg(GetObjectByName("ZxWolf"),0) UMAg(GetObjectByName("ZxWolf"),1) UMAg(GetObjectByName("ZxWolf"),2) UMAg(GetObjectByName("ZxWolf"),3)
+console @UMClear(GetObjectByName("ZxWolf")) UMStandard(GetObjectByName("ZxWolf")) UMAggression(GetObjectByName("ZxWolf")) UMRevenge(GetObjectByName("ZxWolf")) UMFear(GetObjectByName("ZxWolf"),1) UMSuspection(GetObjectByName("ZxWolf")) UMCorpseWatcher(GetObjectByName("ZxWolf")) UMClear(GetObjectByName("ZxWolf")) Idle(GetObjectByName("ZxWolf"))
+
+# Damage and death.
+console @GSSetVar(0,"zu.hp",HP(GetObjectByName("ZxWolf"))) InflictDamage(GetObjectByName("ZxWolf"),10)
+waitfor 10 IsLess(HP(GetObjectByName("ZxWolf")),GSGetVar(0,"zu.hp"))
+console @KillUnit(GetObjectByName("ZxWolf"))
+waitfor 10 Not(IsAlive(GetObjectByName("ZxWolf")))
+
+# A second wolf: placed with SetCPFast and SetCP, then removed from the server.
+console @AddUnitToServer("ZxWolfB","WolfTutor","ZxWolfB",Add(GSGetVar(0,"zu.x"),3),Add(GSGetVar(0,"zu.y"),2),0)
+waitfor 10 IsAlive(GetObjectByName("ZxWolfB"))
+console @SetPlayer(GetObjectByName("ZxWolfB"),0) SetCPFast(GetObjectByName("ZxWolfB"),Add(GSGetVar(0,"zu.x"),5),GSGetVar(0,"zu.y"),GetZ(GetObjectByName("ZxWolfB")))
+check IsLess(DistanceUnitPoint(GetObjectByName("ZxWolfB"),Add(GSGetVar(0,"zu.x"),5),GSGetVar(0,"zu.y")),1)
+console @SetCP(GetObjectByName("ZxWolfB"),Add(GSGetVar(0,"zu.x"),4),GSGetVar(0,"zu.y"),GetZ(GetObjectByName("ZxWolfB")))
+check IsLess(DistanceUnitPoint(GetObjectByName("ZxWolfB"),Add(GSGetVar(0,"zu.x"),4),GSGetVar(0,"zu.y")),1)
+console @RemoveUnitFromServer(GetObjectByName("ZxWolfB"))
+waitfor 10 Not(IsAlive(GetObjectByName("ZxWolfB")))
+
+# Group functions (SSCCmd::CalcGroup): unions, differences and intersections of the hero's units
+# and what they and the player see.
+check IsGreater(GroupSize(GroupAdd(GetPlayerUnits(GetPlayer(GetLeader())),UnitSee(GetLeader()))),0)
+check IsEqual(GroupSize(GroupSub(GetPlayerUnits(GetPlayer(GetLeader())),GetPlayerUnits(GetPlayer(GetLeader())))),0)
+check IsEqual(GroupSize(GroupCross(GetPlayerUnits(GetPlayer(GetLeader())),GetPlayerUnits(GetPlayer(GetLeader())))),GroupSize(GetPlayerUnits(GetPlayer(GetLeader()))))
+console #GroupSize(GroupAdd(GroupSee(GetPlayerUnits(GetPlayer(GetLeader()))),PlayerSee(GetPlayer(GetLeader()))))
+
+# SleepUntilIdle: the hero walks one unit; the run continues once the walk is over.
+console @MoveToPoint(GetLeader(),Add(GSGetVar(0,"zu.x"),1),GSGetVar(0,"zu.y")) SleepUntilIdle(GetLeader()) GSSetVar(0,"zw.idle",1)
+waitfor 15 IsEqual(GSGetVar(0,"zw.idle"),1)
+check IsAlive(GetLeader())
+
+# SendEvent: message 0x12 to every player (CPlayerManager::SendValueToAll, CPlayerServer::SendWorldValue);
+# the client stores the value, which nothing reads. The commands after it still run.
+console @SendEvent(0,7) GSSetVar(0,"zw.event",1)
+waitfor 5 IsEqual(GSGetVar(0,"zw.event"),1)
+
+# ---- section map_objects
+# Map objects (src/game/objects/map_object.cpp, map_object_companion.cpp): the per-tick updates every map
+# object runs (CMapObject::Update; CMapObjectServer::Update counting effects down and removing
+# expired ones; CMapObjectClientSpecific::Update with effect end sounds and lights), scale effects
+# (RecomputeScale, ResetScale), effects cleared on death (ClearEffects), the invisible flag
+# (HideObject sets flags_ 0x10000, read by IsInvisible), and units being spawned, walked, turned,
+# placed (SetCPFast), killed and removed. The verify totals in the report show what ran.
+# SetCPFast(object, x, y, z); HideObject(object, on). No lever is known on zone1, so
+# SwitchLeverState is not used.
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+reject Script error
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+# The level intro keeps the hero blocked; unblock it instead of waiting.
+console @BlockUnit(GetLeader(),0)
+
+# Effects on the hero count down each world update; shrink rescales him.
+console @CastSpellUnit("speed{d1}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("shrink{e2;e2;d2;d1}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+wait 1000
+check IsAlive(GetLeader())
+
+# A wolf: spawned 5 east of the hero, walked back towards him, turned, put down elsewhere.
+console @AddUnitToServer("Wolf1","WolfTutor","Wolf1",Add(GetX(GetLeader()),5),GetY(GetLeader()),0)
+waitfor 10 IsAlive(GetObjectByName("Wolf1"))
+console @GSSetVar(0,"wx",GetX(GetObjectByName("Wolf1")))
+# The order is sometimes ignored right after the spawn (on the original too, 2 runs in 8): give the
+# wolf a moment, and repeat the order once.
+wait 1000
+console @MoveToPoint(GetObjectByName("Wolf1"),Add(GetX(GetLeader()),2),GetY(GetLeader()))
+wait 1000
+console @MoveToPoint(GetObjectByName("Wolf1"),Add(GetX(GetLeader()),2),GetY(GetLeader()))
+waitfor 15 IsLess(GetX(GetObjectByName("Wolf1")),Sub(GSGetVar(0,"wx"),2))
+console @RotateTo(GetObjectByName("Wolf1"),GetX(GetLeader()),Add(GetY(GetLeader()),5))
+wait 500
+console @SetCPFast(GetObjectByName("Wolf1"),Add(GetX(GetLeader()),4),Add(GetY(GetLeader()),2),GetZValue(Add(GetX(GetLeader()),4),Add(GetY(GetLeader()),2)))
+wait 500
+check IsLess(DistanceUnitUnit(GetLeader(),GetObjectByName("Wolf1")),6)
+
+# Hidden and shown again.
+console @HideObject(GetObjectByName("Wolf1"),1)
+wait 500
+console @HideObject(GetObjectByName("Wolf1"),0)
+wait 500
+
+# An effect on the wolf, then its death clears its effects.
+console @CastSpellUnit("speed{d1}",GetX(GetObjectByName("Wolf1")),GetY(GetObjectByName("Wolf1")),GetObjectByName("Wolf1"))
+# Invisibility and strength on the wolf too: the client companion's particles, sounds and the strength ring
+# (map_object_client_effects.cpp); the death below ends them (the parts' alpha reset, 0051CCA0).
+console @CastSpellUnit("invisibility{d1}",GetX(GetObjectByName("Wolf1")),GetY(GetObjectByName("Wolf1")),GetObjectByName("Wolf1"))
+console @CastSpellUnit("strength{d2}",GetX(GetObjectByName("Wolf1")),GetY(GetObjectByName("Wolf1")),GetObjectByName("Wolf1"))
+wait 1000
+console @InflictDamage(GetObjectByName("Wolf1"),1000)
+waitfor 10 Not(IsAlive(GetObjectByName("Wolf1")))
+
+# A second wolf, removed from the server.
+console @AddUnitToServer("Wolf2","WolfTutor","Wolf2",Sub(GetX(GetLeader()),4),GetY(GetLeader()),0)
+waitfor 10 IsAlive(GetObjectByName("Wolf2"))
+console @RemoveUnitFromServer(GetObjectByName("Wolf2"))
+wait 500
+check IsAlive(GetLeader())
+
+# ---- section world_client
+# World client view (src/game/world/world_client_view.cpp). Every frame the client files the objects of
+# each map sector in view into the frame's draw lists (CWorldClient::CollectVisible), sorts them
+# (IntroSortByModel / FinalSortByModel, IntroSortByModelUse / FinalSortByModelUse), and the
+# interface picks the point under the cursor (PickSurface, PickGround). The scenario spawns wolves
+# in and out of view, hides, shows and removes them, moves and clicks the mouse over the scene and
+# walks the hero so objects enter and leave the view. The verify totals show what ran.
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+# The level intro keeps the hero blocked; unblock it instead of waiting.
+console @BlockUnit(GetLeader(),0)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+
+# The cursor over the scene: the interface picks the point under it.
+move 400 250
+wait 200
+move 250 200
+wait 200
+move 550 380
+wait 200
+
+# Two wolves appear next to the hero (in view), a third 25 units east (out of view).
+console @AddUnitToServer("ViewWolf1","WolfTutor","ViewWolf1",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("ViewWolf2","WolfTutor","ViewWolf2",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),3),0)
+console @AddUnitToServer("ViewWolf3","WolfTutor","ViewWolf3",Add(GSGetVar(0,"hx"),25),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("ViewWolf1"))
+waitfor 10 IsAlive(GetObjectByName("ViewWolf2"))
+waitfor 10 IsAlive(GetObjectByName("ViewWolf3"))
+wait 500
+
+# Clicks on the scene around the hero (a wolf there is picked; on the ground the hero walks).
+click 430 300
+wait 400
+click 400 270
+wait 400
+rclick 400 300
+wait 300
+move 420 300
+wait 200
+
+# Hidden and shown again, then removed.
+console @HideObject(GetObjectByName("ViewWolf1"),1)
+wait 500
+console @HideObject(GetObjectByName("ViewWolf1"),0)
+wait 500
+console @RemoveUnitFromServer(GetObjectByName("ViewWolf2"))
+wait 500
+
+# The hero walks east towards the third wolf (it comes into view) and back.
+console @MoveToPoint(GetLeader(),Add(GSGetVar(0,"hx"),12),GSGetVar(0,"hy"))
+waitfor 20 IsGreater(GetX(GetLeader()),Add(GSGetVar(0,"hx"),7))
+move 300 300
+wait 200
+click 380 280
+wait 300
+console @MoveToPoint(GetLeader(),GSGetVar(0,"hx"),GSGetVar(0,"hy"))
+waitfor 20 IsLess(GetX(GetLeader()),Add(GSGetVar(0,"hx"),4))
+console @RemoveUnitFromServer(GetObjectByName("ViewWolf3"))
+wait 500
+check IsAlive(GetLeader())
+check IsAlive(GetObjectByName("ViewWolf1"))
+
+# ---- section save_flight
+# A save and a quick load with effects in flight (H43c; src/game/effects/world_effect_missile.cpp EffectArrow::Load,
+# world_effect.cpp EffectSoundSeq::Load, ui_saveload.cpp QuickLoad). The hero casts a fire wall (its sound sequence
+# plays while the wall burns) and a magic arrow at a wolf 70 squares away; the arrow needs some six seconds to get
+# there. F5 quick-saves into "saveq" while it is in the air, the wolf is killed on arrival, then F8 quick-loads: the
+# wolf is alive again at its full health, the arrow and the wall's sound are read from the save, the arrow flies on
+# and kills the wolf a second time.
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitline 15 Saved savea
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+waitwindow 15 battle
+console @GSSetVar(0,"sf.x",GetX(GetLeader())) GSSetVar(0,"sf.y",GetY(GetLeader()))
+console @AddUnitToServer("FlyWolf","WolfTutor","FlyWolf",Add(GSGetVar(0,"sf.x"),70),GSGetVar(0,"sf.y"),0)
+waitfor 10 IsAlive(GetObjectByName("FlyWolf"))
+console @GSSetVar(0,"sf.hp",HP(GetObjectByName("FlyWolf")))
+console @CastSpellPoint("firewall{d2;d2;e2}",Add(GSGetVar(0,"sf.x"),6),Add(GSGetVar(0,"sf.y"),9),Add(GSGetVar(0,"sf.x"),6),Add(GSGetVar(0,"sf.y"),13))
+console @CastSpellUnit("arrow{e2}",GSGetVar(0,"sf.x"),GSGetVar(0,"sf.y"),GetObjectByName("FlyWolf"))
+frames 6
+check IsEqual(HP(GetObjectByName("FlyWolf")),GSGetVar(0,"sf.hp"))
+key f5
+waitline 15 Saved saveq
+# The arrow arrives: the wolf dies.
+waitfor 20 Not(IsAlive(GetObjectByName("FlyWolf")))
+
+# F8: the quick save is loaded; the wolf stands again.
+key f8
+waitline 15 Loaded saveq
+check IsAlive(GetObjectByName("FlyWolf"))
+check IsEqual(HP(GetObjectByName("FlyWolf")),GSGetVar(0,"sf.hp"))
+dump loaded_flight
+waitfor 20 Not(IsAlive(GetObjectByName("FlyWolf")))
+check IsAlive(GetLeader())
+
+report
+quit

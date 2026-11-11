@@ -33,14 +33,12 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # A fixed mix of ordinary scenarios (no watchdog crash tests, none that sets the display mode or runs alone),
 # interleaved so any first K covers boot, world, UI, combat, rendering and scripts.
-WORKLOAD = ['world_loot', 'ui_hud', 'zone_gz15h_tornado', 'combat', 'render_scene', 'script_exec', 'ui_camp',
-            'unit_ai', 'spells_cast', 'ui_trade_hold', 'effects', 'zone_base_bz1g', 'ui_saveload', 'particles',
-            'models', 'levers', 'ui_quick_items', 'unit_ai_cast', 'trader_stock', 'world_load', 'ui_describe',
-            'magic_traps', 'frames_basic', 'sandbox_map', 'ui_base_dialogue', 'units', 'terrain_water_load',
-            'zone_gz3g', 'ui_hero_screen', 'combat_more', 'script_quest', 'map_objects', 'ui_main_menu',
-            'unit_ai_heal', 'effects_bow', 'ground_prints', 'ui_options_bind', 'camera', 'spells_hero',
-            'zone_gz2g_traps', 'ui_camp_deals', 'movement', 'render_present', 'world_client', 'ui_objectives',
-            'unit_ai_corpse', 'items', 'ui_help', 'hero_death', 'script_fx']
+WORKLOAD = ['world_loot', 'ui_hud', 'zone_gz15h_tornado', 'batch_combat', 'render_scene', 'batch_scripts', 'ui_camp',
+            'batch_sound_ai', 'ui_trade_hold', 'zone_base_bz1g', 'batch_items_saves', 'batch_world',
+            'batch_battle_spells', 'levers', 'ui_quick_items', 'world_load', 'ui_describe', 'magic_traps',
+            'frames_basic', 'terrain_water_load', 'zone_gz3g', 'batch_menus_heroes', 'batch_menus', 'effects_bow',
+            'ground_prints', 'camera_batch', 'spells_hero', 'zone_gz2g_traps', 'ui_camp_deals', 'batch_units_death',
+            'render_present_shot', 'script_fx']
 
 
 # ---- holding slots

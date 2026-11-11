@@ -1,0 +1,65 @@
+  Activated!
+  Cannot open file autoexec.cfg for reading
+  Saved savea
+  1
+  Cannot open file autoexec.cfg for reading
+  Saved savea
+  1
+  Cannot open file autoexec.cfg for reading
+  Saved savea
+  1
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  1
+  1
+  Cannot open file autoexec.cfg for reading
+  0
+  Saved savea
+  1
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  1
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  1
+  32
+  1
+  1

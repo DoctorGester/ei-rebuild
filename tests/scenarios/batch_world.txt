@@ -1,0 +1,291 @@
+# A merged run (H74): the world's queries, the battle commands, a fleeing archer, particles, a quest notice. Each section below was a scenario of its own that started the same way
+# (section names as before: the notes name them); a section after the first starts again from the main menu with a new game.
+# Sections: world, ui_battle_commands, unit_ai_flight, particles, ui_quest_notice.
+# installs: vanilla
+timeout 64
+reject Script error
+waitmenu
+console thingamabob
+newgame
+
+# ---- section world
+# World server tick (src/game/world/world_tick.cpp): every world update runs CWorldServer::Tick
+# (timed objects, missiles, countdowns, command queues) and wakes the units around each party
+# member (WakeUnitsAround). The scenario adds a timed spell effect and a spawned wolf, raises
+# alarms with InvokeAlarm (alarm slots, the AI units hearing it) and checks that the tick count
+# (AlarmTime stores it) moves on.
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+
+# A wolf without a player next to the hero: woken with the hero's sector, hears the alarms.
+console @AddUnitToServer("WorldWolf","WolfTutor","WorldWolf",Add(GSGetVar(0,"hx"),4),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("WorldWolf"))
+
+# Alarm 1, 20 units east of the hero: the slot records the point and the current tick.
+console @InvokeAlarm(1,Add(GSGetVar(0,"hx"),20),GSGetVar(0,"hy"))
+check IsAlarm(1)
+check IsEqual(AlarmPosX(1),Add(GSGetVar(0,"hx"),20))
+check IsEqual(AlarmPosY(1),GSGetVar(0,"hy"))
+check Not(IsAlarm(2))
+console @GSSetVar(0,"t1",AlarmTime(1))
+
+# Timed objects: a healing spell on the wounded hero lives in the tick's timed-object map.
+console @GSSetVar(0,"hp0",HP(GetLeader()))
+console @InflictDamage(GetLeader(),10)
+waitfor 10 IsLess(HP(GetLeader()),GSGetVar(0,"hp0"))
+console @GSSetVar(0,"hp1",HP(GetLeader()))
+console @CastSpellUnit("healing{e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+waitfor 20 IsGreater(HP(GetLeader()),GSGetVar(0,"hp1"))
+
+# Ticks went by: alarm 2 is stamped later than alarm 1.
+console @InvokeAlarm(2,Sub(GSGetVar(0,"hx"),20),GSGetVar(0,"hy"))
+check IsAlarm(2)
+check IsGreater(AlarmTime(2),GSGetVar(0,"t1"))
+check IsAlarm(1)
+
+# Alarm 0 (the script always forces) clears the other four first.
+console @InvokeAlarm(0,GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),20))
+check IsAlarm(0)
+check Not(IsAlarm(1))
+check Not(IsAlarm(2))
+check IsEqual(AlarmPosY(0),Add(GSGetVar(0,"hy"),20))
+wait 2000
+check IsAlive(GetLeader())
+check IsAlive(GetObjectByName("WorldWolf"))
+
+# ---- section ui_battle_commands
+# The battle screen's party commands (docs/notes/ui.md, "Battle screen"). A click on the hero's
+# portrait goes through SelectUnit (00638EF0) to the member toggle (006379E0), which makes the
+# hero speak (slot 32, 006366F0). Then three wolves stand blocked next to the blocked hero (it
+# stays where the camera put it) and "clickunit" clicks each where the game's picking finds it: a
+# click on a hostile unit is the attack order (00637190; with Ctrl, SelectUnit's +0x7C branch, the
+# same order for any living unit). Then the wolves die and the same clicks land on the bodies: a
+# click on a dead unit is 006373A0. The report's call counts for CBattleScreenSetup::AttackUnit /
+# OrderDeadUnit show the clicks hit (3 each).
+# Coordinates are the 800x600 layout.
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),1)
+console @GodMode(0,1)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+
+# The hero's portrait (centred at x 400): the toggle keeps it selected.
+waitwindow 15 battle
+click 400 560
+frames 3
+check IsAlive(GetLeader())
+
+console @AddUnitToServer("CmdWolf1","WolfTutor","CmdWolf1",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("CmdWolf2","WolfTutor","CmdWolf2",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),3),0)
+console @AddUnitToServer("CmdWolf3","WolfTutor","CmdWolf3",Sub(GSGetVar(0,"hx"),4),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("CmdWolf1"))
+waitfor 10 IsAlive(GetObjectByName("CmdWolf2"))
+waitfor 10 IsAlive(GetObjectByName("CmdWolf3"))
+console @BlockUnit(GetObjectByName("CmdWolf1"),1)
+console @BlockUnit(GetObjectByName("CmdWolf2"),1)
+console @BlockUnit(GetObjectByName("CmdWolf3"),1)
+waitunit 10 CmdWolf1
+waitunit 10 CmdWolf2
+waitunit 10 CmdWolf3
+
+# A plain click on each wolf, the second with Ctrl.
+clickunit CmdWolf1
+wait 300
+clickunit CmdWolf2 l ctrl
+wait 300
+clickunit CmdWolf3
+wait 500
+check IsAlive(GetLeader())
+
+# The wolves die; a click on each body.
+console @InflictDamage(GetObjectByName("CmdWolf1"),5000)
+console @InflictDamage(GetObjectByName("CmdWolf2"),5000)
+console @InflictDamage(GetObjectByName("CmdWolf3"),5000)
+waitfor 10 IsLess(HP(GetObjectByName("CmdWolf1")),1)
+wait 500
+clickunit CmdWolf1
+wait 300
+clickunit CmdWolf2
+wait 300
+clickunit CmdWolf3
+wait 500
+check IsAlive(GetLeader())
+
+# ---- section unit_ai_flight
+# An archer steps away from a melee enemy (FearMode::Evaluate, FindFlightPoint, FearMode::Execute in
+# src/game/ai/unit_ai_modes.cpp; docs/notes/unit_ai.md, "FearMode::Evaluate"). "Human Gipath Brigand A1" is the level 1
+# bandit whose first weapon is a bow (combat_more.txt), so it attacks from range; with only a Fear mode (flag 1) next
+# to the hostile hero it looks for a point 5 away from it, a path there and an order check from the path's end, and
+# goes. The hero stands still in god mode. No `speed`, so a golden can be recorded.
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),1)
+console @GodMode(0,1)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+console @AddUnitToServer("Bowman","Human Gipath Brigand A1","Bowman",Add(GSGetVar(0,"hx"),2),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("Bowman"))
+console @SetPlayer(GetObjectByName("Bowman"),6)
+check IsEnemy(GetObjectByName("Bowman"),0)
+console @UMClear(GetObjectByName("Bowman"))
+console @UMFear(GetObjectByName("Bowman"),1)
+check IsLess(DistanceUnitUnit(GetObjectByName("Bowman"),GetLeader()),3)
+# It steps back to the bow's distance (RangedAttackDist) and stays there.
+waitfor 20 IsGreater(DistanceUnitUnit(GetObjectByName("Bowman"),GetLeader()),8)
+wait 3000
+check IsGreater(DistanceUnitUnit(GetObjectByName("Bowman"),GetLeader()),8)
+check IsAlive(GetLeader())
+check IsAlive(GetObjectByName("Bowman"))
+
+# ---- section particles
+# Particles: sources of original types (all on data: docs/notes/effects.md, "The original effects on data"),
+# placed around the hero, and a few buffs on the hero (spell modifiers carry Modifier particles),
+# then deleted. Every source runs CParticleSource::Tick, AddParticle
+# and the particle pool (particle_manager.cpp) each world update; the camera and units use the
+# quaternion helpers (core_maths.cpp); the new game seeds the generator (IsaacRandom::Init).
+# CreateParticleSource(id, x, y, z, size, name). The verify totals in the report show what ran.
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+
+console @CreateParticleSource(21,Add(GetX(GetLeader()),4),GetY(GetLeader()),GetZ(GetLeader()),1,"LightningBlast")
+console @CreateParticleSource(22,Sub(GetX(GetLeader()),4),GetY(GetLeader()),GetZ(GetLeader()),1,"ZoneExit")
+console @CreateParticleSource(23,GetX(GetLeader()),Add(GetY(GetLeader()),4),GetZ(GetLeader()),1,"Portal")
+console @CreateParticleSource(24,GetX(GetLeader()),Sub(GetY(GetLeader()),4),GetZ(GetLeader()),1,"Sparks")
+console @CreateParticleSource(25,Add(GetX(GetLeader()),4),Add(GetY(GetLeader()),4),GetZ(GetLeader()),1,"FeebleMind")
+console @CreateParticleSource(26,Sub(GetX(GetLeader()),4),Add(GetY(GetLeader()),4),GetZ(GetLeader()),1,"FeetCloud1")
+console @CreateParticleSource(27,Add(GetX(GetLeader()),4),Sub(GetY(GetLeader()),4),GetZ(GetLeader()),1,"StartTrans")
+console @CreateParticleSource(28,Sub(GetX(GetLeader()),4),Sub(GetY(GetLeader()),4),GetZ(GetLeader()),1,"Modifier1")
+console @CastSpellUnit("strength{d2;d2;d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("healing{e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+wait 2800
+
+console @SetParticleSourceSize(23,2)
+console @CreateParticleSource(29,Add(GetX(GetLeader()),7),GetY(GetLeader()),GetZ(GetLeader()),2,"LightningBlast")
+wait 2200
+
+console @DeleteParticleSource(21)
+console @DeleteParticleSource(22)
+console @DeleteParticleSource(23)
+console @DeleteParticleSource(24)
+console @DeleteParticleSource(25)
+console @DeleteParticleSource(26)
+console @DeleteParticleSource(27)
+console @DeleteParticleSource(28)
+console @DeleteParticleSource(29)
+
+# Second batch: the other source types (particle_*.cpp).
+console @CreateParticleSource(30,Add(GetX(GetLeader()),6),GetY(GetLeader()),GetZ(GetLeader()),1,"Fire")
+console @CreateParticleSource(31,Sub(GetX(GetLeader()),6),GetY(GetLeader()),GetZ(GetLeader()),1,"VulcanSmoke")
+console @CreateParticleSource(32,GetX(GetLeader()),Add(GetY(GetLeader()),6),GetZ(GetLeader()),1,"Healing")
+console @CreateParticleSource(33,GetX(GetLeader()),Sub(GetY(GetLeader()),6),GetZ(GetLeader()),1,"PoisonFog")
+console @CreateParticleSource(34,Add(GetX(GetLeader()),6),Add(GetY(GetLeader()),6),GetZ(GetLeader()),1,"Geyser")
+console @CreateParticleSource(35,Sub(GetX(GetLeader()),6),Add(GetY(GetLeader()),6),GetZ(GetLeader()),1,"Tornado")
+console @CreateParticleSource(36,Add(GetX(GetLeader()),6),Sub(GetY(GetLeader()),6),GetZ(GetLeader()),1,"Casting")
+console @CreateParticleSource(37,Sub(GetX(GetLeader()),6),Sub(GetY(GetLeader()),6),GetZ(GetLeader()),1,"Nuke")
+console @CreateParticleSource(38,Add(GetX(GetLeader()),9),GetY(GetLeader()),GetZ(GetLeader()),1,"Mushroom")
+console @CreateParticleSource(39,Sub(GetX(GetLeader()),9),GetY(GetLeader()),GetZ(GetLeader()),1,"AcidRay")
+console @CreateParticleSource(40,GetX(GetLeader()),Add(GetY(GetLeader()),9),GetZ(GetLeader()),1,"Link")
+console @CreateParticleSource(41,GetX(GetLeader()),Sub(GetY(GetLeader()),9),GetZ(GetLeader()),1,"ClayRing")
+console @CreateParticleSource(42,Add(GetX(GetLeader()),9),Add(GetY(GetLeader()),9),GetZ(GetLeader()),1,"Teleport")
+console @CreateParticleSource(43,Sub(GetX(GetLeader()),9),Add(GetY(GetLeader()),9),GetZ(GetLeader()),1,"Cylinder1")
+console @CreateParticleSource(44,Add(GetX(GetLeader()),9),Sub(GetY(GetLeader()),9),GetZ(GetLeader()),1,"FireStar")
+console @CreateParticleSource(45,Sub(GetX(GetLeader()),9),Sub(GetY(GetLeader()),9),GetZ(GetLeader()),1,"VisionStar1")
+console @CreateParticleSource(46,Add(GetX(GetLeader()),12),GetY(GetLeader()),GetZ(GetLeader()),1,"Regeneration")
+console @CreateParticleSource(47,Sub(GetX(GetLeader()),12),GetY(GetLeader()),GetZ(GetLeader()),1,"Silence")
+console @CreateParticleSource(48,GetX(GetLeader()),Add(GetY(GetLeader()),12),GetZ(GetLeader()),1,"CurseStars")
+console @CreateParticleSource(49,GetX(GetLeader()),Sub(GetY(GetLeader()),12),GetZ(GetLeader()),1,"Transform")
+wait 1500
+
+console @DeleteParticleSource(30)
+console @DeleteParticleSource(31)
+console @DeleteParticleSource(32)
+console @DeleteParticleSource(33)
+console @DeleteParticleSource(34)
+console @DeleteParticleSource(35)
+console @DeleteParticleSource(36)
+console @DeleteParticleSource(37)
+console @DeleteParticleSource(38)
+console @DeleteParticleSource(39)
+console @DeleteParticleSource(40)
+console @DeleteParticleSource(41)
+console @DeleteParticleSource(42)
+console @DeleteParticleSource(43)
+console @DeleteParticleSource(44)
+console @DeleteParticleSource(45)
+console @DeleteParticleSource(46)
+console @DeleteParticleSource(47)
+console @DeleteParticleSource(48)
+console @DeleteParticleSource(49)
+
+wait 500
+check IsAlive(GetLeader())
+
+# ---- section ui_quest_notice
+# The battle screen's quest notice (006369D0, slot 33; docs/notes/ui.md, "Battle screen"): a
+# "q." player variable set while the battle screen is on top reaches it through the quest log
+# (005F7FC0). Three parts: a new quest (1), completed (2), failed (3); four parts: a sub-objective
+# of an unset quest variable (skipped) and of a set one; two parts: the bare line. The quest names
+# have no "quest <name>" text, so the lines carry only the "combat_*" titles.
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+
+console @GSSetVar(0,"q.zxzone.zxq",1)
+waitfor 5 IsEqual(GSGetVar(0,"q.zxzone.zxq"),1)
+wait 300
+console @GSSetVar(0,"q.zxzone.zxq",2)
+waitfor 5 IsEqual(GSGetVar(0,"q.zxzone.zxq"),2)
+wait 300
+console @GSSetVar(0,"q.zxzone.zxr",3)
+waitfor 5 IsEqual(GSGetVar(0,"q.zxzone.zxr"),3)
+wait 300
+console @GSSetVar(0,"q.zxzone.zxs.1",1)
+waitfor 5 IsEqual(GSGetVar(0,"q.zxzone.zxs.1"),1)
+wait 300
+console @GSSetVar(0,"q.zxzone.zxq.1",2)
+waitfor 5 IsEqual(GSGetVar(0,"q.zxzone.zxq.1"),2)
+wait 300
+console @GSSetVar(0,"q.zxt",1)
+waitfor 5 IsEqual(GSGetVar(0,"q.zxt"),1)
+wait 500
+check IsAlive(GetLeader())
+
+report
+quit

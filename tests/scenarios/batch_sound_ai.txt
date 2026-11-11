@@ -1,0 +1,276 @@
+# A merged run (H74): sounds, the AI at a corpse, a blow while turning, the sandbox map, the unit AI, party records. Each section below was a scenario of its own that started the same way
+# (section names as before: the notes name them); a section after the first starts again from the main menu with a new game.
+# Sections: sound, unit_ai_corpse, unit_hit_turning, sandbox_map, unit_ai, party_records.
+# installs: vanilla
+timeout 87
+reject Script error
+waitmenu
+console thingamabob
+console filter all on
+newgame
+
+# ---- section sound
+# Sound and music (src/game/sound/sound_manager.cpp, sound_music.cpp). A new game enters zone1:
+# CMusicSystem::SetZoneMode picks the allod's theme, UpdateMusic and CSoundManager::Tick run every
+# world frame, CCamera::Update hands the listener to SetListener, and loading sets the option
+# volumes. Then:
+# - PlayMusic plays a one-off piece (CMusicSystem::PlayJingle, the stream request / stop on the
+#   sound manager);
+# - CreateFX starts a positional sound object (Play3D, SetSoundPosition / StopSound on its handle,
+#   UpdatePositional);
+# - a fight with two goblins switches the music to a combat track (UpdateMusic: RequestStream mode
+#   3) and makes the AI hear each other: the brain's delayed sounds (AIMemory, 005CC9D0) print
+#   "Unit N hear delayed sound: ..." (a hostility claim) or "Delayed sound: ..." (a call for help)
+#   on the console stream that "filter all" opens. The expect below matches both spellings.
+waitfor 15 IsGreater(HP(GetLeader()),0)
+# The level intro keeps the hero blocked; unblock it instead of waiting.
+console @BlockUnit(GetLeader(),0)
+
+# Music: a piece from Stream\ (victory.mp3); the zone's calm / combat choice waits until it ends.
+console @PlayMusic(0,"victory")
+wait 1000
+
+# A positional sound effect next to the hero (the game's own thunder strike uses the same call).
+console @CreateFX(GetX(GetLeader()),GetY(GetLeader()),0,60,150,"nature\thunder\1.wav")
+wait 1000
+
+# Combat: one goblin attacks the hero, a second one stands by and hears the fight.
+console @AddUnitToServer("Snd1","GoblinF1","Snd1",Add(GetX(GetLeader()),3),GetY(GetLeader()),0)
+console @AddUnitToServer("Snd2","GoblinF1","Snd2",Add(GetX(GetLeader()),6),Add(GetY(GetLeader()),2),0)
+waitfor 10 IsAlive(GetObjectByName("Snd2"))
+console @SetPlayer(GetObjectByName("Snd1"),6)
+console @SetPlayer(GetObjectByName("Snd2"),6)
+check IsEnemy(GetObjectByName("Snd1"),0)
+console @GSSetVar(0,"hp0",HP(GetLeader()))
+# An order given right after the spawn is sometimes lost (about 1 run in 30 under 16 parallel
+# games, on the original too): the attacker never swings. Give the new unit a moment, then
+# repeat the order once; a repeated order on the same target only renews it.
+wait 1000
+console @Attack(GetObjectByName("Snd1"),GetLeader())
+wait 1000
+console @Attack(GetObjectByName("Snd1"),GetLeader())
+waitfor 20 IsLess(HP(GetLeader()),GSGetVar(0,"hp0"))
+# The hero fights back (healed first) until the first goblin is dead.
+console @CastSpellUnit("healing{e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @Attack(GetLeader(),GetObjectByName("Snd1"))
+waitfor 20 Not(IsAlive(GetObjectByName("Snd1")))
+# The second goblin goes before it can finish the hero: its hits roll differently from run to run
+# (the order of the AI's messages varies under load) and once in a while killed him in the wait.
+console @RemoveUnitFromServer(GetObjectByName("Snd2"))
+# The death's own updates (OnUnitDied, DeathEffect, the AI's reset).
+wait 2000
+expect elayed sound
+check IsAlive(GetLeader())
+
+# ---- section unit_ai_corpse
+# A zone wolf sees a dead wolf and hears a blast (SV5a): zone1's own wolf 1804 (it runs the full set of
+# AI modes; the units that scenarios spawn get fewer) is alone 23 units from the hero. A wolf of the
+# same side is spawned beside it and dies of damage in its sight (the brain's SeeCorpse, a notice at
+# the corpse's level: SuspectionMode), then a fireball lands near it and two wolves of other sides fight beside it (noises it hears). The hero (in god mode)
+# first walks towards it and stops. No `speed`, so a golden can be recorded.
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 40 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+check IsAlive(GetObject(1804))
+# The hero walks towards it: its steps are noises the (hostile) wolf hears before it sees the hero.
+console @MoveToObject(GetLeader(),GetObject(1804))
+waitfor 40 IsLess(DistanceUnitUnit(GetLeader(),GetObject(1804)),13)
+console @BlockUnit(GetLeader(),1)
+wait 3000
+console @GSSetVar(0,"wx",GetX(GetObject(1804)))
+console @GSSetVar(0,"wy",GetY(GetObject(1804)))
+console @AddUnitToServer("CorpseWolf","WolfTutor","CorpseWolf",Add(GSGetVar(0,"wx"),3),GSGetVar(0,"wy"),0)
+waitfor 10 IsAlive(GetObjectByName("CorpseWolf"))
+wait 1500
+console @InflictDamage(GetObjectByName("CorpseWolf"),100000)
+waitfor 10 IsDead(GetObjectByName("CorpseWolf"))
+wait 4000
+console @CastSpellPoint("fireball{e2}",GSGetVar(0,"wx"),Sub(GSGetVar(0,"wy"),9),GSGetVar(0,"wx"),Sub(GSGetVar(0,"wy"),4))
+wait 4000
+# Two wolves of other sides fight beside it: the blows are noises it hears.
+console @AddUnitToServer("FightA","WolfTutor","FightA",Add(GSGetVar(0,"wx"),4),Add(GSGetVar(0,"wy"),3),0)
+console @AddUnitToServer("FightB","WolfTutor","FightB",Add(GSGetVar(0,"wx"),4),Sub(GSGetVar(0,"wy"),3),0)
+waitfor 10 Mul(IsAlive(GetObjectByName("FightA")),IsAlive(GetObjectByName("FightB")))
+console @SetPlayer(GetObjectByName("FightA"),6)
+console @SetPlayer(GetObjectByName("FightB"),5)
+console @Attack(GetObjectByName("FightA"),GetObjectByName("FightB"))
+console @Attack(GetObjectByName("FightB"),GetObjectByName("FightA"))
+wait 8000
+check IsAlive(GetLeader())
+
+# ---- section unit_hit_turning
+# A blow on a unit that turns on the spot (H43e1): UpdateMotion's HitWhileTurning in src/game/units/unit_motion_tick.cpp. A
+# unit in the Idle or Moving state whose motion is turning when a blow with a side lands plays the blow's fall
+# (BuildDeathAnimation) when it fits, keeping its queue for after it. A script's InflictDamage has no attacker, so no
+# side, and a fight puts the unit in the Acting state; the harness's "hit" step is a blow with an attacker. The hero
+# walks east, then is turned back west (RotateTo: a turn order, the Moving state with a turning motion, UnitMotion's
+# kind 1) and is hit by a bandit of its own player at once (another player's unit's blow does nothing to a player's
+# unit: TakeHit), then once more on the next frame, when the reaction plays (the Turning state). A blow of 1 is taken
+# by the hero's armour without a reaction; blows on the five frames after a walk back west never met its path turning.
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),0)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+console @AddUnitToServer("Hitter","Human Gipath Brigand A1","Hitter",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),4),0)
+waitfor 10 IsAlive(GetObjectByName("Hitter"))
+console @MoveToPoint(GetLeader(),Add(GSGetVar(0,"hx"),6),GSGetVar(0,"hy"))
+waitfor 20 IsGreater(GetX(GetLeader()),Add(GSGetVar(0,"hx"),5))
+wait 1000
+console @RotateTo(GetLeader(),Sub(GSGetVar(0,"hx"),4),Add(GSGetVar(0,"hy"),2))
+hit leader Hitter 4
+frames 1
+hit leader Hitter 4
+wait 2000
+expect was attacked by
+check IsAlive(GetLeader())
+
+# ---- section sandbox_map
+# Sandbox: start a new single-player game and let zone1 play through its intro (the leader is
+# blocked until it ends), then report and quit. Exercises zone loading, AI map refresh, footprints,
+# path search, line of sight, lighting, scripts, and the save the game writes when a new game starts.
+# No "speed": on the virtual clock every frame runs five world updates whatever their length, so a
+# shorter one speeds nothing up, it only gives each frame less virtual time; the intro waits on its
+# speech (about 37 s of samples, ended on virtual time) and took 5.5 times the frames at "speed 10"
+# (SV1f: 72-81 s on a busy machine).
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 45 Not(IsUnitBlocked(GetLeader()))
+wait 1000
+
+# ---- section unit_ai
+# Unit AI modes: spawn wolves next to the hero and give them script modes (UMPatrol, UMGuard,
+# UMSentry, UMFollow, UMAggression), then wait for each to act. Exercises the brain tick
+# (AIBrain::Think), the modes' Evaluate/Enter/Execute, the move action and the mode lookups
+# (src/game/unit_ai*.cpp).
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+
+# Patrol: two points 4 units north and south of the spawn point. The first Execute goes to the
+# second point (the index is advanced before use), then back to the first.
+console @AddUnitToServer("AiPatrol","WolfTutor","AiPatrol",Add(GSGetVar(0,"hx"),4),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("AiPatrol"))
+console @UMClear(GetObjectByName("AiPatrol"))
+console @UMPatrol(GetObjectByName("AiPatrol"))
+console @UMPatrolAddPoint(GetObjectByName("AiPatrol"),Add(GSGetVar(0,"hx"),4),Add(GSGetVar(0,"hy"),4))
+console @UMPatrolAddPoint(GetObjectByName("AiPatrol"),Add(GSGetVar(0,"hx"),4),Sub(GSGetVar(0,"hy"),4))
+waitfor 20 IsLess(GetY(GetObjectByName("AiPatrol")),Sub(GSGetVar(0,"hy"),2))
+waitfor 20 IsGreater(GetY(GetObjectByName("AiPatrol")),Add(GSGetVar(0,"hy"),2))
+check IsAlive(GetObjectByName("AiPatrol"))
+
+# Guard: a point 5 units west of the wolf with a small radius.
+console @AddUnitToServer("AiGuard","WolfTutor","AiGuard",Sub(GSGetVar(0,"hx"),2),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("AiGuard"))
+console @UMClear(GetObjectByName("AiGuard"))
+console @UMGuard(GetObjectByName("AiGuard"),Sub(GSGetVar(0,"hx"),7),GSGetVar(0,"hy"),1)
+# Guard mode does not walk to its point unprompted (the original game behaves the same); it only has
+# to keep the wolf alive and near where it was placed.
+wait 2000
+check IsAlive(GetObjectByName("AiGuard"))
+check IsLess(DistanceUnitPoint(GetObjectByName("AiGuard"),Sub(GSGetVar(0,"hx"),2),GSGetVar(0,"hy")),3)
+
+# Sentry: a point 5 units south of the hero.
+console @AddUnitToServer("AiSentry","WolfTutor","AiSentry",GSGetVar(0,"hx"),Sub(GSGetVar(0,"hy"),1),0)
+waitfor 10 IsAlive(GetObjectByName("AiSentry"))
+console @UMClear(GetObjectByName("AiSentry"))
+console @UMSentry(GetObjectByName("AiSentry"),GSGetVar(0,"hx"),Sub(GSGetVar(0,"hy"),6))
+waitfor 20 IsLess(GetY(GetObjectByName("AiSentry")),Sub(GSGetVar(0,"hy"),4))
+
+# Follow: the wolf follows the hero when the hero walks 8 units east.
+console @AddUnitToServer("AiFollow","WolfTutor","AiFollow",Sub(GSGetVar(0,"hx"),1),Add(GSGetVar(0,"hy"),1),0)
+waitfor 10 IsAlive(GetObjectByName("AiFollow"))
+console @UMClear(GetObjectByName("AiFollow"))
+console @UMFollow(GetObjectByName("AiFollow"),GetLeader())
+console @MoveToPoint(GetLeader(),Add(GSGetVar(0,"hx"),8),GSGetVar(0,"hy"))
+waitfor 20 IsGreater(GetX(GetLeader()),Add(GSGetVar(0,"hx"),7))
+waitfor 20 IsGreater(GetX(GetObjectByName("AiFollow")),Add(GSGetVar(0,"hx"),4))
+
+# Aggression: a hostile wolf in aggression mode next to the hero.
+console @AddUnitToServer("AiAggro","WolfTutor","AiAggro",Add(GetX(GetLeader()),3),GetY(GetLeader()),0)
+waitfor 10 IsAlive(GetObjectByName("AiAggro"))
+console @SetPlayer(GetObjectByName("AiAggro"),6)
+check IsEnemy(GetObjectByName("AiAggro"),0)
+console @UMClear(GetObjectByName("AiAggro"))
+console @UMAggression(GetObjectByName("AiAggro"))
+# The original game does not attack the hero within 20 s here either (checked with --no-hooks), so
+# this only runs aggression mode for a few seconds.
+wait 3000
+check IsAlive(GetObjectByName("AiAggro"))
+check IsAlive(GetLeader())
+check IsAlive(GetObjectByName("AiFollow"))
+
+# ---- section party_records
+# Party records (src/game/players/party_manager.cpp) through the script commands: CreateParty (004A5E90),
+# AddLoot / CopyLoot (004A5E10 for both names; an unknown name finds the unnamed record),
+# RemoveParty (004A5FA0, including its skip after an erase: of two adjacent "zxA" records one is
+# left). A new game also runs the reset (004A5BD0) and the class templates (004A7630 / 004A7080).
+# The player's own records (party.cpp): AddUnitToParty (006628D0 -> 006621F0, 00664950),
+# CopyItems from the hero (00660500), RemoveUnitFromParty (006620F0, then again for a missing key).
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+
+console @CreateParty(GetPlayer(GetLeader()),"zxA")
+console @CreateParty(GetPlayer(GetLeader()),"zxA")
+console @CreateParty(GetPlayer(GetLeader()),"zxB")
+console @AddLoot(GetPlayer(GetLeader()),"zxA","zxB")
+console @CopyLoot(GetPlayer(GetLeader()),"zxB","zxA")
+console @AddLoot(GetPlayer(GetLeader()),"zxB","zxMissing")
+console @RemoveParty(GetPlayer(GetLeader()),"zxA")
+console @RemoveParty(GetPlayer(GetLeader()),"zxA")
+console @RemoveParty(GetPlayer(GetLeader()),"zxB")
+console @RemoveParty(GetPlayer(GetLeader()),"zxMissing")
+console @AddUnitToParty(GetPlayer(GetLeader()),"zxCopy","Human Hero")
+console @CopyItems(GetPlayer(GetLeader()),"Hero","zxCopy")
+console @RemoveUnitFromParty(GetPlayer(GetLeader()),"zxCopy")
+console @RemoveUnitFromParty(GetPlayer(GetLeader()),"zxCopy")
+check IsAlive(GetLeader())
+
+report
+quit

@@ -1,0 +1,356 @@
+# A merged run (H74): the menus' gallery, the main menu, a hero's statistics, tooltips. Each section below was a scenario of its own that started the same way
+# (section names as before: the notes name them); a section after the first starts again from the main menu.
+# Sections: ui_gallery_menus, ui_main_menu, ui_hero_stats, ui_tooltip_switch.
+# installs: vanilla
+timeout 60
+reject Script error
+waitmenu
+
+# ---- section ui_gallery_menus
+# Interface gallery, menus (ticket N4; docs/notes/ui-native.md, "The gallery"): every window
+# family reached from the main menu, each held still (freeze) and captured, for the native window
+# surfaces (P1-P8) and the per-surface diff (N3). Only menus, keys and clicks the original takes.
+# Frames: menu (the menu and its version line), options and options_keys (the option rows, spins,
+# key rows), help (the help page from the options) and help_tip (its OK button's tooltip),
+# bind_box (the key binding's message box), difficulty (the new game's box with check boxes),
+# quit_box (the plain message box), load_empty (the save / load window, no saves yet), heroes (the
+# multiplayer hero list), hero_new (a new hero: the name edit
+# field with typed text, the voice list, the statistics panel), titles (the scrolling credits).
+# Nothing is saved, no hero is created (no .mp file), the key table is not stored (options cancelled).
+move 400 20
+frames 5
+freeze
+capture menu
+unfreeze
+
+# Options (region 3), the first group; then the key group (region 6, its first row selected).
+clickregion 3
+waitwindow 10 options
+move 400 20
+frames 5
+freeze
+capture options
+unfreeze
+# The options' help (H: its topic has a tutorial text), then the OK button's tooltip (region 1).
+key h
+waitwindow 10 help
+frames 10
+freeze
+capture help
+unfreeze
+moveregion 1
+wait 2500
+freeze
+capture help_tip
+diffcapture help help_tip 0.005 0.2
+unfreeze
+clickregion 1
+waitwindow 10 options
+clickregion 6
+frames 10
+move 400 20
+frames 5
+freeze
+capture options_keys
+unfreeze
+# Enter waits for a key; Q is weapon1's, so the message box asks; OK binds it, Cancel
+# (region 1) drops the options.
+key enter
+frames 5
+key q
+waitwindow 10 msgbox
+frames 5
+freeze
+capture bind_box
+unfreeze
+clickregion 0
+waitwindow 10 options
+clickregion 1
+waitwindow 10 menu
+
+# The new game's difficulty question (region 0), cancelled.
+clickregion 0
+waitwindow 10 difficulty
+frames 5
+freeze
+capture difficulty
+unfreeze
+clickregion 1
+waitwindow 10 menu
+
+# The quit box (Esc on the menu), cancelled with Esc.
+key esc
+waitwindow 10 msgbox
+frames 5
+freeze
+capture quit_box
+unfreeze
+key esc
+waitwindow 10 menu
+
+# The load window (region 1): no saves in a fresh run's saves folder. Cancel (region 1).
+clickregion 1
+waitwindow 10 saveload
+move 400 20
+frames 5
+freeze
+capture load_empty
+unfreeze
+clickregion 1
+waitwindow 10 menu
+
+# Multiplayer (region 5): the hero list, then a new hero (region 5) with its defaults (region 4, which clears the name) and a typed name.
+clickregion 5
+waitwindow 15 heroes
+wait 1000
+move 400 20
+frames 5
+freeze
+capture heroes
+unfreeze
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key t
+frames 3
+key e
+frames 3
+key s
+frames 3
+key t
+frames 5
+move 400 20
+frames 5
+freeze
+capture hero_new
+unfreeze
+# Esc back to the list (no hero made), Esc to the menu.
+key esc
+frames 20
+key esc
+waitwindow 15 menu
+
+# The titles (region 4): the scrolling RTF text; a click ends them. (About 2 s first, as in
+# ui_main_menu: with 1 s the vanilla game sometimes stopped on "Can't begin scene".)
+clickregion 4
+waitwindow 10 titles
+wait 2000
+freeze
+capture titles
+unfreeze
+click 400 300
+waitwindow 15 menu
+wait 500
+
+# ---- section ui_main_menu
+# The main menu's buttons (docs/notes/ui.md, "Main menu, dialogs, escape menu, credits"): the click
+# handler (00632D70) opens
+# the options window (region 3), the load window (region 1), the new game's difficulty question
+# (region 0, a message box with its own Create 006337B0) and the titles (region 4); each is closed
+# with its cancel button (region 1 of the window on top) or a click (the options also once with OK). Nothing is loaded and no game
+# starts. The plain message box's Create (00634790) is reached by ui_screens' quit box.
+# Region 5 (multiplayer) is in ui_screens, region 2 (exit: a movie, then quit) is never clicked.
+waitmenu
+
+# Options, cancelled.
+clickregion 3
+waitwindow 10 options
+clickregion 1
+waitwindow 10 menu
+
+# Options again, closed with OK (region 0; 213..287 x 526..574 in the original layout, elsewhere
+# in Rebirth's): Apply (006524A0) stores the unchanged settings and key table (the harness keeps
+# the registry and keyboard.ini out of the install).
+clickregion 3
+waitwindow 10 options
+moveregion 0
+frames 3
+clickregion 0
+waitwindow 10 menu
+
+# Load, cancelled.
+clickregion 1
+waitwindow 10 saveload
+clickregion 1
+waitwindow 10 menu
+
+# A new game: the difficulty question (OK and cancel buttons), cancelled. Its check boxes
+# (regions 2 / 3, 00633DD0) and Esc (00633EC0) first.
+clickregion 0
+waitwindow 10 difficulty
+clickregion 2
+frames 5
+clickregion 3
+frames 5
+key esc
+waitwindow 10 menu
+clickregion 0
+waitwindow 10 difficulty
+clickregion 1
+waitwindow 10 menu
+
+# The quit box (Esc on the menu): its cancel button (00634D20), then Esc on it (00634E60).
+key esc
+waitwindow 10 msgbox
+clickregion 1
+waitwindow 10 menu
+key esc
+waitwindow 10 msgbox
+key esc
+waitwindow 10 menu
+
+# The titles; a click ends them. (Kept at about the old 2.5 s: three of six loaded suite runs had
+# the vanilla game stop on "Can't begin scene" (surface memory gone) here with 1 s.)
+clickregion 4
+waitwindow 10 titles
+wait 2000
+click 400 300
+waitwindow 15 menu
+wait 500
+
+# ---- section ui_hero_stats
+# The statistics panel's -/+ buttons on the multiplayer hero screen's new hero (00624790 click,
+# 00624A60 the held repeat; docs/notes/ui.md, section 5). The panel's page 10 regions (ShowStats):
+# 6-9 the minus column (x 140..160) and 10-13 the plus column (x 160..180), rows of 15 at y 165,
+# 180, 195 and 240 (after the third row ShowStats moves down three times; checked against 006233C0:
+# the first run's clicks at y 232 fell between rows 195..210 and 240..255). Layout coordinates; the
+# regions are not offset by the panel. Nothing is created or sent.
+waitmenu
+
+# Main menu region 5: the hero list; its region 5: a new hero (mode 10, the panel on page 10).
+clickregion 5
+waitwindow 15 heroes
+frames 10
+clickregion 5
+frames 10
+# Strength down, then up again; dexterity down; height up and down.
+click 150 172
+frames 10
+click 170 172
+frames 10
+click 150 187
+frames 10
+click 170 247
+frames 10
+click 150 247
+frames 10
+# Esc: back to the list, Esc: the main menu.
+key esc
+frames 20
+key esc
+waitwindow 15 menu
+wait 500
+
+# ---- section ui_tooltip_switch
+# A tooltip left waiting: hovered for less than its delay (setting 20, 0.5 s in the snapshot), then the mouse moved on.
+# The options window's group buttons (regions 2-12, layout x 100-250, 24 high from y 156): the sound group (region 3,
+# centre 175 192) is hovered for 5 frames, then the game group (region 5, centre 175 240). The sound group's tooltip
+# must not show: before the fix its timer went on counting outside the region, so it showed for one frame at the
+# mouse when it reached the delay (0.5 s after it was entered), where the game group's own tooltip appears 5 frames
+# later (docs/notes/ui.md, section 2). Frames of 20 ms on the virtual clock; each cycle captures one frame of the
+# window around that moment (the 19th frame after the second move), all before the game group's own tooltip, and
+# requires it to match the frame without a tooltip. The hovers are moveregion steps (they move the harness's cursor,
+# which the tooltips read, like the plain move steps).
+waitmenu
+clickregion 3
+waitwindow 10 options
+frametime 20
+move 400 20
+frames 30
+freeze
+capture none
+unfreeze
+
+# The game group's tooltip after its delay: tooltips are drawn (the captures below would match without any).
+moveregion 5
+frames 60
+capture shown
+diffcapture none shown 0.005 0.2
+move 400 20
+frames 30
+
+# The sound group, briefly, then the game group; one capture per cycle.
+moveregion 3
+frames 5
+moveregion 5
+frames 15
+capture switch15
+samecapture none switch15
+move 400 20
+frames 60
+moveregion 3
+frames 5
+moveregion 5
+frames 16
+capture switch16
+samecapture none switch16
+move 400 20
+frames 60
+moveregion 3
+frames 5
+moveregion 5
+frames 17
+capture switch17
+samecapture none switch17
+move 400 20
+frames 60
+moveregion 3
+frames 5
+moveregion 5
+frames 18
+capture switch18
+samecapture none switch18
+move 400 20
+frames 60
+moveregion 3
+frames 5
+moveregion 5
+frames 19
+capture switch19
+samecapture none switch19
+move 400 20
+frames 60
+moveregion 3
+frames 5
+moveregion 5
+frames 20
+capture switch20
+samecapture none switch20
+move 400 20
+frames 60
+moveregion 3
+frames 5
+moveregion 5
+frames 21
+capture switch21
+samecapture none switch21
+move 400 20
+frames 60
+moveregion 3
+frames 5
+moveregion 5
+frames 22
+capture switch22
+samecapture none switch22
+move 400 20
+frames 60
+moveregion 3
+frames 5
+moveregion 5
+frames 23
+capture switch23
+samecapture none switch23
+move 400 20
+frames 60
+
+# The game group's own tooltip still follows, where the sound group's flashed.
+moveregion 3
+frames 5
+moveregion 5
+frames 30
+capture switched
+diffcapture none switched 0.005 0.2
+
+report
+quit

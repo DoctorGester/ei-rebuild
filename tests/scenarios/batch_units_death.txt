@@ -1,0 +1,283 @@
+# A merged run (H74): movement, map objects, the quick save, fear, unit creation, the hero's death. Each section below was a scenario of its own that started the same way
+# (section names as before: the notes name them); a section after the first starts again from the main menu with a new game.
+# Sections: movement, objects_more, ui_quicksave, unit_ai_fear, unit_create, hero_death.
+# installs: vanilla
+timeout 89
+reject Script error
+waitmenu
+console thingamabob
+newgame
+
+# ---- section movement
+# Movement (src/game/ai/ai_motion.cpp, ai_movement.cpp, ai_path.cpp, sector_map.cpp): several units
+# walk to points at the same time in the three movement modes (Walk, Run, Crawl), one goes to
+# another unit (MoveToObject), two follow in a chain (Follow), and one walks to a point behind a
+# standing ogre. Exercises the order header (AIPath Start/Reset/SetTarget), the trajectory (Build,
+# Subdivide, LimitSpeeds, Sample every tick), the step speeds, the blocking-unit test and the
+# sector map moves. Script signatures: Walk/Run/Crawl(unit), MoveToPoint(unit, x, y),
+# MoveToObject(unit, target), Follow(unit, leader).
+waitfor 15 IsGreater(HP(GetLeader()),0)
+# The level intro keeps the hero blocked; unblock it instead of waiting.
+console @BlockUnit(GetLeader(),0)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+
+# Three wolves around the hero, without AI modes so only the script moves them.
+# Mv1 starts where unit_ai.txt patrols (known walkable ground).
+console @AddUnitToServer("Mv1","WolfTutor","Mv1",Add(GSGetVar(0,"hx"),4),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("Mv2","WolfTutor","Mv2",Sub(GSGetVar(0,"hx"),2),Add(GSGetVar(0,"hy"),2),0)
+console @AddUnitToServer("Mv3","WolfTutor","Mv3",Add(GSGetVar(0,"hx"),2),Sub(GSGetVar(0,"hy"),2),0)
+waitfor 10 IsAlive(GetObjectByName("Mv1"))
+waitfor 10 IsAlive(GetObjectByName("Mv2"))
+waitfor 10 IsAlive(GetObjectByName("Mv3"))
+console @UMClear(GetObjectByName("Mv1"))
+console @UMClear(GetObjectByName("Mv2"))
+console @UMClear(GetObjectByName("Mv3"))
+
+# The original game does not bring these units within 2.5 units of their targets in 20 s either
+# (checked with --no-hooks), so the moves only run for a few seconds each; the per-tick motion
+# code is compared side by side by its verify wrappers meanwhile.
+# Three units walking to points at once: a wolf east, a wolf west, the hero two units south.
+# (Walk/Run/Crawl before MoveToPoint left the units standing on the original game too; they are
+# exercised at the end instead.)
+console @MoveToPoint(GetObjectByName("Mv1"),Add(GSGetVar(0,"hx"),4),Add(GSGetVar(0,"hy"),4))
+console @MoveToPoint(GetObjectByName("Mv2"),Sub(GSGetVar(0,"hx"),5),Add(GSGetVar(0,"hy"),2))
+console @MoveToPoint(GetLeader(),GSGetVar(0,"hx"),Sub(GSGetVar(0,"hy"),2))
+wait 4000
+
+# MoveToObject: the third wolf goes to the first (5 east, 4 north of it).
+console @MoveToObject(GetObjectByName("Mv3"),GetObjectByName("Mv1"))
+wait 2000
+
+# Follow in a chain: wolf 1 follows the hero, wolf 2 follows wolf 1, and the hero walks 8 north.
+console @Follow(GetObjectByName("Mv1"),GetLeader())
+console @Follow(GetObjectByName("Mv2"),GetObjectByName("Mv1"))
+console @MoveToPoint(GetLeader(),GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),6))
+# (The walking hero's environment remark, acks 006D88E0, comes at random: in some 160 updates here,
+# not in every run; units, map_objects and ui_quick_items reach it too.)
+wait 7000
+
+# Around an obstacle: an ogre stands on the straight line from a new wolf to its target.
+console @AddUnitToServer("MvRock","OgreTutor","MvRock",Add(GSGetVar(0,"hx"),4),Sub(GSGetVar(0,"hy"),4),0)
+console @AddUnitToServer("Mv4","WolfTutor","Mv4",Add(GSGetVar(0,"hx"),1),Sub(GSGetVar(0,"hy"),4),0)
+waitfor 10 IsAlive(GetObjectByName("MvRock"))
+waitfor 10 IsAlive(GetObjectByName("Mv4"))
+console @UMClear(GetObjectByName("MvRock"))
+console @UMClear(GetObjectByName("Mv4"))
+console @MoveToPoint(GetObjectByName("Mv4"),Add(GSGetVar(0,"hx"),7),Sub(GSGetVar(0,"hy"),4))
+wait 2000
+check IsLess(DistanceUnitPoint(GetObjectByName("MvRock"),Add(GSGetVar(0,"hx"),4),Sub(GSGetVar(0,"hy"),4)),2)
+check IsAlive(GetLeader())
+check IsAlive(GetObjectByName("Mv1"))
+check IsAlive(GetObjectByName("Mv2"))
+check IsAlive(GetObjectByName("Mv3"))
+# Movement modes: Walk, Run and Crawl as standalone commands.
+console @Walk(GetObjectByName("Mv1"))
+console @Run(GetObjectByName("Mv2"))
+console @Crawl(GetObjectByName("Mv3"))
+wait 1000
+check IsAlive(GetLeader())
+
+# ---- section objects_more
+# Lightning bolts (lightning.cpp): three script bolts next to the hero with positive, zero and
+# negative power (each power has its own branch layout and animation), drawn for a few seconds and
+# deleted, then the lightning spell on a wolf (a bolt that follows its two units).
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+
+console @GSSetVar(0,"lx",GetX(GetLeader())) GSSetVar(0,"ly",GetY(GetLeader()))
+console @CreateLightning(951,GSGetVar(0,"lx"),GSGetVar(0,"ly"),25,Add(GSGetVar(0,"lx"),3),GSGetVar(0,"ly"),0,5)
+console @CreateLightning(952,Add(GSGetVar(0,"lx"),-3),GSGetVar(0,"ly"),25,GSGetVar(0,"lx"),Add(GSGetVar(0,"ly"),2),0,0)
+console @CreateLightning(953,GSGetVar(0,"lx"),Add(GSGetVar(0,"ly"),-3),25,Add(GSGetVar(0,"lx"),2),GSGetVar(0,"ly"),0,-7)
+wait 1500
+console @DeleteLightning(951) DeleteLightning(952) DeleteLightning(953)
+wait 500
+
+console @AddUnitToServer("LtWolf","WolfTutor","LtWolf",Add(GetX(GetLeader()),5),GetY(GetLeader()),0)
+waitfor 10 IsAlive(GetObjectByName("LtWolf"))
+console @GSSetVar(0,"lw",HP(GetObjectByName("LtWolf")))
+console @CastSpellUnit("lightning{e2;e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("LtWolf"))
+waitfor 10 IsLess(HP(GetObjectByName("LtWolf")),GSGetVar(0,"lw"))
+wait 1000
+check IsAlive(GetLeader())
+
+# ---- section ui_quicksave
+# The quick save's picture (R13; docs/notes/renderer.md section 6, "Save / load screen's pictures"):
+# the battle screen's F5 (action 0x35) saves into "saveq" through 006570E0 with no frame drawn first (DL 0), so
+# CaptureScreen (005FD3D0) copies the screen between frames, before the next frame's draws: the last
+# frame, as the original's render target holds it (the image once cleared its frame there and saved
+# plain blue). checksave compares the save's shot.sav (its 5:6:5 picture and the full-colour one after it)
+# with a capture of the same frozen moment (in a window wider than 4:3 the copy is the 800x600 layout's
+# centred 4:3 rectangle: W12, "centre"); then the Load window shows the pictures (saveq selected, then savea,
+# whose shot.sav oldshot cuts to the 5:6:5 picture the original game writes: an old save's picture).
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitline 15 Saved savea
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+move 400 20
+frames 5
+freeze
+capture world
+key f5
+waitline 15 Saved saveq
+checksave saveq world centre 32 0.02
+oldshot savea
+unfreeze
+frames 5
+
+# Escape menu, Load (rectangles from menus.reg): the newest save is selected and its picture shown.
+key esc
+waitwindow 10 escmenu
+click 395 187
+waitwindow 10 saveload
+move 400 20
+frames 5
+freeze
+capture load
+unfreeze
+clickregion 4
+frames 10
+freeze
+capture load2
+unfreeze
+# Cancel (region 1), then Esc closes the menu.
+clickregion 1
+frames 10
+key esc
+frames 10
+check IsAlive(GetLeader())
+
+# ---- section unit_ai_fear
+# Fear mode (src/game/ai/unit_ai_modes.cpp): a wolf with only a Fear mode (flag 1) next to a hostile
+# wolf runs from it (FearMode::Evaluate 3000 while it sees an enemy, FearMode::Execute, ApplyAttack
+# when it fights back). Every zone1 unit with the standard Guard / Sentry set evaluates Fear too.
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+console @AddUnitToServer("AiAfraid","WolfTutor","AiAfraid",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("AiAfraid"))
+console @UMClear(GetObjectByName("AiAfraid"))
+console @UMFear(GetObjectByName("AiAfraid"),1)
+console @AddUnitToServer("AiFoe","WolfTutor","AiFoe",Add(GSGetVar(0,"hx"),5),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("AiFoe"))
+console @SetPlayer(GetObjectByName("AiFoe"),6)
+console @UMClear(GetObjectByName("AiFoe"))
+console @UMAggression(GetObjectByName("AiFoe"))
+# The chase and the fight take a few hundred world updates (55 ms each).
+waitfor 30 Not(IsAlive(GetObjectByName("AiFoe")))
+# The death's own updates (the experience, the AI's reset).
+wait 1500
+check IsAlive(GetLeader())
+
+# ---- section unit_create
+# Unit creation and destruction (src/game/unit_create*.cpp, map_object.cpp,
+# objects/object3d.cpp, map_object_shadow.cpp; docs/notes/units.md, "Creation, databases, save"): units of
+# several prototypes are spawned (the map object factory, the CUnit / CMapObject / CObject3D
+# constructors, ApplyPrototype with BuildFromPrototype and the NPC statistics, the prototype name
+# lookups, the figures loaded and scaled), drawn with their shadows for a while, then killed or
+# removed from the server (the destructor bodies, the companions' destructors). The verify totals
+# in the report show what ran.
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+
+# Eight creatures of different prototypes around the hero.
+console @AddUnitToServer("C1","WolfTutor","C1",Add(GSGetVar(0,"hx"),6),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("C2","BoarTutor","C2",Sub(GSGetVar(0,"hx"),6),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("C3","GoblinF1","C3",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),6),0)
+console @AddUnitToServer("C4","ToadTutor","C4",GSGetVar(0,"hx"),Sub(GSGetVar(0,"hy"),6),0)
+console @AddUnitToServer("C5","SkeletonF2","C5",Add(GSGetVar(0,"hx"),7),Add(GSGetVar(0,"hy"),7),0)
+console @AddUnitToServer("C6","DeerF0","C6",Sub(GSGetVar(0,"hx"),7),Add(GSGetVar(0,"hy"),7),0)
+console @AddUnitToServer("C7","SpiderF10","C7",Add(GSGetVar(0,"hx"),7),Sub(GSGetVar(0,"hy"),7),0)
+console @AddUnitToServer("C8","OgreTutor","C8",Sub(GSGetVar(0,"hx"),9),Sub(GSGetVar(0,"hy"),9),0)
+waitfor 15 IsAlive(GetObjectByName("C8"))
+check IsAlive(GetObjectByName("C1"))
+check IsAlive(GetObjectByName("C3"))
+check IsAlive(GetObjectByName("C5"))
+check IsGreater(HP(GetObjectByName("C2")),0)
+check IsGreater(HP(GetObjectByName("C7")),0)
+# Let them be drawn (figures, shadows) for a moment.
+wait 2000
+
+# The same name twice: the old unit goes first.
+console @AddUnitToServer("C1","WolfGreyF1","C1",Add(GSGetVar(0,"hx"),5),Add(GSGetVar(0,"hy"),2),0)
+waitfor 10 IsAlive(GetObjectByName("C1"))
+
+# Killed (their bodies stay), then removed from the server (destroyed).
+console @InflictDamage(GetObjectByName("C2"),5000)
+console @InflictDamage(GetObjectByName("C4"),5000)
+waitfor 10 Not(IsAlive(GetObjectByName("C4")))
+console @RemoveUnitFromServer(GetObjectByName("C5"))
+console @RemoveUnitFromServer(GetObjectByName("C6"))
+console @RemoveUnitFromServer(GetObjectByName("C2"))
+wait 1000
+
+# More of the same prototype after the removals.
+console @AddUnitToServer("C9","GoblinF1","C9",Add(GSGetVar(0,"hx"),4),Sub(GSGetVar(0,"hy"),3),0)
+waitfor 10 IsAlive(GetObjectByName("C9"))
+console @RemoveUnitFromServer(GetObjectByName("C9"))
+console @RemoveUnitFromServer(GetObjectByName("C8"))
+wait 500
+
+# ---- section hero_death
+# The hero dies in single player: CUnitServer::UpdateServer (00552300) finds the dead unit is the
+# party's leader (CPlayer::IsLeader) and runs the player connection's slot 20, CPlayerServer::
+# OnLeaderDied (0066F4C0): message 0x09 and 0x0B with the hero's id to the client (the game-over
+# path). The report's call count for CPlayerServer::OnLeaderDied must be 1.
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @InflictDamage(GetLeader(),100000)
+# The death and the game-over messages take some 150 world updates.
+# The death and the game-over box come some 150 world updates later.
+waitwindow 20 msgbox
+frames 5
+
+report
+quit

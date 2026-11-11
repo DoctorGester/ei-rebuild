@@ -1,0 +1,309 @@
+# A merged run (H74): the camera: its spin, drag and smoothing. Each section below was a scenario of its own that started the same way
+# (section names as before: the notes name them); a section after the first starts again from the main menu with a new game.
+# Sections: camera_spin, camera_drag_rate, camera_smooth, camera.
+# installs: vanilla
+timeout 200
+reject Script error
+waitmenu
+console thingamabob
+newgame
+
+# ---- section camera_spin
+# The drawn view while the camera spins (R35a; docs/notes/renderer.md section 14, "Spinning"), at a fixed frame
+# time of 8 ms. Zoomed in and tilted low, a turn with Ctrl and an arrow key swings the camera over the ground and
+# the houses behind it: the game lifts it over them and aims it back down at the focus (CCamera::ClampAboveObjects
+# and ApplyView, as the original does), so it rises and falls by several units a turn and, at 120 frames a second,
+# jumps in height at every world tick; the drawn view spreads those jumps (its largest step in height about a quarter
+# of the camera's; what is left are the game's own changes within a frame). Zoomed out, a fast drag with
+# the right button (mousedrag 77 a frame, 160 counts a 60 Hz frame: 0.43 rad a tick) turns the camera faster than the drawn view's old cut
+# (0.4 rad or 8 units a tick, shown at once): the drawn view still turns without jumps, and along the arc: its
+# distance from the focus (reach) changes only as the camera's own does (spread along the chord, it pulled in and out
+# at every tick: 144.6 units of change against the camera's 6.0, R35c).
+# 1480 frames: 207 s on llvmpipe with 4 cores, and cut at 360 s (step 31 of 51) on CI's runner twice (H60; CI
+# multiplies this by EI_TIME_SCALE).
+waitline 15 Saved savea
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+move 400 300
+frametime 8
+frames 30
+
+keydown pgup
+frames 150
+keyup pgup
+frames 40
+hold ctrl
+keydown down
+frames 200
+keyup down
+frames 40
+camtrace start
+keydown left
+frames 400
+keyup left
+frames 40
+camtrace stop low
+# Back up to about 30 degrees (0.6 a frame) for the fast turn: at the least pitch (-45 since P12) the camera rides
+# the ground, and the drawn view's reach, spread over the frames, changes less than the camera's jumpy own.
+keydown up
+frames 125
+keyup up
+release ctrl
+frames 10
+
+keydown pgdn
+frames 200
+keyup pgdn
+frames 40
+rdown 400 300
+camtrace start
+mousedrag 77 0
+frames 300
+mousedrag 0 0
+frames 40
+camtrace stop fast
+rup 400 300
+
+camsame low low.camera turn 0.03
+camsmooth low turn
+camsmooth low.camera turn jerky
+camsteadier low low.camera height 0.35
+camsmooth low.camera height jerky
+camsame fast fast.camera turn 0.03
+camsmooth fast turn
+camsmooth fast.camera turn jerky
+camsame fast fast.camera reach 0.03
+frametime 0
+
+# ---- section camera_drag_rate
+# The camera's right-button turn and tilt at four frame rates (PL20; docs/notes/ui.md, "Camera mouse turn"). The same
+# mouse speed, 2 counts a millisecond across (a turn) and then 2 up or down (a tilt), at frame times of 32, 16, 8
+# and 4 ms turns and tilts the camera by the same amount. It used to set the turn's rate from each frame's motion, so
+# that the turn went with the frame time: eight times as far at 32 ms as at 4.
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitline 15 Saved savea
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+move 400 300
+
+frametime 32
+frames 10
+rdown 400 300
+camtrace start
+mousedrag 64 0
+frames 30
+mousedrag 0 0
+frames 20
+camtrace stop turn32
+camtrace start
+mousedrag 0 -64
+frames 8
+mousedrag 0 0
+frames 20
+camtrace stop tilt32
+rup 400 300
+
+frametime 16
+frames 20
+rdown 400 300
+camtrace start
+mousedrag 32 0
+frames 60
+mousedrag 0 0
+frames 40
+camtrace stop turn16
+camtrace start
+mousedrag 0 32
+frames 16
+mousedrag 0 0
+frames 40
+camtrace stop tilt16
+rup 400 300
+
+frametime 8
+frames 40
+rdown 400 300
+camtrace start
+mousedrag 16 0
+frames 120
+mousedrag 0 0
+frames 80
+camtrace stop turn8
+camtrace start
+mousedrag 0 -16
+frames 32
+mousedrag 0 0
+frames 80
+camtrace stop tilt8
+rup 400 300
+
+frametime 4
+frames 80
+rdown 400 300
+camtrace start
+mousedrag 8 0
+frames 240
+mousedrag 0 0
+frames 160
+camtrace stop turn4
+camtrace start
+mousedrag 0 8
+frames 64
+mousedrag 0 0
+frames 160
+camtrace stop tilt4
+rup 400 300
+
+camsame turn16.camera turn32.camera turn 0.1
+camsame tilt16.camera tilt32.camera height 0.1
+camsame turn16.camera turn8.camera turn 0.1
+camsame tilt16.camera tilt8.camera height 0.1
+camsame turn16.camera turn4.camera turn 0.1
+camsame tilt16.camera tilt4.camera height 0.1
+frametime 0
+
+# ---- section camera_smooth
+# The drawn view (R18, R35a; docs/notes/renderer.md section 14): at a fixed frame time of 8 ms (a 120 Hz screen's
+# frames, on the virtual clock) the battle camera pans (an arrow key held), turns (Ctrl and an arrow key), zooms
+# (Page Down) and follows the walking hero (Home). camtrace records each frame's drawn view and the camera's own:
+# the camera jumps at every world tick (jerky: each client tick moves it by 55 ms of motion at once, on top of
+# the frame's 8 ms, as the original's does), the drawn view spreads each tick's step over the frames up to the
+# next tick, so it moves without jumps (camsmooth) and covers the same ground (camsame).
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitline 15 Saved savea
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+move 400 300
+frametime 8
+frames 30
+
+# Pan: held for 110 frames (880 ms: 16 ticks), then 60 frames to come to rest.
+camtrace start
+keydown left
+frames 110
+keyup left
+frames 60
+camtrace stop pan
+
+# Turn.
+hold ctrl
+camtrace start
+keydown left
+frames 110
+keyup left
+frames 60
+camtrace stop turn
+release ctrl
+
+# Zoom.
+camtrace start
+keydown pgdn
+frames 55
+keyup pgdn
+frames 60
+camtrace stop zoom
+
+# Follow: the camera tracks the hero (Home) while it walks six units east.
+keydown home
+keyup home
+frames 30
+console @GSSetVar(0,"x0",GetX(GetLeader()))
+console @MoveToPoint(GetLeader(),Add(GetX(GetLeader()),6),GetY(GetLeader()))
+camtrace start
+frames 150
+camtrace stop follow
+waitfor 20 IsGreater(GetX(GetLeader()),Add(GSGetVar(0,"x0"),5))
+
+camsame pan pan.camera pan 0.03
+camsame turn turn.camera turn 0.03
+camsame zoom zoom.camera zoom 0.03
+camsmooth pan pan
+camsmooth pan.camera pan jerky
+camsmooth turn turn
+camsmooth turn.camera turn jerky
+camsmooth zoom zoom
+camsmooth zoom.camera zoom jerky
+camsmooth follow pan
+frametime 0
+check IsAlive(GetLeader())
+
+# ---- section camera
+# Camera (src/engine/scene/camera.cpp): the per-frame update (CCamera::Update, ApplyView, SampleTerrain)
+# while the hero walks, arrow-key panning (Pan), the saved-view keys F9-F12 (RestoreView), the
+# "normal camera" key N, the script camera commands, and a recorded camera path (PlayCamera:
+# PlaybackStart / PlaybackStep). keyboard.ini: F9-F12 camera1-4, N camera_norm, arrows scroll
+# (F5 / F8 are quicksave / quickload: not used).
+# Back to the main menu for the next section.
+frames 5
+ifwindow battle key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+# The level intro keeps the hero blocked; unblock it instead of waiting.
+console @BlockUnit(GetLeader(),0)
+
+# Walk six units east while the camera updates.
+console @GSSetVar(0,"x0",GetX(GetLeader()))
+console @MoveToPoint(GetLeader(),Add(GetX(GetLeader()),6),GetY(GetLeader()))
+waitfor 20 IsGreater(GetX(GetLeader()),Add(GSGetVar(0,"x0"),5))
+
+# Script camera commands (no effect in 1.06, ScriptRun::RunCommand's too; they must still parse).
+console @SetCameraPosition(GetX(GetLeader()),GetY(GetLeader()),0)
+console @SetCameraOrientation(1)
+
+# Pan with the arrow keys, then the saved views and the normal camera.
+key left
+frames 5
+key up
+frames 5
+key right
+frames 5
+key down
+frames 5
+key f9
+frames 5
+key f10
+frames 5
+key f11
+frames 5
+key f12
+frames 5
+key n
+frames 5
+
+# Walk back west: the camera keeps updating after the view changes.
+console @MoveToPoint(GetLeader(),GSGetVar(0,"x0"),GetY(GetLeader()))
+waitfor 20 IsLess(GetX(GetLeader()),Add(GSGetVar(0,"x0"),1))
+
+# A recorded camera path (camera\bz3g.cam, three keys over about 2.5 s of game time).
+console @PlayCamera("bz3g.cam")
+console #IsCameraPlaying()
+waitfor 20 Not(IsCameraPlaying())
+frames 5
+check IsAlive(GetLeader())
+
+report
+quit

@@ -1,2 +1,0 @@
-  Activated!
-  Starting up a server
