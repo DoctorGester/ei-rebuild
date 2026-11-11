@@ -3,16 +3,14 @@
 // matrix stacks (projection, viewport, the fixed axis swap and their products), sets the pipeline's viewport,
 // the render state (render/render_state.h), a default light and the ambient colour, and creates
 // the counted helper object. Runs once at start-up. See docs/notes/models.md ("Renderer creation").
-#include "engine/scene/camera.h"
-#include "game/app/singletons.h"
+#include "engine/core/manager_context.h"
 #include "engine/scene/device.h"
 #include "engine/scene/scene_renderer.h"   // SceneRenderer
 #include "engine/scene/pipeline.h"
 #include "engine/scene/render_helper.h"
-#include "engine/data/options.h"
+#include "engine/core/engine_globals.h"
 #include "render/render_state.h"
 #include "engine/scene/light.h"
-#include "game/world/world.h"
 
 #include "lib/crt.h"
 #include "platform/platform.h"
@@ -20,8 +18,6 @@
 #include <bit>
 #include <cstdint>
 #include <cstring>
-
-using options::GameOptions;
 
 Matrix4* AxisSwapMatrix(Matrix4*);
 namespace {
@@ -84,10 +80,10 @@ void FillScreenStacks(SceneRenderer* renderer) {
 void FillMatrixStacks(SceneRenderer* renderer) {
     TransformPipeline* pipeline = renderer->pipeline;
     MatrixStack* stacks = pipeline->stacks;
-    // The camera's near distance and field of view.
-    const Camera* cam = &g_camera;
+    // The view's near distance and field of view.
+    const SceneView& view = renderer->view;
     Matrix4 m;
-    ProjectionMatrix(&m, cam->fieldOfView, camera::kAspect, cam->nearDistance);
+    ProjectionMatrix(&m, view.fieldOfView, SceneView::kAspect, view.nearDistance);
     StackPush(stacks[kProjection], &m);
     FillScreenStacks(renderer);
     // The distance fog's depth from a clip w (w is the projection's m[14] times the depth).
@@ -139,7 +135,7 @@ void SceneRenderer::ResizeScreen(int width, int height) {
 // The default light: class 0x2E of the light factory, white, at (5, 5, -8), range 1e6,
 // +0x100 = 1e12, +0x104 = 1e-12.
 void SceneRenderer::AddDefaultLight() {
-    Light* light = g_clientWorld.lightFactory->CreateLight(kLightTypeDefault);
+    Light* light = world->GetLightFactory()->CreateLight(kLightTypeDefault);
     Vector3 lightColour = {1.0f, 1.0f, 1.0f};
     Vector3 position = {5.0f, 5.0f, -8.0f};
     light->SetDirectional(lightColour, position);
@@ -150,11 +146,11 @@ void SceneRenderer::AddDefaultLight() {
     SetSun(light);
 }
 
-void SceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
+void SceneRenderer::CreateRenderer(void* window) {
     render::g_renderState = {};   // a new device's
     CreatePipeline();
-    TextureDevice* newDevice = new TextureDevice(window, settings->fullScreen != 0,
-                                                settings->resolutionX, settings->resolutionY);
+    TextureDevice* newDevice = new TextureDevice(window, g_engineConfig.fullScreen, g_engineConfig.resolutionX,
+                                                g_engineConfig.resolutionY);
     device.Assign(newDevice);
     DeviceSetPipeline(&device->pipeline, pipeline);
 

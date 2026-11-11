@@ -5,7 +5,7 @@
 #include "game/ui/ui_saveload.h"
 #include "game/ui/ui_objectives.h"
 
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 #include "game/combat/combat.h"
 #include "game/app/singletons.h"
 #include "game/objects/map_object.h"

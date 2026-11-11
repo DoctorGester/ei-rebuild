@@ -3,7 +3,7 @@
 // docs/notes/units.md.
 #include "game/units/unit_client_models.h"
 
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 #include "game/effects/effects.h"
 #include "game/app/singletons.h"
 #include "game/items/item.h"
@@ -11,7 +11,7 @@
 #include "game/objects/map_object.h"
 #include "game/objects/object3d.h"
 #include "game/objects/map_object_shadow.h"
-#include "engine/data/options.h"
+#include "game/app/options.h"
 #include "game/players/player_client.h"
 #include "engine/core/random.h"
 #include "game/players/player.h"

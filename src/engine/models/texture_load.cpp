@@ -4,7 +4,6 @@
 #include "engine/models/texture.h"
 
 #include "engine/models/dib.h"
-#include "engine/data/options.h"
 #include "engine/scene/surface.h"
 #include "engine/core/text_split.h"
 #include "platform/log.h"

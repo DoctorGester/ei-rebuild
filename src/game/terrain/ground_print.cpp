@@ -3,7 +3,7 @@
 // entry (by the ground's surface class) gives the alpha and the life. See docs/notes/models.md ("Ground prints").
 #include "game/terrain/ground_print.h"
 
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 #include "engine/core/core_streams.h"
 #include "game/effects/effects.h"
 #include "engine/models/figure_mesh.h"
@@ -12,7 +12,7 @@
 #include "engine/scene/device.h"
 #include "engine/scene/scene_renderer.h"
 #include "engine/models/texture.h"
-#include "engine/data/options.h"
+#include "game/app/options.h"
 #include "engine/scene/light.h"
 #include "game/terrain/terrain.h"
 #include "game/world/world.h"
@@ -68,6 +68,16 @@ const Record* EntryAt(const std::vector<Record>& table, WorldClient* world, floa
 }
 
 std::uint32_t Channel(float value) { return static_cast<std::uint32_t>(std::lround(value * kAlphaRange)); }
+
+// Binds the print's texture to `stage`: one not looked up yet is found by its name among the texture manager's
+// registered and cached textures (an empty name is not looked up) and kept, counted.
+void BindNamedTexture(TextureDevice* device, int stage, NamedTexture* named) {
+    if (!named->texture && named->name.size() != 0) {
+        Texture* found = g_clientWorld.textureManager->FindTexture(named->name.data());
+        named->texture.Assign(found);
+    }
+    device->BindSurface(stage, named->texture ? named->texture->surface.Get() : nullptr);
+}
 
 } // namespace
 
@@ -206,7 +216,7 @@ void GroundPrint::Draw() {
     }
     std::uint32_t fadeAlpha = static_cast<std::uint32_t>(std::lround(alpha * kAlphaRange));
     TextureDevice* device = g_sceneRenderer.device;
-    device->BindNamedTexture(0, &texture);
+    BindNamedTexture(device, 0, &texture);
     device->DrawFlatBlocks(positions.data(), texCoords.data(), lib::Count(positions), indices.data(), lib::Count(indices),
                            (DayColour() & 0xFFFFFFu) | fadeAlpha << 24, static_cast<std::uint32_t>(lit) << 24, true);
 }

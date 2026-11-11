@@ -14,13 +14,34 @@
 #include <vector>
 
 class Light;
+class ManagerContext;
 class RenderHelper;
 class TextureDevice;
-namespace options {
-class GameOptions;
-}
 class Texture;
 struct LineBatch;
+
+// The view the world is drawn from, which the program sets: the game's camera (game/world/camera.h) its projection's
+// near distance and field of view (Camera::Create, Camera::Init: CreateRenderer's projection reads them) and its pose
+// each frame the world is drawn (camera::TakeFrameView: the drawn view, which the particles face), the interface layout
+// the axis scales.
+struct SceneView {
+    // The projection's shape (renderer_init.cpp): the field of view spans the window's 4:3 part across, the axis swap
+    // widens it to the window (screen_layout.h).
+    static constexpr float kAspect = 4.0f / 3.0f;
+    static constexpr float kDefaultNear = 1.0f;
+    static constexpr float kDefaultFieldOfView = kPi * (2.0f / 7.0f);
+
+    Vector3 position;
+    Quaternion rotation;
+    float nearDistance = kDefaultNear;   // the projection has no far plane
+    float fieldOfView = kDefaultFieldOfView;
+    // The projection's x and y scales on the axis swap's diagonal (AxisSwapMatrix; the camera's near plane): the
+    // window's 4:3 part over the whole window, width43 / width and height43 / height, so the 4:3 picture keeps its
+    // proportions on any window (Rebirth's WideScreen scaled x); 1 and 1 on a 4:3 window. game/ui/screen_layout.cpp
+    // sets them with the interface layout.
+    float axisScale = 1.0f;
+    float axisScaleY = 1.0f;
+};
 
 // The ambient colour (r, g, b in 0..1) SceneRenderer::SetColour set last (one for every renderer): the figure
 // parts lit on the GPU take it from here.
@@ -36,7 +57,8 @@ public:
 
     // Sets the render state's fog colour (render/render_state.h) to `colour`.
     void SetFogColourState(std::uint32_t colour);
-    void CreateRenderer(void* window, options::GameOptions* settings);
+    // The renderer's start on `window` at the engine's config's size and screen (engine_globals.h).
+    void CreateRenderer(void* window);
     // The sun: the client world's light factory's default light (white, directional), made at each start of the game
     // (app/main_loop.cpp, StartGame) after the device.
     void AddDefaultLight();
@@ -104,12 +126,11 @@ public:
     // The display settings SetGamma last applied, as given.
     float brightness = 0.0f;
     float gamma = 0.0f;
-    // The projection's x and y scales on the axis swap's diagonal (AxisSwapMatrix; the camera's near plane): the
-    // window's 4:3 part over the whole window, width43 / width and height43 / height, so the 4:3 picture keeps its
-    // proportions on any window (Rebirth's WideScreen scaled x); 1 and 1 on a 4:3 window. game/ui/screen_layout.cpp
-    // sets them with the interface layout.
-    float axisScale = 1.0f;
-    float axisScaleY = 1.0f;
+    // The view the world is drawn from.
+    SceneView view;
+    // The world drawn: its texture manager, light factory and clock (ManagerContext's scene getters). The game sets
+    // its client world before the start (app/main_loop.cpp).
+    ManagerContext* world = nullptr;
     // The frame time (milliseconds; BeginScene / EndScene).
     std::uint32_t frameTime = 0;               // the last frame's
     std::uint32_t frameStart = 0;              // timeGetTime at this frame's BeginScene

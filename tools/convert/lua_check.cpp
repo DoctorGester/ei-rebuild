@@ -9,7 +9,7 @@
 #include "game/objects/map_object.h"
 #include "game/objects/map_object_manager.h"
 #include "game/players/player_manager.h"
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 #include "game/script/script.h"
 #include "game/spells/spell.h"
 #include "game/spells/spell_effect_internal.h"

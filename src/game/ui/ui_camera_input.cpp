@@ -3,11 +3,11 @@
 // section 3.
 #include "game/ui/ui_camera_input.h"
 
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 #include "game/ui/camera_trace.h"
 #include "game/app/singletons.h"
 #include "lib/bit_flags.h"
-#include "engine/data/options.h"
+#include "game/app/options.h"
 #include "game/ui/ui.h"
 #include "game/ui/ui_cursor.h"
 #include "game/ui/screen_layout.h"

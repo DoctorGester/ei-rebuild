@@ -19,6 +19,10 @@ namespace present_window {
 // rendering resolution (app::RequestResolution); the frame is scaled into the window until the next pass takes it.
 void Update(TextureDevice* device);
 
+// The device's present, once a frame after the scene, the interface and the software cursor are drawn (and once a
+// movie frame): Update, then the renderer's frame shown on the window (render::Present). See docs/notes/renderer.md.
+void Present(TextureDevice* device);
+
 // A window that is not full screen: its client area sized to `width` x `height` (platform::SetClientSize: made smaller
 // when it would not fit, the frame then scaled into it), taken as the window's own size, so the next present asks for
 // no resolution.

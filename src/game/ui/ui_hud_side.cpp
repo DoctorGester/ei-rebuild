@@ -6,7 +6,7 @@
 #include "engine/scene/light.h"
 #include "game/ui/ui_hud.h"
 #include "engine/core/base_manager.h"
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 #include "game/combat/combat.h"
 #include "game/app/singletons.h"
 #include "game/objects/map_object.h"

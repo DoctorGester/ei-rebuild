@@ -9,7 +9,7 @@ src/engine/core/random.h,0,0,1,0,0,0,0
 src/engine/data/chunk_archive.cpp,0,0,3,0,0,0,1
 src/engine/data/map_file.h,0,0,0,0,0,0,2
 src/engine/data/resource_manager.h,0,0,1,0,0,0,0
-src/engine/data/settings.h,0,0,0,0,0,0,1
+src/game/app/settings.h,0,0,0,0,0,0,1
 src/engine/data/text_manager.cpp,0,0,3,0,0,0,0
 src/engine/models/dib.h,0,0,2,0,0,0,0
 src/engine/models/figure_manager.cpp,0,0,1,0,0,0,0

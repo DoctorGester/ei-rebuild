@@ -5,7 +5,7 @@
 #include "game/app/game_flow.h"
 #include "game/net/net_session.h"
 #include "game/net/mod_identity.h"
-#include "engine/data/options.h"
+#include "game/app/options.h"
 #include "engine/core/asset_text.h"
 #include "game/ui/ui.h"
 #include "game/ui/ui_mesh.h"

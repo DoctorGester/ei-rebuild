@@ -64,7 +64,7 @@ Ours leave the quit posted (the movie ends on it) and the main loop ends on it.
 file, a missing one with its catalog row's default (the original's constructor held placeholder defaults, such as a
 camera turning about 7 and pitching about 700 times as fast as an install's; they are gone). The master server's name
 is read but not saved (EI_Plugin's NewMaster stopped saving it). Settings are `ei_settings.ini` beside the exe,
-described by `src/engine/data/settings_catalog.inc`, which holds each setting's one default (`docs/settings.md` is
+described by `src/game/app/settings_catalog.inc`, which holds each setting's one default (`docs/settings.md` is
 generated from it by `tools/gen_settings_doc.py`, a build check).
 
 The camera's defaults are freer than the original's (P12; Rebirth's starter offered them as its "Камера Чейза" preset):

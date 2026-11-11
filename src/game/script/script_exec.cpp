@@ -2,7 +2,7 @@
 // docs/notes/script.md.
 #include "game/ai/ai_map.h"
 #include "game/items/item_manager.h"
-#include "engine/data/options.h"
+#include "game/app/options.h"
 #include "engine/data/text_manager.h"
 #include "game/script/script.h"
 #include "game/script/script_addon.h"

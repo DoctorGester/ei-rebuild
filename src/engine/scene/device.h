@@ -15,7 +15,6 @@
 #include <cstdint>
 
 class DeviceMaterial;
-struct NamedTexture;
 struct Surface;
 class Texture;
 struct TLVertex;
@@ -44,9 +43,6 @@ public:
     void BindSurface(int stage, Surface* holder);
     // A null texture binds none.
     void BindTexture(int stage, Texture* texture);
-    // A texture not looked up yet is found by its name among the texture manager's registered and cached
-    // textures (an empty name is not looked up) and kept, counted.
-    void BindNamedTexture(int stage, NamedTexture* named);
 
     // Starts the new renderer (its failure ends the game). `width` x `height` pixels on `window`.
     TextureDevice(platform::NativeWindow window, bool fullScreen, int width, int height);
@@ -78,6 +74,3 @@ inline constexpr render::StageCombiner kAlphaPassStage = {render::TextureOp::Mod
 inline constexpr render::StageCombiner kTerrainStage = {render::TextureOp::Modulate, render::TextureArg::Texture,
                                                         render::TextureArg::Current, render::TextureOp::SelectArg1,
                                                         render::TextureArg::Texture, render::TextureArg::Current};
-
-// Once a frame: the new renderer's frame shown.
-void DevicePresent(TextureDevice* device);

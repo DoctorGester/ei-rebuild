@@ -1,7 +1,7 @@
 // The visible effects: EffectPointLight, EffectParticle, EffectWall, EffectLightning. See
 // world_effect.h and docs/notes/effects.md.
 
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 #include "game/effects/effects.h"
 #include "game/app/singletons.h"
 #include "engine/scene/light.h"

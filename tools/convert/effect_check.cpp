@@ -480,6 +480,7 @@ int Main(const std::string& record, const std::string& dump) {
     // The sources take their textures by name (no archive opened: the check reads no game data).
     g_clientWorld.textureManager = std::make_unique<TextureManager>();
     g_clientWorld.textureManager->SetContext(&g_clientWorld);
+    g_sceneRenderer.world = &g_clientWorld;
     // A terrain without sectors: the ground is 0 everywhere (the effects that spawn on the ground).
     g_clientWorld.terrain = std::make_unique<terrain::Terrain>();
     // A sun of its own colour (Tornado's particles take it).

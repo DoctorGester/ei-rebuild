@@ -1,10 +1,11 @@
 #pragma once
 
 // What the particle core (particle_source.h, particle_data.h) asks of the world its sources are in: the ground and the
-// platforms, the wind, how far the frame is between two ticks, the scorch marks, and the carriers (the map objects a
-// source follows). The game answers on the client world (effects/effects_particles.cpp); the core includes no game
-// header (docs/notes/file-layout.md, "The engine library"). Free functions the game defines for now; a program without
-// the world (the effect viewer's own exe) is to answer them too, through an interface (docs/notes/effects.md).
+// platforms, the wind, how far the frame is between two ticks, the scorch marks, the carriers (the map objects a
+// source follows) and the camera's shakes. The game answers on the client world (effects/effects_particles.cpp); the
+// core includes no game header (docs/notes/file-layout.md, "The engine library"). Free functions the game defines for
+// now; a program without the world (the effect viewer's own exe) is to answer them too, through an interface
+// (docs/notes/effects.md).
 
 #include "lib/vecmath.h"
 
@@ -30,6 +31,8 @@ Wind CurrentWind();
 float TickFraction();
 // A scorch mark on the ground at (x, y): its two radii, its turn and its strength.
 void AddScorchMark(float x, float y, float radiusX, float radiusY, float angle, float alpha);
+// A shake of the camera from `source` (Camera::Shake).
+void ShakeCamera(const Vector3& source, float duration, float amplitude, float decay);
 
 // `carrier`'s bounds measured and `source` added to its sources (ParticleSource::Attach).
 void Follow(MapObject* carrier, ParticleSource* source);

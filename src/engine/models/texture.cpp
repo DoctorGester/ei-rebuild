@@ -3,8 +3,7 @@
 
 #include "engine/core/engine_globals.h"
 #include "engine/mods/mod_folders.h"
-#include "engine/data/options.h"
-#include "game/world/world.h"
+#include "engine/core/manager_context.h"
 #include "lib/bytes.h"
 #include "lib/crt.h"
 #include "lib/str.h"
@@ -17,8 +16,8 @@
 #include <string>
 
 namespace {
-// Game-wide paths set at startup. Names provisional.
-const std::string& GameRoot() { return options::g_options.workPath; }
+// The game's work path (the engine's config): the loose textures' root.
+const std::string& GameRoot() { return g_engineConfig.workPath; }
 
 constexpr std::uint32_t kDxtCode = 'D' | ('X' << 8) | ('T' << 16);   // a DXT format's code without its digit
 
@@ -208,8 +207,8 @@ Texture::~Texture() {
     flags = 0;
 }
 
-// The client world's (it has the one texture manager).
-TextureManager* Texture::Manager() const { return ClientWorld()->textureManager.get(); }
+// The world's (the client world has the one texture manager).
+TextureManager* Texture::Manager() const { return GetManagerContext()->GetTextureManager(); }
 
 MmpFile::MmpFile(void* file) : data(file) {
     if (file) header = lib::Load<MmpHeader>(file);

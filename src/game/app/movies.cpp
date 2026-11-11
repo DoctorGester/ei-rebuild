@@ -8,6 +8,7 @@
 #include "game/net/net_session.h"
 #include "game/sound/sound.h"
 #include "engine/scene/device.h"
+#include "game/app/present_window.h"
 #include "engine/scene/scene_renderer.h"
 
 #include "lib/crt.h"
@@ -20,7 +21,7 @@
 #include <vector>
 #include "game/ui/ui_cursor.h"
 #include "game/app/singletons.h"
-#include "engine/data/options.h"
+#include "game/app/options.h"
 #include "game/world/world.h"
 
 // Set while a .mob file loads (WorldServer::LoadMobFile, AddMobEx): the loading screen's movie stays as it is.
@@ -39,7 +40,7 @@ Rect g_loadingScreen = /*007C5520*/ {};
 video::Movie* g_loadingMovie = /*007C5550*/ {nullptr};
 
 // A movie frame drawn outside the game's frame becomes a frame of the new renderer, shown by the present.
-void PresentMovieFrame() { DevicePresent(g_sceneRenderer.device); }
+void PresentMovieFrame() { present_window::Present(g_sceneRenderer.device); }
 
 int g_movieKey;   // the blocking player's movie in the new renderer
 bool g_playedMoviesPaced = true;   // SetPlayedMoviesPaced

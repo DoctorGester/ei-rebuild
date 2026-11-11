@@ -6,6 +6,7 @@
 #include "engine/particles/particle_record.h"
 #include "engine/particles/particle_source.h"
 #include "game/objects/map_object.h"
+#include "game/world/camera.h"
 #include "game/units/unit.h"
 #include "game/world/world.h"
 
@@ -55,6 +56,10 @@ float particlehost::TickFraction() { return g_clientWorld.tickFraction; }
 
 void particlehost::AddScorchMark(float x, float y, float radiusX, float radiusY, float angle, float alpha) {
     g_clientWorld.AddScorchMark(x, y, radiusX, radiusY, angle, alpha);
+}
+
+void particlehost::ShakeCamera(const Vector3& source, float duration, float amplitude, float decay) {
+    g_camera.Shake(source, duration, amplitude, decay);
 }
 
 void particlehost::Follow(MapObject* carrier, ParticleSource* source) {

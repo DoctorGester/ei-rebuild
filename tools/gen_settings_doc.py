@@ -1,4 +1,4 @@
-"""docs/settings.md from the settings catalog (src/engine/data/settings_catalog.inc): every setting of ei_settings.ini with
+"""docs/settings.md from the settings catalog (src/game/app/settings_catalog.inc): every setting of ei_settings.ini with
 its default (the text of the row's typed default), its values and what it does (C69, C171).
 
 usage: python tools/gen_settings_doc.py            writes docs/settings.md
@@ -8,7 +8,7 @@ usage: python tools/gen_settings_doc.py            writes docs/settings.md
                                                    row's is the only one; build_checks.py runs it)
 
 The settings the code reads are found by their spelling: options.cpp's tables (section and name, the camera's
-motion values, the shortcuts, the lights), every Get*(section, "name") under src/, the renderer's QualitySetting
+motion values, the shortcuts, the lights), every Get*(section, "name") under src/, main_loop.cpp's QualitySetting
 names.
 """
 import decimal, os, re, struct, sys
@@ -179,7 +179,7 @@ def read_names(names_of):
                     found.add(('kGame', name))
                 for name in re.findall(r'ReadCameraFlip\(\w+, "(\w+)"\)', text):
                     found.add(('kCamera', name))
-            if f == 'device_mesh.cpp':
+            if f == 'main_loop.cpp':
                 for name in re.findall(r'QualitySetting\("(\w+)"', text):
                     found.add(('kRenderer', name))
             if 'GetValues(settings::kAutoExec)' in text:

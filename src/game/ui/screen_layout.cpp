@@ -63,8 +63,8 @@ float g_panelRight = /*007428AC*/ 695.0f;
 void Configure(int width, int height) {
     g_layout = Compute(width, height);
     // width43 / width (addon's 10024954) and height43 / height.
-    g_sceneRenderer.axisScale = g_layout.width43 / static_cast<float>(width);
-    g_sceneRenderer.axisScaleY = g_layout.height43 / static_cast<float>(height);
+    g_sceneRenderer.view.axisScale = g_layout.width43 / static_cast<float>(width);
+    g_sceneRenderer.view.axisScaleY = g_layout.height43 / static_cast<float>(height);
     g_layoutWidth = g_layout.extra + 800.0f;
     g_panelRight = g_layout.extra + 695.0f;
     ei::Log("Interface layout: %dx%d, 4:3 part %dx%d, margins %d, %d pixels (%d layout units); layout width %g, panel "

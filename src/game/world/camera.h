@@ -7,7 +7,7 @@
 #include "engine/core/core_streams.h"
 #include "engine/core/core_transform.h"
 #include "lib/vecmath.h"
-#include "engine/data/options.h"
+#include "game/app/options.h"
 
 
 #include <cstddef>
@@ -74,17 +74,12 @@ struct TerrainSample {
 };
 TerrainSample SampleTerrain(const Vector3& p, float step, float halfX, float halfY);
 
-// The constants the camera code uses: the zero vector and the identity rotation it copies, ninety degrees in radians
-// and the defaults of the near / far distances and the field of view.
+// The constants the camera code uses: the zero vector and the identity rotation it copies and ninety degrees in
+// radians.
 namespace camera {
 inline constexpr Vector3 kZeroVector = /*0079B5C8*/ {0.0f, 0.0f, 0.0f};
 inline constexpr Quaternion kIdentityRotation = /*0079B5B8*/ {1.0f, 0.0f, 0.0f, 0.0f};
 inline constexpr float kRightAngle = ei::kRadiansPerDegree * 90.0f;
-inline constexpr float kDefaultNear = 1.0f;
-inline constexpr float kDefaultFieldOfView = kPi * (2.0f / 7.0f);
-// The projection's shape (renderer_init.cpp): the field of view spans the window's 4:3 part across, the axis swap
-// widens it to the window (screen_layout.h).
-inline constexpr float kAspect = 4.0f / 3.0f;
 }   // namespace camera
 
 // The camera ("Camera"). flags: 0x8 following the target, 0x10 a camera file is open, 0x20 playing a
@@ -151,14 +146,14 @@ public:
     bool PlaybackStart();
     void PlaybackStep(float time);
 
-    // Views and start placement from the settings; the near distance and the field of view are kept in
-    // nearDistance and fieldOfView.
+    // Views and start placement from the settings; the near distance and the field of view go to the scene's view
+    // (SceneView, scene_renderer.h), which the projection is made from.
     void Init(options::GameOptions* settings, float nearClip, float fov);
 
     // Lifts the camera over the terrain and the objects within 16 of it, its near plane included.
     void ClampAboveObjects();
     // How far the near plane's corners lie from the camera's point: the projection's near distance and field of view
-    // (nearDistance, fieldOfView, camera::kAspect) on the window's shape now (the scene renderer's axis scales). No part
+    // (the scene's view, SceneView::kAspect) on the window's shape now (the view's axis scales). No part
     // of the near plane is lower under the camera's point than this, whichever way the camera looks.
     float NearPlaneReach() const;
     // Turns the camera a tenth of the way upright, then ClampAboveObjects.
@@ -212,8 +207,6 @@ public:
     float boundsRadius = 0.0f;
     int targetId = -1;
     CameraView views[8];
-    float nearDistance = camera::kDefaultNear;   // (renderer_init's projection reads the two; it has no far plane)
-    float fieldOfView = camera::kDefaultFieldOfView;
     std::string fileName;      // the camera file being recorded
     std::vector<CameraKey> keys;   // the recorded path's keys
     float timeOffset = 0.0f;
@@ -257,7 +250,8 @@ ViewPose DrawnView(const Camera* camera);
 // WorldClient::Render takes the frame's drawn view once at its start (TakeFrameView); what the world's draw
 // places by the camera reads it from FrameView: the view matrix, the sky, particle billboards, lightning, rain
 // and snow, the lighting's eye and the old shadows' axis (the terrain's visible sectors and their level of
-// detail keep the camera's own position).
+// detail keep the camera's own position). The scene's view (SceneView) takes its position and rotation: the engine's
+// draws face it.
 void TakeFrameView(const Camera* camera);
 const ViewPose& FrameView();
 } // namespace camera

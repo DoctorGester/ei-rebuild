@@ -62,6 +62,11 @@ void Update(TextureDevice* device) {
     if (changed && !device->fullScreen) app::RequestResolution(width, height);
 }
 
+void Present(TextureDevice* device) {
+    Update(device);
+    render::Present();
+}
+
 void SizeClient(TextureDevice* device, int width, int height) {
     if (!device || !device->window || device->fullScreen) return;
     platform::SetClientSize(device->window, width, height);

@@ -1,5 +1,5 @@
 // The standalone's settings file and its typed accessors. See settings.h.
-#include "engine/data/settings.h"
+#include "game/app/settings.h"
 
 #include "platform/log.h"
 #include "lib/text_case.h"

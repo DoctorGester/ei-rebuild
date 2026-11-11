@@ -2,7 +2,7 @@
 // flies off to another perch. See world_effect.h and docs/notes/effects.md ("Moshka").
 #include "game/ai/ai_map.h"
 #include "engine/core/base_manager.h"
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 #include "game/effects/effects.h"
 #include "game/app/singletons.h"
 #include "game/objects/map_object.h"

@@ -5,5 +5,5 @@ size = 3
 depends = ["MF15k1"]
 note = "After MF15k1, beside MF15k2. The scene and models reach the client world for its managers and state: Texture::Manager and device_draw (the texture manager), renderer_init (the light factory), figure_part_draw (the tick clock), sky_object (GameTime), renderer_scene (the world's and the interface's draws, ui.h), device_draw (present_window::Update), camera.cpp / camera_object.cpp (terrain heights and size, the sound listener, followed objects, ObjectsInRange, the camera views' save version). Give ManagerContext (or a scene host) virtual getters for the engine's managers that World overrides, and a small camera / scene host for the rest, so these files drop world.h, singletons.h, terrain, sound, ui and app includes. MF15k3 takes the Object3D / animation types. Every golden the same."
 order = 1392
-status = "running"
+status = "review"
 started = "2026-11-11"

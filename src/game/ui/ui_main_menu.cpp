@@ -4,7 +4,7 @@
 #include "game/app/app.h"
 #include "game/app/game_flow.h"
 #include "engine/mods/mod_list.h"
-#include "engine/data/options.h"
+#include "game/app/options.h"
 #include "game/sound/sound.h"
 #include "game/ui/ui.h"
 #include "game/ui/ui_message_box.h"
@@ -22,7 +22,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 #include "game/terrain/terrain.h"
 #include "game/app/movies.h"
 #include "game/app/singletons.h"

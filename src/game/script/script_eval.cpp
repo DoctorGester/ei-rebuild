@@ -21,7 +21,7 @@
 #include "game/units/unit.h"
 #include "game/ai/unit_ai.h"
 #include "game/world/world.h"
-#include "engine/scene/camera.h"
+#include "game/world/camera.h"
 
 #include "lib/rounding.h"
 #include "lib/str.h"

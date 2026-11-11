@@ -4,7 +4,7 @@
 #include "engine/particles/particle_data.h"
 #include "engine/particles/particle_host.h"
 
-#include "engine/scene/camera.h"
+#include "engine/core/engine_globals.h"
 #include "engine/core/engine_object.h"
 #include "engine/scene/scene_renderer.h"
 #include "engine/scene/pipeline.h"
@@ -200,7 +200,7 @@ int ParticleManager::DrawAll(SceneRenderer* renderer) {
     ++refCount;
     std::vector<ParticleDepth>& order = g_drawOrder;
     order.clear();
-    Vector3 axis = camera::FrameView().rotation.AxisZ();
+    Vector3 axis = g_sceneRenderer.view.rotation.AxisZ();
 
     // The manager's objects are its sources (it makes no other class).
     for (auto node = objectList.begin(); node != objectList.end() && *node; ++node) {

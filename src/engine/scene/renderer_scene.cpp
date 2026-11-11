@@ -2,8 +2,9 @@
 // brackets each frame's drawing with them.
 #include "engine/core/core_maths.h"
 
+#include "engine/core/engine_globals.h"
 #include "engine/core/engine_object.h"
-#include "game/app/singletons.h"
+#include "engine/core/manager_context.h"
 #include "engine/scene/device.h"
 #include "engine/scene/scene_renderer.h"     // SceneRenderer
 #include "engine/scene/pipeline.h"
@@ -11,8 +12,6 @@
 #include "engine/models/texture.h"   // Texture
 #include "engine/scene/renderer_lines.h"
 #include "engine/scene/light.h"
-#include "game/ui/ui.h"
-#include "game/world/world.h"
 #include "lib/scales.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
@@ -116,12 +115,12 @@ bool SceneRenderer::RestoreSurfaces() { return device != nullptr; }
 int EnsureTextureLoaded(Texture* texture) {
     if (!texture) game::FatalExit("%s", kNullTextureText);
     if (texture->flags & TextureFlag::Loaded) return 1;
-    return g_clientWorld.textureManager->LoadTexture(texture);
+    return g_sceneRenderer.world->GetTextureManager()->LoadTexture(texture);
 }
 
 void LoadNamedTexture(Ref<Texture>& slot, int kind, const char* name) {
     slot.Reset();
-    auto* manager = g_clientWorld.textureManager.get();
+    TextureManager* manager = g_sceneRenderer.world->GetTextureManager();
     auto* found = manager->FindTypedTexture(kind, name);
     if (!found) found = manager->NewTextureOfType(kind);
     found->name = name;
@@ -172,7 +171,7 @@ Matrix4* AxisSwapMatrix(Matrix4* out) {
     std::memset(out, 0, sizeof(*out));
     out->m[15] = 1.0f;
     out->m[10] = 1.0f;
-    out->m[0] = g_sceneRenderer.axisScale;
-    out->m[5] = -g_sceneRenderer.axisScaleY;
+    out->m[0] = g_sceneRenderer.view.axisScale;
+    out->m[5] = -g_sceneRenderer.view.axisScaleY;
     return out;
 }

@@ -28,7 +28,7 @@ namespace toml {
 class Value;
 }
 
-// A texture by name. The device binds it by looking the texture up again by name.
+// A texture by name, looked up by its name when the print first binds it (ground_print.cpp).
 struct NamedTexture {
     std::string name;
     HeldRef<Texture> texture;   // a HeldRef: the client world's print vectors move the prints
