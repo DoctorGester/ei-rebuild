@@ -1,0 +1,9 @@
+id = "MF15k5"
+title = "Effect viewer: attach an effect to points of the unit (bones, hands, head, weapon)"
+group = "mods"
+depends = ["MF15k4"]
+note = "User 2026-11-11: in ei-effects an effect must attach to various points of the rendered unit, not only the figure's origin. Wanted: a list of the figure's attach points (its bones / parts by name, and the points the game attaches effects to: hands for casting, head, weapon, feet), picked in the Place window; the effect follows that point through the animation (walk, run, idle); the same attach the game uses where there is one (casting effects at the hands), so what the viewer shows is what the game does. Harness steps for it and a capture."
+order = 1411
+status = "running"
+status = "running"
+started = "2026-11-11"
