@@ -176,6 +176,12 @@ after them (a mod's: the showcase's "spark", 42) `SpellType::None`, which starts
 - `cast_school` (`SpellRecord::castSchool`, None: the record's own school): the school whose casting look the caster
   shows (`FillCastKind` → `OrderPlan::castKind`). The original casts Rick magic (a fire arrow) with lightning's look and
   curse magic (lightning) with fire's, perhaps a swap; assets/spells/spells.sdb.toml keeps it.
+- The casting look (`UnitServer::TickAction` at the action's start, for a model with `cast_effect`): the record's
+  `cast_look` (`SpellRecord::castLook`, an effect's name), else `[cast_looks]`'s entry for the plan's castKind
+  (`SpellDatabase::castLooks` by school name, `none` for a cast of no school; `itemdb::CastLook`). The game's are the
+  built-in file's `[cast_looks]` (CastingFire ... CastingDomination, `none` Casting), merged at every Read whatever the
+  database (also one without a binary spells.sdb), then each TOML layer's. The plan still saves castKind (the school);
+  the spell is found again from the action's source (`SpellOfSource`), so a save loaded mid-plan shows the same look.
 - Limits: a spell's place is a byte (prototypeIndex, MapEffect::type, saved and sent), a modifier's place + 1 a signed
   byte (`Spell::modifiers`); the load leaves out spells past 256 and modifiers past 127 with a warning.
 - Checked by ei_unit_check's spell behaviour cases (tests/unit/spell_behaviour.cpp: a fake 300-record table cut to
@@ -196,7 +202,8 @@ cast of one starts them).
 
 - **Built in.** `assets/spells/` holds the scripts (CamelCase, by the spell they run) and `spells.sdb.toml`, the
   fields the game's records get: `script`, the use fields (`ai`, `damage_type`, `offensive`, `turns_victim`,
-  `fighting`), `cast_school`, `per_target`, `ends_with_target`, `max_ticks`. The build writes the folder into the exe
+  `fighting`), `cast_school`, `per_target`, `ends_with_target`, `max_ticks`, and the schools' `[cast_looks]`. The build
+  writes the folder into the exe
   (src/engine/particles/embed_effects.cmake, `spell_files/builtin.h`). `SpellDatabase::MergeBuiltin` merges the TOML
   into the records of its codes right after the binary spells.sdb is read (never adding a record; a database without the
   code gets nothing), below every TOML layer, so a mod's spells.sdb.toml overrides any field. A whole-file TOML

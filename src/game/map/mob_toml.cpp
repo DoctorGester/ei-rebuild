@@ -655,6 +655,7 @@ void Fields(Spec& record, V& visit) {
         visit("volume", spec.volume);
         visit("offset", spec.offset);
         visit("sound", spec.sound);
+        visit("effect", spec.effect);
         break;
     }
     case SpecKind::Trap: {
@@ -722,7 +723,7 @@ void Fields(Spec& record, V& visit) {
         visit("id", spec.id);
         visit("name", spec.name);
         visit("position", spec.position);
-        visit("type", spec.type);
+        visit("effect", spec.effect);
         visit("scale", spec.scale);
         visit("comment", spec.comment);
         break;

@@ -5,12 +5,14 @@
 #   game's hero as it is (the record's skill 0 needs no elemental skill; its 8 mana are within the hero's 50).
 # - The golem and its two shards have their AI modes cleared (UMClear: they stand and do not come at the hero, whose
 #   fight would end the chain). The hero walks beside them (about 6 from each), where it sees them, and casts the
-#   spell at the golem with its key (3) and a click. Res\spells\chain_spark.lua sends the spark (a missile carrying
-#   the data effect ChainSpark, Res\textures\chainspark.png's pictures) at the golem; each strike damages the unit
-#   (lightning), shocks it (the spell's own active effect: slowed by its OnStats, crackling with the record's look
-#   ChainSparkShock), starts ChainSparkHit on it, draws an arc to the nearest enemy not struck yet within 5 (shard
-#   4002, then 4003) and sends the spark along it 10 ticks later (a timer). Its game variables hold each strike's
-#   damage: 12, 7.2 (12 x 0.6), 4.32 (7.2 x 0.6).
+#   spell at the golem with its key (3) and a click. While it casts, the hero shows the record's cast_look,
+#   ChainSparkCast (the mod's effect, a variant of the game's lightning cast): the server reads its file as the cast
+#   starts and the client runs a source of it with particles. Res\spells\chain_spark.lua sends the spark (a missile
+#   carrying the data effect ChainSpark, Res\textures\chainspark.png's pictures) at the golem; each strike damages the
+#   unit (lightning), shocks it (the spell's own active effect: slowed by its OnStats, crackling with the record's
+#   look ChainSparkShock), starts ChainSparkHit on it, draws an arc to the nearest enemy not struck yet within 5
+#   (shard 4002, then 4003) and sends the spark along it 10 ticks later (a timer). Its game variables hold each
+#   strike's damage: 12, 7.2 (12 x 0.6), 4.32 (7.2 x 0.6).
 # - The game is saved after the first strike, mid-chain (one strike in the variables), and plays on to the three
 #   strikes. The save is loaded: the chain goes on from it (its data, timer, arc and missile in the save) to the same
 #   strikes, both shards struck.
@@ -58,6 +60,7 @@ key 3
 frames 2
 clickunit #4001
 frames 1
+effect ChainSparkCast check 1
 capture flight 4
 
 waitfor 15 IsGreater(GSGetVar(0,"chain_spark.strikes"),0)
@@ -80,6 +83,7 @@ read mod Res\textures\chainspark.mmp yes
 read mod Res\effects\ChainSpark.effect.toml yes
 read mod Res\effects\ChainSparkHit.effect.toml yes
 read mod Res\effects\ChainSparkShock.effect.toml yes
+read mod Res\effects\ChainSparkCast.effect.toml yes
 read mod Res\spells\chain_spark.lua yes
 
 wait 300

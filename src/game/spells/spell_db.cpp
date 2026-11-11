@@ -132,8 +132,8 @@ void SpellDatabase::Read(const RecordFile& file) {
         RecordChunks(&ar, kArmorRecipesChunk, &armorRecipes, &SpellListRecord::Serialize);
         RecordChunks(&ar, kWeaponRecipesChunk, &weaponRecipes, &SpellListRecord::Serialize);
         ar.Close(&stream);
-        MergeBuiltin();
     }
+    MergeBuiltin();
     MergeTomls(file, [this](const toml::Value& root, const std::string& path) { MergeToml(root, path); });
     if (const std::size_t extra = LeaveOutPast(spells.records, kMaxSpellRecords)) {
         game::Warning("spells.sdb: %d spells past the first %d are left out (a spell's place is a byte in saves and "
@@ -248,6 +248,7 @@ void Fields(SpellRecord& r, Visit& v) {
     v("ai_effect", r.aiEffectCode);
     v("script", r.script);
     v("cast_school", Enum<SpellSchool>{r.castSchool, kSchools});
+    v("cast_look", r.castLook);
     v("per_target", dbtoml::Bool{r.perTarget});
     v("ends_with_target", dbtoml::Bool{r.endsWithTarget});
     v("effect", Enum<int>{r.effect, kEffectKinds});
@@ -301,7 +302,9 @@ void SpellDatabase::MergeToml(const toml::Value& root, const std::string& path) 
     dbtoml::MergeRecords(root["scroll_recipe"], scrollRecipes, "spell", kSpellOf, kSpells, path);
     dbtoml::MergeRecords(root["armor_recipe"], armorRecipes, "spell", kSpellOf, kSpells, path);
     dbtoml::MergeRecords(root["weapon_recipe"], weaponRecipes, "spell", kSpellOf, kSpells, path);
-    dbtoml::CheckTables(root, {"spell", "modifier", "scroll_recipe", "armor_recipe", "weapon_recipe"}, kSpells, path);
+    dbtoml::MergeNamedStrings(root["cast_looks"], kSchools, castLooks, kSpells, path);
+    dbtoml::CheckTables(root, {"spell", "modifier", "scroll_recipe", "armor_recipe", "weapon_recipe", "cast_looks"},
+                        kSpells, path);
 }
 
 void SpellDatabase::MergeBuiltin() {
@@ -315,6 +318,15 @@ void SpellDatabase::MergeBuiltin() {
     const std::size_t count = spells.records.size();
     dbtoml::MergeRecords(document.Root()["spell"], spells.records, "code", kCodeOf, kSpells, kPath);
     spells.records.resize(count);
+    for (std::string& look : castLooks) look.clear();
+    dbtoml::MergeNamedStrings(document.Root()["cast_looks"], kSchools, castLooks, kSpells, kPath);
+}
+
+const std::string& CastLook(const SpellRecord* record, SpellSchool school) {
+    if (record && !record->castLook.empty()) return record->castLook;
+    const int none = static_cast<int>(SpellSchool::None);
+    const int index = static_cast<int>(school);
+    return g_spellDatabase.castLooks[index >= 0 && index < none ? index : none];
 }
 
 std::string_view BuiltinSpellFile(std::string_view name) {

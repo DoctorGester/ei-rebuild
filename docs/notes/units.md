@@ -204,8 +204,11 @@ A hit on body location `location` (0 head .. 5 right leg) of strength `amount`; 
 0.0001. The hit sound "weapons\<class>\<material>\1.wav" (class by the attacker's weapon: a kind below 0x10, else the
 prototype's hitSoundKind; material: the model's hitMaterial, for heroes the first armour worn over the location as
 "stone" (crystal, bone, stone), "Metal" or "leather") plays at 1000 from the unit; for a location's part ("hd", "bd",
-"lh2", "rh2", "ll2", "rl2") of loaded figures, blood particles of the model's bloodKind (0x200F, 0x2031..0x2033) attach to
-the unit, and blood kinds 1..4 leave a decal near the part (two rand offsets within the unit's size, a rand variant).
+"lh2", "rh2", "ll2", "rl2") of loaded figures, the model's blood look attaches to the unit (`unitdb::BloodLook`: its
+`blood_look`, else units.udb's `[blood_looks]` entry for its bloodKind, the game's Shower1-4 from
+assets/units/units.udb.toml), and blood kinds 1..4 leave a decal near the part (two rand offsets within the unit's size,
+a rand variant). A lightning hit (`Wound`, the Electrical stat flag) attaches the model's shock look (`ShockLook`:
+`shock_look`, else the file's, the game's Sparks), sized by the unit's radius, and flashes the unit.
 
 ## Animation sounds
 

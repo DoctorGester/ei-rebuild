@@ -28,6 +28,7 @@
 #include <cstdint>
 #include <cstring>
 #include <list>
+#include <optional>
 
 void UpdateMotion(UnitServer*);
 namespace {
@@ -393,19 +394,18 @@ void UnitServer::TickAction() {
     if (now == actingCheckTime) unit->UpdateSizeClass();
     OrderPlan& plan = currentPlan;
     if (now == plan.startTime) {
-        // The action starts: its animation replaces the queue, and a cast shows its effect.
+        // The action starts: its animation replaces the queue, and a cast shows its effect: the spell's cast_look, else
+        // its school's (itemdb::CastLook).
         PlaySteps(&plan.animation);
+        std::optional<int> look;
         if (plan.isCast != 0 && unit->GetPrototypeModel()->castEffect != 0) {
+            const Spell* spell = SpellOfSource(action.source);
+            look = EffectTypeNamed(itemdb::CastLook(spell ? spell->GetPrototype() : nullptr, plan.castKind));
+        }
+        if (look) {
             auto* objects = g_serverWorld.timedObjectManager.get();
             auto* particle = objects->CreateObjectAs<EffectParticle>(ClassId::EffectParticle, -1);
-            // The casting particle of each SpellSchool.
-            static constexpr int kEffects[8] = {
-                static_cast<int>(ParticleType::CastingFire),       static_cast<int>(ParticleType::CastingElectricity),
-                static_cast<int>(ParticleType::CastingAcid),       static_cast<int>(ParticleType::CastingIllusion),
-                static_cast<int>(ParticleType::CastingDivination), static_cast<int>(ParticleType::CastingEnchantment),
-                static_cast<int>(ParticleType::CastingHealing),    static_cast<int>(ParticleType::CastingDomination)};
-            int kind = static_cast<int>(plan.castKind);
-            particle->type = (kind >= 0 && kind <= 7) ? kEffects[kind] : static_cast<int>(ParticleType::Casting);
+            particle->type = *look;
             particle->size = 1.0f;
             particle->SetAttachedTo(unit->id);
             world->AddTimedObject(particle);

@@ -188,6 +188,7 @@ public:
     float volume = 0.7f;         // (0.7)
     Vector3 offset;
     std::string sound;          // ("nature\fire\small.wav")
+    std::string effect = "CampFire";   // TOML only (`effect`): its particle effect's name
 };
 
 // A magic trap (chunk BBAB0000).
@@ -233,12 +234,12 @@ protected:
 // A particle source (chunk DD01).
 class ParticleSpec : public EffectSpec {
 public:
-    ParticleSpec();                 // Kind Particle, no type, scale 1.
+    ParticleSpec();                 // Kind Particle, no effect, scale 1.
     ~ParticleSpec() override;
 
     void OnChunk() override;
 
-    std::int32_t type = 0;       // (0: none made)
+    std::string effect;          // its effect's name (the .mob's type by its name; empty: none shown)
     float scale = 1.0f;
 };
 

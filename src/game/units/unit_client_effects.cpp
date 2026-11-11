@@ -5,6 +5,7 @@
 
 #include "game/world/camera.h"
 #include "game/effects/effects.h"
+#include "game/effects/world_effect.h"
 #include "game/app/singletons.h"
 #include "game/items/item.h"
 #include "game/items/item_db.h"
@@ -34,6 +35,7 @@
 #include <deque>
 #include <format>
 #include <iterator>
+#include <optional>
 #include <string>
 
 namespace {
@@ -57,7 +59,6 @@ constexpr float kSpreadStep = 0.02f;
 constexpr float kDecalLength = 3.0f;
 constexpr float kDeathDecalScale = 0.75f;
 constexpr int kDeathVariantBase = 2;
-constexpr int kSparks = static_cast<int>(ParticleType::Sparks);
 constexpr float kSparkAlpha = 10.0f;
 constexpr AttachPoint kSparkAttach = AttachPoint::Body;
 constexpr int kMinFlashTicks = 4;
@@ -75,9 +76,6 @@ struct HitPart {
 constexpr HitPart kHitParts[6] = {{"hd", AttachPoint::Head},         {"bd", AttachPoint::Body},
                                   {"lh2", AttachPoint::LeftHand},    {"rh2", AttachPoint::RightHand},
                                   {"ll2", AttachPoint::LeftLeg},     {"rl2", AttachPoint::RightLeg}};
-
-// The particle type of each blood kind (1..8).
-constexpr int kBloodParticles[8] = {static_cast<int>(ParticleType::Shower1), static_cast<int>(ParticleType::Shower2), static_cast<int>(ParticleType::Shower3), static_cast<int>(ParticleType::Shower4), static_cast<int>(ParticleType::Shower1), static_cast<int>(ParticleType::Shower2), static_cast<int>(ParticleType::Shower3), static_cast<int>(ParticleType::Shower4)};
 
 // The party light (r, g, b; radius).
 const float* PartyLightColour() { return &options::kHeroLight.red; }
@@ -164,9 +162,10 @@ void UnitClientSpecific::StatChanged(int location, float amount, std::uint32_t s
     const HitPart& hit = kHitParts[location];
     auto* part = unit->FindPartByPrefix(hit.name);
     if (!part || !(unit->flags & MapObjectFlag::FiguresLoaded)) return;
-    std::uint32_t blood = unit->GetPrototypeModel()->bloodKind;
-    if (blood >= 1 && blood <= 8) {
-        auto* source = g_clientWorld.particleManager->CreateSource(kBloodParticles[blood - 1]);
+    const UnitModelRecord* model = unit->GetPrototypeModel();
+    std::uint32_t blood = model->bloodKind;
+    const std::optional<int> look = EffectTypeNamed(unitdb::BloodLook(*model));
+    if (ParticleSource* source = look ? g_clientWorld.particleManager->CreateSource(*look) : nullptr) {
         source->localPosition = {0.0f, 0.0f, kBloodHeight};
         source->ScaleSize(part->box.bounds.radius * kBloodScale);
         source->typeParam = kBloodRate;
@@ -194,12 +193,14 @@ void UnitClientSpecific::StatChanged(int location, float amount, std::uint32_t s
 }
 
 void UnitClientSpecific::Wound() {
-    auto* source = g_clientWorld.particleManager->CreateSource(kSparks);
-    source->localPosition = {0.0f, 0.0f, 0.0f};
-    source->ScaleSize(unit->bounds.radius);
-    source->alpha = kSparkAlpha;
-    source->Attach(unit);
-    source->attachPoint = kSparkAttach;
+    const std::optional<int> look = EffectTypeNamed(unitdb::ShockLook(*unit->GetPrototypeModel()));
+    if (ParticleSource* source = look ? g_clientWorld.particleManager->CreateSource(*look) : nullptr) {
+        source->localPosition = {0.0f, 0.0f, 0.0f};
+        source->ScaleSize(unit->bounds.radius);
+        source->alpha = kSparkAlpha;
+        source->Attach(unit);
+        source->attachPoint = kSparkAttach;
+    }
     auto* half = unit->AsObject3D()->ClientSpecific();
     if (flashCountdown == 0) half->SetLit(true);
     if (flashCountdown <= kMinFlashTicks) flashCountdown = kMinFlashTicks;

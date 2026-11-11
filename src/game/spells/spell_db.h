@@ -176,6 +176,9 @@ struct SpellRecord {
     // TOML only (`cast_school`): the school whose casting look the caster shows (FillCastKind), when it is not the
     // record's own; None: its own.
     SpellSchool castSchool = SpellSchool::None;
+    // TOML only (`cast_look`): the particle effect (an effect's name) on the caster while it casts (CastLook); empty:
+    // its school's (SpellDatabase::castLooks).
+    std::string castLook;
     // TOML only (`per_target`): CastSpell casts it once at each target it picks (the requested one, then the units
     // the caster may aim at, up to its target count), as the game's attack spells; without it a scripted spell is one
     // cast whose script picks its targets.
@@ -316,10 +319,11 @@ struct SpellDatabase {
     // spells and modifiers filed under their codes.
     void Read(const RecordFile& file);
     // The fields the build gives the game's spells (assets/spells/spells.sdb.toml: those on scripts) merged into the
-    // records of their codes, below every TOML layer; a code the database lacks adds nothing.
+    // records of their codes, below every TOML layer; a code the database lacks adds nothing. The file's
+    // [cast_looks] become castLooks.
     void MergeBuiltin();
     // A TOML file's records merged: [[spell]] and [[modifier]] by code, [[scroll_recipe]], [[armor_recipe]] and
-    // [[weapon_recipe]] by spell.
+    // [[weapon_recipe]] by spell; [cast_looks] by school.
     void MergeToml(const toml::Value& root, const std::string& path);
     std::string ToToml() const;
 
@@ -329,6 +333,10 @@ struct SpellDatabase {
     std::vector<SpellListRecord> scrollRecipes;
     std::vector<SpellListRecord> armorRecipes;
     std::vector<SpellListRecord> weaponRecipes;
+    // `[cast_looks]` (by the schools' names, `none` for a cast of no school): the effect a caster shows while it casts
+    // a spell of the school that has no cast_look of its own. The game's in assets/spells/spells.sdb.toml (read
+    // whatever the database, MergeBuiltin), a TOML file's merged over them by name.
+    std::string castLooks[static_cast<int>(SpellSchool::None) + 1];
 };
 
 } // namespace itemdb
@@ -358,5 +366,8 @@ inline int EffectKindAt(std::uint32_t index) {
     const SpellRecord* record = SpellAt(index);
     return record ? record->effectKind : -1;
 }
+// The effect a caster shows while it casts `record` (null: no spell) as a cast of `school` (the plan's castKind): the
+// record's cast_look, else the school's castLooks (a school past None: None's).
+const std::string& CastLook(const SpellRecord* record, SpellSchool school);
 
 } // namespace itemdb

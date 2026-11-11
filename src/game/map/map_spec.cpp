@@ -219,7 +219,7 @@ void ParticleSpec::OnChunk() {
     case 0xDD03: position = c.ReadVector3(); break;
     case 0xDD04: comment = c.ReadString(); break;
     case 0xDD05: name = c.ReadString(); break;
-    case 0xDD06: type = c.ReadInt(); break;
+    case 0xDD06: effect = ParticleTypeName(c.ReadInt()); break;
     case 0xDD07: scale = c.ReadFloat(); break;
     default: break;
     }

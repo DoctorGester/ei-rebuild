@@ -284,6 +284,7 @@ void TorchObjectClientSpec::SetParticles(std::uint32_t newType, const float* off
     particles = source;
     if (source) source->AddRef();
     if (old) ReleaseSource(old);
+    if (!particles) return;   // no effect: the flame's effect name is one no effect has
     particles->localPosition = at;
     particles->ScaleSize(scale);
     particles->Attach(nullptr);

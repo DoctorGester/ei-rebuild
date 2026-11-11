@@ -631,6 +631,11 @@ void MergeRecords(const toml::Value& table, std::vector<Record>& records, const 
     }
 }
 
+// The table `table` (each key a name of `names`, its value a string) merged into `values` at the names' values; an
+// unknown name or a value that is not a string is logged and left out (a missing table: nothing).
+void MergeNamedStrings(const toml::Value& table, Names names, std::string* values, const char* what,
+                       const std::string& path);
+
 // Logs each top-level key of `root` that is neither one of `tables` nor `replace`.
 void CheckTables(const toml::Value& root, std::initializer_list<std::string_view> tables, const char* what,
                  const std::string& path);

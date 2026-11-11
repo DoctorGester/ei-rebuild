@@ -19,6 +19,8 @@
 #include "lib/str.h"
 #include "lib/text_case.h"
 
+#include "unit_files/builtin.h"
+
 #include <cstdint>
 #include <cstring>
 #include <memory>
@@ -326,6 +328,7 @@ void UnitDatabase::Read(const RecordFile& file) {
         });
         LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializeNpcs(kNpcsChunk, &npcs.records); });
     }
+    MergeBuiltin();
     MergeTomls(file, [this](const toml::Value& root, const std::string& path) { MergeToml(root, path); });
     FileByName(levels);
     FileByName(models);
@@ -540,6 +543,8 @@ void Fields(UnitModelRecord& r, Visit& v) {
     v("eye_bottom", r.eyeBottom);
     v("eye_width", r.eyeWidth);
     v("eye_height", r.eyeHeight);
+    v("blood_look", r.bloodLook);
+    v("shock_look", r.shockLook);
 }
 
 template <class Visit>
@@ -644,12 +649,46 @@ const auto kNameOf = [](const auto& record) { return record.name; };
 
 } // namespace
 
+void UnitDatabase::MergeLooks(const toml::Value& root, const std::string& path) {
+    dbtoml::MergeNamedStrings(root["blood_looks"], kBlood, bloodLooks, kUnits, path);
+    const toml::Value shock = root["shock_look"];
+    if (shock.Exists() && !dbtoml::ReadValue(shock, shockLook))
+        game::Warning("%s: %s line %d: shock_look is not a text", kUnits, path, shock.Line());
+}
+
+void UnitDatabase::MergeBuiltin() {
+    constexpr const char* kPath = "assets\\units\\units.udb.toml";
+    for (std::string& look : bloodLooks) look.clear();
+    shockLook.clear();
+    std::string_view text;
+    for (const builtin_units::File& file : builtin_units::kFiles)
+        if (text::CompareIgnoringCase(file.name, "units.udb.toml") == 0)
+            text = {reinterpret_cast<const char*>(file.bytes), file.size};
+    toml::Document document;
+    if (!document.Parse(text, kPath)) {
+        game::Warning("records: %s", document.Error());
+        return;
+    }
+    MergeLooks(document.Root(), kPath);
+}
+
 void UnitDatabase::MergeToml(const toml::Value& root, const std::string& path) {
     dbtoml::MergeRecords(root["level"], levels.records, "name", kNameOf, kUnits, path);
     dbtoml::MergeRecords(root["model"], models.records, "name", kNameOf, kUnits, path);
     dbtoml::MergeRecords(root["unit"], prototypes.records, "name", kNameOf, kUnits, path);
     dbtoml::MergeRecords(root["npc"], npcs.records, "name", kNameOf, kUnits, path);
-    dbtoml::CheckTables(root, {"level", "model", "unit", "npc"}, kUnits, path);
+    MergeLooks(root, path);
+    dbtoml::CheckTables(root, {"level", "model", "unit", "npc", "blood_looks", "shock_look"}, kUnits, path);
+}
+
+const std::string& unitdb::BloodLook(const UnitModelRecord& model) {
+    if (!model.bloodLook.empty()) return model.bloodLook;
+    const std::uint32_t kind = model.bloodKind < static_cast<std::uint32_t>(kBloodKinds) ? model.bloodKind : 0;
+    return g_unitDatabase.bloodLooks[kind];
+}
+
+const std::string& unitdb::ShockLook(const UnitModelRecord& model) {
+    return model.shockLook.empty() ? g_unitDatabase.shockLook : model.shockLook;
 }
 
 std::string UnitDatabase::ToToml() const {

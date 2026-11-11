@@ -22,6 +22,9 @@
 
 #include <cmath>
 #include <cstring>
+#include <functional>
+#include <set>
+#include <string>
 
 namespace {
 
@@ -200,6 +203,15 @@ void EffectParticle::Start(int update) {
         source.Reset();
     }
     Spawn();
+}
+
+std::optional<int> EffectTypeNamed(std::string_view name) {
+    if (name.empty()) return std::nullopt;
+    if (std::shared_ptr<const effectdata::Record> effect = effectdata::g_effects.Find(name)) return effect->id;
+    static std::set<std::string, std::less<>> reported;   // each missing name said once
+    if (reported.insert(std::string(name)).second)
+        game::Warning("effects: a record names %s, which no effect is; nothing shows", std::string(name));
+    return std::nullopt;
 }
 
 int EffectParticle::Unpack(int update, DeltaReader& field) {
