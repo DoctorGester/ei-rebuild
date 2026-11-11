@@ -4,6 +4,7 @@
 # emitting and the stars go. Sparks start along a random star's last step and spiral round on the stars' orbit,
 # shrinking by 0.9 a tick and fading by their life (at most 13 ticks, fewer as the stars run out). The emission starts
 # at 30 a tick and falls by 1, or 2 on star 0's odd counts, a tick.
+# Cylinder2 is built on it (like = "Cylinder1"): what changes here changes it too.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
 texture = "Casting2"

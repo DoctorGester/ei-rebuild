@@ -1,100 +1,13 @@
-# Cylinder2 (0x2040, the Casting1 texture): Cylinder1 turning the other way, two stars circling the carrier. At the first particle
-# the stars are placed opposite each other at 0.7 of the carrier's radius, 0.2 of it up; for 18 ticks they turn
-# about the carrier (the turn itself turning the other way, slowly) and rise faster and faster, then the source stops
-# emitting and the stars go. Sparks start along a random star's last step and spiral round on the stars' orbit,
-# shrinking by 0.9 a tick and fading by their life (at most 13 ticks, fewer as the stars run out). The emission starts
-# at 30 a tick and falls by 1, or 2 on star 0's odd counts, a tick.
+# Cylinder2 (0x2040, the Casting1 texture): Cylinder1's casting circle (its file says how the stars and sparks move)
+# turning the other way.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
+like = "Cylinder1"
 texture = "Casting1"
-attach = "attached_only"
 
-[server]
-one_shot = 60
-script_lifetime = 200
-
-[emit]
-rate = "tries"
-max = 600
-
-[vars]
-tries = { start = 29, tick = "tries - (st0 % 2 != 0 ? 1 : 0) - 1" }   # star 0 counts 100 to 99 at the first tick
-st0 = { start = 99, tick = "st0 - 1" }          # the stars' countdown (18 from their placing)
-orbit = 0
-inv_orbit = 0
-
-[tables]
-star_alpha = [0, 32, 64, 128, 255]
-
-[[on]]
-event = "before_emit"
-when = "anchors.star == 0"
-do = [{ set = "orbit", value = "carrier_radius * 0.7" }, { set = "inv_orbit", value = "1 / orbit" }, { set = "st0", value = 18 }, { add_anchor = "star", count = 2 }]
-
-[[on]]
-event = "tick"
-when = "st0 <= -1"
-do = [{ stop_emitting = true }]
-
-# A star's place relative to the source (x, y, z), its last step and its turn (r0, r1: the cosine and sine).
 [[anchor]]
 name = "star"
-count = 0                                       # placed at the first particle
-x = "a.px"
-y = "a.py"
-z = "a.pz"
 
 [anchor.vars]
-ox = { start = 0, tick = "a.px" }
-oy = { start = 0, tick = "a.py" }
-oz = { start = 0, tick = "a.pz" }
-px = { start = "cos(a.index * 2 * pi / 2) * orbit", tick = "st0 >= 0 ? a.r1 * a.py + a.r0 * a.px : a.px" }
-py = { start = "sin(a.index * 2 * pi / 2) * orbit", tick = "st0 >= 0 ? a.r0 * a.py - a.r1 * a.ox : a.py" }
-pz = { start = "carrier_radius * 0.2", tick = "st0 >= 0 ? a.pz + a.rise : a.pz" }
-stepx = { start = 0, tick = "st0 >= 0 ? a.px - a.ox : a.stepx" }
-stepy = { start = 0, tick = "st0 >= 0 ? a.py - a.oy : a.stepy" }
-stepz = { start = 0, tick = "st0 >= 0 ? a.pz - a.oz : a.stepz" }
-rise = { start = "2 / 18 * carrier_radius * 0.04", tick = "st0 >= 0 ? a.rise * 1.25 : a.rise" }
-or0 = { start = 0, tick = "a.r0" }
 r0 = { start = "cos(-(0.3 * pi * 0.13333334))", tick = "st0 >= 0 ? sin(pi * 0.013333334) * a.r1 + cos(pi * 0.013333334) * a.r0 : a.r0" }
 r1 = { start = "sin(-(0.3 * pi * 0.13333334))", tick = "st0 >= 0 ? cos(pi * 0.013333334) * a.r1 - sin(pi * 0.013333334) * a.or0 : a.r1" }
-
-[[particle]]
-name = "star"
-when = "count < 2"
-at = "star"
-anchor_index = "count"
-lifetime = 1000000000
-size = { start = 0, tick = 0.3 }
-alpha = { start = 0, tick = "st0 >= 4 ? 255 : star_alpha[st0]" }
-kill = "!emitting"
-
-[particle.position]
-start = ["a.x + origin.x", "a.y + origin.y", "a.z + origin.z"]
-tick = ["origin.x + a.x", "origin.y + a.y", "origin.z + a.z"]
-
-[[particle]]
-name = "spark"
-at = "star"
-pick = "random"
-lifetime = "min(st0 + 6, 14)"
-size = { start = 0.1, growth = 0.9 }
-alpha = { start = 0, tick = "star_alpha[p.life]" }
-frame = { start = 1, tick = "p.frame + 1" }
-drop = "st0 + 6 < 0 || (a.stepx == 0 && a.stepy == 0)"
-
-[particle.position]
-start = ["p.rx + origin.x", "p.ry + origin.y", "p.rz + origin.z"]
-tick = ["p.rx + origin.x", "p.ry + origin.y", "p.rz + origin.z"]
-
-# The spark's place relative to the source (r*) and its step (s*); k: first the part of the star's step it starts
-# back from, then each tick the factor that holds it on the orbit.
-[particle.vars]
-k = { start = "st0 + 6 < 0 || (a.stepx == 0 && a.stepy == 0) ? 0 : range(-1, 0)", tick = "orbit / sqrt((p.rx + p.sx) * (p.rx + p.sx) + (p.ry + p.sy) * (p.ry + p.sy))" }
-rx = { start = "p.k * a.stepx + a.px", tick = "p.k * (p.rx + p.sx)" }
-ry = { start = "p.k * a.stepy + a.py", tick = "p.k * (p.ry + p.sy)" }
-rz = { start = "p.k * a.stepz + a.pz", tick = "p.rz + p.sz" }
-reach = { start = 0, tick = "sqrt(p.sx * p.sx + p.sy * p.sy + p.sz * p.sz) * inv_orbit" }
-sx = { start = "a.stepx", tick = "p.ry * p.reach * 0.6" }
-sy = { start = "a.stepy", tick = "-p.rx * p.reach * 0.6" }
-sz = { start = "a.stepz", tick = "p.sz * 0.6" }

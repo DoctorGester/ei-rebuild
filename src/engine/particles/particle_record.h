@@ -10,6 +10,7 @@
 #include "lib/vecmath.h"
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -46,10 +47,18 @@ struct RawNode {
 
 // The document `root` as a tree; `file` names it in messages.
 RawNode Copy(const toml::Value& root, const std::string& file);
-// `above` merged over `below` field by field: a table merges key by key; an array of tables merges its elements by
-// their `name` (or `event`) with the first element of that key not yet merged, and appends the others; any other value
-// replaces the one below.
+// `above` merged over `below` field by field: a table merges key by key; an array of tables with a `name` (or `event`)
+// merges each element with the first element below of that key not yet merged and appends the others; any other value
+// (an action list such as `do`, whose tables have neither, an array of numbers) replaces the one below.
 void MergeOver(RawNode& below, const RawNode& above);
+
+// The effect `tree` (the layers of the effect `name` merged) built on the effect its `like` names: that effect's tree
+// (`layers` answers an effect's layers merged, false when no layer has it), resolved in turn, with `tree` merged over it
+// (MergeOver) and `like` taken out; `tree` keeps its file for messages. True when there is no `like`. False, the problem
+// in `errors` ("<file>:<line>: ..."), when the base is missing or the chain comes back to an effect already in it.
+bool ResolveLike(RawNode& tree, std::string_view name,
+                 const std::function<bool(std::string_view effect, RawNode* layers)>& layers,
+                 std::vector<std::string>* errors);
 
 // ---- The record ----------------------------------------------------------------------------------------------------
 

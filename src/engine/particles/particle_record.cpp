@@ -82,7 +82,9 @@ void MergeOver(RawNode& below, const RawNode& above) {
         }
         return;
     }
-    if (IsTableArray(below) && IsTableArray(above)) {
+    const bool keyed = std::any_of(above.items.begin(), above.items.end(),
+                                   [](const RawNode& item) { return !MergeKey(item).empty(); });
+    if (keyed && IsTableArray(below) && IsTableArray(above)) {
         std::vector<bool> merged(below.items.size(), false);
         for (const RawNode& element : above.items) {
             const std::string_view key = MergeKey(element);
@@ -99,6 +101,56 @@ void MergeOver(RawNode& below, const RawNode& above) {
         return;
     }
     below = above;
+}
+
+namespace {
+
+std::string LowerName(std::string_view name) {
+    std::string lower(name);
+    for (char& c : lower)
+        if (c >= 'A' && c <= 'Z') c = static_cast<char>(c + ('a' - 'A'));
+    return lower;
+}
+
+bool ResolveChain(RawNode& tree, std::vector<std::string>& chain,
+                  const std::function<bool(std::string_view, RawNode*)>& layers, std::vector<std::string>* errors) {
+    const auto like = std::find_if(tree.keys.begin(), tree.keys.end(),
+                                   [](const auto& entry) { return entry.first == "like"; });
+    if (like == tree.keys.end()) return true;
+    const RawNode& base = like->second;
+    if (base.kind != RawNode::Kind::String || base.text.empty()) {
+        errors->push_back(base.Where() + ": like takes the name of another effect");
+        return false;
+    }
+    const std::string key = LowerName(base.text);
+    if (std::find(chain.begin(), chain.end(), key) != chain.end()) {
+        std::string loop;
+        for (const std::string& name : chain) loop += name + " -> ";
+        errors->push_back(base.Where() + ": like = \"" + base.text + "\" goes round in a circle (" + loop + key + ")");
+        return false;
+    }
+    RawNode resolved;
+    if (!layers(base.text, &resolved) || !resolved.Exists()) {
+        errors->push_back(base.Where() + ": like = \"" + base.text + "\": no effect of that name");
+        return false;
+    }
+    chain.push_back(key);
+    if (!ResolveChain(resolved, chain, layers, errors)) return false;
+    tree.keys.erase(like);
+    MergeOver(resolved, tree);
+    resolved.file = tree.file;
+    resolved.line = tree.line;
+    tree = std::move(resolved);
+    return true;
+}
+
+} // namespace
+
+bool ResolveLike(RawNode& tree, std::string_view name,
+                 const std::function<bool(std::string_view effect, RawNode* layers)>& layers,
+                 std::vector<std::string>* errors) {
+    std::vector<std::string> chain{LowerName(name)};
+    return ResolveChain(tree, chain, layers, errors);
 }
 
 // ---- Ids ------------------------------------------------------------------------------------------------------------

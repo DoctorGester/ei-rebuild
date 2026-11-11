@@ -60,6 +60,42 @@ std::string_view BuiltinText(std::string_view name) {
     return file ? std::string_view(reinterpret_cast<const char*>(file->bytes), file->size) : std::string_view();
 }
 
+namespace {
+
+// The effect `name`'s files merged into `merged`, bottom first: its built-in file (unless a mod's says replace = true),
+// then the mods' files; `from` names the first. False when no layer has it (or its built-in file does not parse).
+bool MergedLayers(std::string_view name, RawNode* merged, std::string* from) {
+    const builtin_effects::File* builtin = Builtin(name);
+    const RecordFile file = FindRecordFile(std::string(kFolder) + "\\" + std::string(name) + ".effect", false);
+    if (file.tomls.empty() && !builtin) return false;
+    *merged = RawNode();
+    if (from) *from = file.tomls.empty() ? std::string() : file.tomls.front().path;
+    if (builtin && !file.replaced) {
+        const std::string path = std::string("assets\\effects\\") + builtin->name + std::string(kExtension);
+        toml::Document document;
+        if (!document.Parse(BuiltinText(name), path)) {
+            game::Warning("effects: %s", document.Error());
+            return false;
+        }
+        *merged = Copy(document.Root(), path);
+        if (from && from->empty()) *from = path;
+    }
+    MergeTomls(file, [merged](const toml::Value& root, const std::string& path) {
+        const RawNode layer = Copy(root, path);
+        if (!merged->Exists()) *merged = layer;
+        else MergeOver(*merged, layer);
+    });
+    return merged->Exists();
+}
+
+} // namespace
+
+bool ResolveLike(RawNode& tree, std::string_view name, std::vector<std::string>* errors) {
+    return ResolveLike(
+        tree, name, [](std::string_view effect, RawNode* layers) { return MergedLayers(effect, layers, nullptr); },
+        errors);
+}
+
 Registry::Entry& Registry::EntryOf(std::string_view name) {
     const std::string key = Lower(name);
     auto found = byName.find(key);
@@ -72,7 +108,6 @@ Registry::Entry& Registry::EntryOf(std::string_view name) {
 void Registry::Load(Entry& entry) {
     entry.loaded = true;
     const std::string key = Lower(entry.name);
-    const builtin_effects::File* builtin = Builtin(key);
     const int original = ParticleTypeByName(key);
     const std::int32_t id = original != kNoParticleType ? original : IdOf(key);
     if (auto other = idNames.find(id); other != idNames.end() && other->second != key) {
@@ -80,26 +115,15 @@ void Registry::Load(Entry& entry) {
                       static_cast<unsigned>(id), key);
         return;
     }
-    const RecordFile file = FindRecordFile(std::string(kFolder) + "\\" + entry.name + ".effect", false);
-    if (file.tomls.empty() && !builtin) return;
     RawNode merged;
-    std::string from = file.tomls.empty() ? std::string() : file.tomls.front().path;
-    if (builtin && !file.replaced) {
-        const std::string path = std::string("assets\\effects\\") + builtin->name + std::string(kExtension);
-        toml::Document document;
-        if (!document.Parse(BuiltinText(key), path)) {
-            game::Warning("effects: %s", document.Error());
-            return;
-        }
-        merged = Copy(document.Root(), path);
-        if (from.empty()) from = path;
-    }
-    MergeTomls(file, [&merged](const toml::Value& root, const std::string& path) {
-        const RawNode layer = Copy(root, path);
-        if (!merged.Exists()) merged = layer;
-        else MergeOver(merged, layer);
-    });
+    std::string from;
+    if (!MergedLayers(entry.name, &merged, &from)) return;
     std::vector<std::string> errors;
+    if (!ResolveLike(merged, entry.name, &errors)) {
+        for (const std::string& error : errors) game::Warning("effects: %s", error);
+        game::Warning("effects: %s does not load; it shows nothing", entry.name);
+        return;
+    }
     entry.record = Read(merged, entry.name, &errors, id);
     for (const std::string& error : errors) game::Warning("effects: %s", error);
     if (!entry.record) {

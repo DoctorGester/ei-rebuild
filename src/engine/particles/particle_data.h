@@ -56,6 +56,10 @@ extern Registry g_effects;
 // none: the original effects on data, the bottom layer below the mods' files of their names.
 std::string_view BuiltinText(std::string_view name);
 
+// `tree` (the effect `name`'s layers merged) built on the effect its `like` names, that effect's layers read as the
+// registry reads them (effectdata::ResolveLike, particle_record.h): the effect viewer's edit resolves as the game does.
+bool ResolveLike(RawNode& tree, std::string_view name, std::vector<std::string>* errors);
+
 // ---- The particle side (particle_create.cpp, particle_manager.cpp) --------------------------------------------------
 
 // The source set up from `record` (Create's work for a data type; the texture and frames are Create's).

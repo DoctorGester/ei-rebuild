@@ -1,50 +1,10 @@
-# PoisonCloud (0x2008, the PoisonCloud texture): PoisonFog's grid of puffs, opaque and orange (FFAF7F). Whenever the
-# source has no particles and a try of its emission (one a tick, half of them passing) comes up, it lays one puff per
-# cell of a grid of 1, the cells inside the disc of the size around it, each jittered by a quarter of a cell: on the
-# ground, raised by its size (0.75 to 1.25), its frames cycling from a random one. The puffs stay while the source
-# emits; once it stops, each tick their alpha falls by 4.5 times the source's alpha (at least 1) as a byte that wraps
-# below 0, and a puff goes once its alpha is 9 or less.
+# PoisonCloud (0x2008, the PoisonCloud texture): PoisonFog's grid of puffs (its file says how it is laid and fades),
+# opaque and orange (FFAF7F).
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
-texture = "PoisonCloud"
-frames = 15
-
-[emit]
-rate = 1
-chance = 50
-max = 2147483647
-
-[vars]
-half = { start = "floor(size + 1)", tick = "floor(size + 1)" }   # cells each way from the middle
-width = { start = "2 * half + 1", tick = "2 * half + 1" }
-
-# The try's particle is only the trigger: the reaction lays the grid at once.
-[[on]]
-event = "emit"
-when = "count == 0"
-do = [{ emit = "width * width", kind = "puff" }]
-
-[[particle]]
-name = "try"
-lifetime = 1
-drop = true
+like = "PoisonFog"
 
 [[particle]]
 name = "puff"
-when = false
-lifetime = 2147483647
-position = ["p.cx + origin.x", "p.cy + origin.y", 0]
-spawn = { on_ground = "p.sz" }
-size = "p.sz"
 color = "FFAF7F"
-alpha = { start = 255, tick = "emitting ? p.alpha : (p.alpha + 256 - max(round(alpha * 4.5), 1) % 256) % 256" }
-frame = { start = "p.cell", delay = 1 }
-kill = "!emitting && p.alpha <= 9"
-drop = "!p.inside"
-
-[particle.vars]
-cx = "range(-0.25, 0.25) + (p.index % width - half)"
-cy = "range(-0.25, 0.25) + (floor(p.index / width) - half)"
-inside = "!(p.cy * p.cy + p.cx * p.cx >= size * size)"
-sz = "p.inside ? range(1, 1.5) - 0.25 : 0"
-cell = "p.inside ? pick(15) : 0"
+alpha = { start = 255 }

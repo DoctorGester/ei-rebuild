@@ -3,7 +3,8 @@
 # light's last place and its place now, a little off (the source's spread), and rise ever faster, shrinking, cycling
 # their last frames and fading over their last 7 of 28 ticks. Once the cast ends (the source stops emitting or loses
 # its carrier) each marker fades over 6 ticks.
-# CastingIllusion, CastingDomination, CastingEnchantment and CastingHealing differ only in [vars] and the texture.
+# CastingDomination, CastingEnchantment and CastingHealing are built on it (like = "CastingIllusion"): what changes
+# here changes them too.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
 texture = "Casting2"

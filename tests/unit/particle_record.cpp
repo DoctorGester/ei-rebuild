@@ -3,16 +3,21 @@
 // driven by its typed inputs: stages by ticks, by a condition on an input and by an event, enter and event actions,
 // anchors, conditional tick reactions and the stop action; a particle's position written out and its vars after the
 // spawn; the features the families of the original effects brought; and every whole effect the notes and the modding guide
-// write out read without a problem. ei_unit_check (unit_check.cpp) runs it.
+// write out read without a problem; a variant built on another effect by `like` (a chain, a missing base, a circle,
+// a mod over the base). ei_unit_check (unit_check.cpp) runs it.
 #include "../../src/engine/particles/particle_record.h"
 #include "../../src/engine/core/random.h"
 #include "../../src/lib/toml.h"
 
+#include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstdio>
 #include <fstream>
+#include <memory>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -861,6 +866,137 @@ void CheckWrittenEffects() {
     Expect("the guide's effects found", read >= 1);
 }
 
+// `like`: a variant read over its base's resolved tree, a chain, a missing base, a circle, and a mod's layer over the
+// base that the variant takes too.
+void CheckLike() {
+    const std::vector<std::pair<std::string, std::string>> files = {
+        {"Ring", R"toml(
+texture = "A"
+[emit]
+rate = 2
+[vars]
+spin = 1
+lift = 2
+[tables]
+fade = [1, 2, 3]
+[[on]]
+event = "tick"
+when = "spin > 0"
+do = [{ set = "spin", value = "spin + 1" }, { set = "lift", value = 0 }]
+[[particle]]
+name = "mote"
+lifetime = 20
+size = { start = 0.5, tick = "p.size * 0.9" }
+[[particle]]
+name = "spark"
+lifetime = 4
+)toml"},
+        {"Ring2", R"toml(
+like = "Ring"
+texture = "B"
+[vars]
+lift = 5
+[tables]
+fade = [7]
+[[on]]
+event = "tick"
+do = [{ stop = true }]
+[[particle]]
+name = "spark"
+lifetime = 9
+[[particle]]
+name = "ember"
+lifetime = 3
+)toml"},
+        {"Ring3", "like = \"ring2\"\n[vars]\nspin = 3\n"},
+        {"Lost", "like = \"Nowhere\"\n"},
+        {"Self", "like = \"Self\"\n"},
+        {"Ping", "like = \"Pong\"\n"},
+        {"Pong", "like = \"Ping\"\n"},
+        {"Odd", "like = 3\n"},
+    };
+    std::string modRate;   // a mod's layer over Ring: [emit] rate = ...
+    auto layers = [&](std::string_view effect, RawNode* tree) {
+        for (const auto& [name, text] : files) {
+            if (name.size() != effect.size() ||
+                !std::equal(name.begin(), name.end(), effect.begin(), [](char a, char b) {
+                    return std::tolower(static_cast<unsigned char>(a)) == std::tolower(static_cast<unsigned char>(b));
+                }))
+                continue;
+            *tree = Parse(text.c_str(), (name + ".effect.toml").c_str());
+            if (name == "Ring" && !modRate.empty())
+                MergeOver(*tree, Parse(("[emit]\nrate = " + modRate + "\n").c_str(), "mod/Ring.effect.toml"));
+            return true;
+        }
+        return false;
+    };
+    auto resolve = [&](const std::string& name, std::vector<std::string>* errors) -> std::shared_ptr<const Record> {
+        RawNode tree;
+        if (!layers(name, &tree)) return nullptr;
+        if (!ResolveLike(tree, name, layers, errors)) return nullptr;
+        return Read(tree, name, errors);
+    };
+    auto var = [](const Record& record, std::string_view name) -> float {
+        for (const Var& v : record.vars)
+            if (v.name == name) return v.start.Run({});
+        return -1.0f;
+    };
+
+    std::vector<std::string> errors;
+    const std::shared_ptr<const Record> ring2 = resolve("Ring2", &errors);
+    for (const std::string& error : errors) std::printf("ei_unit_check: particle record: unexpected: %s\n", error.c_str());
+    Expect("a variant reads over its base", ring2 != nullptr && errors.empty());
+    if (ring2) {
+        Expect("the variant's texture and var replace the base's, the others kept",
+               ring2->texture == "B" && var(*ring2, "lift") == 5.0f && var(*ring2, "spin") == 1.0f &&
+                   ring2->vars.size() == 2 && ring2->vars[0].name == "spin");
+        Expect("the base's emission kept", ring2->rate.Run({}) == 2.0f);
+        Expect("a number array replaced whole", ring2->tables.size() == 1 && ring2->tables[0].size() == 1 &&
+                                                     ring2->tables[0][0] == 7.0f);
+        Expect("a particle kind merged by name, a new one appended",
+               ring2->particles.size() == 3 && ring2->particles[0].name == "mote" &&
+                   ring2->particles[0].lifetime.Run({}) == 20.0f && ring2->particles[1].name == "spark" &&
+                   ring2->particles[1].lifetime.Run({}) == 9.0f && ring2->particles[2].name == "ember");
+        Expect("an [[on]] merged by its event: its when kept, its action list replaced whole",
+               ring2->reactions.size() == 1 && ring2->reactions[0].when.text == "spin > 0" &&
+                   ring2->reactions[0].actions.size() == 1);
+        Expect("the variant's own name, id and file", ring2->name == "Ring2" && ring2->id == IdOf("ring2") &&
+                                                           ring2->file == "Ring2.effect.toml");
+    }
+
+    errors.clear();
+    const std::shared_ptr<const Record> ring3 = resolve("Ring3", &errors);
+    Expect("a chain (Ring3 like Ring2 like Ring) reads", ring3 != nullptr && errors.empty());
+    if (ring3)
+        Expect("a chain takes every level's fields", ring3->texture == "B" && var(*ring3, "spin") == 3.0f &&
+                                                          var(*ring3, "lift") == 5.0f && ring3->particles.size() == 3);
+
+    modRate = "7";
+    errors.clear();
+    const std::shared_ptr<const Record> modded = resolve("Ring3", &errors);
+    Expect("a mod's layer over the base changes its variants", modded != nullptr && modded->rate.Run({}) == 7.0f);
+    modRate.clear();
+
+    auto refused = [&](const std::string& name, std::string_view where, std::string_view what) {
+        errors.clear();
+        const bool none = resolve(name, &errors) == nullptr;
+        bool said = false;
+        for (const std::string& error : errors)
+            said = said || (error.find(where) != std::string::npos && error.find(what) != std::string::npos);
+        Expect(name + ": refused with " + std::string(what) + " at " + std::string(where), none && said);
+    };
+    refused("Lost", "Lost.effect.toml:1", "no effect of that name");
+    refused("Self", "Self.effect.toml:1", "goes round in a circle (self -> self)");
+    refused("Ping", "Pong.effect.toml:1", "goes round in a circle (ping -> pong -> ping)");
+    refused("Odd", "Odd.effect.toml:1", "like takes the name of another effect");
+
+    // Without `like` the tree is left as it is.
+    RawNode plain = Parse("texture = \"A\"\n", "plain.effect.toml");
+    errors.clear();
+    Expect("no like: nothing to resolve",
+           ResolveLike(plain, "Plain", layers, &errors) && errors.empty() && plain["texture"].text == "A");
+}
+
 } // namespace
 
 int RunParticleRecordChecks() {
@@ -875,5 +1011,6 @@ int RunParticleRecordChecks() {
     CheckCastFeatures();
     CheckBlastFeatures();
     CheckWrittenEffects();
+    CheckLike();
     return failures;
 }

@@ -5,6 +5,7 @@
 # the offset, the part of the way shrinking by 0.98 a tick from all of it; its size 0.4 of the source's size times the
 # carrier's radius, shrinking by 0.8. It shows for 10 ticks, fading in by the life table; once the source stops
 # emitting or loses its carrier at most 8 more.
+# FeetCloud2 is built on it (like = "FeetCloud1"): what changes here changes it too.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
 texture = "VisionFog"

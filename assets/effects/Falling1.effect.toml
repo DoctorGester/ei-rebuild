@@ -3,6 +3,7 @@
 # at the first tick, each blown by a random gust (a random 0.5-1.5 of its reach, along its direction), a random 0.1-0.2
 # in size, falling faster and faster (a random -0.06-0.06 more a tick, down to a random -0.6 to -0.2 a tick) until it
 # is below the ground's 0. From the second tick the source stops emitting and lets go of its carrier.
+# Falling2, Falling3 and Falling4 are built on it (like = "Falling1"): what changes here changes them too.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
 texture = "RainSnow"

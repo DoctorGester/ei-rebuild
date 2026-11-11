@@ -1,42 +1,13 @@
-# GroundDust2 (0x203B, the ShapeChange texture, frame 15): the red dust of a marker on the ground. 256 grains at the
-# source's first tick, all at the source: the first 128 run out on a circle (grain i at i * 0.049 radians, 0.1 a
-# tick), the others along the four diagonals (32 each, faster further on), speeding up by 1.05 a tick, never below
-# the ground nor the plane of the platform under the source (as measured at the first tick), 0.1 above them. Each
-# lives 6 ticks, fading in and out by the table. It ticks while the game is paused.
+# GroundDust2 (0x203B, the ShapeChange texture, frame 15): the red dust of a marker on the ground, GroundDust1's (its
+# file says how the grains run) with 256 grains: the first 128 on the circle, the others along the four diagonals.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
-texture = "ShapeChange"
-flags = ["ticks_while_paused"]
+like = "GroundDust1"
 
 [emit]
 rate = 256
 max = 256
 
-[vars]
-plane_h = "platform_height(origin.x, origin.y)"
-nx = "platform_normal_x(origin.x, origin.y)"
-ny = "platform_normal_y(origin.x, origin.y)"
-nz = "platform_normal_z(origin.x, origin.y) != 0 ? 1 / platform_normal_z(origin.x, origin.y) : platform_normal_z(origin.x, origin.y)"   # its reciprocal
-
-[tables]
-axis_x = [0.707, -0.707, -0.707, 0.707]
-axis_y = [0.707, -0.707, 0.707, -0.707]
-fade = [0, 64, 144, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 128, 64]
-
-[[on]]
-event = "tick"
-when = "age >= 1"
-do = [{ stop_emitting = true }]
-
 [[particle]]
 name = "grain"
-lifetime = 7
-velocity = ["p.index >= 128 ? ((p.index - 128) % 32) * 0.0032258064 * axis_x[floor((p.index - 128) / 32)] : sin(p.index * 0.049140625) * 0.1", "p.index >= 128 ? ((p.index - 128) % 32) * 0.0032258064 * axis_y[floor((p.index - 128) / 32)] : cos(p.index * 0.049140625) * 0.1", 0]
-drag = 1.05
-size = { start = 0, tick = 0.07 }
 color = "FF4040"
-alpha = { start = 0, tick = "fade[p.life - 1]" }
-frame = 15
-
-[particle.position]
-tick = ["p.x + p.vx", "p.y + p.vy", "ground(p.x + p.vx, p.y + p.vy) + 0.1 >= plane_h - ((p.x + p.vx - origin.x) * nx + (p.y + p.vy - origin.y) * ny) * nz + 0.1 ? ground(p.x + p.vx, p.y + p.vy) + 0.1 : plane_h - ((p.x + p.vx - origin.x) * nx + (p.y + p.vy - origin.y) * ny) * nz + 0.1"]

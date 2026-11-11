@@ -4,7 +4,8 @@
 # random direction, now and then pulled towards a swirl, 0.6 of the radius out, and spirals in over 13 ticks, swelling,
 # its frames running back (every fourth tick held) and fading by its life. Once the cast ends (the source stops
 # emitting or loses its carrier) the whole effect fades over 6 ticks.
-# CastingFire, CastingElectricity, CastingAcid and CastingDivination differ in [vars], the tables and a few lines.
+# CastingDivination differs in more (its marker, the tables) and is a file of its own.
+# CastingElectricity and CastingAcid are built on it (like = "CastingFire"): what changes here changes them too.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
 texture = "FireSmoke"

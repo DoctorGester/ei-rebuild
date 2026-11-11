@@ -1,51 +1,8 @@
-# FeetCloud2 (0x204B, the VisionFog texture): red puffs at a unit's feet. Size * 8 a tick (rounded, as the last puff
-# set it; 8 to begin with), each at a random foot (the carrier's "ll3" / "rl3" parts; without a unit carrier the
-# source), raised by 1.2 times its size. A puff's offset from its foot grows by a random step inside the disc of 0.1
-# of the carrier's radius times the source's size (slowing by 0.9 a tick), and the puff eases towards its foot plus
-# the offset, the part of the way shrinking by 0.98 a tick from all of it; its size 0.4 of the source's size times the
-# carrier's radius, shrinking by 0.8. It shows for 10 ticks, fading in by the life table; once the source stops
-# emitting or loses its carrier at most 8 more.
+# FeetCloud2 (0x204B, the VisionFog texture): FeetCloud1's puffs at a unit's feet (its file says how they move), red.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
-texture = "VisionFog"
-blend = "additive"
-attach = "attached_only"
-
-[emit]
-rate = "tries"
-max = 300
-
-[vars]
-tries = 8
-
-[[on]]
-event = "emit"
-do = [{ set = "tries", value = "round(size * 8)" }]
+like = "FeetCloud1"
 
 [[particle]]
 name = "puff"
-lifetime = 1000000000                           # its own life below
-spawn = { shape = "flat_ball" }
-velocity = ["p.spawn.x * 0.1 * carrier_radius * size", "p.spawn.y * 0.1 * carrier_radius * size", 0]   # the offset's step
-drag = 0.9
-size = { start = 0, tick = "p.age == 1 ? p.puff : p.size * 0.8" }
 color = [255, "p.age == 0 ? 255 : 0", "p.age == 0 ? 255 : 0"]
-alpha = { start = 0, tick = "fade[p.l]" }
-frame = "p.cell"
-kill = "p.l < 0"
-
-[particle.vars]
-cell = "pick(16)"
-foot = "pick(2)"                                # 1: the left
-puff = "size * carrier_radius * 0.4"
-l = { start = 10, tick = "emitting && attached ? p.l - 1 : min(p.l - 1, 8)" }
-off_x = { start = 0, tick = "p.off_x + p.vx" }
-off_y = { start = 0, tick = "p.off_y + p.vy" }
-ease = { start = 1, tick = "p.age == 1 ? p.ease : p.ease * 0.98" }   # the part of the way this tick
-
-[particle.position]
-start = ["p.foot ? carrier_left_foot.x : carrier_right_foot.x", "p.foot ? carrier_left_foot.y : carrier_right_foot.y", "p.puff * 1.2 + (p.foot ? carrier_left_foot.z : carrier_right_foot.z)"]
-tick = ["p.x * (1 - p.ease) + (p.off_x + (p.foot ? carrier_left_foot.x : carrier_right_foot.x)) * p.ease", "p.y * (1 - p.ease) + (p.off_y + (p.foot ? carrier_left_foot.y : carrier_right_foot.y)) * p.ease", "p.z * (1 - p.ease) + (0 + (p.foot ? carrier_left_foot.z : carrier_right_foot.z)) * p.ease"]
-
-[tables]
-fade = [0, 32, 64, 128, 255, 255, 255, 255, 255, 255, 255]

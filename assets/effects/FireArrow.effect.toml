@@ -3,8 +3,8 @@
 # last step, thrown across it (the spread box along the motion's side and up axes) and put one step out, flying out
 # faster (1.1 a tick) and swelling by 1.4 a tick over their first frames, then by the source's growth; three in ten
 # linger in place. They run through the frames and die after the last.
-# RikArrowSmoke is the same on its own texture. The original types on data: docs/notes/effects.md, "The original
-# effects on data".
+# RikArrowSmoke is built on it (like = "FireArrow"): what changes here changes it too.
+# The original types on data: docs/notes/effects.md, "The original effects on data".
 
 texture = "FireArrowSmoke"
 frames = 15

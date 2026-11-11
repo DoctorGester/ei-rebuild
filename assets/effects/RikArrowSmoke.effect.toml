@@ -1,39 +1,5 @@
 # RikArrowSmoke (0x204E): an arrow's head and smoke, FireArrow's (its file says how they move) on its own texture.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
+like = "FireArrow"
 texture = "RikArrowSmoke"
-frames = 15
-
-[source]
-size = 0.3
-growth = 1.03
-spread_min = [-0.2, -0.2, -0.2]
-spread_max = [0.2, 0.2, 0.2]
-
-[emit]
-rate = 1
-spacing = 0.06
-
-[vars]
-moving = { start = "!(distance <= 0.00001)", tick = "!(distance <= 0.00001)" }   # a trail has a length
-
-[[particle]]
-name = "head"
-when = "total == 0"
-lifetime = 2147483647                           # lasts while the source emits
-vars = { across = "moving ? range(spread_min.x, spread_max.x) : 0", lift = "moving ? range(spread_min.y, spread_max.y) : 0" }
-position = { start = ["moving ? origin.x + 0 * motion.x : origin.x", "moving ? origin.y + 0 * motion.y : origin.y", "moving ? origin.z + 0 * motion.z : origin.z"], tick = ["motion.x + origin.x", "motion.y + origin.y", "motion.z + origin.z"] }
-velocity = ["moving ? p.across * side.x + p.lift * up.x : 0", "moving ? p.across * side.y + p.lift * up.y : 0", "moving ? p.across * side.z + p.lift * up.z : 0"]
-size = "size * 0.4"
-frame = { tick = "pick(3)" }
-kill = "!emitting"
-
-[[particle]]
-name = "puff"
-lifetime = 15
-vars = { along = "range(-1, 0)", linger = "!chance(71)", cell = "pick(2) + 2", across = "moving ? range(spread_min.x, spread_max.x) : 0", lift = "moving ? range(spread_min.y, spread_max.y) : 0" }
-position = { start = ["moving ? (p.linger ? origin.x + p.along * motion.x : origin.x + p.along * motion.x + (p.across * side.x + p.lift * up.x)) : origin.x", "moving ? (p.linger ? origin.y + p.along * motion.y : origin.y + p.along * motion.y + (p.across * side.y + p.lift * up.y)) : origin.y", "moving ? (p.linger ? origin.z + p.along * motion.z : origin.z + p.along * motion.z + (p.across * side.z + p.lift * up.z)) : origin.z"], tick = ["p.linger ? p.x : p.x - p.vx + p.vx * 1.1", "p.linger ? p.y : p.y - p.vy + p.vy * 1.1", "p.linger ? p.z : p.z - p.vz + p.vz * 1.1"] }
-velocity = ["moving ? p.across * side.x + p.lift * up.x : 0", "moving ? p.across * side.y + p.lift * up.y : 0", "moving ? p.across * side.z + p.lift * up.z : 0"]
-drag = "p.linger ? 0.95 : 1.1"
-size = { start = "size * 0.2", tick = "p.frame + 1 < 6 ? p.size * 1.4 : p.linger ? p.size : growth * p.size" }   # the frame steps every tick
-frame = { start = "p.cell", delay = 1, mode = "die" }

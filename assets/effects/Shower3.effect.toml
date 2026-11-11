@@ -1,73 +1,8 @@
-# Shower3 (0x2032, the RainSnow texture, frame 14): sparks thrown out of a unit's body in a few random directions (a
-# blood shower). At the first particle the source chooses alpha * 8 rays (at least one), unit directions drawn in the
-# ball. 10 sparks a tick at the first, then 10 per ray: each takes a random ray jittered by -0.03..0.03 on each axis,
-# scaled to the source's size, flies at a sixth of the size a tick (one in eight half as fast again), starts a random
-# part of its first step out, slows by 0.9 a tick, falls by 0.05 of the size more each tick, shrinks by 0.8 and fades
-# over its last ticks; it lives 5 ticks. Six ticks after the rays are chosen the source stops emitting and lets go of
-# its carrier.
+# Shower3 (0x2032): Shower1's blood shower (its file says how the sparks fly) on frame 14 of the RainSnow texture.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
-texture = "RainSnow"
-attach = "attached_only"
-part = "body"
+like = "Shower1"
 
-[server]
-one_shot = 60
-
-[source]
-spread_min = [-0.2, -0.2, -0.2]
-spread_max = [0.2, 0.2, 0.2]
-
-[emit]
-rate = "anchors.ray > 0 ? anchors.ray * 10 : 10"
-max = 300
-
-[vars]
-ray_age = { start = -99, tick = "ray_age + 1" }   # the rays' age (made 0 when they are chosen)
-
-[tables]
-fade = [0, 64, 128, 192, 255]
-
-[[on]]
-event = "before_emit"
-when = "anchors.ray == 0"
-do = [{ add_anchor = "ray", count = "max(round(alpha * 8), 1)" }, { set = "ray_age", value = 0 }]
-
-[[on]]
-event = "tick"
-when = "ray_age > 5"
-do = [{ stop_emitting = true }, { let_go = true }]
-
-[[anchor]]
-name = "ray"
-count = 0                                       # made at the first particle
-spawn = { shape = "ball" }
-x = "a.spawn.x / sqrt(a.spawn.x * a.spawn.x + a.spawn.y * a.spawn.y + a.spawn.z * a.spawn.z)"
-y = "a.spawn.y / sqrt(a.spawn.x * a.spawn.x + a.spawn.y * a.spawn.y + a.spawn.z * a.spawn.z)"
-z = "a.spawn.z / sqrt(a.spawn.x * a.spawn.x + a.spawn.y * a.spawn.y + a.spawn.z * a.spawn.z)"
-
-# The spark dies at its sixth update, before moving; the update after its death still moves it (docs/notes/effects.md,
-# "Kept"), so its life is longer, it ends by `kill` and its velocity is left alone at that update.
 [[particle]]
 name = "spark"
-at = "ray"
-anchor_index = "pick(anchors.ray)"
-lifetime = 8
 frame = 14
-size = { start = "param", growth = 0.8 }
-alpha = { tick = "fade[p.life - 2]" }
-position = ["origin.x + p.part * (p.speed * p.dx)", "origin.y + p.part * (p.speed * p.dy)", "origin.z + p.part * (p.speed * p.dz)"]
-velocity = ["p.speed * p.dx", "p.speed * p.dy", "p.speed * p.dz"]
-drag = "p.age == 6 ? 1 : 0.9"
-gravity = [0, 0, "p.age == 6 ? 0 : -size * 0.05"]
-kill = "p.age == 6"
-
-[particle.vars]
-jx = "range(-0.03, 0.03)"
-jy = "range(-0.03, 0.03)"
-jz = "range(-0.03, 0.03)"
-dx = { start = "size * (p.jx + a.x)", after_spawn = true }
-dy = { start = "size * (p.jy + a.y)", after_spawn = true }
-dz = { start = "size * (p.jz + a.z)", after_spawn = true }
-speed = { start = "pick(8) == 0 ? 1 / sqrt(p.dx * p.dx + p.dy * p.dy + p.dz * p.dz) * size * 0.16666667 * 1.5 : 1 / sqrt(p.dx * p.dx + p.dy * p.dy + p.dz * p.dz) * size * 0.16666667", after_spawn = true }
-part = { start = "range(0, 1)", after_spawn = true }

@@ -1,31 +1,9 @@
-# VisionStar3 (0x2046, the Stun texture): one star above a unit's head (frame 2), following the source. Its size eases
-# (by 0.95) towards a random 0.1-1.9 of 0.3 * 0.05 of the source's size. Once the source stops emitting or loses its
-# carrier, the size shrinks a further 0.95 a tick, the source's size is zeroed and a star below 0.03 is gone (a new
-# one starts at size 0).
+# VisionStar3 (0x2046, the Stun texture): VisionStar1's star above a unit's head (its file says how it grows and
+# fades), frame 2.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
-texture = "Stun"
-blend = "additive"
-attach = "attached_only"
-part = "above_head"
-
-[emit]
-rate = 3
+like = "VisionStar1"
 
 [[particle]]
 name = "star"
-when = "count == 0"
-lifetime = 1000000000                           # it lasts until it fades
-alpha = { start = 0, tick = 255 }
 frame = 2
-size = { start = 0, tick = "p.eased" }
-kill = "!(emitting && attached) && p.eased < 0.03"
-
-[particle.vars]
-eased = { start = 0, tick = "emitting && attached ? range(0.1, 1.9) * size * 0.3 * 0.05 + p.size * 0.95 : (range(0.1, 1.9) * size * 0.3 * 0.05 + p.size * 0.95) * 0.95" }
-
-[particle.position]
-tick = ["origin.x", "origin.y", "origin.z"]
-
-[particle.source]
-size = "emitting && attached ? size : 0"
