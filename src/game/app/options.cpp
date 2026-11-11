@@ -60,7 +60,6 @@ constexpr Value kCameraValues[] = {
     {kCamera, "CameraMaxLimitDistanceToCarrier", &GameOptions::cameraMaxLimitDistance},
     {kCamera, "CameraDefaultDistanceToCarrier", &GameOptions::cameraDefaultDistance},
     {kCamera, "NearClipDistance", &GameOptions::nearClipDistance},
-    {kCamera, "FarClipDistance", &GameOptions::farClipDistance},
     {kCamera, "CameraDefaultMinPitch", &GameOptions::cameraDefaultMinPitch},
     {kCamera, "CameraDefaultMaxPitch", &GameOptions::cameraDefaultMaxPitch},
     {kCamera, "CameraBriefingMinDistanceToCarrier", &GameOptions::briefingMinDistance},

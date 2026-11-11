@@ -1,7 +1,7 @@
 // The renderer's creation. It
 // creates the device object, fills the transform pipeline's
-// matrix stacks (projection, viewport, the fixed axis swap and their products), sets the pipeline's viewport
-// and the game's reach, the render state (render/render_state.h), a default light and the ambient colour, and creates
+// matrix stacks (projection, viewport, the fixed axis swap and their products), sets the pipeline's viewport,
+// the render state (render/render_state.h), a default light and the ambient colour, and creates
 // the counted helper object. Runs once at start-up. See docs/notes/models.md ("Renderer creation").
 #include "game/app/app.h"
 #include "game/scene/camera.h"
@@ -88,21 +88,11 @@ void FillMatrixStacks(SceneRenderer* renderer) {
     // The camera's near distance and field of view.
     const Camera* cam = &g_camera;
     Matrix4 m;
-    ProjectionMatrix(&m, cam->fieldOfView, 1.3333334f, cam->nearDistance);   // aspect 4/3
+    ProjectionMatrix(&m, cam->fieldOfView, camera::kAspect, cam->nearDistance);
     StackPush(stacks[kProjection], &m);
     FillScreenStacks(renderer);
     // The distance fog's depth from a clip w (w is the projection's m[14] times the depth).
     render::g_renderState.distanceFog.depthPerW = 1.0f / m.m[14];
-}
-
-// The pipeline's viewport size and the game's reach (the settings' far clip distance as a clip w).
-void SetViewport(SceneRenderer* renderer, const GameOptions* settings) {
-    const Rect& screen = renderer->device->screen;
-    float width = static_cast<float>(screen.Width());
-    float height = static_cast<float>(screen.Height());
-    TransformPipeline* pipeline = renderer->pipeline;
-    pipeline->SetViewportSize(width, height);
-    pipeline->reachW = settings->farClipDistance * StackTop(pipeline->stacks[kProjection])->m[14];
 }
 
 // The texture filters of the stages: linear min / mag filters with the mip levels (anisotropy: [renderer]).
@@ -170,7 +160,7 @@ void SceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
     DeviceSetPipeline(&device->pipeline, pipeline);
 
     FillMatrixStacks(this);
-    SetViewport(this, settings);
+    pipeline->SetViewportSize(static_cast<float>(device->screen.Width()), static_cast<float>(device->screen.Height()));
     render::g_renderState.depthTest = true;
     render::g_renderState.depthWrite = true;
 

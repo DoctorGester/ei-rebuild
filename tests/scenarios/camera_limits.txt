@@ -1,0 +1,121 @@
+# P12: the camera's limits, the catalog's defaults (settings_catalog.inc; the harness snapshot leaves them out): the
+# pitch keys tilt from straight down (90) to 45 degrees up (-45), the zoom keys and the wheel reach the least distance
+# 3 (CameraMinDistanceToCarrier and its hard limit; at 3 the near plane clears the hero at any tilt) and go back out,
+# the up key pans forward whatever the pitch (Camera::Pan along the ground: the camera's own Y axis points back on
+# the ground below level), and the camera stays high enough that no part of its near plane reaches under the ground
+# (Camera::ClampAboveObjects with the near plane's reach; camrange ground: the plane's lowest height above the
+# ground, 0 or more), at the slopes where a camera kept only by its point (CameraMinHeight 0) cut 0.3 to 0.6 into
+# the ground, standing and while panning. Frames for the eye (build/captures/p12): straight down from 50, up at
+# 45 degrees, two slopes looking up, and the least distance on the hero looking up.
+timeout 60
+render checkall
+resolution 1920x1080
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+climate 0
+console @FixWorldTime(12)
+move 400 300
+frames 5
+
+# The pitch keys: Ctrl + up to straight down, Ctrl + down to 45 degrees up.
+hold ctrl
+keydown up
+frames 200
+keyup up
+release ctrl
+frames 10
+camrange pitch 89.9 90.1
+hold ctrl
+keydown down
+frames 300
+keyup down
+release ctrl
+frames 10
+camrange pitch -45.1 -44.9
+camrange ground 0 1000
+
+# The zoom keys to the least distance and out; the wheel the same (100 notches in, 10 out: two steps a notch, 3 x 1.05^20).
+keydown pgup
+frames 200
+keyup pgup
+frames 10
+camrange distance 3 3
+camrange ground 0 1000
+keydown pgdn
+frames 100
+keyup pgdn
+frames 10
+camrange distance 5 70
+wheel 400 300 12000
+frames 5
+camrange distance 3 3
+wheel 400 300 -1200
+frames 5
+camrange distance 7.9 8
+
+# The up key pans forward whatever the pitch: heading 0 faces +y.
+camera 128 128 0 30 45
+keydown up
+frames 10
+keyup up
+frames 30
+camrange y 135 250
+camera 128 128 0 30 -30
+keydown up
+frames 10
+keyup up
+frames 30
+camrange y 135 250
+
+# Slopes looking up (the sweep's worst views for the camera kept by its point alone), standing and panning uphill.
+camera 106 196 0 20 -45
+frames 3
+camrange ground 0 1000
+freeze
+capture limits_slope
+unfreeze
+camera 106 142 270 20 -45
+frames 3
+camrange ground 0 1000
+freeze
+capture limits_slope2
+unfreeze
+camera 106 180 0 20 -45
+keydown up
+frames 4
+camrange ground 0 1000
+frames 4
+camrange ground 0 1000
+frames 4
+camrange ground 0 1000
+frames 4
+camrange ground 0 1000
+keyup up
+frames 10
+camrange ground 0 1000
+
+# Frames: straight down from 50; up at 45 degrees from 30 back; the least distance on the hero looking up.
+camera 54 138 90 50 90
+frames 5
+freeze
+capture limits_down
+unfreeze
+camera 128 128 0 30 -45
+frames 5
+camrange ground 0 1000
+freeze
+capture limits_up
+unfreeze
+camera 54 138 90 3 -45
+frames 5
+camrange ground 0 1000
+freeze
+capture limits_near
+unfreeze
+report
+quit

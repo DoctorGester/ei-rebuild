@@ -1,22 +1,28 @@
 {
   "scenario": "net_pair_zone_visuals",
   "install": "rebirth",
-  "recorded": "2026-11-10",
-  "commit": "0c1c8717c",
+  "recorded": "2026-11-11",
+  "commit": "02c6c90b3",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "L8a: the digest's script record and the decoded saves describe a script in terms both executors share (runs by definition and rule without block or command, loop counters and evaluation slots left out, a save on Lua's state in the old fields), so a converted install's goldens are the normal install's",
+  "reason": "P12's camera defaults (pitch -45..90, distance 3..50, briefing distance up to 50, min height 0, near 1) and no far clip: saved camera distance 30 instead of the briefing's 27, more visuals and client units drawn, recorded and scripted ground clicks landing through another camera (net games then play on differently), camera_spin tilting back up before its fast turn.",
   "side": "peer",
   "source": "image",
   "change": [
-    "digest: 98 of 153 records differ, first at record 23 (world update 480, tick 37, frame 95, zone bz1mpg); outcomes CHANGED: script; no unit position differs",
-    "  first difference at record 23 (world update 480, tick 37, frame 95, zone bz1mpg): 1 fields",
-    "    script (script) #run: 4FFD8037 in the old golden, 8B1F9969 in the new run",
-    "  outcomes: CHANGED script; same: zone, deaths, spawns, money, quest variables, party and items, game result",
-    "    script: script #run differs (hashes only), from record 23 (+97 more)",
-    "  script: 1 of 1 differ",
-    "    run: 1 script, 98 records, from 23; hash only (no numbers kept)"
+    "digest: 76 of 152 records differ, first at record 76 (world update 1540, tick 1097, frame 307, zone bz1mpg); outcomes CHANGED: zone, spawns, quest variables, game result, script (deaths unknown: hash only); max unit move 1.2 (obj1000011214, record 76); the digests have different numbers of records",
+    "  digest: the old golden has more records; the other ends before its record 152 (world update 3060, frame 611, tick 2617, zone -)",
+    "  first difference at record 76 (world update 1540, tick 1097, frame 307, zone bz1mpg): 6 fields",
+    "    obj1000011214 (80 unhuma \"peer\") pos.x: 60.415184 in the old golden, 60.7450676 in the new run (d 0.33)",
+    "    obj1000011214 (80 unhuma \"peer\") pos.y: 52.1647453 in the old golden, 51.0123062 in the new run (d 1.15)",
+    "    obj1000011214 (80 unhuma \"peer\") #place: 6D4B9A24 in the old golden, 73CD488A in the new run",
+    "    ... 3 more",
+    "  outcomes: CHANGED zone, spawns, quest variables, game result, script (deaths unknown: vitals differ, only a hash is kept); same: money, party and items",
+    "    zone: record 93: bz1mpg in the old golden, - in the new run",
+    "    spawns: obj1 (84 stst001) only in the new run, from record 93 (+1337 more)",
+    "    quest variables: 1 variables differ (gtime); first from record 112: player0 gtime: 1.93444431 in the old golden, 1.93444443 in the new run",
+    "    game result: world gameResult: 1 in the old golden, 0 in the new run, from record 139",
+    "... 32 more lines"
   ]
 }

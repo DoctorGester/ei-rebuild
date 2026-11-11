@@ -6642,11 +6642,12 @@ missile1 # DCC3BFAC
 aievents tick 850
 client tick 849
 client ticksRun 252
-@ 14 update 300 frame 59 tick 870 zone gz1g hash B891C803 n 791
+@ 14 update 300 frame 59 tick 870 zone gz1g hash F4BA4F28 n 791
 world tick 870
 world updates 302
 random isaac.count 94
 random crt.rand 0xA24C848D
+player0 objects 7
 obj699 #vitals C5E1CC1A
 obj702 #vitals C5E1CC1A
 obj1804 #vitals D576B866
@@ -6660,6 +6661,8 @@ missile1 # 35F26CB2
 aievents tick 870
 client tick 869
 client ticksRun 272
+client objects 730
+client synchronised 5
 @ 15 update 320 frame 63 tick 890 zone gz1g hash 9EF00C01 n 791
 world tick 890
 world updates 322
@@ -6670,7 +6673,6 @@ random isaac.c 0x00000008
 random isaac.results 0x33EFACA7
 random isaac.memory 0xA6696BB9
 random crt.rand 0x2777BA8B
-player0 objects 7
 obj699 #vitals 52331592
 obj702 #vitals 52331592
 obj1804 #vitals 42A461EE
@@ -6684,8 +6686,6 @@ missile1 # E4C302D8
 aievents tick 890
 client tick 889
 client ticksRun 292
-client objects 730
-client synchronised 5
 @ 16 update 340 frame 67 tick 910 zone gz1g hash 618E6F85 n 791
 world tick 910
 world updates 342

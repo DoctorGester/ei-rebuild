@@ -129,6 +129,10 @@
 //                             90 turned so that screen right is +y), distance and pitch (degrees) set when
 //                             given, else kept. Logs the pose after it ("camera" alone only logs it). The
 //                             game's limits still ease a distance outside them back (Camera::Update)
+//   camrange pitch|distance|x|y|ground <least> <most>
+//                             require the view camera's pitch (degrees down from level), distance, focus x / y or
+//                             its near plane's lowest height above the ground (the drawn view's; image::CameraView)
+//                             within [least, most] and log its pose (camera_limits.txt)
 //   climate <n>               the server world's climate (0 none, 1 rain, 2 snow, 3 storms; a change of
 //                             climate clears the weather): "climate 0" keeps rain from starting by chance
 //                             (one roll in 101 every 64 ticks on zone1) while a scene is captured dry
@@ -569,6 +573,7 @@
 #include <mutex>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace ei::verify {
@@ -2974,6 +2979,30 @@ void RunSteps() {
             if (!error.empty()) {
                 Log("harness: %s", error.c_str());
                 g_failures.push_back(error);
+            }
+        } else if (s.verb == "camrange") {
+            char what[16] = {};
+            float least = 0.0f, most = 0.0f;
+            const image::CameraView view = image::ViewCamera();
+            Log("harness: camrange: focus %.2f %.2f %.2f, heading %.1f, distance %.2f, pitch %.1f; eye %.2f %.2f %.2f, "
+                "near plane %.3f above the ground", view.focusX, view.focusY, view.focusZ, view.heading, view.distance,
+                view.pitch, view.x, view.y, view.z, view.nearGround);
+            const bool read = std::sscanf(s.argument.c_str(), "%15s %f %f", what, &least, &most) == 3;
+            const std::string_view kind = what;
+            const float* value = kind == "pitch"    ? &view.pitch
+                                 : kind == "distance" ? &view.distance
+                                 : kind == "x"        ? &view.focusX
+                                 : kind == "y"        ? &view.focusY
+                                 : kind == "ground"   ? &view.nearGround
+                                                      : nullptr;
+            if (!read || !value) {
+                g_failures.push_back("camrange needs pitch|distance|x|y|ground <least> <most>");
+                Log("harness: %s", g_failures.back().c_str());
+            } else if (!(*value >= least && *value <= most)) {
+                char text[128];
+                std::snprintf(text, sizeof(text), "camrange: %s %.2f outside %.2f .. %.2f", what, *value, least, most);
+                g_failures.push_back(text);
+                Log("harness: %s", text);
             }
         } else if (s.verb == "climate") {
             int climate = 0;

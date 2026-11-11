@@ -56,6 +56,7 @@
 #include "lib/crt.h"
 #include "game/ui/screen_layout.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -640,8 +641,26 @@ CameraState Camera(const void* camera) {
 CameraView ViewCamera() {
     const ::Camera& c = g_camera;
     const float degrees = 1.0f / ei::kRadiansPerDegree;
-    return CameraView{c.focus.x, c.focus.y, c.focus.z, 2.0f * std::atan2(c.viewRotation.z, c.viewRotation.w) * degrees,
-                      c.distance, c.pitch * degrees};
+    CameraView view{c.focus.x, c.focus.y, c.focus.z, 2.0f * std::atan2(c.viewRotation.z, c.viewRotation.w) * degrees,
+                    c.distance, c.pitch * degrees};
+    const camera::ViewPose& drawn = camera::FrameView();
+    view.x = drawn.position.x;
+    view.y = drawn.position.y;
+    view.z = drawn.position.z;
+    terrain::Terrain* ground = g_clientWorld.terrain.get();
+    if (!ground) return view;
+    const auto above = [ground](const Vector3& p) { return p.z - ground->CalmSurfaceHeight(p.x, p.y); };
+    const float slope = std::tan(c.fieldOfView * 0.5f);
+    const float halfX = c.nearDistance * slope / screen_layout::AxisScale();
+    const float halfY = c.nearDistance * slope / (4.0f / 3.0f * screen_layout::AxisScaleY());
+    const Vector3 across = drawn.rotation.AxisX(), up = drawn.rotation.AxisY();
+    const Vector3 centre = drawn.position + drawn.rotation.AxisZ() * c.nearDistance;
+    float least = above(drawn.position);
+    for (int i = -4; i <= 4; ++i)
+        for (int j = -4; j <= 4; ++j)
+            least = std::min(least, above(centre + across * (halfX * i / 4.0f) + up * (halfY * j / 4.0f)));
+    view.nearGround = least;
+    return view;
 }
 
 void SetClimate(int climate) { g_serverWorld.SetClimate(climate); }

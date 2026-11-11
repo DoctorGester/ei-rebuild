@@ -1,21 +1,27 @@
 {
   "scenario": "net_zone_leader",
   "install": "rebirth",
-  "recorded": "2026-11-10",
-  "commit": "91b031ae6",
+  "recorded": "2026-11-11",
+  "commit": "02c6c90b3",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "L8c: the loop bindings set the counter global a converted loop names, as the game's loops do, so the digest's script record and the decoded saves compare the loops' counters again (L8a had left them out): the counters' values now recorded (script gobject, saves commands globals).",
+  "reason": "P12's camera defaults (pitch -45..90, distance 3..50, briefing distance up to 50, min height 0, near 1) and no far clip: saved camera distance 30 instead of the briefing's 27, more visuals and client units drawn, recorded and scripted ground clicks landing through another camera (net games then play on differently), camera_spin tilting back up before its fast turn.",
   "source": "image",
   "change": [
-    "digest: 15 of 93 records differ, first at record 78 (world update 1580, tick 1262, frame 315, zone z7q3); outcomes CHANGED: script; no unit position differs",
-    "  first difference at record 78 (world update 1580, tick 1262, frame 315, zone z7q3): 1 fields",
-    "    script (script) #gobject: F91C4967 in the old golden, 7BE998B9 in the new run",
-    "  outcomes: CHANGED script; same: zone, deaths, spawns, money, quest variables, party and items, game result",
-    "    script: script #gobject differs (hashes only), from record 78 (+14 more)",
-    "  script: 1 of 1 differ",
-    "    gobject: 1 script, 15 records, from 78; hash only (no numbers kept)"
+    "digest: 71 of 93 records differ, first at record 22 (world update 460, tick 142, frame 91, zone bz1mpg); outcomes CHANGED: quest variables, party and items (deaths unknown: hash only); max unit move 9.16 (obj5128, record 90)",
+    "  first difference at record 22 (world update 460, tick 142, frame 91, zone bz1mpg): 1 fields",
+    "    obj1000011214 (80 unhuma \"host\") #place: B8155232 in the old golden, 05FE5730 in the new run",
+    "  outcomes: CHANGED quest variables, party and items (deaths unknown: vitals differ, only a hash is kept); same: zone, spawns, money, game result, script",
+    "    quest variables: 1 variables differ (gtime); first from record 80: player0 gtime: 1.37000012 in the old golden, 1.37555563 in the new run",
+    "    party and items: player0 objects: 7 in the old golden, 8 in the new run, from record 80 (+12 more)",
+    "  units: 286 of 311 differ",
+    "    #place: 1 unit, 1 record, from 22; hash only (no numbers kept)",
+    "    pos: 14 units, 46 records, from 23; moved 9.16 at obj5128 80 unanwiwo \"\", record 90",
+    "    #unit: 285 units, 47 records, from 24; hash only (no numbers kept)",
+    "    #ai: 16 units, 17 records, from 76; hash only (no numbers kept)",
+    "    ... 1 more (other kinds of field)",
+    "... 21 more lines"
   ]
 }

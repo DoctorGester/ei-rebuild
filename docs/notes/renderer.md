@@ -610,8 +610,8 @@ still needs of that is `projection.cpp`, as members of `TransformPipeline` (pipe
 (clip space, the translation added first in each row; the decals' TransformPoints is this with the matrix untransposed),
 `ProjectClipped` / `ProjectPointsClipped` (an outcode per point, `clip.h`'s `ClipCodeOf`, and the batch's verdict,
 `ClipVerdict`; on screen the points go on to `ToScreen`), `Project` / `ProjectPoints` (the screen matrix's division),
-`ProjectSprites`, `ToScreen`, `FogVertices` and `ClipBounds::Fit`. The pipeline keeps the viewport's half size and the
-game's reach (`SetViewportSize`, `reachW`: section 10, "The view's depth").
+`ProjectSprites`, `ToScreen`, `FogVertices` and `ClipBounds::Fit`. The pipeline keeps the viewport's half size
+(`SetViewportSize`).
 Checked once bit-identical against the DLL on random inputs (with the far plane it had then).
 
 Behaviour differences (one path for every input; none in a golden):
@@ -636,19 +636,23 @@ Behind the camera 1 / w is negative and z / w lies above 1; at w 0 it is infinit
 ### The view's depth
 
 The camera's projection (`ProjectionMatrix`, scene/pipeline.cpp) has no far plane: its depth z / w is 1 - near / d (d the
-distance along the view, near the settings' NearClipDistance, 2), 0 at the near plane and below 1 at any distance, so
+distance along the view, near the settings' NearClipDistance, 1), 0 at the near plane and below 1 at any distance, so
 the ground and the map's scenery draw to the map's edge. The original cut everything at FarClipDistance (100 units
 along the view): pitched up, the ground ended in a hard edge against the sky and the hills behind it were missing (R62,
-the user's 4K frame). In the D32F depth a step at d is about d^2 / near x 6e-8 units: 0.0006 at 100, 0.005 at 300, as
+the user's 4K frame). In the D32F depth a step at d is about d^2 / near x 6e-8 units: 0.0006 at 100, 0.0054 at 300 (near 1), as
 with the far plane (whose depth differed by the factor far / (far - near) only). What follows:
 - Drawn to the map's edge: the terrain's sectors and quarters (`SectorData::ClipTest`; their waves move wherever they
   are drawn), the trees, buildings and the other map objects (`CollectVisible`), the vision fog. Picking reads the matrix's x, y and w rows, which the far plane never touched.
-- Kept at the game's reach, FarClipDistance along the view as a clip w (`TransformPipeline::BeyondReach`, a volume
-  wholly past it): the figures `CollectVisible` takes (units and levers, drawn with their own poses and weather), the
-  casters out of view whose shadows it lists (`ShadowInView`), the particle sources (their hidden ticks idle them),
-  the lightning. What the figures drawn do on the client (their poses, footprints, weather, the client
-  generator's draws) goes into visuals.sav and the digests, so that set stays as it was; the server sends a player
-  its units only within about 100 units of the camera anyway.
+- The figures too (units and levers, drawn with their own poses and weather), the casters out of view whose shadows
+  `CollectVisible` lists (`ShadowInView`), the particle sources and the lightning: everything in the view volume, at
+  any distance (P12; until then they stopped at FarClipDistance, 100 units along the view, a setting no longer read).
+  The server sends a player its units only within about 100 units of the camera anyway; what the figures drawn do on
+  the client (their poses, footprints, weather, the client generator's draws) goes into visuals.sav and the digests.
+  What it cost (P12, quiet runs of the verify build, the Portal zone gz19h from its middle at 3840 x 2160, msaa 1,
+  anisotropy 1, 240 frames a view, two runs before and three after): looking along the ground (pitch 5, 30 back) 29
+  more meshes past the old reach (1463 to 1492), the main thread 2.27-2.35 to 2.35-2.46 ms a frame, the GPU's median
+  2.12-2.36 to 1.96 ms; at pitch 0, 15 and 45 the same meshes and times within the runs' noise (the main thread
+  0.77-2.44 ms, the GPU 1.4-2.3 ms by view).
 - The distance fog (`render::DistanceFog`, render_state.h; `distance_fog.hlsli`): a world draw's point at depth d
   along the view keeps exp(-((d - start) x density)^2) of its colour past `start`, the rest is the fog's colour, a haze
   that thickens smoothly with distance (nothing up to `start`, flat at first, near full far away). `WorldClient::
@@ -2175,8 +2179,7 @@ and uploaded again is what the game says changed:
 The design that came before (retained objects: an instance buffer on the GPU per object part, written when the object
 changes, the view applied in the shaders, about -650 lines) was built in a smaller form after the user's change: one
 view test per object, the GPU clips the rest.
-- **The verdict.** `CollectVisible` / `CollectCells` test each object's bounds once (`InView`, with `BeyondReach` for
-  figures); that is the draw's verdict. `Object3DClientSpecific::DrawParts` pushes nothing on the matrix stacks, takes no
+- **The verdict.** `CollectVisible` / `CollectCells` test each object's bounds once (`InView`); that is the draw's verdict. `Object3DClientSpecific::DrawParts` pushes nothing on the matrix stacks, takes no
   `ClipTest` per part and projects no vertex: every part near enough (`PartTooFar`) and not hidden goes to the renderer
   whole (`FigureMeshDrawer::DrawLit`, `TextureDevice::DrawMesh`), placed by its model matrix (the object's drawn pose
   times its extra scale times the part's) under the screen stack's top. `FigureMeshFlag::Drawn` is set for those parts,

@@ -159,7 +159,7 @@ struct SectorData {
 
     // Whether the last clip test did not cull the sector.
     bool IsDrawn() const;
-    // The box, and unless culled its quarters, with the renderer's pipeline; and whether it is in the game's reach.
+    // The box, and unless culled its quarters, with the renderer's pipeline.
     void ClipTest(SceneRenderer* renderer);
 };
 

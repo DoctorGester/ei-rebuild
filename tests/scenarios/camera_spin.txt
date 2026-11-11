@@ -38,7 +38,13 @@ frames 400
 keyup left
 frames 40
 camtrace stop low
+# Back up to about 30 degrees (0.6 a frame) for the fast turn: at the least pitch (-45 since P12) the camera rides
+# the ground, and the drawn view's reach, spread over the frames, changes less than the camera's jumpy own.
+keydown up
+frames 125
+keyup up
 release ctrl
+frames 10
 
 keydown pgdn
 frames 200

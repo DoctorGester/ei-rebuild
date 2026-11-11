@@ -335,8 +335,14 @@ struct CameraPlacement {
     bool setHeading = false, setDistance = false, setPitch = false;
     float heading = 0, distance = 0, pitch = 0;
 };
+// `x`, `y`, `z`: the drawn view's eye (camera::FrameView); `nearGround`: the lowest height of its near plane above the
+// ground and the water at rest (Terrain::CalmSurfaceHeight) over 9 x 9 points of the plane, the eye's own height
+// above them included (0 without a map). The plane's size is the projection's (renderer_init.cpp): the near
+// distance, the field of view across the window's 4:3 part (aspect 4:3) and the axis swap's scales
+// (screen_layout.h), worked out here apart from the camera's own code.
 struct CameraView {
     float focusX = 0, focusY = 0, focusZ = 0, heading = 0, distance = 0, pitch = 0;
+    float x = 0, y = 0, z = 0, nearGround = 0;
 };
 CameraView PlaceCamera(const CameraPlacement& placement);
 CameraView ViewCamera();

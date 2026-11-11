@@ -1,21 +1,26 @@
 {
   "scenario": "net_pair_speed",
   "install": "vanilla",
-  "recorded": "2026-11-10",
-  "commit": "0c1c8717c",
+  "recorded": "2026-11-11",
+  "commit": "02c6c90b3",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "L8a: the digest's script record and the decoded saves describe a script in terms both executors share (runs by definition and rule without block or command, loop counters and evaluation slots left out, a save on Lua's state in the old fields), so a converted install's goldens are the normal install's",
+  "reason": "P12's camera defaults (pitch -45..90, distance 3..50, briefing distance up to 50, min height 0, near 1) and no far clip: saved camera distance 30 instead of the briefing's 27, more visuals and client units drawn, recorded and scripted ground clicks landing through another camera (net games then play on differently), camera_spin tilting back up before its fast turn.",
   "source": "image",
   "change": [
-    "digest: 127 of 282 records differ, first at record 16 (world update 340, tick 22, frame 67, zone bz1mpg); outcomes CHANGED: script; no unit position differs",
-    "  first difference at record 16 (world update 340, tick 22, frame 67, zone bz1mpg): 1 fields",
-    "    script (script) #run: 297674EC in the old golden, 113605A6 in the new run",
-    "  outcomes: CHANGED script; same: zone, deaths, spawns, money, quest variables, party and items, game result",
-    "    script: script #run differs (hashes only), from record 16 (+126 more)",
-    "  script: 1 of 1 differ",
-    "    run: 1 script, 127 records, from 16; hash only (no numbers kept)"
+    "digest: 52 of 282 records differ, first at record 91 (world update 1840, tick 1522, frame 367, zone bz1mpg); outcomes the same; max unit move 0.449 (obj1000011214, record 92)",
+    "  first difference at record 91 (world update 1840, tick 1522, frame 367, zone bz1mpg): 1 fields",
+    "    obj1000011214 (80 unhuma \"host\") #place: FC69D869 in the old golden, B2D6CDBE in the new run",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  units: 6 of 216 differ",
+    "    #place: 1 unit, 2 records, from 91; hash only (no numbers kept)",
+    "    pos: 1 unit, 20 records, from 92; moved 0.449 at obj1000011214 80 unhuma \"host\", record 92",
+    "    #ai: 6 units, 19 records, from 92; hash only (no numbers kept)",
+    "    #unit: 2 units, 20 records, from 93; hash only (no numbers kept)",
+    "  client units: 5 of 36 differ",
+    "    #place: 1 client unit, 22 records, from 92; hash only (no numbers kept)",
+    "    #unit: 5 client units, 49 records, from 93; hash only (no numbers kept)"
   ]
 }

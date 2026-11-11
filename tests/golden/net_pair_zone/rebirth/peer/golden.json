@@ -1,22 +1,28 @@
 {
   "scenario": "net_pair_zone",
   "install": "rebirth",
-  "recorded": "2026-11-10",
-  "commit": "0c1c8717c",
+  "recorded": "2026-11-11",
+  "commit": "02c6c90b3",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "L8a: the digest's script record and the decoded saves describe a script in terms both executors share (runs by definition and rule without block or command, loop counters and evaluation slots left out, a save on Lua's state in the old fields), so a converted install's goldens are the normal install's",
+  "reason": "P12's camera defaults (pitch -45..90, distance 3..50, briefing distance up to 50, min height 0, near 1) and no far clip: saved camera distance 30 instead of the briefing's 27, more visuals and client units drawn, recorded and scripted ground clicks landing through another camera (net games then play on differently), camera_spin tilting back up before its fast turn.",
   "side": "peer",
   "source": "image",
   "change": [
-    "digest: 147 of 203 records differ, first at record 23 (world update 480, tick 37, frame 95, zone bz1mpg); outcomes CHANGED: script; no unit position differs",
-    "  first difference at record 23 (world update 480, tick 37, frame 95, zone bz1mpg): 1 fields",
-    "    script (script) #run: 4FFD8037 in the old golden, 8B1F9969 in the new run",
-    "  outcomes: CHANGED script; same: zone, deaths, spawns, money, quest variables, party and items, game result",
-    "    script: script #run differs (hashes only), from record 23 (+146 more)",
-    "  script: 1 of 1 differ",
-    "    run: 1 script, 147 records, from 23; hash only (no numbers kept)"
+    "digest: 17 of 203 records differ, first at record 153 (world update 3080, tick 2637, frame 615, zone bz1mpg); outcomes the same; max unit move 0.5 (obj1000011214, record 167)",
+    "  first difference at record 153 (world update 3080, tick 2637, frame 615, zone bz1mpg): 4 fields",
+    "    obj1000011214 (80 unhuma \"peer\") pos.x: 60.6983414 in the old golden, 60.7450676 in the new run (d 0.0467)",
+    "    obj1000011214 (80 unhuma \"peer\") pos.y: 51.0002861 in the old golden, 51.0123062 in the new run (d 0.012)",
+    "    obj1000011214 (80 unhuma \"peer\") #place: 7F8E2816 in the old golden, 73CD488A in the new run",
+    "    ... 1 more",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  units: 1 of 27 differ",
+    "    pos: 1 unit, 17 records, from 153; moved 0.5 at obj1000011214 80 unhuma \"peer\", record 154",
+    "    #ai: 1 unit, 14 records, from 154; hash only (no numbers kept)",
+    "    #unit: 1 unit, 15 records, from 154; hash only (no numbers kept)",
+    "  client units: 2 of 26 differ",
+    "... 2 more lines"
   ]
 }

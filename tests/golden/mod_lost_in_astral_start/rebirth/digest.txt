@@ -12947,7 +12947,7 @@ cunit3340983 #place 1EDBA36E
 cunit3340984 #place D9173C34
 cunit1000011214 #unit 11C8A97A
 cunit1000055424 #unit 2FC5CAA0
-@ 56 update 1140 frame 227 tick 1140 zone bz1r hash 6638EBCB n 872
+@ 56 update 1140 frame 227 tick 1140 zone bz1r hash 12B58203 n 872
 world tick 1140
 world updates 1140
 random isaac.count 207
@@ -13116,6 +13116,7 @@ cunit3340962 #place 083CBBD3
 cunit3340962 #unit C8F1A96B
 cunit3340963 #place DE683FA8
 cunit3340963 #unit 79650921
+cunit3340965 #unit 1DA9FDF7
 cunit3340967 #place ED664EB7
 cunit3340971 #place 6212B7F5
 cunit3340972 #place 810DD123
@@ -13298,6 +13299,7 @@ cunit3340962 #place 8F20D4C2
 cunit3340963 #place 429CACFC
 cunit3340964 #place 821F6A68
 cunit3340965 #place 7B30D091
+cunit3340965 #unit E3543F48
 cunit3340966 #place 8B507CC9
 cunit3340969 #place 208A3DAB
 cunit3340971 #place 62E29ED3

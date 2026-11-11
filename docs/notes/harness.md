@@ -110,6 +110,9 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   pitch in degrees, each kept when left out; `camera` alone logs the pose. It aims a frame capture by map point on any
   install and window size, where `lookat`'s minimap clicks (`minimap` numbers per install, kept for `walkto`'s player
   input) did not hold: on Rebirth's zone1 at 1440x1080 they moved the camera erratically (render_water_looks).
+  `camrange pitch|distance|x|y|ground <least> <most>` requires the camera's pitch (degrees), distance, focus x / y or
+  its near plane's lowest height above the ground (the drawn view's, 9 x 9 points of the plane worked out from the
+  projection's sizes apart from the camera code) within the range and logs its pose (`camera_limits.txt`).
   `climate <n>` sets the server world's climate (WorldServer::SetClimate: 0 none, 1 rain, 2 snow, 3 storms; a change
   of climate clears the weather). A dry capture scene says `climate 0`: `@SetWeather("clear")` only stops the rain now, and on
   zone1 (climate rain) UpdateRain rolls one in 101 every 64 ticks to start it again, which Rebirth's random stream hit

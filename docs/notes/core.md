@@ -135,7 +135,7 @@ Every Windows build is x64; formats are 32-bit.
 `Camera` (class id 0x43, a TransformObject) is a global; `Camera::Update` runs once per frame from the main loop. The
 members are named in camera.h. Flags: 0x8 follow the target, 0x10 recording to a file, 0x20 playing a path, 0x40 free
 placement, 0x100 bounded, 0x200 briefing limits. Pitch is kept in degrees. F9-F12 save (with a modifier) and restore
-views; the mouse wheel zooms by 1.05^steps; a shake's distance uses `_hypot`. Recorded paths are `camera\*.cam`
+views; the mouse wheel zooms by 1.05^steps (`ZoomBy`); a shake's distance uses `_hypot`. Recorded paths are `camera\*.cam`
 (36-byte keys: time, position, rotation; `Camera::LoadPath`: with a second argument above 1, the first key more than
 500 time units after its predecessor gives its pose to every key before it).
 
@@ -144,6 +144,35 @@ multiplies the view axes by 0 and leaves the turn / tilt rates; `PlaybackStep` a
 the camera without clearing the playing flag; `Update` tracks a target only with flag 8 clear, and panning clears both;
 the script commands SetCameraPosition / SetCameraOrientation do nothing; `OpenFile` renames an existing
 camera.cam to the next number after the highest camera0*.cam (read from the last four characters of the title).
+
+The limits (settings_catalog.inc's defaults since P12; app.md, "Options") let the pitch go from -45 (looking up) to 90
+(straight down) and the distance from 3 to 50 (hard limits 3 and 70), on the maps and the village screens. What copes
+with them:
+- `Pan` moves along the ground by the camera's X axis turned a quarter about Z. The camera's own Y axis, which the
+  original took, points back along the ground below level (and nowhere when level): looking up, the keys and the screen
+  edges panned backwards, and at a level camera its normalisation gave NaN.
+- Pitched below level the camera sits below its focus; `ClampAboveObjects` lifts it over the ground and `ApplyView`
+  aims it back up at the focus.
+- `ClampAboveObjects` keeps the camera a clearance over the highest ground (its 5 x 5 samples 2 around) and the tops of
+  the objects it counts: CameraMinHeight (0), but at least `NearPlaneReach`, how far the near plane's corners lie from
+  the camera's point (near 1, the field of view over the window's 4:3 part widened by the axis swap: 1.17 at 4:3,
+  1.24 at 16:9). The original kept only the point clear (3 over the ground, near 2 inside it): with a clearance of 0
+  the near plane's lower edge cut up to 0.6 into a slope in front of a camera looking up, and the view showed the
+  ground's underside (a sweep of zone1 at pitch -45, distance 20: 287 of 677 views). A shake's offset is followed by
+  the clamp again, so a shake down stops there too.
+- The least distance 3: the focus is 2 over a hero's place (its bounds: 1.78 tall, the top 1.2 under the focus, a
+  footprint of radius 0.97); at pitch -45 and distance 3 the near plane's nearest point stays 1.16 from the hero's axis,
+  outside it, and at any pitch from 0 up the camera is above the hero. (The original's hard limit was 3 too.)
+- Panning scales with the distance's place between the least and the most, so with the least at 3 (10 before) the
+  same keys pan about 10% faster at distance 30; recorded inputs (rec_cut_auto_2/3) that click the ground after a pan
+  land elsewhere (their goldens re-recorded in P12).
+- When the least and the hard least distance are equal the limits' easing (`Update`) never divides by their
+  difference: it runs only between them.
+- Clicking the sky picks a ground point along the ray behind the camera (`PickPoint`'s bounded iteration), as the
+  original did.
+- Check: scenario `camera_limits` (`camrange` steps: pitch 90 / -45 by the keys, the zoom keys and the wheel to 3 and
+  out, the up key's pan at pitch 45 and -30 in the same direction, `camrange ground 0 ...` standing and panning on
+  slopes looking up; frames for the captures page's P12).
 
 ## Strings
 

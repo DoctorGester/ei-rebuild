@@ -101,11 +101,6 @@ public:
     // ClipResult::Outside = entirely outside one clip plane, ClipResult::Inside = entirely inside, ClipResult::Crossing = crossing or
     // not decided. The cube (flag 0) is tried first, then the box (flag 1).
     ClipResult ClipTest(const ClipBounds* bounds) const;
-    // Whether `bounds` lie wholly beyond the game's reach along the view (reachW; FarClipDistance), where the
-    // projection had its far plane: the game leaves the figures (units, levers), particles and lightning there out
-    // of view as before, while the ground and the map's scenery are drawn to the map's edge (renderer.md, "The
-    // view's depth"). The cube (flag 0) or the box (flag 1) beyond is enough.
-    bool BeyondReach(const ClipBounds* bounds) const;
     // Pushes `m` onto stack `index`: an empty stack gets `m` itself, otherwise the new top is the old top
     // times `m` (no capacity check).
     void PushMatrix(const float* m, int index);
@@ -158,7 +153,6 @@ public:
     MatrixStack stacks[16];     // (models.md: stacks 0-2, 5-10 and 14 are in use)
     float halfWidth = 0.0f;     // the viewport's half size (SetViewportSize)
     float halfHeight = 0.0f;
-    float reachW = 3.4e38f;     // BeyondReach's: the game's reach as a clip w (SetViewport, renderer_init.cpp)
 };
 
 // Viewport matrix for a screen rectangle {left, top, right, bottom}: scale and offset by the half extents,

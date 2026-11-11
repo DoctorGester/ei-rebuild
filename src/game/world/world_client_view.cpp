@@ -270,16 +270,11 @@ drawn::Pose Place(MapObject* object) {
     return shown;
 }
 
-bool IsFigure(ClassId kind) { return kind == ClassId::Unit || kind == ClassId::Lever; }
-
-// The placed object's clip test: not outside the view, and a figure (a unit or a lever, drawn with its own pose and
-// weather) not beyond the game's reach, as when the projection had its far plane there; the map's scenery is drawn
-// to its edge (TransformPipeline::BeyondReach).
-bool InView(Object3D* o3d, bool figure) {
+// The placed object's clip test: not outside the view (at any distance: the projection has no far plane).
+bool InView(Object3D* o3d) {
     TransformPipeline* device = g_sceneRenderer.pipeline;
     PushStackMatrix(device, TransformPipeline::kClipStack, o3d->worldMatrix.m);
-    const bool inView = device->ClipTest(&o3d->bounds) != TransformPipeline::ClipResult::Outside &&
-                        !(figure && device->BeyondReach(&o3d->bounds));
+    const bool inView = device->ClipTest(&o3d->bounds) != TransformPipeline::ClipResult::Outside;
     device->PopMatrix(TransformPipeline::kClipStack);
     return inView;
 }
@@ -325,14 +320,8 @@ void File(MapObject* object, ClassId kind, bool inView, int shadowVerdict, const
         shadow = false;
     } else if (lib::Has(model->flags, ClientHalfFlag::Shown)) {
         shadow = true;
-    } else if (shadowVerdict == 2) {
-        shadow = false;
-    } else if (shadowVerdict == 0) {
-        ClipBounds placed = model->sphere;
-        placed.center += o3d->localPosition;
-        shadow = !g_sceneRenderer.pipeline->BeyondReach(&placed);
     } else {
-        shadow = model->ShadowInView();
+        shadow = shadowVerdict == 0 || (shadowVerdict != 2 && model->ShadowInView());
     }
     if (shadow) {
         if (o3d->animation) o3d->animation->PlaceForDraw();
@@ -522,7 +511,7 @@ void WorldClient::CollectCells(const CellRange& range, const Matrix4* view) {
                 kept.casterFinite = true;
                 for (const CellObject& e : g_cellObjects) {
                     const KeptBoxes& b = *e.boxes;
-                    if (b.clip && !IsFigure(e.kind)) kept.clip.Add(b.clipBox);
+                    if (b.clip) kept.clip.Add(b.clipBox);
                     if (b.shadow) kept.shadow.Add(b.shadowBox);
                     if (!b.caster) continue;
                     if (!b.casterFinite) {
@@ -549,12 +538,11 @@ void WorldClient::CollectCells(const CellRange& range, const Matrix4* view) {
                 Object3D* o3d = AsObject3D(e.object);
                 const KeptBoxes& b = *e.boxes;
                 bool inView;
-                if (b.clip && !IsFigure(e.kind)) {
+                if (b.clip) {
                     const int verdict = clipVerdict >= 0 ? clipVerdict : planes.Classify(b.clipBox);
-                    inView = verdict == 0 || (verdict != 2 && InView(o3d, false));
-                } else if (IsFigure(e.kind) || (o3d->bounds.flags & kBounds)) {
-                    // A lever's reach needs its exact clip matrix.
-                    inView = InView(o3d, IsFigure(e.kind));
+                    inView = verdict == 0 || (verdict != 2 && InView(o3d));
+                } else if (o3d->bounds.flags & kBounds) {
+                    inView = InView(o3d);
                 } else {
                     inView = true;   // ClipTest calls a volume without bounds crossing the view
                 }
@@ -586,7 +574,7 @@ void WorldClient::CollectVisible(MapObject* object, const Matrix4* view, float a
         if (!drawAllUnits && !(object->flags & MapObjectFlag::InParty)) return;
     }
     Place(object);
-    File(object, kind, InView(AsObject3D(object), IsFigure(kind)), -1, view);
+    File(object, kind, InView(AsObject3D(object)), -1, view);
 }
 
 // ---- Cursor picking ------------------------------------------------------------------------------

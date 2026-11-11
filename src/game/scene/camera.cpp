@@ -266,18 +266,14 @@ void Camera::PlaybackStep(float time) {
     localRotation.Slerp(u, a.rotation, b.rotation);
 }
 
+// x along the camera's X axis on the ground, y along that axis turned a quarter back about Z (towards the screen's
+// bottom). Not along the camera's own Y axis: its ground part points the other way when the camera looks up (a pitch
+// below 0, or a camera lifted over the ground and aimed back up at its focus) and has no length when it looks level.
 void Camera::Pan(const Vector3& direction) {
-    Vector3 right = localRotation.AxisX();
-    Vector3 up = localRotation.AxisY();
-    float k1 = (1.0f / std::sqrt(LengthSquared2D(right.y, right.x))) * direction.x;
-    right.x = k1 * right.x;
-    float rightY = k1 * right.y;
-    float k2 = (1.0f / std::sqrt(LengthSquared2D(up.y, up.x))) * direction.y;
-    up.x = k2 * up.x;
-    float upY = k2 * up.y;
-    panTarget.x = up.x + right.x;
-    panTarget.y = upY + rightY;
-    panTarget.z = 0.0f;
+    const Vector3 right = localRotation.AxisX();
+    const Vector2 across = XY(right) * (1.0f / std::sqrt(LengthSquared2D(right.y, right.x)));
+    const Vector2 back = {across.y, -across.x};
+    panTarget = WithZ(across * direction.x + back * direction.y, 0.0f);
 }
 
 void Camera::StopMotion() {
@@ -465,6 +461,7 @@ void Camera::Update(float dt) {
     }
     std::erase_if(shakes, [](const CameraShake& s) { return s.elapsed >= s.duration; });   // a NaN stays
     localPosition.z = offset + localPosition.z;
+    ClampAboveObjects();   // a shake down stops where the near plane would reach under the ground
 }
 
 void Camera::ZoomBy(float steps) {

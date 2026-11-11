@@ -101,7 +101,6 @@ public:
     float cameraDefaultMinPitch = 0.0f;
     float cameraDefaultMaxPitch = 0.0f;
     float nearClipDistance = 0.0f;
-    float farClipDistance = 0.0f;  // FarClipDistance: the game's reach (TransformPipeline::BeyondReach)
     int selectionType = 0;
     int drawVisibleOnly = 1;         // not a setting: 1 draws only the units the party sees (the spectator switch turns it off)
     int drawPath = 0;
