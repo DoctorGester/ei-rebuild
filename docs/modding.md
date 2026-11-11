@@ -428,6 +428,22 @@ folder.
 
 The showcase mod's hammer is one (`tests/scenarios/mod_showcase_worn.txt` checks it in the hero's hand).
 
+### Inventory models
+
+The picture of a weapon or an armour in the camp and the shop is a small model, `initwe<type code><number>.glb` /
+`initar<type code><number>.glb` (a loose figure of one part, `weapon` / `armor`). The camp draws it:
+- **Unlit**, each pixel the texture's colour: paint the light into the faces' pictures (a lit top, darker chamfers and
+  sides) and let the outline show the shape.
+- **In the worn piece's texture** (`unhuma<model name>`, the item's picture): a picture smaller than 256 x 256 sits at
+  the bottom left of a 256 x 256 texture, so a 128 x 128 picture's pixel (x, y) is the coordinates (x / 256,
+  (128 + y) / 256). A layer over the hero's skin is 256 x 256 already; parts of it the hero's figure does not take can
+  hold pictures for the inventory model alone.
+- **Seen from +z** (the game's axes, z up; glTF's +y), at its own size: about 2 x 2 fills a slot. A weapon lies
+  diagonally, its head or blade at the top left (-x, +y), and turns about that diagonal when the mouse is over it;
+  other items stand along y and turn about it.
+
+The showcase mod's hammer and boots are made so (tools/make_showcase_mod.py `hammer_icon`, `boots_icon`).
+
 ## Animations as glTF
 
 A figure's animations are glTF animations in the same `.glb`: each one named as the game names it (`cidle01`,
@@ -2022,7 +2038,7 @@ boots are yours. Read its files as a recipe for each kind of new content:
 |---|---|
 | A zone | `Res\texts\map.toml` (the zone "showcase", its two exits, and the first island's exit 3 to it; [Zones](#zones)), `Maps\showcase\map.toml`, `heights.png`, `tiles.png` (a map folder with no `.mpr`), `Res\textures\showcase000.png` (its ground tiles), `showcasemap.png` / `showcasequest.png` (the minimap and objectives pictures), `Maps\showcase.mob.toml` (its objects, no `.mob`), `Maps\showcase.lua` (its script), `"zone showcase"` in `Res\texts\texts.toml` (its name) |
 | A creature | `Res\figures\scgolem.glb` (parts and animations), `Res\database\scgolem.adb.toml` (its animation list), `units.udb.toml` (a `[[model]]` and a `[[unit]]`), `Res\textures\scgolem00.png` (the skin its placement names); the shards: a second `[[unit]]` on the golem's model at a smaller scale, `Res\textures\scshard00.png` |
-| A weapon, boots | `items.idb.toml`, `Res\figures\initwehm9.glb`, `initarbt20.glb` (inventory models: a loose figure named `initwe<type code><number>` / `initar...`, one part `weapon` / `armor`), `Res\figures\hm_09.glb` (the hammer's worn model, in the hand: [Worn models](#worn-models)), `Res\redress\unhumahm_09.gr.0.png`, `unhumabt_20.le.0.png` (their textures: the hammer's in the weapons' strip, the boots' a layer over the hero's skin) |
+| A weapon, boots | `items.idb.toml`, `Res\figures\initwehm9.glb`, `initarbt20.glb` (inventory models: a loose figure named `initwe<type code><number>` / `initar...`, one part `weapon` / `armor`; [Inventory models](#inventory-models)), `Res\figures\hm_09.glb` (the hammer's worn model, in the hand: [Worn models](#worn-models)), `Res\redress\unhumahm_09.gr.0.png`, `unhumabt_20.le.0.png` (their textures: the hammer's in the weapons' strip, the boots' a layer over the hero's skin) |
 | A quest | `Maps\showcase.lua` (the quest's variable `q.<zone>.<quest>`, its reward), `quests.qdb.toml` (its experience), `Res\texts\texts.toml` (`quest <name>`: the title, the description, `#subobj` lines) |
 | A spell | `spells.sdb.toml` (Chain Spark's record, `script` naming its file), `Res\spells\chain_spark.lua` (its mechanic: a missile with `OnHit`, the next victim by `FindUnits`, `Damage`, `Apply`, `Effect`, `Bolt`, a timer for the leap; [Spells](#spells)), `Res\textures\spell0101.png`, `prototype0101.png` (its pictures, `icon = 101`), `Maps\showcase.lua` (`GiveItem` of its spell container); `tests/scenarios/mod_showcase_spell.txt` casts it |
 | A buff | `spells.sdb.toml` (Ember Brand's record, `code = "ember"`), `Res\spells\ember_brand.lua` (a curse: `OnStats` lowers the victim's `Strength`, `OnEffectTick` burns it every 20 ticks with `effect:Damage`, `OnEffectEnded` says how it went; [Active effects](#active-effects)); `tests/scenarios/mod_showcase_buff.txt` casts it with `CastSpellUnit` |

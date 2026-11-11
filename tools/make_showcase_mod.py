@@ -613,84 +613,247 @@ def spark_icon(background, rim, bolt, glow):
 
 # --- The hammer and the boots ------------------------------------------------------------------------------------------
 
-# A unit's weapons take the left 0.3 of its second texture (the helmets the middle; the game's hammers' pictures are
-# opaque there alone), so the hammer's picture is a strip of that width and its faces' coordinates lie in it.
-STRIP = 38   # of the picture's 128
-HANDLE_UV = (0.0, 0.0, 9 / 128, 1.0)
-HEAD_UV = (9 / 128, 0.0, STRIP / 128, 1.0)
+# The camp draws an item's inventory model unlit, in one colour per texel (a lying weapon from above, other items from
+# the front; docs/notes/mods.md, "The showcase mod"), so the pictures carry the light: each face samples a part of
+# the texture painted as that face should look, and the outline does the rest. Its texture is the worn piece's
+# (unhuma + the model name): a picture smaller than 256 x 256 sits at the bottom left of a 256 x 256 texture, so the
+# inventory model's coordinates are the picture's pixels over 256 (icon_uv), the worn model's over its own size.
+
+def outline_octagon(a, b, half_a, half_b, chamfer):
+    """A chamfered rectangle's corners about (a, b), counter-clockwise."""
+    c = chamfer
+    return [(a + half_a, b - half_b + c), (a + half_a, b + half_b - c), (a + half_a - c, b + half_b),
+            (a - half_a + c, b + half_b), (a - half_a, b + half_b - c), (a - half_a, b - half_b + c),
+            (a - half_a + c, b - half_b), (a + half_a - c, b - half_b)]
 
 
-def turned_flat(shape, degrees, scale):
-    """`shape` turned about z by `degrees` and scaled: the game lays an item's model flat in the inventory (z its thin
-    side) and draws it at its own size, as the game's lie diagonally about 2.5 long."""
+# The two axes across each extrusion axis, so that (across[0], across[1], axis) is right-handed.
+ACROSS = {0: (1, 2), 1: (2, 0), 2: (0, 1)}
+
+
+def loft(axis, low, high, outline_low, outline_high, uv):
+    """A solid from a convex outline at `low` along `axis` (0 x, 1 y, 2 z) to another of as many corners at `high`
+    (counter-clockwise seen from +axis, in ACROSS[axis]'s two axes): its sides and both ends, each face flat.
+    uv(point, normal): the texture coordinates of a face's corner."""
+    a, b = ACROSS[axis]
+
+    def point(corner, at):
+        p = [0.0, 0.0, 0.0]
+        p[a], p[b], p[axis] = corner[0], corner[1], at
+        return tuple(p)
+    faces = []
+    n = len(outline_low)
+    for i in range(n):
+        j = (i + 1) % n
+        faces.append([point(outline_low[i], low), point(outline_low[j], low), point(outline_high[j], high),
+                      point(outline_high[i], high)])
+    faces.append([point(c, high) for c in outline_high])
+    faces.append([point(c, low) for c in reversed(outline_low)])
+    positions, normals, uvs, indices = [], [], [], []
+    for face in faces:
+        e1 = [face[1][k] - face[0][k] for k in range(3)]
+        e2 = [face[2][k] - face[0][k] for k in range(3)]
+        normal = (e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0])
+        length = math.sqrt(sum(c * c for c in normal)) or 1.0
+        normal = tuple(c / length for c in normal)
+        base = len(positions)
+        for p in face:
+            positions.append(p)
+            normals.append(normal)
+            uvs.append(uv(p, normal))
+        for k in range(1, len(face) - 1):
+            indices += [base, base + k, base + k + 1]
+    return positions, normals, uvs, indices
+
+
+def rod(axis, low, high, radius_low, radius_high, centre, uv):
+    """An eight-sided rod along `axis` from `low` to `high` about `centre` (its point in ACROSS[axis]'s axes)."""
+    return loft(axis, low, high, outline_octagon(centre[0], centre[1], radius_low, radius_low, radius_low * 0.6),
+                outline_octagon(centre[0], centre[1], radius_high, radius_high, radius_high * 0.6), uv)
+
+
+def turned(shape, axis, degrees, scale=1.0, shift=(0.0, 0.0, 0.0)):
+    """`shape` turned about `axis` (0 x, 1 y, 2 z) by `degrees`, then scaled and moved."""
     c, s = math.cos(math.radians(degrees)), math.sin(math.radians(degrees))
-    positions = [((p[0] * c - p[1] * s) * scale, (p[0] * s + p[1] * c) * scale, p[2] * scale) for p in shape[0]]
-    normals = [(n[0] * c - n[1] * s, n[0] * s + n[1] * c, n[2]) for n in shape[1]]
+    a, b = ACROSS[axis]
+
+    def turn(v):
+        out = list(v)
+        out[a], out[b] = v[a] * c - v[b] * s, v[a] * s + v[b] * c
+        return out
+    positions = [tuple(x * scale + d for x, d in zip(turn(p), shift)) for p in shape[0]]
+    normals = [tuple(turn(n)) for n in shape[1]]
     return positions, normals, shape[2], shape[3]
 
 
+def planar(rect, across, along, picture):
+    """Texture coordinates that lay `rect` (picture pixels x0, y0, x1, y1, half a pixel kept from each edge) over
+    the box `across` (axis, from, to) x `along` (axis, from, to): the first along the pixels' x, the second down their
+    rows. picture(px, py): the coordinates of a pixel."""
+    x0, y0, x1, y1 = rect[0] + 0.5, rect[1] + 0.5, rect[2] - 0.5, rect[3] - 0.5
+
+    def uv(p, normal):
+        s = clamp((p[across[0]] - across[1]) / (across[2] - across[1]))
+        t = clamp((p[along[0]] - along[1]) / (along[2] - along[1]))
+        return picture(x0 + (x1 - x0) * s, y0 + (y1 - y0) * t)
+    return uv
+
+
+def icon_uv(px, py):
+    """A pixel of a 128 x 128 picture as the inventory model's coordinates: the picture at the bottom left of 256."""
+    return px / 256, (128 + py) / 256
+
+
+def worn_uv(px, py):
+    """A pixel of a 128 x 128 picture as the worn model's coordinates."""
+    return px / 128, py / 128
+
+
+# The hammer's picture (128 x 128): a unit's weapons take its left 0.3 (the helmets the middle; the game's hammers'
+# pictures are opaque there alone), so everything is in a strip STRIP wide, the rest clear. Its parts (x0, y0, x1, y1):
+STRIP = 38
+HANDLE = (0, 0, 9, 96)          # the shaft's wood, along the rows, lit down the middle
+GRIP = (0, 96, 9, 128)          # leather wound round the grip
+HEAD_TOP = (9, 0, 38, 64)       # the head's face that the light falls on: granite with a blue rune
+HEAD_BEVEL = (9, 64, 38, 88)    # its chamfers: darker, a bright edge
+HEAD_SIDE = (9, 88, 38, 104)    # its sides, in shadow
+HEAD_FACE = (9, 104, 38, 120)   # the striking faces' plates: worn smooth
+IRON = (9, 120, 38, 128)        # the collar under the head and the pommel
+
+
+def hammer_shape(picture):
+    """The hammer in its own units, lying with its head towards +y and its top face towards +z (the camp shows a
+    weapon from +z): a grip, a shaft, an iron collar and pommel, a chamfered granite head with flared striking faces.
+    picture(px, py): the coordinates of a pixel."""
+    shapes = []
+
+    def by_x(rect, radius, low, high):
+        return planar(rect, (0, -radius, radius), (1, high, low), picture)
+    shapes.append(rod(1, -1.27, -1.18, 0.085, 0.085, (0, 0), by_x(IRON, 0.085, -1.27, -1.18)))
+    shapes.append(rod(1, -1.18, -0.72, 0.075, 0.07, (0, 0), by_x(GRIP, 0.075, -1.18, -0.72)))
+    shapes.append(rod(1, -0.72, 0.52, 0.065, 0.06, (0, 0), by_x(HANDLE, 0.065, -0.72, 0.52)))
+    shapes.append(rod(1, 0.4, 0.49, 0.09, 0.085, (0, 0), by_x(IRON, 0.09, 0.4, 0.49)))
+    centre, half, chamfer = 0.67, 0.19, 0.075
+    # The head: its long side along x; the face it shows by the way the face turns.
+    top = planar(HEAD_TOP, (1, centre - half, centre + half), (0, -0.38, 0.38), picture)
+    bevel = planar(HEAD_BEVEL, (1, centre - half, centre + half), (0, -0.38, 0.38), picture)
+    side = planar(HEAD_SIDE, (2, -half, half), (0, -0.38, 0.38), picture)
+    end = planar(HEAD_FACE, (1, centre - half, centre + half), (2, -half, half), picture)
+
+    def head(p, normal):
+        if abs(normal[0]) > 0.9:
+            return end(p, normal)
+        if abs(normal[2]) > 0.9:
+            return top(p, normal)
+        return bevel(p, normal) if abs(normal[2]) > 0.3 else side(p, normal)
+    body = outline_octagon(centre, 0.0, half, half, chamfer)
+    shapes.append(loft(0, -0.38, 0.38, body, body, head))
+    # The striking faces: plates flaring outwards, worn smooth, their rims dark lines from above.
+    face = planar(HEAD_FACE, (1, centre - 0.235, centre + 0.235), (2, -0.235, 0.235), picture)
+    inner = outline_octagon(centre, 0.0, 0.205, 0.205, 0.08)
+    outer = outline_octagon(centre, 0.0, 0.235, 0.235, 0.09)
+    for low, high, outlines in ((0.38, 0.48, (inner, outer)), (-0.48, -0.38, (outer, inner))):
+        rim = planar(HEAD_FACE, (1, centre - 0.235, centre + 0.235), (0, low, high), picture)
+        shapes.append(loft(0, low, high, outlines[0], outlines[1],
+                           lambda p, normal, rim=rim: face(p, normal) if abs(normal[0]) > 0.9 else rim(p, normal)))
+    return merge(*shapes)
+
+
 def hammer_icon():
-    """initwehm9: the inventory model of hammer number 9 (a loose figure of one part, "weapon")."""
+    """initwehm9: the inventory model of hammer number 9 (a loose figure of one part, "weapon"). The game's lie
+    diagonally, the head at the top left, about 2.6 long: the camp turns a weapon about that diagonal."""
     gltf = Gltf()
-    shape = merge(box((0, -0.35, 0), (0.14, 1.5, 0.14), HANDLE_UV),
-                  box((0, 0.55, 0), (0.9, 0.42, 0.3), HEAD_UV),
-                  box((0, 0.55, 0), (1.04, 0.26, 0.2), HEAD_UV))
-    gltf.node('weapon', (0, 0, 0), turned_flat(shape, -45, 1.3), 'stone 1')
+    centred = turned(hammer_shape(icon_uv), 2, 0, 1.0, (0.0, 0.18, 0.0))   # the middle of its length at the origin
+    shape = turned(centred, 2, 45, 0.88)
+    gltf.node('weapon', (0, 0, 0), shape, 'stone 1')
     return gltf.glb({'ei': {'layout': 'loose'}})
 
 
 def hammer_worn():
     """hm_09: the hammer in the hand, the part the game loads for club number 9 (rh3.club09) under the bone the game's
     clubs hang from (rh3.axe00, a node without a mesh here: the figures have it), in the second texture's weapons'
-    strip (material "stone 2"). The game's clubs point along -y from the grip, about 0.45 long; this one is 0.56."""
+    strip (material "stone 2"). The game's clubs point along -y from the grip, about 0.45 long; this one is 0.58: the
+    inventory model's shape turned head down, the hand 0.11 from the pommel."""
     gltf = Gltf()
-    shape = merge(box((0, -0.17, 0), (0.035, 0.56, 0.035), HANDLE_UV),
-                  box((0, -0.42, 0), (0.2, 0.1, 0.09), HEAD_UV),
-                  box((0, -0.42, 0), (0.24, 0.06, 0.06), HEAD_UV))
+    scale = 0.273
+    shape = turned(hammer_shape(worn_uv), 2, 180, scale, (0.0, 0.11 - 1.27 * scale, 0.0))
     hand = gltf.node('rh3.axe00', (0, 0, 0), None, None)
     gltf.node('rh3.club09', (0, 0, 0), shape, 'stone 2', hand)
     return gltf.glb()
 
 
+def granite(grain, x, y, light):
+    """Grey granite with dark and light flecks, darkened to `light` (1 as lit as the head's top)."""
+    t = grain.at(x, y)
+    colour = mix((84, 80, 84), (150, 142, 134), (t - 0.2) * 1.5)
+    fleck = grain.at(x * 7.3 + 31, y * 7.3 + 17)
+    if fleck > 0.68:
+        colour = mix(colour, (40, 36, 40), 0.6)
+    elif fleck < 0.3:
+        colour = mix(colour, (214, 206, 196), 0.45)
+    return mix(colour, (0, 0, 0), 1 - light)
+
+
 def hammer_texture(rng):
-    """unhumahm_09.gr.0: in the weapons' strip the handle dark wood, the head granite with a blue rune; the rest clear
-    (a helmet's picture shows there)."""
+    """unhumahm_09.gr.0: the hammer's parts (HANDLE ... IRON) in the weapons' strip, the rest clear (a helmet's picture
+    shows there)."""
     size = 128
     grain = Fractal(rng, 4, 3, float(size))
     pixels = []
+
+    def inside(rect, x, y):
+        return rect[0] <= x < rect[2] and rect[1] <= y < rect[3]
     for y in range(size):
         for x in range(size):
             if x >= STRIP:
                 pixels.append((0, 0, 0, 0))
                 continue
-            if x < 9:
+            across = (x + 0.5 - 4.5) / 4.5   # -1..1 over the handle's width
+            if inside(HANDLE, x, y):
                 t = grain.at(x * 4.0, y * 0.5)
-                colour = mix((60, 38, 22), (110, 76, 44), t)
+                colour = mix(mix((64, 40, 22), (138, 98, 58), t), (0, 0, 0), 0.55 * across * across)
+            elif inside(GRIP, x, y):
+                band = (x + y * 2) % 8
+                colour = (98, 60, 34) if band >= 2 else (48, 28, 16)
+                colour = mix(colour, (0, 0, 0), 0.5 * across * across)
+            elif inside(HEAD_TOP, x, y):
+                u, v = (x - 9 + 0.5) / 29, (y + 0.5) / 64
+                edge = max(abs(u - 0.5), abs(v - 0.5)) * 2
+                colour = granite(grain, x, y, 1.05 - 0.3 * edge * edge)
+                cx, cy = 23.5, 32.0
+                ring = abs(math.hypot(x + 0.5 - cx, (y + 0.5 - cy) * 0.75) - 8.5)
+                if ring < 1.4 or (abs(x + 0.5 - cx) < 1.3 and abs(y + 0.5 - cy) < 15):
+                    colour = (90, 190, 250)
+                elif ring < 3.0:
+                    colour = mix(colour, (70, 150, 220), 0.35)
+            elif inside(HEAD_BEVEL, x, y):
+                colour = granite(grain, x, y, 0.72)
+                if y < 66:
+                    colour = mix(colour, (230, 226, 216), 0.5)   # the lit edge
+            elif inside(HEAD_SIDE, x, y):
+                colour = granite(grain, x, y, 0.48)
+            elif inside(HEAD_FACE, x, y):
+                colour = granite(grain, x * 0.5, y * 0.5, 0.85)
+                if y in (104, 119) or x in (9, 37):
+                    colour = mix(colour, (0, 0, 0), 0.55)
             else:
-                t = grain.at(x, y)
-                colour = mix((92, 90, 96), (176, 170, 160), (t - 0.2) * 1.5)
-                cx, cy = 23.5, size * 0.5
-                if abs(math.hypot(x - cx, y - cy) - 9) < 1.5 or (abs(x - cx) < 1.5 and abs(y - cy) < 12):
-                    colour = (70, 170, 240)
-            pixels.append(colour + (255,))
+                colour = (58, 56, 60) if (x - 9) % 7 != 3 or y in (120, 127) else (150, 148, 140)   # iron, rivets
+            pixels.append(tuple(int(round(clamp(c / 255) * 255)) for c in colour) + (255,))
     return size, pixels
 
 
-# The boots' layer: where the hero's skin texture (256 x 256) has its feet and lower legs, the rest transparent.
+# The boots' layer: where the hero's skin texture (256 x 256) has its feet and lower legs, the rest transparent. The
+# hero's legs lie in it seen from the side, the sole at the top: the feet's rows from 59 / 159, the shins below. Two
+# parts of the rectangles no part of the hero's figure takes hold the inventory model's own pictures: the pair seen
+# from the front (FRONT, the boot's top in the first row, the sole in the last) and a foot from above (FOOT_TOP, the
+# heel in the first row, the toe in the last).
 BOOT_RECTS = [(208, 48, 256, 96), (128, 144, 256, 192)]
-BOOT_UV = (0.53, 0.58, 0.97, 0.73)   # the icon's faces: inside the second rectangle
+FRONT = (200, 144, 222, 192)
+FOOT_TOP = (208, 48, 221, 96)
 
-
-def boots_icon():
-    """initarbt20: the inventory model of boots number 20 (a loose figure of one part, "armor"): a pair of boots."""
-    gltf = Gltf()
-    shapes = []
-    for side in (-0.3, 0.3):
-        shapes.append(box((side, 0.15, 0.0), (0.4, 0.8, 0.14), BOOT_UV))           # the shaft, lying flat
-        shapes.append(box((side, -0.38, 0.0), (0.4, 0.3, 0.14), BOOT_UV))          # the heel and the foot
-        shapes.append(box((side + 0.14, -0.5, 0.0), (0.3, 0.32, 0.12), BOOT_UV))   # the toes
-    gltf.node('armor', (0, 0, 0), turned_flat(merge(*shapes), -30, 1.6), 'leather 1')
-    return gltf.glb({'ei': {'layout': 'loose'}})
+# The boot's heights (y, the sole at the bottom) and depths (z, the toe towards the viewer) in its own units.
+BOOT_TOP, BOOT_SOLE, SHAFT_FOOT, FOOT_HEEL, FOOT_TOE = 0.74, -0.64, -0.3, -0.22, 0.56
+CUFF_LOW, SOLE_TOP = 0.5, -0.58
 
 
 def boots_texture(rng):
@@ -705,10 +868,96 @@ def boots_texture(rng):
                 continue
             t = leather.at(x, y)
             colour = mix((70, 40, 24), (128, 82, 48), t)
-            if y % 16 in (0, 1):
+            if FRONT[0] <= x < FRONT[2] and FRONT[1] <= y < FRONT[3]:
+                colour = boot_front(colour, (x + 0.5 - FRONT[0]) / (FRONT[2] - FRONT[0]),
+                                    BOOT_TOP - (y + 0.5 - FRONT[1]) / (FRONT[3] - FRONT[1]) * (BOOT_TOP - BOOT_SOLE))
+            elif FOOT_TOP[0] <= x < FOOT_TOP[2] and FOOT_TOP[1] <= y < FOOT_TOP[3]:
+                colour = boot_foot_top(colour, (x + 0.5 - FOOT_TOP[0]) / (FOOT_TOP[2] - FOOT_TOP[0]),
+                                       FOOT_HEEL + (y + 0.5 - FOOT_TOP[1]) / (FOOT_TOP[3] - FOOT_TOP[1]) *
+                                       (FOOT_TOE - FOOT_HEEL))
+            elif y % 16 in (0, 1):
                 colour = mix(colour, (200, 170, 90), 0.6)   # stitched bands
-            pixels.append(colour + (255,))
+            pixels.append(tuple(int(round(clamp(c / 255) * 255)) for c in colour) + (255,))
     return size, pixels
+
+
+def boot_front(leather, u, height):
+    """The pixel of the boot seen from the front at `u` (0..1 across) and `height`: the light from the upper left on a
+    round shaft, a turned-down cuff, laces up the front, a strap with a buckle at the ankle, the toe, a stitched welt
+    and the sole."""
+    across = u * 2 - 1
+    light = 1.12 - 0.5 * across * across + 0.18 * max(0.0, 1 - abs(across + 0.35) * 3)
+    colour = leather
+    if height > CUFF_LOW:
+        colour = mix(leather, (176, 120, 72), 0.55)                   # the cuff, lighter, turned down
+        if abs(height - CUFF_LOW) < 0.035:
+            colour = (40, 24, 14)                                      # its shadow
+        elif abs(height - (BOOT_TOP - 0.06)) < 0.015 and int(u * 22) % 2 == 0:
+            colour = (220, 190, 120)                                   # stitches
+    elif height > SHAFT_FOOT + 0.08:
+        if abs(across) < 0.1:
+            colour = (34, 20, 12)                                      # the laces' slit
+        lace = (height * 28) % 2.0
+        if abs(across) < 0.32 and abs(abs(across) - abs(lace - 1) * 0.32) < 0.07:
+            colour = (214, 188, 140)                                   # the crossed laces
+    elif height > SHAFT_FOOT:
+        colour = (52, 30, 18)                                          # the ankle strap
+        if abs(across) < 0.2:
+            colour = (222, 182, 84) if abs(across) > 0.1 or abs(height - SHAFT_FOOT - 0.04) > 0.02 else (90, 64, 30)
+    elif height > SOLE_TOP + 0.03:
+        colour = mix(leather, (150, 98, 58), 0.4 * (height - SOLE_TOP) / (SHAFT_FOOT - SOLE_TOP))   # the toe
+    elif height > SOLE_TOP:
+        colour = (210, 180, 110) if int(u * 22) % 2 == 0 else (60, 38, 22)   # the welt's stitches
+    else:
+        colour = (34, 24, 18)                                          # the sole
+    return mix(colour, (0, 0, 0), clamp(1 - light)) if light < 1 else mix(colour, (255, 236, 200), (light - 1) * 0.5)
+
+
+def boot_foot_top(leather, u, depth):
+    """The pixel of the foot seen from above at `u` (0..1 across) and `depth` (heel to toe): the shaft's dark opening
+    above the heel, then the instep and the toe, polished where it is round."""
+    across = u * 2 - 1
+    if depth < 0.16:
+        return (30, 18, 12)                                            # into the shaft
+    toe = clamp((depth - 0.16) / (FOOT_TOE - 0.16))
+    colour = mix(leather, (160, 106, 64), 0.5 * toe)
+    light = 1.05 - 0.45 * across * across
+    if toe > 0.55 and abs(across + 0.2) < 0.25:
+        light += 0.2                                                    # the toe cap's shine
+    return mix(colour, (0, 0, 0), clamp(1 - light)) if light < 1 else mix(colour, (255, 236, 200), (light - 1) * 0.5)
+
+
+def boot_shape(side):
+    """One boot in its own units, standing, the toe towards +z: the shaft and its cuff, the foot and the sole. Faces
+    turned towards +z or sideways show FRONT, those turned up FOOT_TOP; `side` -1 or 1 mirrors the pictures."""
+    def picture(px, py):
+        return px / 256, py / 256
+    u0, u1 = (-0.26, 0.26) if side > 0 else (0.26, -0.26)
+    front = planar(FRONT, (0, u0, u1), (1, BOOT_TOP, BOOT_SOLE), picture)
+    above = planar(FOOT_TOP, (0, u0 * 0.9, u1 * 0.9), (2, FOOT_HEEL, FOOT_TOE), picture)
+
+    def uv(p, normal):
+        return above(p, normal) if normal[1] > 0.6 else front(p, normal)
+    shapes = [rod(1, SHAFT_FOOT - 0.04, CUFF_LOW, 0.16, 0.18, (0.0, 0.0), uv),
+              rod(1, CUFF_LOW - 0.02, BOOT_TOP, 0.215, 0.23, (0.0, 0.0), uv)]
+    # The foot: a slab from heel to toe, wider than the shaft, its top falling towards the toe.
+    foot_low = outline_octagon(0.17, 0.0, 0.39, 0.22, 0.13)    # (z, x) about the foot's middle
+    foot_high = outline_octagon(0.06, 0.0, 0.26, 0.17, 0.1)
+    shapes.append(loft(1, SOLE_TOP, SHAFT_FOOT + 0.02, foot_low, foot_high, uv))
+    sole = outline_octagon(0.17, 0.0, 0.42, 0.24, 0.14)
+    shapes.append(loft(1, BOOT_SOLE, SOLE_TOP + 0.005, sole, sole, uv))
+    return merge(*shapes)
+
+
+def boots_icon():
+    """initarbt20: the inventory model of boots number 20 (a loose figure of one part, "armor"): a pair of boots
+    standing side by side, the toes a little apart and tipped towards the viewer so the feet show from above. The
+    camp shows an armour's model from +z and turns it about y."""
+    pair = merge(turned(boot_shape(-1), 1, -12, 1.0, (-0.27, 0.0, 0.0)),
+                 turned(boot_shape(1), 1, 12, 1.0, (0.27, 0.0, 0.0)))
+    gltf = Gltf()
+    gltf.node('armor', (0, 0, 0), turned(pair, 0, 26, 0.85, (0.0, 0.04, 0.0)), 'leather 1')
+    return gltf.glb({'ei': {'layout': 'loose'}})
 
 
 # --- Writing ----------------------------------------------------------------------------------------------------------

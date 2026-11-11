@@ -1413,7 +1413,13 @@ Notes from making it:
   hero's 0.95); the first try had them at 0 and the golem stood buried to its waist.
 - Units a `.mob.toml` places have no script name (`GetObjectByName`, the harness's names): the scenario and the script
   find the golem by its id, and the harness's `objtrace start #<id>` follows a unit by id.
-- Inventory models are drawn at their own size: the game's lie diagonally, about 2.5 long.
+- Inventory models are drawn at their own size (about 2 x 2 fills a slot), unlit (`ItemScreen::DrawItem`: flat
+  colour), in the worn piece's texture with a smaller picture at the bottom left of 256 x 256 (`ItemFigureTexture`),
+  seen from +z; weapons lie diagonally, head at the top left, and turn about that diagonal (docs/modding.md, "Inventory
+  models"). The first boxes (MF13) sampled outside the hammer's picture (white) and drew the boots as lit-less planks;
+  MF13e paints each face's light into the textures: the hammer's strip holds HANDLE ... IRON, and the boots' layer
+  holds a front view (FRONT, x 200..222 of rows 144..192) and a foot from above (FOOT_TOP, x 208..221 of rows 48..96)
+  where no part of unhuma.glb takes the skin (its legs lie there seen from the side, soles at rows 59 and 159).
 - A `.mob.toml` placement's `texture` is the figure (the shards' is "scgolem"), its `parent_iname` the skin: a
   placement naming a figure that does not exist ends the game ("Can't load skeleton file").
 - Guards wander within their `guard_radius` until they see an enemy: by the time a new game's battle screen is up the
