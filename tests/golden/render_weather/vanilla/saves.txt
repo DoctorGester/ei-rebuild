@@ -1,6 +1,0 @@
-current/gz1g.sav 6e33470bab40d326
-current/gz1g.visuals.sav a0e1168d04d996b9
-savea/info.sav 653e5ff14b8d865a
-savea/mission.sav 865f56e8074d7a2a
-savea/scenario.sav 93808c973f3b1cac
-savea/visuals.sav fc7ed1d598f1eea6

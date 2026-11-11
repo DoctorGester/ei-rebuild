@@ -1,3 +1,0 @@
-save2/info.sav 7241a17518608ebe
-save2/mission.sav 99e387c51c933d96
-save2/scenario.sav 5a44e5fbc26d002e
