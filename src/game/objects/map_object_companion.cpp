@@ -28,11 +28,6 @@ constexpr float kStenchNear = 10.0f;
 constexpr float kStenchFar = 50.0f;
 const char* const kEndSoundName = "magic\\end1.wav";
 const char* const kStenchSoundFormat = "magic\\Stench\\%i.wav";
-
-bool IsScaleEffect(SpellType type) {
-    return type == SpellType::Strengthen || type == SpellType::Weaken || type == SpellType::Enlarge ||
-           type == SpellType::Shrink;
-}
 } // namespace
 
 
@@ -43,15 +38,8 @@ bool MapObjectServer::RunTick() {
         if (!owner->effects[i].Tick()) {
             SpellType spellType = owner->effects[i].Behaviour();
             owner->effects.erase(owner->effects.begin() + i);
-            bool scaleEffect = IsScaleEffect(spellType);
-            if (scaleEffect) owner->RecomputeScale();
-            owner->MarkChanged(NetField::Effects);
-            owner->ScaleEffectChanged(scaleEffect);
+            owner->EffectRemoved(spellType);
             --i;
-            owner->EffectsChanged();
-            if (!owner->HasEffect(SpellType::Stun) &&
-                !owner->HasEffect(SpellType::Teleport))
-                owner->SetStunned(0);
         }
         ++i;
     } while (i < std::ssize(owner->effects));

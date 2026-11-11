@@ -24,6 +24,8 @@ class Unit;
 class MapObject;
 struct MapEffect;
 class Effect;
+class EffectArrow;
+class EffectLightning;
 class EffectParticle;
 class EffectPointLight;
 class ScriptSpellHost;
@@ -145,6 +147,24 @@ constexpr bool NoPadding(const DamageInfo*) {
                            &DamageInfo::backstabFactor, &DamageInfo::calledShot, &DamageInfo::unused_39>();
 }
 
+// Either unit regards the other's side as hostile (CanAffect's "ff" / "fe").
+bool SpellHostile(const Unit* caster, const Unit* unit);
+// Whether area spells hit `unit`: units with a size class, and those whose prototype's height is below 0.5 (or NaN).
+bool AcceptsAreaSpells(Unit* unit);
+
+// An effect object a scripted cast made (ScriptSpellHost's bindings): in the world's timed objects until it goes.
+struct SpellOwned {
+    Ref<Effect> object;
+    int ticks = 0;      // the ticks it has left; 0: it lasts as long as the cast
+    int payload = 0;    // a missile's key in its cast's missiles (its OnHit payload); 0 for the others
+};
+// A scripted cast's missile that arrived: its payload key, the object it flew at (-1: gone) and where it ended.
+struct SpellArrival {
+    int payload = 0;
+    int targetId = -1;
+    Vector3 point;
+};
+
 // A spell being applied (created by WorldServer::CastSpell): the world server's missiles. It embeds the
 // Spell it applies; the spell's duration is also the number of targets the damage is split between, and the
 // lasting effects' ticks.
@@ -155,6 +175,9 @@ public:
 
     // Split between the targets when there are several.
     void GetDamage(DamageInfo* out);
+    // A spell's hit: no defence roll (attackRoll FLT_MAX), every body part (location 6), `amount` of `type` (its
+    // weight 1); a non-zero `hitKind` has no direction (the walls and clouds burn so).
+    static DamageInfo TypedHit(DamageType type, float amount, int hitKind);
     // The spell's damage to the target when it is a unit.
     void HitTarget();
 
@@ -181,12 +204,25 @@ public:
     // It becomes the visual.
     void CreateArrow(const Vector3& from, EngineObject* target, ParticleType particleType, float power, const char* sound,
                      const Vector3& color, float range);
+    // A spell missile homing on `target` (its particle `particleType`, an original type or a data effect's id), not yet
+    // in the world; with a `launcher` the client starts it at the launcher's effect point. Null when the manager makes
+    // none.
+    EffectArrow* NewArrow(const Vector3& from, EngineObject* target, int particleType, float size, const char* sound,
+                          const Vector3& color, float range, Unit* launcher);
     // Types 0x2010 and 0x2014 are walls. `keep`: it becomes the visual, else it is only added to the world's
     // timed objects.
     EffectParticle* CreateParticle(int keep, ParticleType particleType, const Vector3& position, float size, float alpha,
                                     const Vector3& velocity, EngineObject* attachTo);
+    // CreateParticle's object (`particleType` an original type or a data effect's id), not yet in the world.
+    EffectParticle* NewParticle(int particleType, const Vector3& position, float size, float alpha,
+                                const Vector3& velocity, EngineObject* attachTo);
     // Nothing without a target; it becomes the visual.
     void CreateLightning(const Vector3& from, MapObject* target, EngineObject* source, float power, int flag);
+    // Where a lightning at `object` ends: above its ground by its height x 1.2.
+    Vector3 LightningEnd(MapObject* object);
+    // A bolt from `from` to `to` that follows the objects of the ids (-1: none), not yet in the world.
+    EffectLightning* NewLightning(const Vector3& from, const Vector3& to, int fromObject, int toObject, float width,
+                                  int flag);
     // A one-shot sound effect (the effect does not keep it).
     void CreateSound(const char* name, const Vector3& position, const Vector3& velocity, float volume, float radius);
     // `first`, then `pattern` itself (count < 1) or `pattern` formatted with 1..count. It becomes the sound.
@@ -194,6 +230,23 @@ public:
                              const char* pattern, int count);
     // Light flags Specular | Strong; it becomes the light.
     void CreatePointLight(const Vector3& position, const Vector3& color, float range, const Vector3& velocity);
+    // CreatePointLight's object, not yet in the world.
+    EffectPointLight* NewPointLight(const Vector3& position, const Vector3& color, float range, const Vector3& velocity);
+    // The record a buff puts on its target: the spell's, its strength trunc(power x 16), the end sound as silentEnd
+    // says.
+    MapEffect BuffRecord();
+    // `unit` to `point` (the sector map's Move) unless `check` and the AI map does not let it stand there (false).
+    bool MoveUnit(Unit* unit, const Vector3& point, bool check);
+
+    // A scripted cast's object: into the world's timed objects, then held in `owned` (SpellOwned).
+    void Own(Effect* object, int ticks, int payload);
+    // One tick of the owned objects: those whose ticks run out go, those that left the world are dropped, and the
+    // missiles that arrived go, appended to *arrived in the list's order.
+    void TickOwned(std::vector<SpellArrival>* arrived);
+    // An owned object with ticks left, or a missile in flight.
+    bool OwnsPending() const;
+    // Every owned object out of the world.
+    void ReleaseOwned();
 
     // One tick. Returns 0 when the effect has ended (the world then removes it) or without a world.
     int Update();
@@ -213,8 +266,8 @@ public:
 
     // The position, caster and target ids, the target point, the state, the spell, the packed id, the visual
     // / sound / light ids (-1 for none), the timer, the flags and the position again; a scripted cast then its key
-    // and its owned objects (a count, 0). Load finds the objects in g_loadingProjectileWorld and stamps the
-    // footprint.
+    // and its owned objects (a count, then each one's id, ticks and payload key). Load finds the objects in
+    // g_loadingProjectileWorld and stamps the footprint.
     void Load(ByteStream* stream);
     void Save(ByteStream* stream);
     // After the world's script state loaded: a scripted cast goes on in the restored state's entry of its key, else
@@ -239,6 +292,7 @@ public:
     // when the host went with its zone's Lua state).
     int castKey = 0;
     ScriptSpellHost* host = nullptr;
+    std::vector<SpellOwned> owned;      // a scripted cast's objects
 
     // The visual as the effect class its spell's behaviour creates.
     template <class T> T* Visual() const { return static_cast<T*>(visual.Get()); }

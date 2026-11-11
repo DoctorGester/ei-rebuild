@@ -126,9 +126,9 @@ inline void SetPosition(TransformObject* object, const Vector3& position) {
 }
 
 // The spell's prototype.
-inline const itemdb::SpellRecord* Prototype(SpellEffect* e) { return e->HeldSpell()->GetPrototype(); }
+inline const itemdb::SpellRecord* Prototype(const SpellEffect* e) { return e->HeldSpell()->GetPrototype(); }
 
-inline float Power(SpellEffect* e) { return PowerFactor(e->HeldSpell()->damage, Prototype(e)->damage); }
+inline float Power(const SpellEffect* e) { return PowerFactor(e->HeldSpell()->damage, Prototype(e)->damage); }
 
 // The lights' rise speed: lightRange / max(lightRiseDivisor, 1), a NaN divisor kept.
 inline float LightRise(SpellEffect* e) {

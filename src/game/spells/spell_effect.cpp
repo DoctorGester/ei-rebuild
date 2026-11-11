@@ -23,22 +23,19 @@
 #include <bit>
 #include <cfloat>
 #include <cstdint>
-#include <cstring>
 #include <string>
 
 namespace {
 constexpr float kTargetThreshold = 0.5f;
 constexpr float kWallHalfWidth = 1.0f;
 constexpr float kSplitDamage = 4.0f;
+} // namespace
 
-// Whether area spells hit `unit`: units with a size class, and those whose prototype's height is below 0.5 (or
-// NaN).
 bool AcceptsAreaSpells(Unit* unit) {
     if (unit->sizeClass != 0) return true;
     float value = unit->GetPrototype()->height;
     return value < kTargetThreshold;
 }
-} // namespace
 
 void SpellEffect::HitUnit(DamageInfo* hit, MapObject* unit) {
     if (caster && !HeldSpell()->CanAffect(caster, unit)) return;
@@ -115,19 +112,25 @@ const SpellDamageKind* DamageKindOf(SpellType type) {
 
 } // namespace
 
-void SpellEffect::GetDamage(DamageInfo* out) {
-    std::memset(out, 0, sizeof(*out));
-    out->location = 6;
-    out->multiplier = 1.0f;
-    out->attackRoll = FLT_MAX;
-    out->backstabFactor = 1.0f;
-    out->calledShot = 0;
+DamageInfo SpellEffect::TypedHit(DamageType type, float amount, int hitKind) {
+    DamageInfo hit;
+    hit.location = 6;
+    hit.multiplier = 1.0f;
+    hit.attackRoll = FLT_MAX;
+    hit.backstabFactor = 1.0f;
+    hit.Weight(type) = 1.0f;
+    hit.amount = amount;
+    hit.hitKind = hitKind;
+    return hit;
+}
 
+void SpellEffect::GetDamage(DamageInfo* out) {
     const Spell* record = HeldSpell();
     if (const SpellDamageKind* kind = DamageKindOf(record->Behaviour())) {
-        out->Weight(kind->type) = 1.0f;
-        out->amount = record->damage;
-        out->hitKind = kind->hitKind;
+        *out = TypedHit(kind->type, record->damage, kind->hitKind);
+    } else {
+        *out = TypedHit(DamageType::Other, 0.0f, 0);
+        out->Weight(DamageType::Other) = 0.0f;   // a behaviour that deals no damage: a hit of no type
     }
 
     // The duration is the number of targets the damage is split between.
@@ -177,8 +180,17 @@ void SpellEffect::Load(ByteStream* stream) {
     stream->ReadValue(position);
     if (state == spellfx::kStateScripted) {
         stream->ReadValue(castKey);
-        std::int32_t owned = 0;
-        stream->ReadValue(owned);
+        std::int32_t count = 0;
+        stream->ReadValue(count);
+        BaseManager* manager = world->TimedObjectManager();
+        for (std::int32_t i = 0; i < count; ++i) {
+            const int id = stream->ReadId();
+            SpellOwned entry;
+            stream->ReadValue(entry.ticks);
+            stream->ReadValue(entry.payload);
+            entry.object.Assign(manager->FindObjectAs<Effect>(id));
+            if (entry.object) owned.push_back(std::move(entry));
+        }
     }
     UpdateFootprint(HeldSpell()->Behaviour(), 1);
 }
@@ -199,7 +211,12 @@ void SpellEffect::Save(ByteStream* stream) {
     stream->WriteValue(position);
     if (state == spellfx::kStateScripted) {
         stream->WriteValue(castKey);
-        stream->WriteValue(std::int32_t{0});
+        stream->WriteValue(static_cast<std::int32_t>(owned.size()));
+        for (const SpellOwned& entry : owned) {
+            stream->WriteId(entry.object);
+            stream->WriteValue(entry.ticks);
+            stream->WriteValue(entry.payload);
+        }
     }
 }
 
@@ -394,14 +411,11 @@ void StartPoisonCloud(SpellEffect* e) {
     EnterLasting(e);
 }
 
-// The buffs (Start lists them). The target gets a record of the spell
-// with the strength trunc(power x 16); the effect itself ends.
+// The buffs (Start lists them). The target gets the spell's BuffRecord; the effect itself ends.
 void ApplyBuff(SpellEffect* e) {
     e->state = kStateEnded;
     if (!e->target) return;
-    MapEffect record = e->HeldSpell()->EffectRecord();
-    record.power = static_cast<std::uint8_t>(static_cast<std::int64_t>(Power(e) * kBuffScale));
-    record.ending = e->silentEnd;
+    MapEffect record = e->BuffRecord();
     e->target->AddEffect(&record);
 }
 
@@ -636,33 +650,32 @@ void SpellEffect::UpdateFootprint(SpellType type, int stamp) {
 
 void SpellEffect::CreateArrow(const Vector3& from, EngineObject* missileTarget, ParticleType particleType, float power,
                                const char* soundName, const Vector3& color, float range) {
+    EffectArrow* arrow =
+        NewArrow(from, missileTarget, static_cast<int>(particleType), power, soundName, color, range, caster);
+    if (arrow) SetVisual(arrow);
+}
+
+EffectArrow* SpellEffect::NewArrow(const Vector3& from, EngineObject* missileTarget, int particleType, float size,
+                                   const char* soundName, const Vector3& color, float range, Unit* launcher) {
     auto* arrow = CreateObject<EffectArrow>(this, ClassId::EffectArrow);
-    if (!arrow) return;
+    if (!arrow) return nullptr;
     arrow->lightColor = color;
     arrow->lightRange = range;
     SetPosition(arrow, from);
     arrow->SetTarget(missileTarget->id);
-    arrow->particleType = static_cast<int>(particleType);
-    arrow->particleSize = power;
+    arrow->particleType = particleType;
+    arrow->particleSize = size;
     arrow->soundName = soundName;
-    if (caster) {
+    if (launcher) {
         arrow->fromCaster = 1;
-        arrow->casterId = caster->id;
+        arrow->casterId = launcher->id;
     }
-    SetVisual(arrow);
+    return arrow;
 }
 
 EffectParticle* SpellEffect::CreateParticle(int keep, ParticleType particleType, const Vector3& at, float size, float alpha,
                                               const Vector3& velocity, EngineObject* attachTo) {
-    const bool wall = particleType == ParticleType::Tendril || particleType == ParticleType::Link;
-    ClassId classId = wall ? ClassId::EffectWall : ClassId::EffectParticle;
-    auto* particle = CreateObject<EffectParticle>(this, classId);   // a EffectWall for the walls
-    particle->type = static_cast<int>(particleType);
-    SetPosition(particle, at);
-    particle->size = size;
-    particle->SetVelocity(velocity);
-    particle->alpha = alpha;
-    if (attachTo) particle->SetAttachedTo(attachTo->id);
+    EffectParticle* particle = NewParticle(static_cast<int>(particleType), at, size, alpha, velocity, attachTo);
     if (keep) {
         SetVisual(particle);
     } else {
@@ -671,16 +684,41 @@ EffectParticle* SpellEffect::CreateParticle(int keep, ParticleType particleType,
     return particle;
 }
 
+EffectParticle* SpellEffect::NewParticle(int particleType, const Vector3& at, float size, float alpha,
+                                         const Vector3& velocity, EngineObject* attachTo) {
+    const bool wall = particleType == static_cast<int>(ParticleType::Tendril) ||
+                      particleType == static_cast<int>(ParticleType::Link);
+    ClassId classId = wall ? ClassId::EffectWall : ClassId::EffectParticle;
+    auto* particle = CreateObject<EffectParticle>(this, classId);   // a EffectWall for the walls
+    particle->type = particleType;
+    SetPosition(particle, at);
+    particle->size = size;
+    particle->SetVelocity(velocity);
+    particle->alpha = alpha;
+    if (attachTo) particle->SetAttachedTo(attachTo->id);
+    return particle;
+}
+
 void SpellEffect::CreateLightning(const Vector3& from, MapObject* boltTarget, EngineObject* source, float power,
                                    int flag) {
     if (!boltTarget) return;
-    Vector3 to = boltTarget->localPosition;
-    to.z = world->GridHeightAt(to.x, to.y) + boltTarget->bounds.boxMax.z * kTargetHeight;
+    const Vector3 to = LightningEnd(boltTarget);
+    SetVisual(NewLightning(from, to, source ? source->id : -1, boltTarget->id, power * kBoltWidthScale, flag));
+}
+
+Vector3 SpellEffect::LightningEnd(MapObject* object) {
+    Vector3 to = object->localPosition;
+    to.z = world->GridHeightAt(to.x, to.y) + object->bounds.boxMax.z * kTargetHeight;
+    return to;
+}
+
+EffectLightning* SpellEffect::NewLightning(const Vector3& from, const Vector3& to, int fromObject, int toObject,
+                                           float width, int flag) {
     auto* bolt = CreateObject<EffectLightning>(this, ClassId::EffectLightning);
-    bolt->SetEnds(from, to, power * kBoltWidthScale);
-    bolt->SetObjects(source ? source->id : -1, boltTarget->id);
+    bolt->SetEnds(from, to, width);
+    bolt->SetObjects(fromObject, toObject);
     bolt->SetFlag(static_cast<unsigned char>(flag));
-    SetVisual(bolt);
+    return bolt;
 }
 
 void SpellEffect::CreateSound(const char* name, const Vector3& at, const Vector3& velocity, float volume,
@@ -720,14 +758,33 @@ void SpellEffect::CreateSoundSequence(const Vector3& at, const Vector3& velocity
 }
 
 void SpellEffect::CreatePointLight(const Vector3& at, const Vector3& color, float range, const Vector3& velocity) {
+    EffectPointLight* effect = NewPointLight(at, color, range, velocity);
+    Hold(this, light, effect);
+    world->AddTimedObject(effect);
+}
+
+EffectPointLight* SpellEffect::NewPointLight(const Vector3& at, const Vector3& color, float range,
+                                             const Vector3& velocity) {
     auto* effect = CreateObject<EffectPointLight>(this, ClassId::EffectPointLight);
     effect->color = color;
     SetPosition(effect, at);
     effect->range = range;
     effect->SetVelocity(velocity);
     effect->lightFlags = kPointLightFlags;
-    Hold(this, light, effect);
-    world->AddTimedObject(effect);
+    return effect;
+}
+
+MapEffect SpellEffect::BuffRecord() {
+    MapEffect record = HeldSpell()->EffectRecord();
+    record.power = static_cast<std::uint8_t>(static_cast<std::int64_t>(Power(this) * kBuffScale));
+    record.ending = silentEnd;
+    return record;
+}
+
+bool SpellEffect::MoveUnit(Unit* unit, const Vector3& point, bool check) {
+    if (check && !world->aiMap.IsPassableWithoutSelf(unit, point)) return false;
+    world->aiMap.sectorMap.Move(unit, point);
+    return true;
 }
 
 // --- The cast spell's lifetime, start values and the object it forgets ----------------------------
@@ -737,6 +794,7 @@ SpellEffect::SpellEffect() = default;
 SpellEffect::~SpellEffect() {
     if (host) host->Forget(*this);
     if (footprintStamped) UpdateFootprint(HeldSpell()->Behaviour(), 0);
+    ReleaseOwned();
     ReleaseVisual();
     ReleaseSound();
     ReleaseLight();

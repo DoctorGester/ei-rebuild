@@ -336,11 +336,10 @@ void Teleport(SpellEffect* e) {
     if (arrival < 1) arrival = 1;
     if (e->timer != arrival) return;
     e->targetPoint.z = e->caster->localPosition.z;
-    if (!e->world->aiMap.IsPassableWithoutSelf(e->caster, e->targetPoint)) {
+    if (!e->MoveUnit(e->caster, e->targetPoint, true)) {
         if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(AckKind::CantTeleport);
         return;
     }
-    e->world->aiMap.sectorMap.Move(e->caster, e->targetPoint);
     e->ReleaseVisual();
     e->ReleaseSound();
     if (!IsUnit(e->caster)) return;
@@ -364,6 +363,7 @@ int SpellEffect::Update() {
         return 1;
     default:
         UpdateFootprint(type, 0);
+        ReleaseOwned();
         ReleaseVisual();
         ReleaseSound();
         ReleaseLight();
@@ -410,6 +410,49 @@ void SpellEffect::UpdateLasting(SpellType type) {
     case SpellType::Campfire: CountingCloud(this); break;
     default: break;
     }
+}
+
+void SpellEffect::Own(Effect* object, int ticks, int payload) {
+    world->AddTimedObject(object);
+    SpellOwned& entry = owned.emplace_back();
+    entry.object.Assign(object);
+    entry.ticks = ticks;
+    entry.payload = payload;
+}
+
+void SpellEffect::TickOwned(std::vector<SpellArrival>* arrived) {
+    for (auto entry = owned.begin(); entry != owned.end();) {
+        Effect* object = entry->object;
+        bool goes = false;
+        if (entry->payload) {
+            const auto* missile = static_cast<EffectMissile*>(object);
+            if (missile->arrived) {
+                arrived->push_back({entry->payload, missile->targetId, missile->localPosition});
+                goes = true;
+            }
+        } else if (entry->ticks > 0) {
+            goes = --entry->ticks == 0;
+        }
+        if (goes) {
+            world->RemoveTimedObject(static_cast<unsigned>(object->id));
+            entry = owned.erase(entry);
+        } else if (!world->timedObjects.map.contains(static_cast<unsigned>(object->id))) {
+            entry = owned.erase(entry);   // it ended on its own (a one-shot particle)
+        } else {
+            ++entry;
+        }
+    }
+}
+
+bool SpellEffect::OwnsPending() const {
+    for (const SpellOwned& entry : owned)
+        if (entry.ticks > 0 || entry.payload) return true;
+    return false;
+}
+
+void SpellEffect::ReleaseOwned() {
+    for (const SpellOwned& entry : owned) world->RemoveTimedObject(static_cast<unsigned>(entry.object->id));
+    owned.clear();
 }
 
 void SpellEffect::ReleaseVisual() { Hold(this, visual, nullptr); }

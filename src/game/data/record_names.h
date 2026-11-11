@@ -30,6 +30,10 @@ inline dbtoml::Bits SoldBy(std::uint32_t& classMask) {
 inline constexpr std::string_view kDamageTypes[] = {"piercing", "slashing", "crushing", "fire",
                                                     "acid",     "lightning", "general"};
 
+// The spell schools (SpellSchool), as spells.sdb.toml names them and a scripted spell's cast value gives them.
+inline constexpr std::string_view kSpellSchools[] = {"fire",        "lightning", "acid",       "illusion", "divination",
+                                                     "enchantment", "healing",   "domination", "none"};
+
 // The ground's surface classes (a map tile's class: the footstep sounds, prints.db's tables), by prints.db's names.
 // Class 8, which prints.db leaves unnamed, is what Terrain::SurfaceClass answers outside the map and on a tile without
 // a texture (kOutsideClass); aiinfo's tileDesc.reg names it "ASTRAL".

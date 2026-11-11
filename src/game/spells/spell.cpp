@@ -28,6 +28,8 @@ bool Regards(const Unit* unit, const Unit* other) {
 }
 } // namespace
 
+bool SpellHostile(const Unit* caster, const Unit* unit) { return Regards(caster, unit) || Regards(unit, caster); }
+
 void Spell::Create() {
     speed = 0;
     range = 0;
@@ -108,8 +110,7 @@ bool Spell::CanAffect(const Unit* caster, MapObject* target) const {
     if (!unit) return false;
 
     if (caster) {
-        const Unit* source = caster;
-        bool hostile = Regards(source, unit) || Regards(unit, source);
+        bool hostile = SpellHostile(caster, unit);
         if ((restricted & SpellTargetFlag::FriendsOnly) && hostile) return false;
         if ((restricted & SpellTargetFlag::EnemiesOnly) && !hostile) return false;
     }
