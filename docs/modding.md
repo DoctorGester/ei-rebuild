@@ -1405,6 +1405,9 @@ Pick one and it plays. Its textures and figures are your install's, as the game 
   - Every change plays at once, from the start up to the tick you were at. Problems are listed under it.
   - Fields drops the text's comments; Text keeps them.
   - A variant (`like`) plays as it resolves over its base; Fields and Text show its own file, the fields it names.
+  - An effect's script (`script = "<file>.lua"`) is edited in your own editor. Save it there, then press Scan again
+    or Save, and the viewer reads the script again and plays the effect from its start up to the tick you were at (a
+    pick reads it again too).
 - **Save** writes `<folder>\Res\effects\<name>.effect.toml`.
   - The folder is your active mod's when it lies outside the game folder, else `ei-rebuild-effects` in your user data
     folder (`%LOCALAPPDATA%` on Windows). You can type another.

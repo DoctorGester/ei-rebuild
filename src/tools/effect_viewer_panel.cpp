@@ -71,11 +71,7 @@ void DrawEffects(Viewer& v) {
         }
         ImGui::EndListBox();
     }
-    if (ImGui::Button("Scan again")) {
-        const std::string name = v.picked >= 0 ? v.entries[static_cast<std::size_t>(v.picked)].name : std::string();
-        v.Scan();
-        v.picked = name.empty() ? -1 : v.Find(name);
-    }
+    if (ImGui::Button("Scan again")) v.Scan();
     InputString("##newname", &v.newName);
     ImGui::SameLine();
     if (ImGui::Button("New effect")) v.NewEffect(v.newName);

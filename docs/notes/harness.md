@@ -234,7 +234,8 @@ tools/effects_app.h's hooks. It reads the scenario at the start and writes harne
 and harness_quit as the game's harness does, so run_all's watch, limits and quit checks are the same; the log is
 ei-effects.log (run_all.program_log). Its steps: `mod <folder>` (before the start; relative to the run folder, so
 `harness_saves\...` is a `# prepare:` tool's), `effectviewer <command>` (the viewer's commands, listed in the file's
-head; an error fails the run, a save outside the run folder too), `wait <ms>`, `frames <n>`, `capture <name>`
+head; an error fails the run, a save outside the run folder too), `write <file> <text>` (a file in the run folder
+written, `\n` for a line end: a mod's file edited on disk, MF15f1), `wait <ms>`, `frames <n>`, `capture <name>`
 (frames\<name>.bmp), `timeout <s>`, `report` and `quit`. The window is kept out of sight with the game harness's
 system calls (tests/verify/system: ConcealWindow, WatchWindows; the report's WINDOW: line). Real time only: no virtual
 clock, no digest (run_all asks no digest.txt of such a run), no recorded input.

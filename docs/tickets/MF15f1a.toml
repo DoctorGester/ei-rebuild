@@ -1,0 +1,5 @@
+id = "MF15f1a"
+title = "Zone1's mission script: RemoveDeletedObjects' cost varies 10x between runs"
+group = "mods"
+note = "Seen in MF15f1's effect_hooks_cost (zone1 after a new game, five world ticks a frame, about 1,900 frames): in two of five runs the server's share grew to 7 ms a frame (EI_PROFILE: ScriptObjectRef::ReleaseIfDeleted, ScriptGroup::RemoveDeleted, ScriptLua::RemoveDeletedObjects 45% of a segment's samples), in the other three it stayed 0.3-0.8 ms. The run is deterministic on the virtual clock, so find what grows (the deleted-object lists, a GC) and why only some runs; profile with EI_PROFILE=1 and tools/profile_report.py."
+order = 1412

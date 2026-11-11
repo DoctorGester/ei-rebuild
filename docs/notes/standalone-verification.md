@@ -104,7 +104,7 @@ Every scenario in tests/scenarios has a vanilla golden but these (run_all's summ
 - **By rule**: the watchdogs (`watchdog_backstop`, `watchdog_dump`, `watchdog_main`: meant to time out); the
   `screenshots_*` (never in a suite, harness.md "Running a scenario"); the seven `render_device_lost_*` (a lost device
   ends the game with the renderer's fatal message: there is no passing end to compare).
-- **Timing**: `render_weather_cost` (frame times measured on the machine).
+- **Timing**: `render_weather_cost`, `effect_hooks_cost` (frame times measured on the machine).
 - **Frame-checked renderer scenarios**: what they check is frames (tools/compare_frames.py or by eye; goldens hold no
   frames and renderer upgrades replace the look), over a world other goldens already play, several from a user's save
   whose decoded text is megabytes: `render_clouds`, `render_drawn_lights`, `render_drawn_motion`, `render_far_ground`,

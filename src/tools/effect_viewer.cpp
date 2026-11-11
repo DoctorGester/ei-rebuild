@@ -112,6 +112,7 @@ ParticleSource* StartOwnClock(ParticleManager& manager, int type) { return g_vie
 // ---- The effects -----------------------------------------------------------------------------------------------------
 
 void Viewer::Scan() {
+    const std::string pickedName = picked >= 0 ? entries[static_cast<std::size_t>(picked)].name : std::string();
     std::vector<EffectEntry> kept;   // the new effects, kept through the scan
     for (EffectEntry& entry : entries)
         if (!entry.madeText.empty()) kept.push_back(std::move(entry));
@@ -134,6 +135,15 @@ void Viewer::Scan() {
         if (index >= 0) entries[static_cast<std::size_t>(index)].madeText = std::move(entry.madeText);
         else entries.push_back(std::move(entry));
     }
+    picked = pickedName.empty() ? -1 : Find(pickedName);
+    ReadScripts();
+}
+
+void Viewer::ReadScripts() {
+    // The sources' hooks belong to the closed state now: the picked effect's source is made again.
+    effectlua::Reset();
+    if (picked >= 0) Restart(tick);
+    else Drop();
 }
 
 int Viewer::Find(std::string_view name) const {
@@ -156,7 +166,8 @@ void Viewer::Pick(int index) {
         hasDocument = document.Load(entry.name, entry.id);
     }
     if (hasDocument && document.record) effectdata::g_effects.Put(entry.name, document.record);
-    Restart(0);
+    tick = 0;
+    ReadScripts();
     status.clear();
     ei::Log("effect viewer: %s (0x%X, %s)", entry.name, static_cast<unsigned>(entry.id),
             !entry.madeText.empty()           ? "made in the viewer"
@@ -389,6 +400,7 @@ void Viewer::Save() {
     const std::string written = document.Save(saveFolder);
     status = written.starts_with("error: ") ? written : "saved " + written;
     ei::Log("effect viewer: %s", status);
+    ReadScripts();
 }
 
 // ---- The viewer from outside -----------------------------------------------------------------------------------------
@@ -546,6 +558,10 @@ std::string Command(std::string_view line) {
         const int index = v.Find(w[1]);
         if (index < 0) return "effectviewer: no effect named " + w[1];
         v.Pick(index);
+        return "";
+    }
+    if (verb == "scan") {
+        v.Scan();
         return "";
     }
     if (verb == "new" && w.size() > 1) {

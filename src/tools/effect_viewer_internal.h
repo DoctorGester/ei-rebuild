@@ -50,8 +50,12 @@ struct Change {
 
 class Viewer {
 public:
-    // The effects there are: the 83 original types, then the mods' (Res\effects through the layers).
+    // The effects there are: the 83 original types, then the mods' (Res\effects through the layers). The picked one
+    // stays picked, its scripts read again (ReadScripts).
     void Scan();
+    // The effects' Lua scripts read again from their files at their next use (effectlua::Reset) and the picked effect
+    // played again up to its tick: a script edited on disk takes effect at a pick, a scan and a save.
+    void ReadScripts();
     // The entry named `name` (any case), or -1.
     int Find(std::string_view name) const;
 
@@ -85,7 +89,7 @@ public:
     // The document's text or tree changed: read again and, when it loads, played from the start up to this tick
     // (the registry takes the record: Registry::Put).
     void Edited(bool fromTree);
-    // The document saved into saveFolder; `status` says where or why not.
+    // The document saved into saveFolder; `status` says where or why not. Its scripts are read again.
     void Save();
 
     bool open = false;

@@ -93,6 +93,8 @@ Scope::~Scope() {
     g_currentCycles = cycles;
 }
 
+unsigned long long PartCycles(Part part) { return g_cycles[part]; }
+
 void FrameEnd() {
     if (!OnMainThread()) return;
     const long long now = Ticks();
