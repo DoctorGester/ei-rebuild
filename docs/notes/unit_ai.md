@@ -1,10 +1,9 @@
 # Unit AI: brain, modes and actions
 
-Code: `src/game/ai/unit_ai.h` (layouts and per-function comments: the structure reference), `unit_ai*.cpp` (in unit_ai.cpp
-the brain's Think, lookups, actions and movement, resets, calls, memory, behaviour records and save;
-modes, senses, targets). Scenarios: `unit_ai.txt`, `unit_ai_fear.txt`,
-`script_exec` (UMClear, UM*, UMAg, Guard / Sentry), `combat_more` (a death), `world_load`,
-every spawn; `unit_ai_flight` (an archer in Fear mode steps away from the hero: FindFlightPoint), `party_leader_switch`
+Code: `src/game/ai/unit_ai.h` (layouts and per-function comments: the structure reference), `unit_ai*.cpp` (in
+unit_ai.cpp the brain's Think, lookups, actions and movement, resets, calls, memory, behaviour records and save; modes,
+senses, targets). Scenarios: `unit_ai.txt`, `unit_ai_fear.txt`, `script_exec` (UMClear, UM*, UMAg, Guard / Sentry),
+`combat_more` (a death), `world_load`, every spawn; `unit_ai_flight` (an archer in Fear mode steps away from the hero: FindFlightPoint), `party_leader_switch`
 (PlayerMode::SetLeader through the battle screen's follow button, CommandGoTo with Ctrl, StaysWithParty, SeeCorpse of a
 party member), `unit_ai_bridge` (zone1's bridge 299: a walk over it, then RemoveObjectFromServer lifts its deck cells:
 RestoreCell, BridgeDeckAt).
@@ -16,15 +15,15 @@ RestoreCell, BridgeDeckAt).
   and add them with `AddMode`; `StandardGuard` / `StandardSentry` add exactly five modes in order.
 - Modes: Guard, Patrol, Sentry, Follow, Suspection, Aggression (UMRevenge: `fixed`), CorpseWatcher, Fear, Player (party
   units, type 6), Tamed (type 8). A mode's type is a const member (`AIMode::type`). `Exclusive` (true for Guard, Patrol,
-  Sentry and Follow): AddMode replaces a mode of another type when both are exclusive. RemoveModesOfType (UMAg) taking out
-  the mode in charge shuts it down (`AIMode::Detach`: references dropped, constructor values back) and leaves it in charge,
-  outside the list, until another mode takes over (`AIBrain::removedCurrent`); the save then writes current index -1.
+  Sentry and Follow): AddMode replaces a mode of another type when both are exclusive. RemoveModesOfType (UMAg) taking
+  out the mode in charge shuts it down (`AIMode::Detach`: references dropped, constructor values back) and leaves it in
+  charge, outside the list, until another mode takes over (`AIBrain::removedCurrent`); the save then writes current index -1.
   Load creates modes by type; an unknown type leaves Load at once (kept).
-- The perception memory `AIMemory`: lists of counted object references (nearby, visible, seen corpses, corpses), reports
-  (`AIReports`) and heard calls (`AIHeardCalls`), `sightCells`, `nearbyCountdown`; the alarm records (`AIAlarmRecordArray`,
-  the map spec's behaviour record); `AIBrain::Init` (the controller's reset) assigns a new brain, attention and sight-cell
-  cache included (a reset controller is only created or torn down); `callRadius` (10 after Init; equal to [Logic] CallForHelpRadiusDefault becomes
-  CallForHelpRadius on load, NaN too); FindStandPoint's cooldown (after a failure, a third of the distance in calls, at
+- The perception memory `AIMemory`: lists of counted object references (nearby, visible, seen corpses, corpses),
+  reports (`AIReports`) and heard calls (`AIHeardCalls`), `sightCells`, `nearbyCountdown`; the alarm records
+  (`AIAlarmRecordArray`, the map spec's behaviour record); `AIBrain::Init` (the controller's reset) assigns a new brain,
+  attention and sight-cell cache included (a reset controller is only created or torn down); `callRadius` (10 after
+  Init; equal to [Logic] CallForHelpRadiusDefault becomes CallForHelpRadius on load, NaN too); FindStandPoint's cooldown (after a failure, a third of the distance in calls, at
   most 10); UpdateFollow's timer (acts from 8; an order sets 0 or 6). The attention: two arrays of `AIAttackOption`
   (`weapons`: the weapon and the attack spells, kinds 1..4; `spells`: the helping ones, 5..7) and the heal weight.
 - Calls for help: `CallAllies` lists the units within the call radius of the owner through the sector map; each allied
@@ -33,8 +32,8 @@ RestoreCell, BridgeDeckAt).
   <text>" (sound.md).
 - Names: `AIMemory::CanTrack` answers true for the same side, the same player or a unit in sight;
   `AIReport::ticksLeft` counts a report down (`kCastStoppedTicks` 0xF, `kRejectedTicks` 0x14); `AIMemory::noticedDecay`
-  is the noticed level's decay per update (-1..-3); `AIBrain::nearRange` / `farRange` (the digest keys keep the old names
-  nearX / nearY) are two distances (35 / 80 plus Guard's radius) that nothing reads but the save, and `decay` only feeds
+  is the noticed level's decay per update (-1..-3); `AIBrain::nearRange` / `farRange` (digest keys nearX / nearY) are
+  two distances (35 / 80 plus Guard's radius) that nothing reads but the save, and `decay` only feeds
   itself and the save. `PlayerServer::danger` is the party's danger the script's IsPlayerInDanger / IsPlayerInSafety
   read; the Player mode's units act on their own while it is InDanger (`PartyInDanger`).
 - The AI's eye `AIViewer` (on the world server): Update, Refresh (nearby list every 8..11 ticks from the sector cells of
@@ -50,10 +49,10 @@ RestoreCell, BridgeDeckAt).
   decay. AIMode::Enter draws a random decay in [0.8, 1.2]; AIMode::Evaluate gives 50; Aggression evaluates to 10000 with
   chosen = enemy, or -1000.
 
-## Scenario know-how (H43e)
+## Scenario know-how
 
-- Units far from the hero hardly update (UpdateCountdownFor): walk the hero there (`MoveToPoint(GetLeader(), x, y)`, then
-  `waitfor 300 ...`: 170 s of game time is 4 s of run) instead of spawning units at a distance.
+- Units far from the hero hardly update (UpdateCountdownFor): walk the hero there (`MoveToPoint(GetLeader(), x, y)`,
+  then `waitfor 300 ...`: 170 s of game time is 4 s of run) instead of spawning units at a distance.
 - A unit made by AddUnitToServer with player 0 is in the hero's party (a second portrait) with a Player mode; UMClear on
   it removes that mode and with it every script move (`MoveToPoint` does nothing afterwards).
 - Battle screen buttons by layout position (vanilla; Rebirth's widescreen moves them): the action column's first button
@@ -65,27 +64,27 @@ RestoreCell, BridgeDeckAt).
 
 ## Original bugs kept
 
-Visible behaviour of the original kept until the user decides (rewrite-guide rule 9; C84 triaged the list, with a
-recommendation per entry). Crashes, undefined behaviour and invisible bookkeeping are fixed, not listed.
+Visible behaviour of the original kept until the user decides (rewrite-guide rule 9). Crashes, undefined behaviour and
+invisible bookkeeping are fixed, not listed.
 
 - Moves: PlanLooks' wait of the seventh (untested) draw is kept when all six line-of-sight tests fail.
 - `CanTrack` answers true for the same side, the same player, or an object in a list, so UpdateAttack gives up only on a
   unit of another side and player that is not listed.
 - Guard's Execute counts failed searches near its point; after 100 it also searches around the unit, on every tick until
   one succeeds (only success resets the count). Patrol with no points logs a warning "Unit %i has no patrol points,
-  adding one at its position" and adds a point at the unit (the original's text said "switching to guard"). Suspection's Execute computes the "near the
-  point" distance only while a move is under way; its level drops by 5 per tick near the point, by 50 in combat.
+  adding one at its position" and adds a point at the unit. Suspection's Execute computes the "near the point" distance
+  only while a move is under way; its level drops by 5 per tick near the point, by 50 in combat.
 - AppendPoint rounds 2x to nearest, so its point is (n + 0.5) / 2, 0..0.5 above the asked one, not its half-cell's
   middle. Score's group bonus counts the group minus one for kinds 1 and 4..7, the whole group for 2 and 3; kind 3
   multiplies by (effect / 4) / 2.
 - FindEnemiesNear asks the visible unit's IsHostileTo(self) where the others ask the unit's; ForceSee forces when at or
   beyond either of the observer's ranges, or when the object attacks the unit. See skips a dead hostile unit unless the
   unit sees all.
-- AIViewer::Refresh (every 8-11 ticks) sets the unit's flag 0x80000, which on a unit is `MapObjectFlag::RelationsChanged`:
-  the same tick's `PropagateHostility` then swaps hostility claims with the allies in the nearby list, relations changed
-  or not. Kept as the original has it (not asked whether it meant to).
-- A target removed mid-attack leaves the brain at AIAction::Attack with its target cleared; UpdateCombat (finding nobody)
-  leaves it so (no scenario of its own: H74, its code runs in the fights).
+- AIViewer::Refresh (every 8-11 ticks) sets the unit's flag 0x80000, which on a unit is
+  `MapObjectFlag::RelationsChanged`: the same tick's `PropagateHostility` then swaps hostility claims with the allies in
+  the nearby list, relations changed or not.
+- A target removed mid-attack leaves the brain at AIAction::Attack with its target cleared; UpdateCombat (finding
+  nobody) leaves it so (its code runs in the fights).
 
 Facts behind fixed entries: Player mode's UpdateCombat carries out its choice like the enemy modes (ApplyAttack: a
 spell choice is cast); it matters for the 11 numbered hub NPCs in Player mode with attack spells (BabaSit in bz14h,
@@ -106,10 +105,11 @@ Then noticedLevel / 6 when it is above 50 and the mode is in charge or the notic
 
 ## AIBrain::ApplyBehaviour
 
-The modes of behaviour `record`: the list emptied, the call radius (the default one becomes [Logic] CallForHelpRadius)
-and alert mode taken; type Guard guards the record's point, GuardAlarm the point of world alarm `slot`, Sentry a sentry there, Patrol patrols
-(each patrol's start on its half-cell's middle, its waypoints as looks from there; without `loop` the points are walked
-back too), Party the party's Player mode. Except for types None and Party the reaction (`alarm`) adds Aggression (Fight) or
-Revenge with Suspection, CorpseWatcher and Fear(0); Watch CorpseWatcher and Fear(0); WatchFearful CorpseWatcher and Fear(1). Then the alarm
-(kind, `slot`, countdown at least 1, not alerted), no action or target, the attack options rebuilt, and with flag bit 3
+The modes of behaviour `record`: the list emptied, the call radius (the default one becomes [Logic]
+CallForHelpRadius) and alert mode taken; type Guard guards the record's point, GuardAlarm the point of world alarm
+`slot`, Sentry a sentry there, Patrol patrols (each patrol's start on its half-cell's middle, its waypoints as looks
+from there; without `loop` the points are walked back too), Party the party's Player mode. Except for types None and
+Party the reaction (`alarm`) adds Aggression (Fight) or Revenge with Suspection, CorpseWatcher and Fear(0); Watch
+CorpseWatcher and Fear(0); WatchFearful CorpseWatcher and Fear(1). Then the alarm (kind, `slot`, countdown at least 1,
+not alerted), no action or target, the attack options rebuilt, and with flag bit 3
 the unit joins the world's update map.

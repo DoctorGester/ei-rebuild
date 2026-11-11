@@ -11,14 +11,13 @@ The party is in `items_spells.md`, options and tables in `app.md`.
   units: the plain index), type, flags, owner (the manager). `ManagerContext` is the manager's context (World or
   Party). `ObjectListIterator` walks a manager's registered list.
 - Map object classes come from `MapObjectManager::NewObject`; an unknown class gives null. The original's fake unit
-  (class 0x39) and its scene loader were dead in game.exe (no data makes one) and are not in ours.
+  (class 0x39) and its scene loader are not ported: no data makes one.
 
 ## Diplomacy
 
 `Diplomacy` (a global, 0x100 bytes, saved): `allied[32]` and `hostile[32]`, bit q of row p. Relation codes 0 allied,
 1 neutral, 2 hostile (script GetDiplomacy maps them to 1 / 0 / -1). A unit's hostile mask has bit p set when it is
-hostile to player p (also flag 0x80000).
-Kept: SetRelation with a relation outside 0..2 leaves the table alone but still clears the bit in the units' hostile
+hostile to player p (also flag 0x80000). Kept: SetRelation with a relation outside 0..2 leaves the table alone but still clears the bit in the units' hostile
 masks; player indices are unchecked; OnAttack stops at the first party entry with a null unit and sets the victim's
 0x80000 flag a second time.
 
@@ -29,8 +28,7 @@ masks; player indices are unchecked; OnAttack stops at the first party entry wit
 gfx.res\lightning.dat"). The manager's second list holds the bolts registered since the last frame; `DrawAll` (from
 the renderer) draws and drops them. Callers: the script's `CreateLightning` and the weather create a client object
 (class 0x4D) whose update moves the endpoints every frame while the bolt follows units. Textures "SmtgLight" /
-"Lightning" or "DemonLight" / "DemonLightning".
-Kept: Animate reads the curve value before the first one when a segment has no points; SampleNoise caps the keys added
+"Lightning" or "DemonLight" / "DemonLightning". Kept: Animate reads the curve value before the first one when a segment has no points; SampleNoise caps the keys added
 per call at 100 but leaves the key time behind by the rest.
 
 ## Map database
@@ -110,6 +108,7 @@ OnNewObject leaves an object it cannot read made and unreleased.
 ## Original behaviour kept elsewhere in this area
 
 - Options: camera flips stored as -1 / 1 floats; "Difficulty Level" goes to two fields and is written from the second.
-  The settings the modern renderer made fixed (C81) are constants in options.h: the lights, the fog distances, the
-  wind, the clock's scale, the lighting coefficient.
-- Item's base slots 17-20 return an empty text, 21 zeroes the caller's ItemUse (every class but the quest item).
+  The settings the renderer made fixed are constants in options.h: the lights, the fog distances, the wind, the
+  clock's scale, the lighting coefficient.
+- Item's `ModelName` / `FigureName` / `PictureName` give "" for a plain item; `GetUse` gives zeros for every class but
+  the quest item.
