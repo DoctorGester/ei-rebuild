@@ -319,7 +319,11 @@ cast of one starts them).
   `Damage` fire, area, split by the duration, the credit every pulse (no caster; the C++ never set flags bit 0).
   OnResume: the point is `cast.from` (the C++'s position), the schedule from `old.ticks` (the C++'s count at the
   next update). Its use row is its record's fields (none, not offensive or fighting, no damage type: the C++ row's).
-  Cost: a timer call every 4 ticks and the host's table walk on the others, per campfire (measured below).
+  Cost: a timer call every 4 ticks and the host's table walk on every tick (entry, module, OnTick looked up, the end
+  test), per campfire. Measured (2026-11-11, `--quiet`, `EI_PROFILE=1`, a scratch scenario standing 1000 frames in
+  Lost in Astral's gz10g, 31 campfires): `SpellEffect::Update` took 3.3-4.0% of the main thread on the script against
+  0.1% on the C++, about 0.1 ms a world update, some 3 us per campfire a tick, mostly the walk on the ticks without a
+  timer (MF17g4b would skip those).
 - The rest: `spells`, `combat`, `units`, `world`, `particles` and the other healing casts, `unit_ai_heal` (the AI's),
   `spells_more` (fireworks by script, the hero's teleport), `spells_cast` (clairvoyance and vision fog without a
   caster), `spells_hero` (the hero's vision fog), and `spells_old_rest` (tests/saves/rest_old, made by the C++ build:
