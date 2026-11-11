@@ -400,6 +400,8 @@ lightning.h                 effects/lightning.h
 lightning.cpp               effects/lightning.cpp
 world_effect.h              effects/world_effect.h
 world_effect.cpp            effects/world_effect.cpp
+effect_inputs.h             effects/effect_inputs.h   new   # the inputs a server sets on an effect, replicated (MF15j2)
+effect_inputs.cpp           effects/effect_inputs.cpp
 world_effect_sequence.cpp   effects/world_effect.cpp    fold  # EffectSoundSeq's Start and Unpack (80 lines): its other members are there
 world_effect_internal.h     effects/world_effect_internal.h
 world_effect_visual.cpp     effects/world_effect_visual.cpp

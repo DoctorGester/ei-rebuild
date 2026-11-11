@@ -393,33 +393,33 @@ Risks:
 
 | Folder | Files | Lines today | Move batch |
 |---|---|---|---|
-| `ai/` | 28 | 12564 | C168f |
-| `app/` | 23 | 6852 | C168e |
+| `ai/` | 28 | 12590 | C168f |
+| `app/` | 23 | 6905 | C168e |
 | `combat/` | 13 | 6386 | C168f |
 | `console/` | 5 | 2038 | C168e |
 | `core/` | 29 | 3800 | C168d |
 | `data/` | 19 | 6824 | C168d |
-| `effects/` | 18 | 4949 | C168g |
+| `effects/` | 20 | 5118 | C168g |
 | `items/` | 12 | 2958 | C168g |
 | `map/` | 11 | 3846 | C168e |
 | `models/` | 29 | 8432 | C168g |
-| `mods/` | 9 | 801 | C168d |
+| `mods/` | 9 | 809 | C168d |
 | `net/` | 23 | 8423 | C168h |
 | `objects/` | 23 | 7378 | C168f |
-| `particles/` | 13 | 5480 | C168g |
+| `particles/` | 13 | 5276 | C168g |
 | `players/` | 24 | 5494 | C168e |
 | `saves/` | 7 | 848 | C168d |
 | `scene/` | 27 | 3085 | C168g |
-| `script/` | 35 | 12081 | C168h |
+| `script/` | 35 | 12169 | C168h |
 | `sound/` | 3 | 1715 | C168e |
-| `spells/` | 11 | 2192 | C168g |
+| `spells/` | 11 | 2185 | C168g |
 | `terrain/` | 12 | 3584 | C168g |
 | `ui/` | 97 | 33138 | C168h |
 | `units/` | 27 | 9923 | C168f |
-| `world/` | 39 | 11584 | C168e |
-| all | 537 | 164375 | |
+| `world/` | 39 | 11592 | C168e |
+| all | 539 | 164516 | |
 
-569 files today; 55 fold into an owner, 10 split by meaning, 27 new files come out of the splits, 36 moves rename for meaning.
+570 files today; 55 fold into an owner, 10 split by meaning, 28 new files come out of the splits, 36 moves rename for meaning.
 
 ### Every file
 
@@ -602,6 +602,8 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 
 | Today | After | Op | Why |
 |---|---|---|---|
+| effect_inputs.cpp | effects/effect_inputs.cpp |  |  |
+| effect_inputs.h | effects/effect_inputs.h | new | the inputs a server sets on an effect, replicated (MF15j2) |
 | effects.h | effects/effects.h |  |  |
 | effects_particles.cpp | effects/effects_particles.cpp |  |  |
 | effects_particles.h | effects/effects_particles.h | new | the client world's particle host (MF15k2) |
