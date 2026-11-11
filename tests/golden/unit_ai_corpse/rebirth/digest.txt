@@ -9179,7 +9179,7 @@ client ticksRun 732
 cunit1804 #place F2846860
 cunit1804 #unit 36CD6ABE
 cunit1000011214 #place 57638B3C
-@ 38 update 780 frame 155 tick 780 zone gz1g hash C89AB630 n 835
+@ 38 update 780 frame 155 tick 780 zone gz1g hash A4A356D5 n 835
 world tick 780
 world updates 780
 world lastRainBoltTick 771
@@ -9218,7 +9218,7 @@ timed5147081 # C720DE2F
 missile0 # 5A66C123
 missile1 # A85B5623
 + missile2 spell 3
-missile2 # AD7BF613
+missile2 # A04423DF
 aievents tick 780
 client tick 780
 client ticksRun 752
@@ -9227,7 +9227,7 @@ cunit1804 #unit 5B284B58
 cunit1804 #vitals 21A436A5
 cunit1000011214 #place 83CE42B2
 cunit1000011214 #unit 5D47E058
-@ 39 update 800 frame 159 tick 800 zone gz1g hash 84A9076B n 835
+@ 39 update 800 frame 159 tick 800 zone gz1g hash ECCE34F3 n 835
 world tick 800
 world updates 800
 random isaac.count 172
@@ -9253,7 +9253,6 @@ obj1000011214 #vitals 9BA26E9A
 timed5147081 # 8A345AEF
 missile0 # B65D5FBC
 missile1 # 4460C8BC
-missile2 # 8463A31E
 aievents tick 800
 client tick 800
 client ticksRun 772

@@ -8898,7 +8898,7 @@ client partyDanger 2
 cunit1804 #place D064F27D
 cunit1804 #unit 88D14B50
 cunit1000011214 #place 5E707686
-@ 32 update 660 frame 131 tick 660 zone gz1g hash 8EF337DE n 834
+@ 32 update 660 frame 131 tick 660 zone gz1g hash 30E30986 n 834
 world tick 660
 world updates 660
 world timedObjects 6
@@ -8965,7 +8965,7 @@ timed5147054 # 3B2B3B9F
 missile0 # A68CBB6D
 missile1 # 54B12C6D
 + missile2 spell 3
-missile2 # FB755FFC
+missile2 # 8323C57B
 aievents tick 660
 client tick 660
 client ticksRun 632
@@ -8979,7 +8979,7 @@ cunit1935 #place 643A4F35
 cunit1935 #unit 1B0F8A0A
 cunit1935 #vitals 1F5A7471
 cunit1000011214 #place 7DE2FCDE
-@ 33 update 680 frame 135 tick 680 zone gz1g hash FCB3DDC1 n 836
+@ 33 update 680 frame 135 tick 680 zone gz1g hash 9C545189 n 836
 world tick 680
 world updates 680
 world timedObjects 7
@@ -9046,7 +9046,6 @@ timed5147057 # 3D42BCE0
 timed5147058 # 60BECB34
 missile0 # 87F018A6
 missile1 # 75CD8FA6
-missile2 # C74DE937
 aievents tick 680
 client tick 680
 client ticksRun 652
@@ -9062,7 +9061,7 @@ cunit1890 #vitals F464C324
 cunit1935 #place 29C4D69C
 cunit1935 #unit 6C452831
 cunit1000011214 #place 2E3BD4BF
-@ 34 update 700 frame 139 tick 700 zone gz1g hash 84DB05CB n 836
+@ 34 update 700 frame 139 tick 700 zone gz1g hash F72ACB80 n 836
 world tick 700
 world updates 700
 random isaac.count 117
@@ -9118,7 +9117,7 @@ obj1000011214 #vitals AC51EDE6
 timed5147057 # CEF548F6
 missile0 # 6BCB8639
 missile1 # 99F61139
-missile2 # 52F73AA6
+missile2 # 3666E2DA
 aievents tick 700
 client tick 700
 client ticksRun 672
@@ -9127,7 +9126,7 @@ cunit1804 #vitals 1629FDF8
 cunit1935 #place C69DEC06
 cunit1000011214 #place 10353EDA
 cunit1000011214 #unit 9D9202D2
-@ 35 update 720 frame 143 tick 720 zone gz1g hash 5C1D8BDA n 835
+@ 35 update 720 frame 143 tick 720 zone gz1g hash 56FA2490 n 835
 world tick 720
 world updates 720
 world updateMap 18
@@ -9200,7 +9199,7 @@ timed5147062 # D3957865
 timed5147064 # D54C6655
 missile0 # 84F623D9
 missile1 # 76CBB4D9
-missile2 # 272549DC
+missile2 # 216FDA9E
 aievents tick 720
 client tick 720
 client ticksRun 692
@@ -9215,7 +9214,7 @@ cunit1934 #unit DAD4BA20
 - cunit1935
 cunit1000011214 #place 5CE6F97D
 cunit1000011214 #unit C2095EAB
-@ 36 update 740 frame 147 tick 740 zone gz1g hash 79C5B96A n 834
+@ 36 update 740 frame 147 tick 740 zone gz1g hash 6FCBC80E n 834
 world tick 740
 world updates 740
 world timedObjects 6
@@ -9271,7 +9270,6 @@ obj1000011214 #vitals 9BA26E9A
 timed5147064 # B6E84E48
 missile0 # 68CDBD46
 missile1 # 9AF02A46
-missile2 # 384D954A
 aievents tick 740
 client tick 740
 client ticksRun 712

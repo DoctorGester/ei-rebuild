@@ -8187,7 +8187,7 @@ cunit1934 #place E26311AD
 cunit1934 #unit 252258E1
 cunit1000011214 #place 43DB865E
 cunit1000011214 #unit D85C6202
-@ 38 update 780 frame 155 tick 780 zone gz1g hash E986CF5E n 795
+@ 38 update 780 frame 155 tick 780 zone gz1g hash AA96584E n 795
 world tick 780
 world updates 780
 world timedObjects 2
@@ -8234,7 +8234,7 @@ timed266 # C061095C
 missile0 # CCEC9926
 missile1 # A85B5623
 + missile2 spell 3
-missile2 # 90E967A6
+missile2 # 14816436
 aievents tick 780
 client tick 780
 client ticksRun 752
@@ -8243,7 +8243,7 @@ cunit1804 #unit 1C50C181
 cunit1934 #place 0CA291BB
 cunit1000011214 #place 87FAFD57
 cunit1000011214 #unit 6BB570AB
-@ 39 update 800 frame 159 tick 800 zone gz1g hash 7BFEFF80 n 795
+@ 39 update 800 frame 159 tick 800 zone gz1g hash 61CD6B2D n 795
 world tick 800
 world updates 800
 random isaac.count 141
@@ -8291,7 +8291,6 @@ obj1000011214 #vitals 9BA26E9A
 timed266 # 158046CE
 missile0 # 20D707B9
 missile1 # 4460C8BC
-missile2 # CE67C17B
 aievents tick 800
 client tick 800
 client ticksRun 772

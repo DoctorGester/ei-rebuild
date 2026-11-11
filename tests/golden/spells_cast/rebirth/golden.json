@@ -2,16 +2,20 @@
   "scenario": "spells_cast",
   "install": "rebirth",
   "recorded": "2026-11-11",
-  "commit": "85c555311",
+  "commit": "0dcf856ae",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MF15a: the particle sources draw g_particleRandom (seeded from the client generator) instead of g_clientRandom, so the client generator in visuals.sav, the scorch marks' angles and the client units' idle picks in the digest follow other draws, and visuals.sav gains the ParticleGenerator section.",
+  "reason": "MF17g3: the fireball, light strike and acid column run on their scripts; a live cast's missile record is the scripted one (state 4, its objects in owned); outcomes, units and timed objects the same; Lost in Astral's ending zone save holds its fireballs in that form. spells_old_area new: a pre-port save's casts resumed.",
   "source": "image",
   "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save savea/visuals.sav: 13 fields in 2 records differ: visuals 13",
-    "  visuals: 13 fields in 2 records; first visuals.generator count: 129 in the old golden, 26 in the new run; largest numeric d 1.14e+09 at visuals.generator aa: 4236839942 -> 3094433132"
+    "digest: 1 of 11 records differ, first at record 3 (world update 80, tick 80, frame 15, zone gz1g); outcomes the same; no unit position differs",
+    "  first difference at record 3 (world update 80, tick 80, frame 15, zone gz1g): 1 fields",
+    "    missile2 (spell 5) #: E1E4C6E9 in the old golden, 74A92FF2 in the new run",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  missiles: 1 of 4 differ",
+    "    #: 1 missile, 1 record, from 3; hash only (no numbers kept)"
   ]
 }
