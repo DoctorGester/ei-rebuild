@@ -2131,7 +2131,7 @@ through the gamma ramp; shapes of another scale or ramp are let go once not show
 Everything the game draws through the device's mesh draws (figures and map objects, the sky, the interface's sprites and
 3D previews). The game hands the mesh over whole in model space with the matrix it projects it with, a figure part's
 model matrix apart (`MeshDraw::model`, the product taken once here) (BeginMesh); each pass then
-(src/game/scene/device_draw.cpp) becomes a batch with the render state of that moment (MeshPass, section 5): blend, alpha test,
+(src/engine/scene/device_draw.cpp) becomes a batch with the render state of that moment (MeshPass, section 5): blend, alpha test,
 depth, culling, fog, the two texture stages' operations, filters and textures. A figure mesh drawn through the figure part
 draws is kept on the GPU (render_mesh_cache.cpp) and its batches draw from that pool; every other mesh is built into the
 frame's stream. A figure part handed over with its lighting (MeshDraw::lighting, its model space to the landscape's) is lit in the
@@ -2152,7 +2152,7 @@ the commands' order, so the pictures are the same up to the shaders' rounding (t
 
 ### render_mesh_cache.cpp: meshes kept on the GPU
 
-Section 13, item 4. The figure part draws (src/game/models/figure_part_draw.cpp) name the figure mesh a mesh draw
+Section 13, item 4. The figure part draws (src/engine/models/figure_part_draw.cpp) name the figure mesh a mesh draw
 draws (MeshDraw::owner); the mesh's corners are kept for that figure mesh (positions and texture coordinates in model
 space, colours and triangles) in a pool on the GPU (GpuPool: geometry and colours in streams of their own). What is built
 and uploaded again is what the game says changed:

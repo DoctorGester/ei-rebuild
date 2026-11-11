@@ -2,20 +2,20 @@
 // markers' colour (UpdateExitMarkers). See world.h and docs/notes/world.md.
 #include "game/effects/effects.h"
 
-#include "game/models/figure_mesh.h"   // VertexPacket, MeshCorner
+#include "engine/models/figure_mesh.h"   // VertexPacket, MeshCorner
 #include "game/app/singletons.h"
 #include "game/terrain/ground_decal.h"
-#include "game/scene/light.h"
-#include "game/models/link_figure.h"
+#include "engine/scene/light.h"
+#include "engine/models/link_figure.h"
 #include "game/objects/map_object.h"           // MapObject (ObjectWithId)
 #include "game/objects/object3d.h"   // Object3D
-#include "game/scene/scene_renderer.h"
-#include "game/scene/pipeline.h"
-#include "game/core/named_floats.h"
-#include "game/data/options.h"
+#include "engine/scene/scene_renderer.h"
+#include "engine/scene/pipeline.h"
+#include "engine/core/named_floats.h"
+#include "engine/data/options.h"
 #include "game/players/party.h"
 #include "game/players/player.h"
-#include "game/scene/sky_object.h"
+#include "engine/scene/sky_object.h"
 #include "game/spells/spell.h"
 #include "game/terrain/terrain.h"
 #include "game/world/world.h"

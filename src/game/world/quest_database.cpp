@@ -6,12 +6,12 @@
 #include "game/world/quest_records.h"
 
 #include "game/console/console.h"
-#include "game/core/text_split.h"
-#include "game/data/chunk_archive.h"
-#include "game/data/database_file.h"
-#include "game/data/database_toml.h"
-#include "game/data/resource.h"
-#include "game/data/registry.h"
+#include "engine/core/text_split.h"
+#include "engine/data/chunk_archive.h"
+#include "engine/data/database_file.h"
+#include "engine/data/database_toml.h"
+#include "engine/data/resource.h"
+#include "engine/data/registry.h"
 #include "game/script/script.h"
 
 #include "lib/crt.h"

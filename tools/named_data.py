@@ -258,7 +258,7 @@ def enum_numbers():
     """Names an initialiser writes for a number, from script.h: `ScriptFunction::Name` (the enum class's values) and
     `Lex(ScriptLexeme::Name)` (ScriptKeyword's punctuation entries: a ScriptLexeme value) -> the number's text."""
     if not _ENUM_NUMBERS:
-        script_h = os.path.join(game_layout.GAME, *game_layout.now('script.h').split('/'))
+        script_h = os.path.join(game_layout.ROOT, *game_layout.src_path(game_layout.now('script.h')).split('/'))
         text = srcscan.blank_comments(open(script_h, encoding='utf-8').read())
         body = re.search(r'enum class ScriptFunction\b[^{;]*\{(.*?)\};', text, re.S).group(1)
         for name, value in re.findall(r'(\w+)\s*=\s*(-?\w+)', body):

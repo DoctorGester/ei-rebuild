@@ -5,7 +5,7 @@
 // ui_scrolling_surface.cpp. See docs/notes/ui.md ("Main menu, dialogs, escape menu, credits").
 
 #include "game/app/movies.h"
-#include "game/data/resource.h"
+#include "engine/data/resource.h"
 #include "game/ui/ui.h"
 
 #include <cstddef>

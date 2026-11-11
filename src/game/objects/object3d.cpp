@@ -4,18 +4,18 @@
 #include "game/objects/object3d.h"
 
 #include "game/ai/ai_map.h"   // FootprintPart
-#include "game/core/core_maths.h"
-#include "game/core/core_transform.h"
+#include "engine/core/core_maths.h"
+#include "engine/core/core_transform.h"
 #include "game/effects/effects.h"
-#include "game/models/figure_manager.h"
-#include "game/models/figure_mesh.h"
-#include "game/models/link_figure.h"   // LinkHeaderMap: the figure's pieces
+#include "engine/models/figure_manager.h"
+#include "engine/models/figure_mesh.h"
+#include "engine/models/link_figure.h"   // LinkHeaderMap: the figure's pieces
 #include "game/objects/map_object.h"
 #include "game/objects/map_object_shadow.h"   // WoundsMaterial: the client half's
-#include "game/models/link_loader.h"
-#include "game/scene/scene_renderer.h"
-#include "game/scene/pipeline.h"
-#include "game/core/random.h"
+#include "engine/models/link_loader.h"
+#include "engine/scene/scene_renderer.h"
+#include "engine/scene/pipeline.h"
+#include "engine/core/random.h"
 #include "game/world/world.h"   // World: the figure manager and cache
 #include "lib/bytes.h"
 #include "lib/containers.h"

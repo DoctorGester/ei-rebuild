@@ -2,7 +2,7 @@
 // (shaders/map_clouds.hlsl).
 #include "game/ui/global_map_clouds.h"
 
-#include "game/core/random.h"
+#include "engine/core/random.h"
 
 #include <cmath>
 

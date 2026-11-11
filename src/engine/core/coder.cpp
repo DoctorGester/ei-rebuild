@@ -1,0 +1,369 @@
+// Byte-buffer cursors, the LZ coder (save games, map transfers, network messages) and the fixed
+// buffer view's slots. See core/coder.h and docs/notes/network.md.
+#include "engine/core/coder.h"
+
+
+#include <cstring>
+
+namespace {
+
+// The compressor looks for matches at most this far back (in the hash chains' distances).
+constexpr std::int32_t kMaxDistance = 0x31E;
+// A match is not extended beyond this length.
+constexpr std::int32_t kMaxMatchLength = 0xE1;
+constexpr std::uint32_t kWindowMask = 0x3FF;
+
+// The match in progress stopped matching at the newest byte: walks the hash chain of the match's start (`a`,
+// a distance back from the match's start `t`) in step with the chain of the newest position (`e`, a distance
+// back from `cur`) and takes the first earlier string that repeats the match plus the newest byte.
+bool ExtendMatch(CoderState& c, std::uint32_t cur, std::int32_t e) {
+    std::uint32_t t = c.pos - static_cast<std::uint32_t>(c.matchLen);
+    std::int32_t a = c.chain[c.matchPos] + static_cast<std::int32_t>((t - static_cast<std::uint32_t>(c.matchPos)) & kWindowMask);
+    const std::uint8_t* target = c.window + (t & kWindowMask);
+    while (a < kMaxDistance) {
+        while (a > e) e += c.chain[(cur - static_cast<std::uint32_t>(e)) & kWindowMask];
+        if (a < e) {
+            a += c.chain[(t - static_cast<std::uint32_t>(a)) & kWindowMask];
+            continue;
+        }
+        std::uint32_t q = (t - static_cast<std::uint32_t>(a)) & kWindowMask;
+        if (std::memcmp(c.window + q, target, static_cast<std::size_t>(c.matchLen + 1)) == 0) {
+            c.matchPos = static_cast<std::int32_t>(q);
+            ++c.matchLen;
+            return true;
+        }
+        a += c.chain[q];
+        e += c.chain[(cur - static_cast<std::uint32_t>(e)) & kWindowMask];
+    }
+    return false;
+}
+
+// Starts a match at the byte before the newest one: the first position along the newest byte's
+// hash chain (distance `d` back from `cur`) whose two bytes equal them.
+bool StartMatch(CoderState& c, std::uint32_t cur, std::int32_t d, const std::uint8_t* at) {
+    std::uint16_t pair;
+    std::memcpy(&pair, at - 1, 2);
+    c.matchPos = static_cast<std::int32_t>(cur);
+    while (d < kMaxDistance) {
+        std::uint32_t q = (cur - static_cast<std::uint32_t>(d)) & kWindowMask;
+        std::uint16_t seen;
+        std::memcpy(&seen, c.window + q, 2);
+        if (seen == pair) {
+            c.matchPos = static_cast<std::int32_t>(q);
+            c.matchLen = 2;
+            return true;
+        }
+        d += c.chain[q];
+    }
+    c.matchPos = -1;
+    return false;
+}
+
+std::int32_t DecodeLength(BufferCursor& r) {
+    if (!r.GetBit()) return r.GetBit() ? 4 : 2;
+    if (!r.GetBit()) {
+        if (r.GetBit()) return static_cast<std::int32_t>(r.GetBits(2)) + 7;
+        if (r.GetBit()) return static_cast<std::int32_t>(r.GetBits(3)) + 0xB;
+        return 3;
+    }
+    if (!r.GetBit()) {
+        if (r.GetBit()) return static_cast<std::int32_t>(r.GetBits(6)) + 0x23;
+        return 5;
+    }
+    if (!r.GetBit()) return 6;
+    if (!r.GetBit()) return static_cast<std::int32_t>(r.GetBits(4)) + 0x13;
+    return static_cast<std::int32_t>(r.GetBits(7)) + 0x63;
+}
+
+std::int32_t DecodeOffset(BufferCursor& r) {
+    if (r.GetBit()) {
+        if (r.GetBit()) return static_cast<std::int32_t>(r.GetBits(10)) + 0x162;
+        return static_cast<std::int32_t>(r.GetBits(12)) + 0x562;
+    }
+    if (r.GetBit()) {
+        if (r.GetBit()) return static_cast<std::int32_t>(r.GetBits(8)) + 0x62;
+        return static_cast<std::int32_t>(r.GetBits(6)) + 0x22;
+    }
+    if (r.GetBit()) {
+        if (r.GetBit()) {
+            if (r.GetBit()) return static_cast<std::int32_t>(r.GetBits(1));
+            return static_cast<std::int32_t>(r.GetBits(4)) + 0x12;
+        }
+        return static_cast<std::int32_t>(r.GetBits(2)) + 6;
+    }
+    if (r.GetBit()) return static_cast<std::int32_t>(r.GetBits(2)) + 2;
+    return static_cast<std::int32_t>(r.GetBits(3)) + 0xA;
+}
+
+} // namespace
+
+// The code tables (core/coder.h), zero until InitCodeTables.
+std::uint32_t g_offsetBits[34] = /*0079B6B0*/ {};
+std::uint32_t g_offsetCodes[34] = /*0079B738*/ {};
+std::uint32_t g_lengthBits[34] = /*0079B7C0*/ {};
+std::uint32_t g_lengthCodes[34] = /*0079B848*/ {};
+
+
+void BufferCursor::PutBits(std::uint32_t value, std::uint8_t count) {
+    if (bits == 0) {
+        bytePtr = p;
+        ++p;
+        acc = value;
+        bits = count;
+    } else {
+        acc += value << bits;
+        bits = static_cast<std::uint8_t>(bits + count);
+    }
+    while (bits > 8) {
+        *bytePtr = static_cast<std::uint8_t>(acc);
+        bits = static_cast<std::uint8_t>(bits - 8);
+        bytePtr = p;
+        acc >>= 8;
+        ++p;
+    }
+}
+
+std::uint32_t BufferCursor::GetBit() {
+    if (bits < 1) {
+        acc = NextByte();
+        bits = 8;
+    }
+    std::uint32_t bit = acc & 1;
+    acc >>= 1;
+    --bits;
+    return bit;
+}
+
+std::uint32_t BufferCursor::GetBits(std::uint32_t count) {
+    while (bits < count) {
+        acc += static_cast<std::uint32_t>(NextByte()) << bits;
+        bits = static_cast<std::uint8_t>(bits + 8);
+    }
+    std::uint32_t value = acc & kCoderBitMasks[count - 1];
+    acc >>= (count & 0x1F);
+    bits = static_cast<std::uint8_t>(bits - static_cast<std::uint8_t>(count));
+    return value;
+}
+
+void BufferCursor::WriteBytes(const void* from, std::uint32_t size) {
+    std::memcpy(p, from, size);
+    p += size;
+}
+
+void BufferCursor::ReadBytes(void* to, std::uint32_t size) {
+    const std::size_t room = Room();
+    const std::size_t n = size < room ? size : room;
+    std::memcpy(to, p, n);
+    std::memset(static_cast<std::uint8_t*>(to) + n, 0, size - n);
+    p += n;
+}
+
+void BufferCursor::End() {
+    if (bits != 0) {
+        bits = 0;
+        if (bytePtr) *bytePtr = static_cast<std::uint8_t>(acc);
+    }
+    if (!sink) return;
+    sink->cur = p;
+    sink = nullptr;
+}
+
+// --- Code tables ----------------------------------------------------------------------------------
+
+// The startup initialiser of the code tables: for match
+// lengths 1..0x22 the code and its bit count (g_lengthCodes / g_lengthBits, at length - 1), for distance
+// buckets 0..0x21 (every 16 bytes from -0x5C) the code and bit count (g_offsetCodes / g_offsetBits).
+void InitCodeTables() {
+    for (int length = 1; length <= 0x22; ++length) {
+        int j = length - 1;
+        std::uint32_t& code = g_lengthCodes[j];
+        std::uint32_t& bits = g_lengthBits[j];
+        code = 0;
+        if (length <= 1) {
+            code = 0;
+            bits = 1;
+        } else if (length <= 2) {
+            code = 1;
+            bits = 3;
+        } else if (length <= 3) {
+            code = 3;
+            bits = 5;
+        } else if (length <= 4) {
+            code = 5;
+            bits = 3;
+        } else if (length <= 5) {
+            code = 7;
+            bits = 5;
+        } else if (length <= 6) {
+            code = 0xF;
+            bits = 5;
+        } else if (length <= 10) {
+            bits = 6;
+            code = 16 * j - 0x55;
+        } else if (length <= 18) {
+            bits = 8;
+            code = 32 * j - 0x12D;
+        } else {
+            bits = 10;
+            code = 64 * j - 0x461;
+        }
+    }
+    for (int k = 0; k < 0x22; ++k) {
+        int v = 16 * k - 0x5C;
+        int high = 0x1C + 32 * k;
+        g_offsetCodes[k] = 0;
+        if (v < -0x3C) {
+            g_offsetBits[k] = 6;
+            g_offsetCodes[k] = high;
+        } else if (v < 4) {
+            g_offsetBits[k] = 6;
+            g_offsetCodes[k] = v + 0x44;
+        } else if (v < 0x44) {
+            g_offsetBits[k] = 6;
+            g_offsetCodes[k] = v;
+        } else if (v < 0xC4) {
+            g_offsetBits[k] = 7;
+            g_offsetCodes[k] = v - 0x44;
+        } else {
+            g_offsetBits[k] = 9;
+            g_offsetCodes[k] = high - 0x250;
+        }
+    }
+}
+
+void CoderState::Start() {
+    out = BufferCursor{};
+    prev = 0;
+    matchPos = -1;
+    pos = 0;
+    chain[0] = 0x400;
+    std::memset(head, 0, sizeof(head));
+    window[0] = 0;
+    window[0x400] = 0;
+    window[0x3FF] = 0;
+    window[0x7FF] = 0;
+}
+
+void CoderState::Reset() {
+    out.End();
+    Start();
+}
+
+void CoderState::EncodeMatch(std::int32_t at) {
+    std::uint32_t offset = (pos - static_cast<std::uint32_t>(matchLen) - static_cast<std::uint32_t>(at) - 1) & kWindowMask;
+    matchPos = -1;
+    // Length: 2..0x22 from the table, then two escape codes with 6 and 7 more bits.
+    std::int32_t length = matchLen;
+    if (length <= 0x22) {
+        out.PutBits(g_lengthCodes[length - 1], static_cast<std::uint8_t>(g_lengthBits[length - 1]));
+    } else if (length <= 0x62) {
+        out.PutBits(0x17, 5);
+        out.PutBits(static_cast<std::uint32_t>(length - 0x23), 6);
+    } else if (length <= 0xE2) {
+        out.PutBits(0x3F, 6);
+        out.PutBits(static_cast<std::uint32_t>(length - 0x63), 7);
+    }
+    // Offset (distance - 1): 0..0x21 from the table, then a 2- or 3-bit prefix and 6..12 bits.
+    std::int32_t value = static_cast<std::int32_t>(offset);
+    if (value < 0x22) {
+        out.PutBits(g_offsetCodes[value], static_cast<std::uint8_t>(g_offsetBits[value]));
+    } else if (value < 0x62) {
+        out.PutBits(2, 3);
+        out.PutBits(static_cast<std::uint32_t>(value - 0x22), 6);
+    } else if (value < 0x162) {
+        out.PutBits(6, 3);
+        out.PutBits(static_cast<std::uint32_t>(value - 0x62), 8);
+    } else if (value < 0x562) {
+        out.PutBits(3, 2);
+        out.PutBits(static_cast<std::uint32_t>(value - 0x162), 10);
+    } else if (value < 0x1562) {   // unreachable: offsets are below 0x400
+        out.PutBits(1, 2);
+        out.PutBits(static_cast<std::uint32_t>(value - 0x562), 12);
+    }
+}
+
+void CoderState::Compress(GameBuffer* in, GameBuffer* outBuffer) {
+    BufferCursor reader;
+    in->Seek(0);
+    std::int32_t size = in->Size();
+    reader.BeginRead(in, size);
+    const std::uint8_t* end = reader.limit;
+    out.BeginWrite(outBuffer, size * 2 + 10);
+    out.Put(size);
+    if (size > 0) {
+        const std::uint8_t* at = reader.p;
+        std::uint8_t byte = *at;
+        chain[pos] = 0x400;
+        pos = (pos + 1) & kWindowMask;
+        window[pos] = byte;
+        window[pos + 0x400] = byte;
+        prev = byte;
+        for (++at; at < end; ++at) {
+            byte = *at;
+            std::uint32_t hash = (prev << 2) ^ byte;
+            std::uint32_t cur = pos;
+            std::int32_t last = head[hash];
+            head[hash] = static_cast<std::int32_t>(cur);
+            std::int32_t d = static_cast<std::int32_t>((cur - static_cast<std::uint32_t>(last)) & kWindowMask);
+            if (d == 0) d = 0x400;
+            chain[pos] = d;
+            pos = (cur + 1) & kWindowMask;
+            window[pos] = byte;
+            window[pos + 0x400] = byte;
+            if (matchPos < 0) {
+                if (!StartMatch(*this, cur, d, at)) {
+                    // Literal: a 0 flag bit, then the previous byte.
+                    out.PutBits(0, 1);
+                    out.Put(static_cast<std::uint8_t>(prev));
+                }
+            } else if (matchLen < kMaxMatchLength &&
+                       window[matchPos + matchLen] == byte) {
+                ++matchLen;
+            } else if (!(matchLen < kMaxMatchLength && ExtendMatch(*this, cur, d))) {
+                EncodeMatch(matchPos);
+            }
+            prev = byte;
+        }
+        // The last byte: closes the match (one position earlier, as `pos` did not move) or is a literal.
+        if (matchPos >= 0) {
+            EncodeMatch(matchPos - 1);
+        } else {
+            matchPos = -1;
+            out.PutBits(0, 1);
+            out.Put(static_cast<std::uint8_t>(prev));
+        }
+    }
+    out.End();
+    reader.End();
+}
+
+void CoderState::Decompress(GameBuffer* in, GameBuffer* outBuffer) {
+    BufferCursor reader;
+    reader.BeginRead(in, in->Unread());
+    std::int32_t remaining;
+    reader.Take(remaining);
+    out.BeginWrite(outBuffer, remaining);
+    while (remaining > 0) {
+        if (!reader.GetBit()) {
+            std::uint8_t byte;
+            reader.Take(byte);
+            out.Put(byte);
+            --remaining;
+            window[pos] = byte;
+            pos = (pos + 1) & kWindowMask;
+            continue;
+        }
+        std::int32_t length = DecodeLength(reader);
+        std::int32_t offset = DecodeOffset(reader);
+        if (!(length < remaining)) length = remaining;
+        for (std::int32_t i = 0; i < length; ++i) {
+            std::uint8_t byte = window[(pos - static_cast<std::uint32_t>(offset) - 1) & kWindowMask];
+            out.Put(byte);
+            window[pos] = byte;
+            pos = (pos + 1) & kWindowMask;
+        }
+        remaining -= length;
+    }
+    out.End();
+    reader.End();
+}

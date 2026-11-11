@@ -12,7 +12,7 @@
 // back to the defaults for that part. One section is the server's, not the picture's: the weather's delay
 // (WeatherDelay), which mission.sav does not keep either.
 
-#include "game/core/random.h"
+#include "engine/core/random.h"
 
 #include "render/kept_weather.h"
 

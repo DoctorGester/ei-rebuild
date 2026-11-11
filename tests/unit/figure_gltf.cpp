@@ -1,4 +1,4 @@
-// game/models/figure_gltf.h: figure models as glTF and back (docs/notes/mods.md, "Models as glTF" and "Animations as
+// engine/models/figure_gltf.h: figure models as glTF and back (docs/notes/mods.md, "Models as glTF" and "Animations as
 // glTF"). A model set and a loose figure of every record kind (FIG8 with morph corners a float displacement cannot
 // hold, FIG of one version, the older record with its skipped block; padding lanes, unused slots, a normal's w, normals
 // not of unit length, words of their own, an entry of another kind) and a set's animations (a root's and children's
@@ -6,7 +6,7 @@
 // archive) come back as the same files; a glTF of another tool's (no extras) is numbered by value, its bounds fitted,
 // its axes turned, its animation's keys sampled at the ticks and its rotations turned into the game's; lib/json.h's
 // reader.
-#include "game/models/figure_gltf.h"
+#include "engine/models/figure_gltf.h"
 
 #include "lib/json.h"
 

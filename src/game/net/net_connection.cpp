@@ -3,9 +3,9 @@
 #include "game/net/net_connection.h"
 
 #include "game/console/console.h"
-#include "game/core/core_refcount.h"
-#include "game/core/core_streams.h"
-#include "game/core/coder.h"
+#include "engine/core/core_refcount.h"
+#include "engine/core/core_streams.h"
+#include "engine/core/coder.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"

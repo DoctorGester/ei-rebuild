@@ -2,9 +2,9 @@
 #include "game/net/mod_identity.h"
 
 #include "game/app/singletons.h"
-#include "game/data/registry.h"
-#include "game/data/text_manager.h"
-#include "game/mods/mod_hash.h"
+#include "engine/data/registry.h"
+#include "engine/data/text_manager.h"
+#include "engine/mods/mod_hash.h"
 #include "game/ui/ui.h"
 #include "game/world/world.h"
 #include "platform/log.h"

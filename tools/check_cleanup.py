@@ -546,7 +546,7 @@ _families = None
 
 
 def _family(rel):
-    if rel.startswith('src/game/'):
+    if rel.startswith(('src/game/', 'src/engine/')):
         stem = os.path.splitext(layout.flat_name(rel))[0]
         return 'src/game/' + '_'.join(stem.split('_')[:2])
     stem = os.path.splitext(os.path.basename(rel))[0]

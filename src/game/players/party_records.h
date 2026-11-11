@@ -3,7 +3,7 @@
 // Named party records (0x7C bytes, a counted object): a party object and the name scripts refer to it by.
 // The party manager keeps them in a vector followed by two strings.
 
-#include "game/core/core_refcount.h"
+#include "engine/core/core_refcount.h"
 #include "game/players/party.h"
 
 #include <string>

@@ -1,24 +1,24 @@
 // Rebirth's extra script commands, plus GSGetPlayerVar and IsFileExists.
 #include "game/app/movies.h"   // g_loadingMovieOff
-#include "game/scene/camera.h"
+#include "engine/scene/camera.h"
 #include "game/combat/combat.h"
 #include "game/console/console.h"
 #include "game/app/singletons.h"
 #include "game/items/item.h"
 #include "game/items/item_db.h"
 #include "game/objects/map_object.h"
-#include "game/data/options.h"
+#include "engine/data/options.h"
 #include "game/players/party.h"
 #include "game/players/player_messages.h"
 #include "game/players/player.h"
 #include "game/script/script_addon_handlers.h"
-#include "game/mods/mod_folders.h"
+#include "engine/mods/mod_folders.h"
 #include "platform/platform.h"
 #include "game/units/unit.h"
 #include "game/ai/unit_ai.h"
 #include "game/units/unit_db.h"
 #include "game/world/world.h"
-#include "game/core/named_floats.h"
+#include "engine/core/named_floats.h"
 
 #include "lib/str.h"
 

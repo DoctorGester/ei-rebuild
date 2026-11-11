@@ -1,16 +1,16 @@
 // The item screens' model view and the description panel's drawing. See
 // ui_item_info.h and docs/notes/ui.md ("Item descriptions").
 #include "game/app/app.h"
-#include "game/core/core_refcount.h"
-#include "game/scene/scene_renderer.h"
-#include "game/models/texture.h"
+#include "engine/core/core_refcount.h"
+#include "engine/scene/scene_renderer.h"
+#include "engine/models/texture.h"
 #include "game/ui/ui_item_info.h"
 #include "game/ui/ui_mesh.h"
 #include "game/players/faces.h"
 
-#include "game/scene/surface.h"
+#include "engine/scene/surface.h"
 #include "game/items/item.h"
-#include "game/core/random.h"
+#include "engine/core/random.h"
 #include "game/spells/spell.h"
 #include "game/units/unit_db.h"
 

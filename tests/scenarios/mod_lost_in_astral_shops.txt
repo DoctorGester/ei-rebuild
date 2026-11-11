@@ -1,5 +1,5 @@
 # Lost in Astral's shops (MOD2a; docs/notes/mods.md, "The mods' plugins"): the mod's config.reg names fixshops.plg, a
-# game.exe patch Rebirth's starter loads, which our exe carries as code (src/game/mods/mod_plugins.h). A new game builds
+# game.exe patch Rebirth's starter loads, which our exe carries as code (src/engine/mods/mod_plugins.h). A new game builds
 # the four trader classes of a network game (1, 3, 4, 5, each selling items and spells; the autosave savea holds
 # them), so the mod's class 1 traders (OrcC, OrcPyr: "constr_1") sell spells too and its class 5 (Stark) a full
 # stock; and a loaded game builds them again, so the camp restocks: the quick save after the two camps holds their

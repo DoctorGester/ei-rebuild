@@ -4,18 +4,18 @@
 #include "game/app/singletons.h"
 #include "game/objects/map_object_shadow.h"
 
-#include "game/core/core_refcount.h"
-#include "game/models/figure_mesh.h"   // VertexPacket
-#include "game/models/link_figure.h"   // FigureMeshDrawer
+#include "engine/core/core_refcount.h"
+#include "engine/models/figure_mesh.h"   // VertexPacket
+#include "engine/models/link_figure.h"   // FigureMeshDrawer
 #include "game/terrain/ground_print.h"   // NamedTexture
 #include "game/objects/object3d.h"
-#include "game/models/material.h"
-#include "game/scene/scene_renderer.h"
-#include "game/scene/pipeline.h"
-#include "game/scene/render_helper.h"
-#include "game/models/texture.h"
+#include "engine/models/material.h"
+#include "engine/scene/scene_renderer.h"
+#include "engine/scene/pipeline.h"
+#include "engine/scene/render_helper.h"
+#include "engine/models/texture.h"
 #include "game/world/hoover.h"
-#include "game/data/options.h"
+#include "engine/data/options.h"
 #include "game/world/world.h"
 #include "lib/containers.h"
 #include "lib/crt.h"

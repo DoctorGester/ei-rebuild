@@ -6,7 +6,7 @@
 #include "game/app/singletons.h"
 #include "game/objects/map_object.h"
 #include "game/world/diplomacy.h"
-#include "game/data/text_manager.h"
+#include "engine/data/text_manager.h"
 #include "game/saves/save_versions.h"
 #include "game/ai/sector_map.h"
 #include "game/spells/spell.h"

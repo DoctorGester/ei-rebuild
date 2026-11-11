@@ -10,7 +10,7 @@
 
 #include <string>
 #include "lib/hash_map.h"
-#include "game/core/core_streams.h"
+#include "engine/core/core_streams.h"
 
 #include <cstddef>
 #include <cstdint>

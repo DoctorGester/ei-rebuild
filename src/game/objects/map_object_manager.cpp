@@ -4,9 +4,9 @@
 // map_object_manager.h and docs/notes/units.md ("Creation, databases, save").
 #include "game/objects/map_object_manager.h"
 
-#include "game/core/base_manager.h"
-#include "game/core/core_maths.h"
-#include "game/models/figure_manager.h"   // FigureObjectType
+#include "engine/core/base_manager.h"
+#include "engine/core/core_maths.h"
+#include "engine/models/figure_manager.h"   // FigureObjectType
 #include "game/app/singletons.h"
 #include "game/app/logic_settings.h"
 #include "game/items/item.h"
@@ -16,8 +16,8 @@
 #include "game/objects/object3d.h"
 #include "game/objects/torch.h"
 #include "game/objects/traps.h"
-#include "game/data/resource_manager.h"
-#include "game/core/asset_text.h"
+#include "engine/data/resource_manager.h"
+#include "engine/core/asset_text.h"
 #include "game/units/unit.h"
 #include "game/units/unit_create.h"
 #include "game/units/unit_db.h"
@@ -29,8 +29,8 @@
 #include "lib/rounding.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
-#include "game/data/resource.h"
-#include "game/data/database_toml.h"
+#include "engine/data/resource.h"
+#include "engine/data/database_toml.h"
 #include "lib/toml.h"
 
 #include <algorithm>

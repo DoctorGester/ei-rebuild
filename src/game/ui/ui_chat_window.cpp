@@ -1,7 +1,7 @@
 // A network client's player list on the base screen (ChatWindow). See
 // ui_briefing.h and docs/notes/ui.md, section 3. Multiplayer only.
 #include "game/app/singletons.h"
-#include "game/data/text_manager.h"
+#include "engine/data/text_manager.h"
 #include "game/net/net_session.h"
 #include "game/net/net_messages.h"
 #include "game/players/faces.h"

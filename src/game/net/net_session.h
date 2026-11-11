@@ -6,9 +6,9 @@
 // and client (g_gameServer, g_gameClient).
 // Message (below) is the replicated object base, ServerEntry a server as the lobby lists it.
 
-#include "game/core/core_refcount.h"
+#include "engine/core/core_refcount.h"
 #include "game/players/party.h"
-#include "game/core/coder.h"
+#include "engine/core/coder.h"
 #include "game/net/mod_identity.h"
 #include "platform/platform.h"
 

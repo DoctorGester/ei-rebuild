@@ -5,8 +5,8 @@
 // docs/notes/units.md ("Creation, databases, save").
 
 #include "game/ai/ai_map.h"
-#include "game/core/engine_object.h"
-#include "game/models/texture.h"   // SkinRequest
+#include "engine/core/engine_object.h"
+#include "engine/models/texture.h"   // SkinRequest
 #include "lib/rect.h"
 #include "game/units/unit.h"
 

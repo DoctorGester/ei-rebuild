@@ -3,9 +3,9 @@
 // Its times are the real clock's, not the game's.
 #include "game/net/net_second_master.h"
 
-#include "game/data/settings.h"
+#include "engine/data/settings.h"
 #include "game/net/net_session.h"
-#include "game/core/coder.h"
+#include "engine/core/coder.h"
 #include "game/net/net_messages.h"
 
 #include "lib/ipv4.h"

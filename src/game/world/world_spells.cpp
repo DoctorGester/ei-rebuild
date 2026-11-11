@@ -4,7 +4,7 @@
 #include "game/world/world.h"
 #include "game/combat/combat.h"
 
-#include "game/core/core_maths.h"
+#include "engine/core/core_maths.h"
 #include "game/objects/map_object.h"
 #include "game/players/player_messages.h"
 #include "game/players/player.h"

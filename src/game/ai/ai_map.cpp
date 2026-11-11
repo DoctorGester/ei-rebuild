@@ -1,7 +1,7 @@
 #include "game/ai/ai_map.h"
 
 #include "game/ai/sector_map.h"
-#include "game/core/core_maths.h"
+#include "engine/core/core_maths.h"
 #include "game/objects/map_object.h"
 
 #include "lib/containers.h"

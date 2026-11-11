@@ -5,7 +5,7 @@
 
 #include "game/ai/ai_map.h"
 #include "game/ai/unit_ai.h"
-#include "game/core/core_streams.h"
+#include "engine/core/core_streams.h"
 #include "game/effects/effects.h"
 #include "game/objects/map_object.h"
 #include "game/units/unit.h"

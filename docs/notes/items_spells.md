@@ -199,8 +199,8 @@ cast of one starts them).
 - **Built in.** `assets/spells/` holds the scripts (CamelCase, by the spell they run) and `spells.sdb.toml`, the
   fields the game's records get: `script`, the use fields (`ai`, `damage_type`, `offensive`, `turns_victim`,
   `fighting`), `cast_school`, `per_target`, `ends_with_target`, `max_ticks`. The build writes the folder into the exe
-  (src/game/effects/embed_effects.cmake, `spell_files/builtin.h`). `SpellDatabase::MergeBuiltin` merges the TOML into
-  the records of its codes right after the binary spells.sdb is read (never adding a record; a database without the
+  (src/engine/particles/embed_effects.cmake, `spell_files/builtin.h`). `SpellDatabase::MergeBuiltin` merges the TOML
+  into the records of its codes right after the binary spells.sdb is read (never adding a record; a database without the
   code gets nothing), below every TOML layer, so a mod's spells.sdb.toml overrides any field. A whole-file TOML
   (`replace = true`, ei-convert's dump) stands alone: the dump carries the fields, since ei-convert reads the database
   the same way. The scripts are the bottom layer of `Res\spells\` (`ScriptSpellHost`'s ReadFromLayers falls back to

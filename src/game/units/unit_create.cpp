@@ -4,7 +4,7 @@
 #include "game/units/unit_create.h"
 
 #include "game/combat/combat.h"
-#include "game/core/engine_object.h"
+#include "engine/core/engine_object.h"
 #include "game/items/item.h"
 #include "game/objects/map_object.h"
 #include "game/players/player_messages.h"

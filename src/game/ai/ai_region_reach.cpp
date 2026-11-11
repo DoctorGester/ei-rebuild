@@ -1,7 +1,7 @@
 // RegionMap::ReachesRegion and LabelRegions, and the region map's block grids. See ai_map.h and
 // docs/notes/ai.md ("Regions").
 #include "game/ai/ai_map.h"
-#include "game/core/core_streams.h"
+#include "engine/core/core_streams.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"

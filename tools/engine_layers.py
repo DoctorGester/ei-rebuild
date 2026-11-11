@@ -3,8 +3,8 @@ include only the engine's own headers, src/render's, src/platform's, third_party
 (units, world, ai, net, spells, script, ui, app, players, combat, objects, terrain, items, map, saves, sound, console
 and the game-side effects).
 
-The engine is src/lib, src/game/core, data, models, scene and mods, and the particle core in src/game/effects (its
-particle_*.cpp and .h files). tools/engine_layers.txt lists the includes still crossing the line (each a back-reference
+The engine is src/lib and src/engine (core, data, models, scene, mods and the particle core, particles); the game is
+src/game (with src/audio and src/video). tools/engine_layers.txt lists the includes still crossing the line (each a back-reference
 MF15k2 and later cut); the check fails on a crossing include the list does not have and on a listed one that is gone
 (take its line out: the list only shrinks).
 
@@ -16,9 +16,8 @@ import os, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, 'src')
 LIST = os.path.join(ROOT, 'tools', 'engine_layers.txt')
-# The engine's folders under src/ and its particle core's files (CMakeLists.txt's EI_ENGINE_SOURCES globs the same).
-ENGINE_FOLDERS = ('lib/', 'game/core/', 'game/data/', 'game/models/', 'game/scene/', 'game/mods/')
-PARTICLE_CORE = re.compile(r'^game/effects/particle_[a-z_]+\.(?:cpp|h)$')
+# The engine's folders under src/ (CMakeLists.txt's EI_ENGINE_SOURCES globs the same).
+ENGINE_FOLDERS = ('lib/', 'engine/')
 # What an engine file may include besides the engine's own files.
 BELOW = ('render/', 'platform/')
 INCLUDE = re.compile(r'^[ \t]*#[ \t]*include[ \t]*"([^"]+)"', re.M)
@@ -26,7 +25,7 @@ COMMENT = re.compile(r'//[^\n]*|/\*.*?\*/', re.S)
 
 
 def in_engine(rel):
-    return rel.startswith(ENGINE_FOLDERS) or bool(PARTICLE_CORE.match(rel))
+    return rel.startswith(ENGINE_FOLDERS)
 
 
 def source_files():

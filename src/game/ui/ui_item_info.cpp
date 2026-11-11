@@ -2,14 +2,14 @@
 // statistic under the mouse (ui_item_info.h, docs/notes/ui.md, "Item descriptions").
 #include "game/players/party.h"
 #include "game/ui/ui_screens.h"
-#include "game/core/text_split.h"
+#include "engine/core/text_split.h"
 #include "game/ui/ui_item_info.h"
 
 #include "game/console/console.h"
 #include "game/items/item.h"
 #include "game/items/item_db.h"
 #include "game/spells/spell_db.h"
-#include "game/data/text_manager.h"
+#include "engine/data/text_manager.h"
 #include "game/spells/spell.h"
 #include "game/units/unit.h"
 #include "game/units/unit_db.h"

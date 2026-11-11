@@ -4,8 +4,8 @@
 #include "game/script/script_lua_scheduler.h"
 
 #include "game/app/singletons.h"
-#include "game/core/base_manager.h"
-#include "game/core/random.h"
+#include "engine/core/base_manager.h"
+#include "engine/core/random.h"
 #include "game/effects/world_effect.h"
 #include "game/world/world.h"
 #include "lib/str.h"

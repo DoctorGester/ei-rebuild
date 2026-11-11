@@ -4,7 +4,7 @@
 #include "game/app/singletons.h"
 #include "game/items/item.h"
 #include "game/items/item_db.h"
-#include "game/data/text_manager.h"
+#include "engine/data/text_manager.h"
 #include "game/ui/ui.h"
 #include "game/ui/ui_item_info.h"
 #include "game/units/unit.h"

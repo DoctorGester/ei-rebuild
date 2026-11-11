@@ -13,7 +13,7 @@ record (goldnuggets) under that name, so its index (the table's old count) is on
 network game loads databaseLMP.res (GameFlow::UseResources). net_pair_database's host gives it to the peer, whose
 client refuses the server's item (HasEveryRecord) and leaves the server.
 
-items.idb is a chunk archive (src/game/data/chunk_archive.h): top-level chunks 0 (the index), 1 (the root: one chunk per
+items.idb is a chunk archive (src/engine/data/chunk_archive.h): top-level chunks 0 (the index), 1 (the root: one chunk per
 table, 1 materials .. 6 loot, each record a child 1 of fields) and 2. A chunk is an id byte and its length: one byte
 (length << 1) below 0x80 bytes, else a dword (length << 1 | 1); then the bytes.
 """

@@ -8,7 +8,7 @@
 #include "game/items/item_db.h"
 #include "game/objects/map_object.h"
 #include "game/objects/object3d.h"
-#include "game/data/text_manager.h"
+#include "engine/data/text_manager.h"
 #include "game/units/unit.h"
 #include "game/objects/map_object_manager.h"
 #include "game/units/unit_db.h"

@@ -1,10 +1,10 @@
 // Unit's Load and Save slots. See unit.h and docs/notes/units.md ("Creation, databases, save").
-#include "game/core/base_manager.h"
+#include "engine/core/base_manager.h"
 #include "game/items/item_manager.h"
 #include "game/units/unit.h"
 
 #include "game/ai/ai_motion.h"
-#include "game/core/core_streams.h"
+#include "engine/core/core_streams.h"
 #include "game/players/player.h"
 #include "game/units/unit_db.h"
 #include "game/world/world.h"

@@ -4,8 +4,8 @@
 
 #include "game/app/app.h"
 #include "game/app/singletons.h"
-#include "game/scene/device.h"
-#include "game/scene/scene_renderer.h"
+#include "engine/scene/device.h"
+#include "engine/scene/scene_renderer.h"
 #include "../platform/log.h"
 #include "render_internal.h"
 #include "render_perf.h"

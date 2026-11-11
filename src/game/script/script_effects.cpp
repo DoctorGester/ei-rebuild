@@ -3,9 +3,9 @@
 // and loading them with the savegame. See script.h and docs/notes/script.md.
 #include "game/script/script.h"
 
-#include "game/core/base_manager.h"
+#include "engine/core/base_manager.h"
 #include "game/world/world.h"
-#include "game/effects/particle_data.h"
+#include "engine/particles/particle_data.h"
 #include "game/effects/world_effect.h"
 #include "game/app/singletons.h"
 

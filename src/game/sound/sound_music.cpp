@@ -5,8 +5,8 @@
 // (Create).
 #include "game/console/console.h"
 #include "game/app/singletons.h"
-#include "game/core/random.h"
-#include "game/data/registry.h"
+#include "engine/core/random.h"
+#include "engine/data/registry.h"
 #include "game/sound/sound.h"
 #include "game/world/world.h"
 

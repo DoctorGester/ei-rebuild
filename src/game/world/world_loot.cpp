@@ -3,10 +3,10 @@
 #include "game/world/world.h"
 
 #include "game/app/singletons.h"
-#include "game/core/random.h"
-#include "game/data/text_manager.h"
+#include "engine/core/random.h"
+#include "engine/data/text_manager.h"
 #include "game/effects/effects.h"
-#include "game/models/figure_mesh.h"
+#include "engine/models/figure_mesh.h"
 #include "game/items/item.h"
 #include "game/items/item_manager.h"
 #include "game/objects/map_object.h"

@@ -65,7 +65,7 @@ target_include_directories(miniz SYSTEM INTERFACE third_party)
 target_compile_definitions(miniz PUBLIC MINIZ_NO_STDIO MINIZ_NO_TIME)
 target_compile_options(miniz PRIVATE $<IF:$<C_COMPILER_ID:MSVC>,/W0,-w>)
 set_target_properties(miniz PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
-# stb_dxt (third_party/stb, unmodified; built by our stb_dxt_impl.c): the PNG textures' DXT blocks (src/game/models/
+# stb_dxt (third_party/stb, unmodified; built by our stb_dxt_impl.c): the PNG textures' DXT blocks (src/engine/models/
 # texture_png.cpp; docs/notes/mods.md, "Textures as PNG"). Without its warnings, as miniz.
 add_library(stb_dxt STATIC third_party/stb/stb_dxt_impl.c)
 target_include_directories(stb_dxt PRIVATE third_party)
@@ -80,7 +80,7 @@ target_include_directories(wuffs SYSTEM INTERFACE third_party)
 target_compile_options(wuffs PRIVATE $<IF:$<C_COMPILER_ID:MSVC>,/W0,-w>)
 set_target_properties(wuffs PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
 # cgltf (third_party/cgltf, unmodified; built by our cgltf_impl.c): the figure models read as glTF
-# (src/game/models/figure_gltf.cpp; docs/notes/mods.md, "Models as glTF"). Without its warnings, as miniz.
+# (src/engine/models/figure_gltf.cpp; docs/notes/mods.md, "Models as glTF"). Without its warnings, as miniz.
 add_library(cgltf STATIC third_party/cgltf/cgltf_impl.c)
 target_include_directories(cgltf PRIVATE third_party)
 target_include_directories(cgltf SYSTEM INTERFACE third_party)
@@ -115,7 +115,7 @@ target_include_directories(imgui SYSTEM INTERFACE third_party)
 target_compile_options(imgui PRIVATE $<IF:$<CXX_COMPILER_ID:MSVC>,/W0,-w>)
 set_target_properties(imgui PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
 
-# Every string inside the game is UTF-8 (docs/notes/standalone.md section 4, src/game/core/asset_text.h): asset, save and
+# Every string inside the game is UTF-8 (docs/notes/standalone.md section 4, src/engine/core/asset_text.h): asset, save and
 # network text is converted from and to text::kAssetCodePage where it crosses.
 
 # What differs between the systems: the compiler's options and the platform's and the renderer's backends. Floating
@@ -172,25 +172,24 @@ else()
     set(EI_SYSTEM posix)   # src/platform/posix (Linux and macOS)
 endif()
 
-# The engine (docs/notes/file-layout.md, "The engine library"): src/lib, the data and its archives (src/game/data), the
-# models (textures, figures, animation), the scene (camera, lights, clip, pipeline, scene renderer), the core objects
-# (engine objects, transforms, references, streams, random), the mods' file layers and the particle core (src/game/
-# effects/particle_*), for the game and later the effect viewer's own exe (MF15k4). It includes no game header
+# The engine (docs/notes/file-layout.md, "The engine library"): src/lib and src/engine's folders: the data and its
+# archives (data), the models (textures, figures, animation), the scene (camera, lights, clip, pipeline, scene renderer),
+# the core objects (engine objects, transforms, references, streams, random), the mods' file layers (mods) and the
+# particle core (particles), for the game and later the effect viewer's own exe (MF15k4). It includes no game header
 # (tools/engine_layers.py, a build check). An object library as the game's (below), every object linked in; an object
 # library's objects reach only the targets that link it themselves, so each program that links ei_game links it too.
-file(GLOB EI_ENGINE_SOURCES CONFIGURE_DEPENDS src/lib/*.cpp src/game/core/*.cpp src/game/data/*.cpp
-     src/game/models/*.cpp src/game/scene/*.cpp src/game/mods/*.cpp src/game/effects/particle_*.cpp)
+file(GLOB EI_ENGINE_SOURCES CONFIGURE_DEPENDS src/lib/*.cpp src/engine/*/*.cpp)
 add_library(ei_engine OBJECT ${EI_ENGINE_SOURCES})
 target_include_directories(ei_engine PRIVATE src third_party)
 target_link_libraries(ei_engine PUBLIC ei_render ei_platform tomlc17 stb_dxt wuffs cgltf PRIVATE SDL3::SDL3-static)
 # The original effects on data (assets/effects/*.effect.toml) built into the engine as bytes at build time
-# (src/game/effects/embed_effects.cmake; docs/notes/effects.md, "The original effects on data").
+# (src/engine/particles/embed_effects.cmake; docs/notes/effects.md, "The original effects on data").
 file(GLOB EI_BUILTIN_EFFECTS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/assets/effects/*.effect.toml)
 add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/effect_files/builtin.h
     COMMAND ${CMAKE_COMMAND} -DFOLDER=${CMAKE_SOURCE_DIR}/assets/effects -DLABEL=assets/effects
             -DOUT=${CMAKE_BINARY_DIR}/effect_files/builtin.h -DNAMESPACE=builtin_effects -DSUFFIX=.effect.toml
-            -P ${CMAKE_SOURCE_DIR}/src/game/effects/embed_effects.cmake
-    DEPENDS ${EI_BUILTIN_EFFECTS} ${CMAKE_SOURCE_DIR}/src/game/effects/embed_effects.cmake
+            -P ${CMAKE_SOURCE_DIR}/src/engine/particles/embed_effects.cmake
+    DEPENDS ${EI_BUILTIN_EFFECTS} ${CMAKE_SOURCE_DIR}/src/engine/particles/embed_effects.cmake
     COMMENT "Writing assets/effects as bytes"
     VERBATIM)
 target_sources(ei_engine PRIVATE ${CMAKE_BINARY_DIR}/effect_files/builtin.h)
@@ -201,7 +200,6 @@ target_sources(ei_engine PRIVATE ${CMAKE_BINARY_DIR}/effect_files/builtin.h)
 # the debug information inside each object it was 1.1 GB, rewritten on every change. src/game's files are all in its
 # folders (src/game/units/unit.cpp; docs/notes/file-layout.md: layout.py check refuses a flat one).
 file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*/*.cpp src/audio/*.cpp src/video/*.cpp)
-list(REMOVE_ITEM EI_GAME_SOURCES ${EI_ENGINE_SOURCES})
 add_library(ei_game OBJECT ${EI_GAME_SOURCES})
 target_include_directories(ei_game PRIVATE src third_party)
 target_link_libraries(ei_game PUBLIC ei_engine ei_render ei_platform tomlc17 stb_dxt wuffs cgltf eris
@@ -212,8 +210,8 @@ file(GLOB EI_BUILTIN_SPELLS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/assets/spells/
 add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/spell_files/builtin.h
     COMMAND ${CMAKE_COMMAND} -DFOLDER=${CMAKE_SOURCE_DIR}/assets/spells -DLABEL=assets/spells
             -DOUT=${CMAKE_BINARY_DIR}/spell_files/builtin.h -DNAMESPACE=builtin_spells
-            -P ${CMAKE_SOURCE_DIR}/src/game/effects/embed_effects.cmake
-    DEPENDS ${EI_BUILTIN_SPELLS} ${CMAKE_SOURCE_DIR}/src/game/effects/embed_effects.cmake
+            -P ${CMAKE_SOURCE_DIR}/src/engine/particles/embed_effects.cmake
+    DEPENDS ${EI_BUILTIN_SPELLS} ${CMAKE_SOURCE_DIR}/src/engine/particles/embed_effects.cmake
     COMMENT "Writing assets/spells as bytes"
     VERBATIM)
 target_sources(ei_game PRIVATE ${CMAKE_BINARY_DIR}/spell_files/builtin.h)
@@ -497,14 +495,14 @@ if(WIN32)
                    tests/unit/ini_file.cpp tests/unit/ipv4.cpp tests/unit/maths.cpp tests/unit/save_picture.cpp
                    tests/unit/audio_mix.cpp tests/unit/display_sizes.cpp tests/unit/bounded_text.cpp
                    tests/unit/tagged_stream.cpp tests/unit/game_buffer.cpp tests/unit/platform_text.cpp
-                   tests/unit/path_layers.cpp tests/unit/mod_hash.cpp src/game/mods/mod_hash.cpp
+                   tests/unit/path_layers.cpp tests/unit/mod_hash.cpp src/engine/mods/mod_hash.cpp
                    tests/unit/weather_field.cpp tests/unit/toml.cpp src/lib/toml.cpp
-                   tests/unit/texture_png.cpp src/game/models/texture_png.cpp tests/unit/map_folder.cpp
-                   src/game/data/map_folder.cpp src/lib/png.cpp src/game/effects/weather_field.cpp src/game/core/buffer.cpp src/game/core/coder.cpp
-                   tests/unit/figure_gltf.cpp src/game/models/figure_gltf.cpp src/game/models/figure_gltf_animation.cpp src/lib/json.cpp src/lib/vecmath.cpp tests/unit/lua_number.cpp
-                   tests/unit/particle_record.cpp src/game/effects/particle_expr.cpp src/game/effects/particle_record.cpp src/game/core/random.cpp src/lib/crt.cpp
-                   src/audio/audio.cpp src/game/data/settings_document.cpp src/game/core/core_streams.cpp src/game/data/ini_file.cpp
-                   src/game/saves/save_picture.cpp src/lib/qoi.cpp src/game/core/asset_text.cpp src/lib/hash_map.cpp src/lib/ipv4.cpp
+                   tests/unit/texture_png.cpp src/engine/models/texture_png.cpp tests/unit/map_folder.cpp
+                   src/engine/data/map_folder.cpp src/lib/png.cpp src/game/effects/weather_field.cpp src/engine/core/buffer.cpp src/engine/core/coder.cpp
+                   tests/unit/figure_gltf.cpp src/engine/models/figure_gltf.cpp src/engine/models/figure_gltf_animation.cpp src/lib/json.cpp src/lib/vecmath.cpp tests/unit/lua_number.cpp
+                   tests/unit/particle_record.cpp src/engine/particles/particle_expr.cpp src/engine/particles/particle_record.cpp src/engine/core/random.cpp src/lib/crt.cpp
+                   src/audio/audio.cpp src/engine/data/settings_document.cpp src/engine/core/core_streams.cpp src/engine/data/ini_file.cpp
+                   src/game/saves/save_picture.cpp src/lib/qoi.cpp src/engine/core/asset_text.cpp src/lib/hash_map.cpp src/lib/ipv4.cpp
                    src/lib/text_case.cpp src/lib/calendar.cpp src/lib/str.cpp src/lib/crt_format.cpp
                    tests/unit/spell_behaviour.cpp src/game/spells/spell_behaviour.cpp
                    ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS} ${EI_SDL_CALLS})
@@ -540,13 +538,13 @@ else()
     # window's present after resizes, read back from the X server.
     enable_testing()
     add_executable(ei_port_check tests/port/port_check.cpp src/lib/text_case.cpp src/lib/calendar.cpp src/lib/ipv4.cpp src/lib/str.cpp src/lib/crt_format.cpp
-                   src/game/data/settings_document.cpp tests/unit/settings_file.cpp tests/unit/ini_file.cpp
+                   src/engine/data/settings_document.cpp tests/unit/settings_file.cpp tests/unit/ini_file.cpp
                    tests/unit/ipv4.cpp tests/unit/maths.cpp tests/unit/save_picture.cpp tests/unit/audio_mix.cpp
-                   tests/unit/display_sizes.cpp tests/unit/path_layers.cpp tests/unit/mod_hash.cpp src/game/mods/mod_hash.cpp tests/unit/weather_field.cpp tests/unit/toml.cpp src/lib/toml.cpp tests/unit/texture_png.cpp src/game/models/texture_png.cpp src/game/effects/weather_field.cpp src/audio/audio.cpp src/game/data/ini_file.cpp src/game/core/asset_text.cpp src/game/saves/save_picture.cpp src/lib/qoi.cpp src/video/bink_file.cpp
-                   tests/unit/map_folder.cpp src/game/data/map_folder.cpp src/lib/png.cpp
-                   tests/unit/figure_gltf.cpp src/game/models/figure_gltf.cpp src/game/models/figure_gltf_animation.cpp src/lib/json.cpp src/lib/vecmath.cpp tests/unit/lua_number.cpp
+                   tests/unit/display_sizes.cpp tests/unit/path_layers.cpp tests/unit/mod_hash.cpp src/engine/mods/mod_hash.cpp tests/unit/weather_field.cpp tests/unit/toml.cpp src/lib/toml.cpp tests/unit/texture_png.cpp src/engine/models/texture_png.cpp src/game/effects/weather_field.cpp src/audio/audio.cpp src/engine/data/ini_file.cpp src/engine/core/asset_text.cpp src/game/saves/save_picture.cpp src/lib/qoi.cpp src/video/bink_file.cpp
+                   tests/unit/map_folder.cpp src/engine/data/map_folder.cpp src/lib/png.cpp
+                   tests/unit/figure_gltf.cpp src/engine/models/figure_gltf.cpp src/engine/models/figure_gltf_animation.cpp src/lib/json.cpp src/lib/vecmath.cpp tests/unit/lua_number.cpp
                    tests/unit/spell_behaviour.cpp src/game/spells/spell_behaviour.cpp
-                   tests/unit/particle_record.cpp src/game/effects/particle_expr.cpp src/game/effects/particle_record.cpp src/game/core/random.cpp src/lib/crt.cpp
+                   tests/unit/particle_record.cpp src/engine/particles/particle_expr.cpp src/engine/particles/particle_record.cpp src/engine/core/random.cpp src/lib/crt.cpp
                    ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS} ${EI_SDL_CALLS})
     target_include_directories(ei_port_check PRIVATE src third_party)
     target_link_libraries(ei_port_check PRIVATE ei_platform tomlc17 stb_dxt wuffs cgltf eris SDL3::SDL3-static miniz)

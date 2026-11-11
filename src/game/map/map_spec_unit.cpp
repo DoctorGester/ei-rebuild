@@ -6,7 +6,7 @@
 #include "game/combat/combat.h"
 #include "game/objects/object3d.h"
 #include "game/map/map_spec.h"
-#include "game/core/core_streams.h"
+#include "engine/core/core_streams.h"
 #include "game/units/unit.h"
 
 #include "lib/bytes.h"

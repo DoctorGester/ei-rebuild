@@ -1,6 +1,6 @@
 // The exchange between players (screen 9, ExchangeScreen; multiplayer only). See ui_screens.h and
 // docs/notes/ui.md, section 4.
-#include "game/data/text_manager.h"
+#include "engine/data/text_manager.h"
 #include "game/net/net_session.h"
 #include "game/net/net_messages.h"
 #include "game/players/party.h"

@@ -4,14 +4,14 @@
 // sphere around the object and its shadow on the ground along the lights' direction (it decides the shadow's
 // visibility out of view). See docs/notes/map_objects.md ("Shadows").
 
-#include "game/core/ref.h"
-#include "game/scene/device_material.h"   // DeviceMaterial, MaterialStage
-#include "game/core/engine_object.h"
+#include "engine/core/ref.h"
+#include "engine/scene/device_material.h"   // DeviceMaterial, MaterialStage
+#include "engine/core/engine_object.h"
 #include "game/objects/object3d.h"   // Object3D, Object3DSpecific (the base half)
-#include "game/models/material.h"             // Material
+#include "engine/models/material.h"             // Material
 #include "lib/bit_flags.h"
 #include "lib/vecmath.h"
-#include "game/scene/pipeline.h"   // ClipBounds, TransformPipeline
+#include "engine/scene/pipeline.h"   // ClipBounds, TransformPipeline
 #include "lib/rect.h"   // RECT
 #include "render/render.h"   // CasterMark
 

@@ -1,13 +1,13 @@
 // Interface windows, their regions and the aligned pointer arrays they keep. A region's tooltip (UiRegion, ui.h) is
 // at the end: made from a text id ("tip <id>" in the texts) or a string, and its text changed. Every screen and HUD
 // panel builder gives its regions tooltips. See ui.h and docs/notes/ui.md ("Interface manager and window base").
-#include "game/models/figure_manager.h"
-#include "game/models/figure_mesh.h"
+#include "engine/models/figure_manager.h"
+#include "engine/models/figure_mesh.h"
 #include "game/app/singletons.h"
-#include "game/data/text_manager.h"
-#include "game/models/material.h"
-#include "game/scene/scene_renderer.h"
-#include "game/models/texture.h"
+#include "engine/data/text_manager.h"
+#include "engine/models/material.h"
+#include "engine/scene/scene_renderer.h"
+#include "engine/models/texture.h"
 #include "game/ui/ui.h"
 #include "game/ui/ui_mesh.h"
 #include "game/ui/screen_layout.h"

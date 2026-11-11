@@ -1,11 +1,11 @@
 // The game client session. See
 // net/net_session.h and docs/notes/network.md.
-#include "game/core/core_refcount.h"
+#include "engine/core/core_refcount.h"
 
 #include "game/app/game_flow.h"
 #include "game/app/singletons.h"
 #include "game/net/net_session.h"
-#include "game/core/coder.h"
+#include "engine/core/coder.h"
 #include "game/net/net_messages.h"
 #include "game/players/party.h"
 

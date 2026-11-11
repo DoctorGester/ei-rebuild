@@ -6,7 +6,7 @@
 // ai_map.h) are at the end: the shape cache's creator and the block hash.
 
 #include "game/ai/ai_map.h"
-#include "game/core/core_refcount.h"
+#include "engine/core/core_refcount.h"
 #include "game/units/unit.h"
 
 #include <cstddef>

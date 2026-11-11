@@ -2,8 +2,8 @@
 // docs/notes/script.md.
 #include "game/ai/ai_map.h"
 #include "game/items/item_manager.h"
-#include "game/data/options.h"
-#include "game/data/text_manager.h"
+#include "engine/data/options.h"
+#include "engine/data/text_manager.h"
 #include "game/script/script.h"
 #include "game/script/script_addon.h"
 
@@ -25,7 +25,7 @@
 #include "game/world/world.h"
 #include "game/players/class_templates.h"
 #include "game/objects/lever.h"
-#include "game/scene/scene_renderer.h"
+#include "engine/scene/scene_renderer.h"
 #include "game/players/player_manager.h"
 #include "game/effects/world_effect.h"
 

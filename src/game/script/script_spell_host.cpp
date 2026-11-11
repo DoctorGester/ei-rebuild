@@ -6,7 +6,7 @@
 #include "game/script/script_lua_number.h"
 #include "game/script/script_lua_scheduler.h"
 #include "game/ai/unit_ai.h"
-#include "game/data/record_names.h"
+#include "engine/data/record_names.h"
 #include "game/spells/spell.h"
 #include "game/spells/spell_effect_internal.h"
 #include "game/players/player.h"

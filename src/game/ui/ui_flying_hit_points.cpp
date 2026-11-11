@@ -4,16 +4,16 @@
 #include <algorithm>
 
 #include "game/app/singletons.h"
-#include "game/data/options.h"
+#include "engine/data/options.h"
 #include "game/world/world.h"
 
-#include "game/scene/clip.h"
-#include "game/core/core_maths.h"
-#include "game/core/engine_object.h"
-#include "game/models/link_figure.h"
+#include "engine/scene/clip.h"
+#include "engine/core/core_maths.h"
+#include "engine/core/engine_object.h"
+#include "engine/models/link_figure.h"
 #include "game/objects/object3d.h"
-#include "game/scene/device.h"
-#include "game/scene/scene_renderer.h"
+#include "engine/scene/device.h"
+#include "engine/scene/scene_renderer.h"
 #include "game/ui/screen_layout.h"
 #include "game/ui/ui.h"
 #include "game/units/unit.h"

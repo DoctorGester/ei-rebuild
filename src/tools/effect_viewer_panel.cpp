@@ -3,9 +3,9 @@
 #include "tools/effect_viewer_internal.h"
 
 #include "game/effects/effects.h"
-#include "game/effects/particle_data.h"
-#include "game/models/texture.h"
-#include "game/scene/camera.h"
+#include "engine/particles/particle_data.h"
+#include "engine/models/texture.h"
+#include "engine/scene/camera.h"
 #include "game/app/singletons.h"
 #include "game/units/unit.h"
 

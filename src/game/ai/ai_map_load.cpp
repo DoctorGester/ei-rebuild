@@ -3,9 +3,9 @@
 #include "game/ai/ai_map.h"
 #include "game/console/console.h"
 #include "game/app/singletons.h"
-#include "game/data/map_file.h"
-#include "game/data/registry.h"
-#include "game/data/resource.h"
+#include "engine/data/map_file.h"
+#include "engine/data/registry.h"
+#include "engine/data/resource.h"
 #include "game/ai/sector_map.h"
 #include "game/ai/unit_ai.h"
 

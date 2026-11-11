@@ -1,7 +1,7 @@
 // The interface's fonts (ui_font.h): our own fonts at the interface's sizes, with their metrics.
 #include "game/ui/ui_font.h"
 
-#include "game/core/asset_text.h"
+#include "engine/core/asset_text.h"
 
 #include "render/render_text.h"
 

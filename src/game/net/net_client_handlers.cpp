@@ -1,13 +1,13 @@
 // The game client's message handlers (OnMessage) and the party-screen entry points around them. Each keeps the replicated objects the server sends in one of the client's lists and tells the
 // interface or the game flow. The messages are declared in net_messages.h. See docs/notes/network.md.
-#include "game/core/core_refcount.h"
-#include "game/core/core_streams.h"
+#include "engine/core/core_refcount.h"
+#include "engine/core/core_streams.h"
 #include "game/app/game_flow.h"
 #include "game/app/singletons.h"
 #include "game/net/net_messages.h"
 #include "game/players/party.h"
 #include "game/ui/ui.h"
-#include "game/mods/maps_folder.h"
+#include "engine/mods/maps_folder.h"
 
 #include "lib/crt.h"
 

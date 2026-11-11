@@ -5,7 +5,7 @@
 
 #include "tools/effect_document.h"
 
-#include "game/core/random.h"
+#include "engine/core/random.h"
 #include "lib/vecmath.h"
 
 #include <cstdint>

@@ -6,7 +6,7 @@
 // writes its values with WriteDelta: a bit per 4-byte word says "unchanged", and only the changed words follow.
 // Reading (the client) mirrors it through a DeltaReader. See docs/notes/network.md.
 
-#include "game/core/core_streams.h"
+#include "engine/core/core_streams.h"
 
 #include "lib/vecmath.h"
 

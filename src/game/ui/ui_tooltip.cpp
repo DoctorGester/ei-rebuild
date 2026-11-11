@@ -2,11 +2,11 @@
 // and the painting of the lines; and its showing (Rebirth-patched: its WideScreen is
 // reproduced behind the flag). See ui.h and docs/notes/ui.md, section 2.
 #include "game/ui/ui.h"
-#include "game/data/options.h"
+#include "engine/data/options.h"
 #include "game/ui/screen_layout.h"
 
 #include "lib/crt.h"
-#include "game/core/text_split.h"
+#include "engine/core/text_split.h"
 #include "lib/rect.h"
 #include <string>
 #include "lib/vecmath.h"

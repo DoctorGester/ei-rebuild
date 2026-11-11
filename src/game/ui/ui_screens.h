@@ -7,7 +7,7 @@
 #include "game/ui/ui_item_info.h"
 #include "game/ui/ui_message_box.h"
 #include "game/ui/ui_drop_list.h"
-#include "game/mods/mod_list.h"
+#include "engine/mods/mod_list.h"
 #include "game/net/net_session.h"
 #include "game/spells/spell_db.h"
 

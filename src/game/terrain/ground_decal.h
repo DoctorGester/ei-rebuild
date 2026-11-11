@@ -4,7 +4,7 @@
 // triangle under the projected quad is clipped to the decal (a plane facing along the projection, then u, v in
 // [0, 1]) and appended to the caller's arrays. See docs/notes/models.md ("Ground decals").
 
-#include "game/models/figure_mesh.h"
+#include "engine/models/figure_mesh.h"
 #include "lib/vecmath.h"
 
 #include <cstddef>

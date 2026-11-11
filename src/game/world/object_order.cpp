@@ -3,12 +3,12 @@
 // change of the order here changes it there too.
 #include "game/world/object_order.h"
 
-#include "game/core/engine_object.h"
-#include "game/models/link_figure.h"
+#include "engine/core/engine_object.h"
+#include "engine/models/link_figure.h"
 #include "game/objects/map_object.h"
 #include "game/objects/object3d.h"
 #include "game/objects/map_object_shadow.h"
-#include "game/models/texture.h"
+#include "engine/models/texture.h"
 
 
 #include "lib/intro_sort.h"

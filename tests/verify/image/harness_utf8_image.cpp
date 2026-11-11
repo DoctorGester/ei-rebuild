@@ -7,7 +7,7 @@
 #include "game/console/console.h"
 #include "game/app/singletons.h"
 #include "game/players/player_messages.h"
-#include "game/core/asset_text.h"
+#include "engine/core/asset_text.h"
 #include "platform/harness_platform.h"
 #include "game/ui/ui.h"
 #include "game/ui/ui_chat_overlay.h"

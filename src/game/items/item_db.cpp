@@ -4,12 +4,12 @@
 #include "game/items/item_db.h"
 #include "game/spells/spell_db.h"
 
-#include "game/data/chunk_archive.h"
-#include "game/core/core_streams.h"
-#include "game/data/database_file.h"
-#include "game/data/database_toml.h"
-#include "game/data/record_names.h"
-#include "game/data/resource.h"
+#include "engine/data/chunk_archive.h"
+#include "engine/core/core_streams.h"
+#include "engine/data/database_file.h"
+#include "engine/data/database_toml.h"
+#include "engine/data/record_names.h"
+#include "engine/data/resource.h"
 #include "game/units/unit_db.h"   // InlineStrings
 
 #include "lib/crt.h"

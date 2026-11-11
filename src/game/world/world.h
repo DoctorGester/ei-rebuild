@@ -4,9 +4,9 @@
 // terrain queries (WorldClient), both derived from a common base. Class names come from the game's error strings.
 
 #include "game/saves/client_visuals.h"
-#include "game/core/core_refcount.h"
+#include "engine/core/core_refcount.h"
 #include "game/effects/effects.h"   // RainSnow
-#include "game/core/engine_object.h"
+#include "engine/core/engine_object.h"
 #include "game/app/singletons.h"
 #include "game/terrain/ground_print.h"
 #include "lib/vecmath.h"
@@ -15,10 +15,10 @@
 #include "game/players/party.h"
 #include "game/players/player_messages.h"
 #include "game/players/player_source.h"
-#include "game/data/registry.h"
+#include "engine/data/registry.h"
 #include "game/ai/unit_ai.h"   // AIEventTable (the server world's AI events)
 #include "game/units/unit_looks.h"
-#include "game/core/named_floats.h"
+#include "engine/core/named_floats.h"
 
 #include "lib/bit_flags.h"
 #include "lib/hash_map.h"

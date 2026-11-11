@@ -16,10 +16,10 @@
 #include "game/ui/ui_message_box.h"
 
 #include "game/console/console.h"
-#include "game/data/text_manager.h"
+#include "engine/data/text_manager.h"
 #include "lib/vecmath.h"
-#include "game/scene/scene_renderer.h"
-#include "game/models/texture.h"
+#include "engine/scene/scene_renderer.h"
+#include "engine/models/texture.h"
 #include "game/net/mod_identity.h"
 #include "game/net/net_second_master.h"
 #include "game/ui/ui_cursor.h"
@@ -34,7 +34,7 @@
 #include <string>
 #include "game/terrain/terrain.h"
 #include "game/app/singletons.h"
-#include "game/models/figure_manager.h"
+#include "engine/models/figure_manager.h"
 #include "lib/str.h"
 
 #include <cstdlib>

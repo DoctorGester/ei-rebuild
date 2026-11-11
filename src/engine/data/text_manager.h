@@ -1,0 +1,134 @@
+#pragma once
+
+// The text manager: texts from the game's text resources (strings, item names and descriptions, the texts the
+// script, quest and help code read line by line). A text manager holds a list of resource archives
+// (MappedResource) and a read cursor into the last text it found. A text is looked up by key ("string
+// format_item1", "weapon SWORD IRON", ...): the first archive that knows the key wins, and the cursor is set to the
+// start of the file's data. Then one line is read from the cursor (the name) or up to a '#' (the
+// description). Item keys are the record's name, spaces replaced by '_' and upper-cased, after a prefix that
+// depends on the item kind.
+
+#include "engine/core/engine_object.h"
+
+#include <cstdint>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <vector>
+
+// Text key of a name: h = 5 h + toupper(c) over the bytes (unsigned arithmetic), then
+// h % 1000000000 + 1000000000.
+int TextKeyFromName(std::string_view name);
+
+// Text keys are 1000000000..1999999999.
+bool IsTextKey(int id);
+
+class Item;
+class MappedResource;
+
+// An archive the texts are looked up in.
+struct TextSource {
+    std::string name;
+    MappedResource* source = nullptr;
+};
+
+// The archive list (TextManager::sources).
+struct TextSources {
+    // Add: unless an archive of that exact name is listed (then 1), appends a new
+    // MappedResource under `path` and returns its OpenResource(path); a failed open stays in the
+    // list. Remove: closes, deletes and unlinks the archive named `path`, if any. Clear: closes and deletes
+    // every archive, then frees the nodes.
+    bool Add(const std::string& path);
+    void Remove(const std::string& path);
+    void Clear();
+    // The data of file `key` from the first archive that has it (GetFile: its size written to `size`, which
+    // must not be null), or null: the file's bytes as they are. FindKeyText (ours): the same, as text: its
+    // UTF-8 copy, the size that copy's; a folder's texts.toml is asked too (MappedResource::FindText). ListKeys: `out` emptied, then the names matching `pattern`
+    // of every archive appended in list order (a name in two archives is listed twice); Rebirth patches it
+    // (ResOverride redirects the call).
+    void* Find(std::string_view key, std::uint32_t* size);
+    void* FindKeyText(std::string_view key, std::uint32_t* size);
+    std::vector<std::string> ListKeys(const char* pattern);
+
+    std::vector<TextSource> archives;
+};
+
+// An item's texts (TextManager::GetItemTexts); a part that is not found stays empty.
+struct ItemTexts {
+    std::string name;
+    std::string description;
+    std::string kind;          // "item_weapon", ... looked up as a string (GetString)
+};
+
+class TextManager : public EngineObject {
+public:
+    TextManager();
+    ~TextManager() override;
+
+    // setlocale(LC_CTYPE, the "Font CharSet" option, "english" by default), then the C runtime's multibyte
+    // code page set to the locale's; returns 1. The constructor calls it too.
+    void Create() override;
+    void Destroy() override { ClearSources(); }
+    const char* ClassName() override;
+    ClassId GetClassId() override;
+
+    // The first word at the cursor (leading spaces and line ends skipped; it ends at a
+    // space, tab, CR or LF); the cursor does not move. None when the cursor is at the end.
+    std::optional<std::string> PeekWord();
+
+    // Whether `p` is at or past the end of the current text (signed compare).
+    bool IsPastEnd(const char* p);
+
+    // Looks up "string " + name and reads it (up to a '#', trailing CR/LF trimmed); none when there is no
+    // such text. Either way the cursor is cleared afterwards.
+    std::optional<std::string> FindString(std::string_view name);
+    // FindString's text, or `name` itself when there is none.
+    std::string GetString(std::string_view name);
+
+    // The name, description and kind of an item, each looked up in the texts.
+    ItemTexts GetItemTexts(Item* item);
+
+    // The item's display name: "format_item1" (or "format_item2" with the stack count when count is above
+    // 1) applied to the kind and the name.
+    std::string FormatItemName(Item* item);
+
+    // The line reader (text_manager.cpp): finds a text in the resource archives and walks its lines with cursor.
+    // Texts are MBCS: a character is one byte, or a lead byte (_ismbblead) and a trail byte. Lines end with LF
+    // (CR also ends the line's content); a line whose first word starts with "##" is a comment.
+    // Makes the text `key` current (the first archive whose GetFile knows it), cursor at its
+    // start. True when found and not empty.
+    bool Open(std::string_view key);
+    // Ours: Open for a file that is not text (a quest registry read from the cursor): its bytes as they
+    // are, never converted to UTF-8.
+    bool OpenData(std::string_view key);
+    // Clears the current text.
+    void Close();
+    // The rest of the current line (up to CR or LF), empty when the cursor is at the end; with `advance` the
+    // cursor then moves to the next line that is not a comment.
+    std::string ReadLine(bool advance);
+    // The text up to the next '#' (empty when the cursor is at the end); the cursor moves there.
+    std::string ReadToHash();
+    // The current line's words (separated by spaces and tabs; a word still open when the text ends is
+    // dropped), none when the cursor is at the end (IsPastEnd); with `advance` the cursor moves to the next
+    // line that is not a comment.
+    std::vector<std::string> Split(bool advance);
+    // Moves the cursor to the line that starts with `key`: one word compares the line's first word; several
+    // words (split at spaces) compare the line's words, lower-cased, with them. 1 when found, else 0
+    // (cursor at the end).
+    bool FindLine(std::string_view key);
+    // Moves the cursor to the start of the next line that is not a "##" comment. 0 at the end.
+    bool NextLine();
+    // Moves the cursor to the next "#..." header line (not a "##" comment). 1 when found, else 0.
+    bool FindHeader();
+
+    bool AddSource(const std::string& path);
+    void RemoveSource(const std::string& path);
+    void ClearSources();
+    // The names matching `pattern` ("pers *") of every archive.
+    std::vector<std::string> ListKeys(const char* pattern);
+
+    TextSources sources;
+    const char* cursor = nullptr;  // read position in the current text
+    const char* text = nullptr;  // start of the current text (null: none)
+    std::uint32_t length = 0;  // size of the current text, written by GetFile
+};

@@ -1,0 +1,181 @@
+// The renderer's scene bracket: BeginScene with the last frame's time, EndScene closing the frame. The main loop
+// brackets each frame's drawing with them.
+#include "engine/core/core_maths.h"
+
+#include "engine/core/engine_object.h"
+#include "game/app/singletons.h"
+#include "engine/scene/device.h"
+#include "engine/scene/scene_renderer.h"     // SceneRenderer
+#include "engine/scene/pipeline.h"
+#include "engine/scene/render_helper.h"
+#include "engine/models/texture.h"   // Texture
+#include "engine/scene/renderer_lines.h"
+#include "engine/scene/light.h"
+#include "game/ui/ui.h"
+#include "game/ui/screen_layout.h"
+#include "game/world/world.h"
+#include "lib/scales.h"
+#include "lib/crt.h"
+#include "lib/vecmath.h"
+#include "platform/platform.h"
+
+#include <bit>
+#include <cmath>
+#include <cstdint>
+#include <cstring>
+
+int SceneRenderer::BeginScene() {
+    if (!running) return 0;
+    std::uint32_t now = platform::FrameClock();
+    frameStart = now;
+    frameTime = now - lastFrameStart;
+    return 1;
+}
+
+int SceneRenderer::EndScene() {
+    lastFrameStart = frameStart;
+    return 1;
+}
+
+// --- The renderer's lifetime and small members: Destroy, the draw colour and sun, the frame clear, texture
+// binding, the figure draws, the line list draw, the gamma getter, the surfaces' restore after a switch
+// back, and the device object's counted holder (docs/notes/renderer.md).
+
+namespace {
+
+constexpr float kColourScale = 255.0f;
+// AmbientColour: the ambient colour SetColour set last.
+float g_ambientColour[3] = {};
+
+// "Final loading data to NULL texture!" and a newline.
+constexpr const char* kNullTextureText = "Final loading data to NULL texture!\n";
+
+} // namespace
+
+// --- The renderer -----------------------------------
+
+SceneRenderer::~SceneRenderer() {
+    device.Reset();
+    helper.Reset();
+    ReleasePipeline();
+}
+
+void SceneRenderer::ReleasePipeline() {
+    sun.Reset();
+    pipeline.Reset();
+}
+
+void SceneRenderer::SetColour(std::uint32_t newColour) {
+    colour = newColour;
+    // Each byte (as a 64-bit integer) times the float constant, stored as a float.
+    const int red = static_cast<int>((newColour >> 16) & 0xFF);
+    const int green = static_cast<int>((newColour >> 8) & 0xFF);
+    const int blue = static_cast<int>(newColour & 0xFF);
+    g_ambientColour[0] = red * lib::kByteScale;
+    g_ambientColour[1] = green * lib::kByteScale;
+    g_ambientColour[2] = blue * lib::kByteScale;
+    device->colour = newColour;
+}
+
+const float* AmbientColour() { return g_ambientColour; }
+
+void SceneRenderer::SetSun(Light* light) { sun.Assign(light); }
+
+void SceneRenderer::SetSunAndAmbient(Light* light, float r, float g, float b) {
+    SetSun(light);
+    // Each product is stored as a float, then it is rounded to the nearest integer.
+    const std::uint32_t red = static_cast<std::uint32_t>(std::lround(r * kColourScale));
+    const std::uint32_t green = static_cast<std::uint32_t>(std::lround(g * kColourScale));
+    const std::uint32_t blue = static_cast<std::uint32_t>(std::lround(b * kColourScale));
+    SetColour((((red | 0xFFFFFF00u) << 8 | green) << 8) | blue);
+}
+
+// The scene renderer: constructed by the C++ runtime and destroyed after the game's exit functions. ShutDown's
+// DestroyRenderer has released its holders by then; on an exit that skips ShutDown its destructor drops the counts
+// (the device object's destructor releases only the pipeline and the material: no device or window call).
+SceneRenderer g_sceneRenderer;
+
+void SceneRenderer::DestroyRenderer() {
+    render::Shutdown();
+    ReleasePipeline();
+    helper.Reset();
+    device.Reset();
+}
+
+// The holder is stored (the new renderer draws with it); no device lock.
+void SceneRenderer::SetTexture(int stage, Texture* texture) {
+    device->stageSurfaces[stage] = texture ? texture->surface.Get() : nullptr;
+}
+
+void SceneRenderer::DrawLineList(LineBatch* lines) { lines->Draw(pipeline, device); }
+
+// There are no DirectDraw surfaces to lose nor a display mode to set again.
+bool SceneRenderer::RestoreSurfaces() { return device != nullptr; }
+
+// --- Texture holders -----------------------------------------------------------------------------
+
+int EnsureTextureLoaded(Texture* texture) {
+    if (!texture) game::FatalExit("%s", kNullTextureText);
+    if (texture->flags & TextureFlag::Loaded) return 1;
+    return g_clientWorld.textureManager->LoadTexture(texture);
+}
+
+void LoadNamedTexture(Ref<Texture>& slot, int kind, const char* name) {
+    slot.Reset();
+    auto* manager = g_clientWorld.textureManager.get();
+    auto* found = manager->FindTypedTexture(kind, name);
+    if (!found) found = manager->NewTextureOfType(kind);
+    found->name = name;
+    slot.Assign(found);
+}
+
+// --- Renderer base create ----------------------------------------------------------------------------
+
+// The first step of the scene renderer's creation (CVisualizator::Create in the game's messages): makes
+// the transform pipeline.
+
+void SceneRenderer::CreatePipeline() { pipeline.Assign(new TransformPipeline()); }
+
+// --- Scene renderer ----------------------------------------------------------------------------------
+
+// The scene renderer's members (SceneRenderer, scene/scene_renderer.h) that are game code rather than device code.
+
+void SceneRenderer::SetFogColour(float r, float g, float b) {
+    // Each product is stored as a float, then it is rounded to the nearest integer.
+    const std::uint32_t red = static_cast<std::uint32_t>(std::lround(r * kColourScale));
+    const std::uint32_t green = static_cast<std::uint32_t>(std::lround(g * kColourScale));
+    const std::uint32_t blue = static_cast<std::uint32_t>(std::lround(b * kColourScale));
+    const std::uint32_t packed = (((red | 0xFFFFFF00u) << 8 | green) << 8) | blue;
+    fogColour = packed;
+    SetFogColourState(packed);
+}
+
+// --- Device helpers ----------------------------------------------------------------------------------
+
+// Small out-of-line helpers of the old renderer's range, a few instructions each: counted
+// holders (destructors, assignments), 32-byte aligned allocations, list iterator copies, deleting
+// destructors, the device's vertex-buffer batch (never used) and the axis swap matrix. None of them
+// touches DirectDraw or Direct3D except the COM pointer's Release. Most are identical to
+// copies written elsewhere; each says which. See docs/notes/renderer.md (section 12).
+
+// ---- Deleting destructors ---------------------------------------------------------------------------
+
+// The renderer's counted base: nothing to destroy. Its deleting destructor is reached by no object.
+RendererBase::~RendererBase() = default;
+
+// (The figure loader's fieldless abstract base is not modelled: its deleting destructor is reached by no object.)
+
+// ---- Matrices ---------------------------------------------------------------------------------------
+
+// The axis swap of the projection: x, -y, z, w on the diagonal. Returns the matrix. x is scaled by width43 / width
+// and y by height43 / height (the window's 4:3 part, screen_layout.h; Rebirth's WideScreen scaled x), so the 4:3
+// picture keeps its proportions on any window, 1 and 1 on a 4:3 one; renderer_init.cpp calls it through its address
+// (rule 9).
+Matrix4* AxisSwapMatrix(Matrix4* out) {
+    std::memset(out, 0, sizeof(*out));
+    out->m[15] = 1.0f;
+    out->m[10] = 1.0f;
+    out->m[0] = screen_layout::AxisScale();
+    out->m[5] = -screen_layout::AxisScaleY();
+    return out;
+}

@@ -1,4 +1,4 @@
-# Rebirth's StreamPatch and MoviesPatch (S19d; src/game/mods/mod_folders.h, docs/notes/rebirth.md "Resources and paths")
+# Rebirth's StreamPatch and MoviesPatch (S19d; src/engine/mods/mod_folders.h, docs/notes/rebirth.md "Resources and paths")
 # with a mod of our own: tools/make_mod_s19d.py stream writes it into the run's harness_saves\s19d_mod, which "mod"
 # makes the settings' Mod (either install). The mod's Stream\ holds s19d.mp3 (a track the game has no
 # file of) and bravery.mp3 (a track it has); its Movies\ holds crdtfin.bik (a movie it has). The files are copies of

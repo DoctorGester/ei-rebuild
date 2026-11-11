@@ -2,9 +2,9 @@
 // update. See objects/traps.h and docs/notes/units.md ("Magic traps").
 #include "game/objects/traps.h"
 
-#include "game/core/base_manager.h"
-#include "game/core/core_streams.h"
-#include "game/core/engine_object.h"
+#include "engine/core/base_manager.h"
+#include "engine/core/core_streams.h"
+#include "engine/core/engine_object.h"
 #include "game/app/singletons.h"
 #include "game/objects/map_object.h"
 #include "game/ai/sector_map.h"

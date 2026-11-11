@@ -1,6 +1,6 @@
 // ManagerContext's own members (manager_context.h): the base Create and the copy of an item that
 // the party and the client world make (their DuplicateItem).
-#include "game/core/manager_context.h"
+#include "engine/core/manager_context.h"
 
 #include "game/items/item.h"
 #include "game/items/item_manager.h"

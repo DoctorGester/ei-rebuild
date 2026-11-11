@@ -1,7 +1,7 @@
 // UnitServer's Load and Save virtuals. See combat.h and docs/notes/combat.md ("Order lifecycle").
 #include "game/ai/ai_alarm.h"
 #include "game/ai/ai_map.h"
-#include "game/core/base_manager.h"
+#include "engine/core/base_manager.h"
 #include "game/combat/combat.h"
 #include "game/items/item_manager.h"
 

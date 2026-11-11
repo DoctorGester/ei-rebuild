@@ -5,7 +5,7 @@
 
 #include "game/app/singletons.h"
 #include "game/objects/map_object_shadow.h"
-#include "game/scene/scene_renderer.h"
+#include "engine/scene/scene_renderer.h"
 #include "game/players/party.h"
 #include "game/ui/ui_camp.h"
 #include "game/ui/ui_screens.h"

@@ -2,11 +2,11 @@
 // briefing (its "#show" lines in the briefing text) and the variable that marks the briefing as
 // seen ("b.<speaker>.<briefing>" or "b.elder.<briefing>"). See world.h and docs/notes/world.md.
 #include "game/console/console.h"
-#include "game/data/resource.h"
+#include "engine/data/resource.h"
 #include "game/app/game_flow.h"
 #include "game/app/singletons.h"
-#include "game/data/text_manager.h"
-#include "game/mods/mod_folders.h"
+#include "engine/data/text_manager.h"
+#include "engine/mods/mod_folders.h"
 #include "game/net/net_session.h"
 #include "game/net/net_messages.h"   // MapMessage
 #include "game/map/map_database.h"
@@ -15,7 +15,7 @@
 #include "game/world/quest_records.h"
 #include "game/ui/ui.h"
 #include "game/world/world.h"
-#include "game/mods/maps_folder.h"
+#include "engine/mods/maps_folder.h"
 #include "game/players/player.h"
 
 #include "lib/containers.h"

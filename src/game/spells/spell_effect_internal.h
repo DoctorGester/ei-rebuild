@@ -7,7 +7,7 @@
 #include "game/combat/combat.h"
 #include "game/console/console.h"
 #include "game/objects/map_object.h"
-#include "game/scene/light.h"
+#include "engine/scene/light.h"
 #include "game/spells/spell.h"
 #include "game/units/unit.h"
 #include "game/world/world.h"

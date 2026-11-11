@@ -2,7 +2,7 @@
 // lookup. The creature builders are objects/map_object_manager.cpp's. See unit_create.h and
 // docs/notes/units.md ("Creation, databases, save").
 #include "game/app/logic_settings.h"
-#include "game/data/text_manager.h"
+#include "engine/data/text_manager.h"
 #include "game/items/item.h"
 #include "game/units/unit.h"
 #include "game/units/unit_create.h"

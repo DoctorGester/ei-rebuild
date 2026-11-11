@@ -3,7 +3,7 @@
 #include "game/app/game_flow.h"
 #include "game/players/saved_parties.h"
 #include "game/spells/spell.h"
-#include "game/data/options.h"
+#include "engine/data/options.h"
 #include "game/objects/object3d.h"
 #include "game/ui/ui.h"
 #include "game/ui/ui_scrollbar.h"
@@ -12,7 +12,7 @@
 #include "game/ui/ui_camp.h"
 #include "game/net/net_session.h"
 
-#include "game/core/core_maths.h"
+#include "engine/core/core_maths.h"
 #include "game/items/item.h"
 #include "game/units/unit.h"
 #include "game/players/party.h"

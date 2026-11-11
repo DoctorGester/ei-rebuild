@@ -5,8 +5,8 @@
 #include <cstdint>
 #include <vector>
 
-#include "game/core/ref.h"
-#include "game/models/texture.h"
+#include "engine/core/ref.h"
+#include "engine/models/texture.h"
 
 class SceneRenderer;
 

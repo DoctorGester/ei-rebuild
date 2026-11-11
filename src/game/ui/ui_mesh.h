@@ -2,7 +2,7 @@
 
 // The interface's sprite mesh: UiMesh, the figure factory's class 0x43, and the sizes the dialog pieces share.
 
-#include "game/models/figure_mesh.h"
+#include "engine/models/figure_mesh.h"
 #include "game/ui/ui.h"
 
 // A sprite's depth in front of the interface camera for the dialog pieces (frames, shades, buttons), the layout

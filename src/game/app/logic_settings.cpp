@@ -1,7 +1,7 @@
 // LogicSettings::Load: the logic settings from their registry file. See logic_settings.h.
 #include "game/app/logic_settings.h"
 
-#include "game/data/registry.h"
+#include "engine/data/registry.h"
 
 #include <algorithm>
 #include <vector>

@@ -1,4 +1,4 @@
-# Rebirth's Maps at the sites S19b's scenario leaves out (S19d; src/game/mods/mod_folders.h, docs/notes/rebirth.md "Resources
+# Rebirth's Maps at the sites S19b's scenario leaves out (S19d; src/engine/mods/mod_folders.h, docs/notes/rebirth.md "Resources
 # and paths"): the new zone's map and mob files (NewZone), the client's zone load, the shared-file handler's
 # MapFileExists. A mod of our own: tools/make_mod_s19d.py maps writes it into the run's harness_saves\s19d_mod, which
 # "mod" makes the settings' Mod (both installs: the mod-folder patches apply whenever a mod is played). The mod's Maps\

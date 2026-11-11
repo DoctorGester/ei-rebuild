@@ -31,7 +31,8 @@ Drawing and the interface:
 - `ui-native.md`: how the interface's surfaces and text draw on the GPU.
 
 Program and platform:
-- `file-layout.md`: src/game's folders and file names (the C168 plan), the map tools/layout_map.txt and its tool.
+- `file-layout.md`: src/game's and src/engine's folders and file names (the C168 plan, the engine library), the map
+  tools/layout_map.txt and its tool.
 - `standalone.md`: the exe: how it runs, its data, the settings file, the library ports, UTF-8, the drop-in exe.
 - `platform.md`: the platform layer (src/platform) and its rule.
 - `linux.md`: the Linux build. `macos.md`: the macOS build (SDL3, POSIX, SDL_GPU's Metal).

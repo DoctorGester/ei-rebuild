@@ -1,15 +1,15 @@
 // The game server session. See
 // net/net_session.h and docs/notes/network.md.
-#include "game/core/core_streams.h"
+#include "engine/core/core_streams.h"
 
-#include "game/core/core_refcount.h"
+#include "engine/core/core_refcount.h"
 #include "game/app/game_flow.h"
 #include "game/net/net_session.h"
-#include "game/core/coder.h"
+#include "engine/core/coder.h"
 #include "game/net/net_connection.h"
 #include "game/net/net_messages.h"
 #include "game/net/net_second_master.h"
-#include "game/data/options.h"
+#include "engine/data/options.h"
 #include "lib/crt.h"
 
 #include <cstdint>

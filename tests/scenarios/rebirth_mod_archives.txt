@@ -1,4 +1,4 @@
-# Rebirth's ResOverride lists beyond S19b's one string (S19d; src/game/mods/mod_folders.h, docs/notes/rebirth.md "Resources
+# Rebirth's ResOverride lists beyond S19b's one string (S19d; src/engine/mods/mod_folders.h, docs/notes/rebirth.md "Resources
 # and paths") with a mod of our own: tools/make_mod_s19d.py archives writes it into the run's harness_saves\s19d_mod, which
 # "mod" makes the settings' Mod (either install). config.reg [RES]:
 #   texts.res    = [Res\s19d_texts_a.res, Res\s19d_texts_b.res]   an array: the mod's archives in order, then the game's

@@ -5,8 +5,8 @@
 // capacity, growBy}) and their two SetSize variants. See docs/notes/world.md. The game orders the sets by
 // address; this one by object id (world/object_order.h).
 #include "game/world/object_order.h"
-#include "game/core/core_streams.h"
-#include "game/core/engine_object.h"
+#include "engine/core/core_streams.h"
+#include "engine/core/engine_object.h"
 #include "game/objects/map_object.h"
 #include "game/effects/world_effect.h"
 #include "lib/containers.h"

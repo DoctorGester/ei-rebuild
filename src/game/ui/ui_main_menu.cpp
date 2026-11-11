@@ -3,18 +3,18 @@
 // RECT. The click is in ui_layouts.cpp. See docs/notes/ui.md, section 4.
 #include "game/app/app.h"
 #include "game/app/game_flow.h"
-#include "game/mods/mod_list.h"
-#include "game/data/options.h"
+#include "engine/mods/mod_list.h"
+#include "engine/data/options.h"
 #include "game/sound/sound.h"
 #include "game/ui/ui.h"
 #include "game/ui/ui_message_box.h"
 #include "game/ui/ui_screens.h"
 
-#include "game/core/base_manager.h"
-#include "game/core/core_maths.h"
-#include "game/data/text_manager.h"
+#include "engine/core/base_manager.h"
+#include "engine/core/core_maths.h"
+#include "engine/data/text_manager.h"
 #include "game/objects/object3d.h"
-#include "game/core/random.h"
+#include "engine/core/random.h"
 #include "game/world/world.h"
 
 #include "lib/rect.h"
@@ -22,12 +22,12 @@
 #include <cstdint>
 #include <memory>
 #include <string>
-#include "game/scene/camera.h"
+#include "engine/scene/camera.h"
 #include "game/terrain/terrain.h"
 #include "game/app/movies.h"
 #include "game/app/singletons.h"
-#include "game/scene/scene_renderer.h"
-#include "game/models/figure_manager.h"
+#include "engine/scene/scene_renderer.h"
+#include "engine/models/figure_manager.h"
 
 
 namespace {
