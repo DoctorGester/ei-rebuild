@@ -1,17 +1,15 @@
-// The effect viewer's panel (effect_viewer_internal.h, DrawPanel): the effects to pick, the playing controls, the
-// place, the source's values and the data effect's inputs, the timeline, and the data effect's file to edit and save.
+// The effect viewer's windows (effect_viewer_internal.h, DrawPanel), docked over the main window (imgui's dockspace,
+// the scene showing through its centre): the effects to pick; the timeline with the playing controls; the inputs with
+// the source's values, its place and the figure; the data effect's fields and its text, each with the file's save.
 #include "tools/effect_viewer_internal.h"
+#include "tools/effect_viewer_scene.h"
 
-#include "game/effects/effects.h"
-#include "engine/particles/particle_data.h"
 #include "engine/models/texture.h"
-#include "game/world/camera.h"
-#include "game/app/singletons.h"
-#include "game/units/unit.h"
-
-#include "render/render.h"
+#include "engine/particles/particle_data.h"
+#include "engine/particles/particle_source.h"
 
 #include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>   // the first layout (DockBuilder)
 
 #include <algorithm>
 #include <cstdio>
@@ -57,7 +55,10 @@ bool InputStringLines(const char* label, std::string* text, const ImVec2& size) 
 void DrawEffects(Viewer& v) {
     static ImGuiTextFilter filter;
     filter.Draw("Filter");
-    if (ImGui::BeginListBox("##effects", ImVec2(-1.0f, ImGui::GetTextLineHeightWithSpacing() * 9.0f))) {
+    // The list fills the window above the two rows of buttons below it.
+    const float listHeight = std::max(ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing() * 2.2f,
+                                      ImGui::GetTextLineHeightWithSpacing() * 9.0f);
+    if (ImGui::BeginListBox("##effects", ImVec2(-1.0f, listHeight))) {
         for (std::size_t i = 0; i < v.entries.size(); ++i) {
             const EffectEntry& entry = v.entries[i];
             if (!filter.PassFilter(entry.name.c_str())) continue;
@@ -114,33 +115,47 @@ void DrawPlaying(Viewer& v) {
 // ---- The place --------------------------------------------------------------------------------------------------------
 
 void DrawPlace(Viewer& v) {
-    bool onUnit = v.onUnit;
-    if (ImGui::RadioButton("On a unit", onUnit) && !onUnit) {
-        if (Unit* unit = v.Carrier() ? v.Carrier() : v.PartyUnit()) v.PlaceOnUnit(unit->id);
-    }
+    ViewerScene& scene = g_scene;
+    if (ImGui::RadioButton("On the figure", v.onFigure) && !v.onFigure) v.PlaceOnFigure();
     ImGui::SameLine();
-    if (ImGui::RadioButton("Free", !onUnit) && onUnit) v.PlaceFree(LengthSquared(v.freeAt) == 0.0f ? g_camera.focus : v.freeAt);
-
-    if (v.onUnit) {
-        const Unit* carrier = v.Carrier();
-        char current[96];
-        std::snprintf(current, sizeof(current), "%s (%d)", carrier ? carrier->name.c_str() : "gone", v.unitId);
-        if (ImGui::BeginCombo("Unit", current)) {
-            for (Unit* unit : v.NearbyUnits()) {
-                char label[96];
-                std::snprintf(label, sizeof(label), "%s (%d)%s", unit->name.c_str(), unit->id,
-                              (unit->flags & MapObjectFlag::InParty) ? "  party" : "");
-                if (ImGui::Selectable(label, unit->id == v.unitId)) v.PlaceOnUnit(unit->id);
-            }
-            ImGui::EndCombo();
-        }
-        if (carrier && !(carrier->flags & MapObjectFlag::InParty))
-            ImGui::TextDisabled("A source on a unit out of the party is drawn only when its unit is shown.");
-    } else {
+    if (ImGui::RadioButton("Free", !v.onFigure) && v.onFigure)
+        v.PlaceFree(LengthSquared(v.freeAt) == 0.0f ? scene.camera.focus : v.freeAt);
+    if (!v.onFigure) {
         Vector3 at = v.freeAt;
         if (ImGui::DragFloat3("At", &at.x, 0.05f)) v.PlaceFree(at);
-        if (ImGui::Button("At the camera's focus")) v.PlaceFree(g_camera.focus);
+        if (ImGui::Button("At the camera's focus")) v.PlaceFree(scene.camera.focus);
     }
+}
+
+// The figure: its animation, its walk.
+void DrawFigure(Viewer& v) {
+    ViewerScene& scene = g_scene;
+    if (!scene.figure) {
+        ImGui::TextDisabled("No figure (the install has no %s).", scene.model.c_str());
+        return;
+    }
+    const std::vector<std::string> names = scene.AnimationNames();
+    const char* shown = scene.animation >= 0 && scene.animation < static_cast<int>(names.size())
+                            ? names[static_cast<std::size_t>(scene.animation)].c_str()
+                            : "-";
+    if (ImGui::BeginCombo("Animation", shown)) {
+        for (std::size_t i = 0; i < names.size(); ++i)
+            if (ImGui::Selectable(names[i].c_str(), static_cast<int>(i) == scene.animation))
+                scene.PlayAnimation(static_cast<int>(i));
+        ImGui::EndCombo();
+    }
+    bool walk = scene.walking, run = scene.host.running;
+    const bool walkChanged = ImGui::Checkbox("Walk a circle", &walk);
+    ImGui::SameLine();
+    if (walkChanged | ImGui::Checkbox("Running", &run)) {
+        scene.SetGait(walk, run);
+        if (walkChanged && v.onFigure) v.Restart(v.tick);
+    }
+    if (scene.walking) {
+        ImGui::DragFloat("Speed", &scene.walkSpeed, 0.005f, 0.0f, 2.0f, "%.3f");
+        ImGui::DragFloat("Radius", &scene.circleRadius, 0.05f, 0.5f, 20.0f, "%.2f");
+    }
+    ImGui::Checkbox("World paused", &scene.paused);
 }
 
 // ---- The source's values and inputs -----------------------------------------------------------------------------------
@@ -327,56 +342,116 @@ bool DrawNode(const char* key, RawNode& node) {
     return changed;
 }
 
-void DrawDocument(Viewer& v) {
-    EffectDocument& d = v.document;
-    ImGui::TextWrapped("%s%s", d.editedPath.c_str(), d.editedBuiltin ? "  (built in: saved whole into the folder below)" : "");
+void DrawFileHeader(const EffectDocument& d) {
+    ImGui::TextWrapped("%s%s", d.editedPath.empty() ? "(a new effect)" : d.editedPath.c_str(),
+                       d.editedBuiltin ? "  (built in: saved whole into the folder below)" : "");
     if (!d.below.empty()) ImGui::TextDisabled("over %d file(s) below it", static_cast<int>(d.below.size()));
-    if (ImGui::BeginTabBar("document")) {
-        if (ImGui::BeginTabItem("Fields", nullptr, v.documentTab == 0 ? ImGuiTabItemFlags_SetSelected : 0)) {
-            bool changed = false;
-            for (auto& [key, value] : d.tree.keys) changed |= DrawNode(key.c_str(), value);
-            if (changed) v.Edited(true);
-            ImGui::EndTabItem();
-        }
-        if (ImGui::BeginTabItem("Text", nullptr, v.documentTab == 1 ? ImGuiTabItemFlags_SetSelected : 0)) {
-            if (InputStringLines("##text", &d.text, ImVec2(-1.0f, ImGui::GetTextLineHeight() * 24.0f))) v.Edited(false);
-            ImGui::EndTabItem();
-        }
-        ImGui::EndTabBar();
-    }
-    // A tab picked by a command ("tab") is picked once; then the tabs follow the clicks.
-    v.documentTab = -1;
+}
+
+void DrawProblemsAndSave(Viewer& v, const char* id) {
+    const EffectDocument& d = v.document;
     for (const std::string& problem : d.problems) ImGui::TextColored(ImVec4(1.0f, 0.55f, 0.4f, 1.0f), "%s", problem.c_str());
+    ImGui::PushID(id);
     ImGui::SeparatorText("Save");
     InputString("Folder", &v.saveFolder);
     ImGui::TextDisabled("into <folder>\\Res\\effects\\%s.effect.toml", d.name.c_str());
     if (ImGui::Button("Save")) v.Save();
+    ImGui::PopID();
+}
+
+void DrawFields(Viewer& v) {
+    if (!v.hasDocument) {
+        ImGui::TextDisabled("The effect has no file.");
+        return;
+    }
+    EffectDocument& d = v.document;
+    DrawFileHeader(d);
+    bool changed = false;
+    for (auto& [key, value] : d.tree.keys) changed |= DrawNode(key.c_str(), value);
+    if (changed) v.Edited(true);
+    DrawProblemsAndSave(v, "fields");
+}
+
+void DrawText(Viewer& v) {
+    if (!v.hasDocument) {
+        ImGui::TextDisabled("The effect has no file.");
+        return;
+    }
+    EffectDocument& d = v.document;
+    DrawFileHeader(d);
+    const float rest = ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing() * 4.0f;
+    if (InputStringLines("##text", &d.text, ImVec2(-1.0f, std::max(rest, ImGui::GetTextLineHeight() * 8.0f))))
+        v.Edited(false);
+    DrawProblemsAndSave(v, "text");
+}
+
+// The windows' names: imgui's ids, and the layout file's.
+constexpr const char* kEffectsWindow = "Effects";
+constexpr const char* kTimelineWindow = "Timeline";
+constexpr const char* kInputsWindow = "Inputs";
+constexpr const char* kFieldsWindow = "Fields";
+constexpr const char* kTextWindow = "Text";
+
+// The first layout (no layout file yet, or one without the dockspace): the effects and the timeline down the left,
+// the inputs and the file (fields and text as tabs) down the right, the scene in the middle.
+void DefaultLayout(ImGuiID dockspace, const ImGuiViewport* viewport) {
+    ImGui::DockBuilderRemoveNode(dockspace);
+    ImGui::DockBuilderAddNode(dockspace, static_cast<ImGuiDockNodeFlags>(ImGuiDockNodeFlags_DockSpace) | ImGuiDockNodeFlags_PassthruCentralNode);
+    ImGui::DockBuilderSetNodeSize(dockspace, viewport->WorkSize);
+    ImGuiID centre = dockspace;
+    const ImGuiID left = ImGui::DockBuilderSplitNode(centre, ImGuiDir_Left, 0.22f, nullptr, &centre);
+    const ImGuiID right = ImGui::DockBuilderSplitNode(centre, ImGuiDir_Right, 0.30f, nullptr, &centre);
+    ImGuiID leftBottom = 0, rightBottom = 0;
+    const ImGuiID leftTop = ImGui::DockBuilderSplitNode(left, ImGuiDir_Up, 0.55f, nullptr, &leftBottom);
+    const ImGuiID rightTop = ImGui::DockBuilderSplitNode(right, ImGuiDir_Up, 0.42f, nullptr, &rightBottom);
+    ImGui::DockBuilderDockWindow(kEffectsWindow, leftTop);
+    ImGui::DockBuilderDockWindow(kTimelineWindow, leftBottom);
+    ImGui::DockBuilderDockWindow(kInputsWindow, rightTop);
+    ImGui::DockBuilderDockWindow(kFieldsWindow, rightBottom);
+    ImGui::DockBuilderDockWindow(kTextWindow, rightBottom);
+    ImGui::DockBuilderFinish(dockspace);
 }
 
 } // namespace
 
 void DrawPanel(Viewer& v) {
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
-    const float width = std::min(viewport->Size.x * 0.4f, ImGui::GetFontSize() * 34.0f);
-    ImGui::SetNextWindowPos(viewport->Pos, ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(width, viewport->Size.y), ImGuiCond_FirstUseEver);
-    if (!ImGui::Begin("Effects")) {
-        ImGui::End();
-        return;
-    }
-    if (ImGui::CollapsingHeader("Effect", ImGuiTreeNodeFlags_DefaultOpen)) DrawEffects(v);
-    if (v.picked >= 0) {
-        const EffectEntry& entry = v.entries[static_cast<std::size_t>(v.picked)];
-        ImGui::SeparatorText(entry.name.c_str());
-        DrawPlaying(v);
-        DrawState(v);
-        if (ImGui::CollapsingHeader("Place", ImGuiTreeNodeFlags_DefaultOpen)) DrawPlace(v);
-        if (ImGui::CollapsingHeader("Drive", ImGuiTreeNodeFlags_DefaultOpen)) DrawDriving(v);
-        if (ImGui::CollapsingHeader("Timeline")) DrawTimeline(v);
-        if (v.hasDocument && ImGui::CollapsingHeader("File", ImGuiTreeNodeFlags_DefaultOpen)) DrawDocument(v);
-    }
-    if (!v.status.empty()) ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.4f, 1.0f), "%s", v.status.c_str());
+    const ImGuiID dockspace = ImGui::GetID("ViewerDock");
+    if (!ImGui::DockBuilderGetNode(dockspace)) DefaultLayout(dockspace, viewport);
+    ImGui::DockSpaceOverViewport(dockspace, viewport, ImGuiDockNodeFlags_PassthruCentralNode);
+
+    const EffectEntry* entry = v.picked >= 0 ? &v.entries[static_cast<std::size_t>(v.picked)] : nullptr;
+    if (ImGui::Begin(kEffectsWindow)) DrawEffects(v);
     ImGui::End();
+
+    if (ImGui::Begin(kTimelineWindow)) {
+        if (entry) {
+            ImGui::SeparatorText(entry->name.c_str());
+            DrawPlaying(v);
+            DrawState(v);
+            ImGui::SeparatorText("Changes");
+            DrawTimeline(v);
+        } else {
+            ImGui::TextDisabled("Pick an effect.");
+        }
+        if (!v.status.empty()) ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.4f, 1.0f), "%s", v.status.c_str());
+    }
+    ImGui::End();
+
+    if (ImGui::Begin(kInputsWindow)) {
+        if (entry) DrawDriving(v);
+        if (ImGui::CollapsingHeader("Place", ImGuiTreeNodeFlags_DefaultOpen)) DrawPlace(v);
+        if (ImGui::CollapsingHeader("Figure", ImGuiTreeNodeFlags_DefaultOpen)) DrawFigure(v);
+    }
+    ImGui::End();
+
+    if (ImGui::Begin(kFieldsWindow)) DrawFields(v);
+    ImGui::End();
+    if (ImGui::Begin(kTextWindow)) DrawText(v);
+    ImGui::End();
+    // A window a command picked ("tab") comes to the front of its tabs once; then the tabs follow the clicks.
+    if (v.documentTab >= 0) ImGui::SetWindowFocus(v.documentTab == 1 ? kTextWindow : kFieldsWindow);
+    v.documentTab = -1;
 }
 
 } // namespace tools::effect_viewer

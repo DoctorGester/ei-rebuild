@@ -143,17 +143,6 @@ World::~World() {
     figureLoader.Reset();
 }
 
-ParticleManager::ParticleManager() {
-    ParticleManagerClearQuietStart(this);
-}
-
-ParticleManager::~ParticleManager() {
-    ParticleManager::Destroy();
-    freeParticles.clear();
-}
-
-
-
 WorldClient::~WorldClient() {
     DestroyOwned(handle);
     scorchMarks.clear();

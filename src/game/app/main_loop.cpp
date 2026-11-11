@@ -4,7 +4,6 @@
 #include "engine/core/program_window.h"
 #include "game/app/game_flow.h"
 #include "game/app/harness_hooks.h"
-#include "game/app/tool_hooks.h"
 #include "game/app/logic_settings.h"
 #include "game/app/movies.h"
 #include "game/app/options.h"
@@ -366,7 +365,6 @@ bool RunWorlds() {
         if (g_clock.clientBacklog >= TickLength() &&
             (g_clientWorld.PumpHasIncoming() || !g_clientWorld.IsLocalViewSendingCamera())) {
             if (!ei::mainloop::CallOr(hooks.clientSegment, &WorldClient::RunTick, &g_clientWorld)) return false;
-            if (g_toolHooks.clientTicked) g_toolHooks.clientTicked();
             const std::uint32_t tick = TickLength();
             g_clock.clientBacklog -= tick;
             camera::NoteViewBeforeTick(&g_camera);
@@ -486,7 +484,6 @@ int RunMainLoop() {
             ei::Log("exit: the quit request");
             return event.quitCode;
         }
-        if (interfaceInput && g_toolHooks.takeEvent && g_toolHooks.takeEvent(event)) continue;
         if (interfaceInput) DispatchInput(event);
         else HandleWindowEvent(event);
     }
@@ -509,7 +506,6 @@ void EmptyWorlds() {
 // audio device and the settings stay, holding nothing of the worlds: the sun light, the textures bound to the stages
 // and the material let go first.
 void StopGame() {
-    if (g_toolHooks.worldsEnding) g_toolHooks.worldsEnding();
     ForgetComposedTextures();
     g_interface.Shutdown();
     g_cursor.Shutdown();
@@ -664,7 +660,7 @@ int GameMain(char* commandLine) {
         platform::SetCursor(nullptr);
         g_sceneRenderer.CreateRenderer(g_mainWindow);
         g_sceneRenderer.SetGamma(options->brightness, options->gamma);
-        if (!g_toolScene.newGame) PlayMovies("Start", true);
+        PlayMovies("Start", true);
         // The loading screen's first frame stays up while the world's graphics, the cursors and the interface are made.
         ShowLoadingMovie(0);
         CloseLoadingMovie();
@@ -696,7 +692,6 @@ void FrameStep(bool draw) {
         return;
     }
     if (!Running()) return;
-    if (g_toolHooks.drawOverlay) g_toolHooks.drawOverlay();
     // The harness's frame capture reads the finished frame here (game/app/harness_hooks.h).
     if (auto hook = ei::mainloop::g_harnessHooks.beforePresent) hook();
     CursorDrawFrame(&g_cursor);

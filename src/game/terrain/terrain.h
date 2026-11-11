@@ -121,7 +121,7 @@ public:
         Vector3 crest;
         bool keepsGroundXY = false;
     };
-    MaterialWaves WavesOf(int material) const;
+    inline MaterialWaves WavesOf(int material) const;   // (terrain_sector.h)
     // The materials that wave: the first kWaveMaterials of the map's (no map has more than 7; terrain_water.hlsl's table).
     static constexpr int kWaveMaterials = 32;
     // Water vertex `index` (0 .. 33 x 33) of a built sector as the waves move it at the last RunTick, from its place
@@ -160,7 +160,7 @@ public:
     // The texture coordinates of tile texture `index` of a page (the extra pages' table for those).
     const TileUv& TileUvAt(int rotation, int index, int page) const;
     // The texture pages of one tile layer.
-    int LayerPages() const;
+    inline int LayerPages() const;   // (terrain_sector.h)
     // Sector (sx, sy)'s pending water level change per material.
     std::span<float> SectorWaterLevels(int sx, int sy);
 

@@ -129,8 +129,6 @@ const char* AmbientSetOf(std::string_view zone, bool dungeon) {
 
 } // namespace
 
-int Terrain::LayerPages() const { return pages + kExtraPages; }
-
 SectorData* Terrain::SectorAt(int sx, int sy, SectorStage wanted, bool create) {
     if (sx < 0 || sy < 0 || sx >= sectorsX || sy >= sectorsY) return nullptr;
     SectorData*& cell = sectorGrid[GridIndex(sx, sy)];

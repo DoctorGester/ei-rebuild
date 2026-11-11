@@ -102,7 +102,6 @@ app_resolution.cpp          app/app.cpp                 fold  # resolution chang
 game_folders.cpp            app/app.cpp                 fold  # three folder globals (8 lines)
 app_main.cpp                app/main_loop.cpp                 # WinMain: start-up, main loop, shutdown
 app_frame.cpp               app/main_loop.cpp           fold  # WinMain's frame step (78 lines): part of the loop
-tool_hooks.h                app/tool_hooks.h
 main_loop.h                 app/harness_hooks.h               # holds only the harness's entry points into the loop (InSite, HarnessHooks)
 game_singletons.h           app/singletons.h                # the game's global objects; "game" says nothing inside src/game
 game_flow.h                 app/game_flow.h

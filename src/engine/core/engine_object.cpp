@@ -36,17 +36,3 @@ BaseManager* EngineObject::SetOwner(BaseManager* newOwner) {
     return previous;
 }
 
-World* EngineObject::OwningWorld() const {
-    auto* context = owner->context;
-    return context ? context->ThisWorld() : nullptr;
-}
-
-WorldServer* EngineObject::ServerWorld() const {
-    auto* context = owner->context;
-    return context ? context->ThisServerWorld() : nullptr;
-}
-
-WorldClient* EngineObject::ClientWorld() const {
-    auto* context = owner->context;
-    return context ? context->ThisClientWorld() : nullptr;
-}

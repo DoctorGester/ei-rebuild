@@ -106,8 +106,8 @@ endif()
 target_compile_options(eris PRIVATE $<IF:$<CXX_COMPILER_ID:MSVC>,/W0,-w>)
 set_target_properties(eris PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
 
-# Dear ImGui (third_party/imgui, unmodified, without its backends): the panels of the tools built into ei-rebuild
-# (src/tools: the effect viewer, ei-rebuild --effects), drawn by the renderer's overlay (src/render/render_overlay.cpp).
+# Dear ImGui (third_party/imgui: its docking branch, unmodified, without its backends): the effect viewer's windows
+# (ei-effects, src/tools), drawn by the renderer's overlay (src/render/render_overlay.cpp). The game links none of it.
 # Without its warnings, as eris.
 add_library(imgui STATIC third_party/imgui/imgui.cpp third_party/imgui/imgui_draw.cpp third_party/imgui/imgui_tables.cpp
             third_party/imgui/imgui_widgets.cpp)
@@ -408,10 +408,14 @@ if(APPLE)
 endif()
 target_include_directories(ei-rebuild PRIVATE src)
 target_link_libraries(ei-rebuild PRIVATE ei_game ei_engine)
-# The tools built into the game's exe (src/tools; ei-rebuild --effects): only ei-rebuild has them and imgui.
+# ei-effects (src/tools; docs/notes/effects.md, "The effect viewer"): the effect viewer, a program of its own on the
+# engine, the renderer and the platform with dear imgui, no game code (ei_game). Its log is ei-effects.log. The
+# verify build links its scenario harness (tests/verify/effects).
 file(GLOB EI_TOOL_SOURCES CONFIGURE_DEPENDS src/tools/*.cpp)
-target_sources(ei-rebuild PRIVATE ${EI_TOOL_SOURCES})
-target_link_libraries(ei-rebuild PRIVATE imgui)
+add_executable(ei-effects WIN32 ${EI_TOOL_SOURCES} ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS} ${EI_SDL_CALLS})
+target_include_directories(ei-effects PRIVATE src third_party)
+target_link_libraries(ei-effects PRIVATE ei_engine imgui SDL3::SDL3-static)
+target_compile_definitions(ei-effects PRIVATE "EI_LOG_NAME=\"ei-effects.log\"")
 # ei-convert (tools/convert; docs/notes/mods.md, "Records as TOML" and "Textures as PNG"): an install's record files
 # written as TOML and its textures as PNG by the game's own loaders, each one's round trip checked; --scripts, the script
 # survey and Lua check (docs/notes/lua-scripting.md, "Survey"). Its own ei::Log (the output's lines).
@@ -463,7 +467,7 @@ foreach(part fonts/README.txt fonts/LICENSE SDL/README.txt SDL/LICENSE.txt dr_li
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/third_party/${part})
 endforeach()
 file(WRITE ${CMAKE_BINARY_DIR}/third_party_notices.txt
-     "Third-party software built into ei-rebuild, with its licences.\n\n${EI_NOTICES}")
+     "Third-party software built into ei-rebuild and its tools (ei-convert, ei-effects), with its licences.\n\n${EI_NOTICES}")
 
 if(EI_HARNESS)
     # The harness (tests/verify; docs/notes/harness.md), linked into this exe. Its platform backend (tests/verify/platform)
@@ -484,6 +488,12 @@ if(EI_HARNESS)
     endif()
     target_include_directories(ei-rebuild PRIVATE tests/verify)
     target_link_libraries(ei-rebuild PRIVATE SDL3::SDL3-static)
+    # ei-effects' harness (tests/verify/effects) on the game's: its system calls (the window kept out of sight).
+    file(GLOB EI_EFFECTS_HARNESS_SOURCES CONFIGURE_DEPENDS tests/verify/effects/*.cpp)
+    set(EI_EFFECTS_SYSTEM_SOURCES ${EI_HARNESS_SOURCES})
+    list(FILTER EI_EFFECTS_SYSTEM_SOURCES INCLUDE REGEX "/system/system_[a-z0-9]+[.]cpp$")
+    target_sources(ei-effects PRIVATE ${EI_EFFECTS_HARNESS_SOURCES} ${EI_EFFECTS_SYSTEM_SOURCES})
+    target_include_directories(ei-effects PRIVATE tests/verify)
     target_compile_definitions(ei_render PRIVATE EI_RENDER_VALIDATION)
     if(EI_COVERAGE)
         set(EI_COVERAGE_OPTIONS /fsanitize-coverage=inline-bool-flag /Gh)
@@ -502,8 +512,9 @@ set_property(SOURCE tests/unit/settings_file.cpp APPEND PROPERTY COMPILE_DEFINIT
 set_property(SOURCE tests/unit/particle_record.cpp APPEND PROPERTY COMPILE_DEFINITIONS "EI_SOURCE_DIR=\"${CMAKE_SOURCE_DIR}\"")
 
 if(WIN32)
-    # The game is a windowed program whose entry is main.
+    # The game is a windowed program whose entry is main; so is the effect viewer.
     target_link_options(ei-rebuild PRIVATE /ENTRY:mainCRTStartup)
+    target_link_options(ei-effects PRIVATE /ENTRY:mainCRTStartup)
 
     # The unit checks (tests/unit): the settings file's format, lib::HashMap's walk order, the .ini reader,
     # lib::ParseIpv4, lib/maths.h, the save pictures, the bounded text reads, the tagged stream blocks and the byte

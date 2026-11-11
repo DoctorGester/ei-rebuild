@@ -203,9 +203,8 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   fire <event>` drive the client's running sources of that effect through the inputs game code uses
   (`effectdata::SetInput` / `Fire`); `effect <name> value <input> <expected>` requires an input's value (an enum's as its
   index), `effect <name> check <least particles> [<stage>]` requires a source with that many particles, in that stage
-  (`harness_objects_image.cpp`'s `DataEffectStep`; `mod_effect`). `effectviewer <command>` opens and drives the
-  effect viewer (effects.md, "The effect viewer"; the commands in harness.cpp's list, `tools::effect_viewer::Command`;
-  `folder out [<name>]` saves into the run's output folder; `effect_viewer`). `clientbolts <least> [<most>]` requires that many
+  (`harness_objects_image.cpp`'s `DataEffectStep`; `mod_effect`). The effect viewer is ei-effects' (its own harness:
+  "ei-effects' scenarios" below). `clientbolts <least> [<most>]` requires that many
   lightning bolts (EffectLightning) in this game's client world, a peer's too, and logs their ends
   (`net_pair_mod_spell`); `clienthurt <least> [<most>]` that many living client units below their maximum hit points
   (the packed vitals the server sent), each logged with its id and hit points (`net_pair_mod_spell`'s peer: the blow
@@ -221,6 +220,20 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   `config/harness/` (`tests/verify/harness_settings.h`), never the user's own.
 - `recordinput [live]` records the run as a scenario, `recorded` marks one, `at <frame> <step>` / `at <frame> event
   ...` are its lines, `realinput ...` is input made as SDL's own ("Recorded play" below).
+
+### ei-effects' scenarios
+
+A scenario with the line `# exe: ei-effects` (run_all.scenario_program) is played by the effect viewer's exe, not the
+game's: `effect_viewer` and `effect_viewer_standalone` (effects.md, "The effect viewer"). Its harness is
+tests/verify/effects/effects_harness.cpp, in the verify build only, joined to the program's loop by
+tools/effects_app.h's hooks. It reads the scenario at the start and writes harness_report.txt (RESULT: RUNNING first)
+and harness_quit as the game's harness does, so run_all's watch, limits and quit checks are the same; the log is
+ei-effects.log (run_all.program_log). Its steps: `mod <folder>` (before the start; relative to the run folder, so
+`harness_saves\...` is a `# prepare:` tool's), `effectviewer <command>` (the viewer's commands, listed in the file's
+head; an error fails the run, a save outside the run folder too), `wait <ms>`, `frames <n>`, `capture <name>`
+(frames\<name>.bmp), `timeout <s>`, `report` and `quit`. The window is kept out of sight with the game harness's
+system calls (tests/verify/system: ConcealWindow, WatchWindows; the report's WINDOW: line). Real time only: no virtual
+clock, no digest (run_all asks no digest.txt of such a run), no recorded input.
 
 ## The virtual clock
 
@@ -503,7 +516,8 @@ program reads the registry; the settings are a file, harness_settings.h). The ha
   says `RESULT: RUNNING` gets a failure with its exit code (an INT3's named as such), and a harness that has not written
   its report 30 s after the start ends the run without one. A scenario's `# settings-file:` line is checked after the
   game has ended (run_all.check_settings_file). A `# arguments: <words>` line starts the exe with those arguments
-  (run_all.scenario_arguments; effect_viewer_standalone.txt's `--effects Portal`).
+  (run_all.scenario_arguments; effect_viewer_standalone.txt's `Portal`). A `# exe: ei-effects` line plays the
+  scenario with the effect viewer's exe ("ei-effects' scenarios").
 - When the game crashes, the stack is in `ei-rebuild.log`; run_all prints it by function names under the run's line
   (outermost first) and `python tools\resolve_crash.py <run folder>` prints the named stack (`--raw`: every logged word).
 - A run that exceeds its time limit logs where the main thread waits. No game outlives its limit: the watchdog thread in

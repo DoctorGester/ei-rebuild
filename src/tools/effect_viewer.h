@@ -1,20 +1,34 @@
 #pragma once
 
-// The effect viewer (ei-rebuild --effects, straight in a new game: app::g_toolScene; docs/modding.md, "The effect
-// viewer"): a panel over the running game that
-// plays any of the original particle types (from their code or their data file) or a mod's data effect on a unit or a
-// free point of the world, drives its inputs, and edits a data effect's file live. Textures and figures are the
-// install's, as the game loads them; nothing is written but the file the player saves.
+// The effect viewer (ei-effects; docs/modding.md, "The effect viewer"): a program of its own on the engine
+// (src/engine, src/render, src/platform) that plays any of the original particle types (their built-in data files) or
+// a mod's data effect on a figure or a free point of its own world (effect_viewer_scene.h), drives its inputs, and edits
+// a data effect's file live. Textures, figures and mods are the install's, as the game loads them; nothing is written
+// but the file the player saves.
 
 #include <string>
 #include <string_view>
 
+namespace platform {
+struct Event;
+}
+
 namespace tools::effect_viewer {
 
-// The viewer joins the main loop (app/tool_hooks.h) and shows from the next frame, `effect` picked when not empty (an
-// original type's name or a data effect's).
-void Open(std::string_view effect);
-// One line of the harness's step "effectviewer" (tests/verify/harness.cpp): an error, empty when done.
+// The viewer started over the scene (its managers made), `effect` picked when not empty (an original type's name or a
+// data effect's); `gameFolder` is the install's.
+void Open(std::string_view effect, const std::string& gameFolder);
+// The scene ticked (ViewerScene::Advance): the source's tick.
+void SceneTicked();
+// `event` for the viewer's windows; false when they do not take it (the camera's then).
+bool TakeEvent(const platform::Event& event);
+// The viewer's windows drawn over the frame (the renderer's overlay).
+void DrawFrame();
+// The source and its sub-effects let go (before the scene stops).
+void Close();
+// The folder the next save writes into.
+const std::string& SaveFolder();
+// One line of a scenario's step "effectviewer" (tests/verify/effects/effects_harness.cpp): an error, empty when done.
 std::string Command(std::string_view line);
 
 } // namespace tools::effect_viewer

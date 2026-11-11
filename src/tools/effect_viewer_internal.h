@@ -13,9 +13,9 @@
 #include <string_view>
 #include <vector>
 
+class FigureInstance;
 class ParticleManager;
 class ParticleSource;
-class Unit;
 
 namespace tools::effect_viewer {
 
@@ -70,18 +70,14 @@ public:
     void Freeze();
     // A sub-effect of the source (StartEffects through effectdata::g_startOwnClock): made on the viewer's clock.
     ParticleSource* StartChild(ParticleManager& owner, int type);
-    // The client world ticked: the source ticks with it while it plays.
-    void ClientTicked();
+    // The scene ticked: the source ticks with it while it plays.
+    void SceneTicked();
 
-    // On the unit `id` (a client world object), or free at `at`; the source made again at its tick.
-    void PlaceOnUnit(int id);
+    // On the scene's figure, or free at `at`; the source made again at its tick.
+    void PlaceOnFigure();
     void PlaceFree(const Vector3& at);
-    // The unit the source is put on (null when free, or gone).
-    Unit* Carrier() const;
-    // The client world's units near the camera's focus, the local party's first, then by distance.
-    std::vector<Unit*> NearbyUnits() const;
-    // The first unit of the local party, or null.
-    Unit* PartyUnit() const;
+    // The figure the source is put on (null when free, or when there is none).
+    FigureInstance* Carrier() const;
 
     // The document's text or tree changed: read again and, when it loads, played from the start up to this tick
     // (the registry takes the record: Registry::Put).
@@ -93,7 +89,7 @@ public:
     std::vector<EffectEntry> entries;
     int picked = -1;
     std::string pendingPick;               // Open's name, picked at the first frame with a world
-    ParticleManager* manager = nullptr;    // the client world's, which made the source
+    ParticleManager* manager = nullptr;    // the scene's, which made the source
     ParticleSource* source = nullptr;      // one reference of the viewer's; the manager does not hold or tick it
     std::vector<ParticleSource*> children; // the effects it started (and theirs), held and ticked as it is
     bool hasDocument = false;
@@ -106,13 +102,12 @@ public:
     bool ended = false;                    // the source and its sub-effects are done
     int endedTicks = 0;                    // client ticks since it ended (Loop starts it again after a few)
     float size = 1.0f;                     // the effect object's size (ScaleSize(size / baseSize), as a spawn's)
-    bool placed = false;                   // a place given (else the first pick puts it on the party's unit)
-    bool onUnit = false;
-    int unitId = -1;
+    bool onFigure = true;                  // on the scene's figure, else free at freeAt
     Vector3 freeAt;
     std::vector<Change> timeline;
     IsaacRandom start;                     // the particles' generator at the start: every replay draws the same
     IsaacRandom random;                    // the source's own, swapped in around its ticks
+    std::string gameFolder;                // the install's (a mod's folder outside it is the default save folder)
     std::string saveFolder;
     std::string newName;                   // the panel's name for a new effect
     std::string status;
@@ -121,7 +116,7 @@ public:
 
 extern Viewer g_viewer;
 
-// The viewer's panel (imgui), once a frame.
+// The viewer's windows (imgui, docked over the main window), once a frame.
 void DrawPanel(Viewer& viewer);
 
 } // namespace tools::effect_viewer

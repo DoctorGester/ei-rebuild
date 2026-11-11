@@ -1,14 +1,15 @@
-// ManagerContext's own members (manager_context.h): the base Create, the world's managers and clock the engine asks
-// for, and the copy of an item that the party and the client world make (their DuplicateItem).
+// ManagerContext's members of the game (manager_context.h): the casts to the world it is and the world's managers no
+// engine code asks for, an engine object's world (EngineObject::OwningWorld and the side's), and the copy of an item
+// that the party and the client world make (their DuplicateItem).
 #include "engine/core/manager_context.h"
+
+#include "engine/core/base_manager.h"
 
 #include "game/items/item.h"
 #include "game/items/item_manager.h"
 #include "game/world/world.h"
 
 #include <cstdint>
-
-void ManagerContext::Create() {}
 
 World* ManagerContext::ThisWorld() { return contextKind == ContextKind::Party ? nullptr : static_cast<World*>(this); }
 
@@ -25,44 +26,24 @@ BaseManager* ManagerContext::TimedObjectManager() {
     return world ? world->timedObjectManager.get() : nullptr;
 }
 
-FigureManager* ManagerContext::GetFigureManager() {
-    World* world = ThisWorld();
-    return world ? world->figureManager.get() : nullptr;
-}
-
 MapObjectManager* ManagerContext::GetMapObjectManager() {
     World* world = ThisWorld();
     return world ? world->objectManager.get() : nullptr;
 }
 
-BaseManager* ManagerContext::SpecificManager() {
-    World* world = ThisWorld();
-    return world ? world->specificManager.get() : nullptr;
+World* EngineObject::OwningWorld() const {
+    auto* context = owner->context;
+    return context ? context->ThisWorld() : nullptr;
 }
 
-LinkFigureLoader* ManagerContext::FigureLoader() {
-    World* world = ThisWorld();
-    return world ? world->figureLoader.Get() : nullptr;
+WorldServer* EngineObject::ServerWorld() const {
+    auto* context = owner->context;
+    return context ? context->ThisServerWorld() : nullptr;
 }
 
-TextureManager* ManagerContext::GetTextureManager() {
-    WorldClient* client = ThisClientWorld();
-    return client ? client->textureManager.get() : nullptr;
-}
-
-MaterialManager* ManagerContext::GetMaterialManager() {
-    WorldClient* client = ThisClientWorld();
-    return client ? client->materialManager.get() : nullptr;
-}
-
-LightFactory* ManagerContext::GetLightFactory() {
-    WorldClient* client = ThisClientWorld();
-    return client ? client->lightFactory.get() : nullptr;
-}
-
-float ManagerContext::SceneTime() {
-    WorldClient* client = ThisClientWorld();
-    return client ? static_cast<float>(client->tick) + client->tickFraction : 0.0f;
+WorldClient* EngineObject::ClientWorld() const {
+    auto* context = owner->context;
+    return context ? context->ThisClientWorld() : nullptr;
 }
 
 Item* ManagerContext::MakeCopyOf(Item* item) {

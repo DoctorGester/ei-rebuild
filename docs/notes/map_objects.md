@@ -73,9 +73,9 @@ virtual: 1 for a figure alone, a unit's from its database (below). The bits of `
   Its part points: `PartPoint(part, scale)`; animations: `animations` set by the caller, PlayAnimation and the
   state's Advance. Its parts get drawers from the context's specific manager (FigureManager::CreateObject), and the
   texture and material managers are ManagerContext's getters (the client world's): a program without the world gives
-  it a context with those (the effect viewer's own exe, MF15k4). Checked by `figure_alone` (harness `figurealone`:
-  a hero built and dressed, uattack01 played 8 frames, the right hand's point moved); the draw is not run by a
-  scenario yet.
+  it a context with those (ei-effects' scene, tools/effect_viewer_scene.h: a hero in its bare skin, composed of
+  `unhumaskin_00.mmp` as a dressed unit's texture is). Checked by `figure_alone` (harness `figurealone`: a hero built
+  and dressed, uattack01 played 8 frames, the right hand's point moved) and drawn by the `effect_viewer` scenarios.
 
 LoadFigures reads the model named by the object through the figure manager; SetFigureScale rebuilds the figure only
 when the scale changes. The figure is a `LinkMesh` (link_figure.h, models.md) whose piece map is `headers`

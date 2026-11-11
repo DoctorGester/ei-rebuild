@@ -147,10 +147,6 @@ class ParticleSource;
 class SceneRenderer;
 class Texture;
 
-// The client world's manager set-up calls it after the base manager's constructor.
-class ParticleManager;
-void ParticleManagerClearQuietStart(ParticleManager* manager);
-
 // The particle manager: a BaseManager whose objects are the sources. It keeps a pool of free particles (taken
 // from the head, returned to the tail), and holds one reference on every source made through CreateSource
 // (`held`, by id) until the source's tick ends it (TickSources) or nobody else holds it (ReleaseUnheld).
@@ -160,7 +156,7 @@ public:
     // to the texture manager's spare list in that order.
     using HeldMap = lib::HashMap<int, ParticleSource*>;
 
-    ParticleManager();
+    ParticleManager() = default;
     ~ParticleManager() override;
     const char* ClassName() override;
     ClassId GetClassId() override;

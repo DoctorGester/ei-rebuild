@@ -214,7 +214,7 @@ ui/ui_float.h; its raw-bit constants are a cleanup of their own (they should be 
 ## The engine library
 
 `ei_engine` (CMakeLists.txt, MF15k1) is the part of the code a program without the game links: the effect viewer's own
-exe (MF15k4) after the particle core's host interface (MF15k2) and a figure drawn without a unit (MF15k3). It is
+exe, ei-effects (MF15k4; effects.md, "The effect viewer"), links it with ei_render and ei_platform and no ei_game. It is
 `src/lib` and `src/engine` (MF15k1c): `core/`, `data/`, `models/`, `scene/`, `mods/` and `particles/`, the particle
 core (its `particle_*` files: the sources, their manager and set-up, the data effects' records, expressions and
 runtime, the built-in effects and `embed_effects.cmake`, which writes them and the scripted spells as bytes); `ei_game`
@@ -245,14 +245,17 @@ themselves). Includes name the tree: `#include "engine/core/ref.h"`, `#include "
   Camera object (following, the ground under it, limits, shakes, saved views, recorded paths, the drawn view's
   smoothing) is world/'s, `g_camera` in app/singletons.h; the particles' shakes reach it through
   the particle host's ShakeCamera.
-- **The scene reaches the world through its context (MF15k1b).** ManagerContext's scene getters
-  (`GetTextureManager`, `GetLightFactory`, `SceneTime`: whole ticks plus the fraction) answer from the client world
-  and null or 0 for another context (world/manager_context.cpp, as the other getters: plain members, not virtuals with
-  one override). A texture asks its own context; the scene's code without an object asks the scene renderer's `world`
-  (the client world, set by app/main_loop.cpp before the start, and by ei-convert's effect check): the texture loads
-  and lookups, the material stages, the sun (AddDefaultLight), the animated sheets' and the sky's clock. The present
-  (`present_window::Present`) and a print's texture bound by name (ground_print.cpp) are the game's. These getters
-  are left for a program without the world (MF15k4: the texture lookups through the scene renderer's `world`).
+- **The scene reaches the world through its context (MF15k1b, MF15k4).** ManagerContext's getters are virtual, null
+  (or 0) by default (core/manager_context.h): the game's contexts answer theirs (World the figure manager, the
+  specific manager, the figure loader and DuplicateItem; WorldClient the scene getters `GetTextureManager`,
+  `GetMaterialManager`, `GetLightFactory` and `SceneTime`, whole ticks plus the fraction; a Party the item and spell
+  ones) and ei-effects' scene its own (tools/effect_viewer_scene.h). A texture asks its own context; the scene's code
+  without an object asks the scene renderer's `world` (the client world, set by app/main_loop.cpp before the start,
+  and by ei-convert's effect check; the viewer's scene in ei-effects): the texture loads and lookups, the material
+  stages, the sun (AddDefaultLight), the animated sheets' and the sky's clock. The present (`present_window::Present`)
+  and a print's texture bound by name (ground_print.cpp) are the game's. Which world an engine object is in
+  (EngineObject::OwningWorld and the two others) and the getters of the game's world kinds stay the game's
+  (world/manager_context.cpp); the engine calls them only from code the game reaches.
 - **The engine has the figure, the game its objects (MF15k3).** `FigureInstance` (models/figure_instance.h) is the
   figure in the scene (model, morph, link figure, parts, animation state and database, the drawn step) and Object3D's
   base; the skeleton (models/animation.h), the .adb database and the animation keys (models/animation_db.h), the part
@@ -260,9 +263,11 @@ themselves). Includes name the tree: `#include "engine/core/ref.h"`, `#include "
   Draw, PartPoint) is the effect viewer's carrier (map_objects.md, "Figures"). The interface's sprite (UiMesh, class
   0x43) is the game's: the world's figure manager is game/ui/ui_mesh.h's InterfaceFigureManager, which makes it, and
   NewFigureSprite / NewBlankSprite load one. ManagerContext's `GetMaterialManager` joins the scene getters.
-- The check reads includes only. Code of the engine that calls a function defined in ei_game links only because both
-  are in the same programs today (ManagerContext's members, world/manager_context.cpp); the particle core's went
-  behind its host (MF15k2), the rest are MF15k4's to cut for its exe.
+- The check reads includes only; the link of ei-effects is the check of the calls (MF15k4): an engine function that
+  calls one defined in ei_game fails it. The particle core's went behind its host (MF15k2), the scene getters became
+  virtuals, the archived classes' maker is a pointer the game sets (`g_createArchived`, core/core_refcount.h:
+  players/party_manager.cpp's CreateArchived) and the terrain's two helpers the renderer's terrain draw calls are
+  inline (terrain_sector.h: WavesOf, LayerPages).
 
 ## The target tree
 
@@ -389,32 +394,32 @@ Risks:
 | Folder | Files | Lines today | Move batch |
 |---|---|---|---|
 | `ai/` | 28 | 12564 | C168f |
-| `app/` | 24 | 6917 | C168e |
+| `app/` | 23 | 6852 | C168e |
 | `combat/` | 13 | 6386 | C168f |
 | `console/` | 5 | 2038 | C168e |
-| `core/` | 29 | 3806 | C168d |
-| `data/` | 19 | 6649 | C168d |
-| `effects/` | 18 | 4929 | C168g |
+| `core/` | 29 | 3800 | C168d |
+| `data/` | 19 | 6824 | C168d |
+| `effects/` | 18 | 4949 | C168g |
 | `items/` | 12 | 2958 | C168g |
-| `map/` | 11 | 3139 | C168e |
-| `models/` | 29 | 8354 | C168g |
+| `map/` | 11 | 3846 | C168e |
+| `models/` | 29 | 8432 | C168g |
 | `mods/` | 9 | 801 | C168d |
 | `net/` | 23 | 8423 | C168h |
-| `objects/` | 23 | 7385 | C168f |
-| `particles/` | 13 | 5312 | C168g |
-| `players/` | 24 | 5486 | C168e |
+| `objects/` | 23 | 7378 | C168f |
+| `particles/` | 13 | 5480 | C168g |
+| `players/` | 24 | 5494 | C168e |
 | `saves/` | 7 | 848 | C168d |
 | `scene/` | 27 | 3085 | C168g |
 | `script/` | 35 | 12081 | C168h |
 | `sound/` | 3 | 1715 | C168e |
-| `spells/` | 11 | 2180 | C168g |
-| `terrain/` | 12 | 3580 | C168g |
-| `ui/` | 97 | 33193 | C168h |
-| `units/` | 27 | 9860 | C168f |
-| `world/` | 39 | 11597 | C168e |
-| all | 538 | 163286 | |
+| `spells/` | 11 | 2192 | C168g |
+| `terrain/` | 12 | 3584 | C168g |
+| `ui/` | 97 | 33138 | C168h |
+| `units/` | 27 | 9923 | C168f |
+| `world/` | 39 | 11584 | C168e |
+| all | 537 | 164375 | |
 
-570 files today; 55 fold into an owner, 10 split by meaning, 27 new files come out of the splits, 36 moves rename for meaning.
+569 files today; 55 fold into an owner, 10 split by meaning, 27 new files come out of the splits, 36 moves rename for meaning.
 
 ### Every file
 
@@ -492,7 +497,6 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | settings_catalog.inc | app/settings_catalog.inc |  |  |
 | settings_document.cpp | app/settings_document.cpp |  |  |
 | game_singletons.h | app/singletons.h |  | the game's global objects; "game" says nothing inside src/game |
-| tool_hooks.h | app/tool_hooks.h |  |  |
 
 #### `combat/` (C168f)
 

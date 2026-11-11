@@ -81,7 +81,8 @@ Kept:
     a figure out and back as a map object's Removed flag does; `LetGoAll` before a figure is destroyed.
 - Check: `ei-convert --effect-check`'s world-less case (RunWithoutWorld: Stun on a figure's hand, walking, running,
   moved, taken away; ZoneExit on a ground at 2) with its own particle manager, the host not the client world. The
-  textures still load by name through the scene renderer's `world` (LoadNamedTexture), a seam MF15k4 cuts.
+  textures load by name through the scene renderer's `world` (LoadNamedTexture), a ManagerContext: the effect viewer's
+  scene answers it as the client world does ("The effect viewer").
 
 ## Data effects
 
@@ -469,43 +470,61 @@ build/captures/mf15l2/), then the exact reference recorded again.
 
 ## The effect viewer
 
-`ei-rebuild --effects [<effect>] [--zone <zone>]` (src/tools; how to use it: docs/modding.md, "The effect viewer") is a
-dear imgui panel over the running game, and the viewer plays its source in the client world. That one choice brings
-in the install's textures and figures, the mods' layers, the terrain, the lights, units with their animations and the
-camera, all without a second start-up. It also lets the harness drive the viewer like any game.
+`ei-effects [<effect>] [--mod <folder>]` (src/tools; how to use it: docs/modding.md, "The effect viewer"; MF15k4) is
+a program of its own on the engine (ei_engine, ei_render, ei_platform; no ei_game) with dear imgui's docked windows
+over a scene of its own. The game's exe has none of it: no src/tools, no imgui (its map file names no imgui symbol).
 
-- **Its own scene** (MF15i3): `--effects` sets `app::g_toolScene` (app/tool_hooks.h) before GameMain. The start
-  then skips the "Start" movies, and StartFirstMap asks for a new game (flow state 3) where it would open the main
-  menu. StartNewGame puts the party into `--zone` when one is given (the party's zone set before the redeploy), else
-  the campaign's first zone. The hero is the unit the first pick goes on. The zone entry's autosave is off in this
-  mode (ui_battle.cpp, AutoSaveEnabled), so the player's `savea` survives the viewer.
-  - Not a separate exe yet: an `ei-effects` entry point needs GameMain's whole start (the worlds, the databases,
-    the window, the renderer, the interface) and a zone with a unit, which is what the new game gives. The user
-    (2026-11-11) wants it as its own exe all the same: on the engine library (file-layout.md, "The engine library";
-    ei_engine with the particle core, MF15k1), its sources on `particlehost::FigureHost` ("The host": MF15k2) and a
-    figure that plays without a unit (FigureInstance, map_objects.md, "Figures"), the viewer is MF15k4's exe.
-  - The in-game panel (the harness's `effectviewer open`, over a game started as usual) is the same viewer.
-  - A base zone (map list kind 2) has no 3D scene, so `--zone` wants a battle zone.
-  - tests/scenarios/effect_viewer_standalone.txt starts the exe with `--effects Portal` (run_all's `# arguments:` line).
+- **The program** (tools/effects_main.cpp): the game folder as the game finds it (EI_GAME_ROOT, else
+  `platform::DefaultGameFolder`), the engine's folders as the game's settings give them by default (`.\`, `.\res\`),
+  `--mod` through `platform::SwitchMod` (a folder or a .zip, a relative one from the exe's folder), a 1600x900
+  window that resizes freely (the projection keeps the 4:3 part's proportions, as screen_layout does), vsync. It reads
+  no settings file and writes only its log (ei-effects.log in the output folder: the build gives log.cpp the name,
+  `EI_LOG_NAME`), the windows' layout (`<user data>\ei-rebuild-effects\layout.ini`) and the files the user saves.
+- **The scene** (tools/effect_viewer_scene.h, `ViewerScene`): a `ManagerContext` of its own with the install's texture,
+  material, light and figure managers and a particle manager. The engine finds them as it finds the client world's:
+  the scene renderer's `world` is the scene, and ManagerContext's getters are virtual, null by default (the game's
+  World, WorldClient and Party answer theirs). So `LoadNamedTexture` and the figures' loader need no game code.
+  - The ground: a 48x48 checkerboard of flat blocks (DrawFlatBlocks) at height 0, the host's `groundHeight`.
+  - The figure: the hero's (`unhuma`, the game's hero parts), at half scale, in its bare skin (a texture composed of
+    redress.res's `unhumaskin_00.mmp` alone, as a dressed unit's is of its skin and items), with the animations of its
+    database (database.res, `<model>.adb`); the first idle animation plays, `figure animation <name>` picks another.
+    It can walk a circle (radius 2.5, `figure walk on`) and run (`figure run on`: twice as fast, the host's `running`);
+    each gait plays its first walk / run / idle animation (SetGait).
+  - The host is `particlehost::FigureHost` ("The host"); the free camera turns on the right mouse button, pans on the
+    middle one, zooms on the wheel and moves on WASD / the arrows, built as the game's camera is (Camera::ApplyView).
+  - The clock is the game's: a tick every 55 ms, at most five caught up in a frame; the frame's fraction goes to the
+    host, so the particles interpolate as in the game.
+- **The windows** (tools/effect_viewer_panel.cpp): a dockspace over the main window (its centre passes the scene
+  through), with Effects, Timeline, Inputs, Fields and Text as dockable windows. The first layout (no layout file)
+  puts Effects over Timeline on the left and Inputs over Fields / Text (tabs) on the right (`DefaultLayout`,
+  DockBuilder); dear imgui saves the layout as it changes and at the exit.
+- **The harness** (tests/verify/effects/effects_harness.cpp, the verify build only; tools/effects_app.h's hooks):
+  run_all plays a scenario with ei-effects when it has the line `# exe: ei-effects`. Its steps are `mod`, `effectviewer
+  <command>`, `wait`, `frames`, `capture`, `timeout`, `report` and `quit`; it writes harness_report.txt and
+  harness_quit as the game's harness does, and no digest (run_all asks none of such a run). A save outside the run's
+  output folder fails the run.
+  - tests/scenarios/effect_viewer_standalone.txt starts the exe with `Portal` (run_all's `# arguments:` line).
+- History: MF15i put the viewer over the running game (`ei-rebuild --effects`, its hooks in the main loop, a new
+  game in a `--zone`); MF15k1-k3 split the engine from the game and MF15k4 made the exe and dropped that mode.
 
 - **The source**:
-  - The client world's particle manager makes the source (`CreateObjectAs`, the effect's shown type), and only the
-    viewer holds it (AddRef, not in the manager's `held`). DrawAll draws it like any other source.
+  - The scene's particle manager makes the source (`CreateObjectAs`, the effect's shown type), and only the viewer
+    holds it (AddRef, not in the manager's `held`). DrawAll draws it like any other source.
   - TickSources ticks every source in its list, held or not, so the source carries `ParticleSourceFlag::OwnClock`,
     which TickSources skips. The viewer clears the flag before it lets the source go back to the spares.
-  - The viewer ticks it after each client tick (`app::g_toolHooks.clientTicked`), so the frame's tick fraction
-    interpolates it as it interpolates the others.
+  - The viewer ticks it after each of the scene's ticks (`SceneTicked`), so the frame's tick fraction interpolates it
+    as it interpolates the others.
   - Its draws come from the viewer's own IsaacRandom, swapped with `g_particleRandom` around its set-up and its ticks.
     The game's generator is untouched, and every replay draws the same.
   - It is placed as EffectParticle::Spawn places a spawned effect (localPosition, ScaleSize(size / baseSize),
-    Attach). On a unit outside the party it draws only while its unit is shown (the host's Hidden).
-  - The viewer lets go of it before the worlds are emptied (`worldsEnding`, from StopGame).
+    Attach).
+  - The viewer lets go of it before the scene stops (`Close`).
 - **Sub-effects** (a data effect's `effect` actions, `on_death` too): StartEffects makes those of a source with
   OwnClock through `effectdata::g_startOwnClock`, which the viewer sets at Open (`StartChild`): unheld, one reference
   of the viewer's, OwnClock too, so their own sub-effects come the same way.
   - Step ticks them before the source, with the viewer's generator (those made at a tick begin at the next), and lets
     go of each whose tick says it is done. The effect has ended when the source and every sub-effect have.
-  - Restart, a pick and `worldsEnding` let go of them with the source; Freeze holds their particles too.
+  - Restart, a pick and `Close` let go of them with the source; Freeze holds their particles too.
 - **Time**:
   - What the panel changes (emission, the source's alpha / param / extent / turn, the inputs, the events) goes on a
     timeline at the tick it was made. Changes dragged within one tick count as one.
@@ -533,17 +552,18 @@ camera, all without a second start-up. It also lets the harness drive the viewer
   MF15g6.)
 - **Limits**: the viewer's source is in no save and on no network.
 - **Interface**:
-  - Dear ImGui v1.93.0 (third_party/imgui, unmodified, no backends of its own).
+  - Dear ImGui v1.93.0, its docking branch (third_party/imgui, unmodified, no backends of its own).
   - Its platform side is tools/imgui_layer.cpp: platform events, the texture protocol (`RendererHasTextures`), a
-    scale of frame height / 1080, and no ini file.
+    scale of frame height / 1080, docking on and the layout file.
   - Its renderer side is the renderer's overlay (renderer.md, "render_overlay.cpp: the tools' overlay").
-- **Check**: the `effect_viewer` scenario (the showcase mod).
+- **Check**: the `effect_viewer` scenario (ei-effects on the showcase mod).
   - Portal from its built-in file: pause, scrub, step, a field edited and the file saved into the run's output folder.
-  - showcase_aura on the hero, with its enum, float and event inputs and its stages.
-  - Tornado from its built-in file, on the hero.
+  - showcase_aura on the figure, with its enum, float and event inputs and its stages.
+  - Tornado from its built-in file, on the figure walking its circle, running.
   - A new effect from the template with a tick reaction that starts Teleport: the sub-effect's particles hold while
     paused and are the same after a scrub to the same tick.
   - Captures `viewer_portal`, `viewer_portal_edited`, `viewer_aura`, `viewer_tornado`, `viewer_new`.
+  - `effect_viewer_standalone`: the exe started on Portal (on the figure), scrubbed and stepped, an animation picked.
 
 ## Missiles and visibility
 

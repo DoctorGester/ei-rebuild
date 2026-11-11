@@ -1,12 +1,9 @@
-# The effect viewer on its own (ei-rebuild --effects Portal --zone gz2g; docs/modding.md, "The effect viewer";
-# MF15i3): the program starts straight in a new game in the zone named, with no start movies and no main menu, the
-# panel open and Portal picked on the hero. Checked: the zone up with the hero, Portal playing on the hero (particles),
-# a scrub and steps landing on the ticks asked for; captures: the viewer over its scene.
-# arguments: --effects Portal --zone gz2g
-reject Script error
-console thingamabob
-waitzone 20 gz2g
-waitfor 15 IsGreater(HP(GetLeader()),0)
+# The effect viewer started on an effect (ei-effects Portal; docs/modding.md, "The effect viewer"; MF15k4): the
+# install's files alone, the docked windows up and Portal picked on the figure. Checked: Portal playing on the figure
+# (particles), a scrub and steps landing on the ticks asked for, the figure's animation switched by name; captures:
+# the viewer over its scene.
+# exe: ei-effects
+# arguments: Portal
 wait 1500
 effectviewer expect particles 20
 capture viewer_standalone
@@ -16,5 +13,8 @@ effectviewer scrub 30
 effectviewer expect tick 30
 effectviewer step 2
 effectviewer expect tick 32
+effectviewer play
+effectviewer figure animation cwalk01
+frames 3
 report
 quit

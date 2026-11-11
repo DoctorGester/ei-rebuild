@@ -228,13 +228,6 @@
 //                             a mod's records as TOML, and an animation's track, seen by the game (harness_starter.h;
 //                             MF3, MF5)
 //   ground <x> <y> <low> <high>  the ground's height at (x, y) in the landscape and the AI map (harness_starter.h)
-//   effectviewer <command>    the effect viewer (src/tools/effect_viewer.cpp, Command; MF15i): open [<effect>],
-//                             pick <effect>, place party|unit <id>|focus [dx dy dz]|free <x> <y> <z>, play, pause,
-//                             step [n], scrub <tick>, restart, loop on|off, size <s>, emit start|stop, stop,
-//                             input <name> <value>|<x y z>|<enum value>, fire <event>, field <path> <value>, tab
-//                             fields|text, folder out [<name>]|<folder>, save, new <name>, convert, code,
-//                             append <text, \n for a line end>, expect particles <least>|tick <n>|stage <name>|
-//                             problems <n>|status <text>|children <least>|subparticles <n>
 //   waitline <seconds> <text> wait until the console has printed <text> (at any time in the run)
 //   read mod|game <path> yes|no, wrote mod|game <path> yes|no, waitread <seconds> mod|game <path>
 //                             whether the game touched (read, listed, asked about) or wrote the file below the mod
@@ -567,7 +560,6 @@
 #include "platform/platform.h"
 #include "game/app/harness_hooks.h"
 #include "game/net/net_second_master.h"
-#include "tools/effect_viewer.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "harness_objects.h"
@@ -3056,10 +3048,9 @@ void RunSteps() {
                    s.verb == "modfile" || s.verb == "modlist" ||
                    s.verb == "modarchive" || s.verb == "mapfile" || s.verb == "playstream" ||
                    s.verb == "folderprofile" || s.verb == "modtext" || s.verb == "modack" || s.verb == "modweapon" ||
-                   s.verb == "modrecord" || s.verb == "ground" || s.verb == "effect" || s.verb == "effectviewer") {
+                   s.verb == "modrecord" || s.verb == "ground" || s.verb == "effect") {
             std::string error = s.verb == "hudstate"        ? HudState(s.argument)
                                 : s.verb == "effect"        ? image::DataEffectStep(s.argument)
-                                : s.verb == "effectviewer"  ? tools::effect_viewer::Command(s.argument)
                                 : s.verb == "modtext"       ? starter::ModTextStep(s.argument)
                                 : s.verb == "modack"        ? starter::ModAckStep(s.argument)
                                 : s.verb == "modweapon"     ? starter::ModWeaponStep(s.argument)

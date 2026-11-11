@@ -19,9 +19,10 @@ enum class ArchiveClass : std::int32_t {
 };
 
 class RefCounted;
-// The object an index entry's class id stands for, new with no references; null for any other id. The game's
-// (players/party_manager.cpp: the class templates and the party records are its classes).
-RefCounted* CreateArchived(ArchiveClass type);
+// What makes the object an index entry's class id stands for (ChunkArchive::Open), new with no references; null for
+// any other id. The game's (players/party_manager.cpp: the class templates and the party records are its classes, and
+// it sets this when it starts); a program without them loads every entry as no object.
+inline RefCounted* (*g_createArchived)(ArchiveClass type) = nullptr;
 
 // The bits of RefCounted's two flag bytes.
 enum class RefFlag : std::uint8_t {
