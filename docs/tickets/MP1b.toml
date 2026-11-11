@@ -1,0 +1,8 @@
+id = "MP1b"
+title = "Companions joined in the multiplayer base too, so the camp edits their items and skills"
+group = "port"
+size = 1
+model = "opus"
+files = ["src/game/net src/game/app/game_flow.cpp src/game/app/saved_parties* docs/notes/network.md tests/scenarios/net_pair_companion.txt"]
+note = "User 2026-11-12: companions' items and skills cannot be edited, because they are not in the party at the briefing base. Now (docs/notes/network.md, 'Companions (ours)'): the list is picked in the base (SavedParties::companions) but the units join only in network zones (OnAddCompanion needs the player in a network zone; RestoreCompanions at each network zone's start). Make the picked companions party members in the base as well: joined there when picked (and restored on entering the base), so the camp's pages (equipment, spells and skills, trader, the hero arrows 0/1) list and edit them like the hero's other party members. The edits go back to each companion's file (GameFlow::ReturnLocalParty / SavedParties::ReturnCompanions) on leaving the base, and when one is taken off the list. Check that sending one away in the base removes its unit, that the host's companion limit still holds, and that items moved between hero and companion in the camp land in the right files. Extend net_pair_companion (a camp edit of a companion in the base, checked in its file and in the next zone) and re-record its goldens."
+order = 1417
