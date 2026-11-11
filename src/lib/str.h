@@ -48,9 +48,11 @@ int ToInt(std::string_view text);
 // The same number, none (nullopt) when the text holds no digits.
 std::optional<int> ParseInt(std::string_view text);
 float ToFloat(std::string_view text);
-// std::from_chars for a float, also where the library has none (Apple's libc++): there strtof in the C locale the
-// game keeps, refusing what from_chars refuses (a leading space or plus; in the general format the "x" of a "0x").
+// std::from_chars for a float or double, also where the library has none (Apple's libc++): there strtof or strtod in
+// the C locale the game keeps, refusing what from_chars refuses (a leading space or plus; in the general format the "x" of a "0x").
 std::from_chars_result FloatFromChars(std::string_view text, float& value,
+                                      std::chars_format format = std::chars_format::general);
+std::from_chars_result FloatFromChars(std::string_view text, double& value,
                                       std::chars_format format = std::chars_format::general);
 
 EI_PRINTF_FORMAT(1, 2) std::string Format(const char* format, ...);
