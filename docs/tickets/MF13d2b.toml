@@ -4,3 +4,5 @@ group = "mods"
 depends = ["MF13d2a"]
 note = "MapDatabase::LoadAll merges the map.toml files once, after map.txt and map-LMP.txt; a quest folder's <folder>\\map.txt (GameFlow::RegisterQuests, e.g. from BuildZoneTable for the network quest zones z3q2, z3q3) is read later and appended. A map.toml record naming such a zone therefore finds no record to merge into: it is added whole as a new one (an empty map unless it names one), and FindMap returns it before the folder's own, so a mod that changes only z3q2's mob moves it out of its map group in the zone table (seen in MF13d2a: tools/make_missing_zone_mod.py writes whole records to work around it). Wanted: the toml merge applied to the folder's records too (merge again after each folder's map.txt, or read the folders first), with a check on a quest zone changed by name."
 order = 1409
+status = "running"
+started = "2026-11-11"
