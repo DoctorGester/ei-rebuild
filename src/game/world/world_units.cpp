@@ -2,13 +2,13 @@
 // the party entering a zone, mercenaries), places them, gives them their equipment and AI, and
 // adds the heroes to the "Heroes" script group. See world.h and docs/notes/world.md.
 #include "game/ai/ai_map.h"
-#include "game/app/app.h"
 #include "engine/core/base_manager.h"
 #include "game/map/chunk_stream.h"
 #include "game/combat/combat.h"
 #include "engine/core/core_maths.h"
 #include "engine/core/core_refcount.h"
 #include "engine/core/core_streams.h"
+#include "engine/core/program_window.h"
 #include "game/items/item.h"
 #include "game/items/item_manager.h"
 #include "game/objects/lever.h"
@@ -457,7 +457,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         }
         auto* plain = timedManager->CreateObjectAs<EffectSound>(kTimedSound, base.id);
         if (sound->sounds.empty()) {
-            app::ShowLibraryMessageBox("Adding sound without wave name");
+            ShowLibraryMessageBox("Adding sound without wave name");
         } else {
             str::CopyInto(plain->name, sound->sounds[0]);
         }

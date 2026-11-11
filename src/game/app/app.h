@@ -31,9 +31,8 @@ extern int g_updatePeriod;
 // while it is set); a movie of
 // the frames being written (the loop then runs a fixed time a frame); the console's switch that prints the
 // client speed; what the video memory allows (little memory besides the textures, little texture memory) and
-// whether a device was named on the command line; the loading screen's movie file. g_mainWindow is the game window.
-extern char g_windowTitle[256];
-extern platform::NativeWindow g_mainWindow;
+// whether a device was named on the command line; the loading screen's movie file. The game window and its title are
+// engine/core/program_window.h's.
 extern std::uint8_t g_active;
 extern std::uint8_t g_interfaceHasScreen;
 extern std::uint8_t g_recordingFrames;
@@ -58,12 +57,6 @@ void StartFirstMap();
 void FrameStep(bool draw);
 // Plays the movies listed under `section` of config\movie.ini.
 void PlayMovies(const std::string& section, bool loadingStep);
-// The game's error box (OK, the error icon) over the main window, under the window's title; the cursor that was set is
-// put back afterwards.
-void ShowMessageBox(std::string_view text);
-// The box of the game's library code (AfxMessageBox): no owner, the program's file name as its title, OK with the
-// warning icon.
-void ShowLibraryMessageBox(std::string_view text);
 // The rendering resolution changed while the game runs, the one way every change takes (a window resized: the present
 // asks through RequestResolution; a resolution chosen in the options: ChooseResolution): the
 // device's screen, the interface layout (screen_layout.h: the 4:3 part, the widescreen margins and axis scales), the

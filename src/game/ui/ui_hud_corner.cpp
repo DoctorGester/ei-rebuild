@@ -5,6 +5,7 @@
 #include "game/app/app.h"
 #include "game/app/singletons.h"
 #include "game/items/item.h"
+#include "game/items/item_texts.h"
 #include "game/objects/map_object.h"
 #include "game/players/player_client.h"
 #include "game/ui/screen_layout.h"
@@ -515,7 +516,7 @@ void HudTopPanel::Setup(int newPage, bool shown) {
 void HudTopPanel::AddPickedUp(Item* item, bool crippled) {
     std::string name;
     std::string kind;
-    name = g_clientWorld.texts->FormatItemName(item);
+    name = FormatItemName(g_clientWorld.texts.get(), item);
     const char* key = crippled ? "combat_crippled" : "combat_picked_up";
     kind = g_clientWorld.texts->GetString(key);
     std::string line = kind;
@@ -598,7 +599,7 @@ void HudTopPanel::ShowItems() {
     for (auto node = merged.begin(); node != merged.end();) {
         Item* item = *node;
         ++node;
-        line = texts->FormatItemName(item);
+        line = FormatItemName(texts, item);
         text += line;
         text += kNewLine;
         item->Release();

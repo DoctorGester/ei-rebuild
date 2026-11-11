@@ -17,6 +17,7 @@
 #include "game/ui/ui_camp.h"
 #include "game/ui/ui_item_info.h"
 #include "game/ui/ui_screens.h"
+#include "game/world/world.h"
 
 #include <cstdint>
 #include <cstring>

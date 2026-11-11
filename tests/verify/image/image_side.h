@@ -82,7 +82,7 @@ bool SavedHero(const char* name, std::string* file, float* experience);
 
 // ---- the game's global objects (harness_objects.h; image/harness_objects_image.cpp)
 
-void* MainWindow();                    // app::g_mainWindow (the native window)
+void* MainWindow();                    // g_mainWindow (the native window)
 std::uint8_t& InterfaceHasScreen();    // app::g_interfaceHasScreen
 std::uint8_t& RecordingFrames();       // app::g_recordingFrames
 bool AppActive();                      // app::g_active

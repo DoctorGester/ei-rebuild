@@ -26,6 +26,8 @@ base_manager.cpp            core/base_manager.cpp
 manager_context.h           core/manager_context.h
 manager_context.cpp         world/manager_context.cpp         # ManagerContext's members answer from the world (the header stays in core/: the engine's managers hold a context)
 engine_globals.h            core/engine_globals.h
+program_window.h            core/program_window.h       new   # the program's window and title, its message boxes, FatalExit and Warning (MF15k1a)
+program_window.cpp          core/program_window.cpp     new
 ref.h                       core/ref.h
 core_refcount.h             core/core_refcount.h
 core_refcount.cpp           core/ref.cpp                fold  # RefObject's two members (13 lines) beside the references' save and load
@@ -350,6 +352,8 @@ item_manager.h              items/item_manager.h
 item_manager.cpp            items/item_manager.cpp
 item_names.h                items/item_names.h
 item_names.cpp              items/item_names.cpp
+item_texts.h                items/item_texts.h          new   # an item's name, description and kind from the texts (MF15k1a)
+item_texts.cpp              items/item_texts.cpp        new
 item_stock.h                items/item_stock.h
 item_stock.cpp              items/item_stock.cpp
 

@@ -4,12 +4,13 @@
 
 #include "engine/core/core_streams.h"
 #include "engine/data/resource.h"
+#include "engine/core/engine_globals.h"
+#include "engine/scene/scene_renderer.h"
 #include "game/app/singletons.h"
 #include "game/objects/object3d.h"
 #include "engine/mods/mod_folders.h"
 #include "engine/data/options.h"
 #include "game/saves/save_versions.h"
-#include "game/ui/screen_layout.h"
 #include "game/world/world.h"
 #include "lib/bytes.h"
 #include "lib/containers.h"
@@ -308,8 +309,8 @@ void Camera::ClampAboveObjects() {
 
 float Camera::NearPlaneReach() const {
     const float slope = lib::Tan(fieldOfView * 0.5f);
-    const float across = slope / screen_layout::AxisScale();
-    const float up = slope / (camera::kAspect * screen_layout::AxisScaleY());
+    const float across = slope / g_sceneRenderer.axisScale;
+    const float up = slope / (camera::kAspect * g_sceneRenderer.axisScaleY);
     return nearDistance * std::sqrt(1.0f + across * across + up * up);
 }
 

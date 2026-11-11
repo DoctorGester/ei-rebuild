@@ -7,6 +7,7 @@
 
 #include "game/console/console.h"
 #include "game/items/item.h"
+#include "game/items/item_texts.h"
 #include "game/items/item_db.h"
 #include "game/spells/spell_db.h"
 #include "engine/data/text_manager.h"
@@ -349,7 +350,7 @@ void ItemInfoPanel::DescribeItem() {
     std::string material = materialRecord ? materialRecord->key : std::string();
     text::ReplaceChar(&material, ' ', '_');
     str::MakeLower(material);
-    auto [name, description, kindText] = texts->GetItemTexts(item);
+    auto [name, description, kindText] = GetItemTexts(texts, item);
 
     Writer w(this);
     std::string text;
@@ -452,7 +453,7 @@ void ItemInfoPanel::DescribeMaterial() {
     Item* item = FirstItem();
     TextManager* texts = g_clientWorld.texts.get();
     const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(item->AsLoot()->index);
-    auto [name, description, kindText] = texts->GetItemTexts(item);
+    auto [name, description, kindText] = GetItemTexts(texts, item);
     Writer w(this);
     w.Head(name, kindText);
     std::string text = material->soundName;
@@ -488,7 +489,7 @@ void ItemInfoPanel::DescribeBlueprint() {
     case LootRecordType::Quick: sort = 2; head = itemdb::QuickItemAt(index); break;
     default: break;
     }
-    auto [name, description, kindText] = texts->GetItemTexts(item);
+    auto [name, description, kindText] = GetItemTexts(texts, item);
     Writer w(this);
     w.Head(name, kindText);
     // The material type ("mattype_<NAME>" of the record) and the count. (The weapon and armour views
@@ -541,7 +542,7 @@ void ItemInfoPanel::DescribeSpellRecord() {
     Item* item = FirstItem();
     TextManager* texts = g_clientWorld.texts.get();
     const itemdb::SpellRecord* record = itemdb::SpellAt(item->AsLoot()->index);
-    auto [name, description, kindText] = texts->GetItemTexts(item);
+    auto [name, description, kindText] = GetItemTexts(texts, item);
     Writer w(this);
     w.Head(name, kindText);
     w.Number(7, static_cast<int>(record->mana));
@@ -577,7 +578,7 @@ void ItemInfoPanel::DescribeSpellRecord() {
 void ItemInfoPanel::DescribeModifierRecord() {
     Item* item = FirstItem();
     TextManager* texts = g_clientWorld.texts.get();
-    auto [name, description, kindText] = texts->GetItemTexts(item);
+    auto [name, description, kindText] = GetItemTexts(texts, item);
     const itemdb::SpellModifierRecord* record = itemdb::SpellModifierAt(item->AsLoot()->index);
     Writer w(this);
     w.Head(name, kindText);
@@ -590,7 +591,7 @@ void ItemInfoPanel::DescribeModifierRecord() {
 void ItemInfoPanel::DescribeQuickItem() {
     Item* item = FirstItem();
     TextManager* texts = g_clientWorld.texts.get();
-    auto [name, description, kindText] = texts->GetItemTexts(item);
+    auto [name, description, kindText] = GetItemTexts(texts, item);
     Writer w(this);
     w.Head(name, kindText);
     if (Spell* spell = item->spell) {

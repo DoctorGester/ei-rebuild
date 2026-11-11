@@ -2,7 +2,7 @@
 // resolution) and reading it back for captures. See render.h and docs/notes/renderer.md.
 #include "render.h"
 
-#include "game/app/app.h"
+#include "engine/core/program_window.h"
 #include "game/app/singletons.h"
 #include "engine/scene/device.h"
 #include "engine/scene/scene_renderer.h"
@@ -549,7 +549,7 @@ void Fatal(const char* format, ...) {
     std::vsnprintf(text, sizeof(text), format, args);
     va_end(args);
     ei::Log("render: fatal: %s", text);
-    app::ShowMessageBox(text);
+    ShowErrorBox(text);
     std::exit(-1);
 }
 

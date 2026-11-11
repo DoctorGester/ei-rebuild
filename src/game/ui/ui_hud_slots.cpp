@@ -6,6 +6,7 @@
 #include "game/ui/ui_hud.h"
 #include "game/app/singletons.h"
 #include "game/items/item.h"
+#include "game/items/item_texts.h"
 #include "game/players/player_client.h"
 #include "game/players/player.h"
 #include "game/ui/screen_layout.h"
@@ -261,7 +262,7 @@ void HudWeaponBar::SetUnit(Unit* newUnit) {
         ItemWeapon* weapon = unit->GetWeapon(slot);
         if (!weapon) continue;
         AddWeapon(weapon->PictureName(), weapon->FigureName());
-        tip = g_clientWorld.texts->GetItemTexts(weapon).name;
+        tip = GetItemTexts(g_clientWorld.texts.get(), weapon).name;
         tip += "\n";
 
         // The damage type: the first of the seven weights that is not zero (a NaN counts as zero).
@@ -440,7 +441,7 @@ std::string HudQuickItems::ItemTip(unsigned index) {
     std::string text;
     Item* item = unit->GetQuickItem(index);
     if (!item) return text;
-    text = g_clientWorld.texts->GetItemTexts(item).name;
+    text = GetItemTexts(g_clientWorld.texts.get(), item).name;
     std::string line;
     Spell* data = item->spell;
     if (!data) return text;
@@ -571,7 +572,7 @@ void HudQuickItems::SetUnit(Unit* newUnit) {
         UiMesh* sprite = AddItem(item->PictureName(), item->FigureName());
         finish(item, false, sprite);
         // The same string serves as the second and third texts.
-        tip = g_clientWorld.texts->GetItemTexts(item).name;
+        tip = GetItemTexts(g_clientWorld.texts.get(), item).name;
         regions[slot]->SetTipString(tip);
         place(slot, sprite);
         ++slot;
@@ -675,7 +676,7 @@ void HudSpellColumn::SetUnit(Unit* newUnit) {
         Item* spell = unit->GetSpell(i);
         if (!spell) continue;
         AddSpell(spell->PictureName(), spell->FigureName());
-        tip = g_clientWorld.texts->GetItemTexts(spell).name;
+        tip = GetItemTexts(g_clientWorld.texts.get(), spell).name;
 
         // The spell's numbers below its name: one line per label of the panel's table.
         Spell* data = spell->spell;    // the spell item's spell

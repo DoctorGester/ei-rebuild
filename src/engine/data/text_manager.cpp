@@ -1,14 +1,11 @@
-// The text manager's string lookup and the item texts (names, descriptions, kinds). The line reader is
+// The text manager's string lookup (the items' texts are items/item_texts.cpp's). The line reader is
 // text_manager.cpp, the archive list text_manager.cpp. See text_manager.h.
 #include "engine/data/text_manager.h"
 
 #include "engine/core/asset_text.h"
 #include "engine/core/engine_object.h"
-#include "game/items/item.h"
 #include "engine/data/resource.h"
-#include "game/spells/spell.h"
 #include "engine/core/text_split.h"
-#include "game/spells/spell_db.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 
@@ -29,57 +26,6 @@ int TextKeyFromName(std::string_view name) {
 bool IsTextKey(int id) {
     return id >= 1000000000 && id < 2000000000;
 }
-
-using namespace itemdb;
-
-namespace {
-
-// The record's name as used in keys: spaces become '_', lower case.
-std::string KeyName(const std::string& name) {
-    std::string key = name;
-    text::ReplaceChar(&key, ' ', '_');
-    str::MakeLower(key);
-    return key;
-}
-
-// Looks up `key`; when found, reads the name line and the description.
-void ReadItemText(TextManager* texts, const std::string& key, ItemTexts* out) {
-    if (texts->Open(key)) {
-        out->name = texts->ReadLine(true);
-        out->description = texts->ReadToHash();
-    }
-}
-
-// The text key and kind key of a loot item standing for a record (one with the record: ItemLoot::HasRecord).
-void RecordKeys(const ItemLoot* loot, std::string* key, const char** kindKey) {
-    switch (loot->recordType) {
-    case LootRecordType::Weapon:
-        *key = "instr " + KeyName(WeaponAt(loot->index)->name);
-        *kindKey = "item_weapon_shape";
-        break;
-    case LootRecordType::Armor: {
-        const ArmorRecord* armor = ArmorAt(loot->index);
-        *key = "instr " + KeyName(armor->name);
-        *kindKey = IsUpperBodyArmor(static_cast<ArmorType>(armor->type)) ? "item_armor_shape_upper" : "item_armor_shape_lower";
-        break;
-    }
-    case LootRecordType::Quick:
-        *key = "instr " + KeyName(QuickItemAt(loot->index)->name);
-        *kindKey = "item_wand_shape";
-        break;
-    case LootRecordType::Spell:
-        *key = std::string("spell ") + SpellAt(loot->index)->code;
-        *kindKey = "item_prototype";
-        break;
-    case LootRecordType::Modifier:
-        *key = std::string("modifier ") + SpellModifierAt(loot->index)->code;
-        *kindKey = "item_modifier";
-        break;
-    default: break;
-    }
-}
-
-} // namespace
 
 bool TextManager::IsPastEnd(const char* p) {
     int offset = static_cast<int>(p - text);
@@ -104,85 +50,6 @@ std::optional<std::string> TextManager::FindString(std::string_view name) {
 std::string TextManager::GetString(std::string_view name) {
     std::optional<std::string> line = FindString(name);
     return line ? std::move(*line) : std::string(name);
-}
-
-// The item's prototype and its spell's are there (Item::HasPrototype, Spell::HasRecords); the material and the record a loot item stands for are
-// tested: without one the item has no text key (no name and description).
-ItemTexts TextManager::GetItemTexts(Item* item) {
-    const MaterialRecordHead* material = MaterialAt(MaterialIndex(item->prototypeId));
-    std::uint32_t prototypeIndex = PrototypeIndex(item->prototypeId);
-    std::string key;                 // the item's text; none: no name and description
-    const char* kindKey = nullptr;   // the kind's string; none: no kind
-    bool wand = false;
-    switch (item->Kind()) {
-    case ItemKind::Weapon:
-        if (material) key = "weapon " + KeyName(WeaponAt(prototypeIndex)->name) + " " + KeyName(material->key);
-        kindKey = "item_weapon";
-        break;
-    case ItemKind::Armor: {
-        const ArmorRecord* armor = ArmorAt(prototypeIndex);
-        if (material) key = "armor " + KeyName(armor->name) + " " + KeyName(material->key);
-        kindKey = IsUpperBodyArmor(static_cast<ArmorType>(armor->type)) ? "item_armor_upper" : "item_armor_lower";
-        break;
-    }
-    case ItemKind::Quick: {
-        // A quick item whose prototype has no material is a potion.
-        const ItemRecordHead* prototype = item->GetPrototype();
-        if (!prototype->HasMaterial()) {
-            key = "qitem " + KeyName(prototype->name);
-            kindKey = "item_potion";
-            break;
-        }
-        if (material) key = "qitem " + KeyName(prototype->name) + " " + KeyName(material->key);
-        // Only wands get a kind; their name is followed by the spell's name.
-        wand = item->GetCategory() == QuickItemCategory::Wand;
-        if (wand) kindKey = "item_wand";
-        break;
-    }
-    case ItemKind::Loot: {
-        auto* loot = item->AsLoot();
-        if (!loot->HasRecord()) break;
-        if (loot->kind == LootKind::Self) {
-            key = "litem " + KeyName(LootAt(prototypeIndex)->name);
-            kindKey = "item_loot";
-        } else if (loot->kind == LootKind::Material) {
-            key = "material " + KeyName(MaterialAt(loot->index)->key);
-            kindKey = "item_material";
-        } else if (loot->kind == LootKind::Record) {
-            RecordKeys(loot, &key, &kindKey);
-        }
-        break;
-    }
-    case ItemKind::Scroll:
-        if (Spell* spell = item->spell) {
-            key = std::string("spell ") + spell->GetPrototype()->code;
-            kindKey = "item_spell";
-        }
-        break;
-    case ItemKind::Quest:
-        key = "questitem " + KeyName(QuestItemAt(prototypeIndex)->name);
-        kindKey = "item_quest";
-        break;
-    default: break;
-    }
-
-    ItemTexts texts;
-    if (!key.empty()) ReadItemText(this, key, &texts);
-    if (wand) {
-        if (Spell* spell = item->spell) {
-            std::string spellName = "Unknown";
-            if (Open(std::string("spell ") + spell->GetPrototype()->code)) spellName = ReadLine(true);
-            texts.name += ": " + spellName;
-        }
-    }
-    if (kindKey) texts.kind = GetString(kindKey);
-    return texts;
-}
-
-std::string TextManager::FormatItemName(Item* item) {
-    ItemTexts texts = GetItemTexts(item);
-    if (static_cast<int>(item->count) > 1) return str::Format(GetString("format_item2"), texts.kind, texts.name, item->count);
-    return str::Format(GetString("format_item1"), texts.kind, texts.name);
 }
 
 // --- Class name and id ------------------------------------------------------------------------------

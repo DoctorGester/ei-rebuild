@@ -230,7 +230,10 @@ themselves). Includes name the tree: `#include "engine/core/ref.h"`, `#include "
 - Files are in the engine's folders or the game's by what they need: the settings and options are data/'s (the
   renderer and the camera read them), as are maps as folders and the .MP header; the maps folder's functions are
   mods/maps_folder.h's; the peers' mod identity is net/'s; the particle core's calls into the world are
-  `particle_host.h`'s functions, which the game defines (game/effects/effects_particles.cpp).
+  `particle_host.h`'s functions, which the game defines (game/effects/effects_particles.cpp). The program's window
+  and title, its error box and lib/crt.h's FatalExit / Warning are core/program_window's (no app.cpp needed); the
+  3D view's axis scales are the scene renderer's, which screen_layout sets; an item's texts are items/'s
+  (item_texts.h), not the text manager's.
 - The check reads includes only. Code of the engine that calls a function defined in ei_game links only because both
   are in the same programs today; such calls are the seams MF15k2 turns into a host interface.
 
@@ -359,32 +362,32 @@ Risks:
 | Folder | Files | Lines today | Move batch |
 |---|---|---|---|
 | `ai/` | 28 | 12564 | C168f |
-| `app/` | 18 | 5308 | C168e |
+| `app/` | 18 | 5171 | C168e |
 | `combat/` | 13 | 6384 | C168f |
 | `console/` | 5 | 2038 | C168e |
-| `core/` | 27 | 3783 | C168d |
-| `data/` | 25 | 8597 | C168d |
-| `effects/` | 17 | 4999 | C168g |
-| `items/` | 10 | 2958 | C168g |
+| `core/` | 29 | 3783 | C168d |
+| `data/` | 25 | 8316 | C168d |
+| `effects/` | 17 | 4935 | C168g |
+| `items/` | 12 | 2958 | C168g |
 | `map/` | 11 | 3139 | C168e |
-| `models/` | 25 | 8220 | C168g |
+| `models/` | 25 | 8231 | C168g |
 | `mods/` | 9 | 802 | C168d |
 | `net/` | 23 | 8423 | C168h |
-| `objects/` | 23 | 8245 | C168f |
+| `objects/` | 23 | 8176 | C168f |
 | `particles/` | 11 | 4531 | C168g |
 | `players/` | 24 | 5486 | C168e |
 | `saves/` | 7 | 848 | C168d |
-| `scene/` | 30 | 4393 | C168g |
-| `script/` | 33 | 11833 | C168h |
-| `sound/` | 3 | 1679 | C168e |
-| `spells/` | 11 | 2157 | C168g |
+| `scene/` | 30 | 4397 | C168g |
+| `script/` | 33 | 11958 | C168h |
+| `sound/` | 3 | 1715 | C168e |
+| `spells/` | 11 | 2174 | C168g |
 | `terrain/` | 12 | 3560 | C168g |
 | `ui/` | 97 | 33145 | C168h |
-| `units/` | 27 | 9835 | C168f |
+| `units/` | 27 | 9830 | C168f |
 | `world/` | 36 | 10307 | C168e |
-| all | 525 | 163234 | |
+| all | 529 | 162871 | |
 
-570 files today; 55 fold into an owner, 10 split by meaning, 14 new files come out of the splits, 36 moves rename for meaning.
+570 files today; 55 fold into an owner, 10 split by meaning, 18 new files come out of the splits, 36 moves rename for meaning.
 
 ### Every file
 
@@ -517,6 +520,8 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | manager_context.h | core/manager_context.h |  |  |
 | named_floats.cpp | core/named_floats.cpp | new | NamedFloatTable's members, out of object_tables.cpp |
 | named_floats.h | core/named_floats.h | new | NamedFloatTable, out of object_tables.h |
+| program_window.cpp | core/program_window.cpp | new |  |
+| program_window.h | core/program_window.h | new | the program's window and title, its message boxes, FatalExit and Warning (MF15k1a) |
 | random.cpp | core/random.cpp |  |  |
 | random.h | core/random.h |  |  |
 | counted_ref.cpp | core/ref.cpp |  | named for ref.h; Ref<T> by id and the unit lists are the game's (objects/map_object_manager.cpp, ai/unit_ai.cpp) |
@@ -600,6 +605,8 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | item_names.h | items/item_names.h |  |  |
 | item_stock.cpp | items/item_stock.cpp |  |  |
 | item_stock.h | items/item_stock.h |  |  |
+| item_texts.cpp | items/item_texts.cpp | new |  |
+| item_texts.h | items/item_texts.h | new | an item's name, description and kind from the texts (MF15k1a) |
 
 #### `map/` (C168e)
 

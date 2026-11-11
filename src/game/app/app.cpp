@@ -8,6 +8,7 @@
 #include "game/app/singletons.h"
 #include "game/app/tool_hooks.h"
 #include "engine/core/asset_text.h"
+#include "engine/core/program_window.h"
 #include "engine/scene/device.h"
 #include "engine/scene/scene_renderer.h"
 #include "game/players/player_client.h"
@@ -253,38 +254,5 @@ void TakeResolutionChange() {
     g_requestedWidth = g_requestedHeight = 0;
 }
 
-// ---- Fatal errors and warnings --------------------------------------------------------
-
-void ShowMessageBox(std::string_view text) {
-    platform::CursorShape cursor = platform::CurrentCursor();
-    platform::ShowMessageBox(g_mainWindow, text, std::string_view(g_windowTitle), platform::MessageButtons::Ok, platform::MessageIcon::Error);
-    platform::SetCursor(cursor);
-}
-
-void ShowLibraryMessageBox(std::string_view text) {
-    platform::ShowMessageBox(nullptr, text, platform::ProgramPath(), platform::MessageButtons::Ok,
-                             platform::MessageIcon::Warning);
-}
-
 } // namespace app
-
-void game::FatalExit(const char* format, ...) {
-    char text[0x400];
-    va_list args;
-    va_start(args, format);
-    std::vsnprintf(text, sizeof(text), format, args);
-    va_end(args);
-    ei::Log("fatal: %s", text);
-    app::ShowMessageBox(text);
-    std::exit(-1);
-}
-
-void game::Warning(const char* format, ...) {
-    char text[0x400];
-    va_list args;
-    va_start(args, format);
-    std::vsnprintf(text, sizeof(text), format, args);
-    va_end(args);
-    ei::Log("warning: %s", text);
-}
 

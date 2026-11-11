@@ -23,7 +23,6 @@ int TextKeyFromName(std::string_view name);
 // Text keys are 1000000000..1999999999.
 bool IsTextKey(int id);
 
-class Item;
 class MappedResource;
 
 // An archive the texts are looked up in.
@@ -53,13 +52,6 @@ struct TextSources {
     std::vector<TextSource> archives;
 };
 
-// An item's texts (TextManager::GetItemTexts); a part that is not found stays empty.
-struct ItemTexts {
-    std::string name;
-    std::string description;
-    std::string kind;          // "item_weapon", ... looked up as a string (GetString)
-};
-
 class TextManager : public EngineObject {
 public:
     TextManager();
@@ -84,13 +76,6 @@ public:
     std::optional<std::string> FindString(std::string_view name);
     // FindString's text, or `name` itself when there is none.
     std::string GetString(std::string_view name);
-
-    // The name, description and kind of an item, each looked up in the texts.
-    ItemTexts GetItemTexts(Item* item);
-
-    // The item's display name: "format_item1" (or "format_item2" with the stack count when count is above
-    // 1) applied to the kind and the name.
-    std::string FormatItemName(Item* item);
 
     // The line reader (text_manager.cpp): finds a text in the resource archives and walks its lines with cursor.
     // Texts are MBCS: a character is one byte, or a lead byte (_ismbblead) and a trail byte. Lines end with LF

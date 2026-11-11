@@ -24,16 +24,14 @@ struct Layout {
     int margin = 0;  // (width - width43) / 2: pixels left and right of the 4:3 part
     int marginY = 0;  // (height - height43) / 2: pixels above and below it
     int extra = 0;  // margin in layout units, ceil((float)(margin * 800.0 / width43))
-    // The 3D view keeps the 4:3 proportions over the whole window: the projection's x and y scales.
-    float axisScale = 0.0f;  // (float)(width43 / width)
-    float axisScaleY = 0.0f;  // (float)(height43 / height)
     // The interface fonts' scale: width * 0.0075 / height43 (addon's), 0.01 on a 4:3 window (the original's constant).
     float fontScale = 0.0f;
 };
 
 // Computes the layout for the window the game makes, at the resolution it loaded from its options (GameMain, right
 // after the options load), and again at each resolution change (app::SetResolution), and writes the two layout
-// widths. Until the first call the layout is an 800x600 window's.
+// widths and the scene renderer's axis scales (the 3D view keeps the 4:3 proportions over the whole window). Until the
+// first call the layout is an 800x600 window's.
 void Configure(int width, int height);
 
 const Layout& Get();
@@ -69,9 +67,6 @@ constexpr float kLayoutPerCount = 800.0f / 2880.0f;
 // The interface's text extent: the drawn text's pixels to layout units, by the 4:3 part's size (64-bit products).
 Size TextExtentToLayout(Size pixels);
 
-// The projection's x and y scales on the axis swap's diagonal (axisScale, axisScaleY).
-float AxisScale();
-float AxisScaleY();
 // What a 75-point font's pixel height is multiplied by for the interface fonts' scale (fontScale).
 float FontScale();
 

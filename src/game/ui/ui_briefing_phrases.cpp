@@ -7,6 +7,7 @@
 #include "game/console/console.h"
 #include "game/app/singletons.h"
 #include "game/items/item.h"
+#include "game/items/item_texts.h"
 #include "game/items/item_manager.h"
 #include "engine/data/text_manager.h"
 #include "game/objects/object3d.h"
@@ -193,7 +194,7 @@ void BriefingScreen::NextPhrase(bool skip) {
                     Item* item = g_clientWorld.itemManager->CreateItem(it);
                     if (!item) continue;
                     item->AddRef();
-                    name = texts->FormatItemName(item);
+                    name = FormatItemName(texts, item);
                     line = str::Format(kNameLine, label, name);
                     add();
                     item->Release();
@@ -228,7 +229,7 @@ void BriefingScreen::NextPhrase(bool skip) {
                     for (auto& node : player->items) {
                         Item* item = node;
                         if (item->GetClassId() != ClassId::ItemQuest) continue;
-                        name = texts->FormatItemName(item);
+                        name = FormatItemName(texts, item);
                         line = str::Format(kNameLine, label, name);
                         add();
                     }

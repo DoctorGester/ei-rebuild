@@ -158,8 +158,8 @@ public:
     // Lifts the camera over the terrain and the objects within 16 of it, its near plane included.
     void ClampAboveObjects();
     // How far the near plane's corners lie from the camera's point: the projection's near distance and field of view
-    // (nearDistance, fieldOfView, camera::kAspect) on the window's shape now (screen_layout's axis scales). No part of
-    // the near plane is lower under the camera's point than this, whichever way the camera looks.
+    // (nearDistance, fieldOfView, camera::kAspect) on the window's shape now (the scene renderer's axis scales). No part
+    // of the near plane is lower under the camera's point than this, whichever way the camera looks.
     float NearPlaneReach() const;
     // Turns the camera a tenth of the way upright, then ClampAboveObjects.
     void AlignToTarget();
