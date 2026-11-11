@@ -1765,7 +1765,7 @@ cunit1000205 #vitals 42557372
 cunit1000206 #place 0581AB39
 cunit1000206 #unit 39D43514
 cunit1000206 #vitals 75BE0BF3
-@ 1 update 85 frame 17 tick 85 zone cz2j hash 422F10BD n 535
+@ 1 update 85 frame 17 tick 85 zone cz2j hash 27D24189 n 535
 world tick 85
 world updates 85
 world timeBase 5.96444464
@@ -5693,7 +5693,7 @@ obj1000010798 pos.y 173.972519
 obj1000010798 pos.z 0.0
 obj1000010798 #ai 790FADC8
 obj1000010798 #place F3F9BB84
-obj1000010798 #unit CAB50A21
+obj1000010798 #unit B90897E7
 obj1000010798 #vitals ED91BFD0
 + obj1000011214 80 unhuma ""
 obj1000011214 dead 0
@@ -5737,7 +5737,7 @@ client synchronised 4
 - cunit1000206
 + cunit1000010798 80 unhuma ""
 cunit1000010798 #place 8656DDDF
-cunit1000010798 #unit 9ECB282D
+cunit1000010798 #unit 923481D1
 cunit1000010798 #vitals 8FC93AF9
 + cunit1000011214 80 unhuma ""
 cunit1000011214 #place 43F757BA

@@ -7190,7 +7190,7 @@ missile1 # DEDA7147
 aievents tick 400
 client tick 400
 client ticksRun 372
-@ 20 update 420 frame 83 tick 407 zone gz1g hash 87C0BBFC n 813
+@ 20 update 420 frame 83 tick 407 zone gz1g hash 61D9FF1D n 813
 world tick 407
 world updates 420
 world paused 1
@@ -7236,30 +7236,30 @@ client ticksRun 392
 - cunit1000011214
 + cunit1100011214 80 unhuma ""
 cunit1100011214 #place 125B38F9
-cunit1100011214 #unit AE0829DD
+cunit1100011214 #unit 169D3B48
 cunit1100011214 #vitals FBF38A0F
-@ 21 update 440 frame 87 tick 407 zone gz1g hash 688E4490 n 813
+@ 21 update 440 frame 87 tick 407 zone gz1g hash 8E970071 n 813
 world updates 440
 client ticksRun 412
-@ 22 update 460 frame 91 tick 407 zone gz1g hash 2F08E090 n 813
+@ 22 update 460 frame 91 tick 407 zone gz1g hash C911A471 n 813
 world updates 460
 client ticksRun 432
-@ 23 update 480 frame 95 tick 407 zone gz1g hash 869F4F2B n 813
+@ 23 update 480 frame 95 tick 407 zone gz1g hash 60860BCA n 813
 world updates 480
 client ticksRun 452
-@ 24 update 500 frame 99 tick 407 zone gz1g hash BF12C7FA n 813
+@ 24 update 500 frame 99 tick 407 zone gz1g hash 590B831B n 813
 world updates 500
 client ticksRun 472
-@ 25 update 520 frame 103 tick 407 zone gz1g hash 1D8B1848 n 813
+@ 25 update 520 frame 103 tick 407 zone gz1g hash FB925CA9 n 813
 world updates 520
 client ticksRun 492
-@ 26 update 540 frame 107 tick 407 zone gz1g hash C414EFD1 n 813
+@ 26 update 540 frame 107 tick 407 zone gz1g hash 220DAB30 n 813
 world updates 540
 client ticksRun 512
-@ 27 update 560 frame 111 tick 407 zone gz1g hash 18064010 n 813
+@ 27 update 560 frame 111 tick 407 zone gz1g hash FE1F04F1 n 813
 world updates 560
 client ticksRun 532
-@ 28 update 580 frame 115 tick 407 zone gz1g hash C486093E n 813
+@ 28 update 580 frame 115 tick 407 zone gz1g hash 229F4DDF n 813
 world updates 580
 client ticksRun 552
 @ 29 update 600 frame 119 tick 427 zone gz1g hash E02D4F9E n 814

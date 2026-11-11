@@ -1638,6 +1638,9 @@ and each multiplayer client writes its own.
   - Generator (5; R57b): `g_clientRandom` whole: seeded, count, results and memory (256 u32 each), aa, bb, cc (2068
     bytes). Only when seeded; skipped when its size is wrong or its count above 256. A slot's file only: the
     generator goes on through the zones of a session, so a zone's file leaves it out.
+  - ParticleGenerator (8; MF15a): `g_particleRandom` whole, as Generator (2068 bytes, a slot's file only). A file
+    with Generator but without it (older saves) seeds the particles' generator from the kept client one at the restore
+    (`InitFrom`, as World::Create does), so a save gives the same particles whatever the session before it drew.
   - Zone (6; R57c): the client world's tick when the picture was taken (i32) and the zone's map as the server named
     it (zero-terminated). Every file has it; a file without it (R57's) is taken as it is.
   - WeatherDelay (7): the server's `WorldServer::weatherDelay` (i32, at most 10; world.md, "Weather across a load"):

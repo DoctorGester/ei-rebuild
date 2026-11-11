@@ -658,6 +658,7 @@ void Log(const char* format, ...) {
     va_start(args, format);
     std::vsnprintf(text, sizeof(text), format, args);
     va_end(args);
+    if (lua_check::g_logCapture) lua_check::g_logCapture->push_back(text);
     if (lua_check::g_logMuted) return;
     ++g_logLines;
     std::printf("  log: %s\n", text);

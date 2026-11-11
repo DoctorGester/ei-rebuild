@@ -2,15 +2,16 @@
   "scenario": "zone_visuals",
   "install": "vanilla",
   "recorded": "2026-11-11",
-  "commit": "8a7ae7cf0",
+  "commit": "85c555311",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "P12 merged onto L11/MF14b/H70 main: the village camera distance and no far clip, on main's save format",
+  "reason": "MF15a: the particle sources draw g_particleRandom (seeded from the client generator) instead of g_clientRandom, so the client generator in visuals.sav, the scorch marks' angles and the client units' idle picks in the digest follow other draws, and visuals.sav gains the ParticleGenerator section.",
   "source": "image",
   "saves": "10 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save savea/scenario.sav: differs (decoded f03e0e5c551b5291 in the old golden, cecc2fabc22602fd in the new run; the store has no copy of f03e0e5c551b5291)"
+    "save savea/visuals.sav: 25 fields in 3 records differ: visuals 25",
+    "  visuals: 25 fields in 3 records; first visuals.prints blood.print0.position.x: 58.2946396 in the old golden, 58.434639 in the new run; largest numeric d 2.01e+09 at visuals.generator bb: 35635832 -> 2049905379"
   ]
 }

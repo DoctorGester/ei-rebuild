@@ -30,6 +30,11 @@ check (`app.md`).
   and the rain bolts' positions, a tornado's launch speed); what the client does with an effect it unpacks (sound
   sequence choosers, the scorch mark's angle of a FireBlast / LightningBlast particle, the bird's perch) and the main
   menu's bolt choices (`ShowBolt`'s `picks`) draw `g_clientRandom` (R34b).
+- `g_particleRandom` is a third ISAAC, the particle sources' own (every draw in `particle_*.cpp`), that `World::Create`
+  seeds from `g_clientRandom`'s memory right after it (`InitFrom`; the harness's `ReseedRandom` the same way). So a
+  change to a particle effect moves only the particles: not the client units' idle picks, the scorch marks' angles
+  or the sounds that share `g_clientRandom` (MF15a). It is kept in visuals.sav as the client one is (renderer.md,
+  "What a save keeps of the picture": ParticleGenerator).
 
 ## Reference counting
 

@@ -6850,7 +6850,7 @@ missile1 # 7D3995E5
 aievents tick 240
 client tick 240
 client ticksRun 452
-@ 24 update 500 frame 191 tick 247 zone gz1g hash 27BE5E91 n 790
+@ 24 update 500 frame 191 tick 247 zone gz1g hash 0C95A2EC n 790
 world tick 247
 world updates 500
 world paused 1
@@ -6896,18 +6896,18 @@ client ticksRun 472
 - cunit1000011214
 + cunit1100011214 80 unhuma ""
 cunit1100011214 #place 125B38F9
-cunit1100011214 #unit E9C3D357
+cunit1100011214 #unit 20DCDBE8
 cunit1100011214 #vitals 54F14E8E
-@ 25 update 520 frame 195 tick 247 zone gz1g hash C1E9B320 n 790
+@ 25 update 520 frame 195 tick 247 zone gz1g hash EAC24F5D n 790
 world updates 520
 client ticksRun 492
-@ 26 update 540 frame 199 tick 247 zone gz1g hash 736BE38E n 790
+@ 26 update 540 frame 199 tick 247 zone gz1g hash 58401FF3 n 790
 world updates 540
 client ticksRun 512
-@ 27 update 560 frame 206 tick 247 zone gz1g hash C754A875 n 790
+@ 27 update 560 frame 206 tick 247 zone gz1g hash EC7F5408 n 790
 world updates 560
 client ticksRun 532
-@ 28 update 580 frame 210 tick 247 zone gz1g hash EF0AF0DB n 790
+@ 28 update 580 frame 210 tick 247 zone gz1g hash C4210CA6 n 790
 world updates 580
 client ticksRun 552
 @ 29 update 600 frame 223 tick 257 zone gz1g hash 461C0334 n 791
@@ -6965,7 +6965,7 @@ cunit1000011214 #place E886AEF9
 cunit1000011214 #unit AF49D16D
 cunit1000011214 #vitals 7D2D89BA
 - cunit1100011214
-@ 30 update 620 frame 227 tick 274 zone gz1g hash 06829657 n 790
+@ 30 update 620 frame 227 tick 274 zone gz1g hash B334D413 n 790
 world tick 274
 world updates 620
 world paused 1
@@ -7013,12 +7013,12 @@ client ticksRun 592
 - cunit1000011214
 + cunit1100011214 80 unhuma ""
 cunit1100011214 #place 125B38F9
-cunit1100011214 #unit 32AC1A2D
+cunit1100011214 #unit 1831B112
 cunit1100011214 #vitals 54F14E8E
-@ 31 update 640 frame 231 tick 274 zone gz1g hash 5D968FBD n 790
+@ 31 update 640 frame 231 tick 274 zone gz1g hash E820CDF9 n 790
 world updates 640
 client ticksRun 612
-@ 32 update 660 frame 235 tick 274 zone gz1g hash 76117DF8 n 790
+@ 32 update 660 frame 235 tick 274 zone gz1g hash C3A73FBC n 790
 world updates 660
 client ticksRun 632
 @ 33 update 680 frame 242 tick 289 zone gz1g hash D6328360 n 791

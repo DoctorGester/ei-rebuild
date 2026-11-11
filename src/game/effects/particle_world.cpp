@@ -51,23 +51,23 @@ int EmitSmoke(ParticleSource& s, Particle& p, int) {
     p.frame = ParticleTypeOf(s.type) != ParticleType::Smoke ? 0 : 8;
     p.frameTimer = s.frameDelay;
     p.size = s.size;
-    if (g_clientRandom.Next() % 100 + 1 <= 40) {
+    if (g_particleRandom.Next() % 100 + 1 <= 40) {
         p.size = s.size * 0.5f;
         extra = s.size * kSmallPuffWiden;
     }
     float hi = extra + s.spreadMax.x;
     float lo = s.spreadMin.x - extra;
-    spreadStep.x = g_clientRandom.Range(lo, hi);
+    spreadStep.x = g_particleRandom.Range(lo, hi);
     hi = extra + s.spreadMax.y;
     lo = s.spreadMin.y - extra;
     spreadStep.z = 0.0f;
-    spreadStep.y = g_clientRandom.Range(lo, hi);
+    spreadStep.y = g_particleRandom.Range(lo, hi);
     spreadStep *= 0.5f;
     p.pos.x = s.origin.x + spreadStep.x;
     p.pos.y = s.origin.y + spreadStep.y;
     p.drift.x = 0.0f;
     p.drift.y = 0.0f;
-    p.pos.z = g_clientRandom.Range(0.0f, s.height) + s.origin.z;
+    p.pos.z = g_particleRandom.Range(0.0f, s.height) + s.origin.z;
     rise = s.height;
     return 1;
 }
@@ -85,7 +85,7 @@ int UpdateSmoke(ParticleSource& s, Particle& p) {
         if (frame > 7) {
             if (ParticleTypeOf(s.type) == ParticleType::Fire || ParticleTypeOf(s.type) == ParticleType::Tendril) return 0;
             p.frameTimer = s.frameDelay << 2;
-            if ((g_clientRandom.Next() & 3) == 0) return 0;
+            if ((g_particleRandom.Next() & 3) == 0) return 0;
         }
         if (p.frame == 8) rise = rise * 0.5f;
     }
@@ -107,7 +107,7 @@ int UpdateSmoke(ParticleSource& s, Particle& p) {
 // and y, and set its own height above the ground there.
 int EmitTendril(ParticleSource& s, Particle& p, int index) {
     if (!EmitSmoke(s, p, index)) return 0;
-    float u = g_clientRandom.Range(-1.0f, 1.0f);
+    float u = g_particleRandom.Range(-1.0f, 1.0f);
     p.pos.x = u * s.extent.x + p.pos.x;
     p.pos.y = u * s.extent.y + p.pos.y;
     float ground = g_clientWorld.RawSurfaceHeightAt(p.pos.x, p.pos.y);
@@ -135,7 +135,7 @@ int EmitVulkan(ParticleSource& s, Particle& p, int) {
     p.color = 0xFFFFFFFF;
     p.frame = 0;
     float radian = ei::kRadiansPerDegree * 360.0f;
-    if (g_clientRandom.Next() % 100 + 1 <= 60) {
+    if (g_particleRandom.Next() % 100 + 1 <= 60) {
         p.state = 8;
         p.life = s.lifetime * 8;
         p.frameTimer = 8;
@@ -143,13 +143,13 @@ int EmitVulkan(ParticleSource& s, Particle& p, int) {
         p.pos.y = s.origin.y;
         float low = s.spreadMin.y * -0.5f;
         float high = s.spreadMin.y * 0.5f;
-        p.pos.z = g_clientRandom.Range(0.0f, high - low) + s.spreadMax.y + s.origin.z + low;
+        p.pos.z = g_particleRandom.Range(0.0f, high - low) + s.spreadMax.y + s.origin.z + low;
         p.size = s.size;
         sizeFactor = s.growth;
         slowing = 0.965f;
         float reach = s.spreadMin.x;
         p.drift.z = 0.0f;
-        float angle = g_clientRandom.Range(0.0f, radian);
+        float angle = g_particleRandom.Range(0.0f, radian);
         p.drift.x = lib::Sin(angle) * reach;
         p.drift.y = lib::Cos(angle) * reach;
         return 1;
@@ -157,8 +157,8 @@ int EmitVulkan(ParticleSource& s, Particle& p, int) {
     p.state = 4;
     p.life = s.lifetime * 4;
     p.frameTimer = 4;
-    float reach = g_clientRandom.Range(0.0f, s.spreadMax.x);
-    float angle = g_clientRandom.Range(0.0f, radian);
+    float reach = g_particleRandom.Range(0.0f, s.spreadMax.x);
+    float angle = g_particleRandom.Range(0.0f, radian);
     p.pos.x = lib::Sin(angle) * reach + s.origin.x;
     p.pos.y = lib::Cos(angle) * reach + s.origin.y;
     p.pos.z = s.origin.z;
@@ -195,7 +195,7 @@ namespace {
 // A random value in [low, high) of the spread box component, added to `base` (the original's order: the
 // random part, the base, then the low end).
 float SpreadAround(float base, float low, float high) {
-    return g_clientRandom.Range(0.0f, high - low) + base + low;
+    return g_particleRandom.Range(0.0f, high - low) + base + low;
 }
 
 Vector3 SpreadAround(const Vector3& base, const Vector3& low, const Vector3& high) {
@@ -210,7 +210,7 @@ Vector3 SpreadAround(const Vector3& base, const Vector3& low, const Vector3& hig
 // vent's strength; otherwise a short-lived puff of mist near the source.
 int EmitGeyser(ParticleSource& s, Particle& p, int) {
     float& dropSize = p.velocity.x;
-    int vent = static_cast<int>(g_clientRandom.Next() % static_cast<std::uint32_t>(std::ssize(s.elements)));
+    int vent = static_cast<int>(g_particleRandom.Next() % static_cast<std::uint32_t>(std::ssize(s.elements)));
     p.color = 0xFFFFFFFF;
     p.pos = s.origin;
     if (s.particles.empty()) {
@@ -220,7 +220,7 @@ int EmitGeyser(ParticleSource& s, Particle& p, int) {
         return 1;
     }
     p.state = 0;
-    p.frame = static_cast<int>(g_clientRandom.Next() % 12);
+    p.frame = static_cast<int>(g_particleRandom.Next() % 12);
     const ParticleElement& e = s.elements[vent];
     float drop = s.size * 0.2f;
     p.life = 20;
@@ -228,9 +228,9 @@ int EmitGeyser(ParticleSource& s, Particle& p, int) {
     if (e.ticks > 0) {
         p.life = 0x7FFFFFFF;
         float radian = ei::kRadiansPerDegree;
-        float yaw = g_clientRandom.Range(-20.0f, 20.0f) * radian + e.vent.yaw;
-        float tilt = g_clientRandom.Range(-10.0f, 10.0f) * radian + e.vent.tilt;
-        float power = g_clientRandom.Range(0.0f, 0.2f) + e.vent.power - 0.1f;
+        float yaw = g_particleRandom.Range(-20.0f, 20.0f) * radian + e.vent.yaw;
+        float tilt = g_particleRandom.Range(-10.0f, 10.0f) * radian + e.vent.tilt;
+        float power = g_particleRandom.Range(0.0f, 0.2f) + e.vent.power - 0.1f;
         float sinTilt = lib::Sin(tilt);
         p.drift.x = lib::Sin(yaw) * sinTilt * power * s.height;
         p.drift.y = lib::Cos(yaw) * sinTilt * power * s.height;
@@ -259,7 +259,7 @@ int UpdateGeyser(ParticleSource& s, Particle& p) {
     float& dropSize = p.velocity.x;
     if (p.state != 0) {
         if (!(s.flags & ParticleSourceFlag::Emitting)) return 0;
-        p.size = g_clientRandom.Range(0.03f, 0.3f) * s.size;
+        p.size = g_particleRandom.Range(0.03f, 0.3f) * s.size;
         return 1;
     }
     std::uint32_t a = p.color >> 24;
@@ -280,15 +280,15 @@ int UpdateGeyser(ParticleSource& s, Particle& p) {
 // eruption of 1..7 ticks in a random direction (up to 10 degrees off vertical) and strength.
 void TickGeyser(ParticleSource&, ParticleElement& e) {
     if (e.ticks > 0) {
-        if (--e.ticks == 0) e.vent.pause = static_cast<int>(g_clientRandom.Next() % 34) + 3;
+        if (--e.ticks == 0) e.vent.pause = static_cast<int>(g_particleRandom.Next() % 34) + 3;
         return;
     }
     if (--e.vent.pause > 0) return;
-    e.ticks = static_cast<int>(g_clientRandom.Next() % 7) + 1;
+    e.ticks = static_cast<int>(g_particleRandom.Next() % 7) + 1;
     float radian = ei::kRadiansPerDegree;
-    float yaw = g_clientRandom.Range(0.0f, 360.0f) * radian;
-    float tilt = g_clientRandom.Range(0.0f, 10.0f) * radian;
-    float power = g_clientRandom.Range(0.4f, 1.0f);
+    float yaw = g_particleRandom.Range(0.0f, 360.0f) * radian;
+    float tilt = g_particleRandom.Range(0.0f, 10.0f) * radian;
+    float power = g_particleRandom.Range(0.4f, 1.0f);
     e.vent.yaw = yaw;
     e.vent.tilt = tilt;
     e.vent.power = power;
@@ -356,13 +356,13 @@ int EmitTornado(ParticleSource& s, Particle& p, int) {
     float& spin = p.drift.x;               // added to orbitAngle per tick
     float& radiusFactor = p.drift.y;       // orbitRadius's factor per tick
     float& climb = p.drift.z;              // added to level per tick
-    float height01 = g_clientRandom.Range(0.0f, 1.0f);
-    p.state = static_cast<int>(g_clientRandom.Next() % 3);
+    float height01 = g_particleRandom.Range(0.0f, 1.0f);
+    p.state = static_cast<int>(g_particleRandom.Next() % 3);
     p.color = s.tint;
     p.pos.x = s.origin.x;
     p.pos.y = s.origin.y;
     p.pos.z = s.origin.z + s.elements[0].pos.z;
-    p.life = static_cast<int>(g_clientRandom.Next() % 9) + 100;
+    p.life = static_cast<int>(g_particleRandom.Next() % 9) + 100;
     float scaled = height01 * kFunnelSpans;
     int k = std::lround(scaled);
     if (k >= lib::Count(s.elements) - 2) k = lib::Count(s.elements) - 2;
@@ -375,18 +375,18 @@ int EmitTornado(ParticleSource& s, Particle& p, int) {
     float cy = u * a.pos.y + t * b.pos.y;
     float high = kPi;
     float low = -kPi;
-    float angle = g_clientRandom.Range(low, high);
+    float angle = g_particleRandom.Range(low, high);
     opacity = 0.1f;
     level = height01;
     float w = 1.0f - height01;
     float w2 = w * w;
     float w4 = w2 * w2;
     orbitAngle = angle;
-    float radius = g_clientRandom.Range(0.8f, 2.0f) * (w4 + 0.2f) * 2.0f;
+    float radius = g_particleRandom.Range(0.8f, 2.0f) * (w4 + 0.2f) * 2.0f;
     orbitRadius = radius;
     float turnHigh = kPi * 0.07f;
     float turnLow = kPi * 0.06f;
-    float turn = g_clientRandom.Range(turnLow, turnHigh);
+    float turn = g_particleRandom.Range(turnLow, turnHigh);
     spin = turn * (1.1f - w * w) * 1.5f;
     climb = 0.0f;
     radiusFactor = s.elements[0].funnel.damping;
@@ -395,9 +395,9 @@ int EmitTornado(ParticleSource& s, Particle& p, int) {
     p.pos.z = height01 * s.elements[0].funnel.height + p.pos.z;
     if (p.state != 0) {
         p.size = (radius + 0.3f) * s.size;
-        p.frame = static_cast<int>(g_clientRandom.Next() % 12);
+        p.frame = static_cast<int>(g_particleRandom.Next() % 12);
     } else {
-        p.frame = static_cast<int>(g_clientRandom.Next() & 3) + 12;
+        p.frame = static_cast<int>(g_particleRandom.Next() & 3) + 12;
         p.size = s.size * 0.15f;
     }
     return 1;
@@ -507,9 +507,9 @@ int EmitPortal(ParticleSource& s, Particle& p, int) {
     p.life = s.lifetime;
     p.frameTimer = s.frameDelay;
     float radius = 2.5f;
-    float t = g_clientRandom.Range(0.0f, 1.0f);
+    float t = g_particleRandom.Range(0.0f, 1.0f);
     float spread = (t + 1.0f) * t * 0.5f;
-    float angle = g_clientRandom.Range(0.0f, 6.2832f);
+    float angle = g_particleRandom.Range(0.0f, 6.2832f);
     float reach = spread * radius;
     float x = lib::Sin(angle) * reach;
     float y = lib::Cos(angle) * reach;
@@ -521,16 +521,16 @@ int EmitPortal(ParticleSource& s, Particle& p, int) {
     sparkSize = (2.0f - spread) * 0.3f;
     offsetX = x;
     float spin = radius / 2.5f * 0.1f;
-    if (g_clientRandom.Range(0.0f, 1.0f) > spread) {
-        p.frame = static_cast<int>(g_clientRandom.Next() % 11) + 4;
+    if (g_particleRandom.Range(0.0f, 1.0f) > spread) {
+        p.frame = static_cast<int>(g_particleRandom.Next() % 11) + 4;
     } else {
-        p.frame = static_cast<int>(g_clientRandom.Next() & 3);
+        p.frame = static_cast<int>(g_particleRandom.Next() & 3);
         spin = -spin;
     }
     spinCos = lib::Cos(spin);
     spinSin = lib::Sin(spin);
     riseRate = (1.0f - spread + 3.0f) * radius * 0.015f;
-    p.pos.z = g_clientRandom.Range(-0.5f, 0.5f) * riseRate + p.pos.z;
+    p.pos.z = g_particleRandom.Range(-0.5f, 0.5f) * riseRate + p.pos.z;
     return 1;
 }
 
@@ -549,7 +549,7 @@ int UpdatePortal(ParticleSource& s, Particle& p) {
             p.size = 0.0f;
             return 1;
         }
-        p.size = g_clientRandom.Below(0.4f) * 1.5f + 1.2f;
+        p.size = g_particleRandom.Below(0.4f) * 1.5f + 1.2f;
         return 1;
     }
     if (p.life == 0) return 0;
@@ -602,7 +602,7 @@ int EmitPortalStar(ParticleSource& s, Particle& p, int) {
 int UpdatePortalStar(ParticleSource& s, Particle& p) {
     if (!(s.flags & ParticleSourceFlag::Emitting)) return 0;
     p.color = 0xFFFFFFFF;
-    p.size = (g_clientRandom.Below(0.4f) + 0.8f) * s.size;
+    p.size = (g_particleRandom.Below(0.4f) + 0.8f) * s.size;
     return 1;
 }
 
@@ -623,12 +623,12 @@ int EmitZoneExit(ParticleSource& s, Particle& p, int) {
     if (count > 40) count = 40;
     s.emitCount = count;
     p.color = s.extent.x != 0.0f ? 0x00FF6060u : 0x00FFFFFFu;
-    p.frame = static_cast<int>(g_clientRandom.Next() & 15);
+    p.frame = static_cast<int>(g_particleRandom.Next() & 15);
     p.life = 15;
     p.frameTimer = 1;
     p.state = 0;
-    float a = g_clientRandom.Range(-1.0f, 1.0f);
-    float b = g_clientRandom.Range(-1.0f, 1.0f);
+    float a = g_particleRandom.Range(-1.0f, 1.0f);
+    float b = g_particleRandom.Range(-1.0f, 1.0f);
     float falloff = (1.9f - a * a) - b * b;
     float x = (a * s.alpha * s.turnCos + s.origin.x) - b * s.turnSin * s.typeParam;
     float y = (s.turnSin * s.alpha * a + b * s.turnCos * s.typeParam) + s.origin.y;
@@ -637,7 +637,7 @@ int EmitZoneExit(ParticleSource& s, Particle& p, int) {
     p.pos.y = y;
     p.size = 0.0f;
     p.pos.z = ground + 0.1f;
-    float roll = g_clientRandom.Below(0.6f) + 0.7f;
+    float roll = g_particleRandom.Below(0.6f) + 0.7f;
     sparkSize = roll * falloff * 0.05f;
     return 1;
 }

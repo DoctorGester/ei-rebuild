@@ -24,7 +24,7 @@ constexpr int kBagBalls = 80;
 
 // A random point of the cube [-1, 1)^3, drawn x, y, z.
 inline Vector3 RandomInCube() {
-    return {g_clientRandom.Range(-1.0f, 1.0f), g_clientRandom.Range(-1.0f, 1.0f), g_clientRandom.Range(-1.0f, 1.0f)};
+    return {g_particleRandom.Range(-1.0f, 1.0f), g_particleRandom.Range(-1.0f, 1.0f), g_particleRandom.Range(-1.0f, 1.0f)};
 }
 
 // A random point in the unit ball (ten tries, the last one kept) and its squared length.

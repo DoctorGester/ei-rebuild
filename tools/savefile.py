@@ -564,7 +564,7 @@ def read_visuals(r):
     """visuals.sav (ClientVisuals::Save): sections of a u32 kind, a u32 version and a u32 size until kind 0. The
     versions this decoder knows are read field by field; any other is kept as its bytes."""
     known = {(1, 1): 'weather', (2, 1): 'waves', (3, 1): 'units', (4, 1): 'prints', (5, 1): 'generator',
-             (6, 1): 'zone', (7, 1): 'weatherDelay'}
+             (6, 1): 'zone', (7, 1): 'weatherDelay', (8, 1): 'particleGenerator'}
     while True:
         kind = r.u32(None)
         version = r.u32(None)
@@ -601,7 +601,7 @@ def read_visuals(r):
                     for i in range(r.u32('count')):
                         with r.scope(f'print{i}'):
                             read_ground_print(r, kind)
-        elif name == 'generator':
+        elif name in ('generator', 'particleGenerator'):
             r.u32('seeded')
             r.u32('count')
             r.raw('results', 1024)

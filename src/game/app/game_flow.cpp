@@ -970,12 +970,13 @@ void GameFlow::ProcessRequest() {
     if (state == 0) return;
     // A zone the local client leaves for another keeps its picture beside the zone's file when the zone is of a kind
     // the game keeps (kinds 0 and 2: LeaveZone below on a server, the host's on a multiplayer client), each client its
-    // own; the client generator goes on through the zones, so the zone's file has none (client_visuals.h).
+    // own; the client generators go on through the zones, so the zone's file has none (client_visuals.h).
     if (state == kStateZone) {
         const MapRecord* shown = g_mapDatabase.FindMap(g_clientWorld.shownZone);
         if (shown && (shown->kind == 0 || shown->kind == 2) && g_clientWorld.terrain) {
             ClientVisuals kept = ClientVisuals::Take(g_clientWorld);
             kept.generator.reset();
+            kept.particleGenerator.reset();
             platform::CreateFolder(str::Format(kCurrentFolder, g_dataFolder));   // a multiplayer client's first
             kept.Write(ZoneVisualsPath(shown->name));
         }

@@ -2,26 +2,20 @@
   "scenario": "net_pair_zone",
   "install": "vanilla",
   "recorded": "2026-11-11",
-  "commit": "02c6c90b3",
+  "commit": "85c555311",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "P12's camera defaults (pitch -45..90, distance 3..50, briefing distance up to 50, min height 0, near 1) and no far clip: saved camera distance 30 instead of the briefing's 27, more visuals and client units drawn, recorded and scripted ground clicks landing through another camera (net games then play on differently), camera_spin tilting back up before its fast turn.",
+  "reason": "MF15a: the particle sources draw g_particleRandom (seeded from the client generator) instead of g_clientRandom, so the client generator in visuals.sav, the scorch marks' angles and the client units' idle picks in the digest follow other draws, and visuals.sav gains the ParticleGenerator section.",
   "side": "peer",
   "source": "image",
   "change": [
-    "digest: 17 of 203 records differ, first at record 153 (world update 3080, tick 2637, frame 615, zone bz1mpg); outcomes the same; max unit move 0.302 (obj1000011214, record 168)",
-    "  first difference at record 153 (world update 3080, tick 2637, frame 615, zone bz1mpg): 4 fields",
-    "    obj1000011214 (80 unhuma \"peer\") pos.x: 60.7416763 in the old golden, 60.7450676 in the new run (d 0.00339)",
-    "    obj1000011214 (80 unhuma \"peer\") pos.y: 51.0118027 in the old golden, 51.0123062 in the new run (d 0.000504)",
-    "    obj1000011214 (80 unhuma \"peer\") #place: 75337C42 in the old golden, 73CD488A in the new run",
-    "    ... 1 more",
+    "digest: 22 of 203 records differ, first at record 1 (world update 40, tick 20, frame 7, zone -); outcomes the same; no unit position differs",
+    "  first difference at record 1 (world update 40, tick 20, frame 7, zone -): 1 fields",
+    "    cunit1000011214 (80 unhuma \"\") #unit: B492D84D in the old golden, C5952F3E in the new run",
     "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  units: 1 of 26 differ",
-    "    pos: 1 unit, 17 records, from 153; moved 0.302 at obj1000011214 80 unhuma \"peer\", record 168",
-    "  client units: 2 of 25 differ",
-    "    #place: 1 client unit, 17 records, from 153; hash only (no numbers kept)",
-    "    #unit: 1 client unit, 14 records, from 154; hash only (no numbers kept)"
+    "  client units: 1 of 25 differ",
+    "    #unit: 1 client unit, 22 records, from 1; hash only (no numbers kept)"
   ]
 }

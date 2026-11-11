@@ -2,17 +2,27 @@
   "scenario": "mod_lost_in_astral_start",
   "install": "rebirth",
   "recorded": "2026-11-11",
-  "commit": "8a7ae7cf0",
+  "commit": "85c555311",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "P12 merged onto L11/MF14b/H70 main: no far clip draws more visuals, the village camera distance, on main's save format",
+  "reason": "MF15a: the particle sources draw g_particleRandom (seeded from the client generator) instead of g_clientRandom, so the client generator in visuals.sav, the scorch marks' angles and the client units' idle picks in the digest follow other draws, and visuals.sav gains the ParticleGenerator section.",
   "source": "image",
   "saves": "11 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save LostInAstral/current/bz1r.visuals.sav: differs (decoded ff2fa5451b34e459 in the old golden, 267438d8ab94d246 in the new run; the store has no copy of ff2fa5451b34e459)",
-    "save LostInAstral/savea/bz1r.visuals.sav: differs (decoded ff2fa5451b34e459 in the old golden, 267438d8ab94d246 in the new run; the store has no copy of ff2fa5451b34e459)",
-    "save LostInAstral/savea/scenario.sav: differs (decoded e42349e6cc93132e in the old golden, f2c5e02b6a83c022 in the new run; the store has no copy of e42349e6cc93132e)"
+    "digest: 5 of 94 records differ, first at record 50 (world update 1020, tick 1020, frame 203, zone bz1r); outcomes the same; no unit position differs",
+    "  first difference at record 50 (world update 1020, tick 1020, frame 203, zone bz1r): 2 fields",
+    "    obj1000055424 (80 unhuma \"\") #unit: EF43137A in the old golden, 314BC135 in the new run",
+    "    cunit1000055424 (80 unhuma \"\") #unit: 05A19A90 in the old golden, 12A22392 in the new run",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  units: 2 of 76 differ",
+    "    #unit: 2 units, 5 records, from 50; hash only (no numbers kept)",
+    "  client units: 2 of 75 differ",
+    "    #unit: 2 client units, 5 records, from 50; hash only (no numbers kept)",
+    "save LostInAstral/current/gz1g.visuals.sav: 6 fields in 1 records differ: visuals 6",
+    "  visuals: 6 fields in 1 records; first visuals.prints scorch.print0.uvOffset.x: 0.5 in the old golden, 0.0 in the new run; largest numeric d 4.71 at visuals.prints scorch.print0.uvAngle: 4.71238899 -> 0.0",
+    "save LostInAstral/savea/visuals.sav: 13 fields in 2 records differ: visuals 13",
+    "... 1 more lines"
   ]
 }

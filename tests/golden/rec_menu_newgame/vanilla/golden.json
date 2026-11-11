@@ -1,24 +1,17 @@
 {
   "scenario": "rec_menu_newgame",
   "install": "vanilla",
-  "recorded": "2026-11-10",
-  "commit": "91b031ae6",
+  "recorded": "2026-11-11",
+  "commit": "85c555311",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "L8c: the loop bindings set the counter global a converted loop names, as the game's loops do, so the digest's script record and the decoded saves compare the loops' counters again (L8a had left them out): the counters' values now recorded (script gobject, saves commands globals).",
+  "reason": "MF15a: the particle sources draw g_particleRandom (seeded from the client generator) instead of g_clientRandom, so the client generator in visuals.sav, the scorch marks' angles and the client units' idle picks in the digest follow other draws, and visuals.sav gains the ParticleGenerator section.",
   "source": "image",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 49 of 52 records differ, first at record 3 (world update 80, tick 40, frame 15, zone gz1g); outcomes CHANGED: script; no unit position differs",
-    "  first difference at record 3 (world update 80, tick 40, frame 15, zone gz1g): 1 fields",
-    "    script (script) #gobject: 890B9E0B in the old golden, 83A825DA in the new run",
-    "  outcomes: CHANGED script; same: zone, deaths, spawns, money, quest variables, party and items, game result",
-    "    script: script #gobject differs (hashes only), from record 3 (+48 more)",
-    "  script: 1 of 1 differ",
-    "    gobject: 1 script, 49 records, from 3; hash only (no numbers kept)",
-    "save savea/mission.sav: 2 fields in 1 records differ: commands 2",
-    "  commands: 2 fields in 1 records; first commands globals.objects.1.value: ~loop in the old golden, -1 in the new run"
-  ],
-  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+    "save savea/visuals.sav: 13 fields in 2 records differ: visuals 13",
+    "  visuals: 13 fields in 2 records; first visuals.generator count: 240 in the old golden, 31 in the new run; largest numeric d 1.82e+09 at visuals.generator bb: 1923741176 -> 108590279"
+  ]
 }

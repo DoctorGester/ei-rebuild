@@ -629,7 +629,7 @@ cunit129 #unit E07B8DDB
 cunit148 #place 14E8B91B
 cunit148 #unit 37ED9B5D
 cunit187 #place 8FD72F05
-@ 2 update 60 frame 321522 tick 60 zone gz1g hash C6F1E7A4 n 791
+@ 2 update 60 frame 26 tick 60 zone gz1g hash C6F1E7A4 n 791
 world tick 60
 world updates 60
 world timeBase 5.95555544

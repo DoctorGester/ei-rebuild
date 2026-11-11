@@ -251,6 +251,7 @@ void EffectParticle::Spawn() {
     }
 
     source.Assign(g_clientWorld.particleManager->CreateSource(type));
+    if (source == nullptr) return;   // a type this build does not know (ShownParticleType)
     source->localPosition = localPosition;
     float baseSize;
     baseSize = source->baseSize;

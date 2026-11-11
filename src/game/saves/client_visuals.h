@@ -28,7 +28,8 @@ class WorldClient;
 
 // The sections of visuals.sav (a u32 each, then its version and its size in bytes); End closes the list.
 enum class VisualSection : std::uint32_t {
-    End = 0, Weather = 1, Waves = 2, Units = 3, Prints = 4, Generator = 5, Zone = 6, WeatherDelay = 7
+    End = 0, Weather = 1, Waves = 2, Units = 3, Prints = 4, Generator = 5, Zone = 6, WeatherDelay = 7,
+    ParticleGenerator = 8
 };
 
 // A unit's own wetness and snow, by its object id.
@@ -63,8 +64,9 @@ public:
     // the zone's (its map, and kept no later than kTickSlack ticks after the zone's tick; a file without the Zone
     // section is taken as it is): the surfaces, the clouds and the waves start from the kept state, the ground prints
     // are made again, aged by the ticks the zone ran since it was kept (a revisit's catch-up, the time a multiplayer
-    // client was away), and the client generator goes on from the kept one; the units wait for the next frame (their
-    // objects come with the zone's first update). Everything kept is used once.
+    // client was away), and the client generator and the particles' go on from the kept ones (a file with the client
+    // generator but not the particles' seeds the particles' from it, as World::Create does); the units wait for the
+    // next frame (their objects come with the zone's first update). Everything kept is used once.
     void Restore(WorldClient& world);
     // The next frame's light hand-over: each kept unit present among `objects` takes its kept state.
     void RestoreUnits(const std::vector<MapObject*>& objects);
@@ -78,6 +80,7 @@ public:
     // again only at the restore, when the zone's textures are loaded.
     std::vector<std::uint8_t> prints;
     std::optional<IsaacRandom> generator;    // g_clientRandom's whole state (a save's; a zone's side file has none)
+    std::optional<IsaacRandom> particleGenerator;   // g_particleRandom's, as `generator`
     std::optional<KeptZone> zone;
     // The server's WorldServer::weatherDelay (a slot's file only: GameFlow::SaveGame sets it, GameFlow::LoadGame
     // gives it back before the zone loads; the delay goes on through the zones of a session, as the generator does).
