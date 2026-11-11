@@ -68,6 +68,7 @@ int RunModHashChecks() {
                                                 modhash::Counted("res\\databaselmp\\items.idb.toml") &&
                                                 modhash::Counted("res\\textslmp.res") && modhash::Counted("res\\texts\\texts.toml"));
     Expect("the data effects count", modhash::Counted("res\\effects\\showcase_aura.effect.toml"));
+    Expect("the effects' Lua hooks count", modhash::Counted("res\\effects\\showcase_hooks.lua"));
     Expect("the spell scripts count", modhash::Counted("res\\spells\\chain_spark.lua"));
     Expect("looks and notes do not count", !modhash::Counted("res\\textures.res") &&
                                                !modhash::Counted("res\\figures\\a.glb") && !modhash::Counted("readme.txt") &&

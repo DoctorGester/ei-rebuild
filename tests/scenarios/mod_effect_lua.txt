@@ -1,0 +1,43 @@
+# A data effect with Lua hooks (docs/notes/effects.md, "Lua hooks"): the showcase mod's
+# Res\effects\showcase_hooks.effect.toml and its script showcase_hooks.lua, started by a script's CreateParticleSource
+# by its name. Checked:
+# - the script loads through the layers and its hooks drive the effect's inputs: on_start sets `mode` to "storm"
+#   (by its value's name), on_tick moves `charge` every tick, on_event answers the game's `pulse` by setting `burst`,
+#   which moves the data's stage to flare; the game's `calm` (the data alone) sets it back and the stage to glow;
+# - on_spawn places the flames on the spiral and on_update turns the embers (seen in the captures);
+# - no Lua error: every hook problem is a "warning: effects:" line;
+# - captures: the spiral turning, then the flare with its embers circling.
+# prepare: make_showcase_mod.py
+mod harness_saves\showcase_mod
+reject Script error
+reject warning: effects:
+waitmenu
+console thingamabob
+
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitwindow 15 battle
+zone showcase 0
+waitzone 30 showcase
+waitline 20 Showcase mod: the island loads
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @GodMode(0,1)
+console @CreateParticleSource(62,Add(GetX(GetLeader()),3),GetY(GetLeader()),GetZ(GetLeader()),2,"showcase_hooks")
+frames 2
+effect showcase_hooks value mode 1
+wait 1500
+effect showcase_hooks check 20 glow
+capture spiral
+
+effect showcase_hooks fire pulse
+wait 300
+effect showcase_hooks value burst 1
+effect showcase_hooks check 40 flare
+capture flare
+effect showcase_hooks fire calm
+wait 300
+effect showcase_hooks value burst 0
+effect showcase_hooks check 20 glow
+read mod Res\effects\showcase_hooks.lua yes
+report
+quit

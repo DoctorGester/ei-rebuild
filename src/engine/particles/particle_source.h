@@ -22,6 +22,9 @@
 namespace effectdata {
 class State;       // particle_record.h
 }
+namespace effectlua {
+class Instance;    // particle_lua.h
+}
 
 // The particle source / effect types (EngineObject::type of a ParticleSource and a EffectParticle). The names
 // are the original script table's and the texture its effect uses (assets/effects); a type neither names is
@@ -172,7 +175,8 @@ public:
     // quietStart set, CampFire, Fire and Smoke start without emitting.
     ParticleSource* CreateSource(int type);
     // Every source's tick (with `paused` only the ones with ParticleSourceFlag::TicksWhilePaused; never one with
-    // OwnClock); a held source whose tick returned 0 is released and leaves `held`. Returns 0.
+    // OwnClock); a held source whose tick returned 0 is released and leaves `held`. The scripts' particle budget
+    // (particle_lua.h) is renewed first. Returns 0.
     int TickSources(char paused);
     // Every held source nobody else references (refCount 1) is released and leaves `held` (the client's zone
     // load).
@@ -311,6 +315,8 @@ public:
     bool additiveBlend = false;     // drawn with additive blending
     // Its effect's state (particle_data.h; its type is the effect's id): its inputs, vars, stage and anchors.
     std::unique_ptr<effectdata::State> data;
+    // Its effect's Lua hooks (particle_lua.h; null: none), made with `data`.
+    std::unique_ptr<effectlua::Instance> script;
     Vector3 boundsMin;              // over the particles, rebuilt every tick
     Vector3 boundsMax;
     // The bounds the renderer clips by: BoundsFlag::Box set by the tick, the box (boundsMin and boundsMax less the

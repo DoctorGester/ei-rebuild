@@ -3,6 +3,7 @@
 #include "engine/particles/particle_source.h"
 #include "engine/particles/particle_data.h"
 #include "engine/particles/particle_host.h"
+#include "engine/particles/particle_lua.h"
 
 #include "engine/core/engine_globals.h"
 #include "engine/core/engine_object.h"
@@ -88,6 +89,7 @@ ParticleSource* ParticleManager::CreateSource(int newType) {
 // released, then they leave the table.
 
 int ParticleManager::TickSources(char paused) {
+    effectlua::NewTick();
     ReleaseHeld(this, [paused](EngineObject* object) {
         if (object->flags & ParticleSourceFlag::OwnClock) return false;
         if (paused != 0 && !(object->flags & ParticleSourceFlag::TicksWhilePaused)) return false;

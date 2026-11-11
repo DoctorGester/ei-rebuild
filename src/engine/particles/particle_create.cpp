@@ -4,6 +4,7 @@
 #include "engine/particles/particle_source.h"
 #include "engine/particles/particle_data.h"
 #include "engine/particles/particle_host.h"
+#include "engine/particles/particle_lua.h"
 #include "engine/models/texture.h"
 
 #include "lib/containers.h"
@@ -101,6 +102,7 @@ void ParticleSource::Reset() {
     extent = {};
     windStrength = 0.0f;
     additiveBlend = false;
+    script.reset();
     data.reset();
     alpha = 1.0f;
     typeParam = 1.0f;

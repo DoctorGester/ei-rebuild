@@ -90,8 +90,8 @@ An effect written as data (MF15c; plan: the MF15 study, approved by the user 202
 `Res\effects\<name>.effect.toml`, read through the mod layers and run by one C++ runtime inside the generic source tick
 above. The end state (MF15g) is every original effect on this path and the per-type `Emit*` / `Update*` / `Tick*`
 deleted: the original effects and a modder's use the same runtime, so nothing below is mod-only (all 83 types are
-there since MF15g6: "The original effects on data"). Game code (and later Lua) drives an effect only through the
-typed inputs it declares; the data maps them to rates, curves, stages, anchors and sub-effects.
+there since MF15g6: "The original effects on data"). Game code (and an effect's Lua hooks) drives an effect only
+through the typed inputs it declares; the data maps them to rates, curves, stages, anchors and sub-effects.
 
 Code: `particle_expr.*` (expressions), `particle_record.*` (the layers merged, the schema read, the effect's state
 machine; no game header, so `tests/unit/particle_record.cpp` runs it alone), `particle_data.*` (the registry, the
@@ -193,7 +193,8 @@ particle side, the inputs). The guide for modders: docs/modding.md, "Effects".
 
 ### The schema
 
-Top level: `texture` (an Effects texture, kind 6), `frames` (16), `columns` (4), `blend` (`alpha` | `additive`),
+Top level: `texture` (an Effects texture, kind 6), `script` (its Lua hooks' file in Res\effects: "Lua hooks"
+below), `frames` (16), `columns` (4), `blend` (`alpha` | `additive`),
 `attach` (`free` | `attached_only`), `part` (`effect_point`, `head`, `above_head`, `left_hand`, `right_hand`,
 `left_leg`, `right_leg`, `body`, `body00`..`body04`: the source sits on that part of a unit), `flags`
 (`ticks_while_paused`, `idles_off_screen`, `keep_alive`: a free source lasts without particles until it ends, else
@@ -365,6 +366,48 @@ has particles (or the game's StopEmitting / StartEmitting set KeepAlive), an att
 particles. A particle's life counts down before its update and it dies at 0 (an original that dies below 0 gives its
 kind one tick more of `lifetime`). Per particle: `Particle::age`, `kind`, `vars`; `state` its anchor, `drift` its
 offset in `source` / `anchor` space.
+
+### Lua hooks
+
+MF15f (the MF15 study's §3: Lua at the emitter level, per particle only as a budgeted opt-in). An effect's `script =
+"<file>.lua"` names a file in Res\effects (the top layer's of the name, `platform::FilesByLayer`) that returns a table
+of hooks; how to write one: docs/modding.md, "Effect hooks". Code: `particle_lua.*` (the state, the scripts, `e` and
+`p`, the budget), `particle_lua_api.inc` (the hooks and methods, declared once: the methods register from it, and
+game/script/script_lua_api.h takes its rows for ei-convert's LuaLS file and docs/modding.md's tables).
+
+- **The state**: one per program (`effectlua::Runtime`, made at the first effect with a script), apart from the
+  mission scripts' (no game binding, never persisted, never on the server). The sandbox is the scripts'
+  (engine/core/lua_sandbox.h); each file's top level runs with its own globals over the shared ones; `print` logs.
+  Memory capped at 64 MB, each call at a million VM instructions (a count hook every 1000): past either, an error.
+  Lua is compiled as C++, so every call is a `lua_pcall`; an error logs a `warning: effects:` line and turns that
+  script's hooks off (`Script::broken`), the effect running on as its data. A Reset of the registry (a switch of mods)
+  closes the state; the sources' `effectlua::Instance` (`ParticleSource::script`, its `e` table's reference) then
+  belong to an older generation and run no hook.
+- **The order in a tick** (`TickData`): the source's values written, `BeforeStep` (`on_start` at the first tick,
+  `on_tick`, `on_event` for "stop" and for each event input with fires pending, `State::Pending`), the effects the hooks
+  started made (the step forgets `effects`), `State::Step`, `AfterStep` (`on_event "end"` once the state ended). So an
+  input set or an event fired in these hooks counts in the same step. `on_spawn` at the end of `EmitKind` (after
+  `drop`; a kill there drops it, its reactions still run); `on_update` after `UpdateKind` of a live particle (a kill
+  is a death: `on_death` runs). A position set outside world space moves the particle's `drift` too (its space's
+  origin: the source's, its anchor's). `effectdata::Spawned` tells `on_event "spawn"`.
+- **The budget** (`kParticleBudget`, 2,000): every `on_spawn` and `on_update` call between two renewals; past it the
+  calls are skipped (the particle keeps the data's values; logged once per script). Renewed at each
+  `TickSources` and each of the effect viewer's own ticks (`Viewer::Step`, so a replay spends it as the play did). A
+  catch-up (`EffectParticle::Spawn`'s, a zone's exits, the viewer's scrub) runs many ticks between two renewals, so
+  its Lua stays bounded: the plan's measures put a hook call at 0.2-1 µs, so 2,000 calls are 0.4-2 ms.
+- **What a hook may do**: `e:set` / `e:fire` are `State::SetValue` / `SetVector` / `SetEnum` / `SetList` / `Fire`,
+  the inputs' one path (MF15j2's replicated inputs take the same); `e:get` reads inputs, vars, the stage and the
+  source values by their expression names (`FindSourceValue`; the carrier measured at its first read as an
+  expression's); `e:random` / `e:pick` draw `g_particleRandom` (the viewer's own generator in the viewer); `e:effect`
+  queues a sub-effect as an `effect` action. Hooks never nest (a hook's work starts no other).
+- **Not saved, not in goldens**: the hooks touch only the client's particles and their generator; a loaded game makes
+  the source again and `on_start` runs again. No original effect has a script, so effect_check's runs are unchanged.
+- Checks: `ei-convert --lua-check`'s `CheckEffectHooks` (on_start setting each input type, a refused unknown input,
+  e:get of inputs, vars and source values, an event fired in on_tick reaching on_event and the same step, on_spawn
+  placing and dropping, on_update after the data's update, "stop", "end"; a catch-up of ten ticks of 300 particles
+  stopping at the budget and the next renewal; a failing hook and an endless loop logged once, their effects running
+  on; the live methods against the declarations); the `mod_effect_lua` scenario (the showcase mod's showcase_hooks:
+  the script's inputs, an event answered, stages; captures `spiral`, `flare`).
 
 ### The original effects on data
 
