@@ -3,5 +3,6 @@ title = "HUD use at once (Ctrl + spell key) finds no target in mod_spell_hero's 
 group = "mods"
 note = "MF17d: with the hero after the camp and a spawned WolfTutor at +3 (blocked, waitunit sees it), Ctrl + the spell key cast nothing, for the game's lightning as for the mod's spell: WorldClient::NearestVisibleUnit (view->partyUnitIds, relationsA & side & relationsB) found no unit, it seems. Find out whether it is the spawn (AddUnitToServer's side / relations on the client) or the function, and then let mod_spell_hero cast with Ctrl + 3 (UseAtOnce reads offensive)."
 order = 1366
-status = "review"
+status = "done"
 started = "2026-11-11"
+done = "2026-11-11"
