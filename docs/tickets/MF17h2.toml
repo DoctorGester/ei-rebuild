@@ -1,6 +1,6 @@
 id = "MF17h2"
-title = "Lua hooks on active effects: OnApply, OnTick, OnEnd"
+title = "Active effects' looks and sounds from the effect's script or record; client switches gone"
 group = "mods"
 size = 2
-note = "After MF17h1. An effect kind may name a script (Res\\spells\\ like the spells) with OnApply / OnTick / OnEnd for logic beyond modifiers (timers, damage over time, events), with the same bindings the spells have. Consider moving regeneration's per-tick boost there if it stays exact. Cost per effect tick measured."
+note = "After MF17h1 (Lua-first, user 2026-11-11). The client picks an active effect's particle look and start / loop / end sounds by SpellType (map_object_client_effects.cpp) and Silence mutes the unit (unit_client_effects.cpp). Move them onto the effect kind (a look field naming a data effect, sound paths, or OnLook in its script), so a mod's new buff has its own look; the switches go. Ties to MF15h (records name their effects). Captures before / after the same."
 order = 1389
