@@ -372,16 +372,9 @@ struct ScriptLightning {
     int id = -1;
 };
 
-// One particle type CreateParticleSource accepts by its table (the original's 64 entries less the types on data, which
-// it finds by name in the effects' registry).
-struct ScriptParticleType {
-    const char* name = nullptr;
-    int type = 0;           // EffectParticle::type (0x2000..)
-    int lifetime = 0;       // ticks, -1 forever
-};
-constexpr int kScriptParticleTypeCount = 5;
-// The particle type a script names (CreateParticleSource, a spell's Effect and Missile): one of the table's (any case), else
-// a data effect's id (Res\effects); 0 for neither. *lifetime: its ticks as a script's source (-1 forever).
+// The particle type a script names (CreateParticleSource, a spell's Effect and Missile): the id of the effect of that
+// name (an original type's or a mod's, Res\effects; any case); 0 for none. *lifetime: its ticks as a script's source
+// (its [server] script_lifetime, -1 forever).
 int ScriptParticleTypeByName(std::string_view name, int* lifetime);
 
 namespace scriptir {

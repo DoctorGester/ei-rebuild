@@ -30,9 +30,6 @@ address,size,name,file
 007857B0,6336,g_keyNames,src/game/app/key_bindings.cpp
 00787070,960,kActionDefinitions,src/game/ui/ui_options.cpp
 00787C8C,48,kBranchFrequencies,src/game/effects/lightning.cpp
-0078A5DC,56,kBlastAlpha,src/game/effects/particle_blasts.cpp
-0078A9F8,64,kLightningAlpha,src/game/effects/particle_blasts.cpp
-0078AA78,64,kGlowAlpha,src/game/effects/particle_world.cpp
 0078B0E8,4,g_nextPartyId,src/game/players/party_manager.cpp
 0078BC8C,4,kCommentOpen,src/game/script/script_parse.h
 0078BC90,4,kCommentClose,src/game/script/script_parse.h

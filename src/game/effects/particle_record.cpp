@@ -134,7 +134,7 @@ constexpr std::string_view kSourceNames[kSourceValues] = {
     "carrier_running", "carrier_dead", "carrier_axis.x", "carrier_axis.y", "carrier_axis.z", "carrier_bounds_radius",
     "carrier_left_foot.x", "carrier_left_foot.y", "carrier_left_foot.z", "carrier_right_foot.x",
     "carrier_right_foot.y", "carrier_right_foot.z", "carrier_axis_y.x", "carrier_axis_y.y", "carrier_axis_y.z",
-    "carrier_unit_radius",
+    "carrier_unit_radius", "sun.r", "sun.g", "sun.b",
 };
 // The source values a `set` action may write (the [source] table's numbers).
 constexpr std::string_view kSettableSourceNames[] = {
@@ -685,6 +685,7 @@ private:
             else if (reaction.event == "tick") reaction.on = Reaction::On::Tick;
             else if (reaction.event == "emit") reaction.on = Reaction::On::Emit;
             else if (reaction.event == "before_emit") reaction.on = Reaction::On::BeforeEmit;
+            else if (reaction.event == "spawn") reaction.on = Reaction::On::Spawn;
             else if (!reaction.event.empty()) {
                 reaction.on = Reaction::On::Event;
                 reaction.slot = EventSlot((*node)["event"], reaction.event);
@@ -692,6 +693,13 @@ private:
             reaction.when = Field((*node)["when"], {});
             reaction.actions = Actions((*node)["do"], {});
             if (reaction.on == Reaction::On::BeforeEmit) record->beforeEmit = true;
+            if (reaction.on == Reaction::On::Spawn) {
+                record->spawns = true;
+                // No emission follows it at once: its particles would be lost.
+                for (const Action& action : reaction.actions)
+                    if (action.kind == Action::Kind::Emit) Error(*node, "a \"spawn\" reaction does not emit");
+                continue;
+            }
             if (reaction.on != Reaction::On::Emit && reaction.on != Reaction::On::BeforeEmit) continue;
             // An "emit" reaction's particles are made at once, without reactions of their own (particle_data.cpp).
             const bool emits = reaction.on == Reaction::On::Emit;
@@ -715,7 +723,7 @@ private:
         }
         for (const RawNode& node : list.items) {
             Known(node, {"emit", "kind", "at", "set", "value", "stage", "effect", "end", "stop", "stop_emitting",
-                         "let_go", "add_anchor", "count", "shake", "time", "decay"});
+                         "let_go", "add_anchor", "count", "shake", "time", "decay", "scorch", "alpha"});
             Action action;
             std::string name;
             if (node["emit"].Exists()) {
@@ -766,9 +774,14 @@ private:
                 action.time = Field(node["time"], context);
                 action.decay = Field(node["decay"], context);
                 if (action.time.Empty() || action.decay.Empty()) Error(node, "shake needs a time and a decay");
+            } else if (node["scorch"].Exists()) {
+                action.kind = Action::Kind::Scorch;
+                action.value = Field(node["scorch"], context);
+                action.alpha = Field(node["alpha"], context);
+                if (action.alpha.Empty()) action.alpha = ConstantExpr(1.0f);
             } else {
-                Error(node, "an action is emit, set, stage, effect, end, stop, stop_emitting, let_go, add_anchor or "
-                            "shake");
+                Error(node, "an action is emit, set, stage, effect, end, stop, stop_emitting, let_go, add_anchor, "
+                            "shake or scorch");
                 continue;
             }
             actions.push_back(std::move(action));
@@ -799,6 +812,7 @@ private:
     void ReadSpawn(const RawNode& spawn, Context context, Spawn* out, std::initializer_list<std::string_view> known) {
         Known(spawn, known);
         Integer(spawn["tries"], &out->tries);
+        Fields3(spawn["shift"], context, out->shift);
         static constexpr std::string_view kShapes[] = {"point", "box", "ball", "shell", "disc", "ring", "flat_ball",
                                                        "segment"};
         out->shape = static_cast<SpawnShape>(Choice(spawn["shape"], kShapes, 0));
@@ -810,12 +824,14 @@ private:
     }
 
     void ReadAnchor(const RawNode& node, int group) {
-        Known(node, {"name", "count", "spawn", "ticks", "vars", "x", "y", "z", "radius", "angle"});
+        Known(node, {"name", "count", "spawn", "ticks", "vars", "x", "y", "z", "radius", "angle", "at_create"});
         Anchor& anchor = record->anchors[group];
         const Context context{group, -1};
         anchor.count = Field(node["count"], {});
         if (anchor.count.Empty()) Error(node, "anchor '" + anchor.name + "': no count");
-        ReadSpawn(node["spawn"], context, &anchor.spawn, {"shape", "radius", "min", "max", "from", "to", "tries"});
+        ReadSpawn(node["spawn"], context, &anchor.spawn,
+                  {"shape", "radius", "min", "max", "from", "to", "tries", "shift"});
+        Flag(node["at_create"], &anchor.atCreate);
         anchor.ticks = Field(node["ticks"], context);
         ReadVars(node["vars"], context, &anchor.vars);
         anchor.cylindrical = node["radius"].Exists() || node["angle"].Exists();
@@ -858,7 +874,7 @@ private:
 
         const RawNode& spawn = node["spawn"];
         ReadSpawn(spawn, context, &kind.spawn,
-                  {"shape", "radius", "min", "max", "from", "to", "tries", "offset", "on_ground"});
+                  {"shape", "radius", "min", "max", "from", "to", "tries", "shift", "offset", "on_ground"});
         Fields3(spawn["offset"], context, kind.offset);
         kind.onGround = Field(spawn["on_ground"], context);
         const RawNode& position = node["position"];
@@ -915,7 +931,7 @@ private:
             kind.frameStart = Field(frame["start"], context);
             kind.frameDelay = Field(frame["delay"], context);
             kind.frameTick = Field(frame["tick"], context);
-            static constexpr std::string_view kModes[] = {"loop", "hold", "die"};
+            static constexpr std::string_view kModes[] = {"loop", "hold", "die", "free"};
             kind.frameMode = static_cast<FrameMode>(Choice(frame["mode"], kModes, 0));
         } else {
             kind.frameStart = Field(frame, context);
@@ -1022,6 +1038,12 @@ float SourceValueOf(const Env& env, SourceValue which) {
 
 Vector3 SpawnPoint(const Spawn& spawn, const Env& env, IsaacRandom& random) {
     constexpr float kTwoPi = kPi + kPi;
+    Vector3 shifted;
+    const Vector3* shift = nullptr;
+    if (!spawn.shift[0].Empty() || !spawn.shift[1].Empty() || !spawn.shift[2].Empty()) {
+        shifted = {spawn.shift[0].Run(env), spawn.shift[1].Run(env), spawn.shift[2].Run(env)};
+        shift = &shifted;
+    }
     switch (spawn.shape) {
     case SpawnShape::Point: return {};
     case SpawnShape::Box: {
@@ -1036,11 +1058,11 @@ Vector3 SpawnPoint(const Spawn& spawn, const Env& env, IsaacRandom& random) {
         return {x, y, z};
     }
     case SpawnShape::Ball: {
-        const Vector3 v = RandomInBall(random, nullptr, spawn.tries);
+        const Vector3 v = RandomInBall(random, nullptr, spawn.tries, shift);
         return v * spawn.radius.Run(env, 1.0f);
     }
     case SpawnShape::Shell: {
-        const Vector3 v = RandomInBall(random, nullptr, spawn.tries);
+        const Vector3 v = RandomInBall(random, nullptr, spawn.tries, shift);
         const float length = Length(v);
         const float radius = spawn.radius.Run(env, 1.0f);
         return length > 0.0f ? v * (radius / length) : Vector3{radius, 0.0f, 0.0f};
@@ -1190,6 +1212,7 @@ void State::Step(IsaacRandom& random) {
     queue.clear();
     effects.clear();
     shakes.clear();
+    scorches.clear();
     sourceWrites.clear();
     stopEmitting = false;
     letGo = false;
@@ -1256,6 +1279,8 @@ void State::Emitted(IsaacRandom& random) { React(Reaction::On::Emit, random); }
 
 void State::BeforeEmission(IsaacRandom& random) { React(Reaction::On::BeforeEmit, random); }
 
+void State::Spawned(IsaacRandom& random) { React(Reaction::On::Spawn, random); }
+
 void State::Died(const ParticleKind& kind, const Env& env, const Vector3& place) {
     for (const Action& action : kind.onDeath) {
         switch (action.kind) {
@@ -1282,6 +1307,7 @@ void State::Create(IsaacRandom& random) {
     const Env env = SourceEnv(&random);
     for (std::size_t i = 0; i < record->vars.size(); ++i)
         if (record->vars[i].atCreate) vars[i] = record->vars[i].start.Run(env);
+    MakeAnchors(random, true);
 }
 
 void State::Start(IsaacRandom& random) {
@@ -1289,7 +1315,9 @@ void State::Start(IsaacRandom& random) {
     const Env env = SourceEnv(&random);
     for (std::size_t i = 0; i < record->vars.size(); ++i)
         if (!record->vars[i].atCreate) vars[i] = record->vars[i].start.Run(env);
-    MakeAnchors(random);
+    // The anchors made with the source tick from the first tick on; the others are made now.
+    if (!anchors.empty()) StepAnchors(random);
+    MakeAnchors(random, false);
     React(Reaction::On::Start, random);
     if (!record->stages.empty() && stage == -1) Enter(0, random);
 }
@@ -1354,6 +1382,12 @@ void State::Run(const std::vector<Action>& actions, IsaacRandom& random, int dep
             shakes.push_back({strength, time, action.decay.Run(env)});
             break;
         }
+        case Action::Kind::Scorch: {
+            const Env env = SourceEnv(&random);
+            const float radius = action.value.Run(env);
+            scorches.push_back({radius, action.alpha.Run(env)});
+            break;
+        }
         }
     }
 }
@@ -1380,9 +1414,10 @@ void Place(const Anchor& group, const Env& env, AnchorState& anchor) {
 
 } // namespace
 
-void State::MakeAnchors(IsaacRandom& random) {
+void State::MakeAnchors(IsaacRandom& random, bool atCreate) {
     for (std::size_t g = 0; g < record->anchors.size(); ++g)
-        AddAnchors(static_cast<int>(g), Count(record->anchors[g].count.Run(SourceEnv(&random))), random);
+        if (record->anchors[g].atCreate == atCreate)
+            AddAnchors(static_cast<int>(g), Count(record->anchors[g].count.Run(SourceEnv(&random))), random);
 }
 
 void State::AddAnchors(int group, int count, IsaacRandom& random) {

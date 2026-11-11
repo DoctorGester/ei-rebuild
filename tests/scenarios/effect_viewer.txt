@@ -6,7 +6,7 @@
 #   saved into the run's output folder (never the install): `replace = true` and the edited rate in it;
 # - a mod's data effect (showcase_aura, from the mod's Res\effects) on the hero, driven through its typed inputs (the
 #   enum `mode` by its value's name, the float `charge`, the event `pulse`): stepped through its first stages;
-# - an original type still in code (Tornado, on the hero) plays from code (the panel shows its values as made);
+# - an original type with a carrier's motion (Tornado, its built-in file) plays on the hero;
 # - captures: the viewer's panel over each.
 # prepare: make_showcase_mod.py
 mod harness_saves\showcase_mod
@@ -67,14 +67,9 @@ effectviewer pick Tornado
 effectviewer place party
 wait 800
 effectviewer expect particles 5
-capture viewer_code
-frames 3
-effectviewer convert
 effectviewer expect problems 0
-effectviewer expect status as the code does
-effectviewer code
-wait 300
-effectviewer expect particles 5
+capture viewer_tornado
+frames 3
 
 effectviewer new viewer_new
 effectviewer expect problems 0

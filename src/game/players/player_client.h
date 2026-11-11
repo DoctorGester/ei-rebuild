@@ -146,7 +146,8 @@ public:
     bool KeepParty(Party* party);
     // Message 0x0E. A path shown as markers: kind (0..3), a flag, x, y, a unit id and a value. Except for
     // kind 3 a scratch unit (class 0x32) reads the path through a delta field and, with markers on, a
-    // particle source 0x2039 (colour by kind, typeParam the value) runs one tick on it; with markers on, a
+    // particle source 0x2039 (ShapeChange: its inputs the kind and the path's points up to the value) runs one tick on
+    // it; with markers on, a
     // source 0x203A (0x203B with the flag) at (x, y, 0) and the first one go to the unit's client controller.
     // Neither source is released here.
     bool OnPathMarker();

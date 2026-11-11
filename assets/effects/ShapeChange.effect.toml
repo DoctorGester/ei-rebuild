@@ -1,0 +1,52 @@
+# ShapeChange (0x2039, the ShapeChange texture): the glow of a unit's path markers (PlayerClient::OnPathMarker). The
+# game hands over the path's points (`path`) and the marker's colour (`kind`) and runs one tick: the source glows once
+# on the ground or the platform under each point, skipping a point where the one before it was, then stops emitting.
+# Each glow lives longer the later its point (order * 8 / the glows + 7 ticks), fading out by its life left.
+# The original types on data: docs/notes/effects.md, "The original effects on data".
+
+texture = "ShapeChange"
+flags = ["ticks_while_paused"]
+
+[inputs]
+kind = { type = "enum", values = ["green", "grey", "orange"], default = "green" }
+path = { type = "list" }
+
+[emit]
+rate = 2500
+max = 2500
+
+[vars]
+made = 0            # 1 once the emission has run
+
+[tables]
+# By its life left; a longer life (a path with repeated points, which count in the order but make no glow) holds
+# the last value, where the original read past its table (docs/notes/effects.md, "MF15g6's rules").
+glow_alpha = [0, 38, 77, 115, 153, 191, 230, 255, 255, 255, 255, 255, 255, 255, 255, 255]
+cr = [64, 176, 255]     # by kind
+cg = [255, 176, 128]
+cb = [64, 176, 40]
+
+[[on]]
+event = "emit"
+do = [{ set = "made", value = 1 }]
+
+[[on]]
+event = "tick"
+when = "made"
+do = [{ stop_emitting = true }]
+
+# A glow: its point's order (o) and its life (l), set at its first update.
+[[particle]]
+name = "glow"
+lifetime = 1000000000
+position = ["path.x[index]", "path.y[index]", "surface(path.x[index], path.y[index]) + 0.15"]
+size = 0.07
+frame = 15
+color = ["cr[kind]", "cg[kind]", "cb[kind]"]
+alpha = { start = 0, tick = "glow_alpha[p.l]" }
+kill = "p.l < 0"
+drop = "index >= path.count || (index > 0 && path.x[index] == path.x[index - 1] && path.y[index] == path.y[index - 1] && path.z[index] == path.z[index - 1])"
+
+[particle.vars]
+o = "index"
+l = { start = -10, tick = "(p.l == -10 ? floor(p.o * 8 / count) + 7 : p.l) - 1" }

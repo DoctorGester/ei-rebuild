@@ -1,7 +1,6 @@
 // The particle manager's own members: create / destroy, making sources it holds, ticking every source and
 // letting go of the held ones. See effects.h (ParticleManager) and docs/notes/effects.md, "Particle sources".
 #include "game/effects/effects.h"
-#include "game/effects/particle_common.h"
 #include "game/effects/particle_data.h"
 
 #include "game/scene/camera.h"
@@ -360,8 +359,8 @@ int ParticleSource::Draw(SceneRenderer* renderer) {
 
 // ParticleSource's per-frame tick and the particle pool. Each tick: copy the world's wind, follow the attachment
 // (or the source's own position) and derive the motion since the last tick with a basis (side, up) around it,
-// run the type's element tick, its update on every particle (rebuilding the bounding box), then emit new particles.
-// The type picks its functions (particle_common.h) in EmitParticle, UpdateParticle and TickSource.
+// step the effect's state (particle_data.h), update every particle (rebuilding the bounding box), then emit new
+// particles.
 
 namespace {
 
@@ -431,53 +430,8 @@ void BuildBasis(ParticleSource& s) {
     Normalize(s.up, Length(s.up));
 }
 
-// Emits one particle of the source's type into `p` (0: the pool takes it back).
-int EmitParticle(ParticleSource& s, Particle& p, int index) {
-    if (s.data) return effectdata::EmitData(s, p, index);
-    switch (ParticleTypeOf(s.type)) {
-    case ParticleType::FireBlast: return EmitBlast(s, p, index);
-    case ParticleType::Geyser: return EmitGeyser(s, p, index);
-    case ParticleType::Tornado: case ParticleType::CurseHolder: return EmitTornado(s, p, index);
-    case ParticleType::LightningBlast: return EmitLightning(s, p, index);
-    case ParticleType::ShapeChange: return EmitGlow(s, p, index);
-    }
-    return 0;
-}
-
-// Moves one particle of the source's type (0 drops it).
-int UpdateParticle(ParticleSource& s, Particle& p) {
-    if (s.data) return effectdata::UpdateData(s, p);
-    switch (ParticleTypeOf(s.type)) {
-    case ParticleType::FireBlast: return UpdateBlast(s, p);
-    case ParticleType::Geyser: return UpdateGeyser(s, p);
-    case ParticleType::Tornado: case ParticleType::CurseHolder: return UpdateTornado(s, p);
-    case ParticleType::LightningBlast: return UpdateLightning(s, p);
-    case ParticleType::ShapeChange: return UpdateGlow(s, p);
-    }
-    return 0;
-}
-
-// Runs `tick` on every element in order (the count read again after each).
-void EachElement(ParticleSource& s, void (*tick)(ParticleSource&, ParticleElement&)) {
-    for (int i = 0; i < std::ssize(s.elements); ++i) tick(s, s.elements[i]);
-}
-
-// The type's work on its elements before the particles move; the other types have none.
-void TickSource(ParticleSource& s) {
-    if (s.data) return effectdata::TickData(s);
-    switch (ParticleTypeOf(s.type)) {
-    case ParticleType::FireBlast: EachElement(s, TickBlast); break;
-    case ParticleType::Geyser: EachElement(s, TickGeyser); break;
-    case ParticleType::Tornado: case ParticleType::CurseHolder: TickTornado(s); break;
-    case ParticleType::LightningBlast: EachElement(s, TickLightning); break;
-    case ParticleType::ShapeChange: TickGlow(s); break;
-    default: break;
-    }
-}
-
 // Updates every particle. A particle the previous tick rejected is erased and returned to the
-// pool first, but (as in the original) is still updated and counted in the bounds. The erase comes
-// before the update: UpdateGlow reads the particle count.
+// pool first, but (as in the original) is still updated and counted in the bounds.
 void UpdateParticles(ParticleSource& s) {
     ParticleManager* pool = s.Manager();
     auto node = s.particles.begin();
@@ -490,7 +444,7 @@ void UpdateParticles(ParticleSource& s) {
             ++node;
         }
         SavePrevious(p);
-        if (!UpdateParticle(s, *p)) {
+        if (!effectdata::UpdateData(s, *p)) {
             p->dead = 1;
             RestorePrevious(p);
         }
@@ -498,23 +452,23 @@ void UpdateParticles(ParticleSource& s) {
     }
 }
 
-// One emission attempt: a particle from the pool, kept when the type's emission accepts it.
+// One emission attempt: a particle from the pool, kept when the effect's emission accepts it.
 void EmitOne(ParticleSource& s, int index) {
     ParticleManager* pool = s.Manager();
     Particle* p = pool->AcquireParticle();
     if (!p) return;
-    if (EmitParticle(s, *p, index)) s.AddParticle(p);
+    if (effectdata::EmitData(s, *p, index)) s.AddParticle(p);
     else pool->ReleaseParticle(p);
 }
 
 // max(emitCount, distance / emitSpacing) tries, each emitting with emitChance percent; a
-// source above 50% that emitted nothing gets one particle anyway. A data effect's queued particles come first, emitting
-// or not.
+// source above 50% that emitted nothing gets one particle anyway. The effect's queued particles come first, emitting or
+// not.
 void Emit(ParticleSource& s) {
-    if (s.data) effectdata::EmitQueued(s);
+    effectdata::EmitQueued(s);
     if (!(s.flags & ParticleSourceFlag::Emitting)) return;
     if ((s.flags & ParticleSourceFlag::AttachedOnly) && !s.attachedTo) return;
-    int tries = s.data && !s.data->emitting ? 0 : std::lround(s.distance / s.emitSpacing);
+    int tries = !s.data->emitting ? 0 : std::lround(s.distance / s.emitSpacing);
     if (tries <= s.emitCount) tries = s.emitCount;
     int emitted = 0;
     if (tries > 0) {
@@ -572,7 +526,7 @@ bool ParticleSource::RunTick() {
 
     Follow(*this);
     BuildBasis(*this);
-    TickSource(*this);
+    effectdata::TickData(*this);
     UpdateParticles(*this);
     Emit(*this);
     FinishBounds(*this);

@@ -1,8 +1,8 @@
 #pragma once
 
 // Weather, visibility fog and particles: the per-frame simulation parts.
-// - ParticleSource ("CParticle"): one emitter. Its tick runs its type's functions (particle_common.h: update the
-// elements of the source's own array, update one particle: 0 kills it, emit one particle).
+// - ParticleSource ("CParticle"): one emitter. Its tick runs its effect's record (particle_data.h: the original types
+// and the mods' effects alike).
 // - RainSnow (the world's rain/snow layer; "RainSnow"): fades its density and the rain sound.
 // - VisibilityFog ("VisibilityFog"): a hash_map of fog cells, one per visible map square; each
 // cell fades in while visible and out once not, and is dropped when nearly transparent.
@@ -34,11 +34,11 @@ class State;       // particle_record.h
 }
 
 // The particle source / effect types (EngineObject::type of a ParticleSource and a EffectParticle). The names
-// are the script table's (script_effects.cpp kScriptParticleTypes) and the texture its spec names
-// (particle_create.cpp); a type neither names is described: Shower1-4 (the RainSnow texture, texture frames 12-15), Falling1-4 (a gust of RainSnow),
-// GroundDust1 / 2, TeleportRing (the Teleport texture), VisionStar4 (the fourth vision star, lifetime 3), Stun (the
-// Stun texture), PoisonCloud (the second PoisonFog type, the poison spell's cloud). type stays a plain int in the
-// objects; ParticleTypeOf reads it.
+// are the original script table's and the texture its effect uses (assets/effects); a type neither names is
+// described: Shower1-4 (the RainSnow texture, texture frames 12-15), Falling1-4 (a gust of RainSnow), GroundDust1 / 2,
+// TeleportRing (the Teleport texture), VisionStar4 (the fourth vision star, lifetime 3), Stun (the Stun texture),
+// PoisonCloud (the second PoisonFog type, the poison spell's cloud). type stays a plain int in the objects;
+// ParticleTypeOf reads it.
 enum class ParticleType : int {
     FireBall = 0x2000,
     CampFire = 0x2001,
@@ -127,87 +127,30 @@ enum class ParticleType : int {
 
 inline ParticleType ParticleTypeOf(int type) { return static_cast<ParticleType>(type); }
 
-// One particle (from the source's pool). The source's tick saves the "prev" fields before calling the type's update
-// and restores them when it returns 0. What velocity, aux and drift hold depends on the source type: each of its
-// functions names the parts it uses with local references at its top (float& angle = p.velocity.x).
+// One particle (from the source's pool). The source's tick saves the "prev" fields before calling its update and
+// restores them when it returns 0. A data effect's particle (particle_data.cpp) keeps its velocity, in `drift` its
+// offset in source or anchor space, in `state` its anchor.
 struct Particle {
     Vector3 pos;
     float size = 0.0f;
     Vector3 prevPos;
     float prevSize = 0.0f;
     Vector3 velocity;
-    Vector3 aux;
     Vector3 drift;
     int frame = 0;              // texture frame
     int prevFrame = 0;
-    int frameTimer = 0;         // ticks until the next frame (some types: their own count, named where used)
+    int frameTimer = 0;         // ticks until the next frame
     int life = 0;               // ticks left
-    int state = 0;              // per type: a kind, an index or a phase
+    int state = 0;              // its anchor (-1: none)
     std::uint32_t color = 0;    // ARGB
     std::uint32_t prevColor = 0;
     int dead = 0;               // set by the tick when the update returned 0
-    // A data effect's particle (particle_data.cpp): its ticks since emission, its kind and its vars.
+    // Its ticks since emission, its kind (the record's [[particle]]) and its vars.
     int age = 0;
     int kind = 0;
     float vars[8] = {};
 };
 
-// A table read by a particle's remaining life, unchecked as the original reads it. The tick updates a particle
-// once more after it has died and gone back to the pool (ParticleSource::RunTick keeps the original's order), so
-// an update that counts the life down reads index -1 then: the original read the four bytes before the table there
-// (in game.exe's data, the last entry of the table before it), `before` here.
-template <class T, std::size_t N>
-constexpr T ByLife(const T (&table)[N], int life, T before) {
-    return life < 0 ? before : table[life];
-}
-
-// One element of a source's own array. What it holds depends on the source type: pos and ticks (a countdown or an
-// age) for every type, the rest through the type's view below. The views start zero: the first one is the largest
-// and its initialiser covers the union.
-struct ParticleElement {
-    Vector3 pos;
-    union {
-        // FireBlast (SetupFireBlast, TickBlast): a fragment flying out (pos its position).
-        struct {
-            Vector3 velocity;
-            float radius;       // the flame radius
-            float growth;       // its growth per tick
-            float decay;        // the growth's factor per tick
-            float frame;        // a random frame (0..5)
-            float sizeFactor;   // 0 or 1
-            std::int32_t age;   // in ticks
-        } fragment = {};
-        // LightningBlast (EmitLightning, TickLightning): a point of the bolt, on the ground; the heads move by fork
-        // and remember their position in base.
-        struct {
-            Vector3 fork;
-            Vector3 base;       // pos as placed
-            std::int32_t emitted;   // point 0: particles emitted along the bolt
-        } bolt;
-        // Geyser (the fireworks): a vent (ticks the eruption's remaining ticks).
-        struct {
-            float yaw;          // the jet's direction (radians)
-            float tilt;         // off vertical (radians)
-            float power;        // its strength
-            std::int32_t pause; // before the next eruption
-        } vent;
-        // Tornado and CurseHolder: a ring of the funnel (pos its centre); element 0 also holds the funnel's own
-        // values.
-        struct {
-            float height;       // the funnel's
-            float bend;         // 0: the rings sway with the source's motion, else they lean
-            float damping;      // the particles' spin damping
-        } funnel;
-        // ShapeChange: element 0.
-        struct {
-            Vector3 mark;       // the last point glowed at
-            std::uint32_t color;    // by the source's glowKind
-        } glow;
-    };
-    int ticks = 0;              // (LightningBlast point 0: the bursts)
-};
-static_assert(sizeof(ParticleElement) == sizeof(Vector3) + sizeof(ParticleElement::fragment) + sizeof(int),
-              "the first view is the largest: its initialiser zeroes every view");
 
 class ParticleSource;
 class Object3D;
@@ -280,9 +223,6 @@ enum class ParticleSourceFlag : std::uint32_t {
 };
 template <> inline constexpr bool lib::kBitFlags<ParticleSourceFlag> = true;
 
-// The colour of a ShapeChange glow (the path markers; player_client.cpp picks it by the marker's kind).
-enum class GlowKind : std::uint8_t { Grey, Green, Orange };
-
 // Where a source with ParticleSourceFlag::OnPart sits on a unit (ParticleSource::AttachmentPoint): the unit's effect
 // point or a part of its figure (the part's name; a figure without it gives "bd", then the top of its bounds).
 enum class AttachPoint : std::uint8_t {
@@ -301,6 +241,9 @@ enum class AttachPoint : std::uint8_t {
     Body04,
 };
 
+// The bounds a tick starts from: empty (each minimum above its maximum).
+inline constexpr float kBoundsFar = 100000.0f;
+
 // The draws a source with ParticleSourceFlag::IdlesOffScreen skips off screen before its tick idles.
 inline constexpr int kIdleAfterHidden = 57;
 
@@ -310,7 +253,7 @@ class ParticleSource final : public TransformObject {
 public:
     explicit ParticleSource(int type);
     ~ParticleSource() override;
-    void Create() override;                          // per-type parameters
+    void Create() override;                          // set up from its effect's record
     void Destroy() override { Clear(); }
     bool RunTick() override;                         // 1 while the source stays alive
     const char* ClassName() override;
@@ -323,7 +266,7 @@ public:
     int Draw(SceneRenderer* renderer);
 
     // --- set-up ---
-    void Reset();                                   // defaults, texture and elements dropped
+    void Reset();                                   // defaults, texture dropped
     void Clear();                                   // particles back to the pool, detach, Reset
 
     // --- per-frame tick ---
@@ -373,7 +316,6 @@ public:
     int maxParticles = 0;
     int frameCount = 1;
     int frameColumns = 1;           // columns of the texture's frame grid
-    int frameDelay = 10000;         // ticks per texture frame
     int hiddenTicks = 0;            // draws skipped off screen in a row (IdlesOffScreen)
     int lifetime = -1;
     Vector3 spreadMin;
@@ -386,16 +328,12 @@ public:
     float turnCos = 0.0f;           // \ cos / sin of the emitter's turn (a zone exit's
     float turnSin = 0.0f;           // / angle)
     float baseSize = 1.0f;
-    int emitState = 0;              // per type: the emitted count or a one-shot flag
     Vector3 extent;
     AttachPoint attachPoint = AttachPoint::EffectPoint;
     Vector3 windDirection;          // copied from the world every tick
     float windStrength = 0.0f;
     bool additiveBlend = false;     // drawn with additive blending
-    std::uint32_t tint = 0;         // the particles' colour: Tornado and CurseHolder ARGB
-    GlowKind glowKind = GlowKind::Green;   // ShapeChange
-    std::vector<ParticleElement> elements;   // per type
-    // A data effect's state (particle_data.h; its type is the effect's id): its inputs, vars, stage and anchors.
+    // Its effect's state (particle_data.h; its type is the effect's id): its inputs, vars, stage and anchors.
     std::unique_ptr<effectdata::State> data;
     Vector3 boundsMin;              // over the particles, rebuilt every tick
     Vector3 boundsMax;

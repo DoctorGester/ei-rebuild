@@ -1,10 +1,9 @@
-// ParticleSource set-up: the per-type spec table, Create, Reset and Clear.
+// ParticleSource set-up: the types' names, Create (from the effect's record), Reset and Clear.
 // More: docs/notes/effects.md, "Particle sources".
 #include "game/core/core_transform.h"
 #include "game/effects/effects.h"
 #include "game/app/singletons.h"
 #include "game/objects/object3d.h"
-#include "game/effects/particle_common.h"
 #include "game/effects/particle_data.h"
 #include "game/models/texture.h"
 #include "game/world/world.h"
@@ -25,75 +24,8 @@ constexpr float kFrameInset = 0.001953125f;   // the frame rectangles are inset 
 // The rotation Reset gives a source: the identity (a static initialiser's stores).
 constexpr Quaternion kIdentityRotation = /*007A9C30*/ {1.0f, 0.0f, 0.0f, 0.0f};
 
-// A source type's parameters: Create starts every source from the defaults here (Reset's, with Create's own
-// emission chance, particle limit and 16 frames) and takes its type's entry.
-struct ParticleSpec {
-    ParticleType type = ParticleType::FireBall;
-    const char* texture = nullptr;          // kind 6 (TextureKind::Effects), by name
-    ParticleSourceFlag flags = {};          // beside Emitting
-    AttachPoint attachPoint = AttachPoint::EffectPoint;
-    bool additiveBlend = false;
-    int emitChance = 100;
-    int emitCount = 0;
-    int maxParticles = 500;
-    int lifetime = -1;
-    int frameCount = 16;
-    int frameDelay = 10000;
-    float emitSpacing = 1000.0f;
-    float size = 1.0f;
-    float height = 0.0f;
-    float growth = 0.0f;
-    float alpha = 1.0f;
-    float typeParam = 1.0f;
-    std::uint32_t tint = 0;
-    int elementCount = 0;                   // made zeroed; the type's Setup fills them
-    Vector3 spreadMin;
-    Vector3 spreadMax;
-    Vector3 extent;
-};
-
-constexpr ParticleSourceFlag kOnPart = ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
-constexpr ParticleSourceFlag kPausedToo = ParticleSourceFlag::Emitting | ParticleSourceFlag::TicksWhilePaused;
-
-using enum ParticleType;
-
-// One entry per type still in code, in the order of ParticleType; the others are data (assets/effects,
-// ParticleSource::Create).
-constexpr ParticleSpec kSpecs[] = {
-    {.type = FireBlast, .texture = "Explosion", .emitCount = 60, .maxParticles = 600, .lifetime = 15,
-     .frameDelay = 1, .size = 0.6f, .height = 1.0f, .growth = 0.8f, .elementCount = 15,
-     .spreadMin = {-0.02f, -0.02f, -0.02f}, .spreadMax = {0.02f, 0.02f, 0.02f}},
-    {.type = Geyser, .texture = "Fireworks", .additiveBlend = true, .emitChance = 88, .emitCount = 20,
-     .frameDelay = 100, .height = 0.3f, .elementCount = 3, .spreadMin = {-0.1f, -0.1f, -0.02f},
-     .spreadMax = {0.1f, 0.1f, 0.02f}},
-    {.type = Tornado, .texture = "Tornado", .emitCount = 4, .maxParticles = 800, .frameDelay = 1, .height = 0.2f,
-     .elementCount = 6},
-    {.type = LightningBlast, .texture = "TendriLight", .additiveBlend = true, .emitChance = 88, .emitCount = 250,
-     .maxParticles = 600, .lifetime = 15, .frameCount = 15, .frameDelay = 1, .spreadMin = {-0.2f, -0.2f, -0.2f},
-     .spreadMax = {0.2f, 0.2f, 0.2f}},
-    {.type = ShapeChange, .texture = "ShapeChange", .flags = kPausedToo, .emitCount = 2500, .maxParticles = 2500},
-    {.type = CurseHolder, .texture = "Tornado", .flags = kOnPart, .attachPoint = AttachPoint::Body, .emitCount = 4,
-     .maxParticles = 800, .height = 0.2f, .tint = 0x19000000, .elementCount = 6},
-};
-
-constexpr int kTypeCount = static_cast<int>(Transform) - static_cast<int>(FireBall) + 1;
-
-constexpr bool SpecsInTypeOrder() {
-    for (int i = 1; i < std::ssize(kSpecs); ++i) {
-        if (kSpecs[i].type <= kSpecs[i - 1].type) return false;
-    }
-    return true;
-}
-static_assert(SpecsInTypeOrder());
-
-// Each type's entry in kSpecs, -1 for a type on data.
-constexpr std::array<int, kTypeCount> kSpecIndex = [] {
-    std::array<int, kTypeCount> index{};
-    index.fill(-1);
-    for (int i = 0; i < std::ssize(kSpecs); ++i)
-        index[static_cast<int>(kSpecs[i].type) - static_cast<int>(FireBall)] = i;
-    return index;
-}();
+constexpr int kFirstType = static_cast<int>(ParticleType::FireBall);
+constexpr int kTypeCount = static_cast<int>(ParticleType::Transform) - kFirstType + 1;
 
 // The types' names, in the order of ParticleType from FireBall.
 constexpr std::string_view kTypeNames[] = {
@@ -110,23 +42,6 @@ constexpr std::string_view kTypeNames[] = {
     "StartTrans", "Transform",
 };
 static_assert(std::size(kTypeNames) == kTypeCount);
-
-// The spec of `type`, or null for a type on data or an unknown type.
-const ParticleSpec* FindSpec(int type) {
-    const int index = type - static_cast<int>(FireBall);
-    if (index < 0 || index >= kTypeCount || kSpecIndex[index] < 0) return nullptr;
-    return &kSpecs[kSpecIndex[index]];
-}
-
-// The types whose elements start other than zeroed, or whose set-up draws.
-void SetupElements(ParticleSource& s) {
-    switch (ParticleTypeOf(s.type)) {
-    case FireBlast: SetupFireBlast(s); break;
-    case Tornado: SetupTornado(s); break;
-    case CurseHolder: SetupCurseHolder(s); break;
-    default: break;
-    }
-}
 
 // The frames are cells of a grid `columns` wide, row 0 at the top (v = 1), each inset by 1/512.
 void BuildFrames(ParticleSource* s) {
@@ -149,25 +64,25 @@ std::set<int> g_unknownTypes;
 } // namespace
 
 int ShownParticleType(int type) {
-    if (FindSpec(type) || effectdata::g_effects.FindById(type)) return type;
+    if (effectdata::g_effects.FindById(type)) return type;
     if (g_unknownTypes.insert(type).second)
         ei::Log("particles: unknown particle type 0x%X, no effect shown (once per type)", static_cast<unsigned>(type));
     return kNoParticleType;
 }
 
 std::string_view ParticleTypeName(int type) {
-    const int index = type - static_cast<int>(FireBall);
+    const int index = type - kFirstType;
     return index >= 0 && index < kTypeCount ? kTypeNames[index] : std::string_view();
 }
 
 int ParticleTypeByName(std::string_view name) {
     for (std::size_t i = 0; i < std::size(kTypeNames); ++i)
-        if (text::CompareIgnoringCase(kTypeNames[i], name) == 0) return static_cast<int>(FireBall) + static_cast<int>(i);
+        if (text::CompareIgnoringCase(kTypeNames[i], name) == 0) return kFirstType + static_cast<int>(i);
     return kNoParticleType;
 }
 
-// Back to the defaults: no position, attachment or elements; the texture released; unit sizes, a 1000 emission
-// spacing, 10000 frame delay, a one-frame grid.
+// Back to the defaults: no position or attachment; the texture released; unit sizes, a 1000 emission
+// spacing, a one-frame grid.
 void ParticleSource::Reset() {
     localPosition = {};
     localRotation = kIdentityRotation;
@@ -177,15 +92,11 @@ void ParticleSource::Reset() {
     lifetime = -1;
     frameCount = 1;
     frameColumns = 1;
-    frameDelay = 10000;
     texture.Reset();
     windDirection = {};
     extent = {};
     windStrength = 0.0f;
     additiveBlend = false;
-    tint = 0;
-    glowKind = GlowKind::Green;
-    lib::FreeStorage(elements);
     data.reset();
     alpha = 1.0f;
     typeParam = 1.0f;
@@ -193,7 +104,6 @@ void ParticleSource::Reset() {
     baseSize = 1.0f;
     spreadMin = {};
     spreadMax = {};
-    emitState = 0;
     height = 0.0f;
     growth = 0.0f;
     attachPoint = AttachPoint::EffectPoint;
@@ -213,45 +123,16 @@ void ParticleSource::Clear() {
     Reset();
 }
 
-// Create. Sets the source up for its type from its spec, or from its data effect's record: a mod's effect, or an
-// original type on data (CreateSource makes known types only).
+// Create. Sets the source up from its effect's record: an original type's or a mod's (CreateSource makes known types
+// only).
 void ParticleSource::Create() {
     Reset();
     boundsMin = {kBoundsFar, kBoundsFar, kBoundsFar};
     boundsMax = {-kBoundsFar, -kBoundsFar, -kBoundsFar};
-    const ParticleSpec* spec = FindSpec(type);
-    if (!spec) {
-        std::shared_ptr<const effectdata::Record> record = effectdata::g_effects.FindById(type);
-        const std::string textureName = record->texture;
-        effectdata::SetUp(*this, std::move(record));
-        LoadNamedTexture(texture, static_cast<int>(TextureKind::Effects), textureName.c_str());
-        BuildFrames(this);
-        return;
-    }
-    flags = (flags & ~(ParticleSourceFlag::TicksWhilePaused | ParticleSourceFlag::OnPart)) |
-            ParticleSourceFlag::Emitting | spec->flags;
-    attachPoint = spec->attachPoint;
-    additiveBlend = spec->additiveBlend;
-    emitChance = spec->emitChance;
-    emitCount = spec->emitCount;
-    maxParticles = spec->maxParticles;
-    lifetime = spec->lifetime;
-    frameCount = spec->frameCount;
-    frameColumns = 4;
-    frameDelay = spec->frameDelay;
-    emitSpacing = spec->emitSpacing;
-    size = spec->size;
-    height = spec->height;
-    growth = spec->growth;
-    alpha = spec->alpha;
-    typeParam = spec->typeParam;
-    tint = spec->tint;
-    spreadMin = spec->spreadMin;
-    spreadMax = spec->spreadMax;
-    extent = spec->extent;
-    elements.resize(spec->elementCount);
-    SetupElements(*this);
-    LoadNamedTexture(texture, static_cast<int>(TextureKind::Effects), spec->texture);
+    std::shared_ptr<const effectdata::Record> record = effectdata::g_effects.FindById(type);
+    const std::string textureName = record->texture;
+    effectdata::SetUp(*this, std::move(record));
+    LoadNamedTexture(texture, static_cast<int>(TextureKind::Effects), textureName.c_str());
     BuildFrames(this);
 }
 

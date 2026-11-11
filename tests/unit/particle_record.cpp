@@ -743,6 +743,88 @@ void CheckCastFeatures() {
            Read(Parse(kJumpWithoutWhen, "jump.effect.toml"), "Jump", &errors) == nullptr && errors.size() == 1);
 }
 
+// MF15g6's: a "spawn" reaction with a scorch and a shake, anchors made with the source (at_create), a ball's shift,
+// surface(x, y), the sun's colour, the frame mode `free`.
+constexpr const char* kBlastFeatures = R"toml(
+texture = "Stun"
+[vars]
+stand = "surface(3, 4)"
+light = "sun.r + sun.g * 10"
+[[on]]
+event = "spawn"
+do = [{ scorch = "param * 2", alpha = "alpha * 0.5" }, { shake = 2, time = "base_size", decay = 0.25 }, { scorch = 1 }]
+[[anchor]]
+name = "fragment"
+count = 4
+at_create = true
+spawn = { shape = "ball", shift = [0, 0, 0.7] }
+vars.n = { start = 0, tick = "a.n + 1" }
+[[particle]]
+name = "flame"
+lifetime = 4
+frame = { start = 1, tick = "p.frame + 9", mode = "free" }
+)toml";
+
+constexpr const char* kSpawnEmits = R"toml(
+texture = "Stun"
+[[on]]
+event = "spawn"
+do = [{ emit = 1 }]
+[[particle]]
+name = "flame"
+lifetime = 4
+)toml";
+
+float SumGround(float x, float y) { return x + y; }
+float Standing(float, float, int which) { return which == 4 ? 9.0f : 0.0f; }
+
+void CheckBlastFeatures() {
+    std::vector<std::string> errors;
+    const std::shared_ptr<const Record> record = Read(Parse(kBlastFeatures, "blast.effect.toml"), "Blast", &errors);
+    for (const std::string& error : errors) std::printf("ei_unit_check: particle record: unexpected: %s\n", error.c_str());
+    if (!record) return Expect("the blast features record reads", false);
+    Expect("a spawn reaction marks the record", record->spawns && record->reactions[0].on == Reaction::On::Spawn);
+    Expect("frame mode free reads", record->particles[0].frameMode == FrameMode::Free);
+
+    State state(record);
+    state.ground = SumGround;
+    state.source[static_cast<int>(SourceValue::Param)] = 1.5f;
+    state.source[static_cast<int>(SourceValue::Alpha)] = 0.8f;
+    state.source[static_cast<int>(SourceValue::BaseSize)] = 3.0f;
+    state.source[static_cast<int>(SourceValue::SunR)] = 0.5f;
+    state.source[static_cast<int>(SourceValue::SunG)] = 0.25f;
+    IsaacRandom random;
+    IsaacRandom expected = random;
+    state.Create(random);
+    Expect("at_create anchors are made with the source", state.anchors.size() == 4);
+    const Vector3 shift = {0.0f, 0.0f, 0.7f};
+    const Vector3 first = RandomInBall(expected, nullptr, 10, &shift);
+    Expect("a ball's shift moves each draw of the cube before its test",
+           state.anchors[0].values[static_cast<int>(AnchorValue::SpawnZ)] == first.z &&
+               state.anchors[0].values[static_cast<int>(AnchorValue::SpawnX)] == first.x);
+    state.Spawned(random);
+    Expect("a spawn reaction asks for its scorches and its shake",
+           state.scorches.size() == 2 && state.scorches[0].radius == 3.0f && state.scorches[0].alpha == 0.4f &&
+               state.scorches[1].radius == 1.0f && state.scorches[1].alpha == 1.0f && state.shakes.size() == 1 &&
+               state.shakes[0].strength == 2.0f && state.shakes[0].time == 3.0f);
+    state.Step(random);
+    Expect("the step clears the scorches", state.scorches.empty());
+    Expect("anchors made with the source tick at the first step",
+           state.anchors.size() == 4 && state.anchors[3].vars[0] == 1.0f &&
+               state.anchors[0].values[static_cast<int>(AnchorValue::Age)] == 1.0f);
+    Expect("surface(x, y) is the ground without a platform callback", state.vars[0] == 7.0f);
+    Expect("sun.r, sun.g read the source's values", state.vars[1] == 3.0f);
+    State standing(record);
+    standing.platform = Standing;
+    standing.Step(random);
+    Expect("surface(x, y) through State::platform (4)", standing.vars[0] == 9.0f);
+
+    errors.clear();
+    Expect("a spawn reaction that emits refuses the effect",
+           Read(Parse(kSpawnEmits, "spawn.effect.toml"), "Spawn", &errors) == nullptr && errors.size() == 1 &&
+               errors[0].find("spawn") != std::string::npos);
+}
+
 // The ```toml blocks of `file` (relative to the source tree) that are whole effects (a [[particle]]).
 std::vector<std::string> EffectBlocks(const char* file) {
     std::ifstream in(std::string(EI_SOURCE_DIR) + "/" + file, std::ios::binary);
@@ -791,6 +873,7 @@ int RunParticleRecordChecks() {
     CheckExtensions();
     CheckReactionParticles();
     CheckCastFeatures();
+    CheckBlastFeatures();
     CheckWrittenEffects();
     return failures;
 }

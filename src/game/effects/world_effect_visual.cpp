@@ -59,21 +59,12 @@ int StepFraction(const Vector3& velocity, const Vector3& dxdy, float* t) {
     return 1;
 }
 
-// The ticks a particle type plays for: 60 for the original's one-shot types, a data effect's
-// [server] one_shot; 0 for a type that lasts until its object is removed (or an unknown type).
+// The ticks a particle type plays for: its effect's [server] one_shot; 0 for a type that lasts until its object is
+// removed (or an unknown type).
 int OneShotTicks(int type) {
-    switch (ParticleTypeOf(type)) {
-    case ParticleType::FireBlast: case ParticleType::LightningBlast:
-        return 0x3C;
-    default: {
-        const std::shared_ptr<const effectdata::Record> record = effectdata::g_effects.FindById(type);
-        return record ? record->oneShot : 0;
-    }
-    }
+    const std::shared_ptr<const effectdata::Record> record = effectdata::g_effects.FindById(type);
+    return record ? record->oneShot : 0;
 }
-
-// The scorch mark's angle: a random word to [0, 6.3).
-float RandomAngle(std::uint32_t random) { return ScaleWord(random, 6.3f); }
 
 // The fire wall's scorch mark: angle = atan2(direction.y, direction.x) and outer =
 // sqrt(x*x + y*y) + half + 0.3.
@@ -268,20 +259,7 @@ void EffectParticle::Spawn() {
         for (int left = age - 1; left != 0; --left) source->RunTick();
     }
 
-    if (ParticleTypeOf(type) == ParticleType::FireBlast) {
-        float fadeAlpha = BelowOneOrOne(alpha * kScorchAlpha);
-        float radius = typeParam;
-        float angle = RandomAngle(g_clientRandom.Next());
-        g_clientWorld.AddScorchMark(localPosition.x, localPosition.y, radius, radius, angle, fadeAlpha);
-    }
-    if (ParticleTypeOf(type) == ParticleType::LightningBlast) {
-        float fadeAlpha = BelowOneOrOne(alpha * kScorchAlpha);
-        std::uint32_t random = g_clientRandom.Next();
-        float radius = size;
-        float angle = RandomAngle(random);
-        g_clientWorld.AddScorchMark(localPosition.x, localPosition.y, radius, radius, angle, fadeAlpha);
-        g_clientWorld.camera->Shake(localPosition, size, 2.0f, 0.25f);
-    }
+    effectdata::Spawned(*source);   // its "spawn" reactions (FireBlast's and LightningBlast's scorch marks)
 }
 
 void EffectParticle::Pack(DeltaWriter& field) {

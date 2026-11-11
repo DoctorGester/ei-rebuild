@@ -10,6 +10,8 @@
 #include "game/models/texture.h"
 #include "game/objects/map_object.h"
 #include "game/objects/map_object_manager.h"
+#include "game/scene/light.h"
+#include "game/scene/scene_renderer.h"
 #include "game/terrain/terrain.h"
 #include "game/units/unit.h"
 #include "game/world/world.h"
@@ -49,6 +51,9 @@ enum class Event : std::uint8_t {
     Run,            // a unit carrier runs (MoveMode::Run)
     Walk,           // a unit carrier walks
     Die,            // a unit carrier dies (IsDead)
+    Path,           // a path marker's glows: the carrier's points PositionAt(i + tick) for i up to `value` (none
+                    // without a carrier), as PlayerClient::OnPathMarker hands them over
+    Kind,           // a path marker's kind (0 green, 1 grey, 2 orange)
 };
 
 struct Step {
@@ -66,6 +71,18 @@ struct Case {
     int ticks;
     std::vector<Step> steps;
     bool unit = false;      // the carrier is a hero (Unit) instead of a stone
+    bool path = false;      // the carrier is a stone walking a path (PathStone)
+};
+
+// A stone whose path (PositionAt) steps every third tick along a curve, so some of its points repeat (ShapeChange's
+// glows skip a point the last one was at).
+class PathStone final : public CStone {
+public:
+    Vector3 PositionAt(int time) override {
+        const int step = time / 3;
+        return {localPosition.x + static_cast<float>(step % 17) * 0.35f, localPosition.y + lib::Sin(static_cast<float>(step) * 0.4f) * 2.0f,
+                localPosition.z};
+    }
 };
 
 const Vector3 kStill = {0.0f, 0.0f, 0.0f};
@@ -247,6 +264,32 @@ const std::vector<Case>& Cases() {
          {{3, Attach}, {10, Scale, 2.0f}, {30, StopEmitting}}, true},
         {"CastingHealing on a unit, stopped, started again", CastingHealing, true, 0.8f, 45,
          {{20, StopEmitting}, {24, StartEmitting}, {35, Stop}}, true},
+        {"FireBlast", FireBlast, false, 1.0f, 30, {}},
+        {"FireBlast large, moving, started again", FireBlast, false, 2.5f, 30,
+         {{1, Velocity, 0.0f, {0.2f, -0.1f, 0.0f}}, {4, Scale, 0.6f}, {10, StartEmitting}, {20, Stop}}},
+        {"FireBlast on a carrier, let go", FireBlast, true, 0.8f, 25, {{1, Velocity, 0.0f, {0.05f, 0.05f, 0.0f}}, {4, Remove}}},
+        {"LightningBlast", LightningBlast, false, 1.0f, 25, {}},
+        {"LightningBlast large, moving", LightningBlast, false, 2.0f, 25, {{1, Velocity, 0.0f, {0.1f, 0.05f, 0.0f}}}},
+        {"LightningBlast stopped before its bolt, started again", LightningBlast, false, 1.0f, 25,
+         {{1, StopEmitting}, {4, StartEmitting}, {16, StartEmitting}}},
+        {"LightningBlast carried, rescaled", LightningBlast, true, 1.2f, 25, {{6, Scale, 0.5f}, {10, Remove}}},
+        {"Geyser", Geyser, false, 1.0f, 80, {}},
+        {"Geyser rescaled, stopped, started again", Geyser, false, 1.5f, 70,
+         {{10, Scale, 0.5f}, {30, StopEmitting}, {42, StartEmitting}, {60, Stop}}},
+        {"Geyser on a moving carrier", Geyser, true, 1.0f, 40, {{1, Velocity, 0.0f, {0.05f, 0.02f, 0.0f}}, {30, Remove}}},
+        {"Tornado moving", Tornado, false, 1.0f, 130, {{1, Velocity, 0.0f, {0.1f, 0.05f, 0.0f}}}},
+        {"Tornado turning, stopped", Tornado, false, 1.4f, 140,
+         {{1, Velocity, 0.0f, {-0.08f, 0.1f, 0.0f}}, {40, Velocity, 0.0f, {0.12f, 0.0f, 0.01f}}, {60, StopEmitting},
+          {80, Velocity, 0.0f, kStill}, {90, Scale, 0.5f}, {120, Stop}}},
+        {"Tornado on a carrier, let go", Tornado, true, 0.8f, 60, {{1, Velocity, 0.0f, {0.05f, 0.0f, 0.0f}}, {30, Remove}}},
+        {"CurseHolder on a unit", CurseHolder, true, 1.0f, 120, {{20, Velocity, 0.0f, {0.05f, -0.03f, 0.0f}}, {70, Velocity, 0.0f, kStill}}, true},
+        {"CurseHolder on a stone, let go", CurseHolder, true, 1.3f, 50, {{1, Velocity, 0.0f, {0.02f, 0.02f, 0.0f}}, {20, Remove}}},
+        {"CurseHolder carried late, rescaled, stopped", CurseHolder, false, 0.7f, 60,
+         {{5, Attach}, {10, Scale, 2.0f}, {30, StopEmitting}, {40, StartEmitting}, {50, Stop}}, true},
+        {"ShapeChange green", ShapeChange, true, 1.0f, 20, {{1, Path, 40.0f}}, false, true},
+        {"ShapeChange grey, short", ShapeChange, true, 1.0f, 16, {{1, Kind, 1.0f}, {1, Path, 5.0f}}, false, true},
+        {"ShapeChange orange, long", ShapeChange, true, 1.0f, 20, {{1, Kind, 2.0f}, {1, Path, 300.0f}}, false, true},
+        {"ShapeChange free", ShapeChange, false, 1.0f, 6, {{1, Path, 10.0f}}},
     };
     return cases;
 }
@@ -306,6 +349,8 @@ std::vector<std::string> Run(const Case& c, int index, std::ofstream* dump) {
         unit->type = static_cast<int>(MapObjectType::Hero);
         unit->SetOwner(g_clientWorld.particleManager.get());
         carrier = unit;
+    } else if (c.path) {
+        carrier = new PathStone();
     } else {
         carrier = new CStone();
     }
@@ -361,6 +406,15 @@ std::vector<std::string> Run(const Case& c, int index, std::ofstream* dump) {
                 case Event::Run: if (unit) unit->moveMode = MoveMode::Run; break;
                 case Event::Walk: if (unit) unit->moveMode = MoveMode::Walk; break;
                 case Event::Die: if (unit) unit->dead = 1; break;
+                case Event::Path: {
+                    s->typeParam = step.value;
+                    std::vector<Vector3> points;
+                    for (int i = 0; s->attachedTo && i < 2500 && !(static_cast<float>(i) > step.value); ++i)
+                        points.push_back(s->attachedTo->PositionAt(i + g_clientWorld.tick));
+                    effectdata::SetInput(*s, "path", points);
+                    break;
+                }
+                case Event::Kind: effectdata::SetInput(*s, "kind", step.value); break;
                 }
             }
             carrier->localPosition += velocity;
@@ -428,6 +482,13 @@ int Main(const std::string& record, const std::string& dump) {
     g_clientWorld.textureManager->SetContext(&g_clientWorld);
     // A terrain without sectors: the ground is 0 everywhere (the effects that spawn on the ground).
     g_clientWorld.terrain = std::make_unique<terrain::Terrain>();
+    // A sun of its own colour (Tornado's particles take it).
+    auto* sun = new Light();
+    sun->color[0] = 0.8f;
+    sun->color[1] = 0.7f;
+    sun->color[2] = 0.55f;
+    Light* oldSun = g_sceneRenderer.sun.Take();
+    g_sceneRenderer.sun.Assign(sun);
     g_calmDirection = g_clientWorld.windDirection;
     g_calmStrength = g_clientWorld.windStrength;
     IsaacRandom::SetDrawObserver(CountDraw);
@@ -441,6 +502,10 @@ int Main(const std::string& record, const std::string& dump) {
         output.insert(output.end(), lines.begin(), lines.end());
     }
     IsaacRandom::SetDrawObserver(nullptr);
+    g_sceneRenderer.sun.Take();
+    delete sun;
+    g_sceneRenderer.sun.Assign(oldSun);
+    if (oldSun) oldSun->Release();
     g_clientWorld.textureManager.reset();
     g_clientWorld.terrain.reset();
     g_clientWorld.windDirection = g_calmDirection;
