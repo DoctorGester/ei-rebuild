@@ -19,6 +19,9 @@ Files (every one the mod's own; LICENSE.txt):
 - Res\database\items.idb.toml, Res\figures\initwehm9.glb, initarbt20.glb, Res\redress\*.png: the hammer and the boots,
   their inventory models and textures.
 - Res\database\spells.sdb.toml, Res\spells\chain_spark.lua: the spell Chain Spark, its record and its script.
+- Res\database\spells.sdb.toml, Res\spells\ember_brand.lua: the curse Ember Brand (no item carries it; a script
+  casts it with CastSpellUnit("ember", ...)): while it lasts the victim's strength is lower and it burns every 20
+  ticks.
 - Res\effects\ChainSpark.effect.toml, ChainSparkHit.effect.toml, Res\textures\chainspark.png: the spell's spark in
   flight and its strikes, and their pictures; Res\textures\spell0101.png, prototype0101.png: the spell's pictures.
 - Res\database\quests.qdb.toml, Res\texts\texts.toml: the quest's experience, the mod's texts.

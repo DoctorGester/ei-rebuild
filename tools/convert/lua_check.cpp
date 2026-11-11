@@ -1323,7 +1323,7 @@ function spell.OnStats(effect, stats)
         stats:Add("Haste", 100)
         error("broken")
     elseif effect.kind == "unknown" then
-        stats:Add("Speed", 1)
+        stats:Add("Swiftness", 1)
     elseif effect.kind == "world" then
         GetObjectID(nil)
     else
@@ -1409,7 +1409,7 @@ return spell
                "one float operation a call, in order; a failing hook adds nothing");
         Expect(kinds[1].touched.none() && kinds[4].touched.none(), "a failed hook or a missing file touches nothing");
         const bool said = reported.size() == 4 && reported[0] == "stats.lua:6: broken" &&
-                          reported[1] == "stats.lua:8: stats:Add: no stat Speed" &&
+                          reported[1] == "stats.lua:8: stats:Add: no stat Swiftness" &&
                           reported[2] == "stats.lua:10: GetObjectID: no bindings at a spell file's top level or in "
                                          "OnStats" &&
                           reported[3] == "Res\\spells\\Nothing.lua did not load: no such file";

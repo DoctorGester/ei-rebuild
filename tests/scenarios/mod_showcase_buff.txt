@@ -1,0 +1,63 @@
+# The showcase mod's Ember Brand (examples/showcase_mod; docs/notes/mods.md, "The showcase mod"; docs/modding.md,
+# "Active effects"): a curse whose Lua gives a stat no game buff touches and acts while it lasts.
+# - A console line casts it at shard 4002 (its AI modes cleared: it stands). Res\spells\ember_brand.lua puts the
+#   spell's own active effect on it for the record's 120 ticks: OnStats lowers its strength by the record's damage (5;
+#   UnitStats::Recompute's Strength pass), OnEffectApplied says so on the console, OnEffectTick burns it for 2 fire
+#   damage at 100, 80, 60, 40 and 20 ticks left (effect:Damage, a hit without a caster) and counts the burns into
+#   ember_brand.burns, the hit points they took into ember_brand.lost.
+# - The game is saved after the second burn, mid-brand, and plays on: the brand expires after five burns
+#   (OnEffectEnded, "expired"), the strength back as before. The save is loaded: the brand goes on from the save's
+#   ticks (nothing of it in the script's state; the save's two burns and no end in the game variables) to the same five
+#   burns and the same end.
+# prepare: make_showcase_mod.py
+mod harness_saves\showcase_mod
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitline 20 Showcase mod: the party has the Chain Spark
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitwindow 10 battle
+console @GodMode(0,1)
+console @UMClear(GetObject(4001))
+console @UMClear(GetObject(4002))
+console @UMClear(GetObject(4003))
+console @GSSetVar(0,"ember.strength",GetStrength(GetObject(4002)))
+console @GSSetVar(0,"ember.hp",HP(GetObject(4002)))
+console @CastSpellUnit("ember",GetX(GetObject(4002)),GetY(GetObject(4002)),GetObject(4002))
+waitline 10 Showcase mod: the ember brand on 4002 for
+check IsLess(GetStrength(GetObject(4002)),GSGetVar(0,"ember.strength"))
+waitfor 10 IsEqual(GSGetVar(0,"ember_brand.burns"),2)
+
+key esc
+waitwindow 10 escmenu
+click 395 120
+waitwindow 10 saveload
+clickregion 0
+waitline 15 Saved save1
+check IsEqual(GSGetVar(0,"ember_brand.burns"),2)
+waitwindow 10 battle
+waitline 15 Showcase mod: the ember brand on 4002 expired after 5 burns
+check IsEqual(GSGetVar(0,"ember_brand.burns"),5)
+check IsEqual(GSGetVar(0,"ember_brand.ended"),1)
+check IsGreater(GSGetVar(0,"ember_brand.lost"),0)
+check IsLess(HP(GetObject(4002)),GSGetVar(0,"ember.hp"))
+check IsEqual(GetStrength(GetObject(4002)),GSGetVar(0,"ember.strength"))
+read mod Res\spells\ember_brand.lua yes
+
+wait 300
+load save1
+waitwindow 30 battle
+waitfor 20 IsGreater(HP(GetLeader()),0)
+dump loaded_save1
+check IsGreater(GSGetVar(0,"ember_brand.burns"),1)
+check IsLess(GSGetVar(0,"ember_brand.burns"),5)
+check IsEqual(GSGetVar(0,"ember_brand.ended"),0)
+check IsLess(GetStrength(GetObject(4002)),GSGetVar(0,"ember.strength"))
+waitfor 15 IsEqual(GSGetVar(0,"ember_brand.ended"),1)
+check IsEqual(GSGetVar(0,"ember_brand.burns"),5)
+check IsEqual(GSGetVar(0,"ember_brand.ended"),1)
+check IsEqual(GetStrength(GetObject(4002)),GSGetVar(0,"ember.strength"))
+check IsAlive(GetLeader())
+report
+quit

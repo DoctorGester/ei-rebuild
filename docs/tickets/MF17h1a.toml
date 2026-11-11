@@ -4,3 +4,5 @@ group = "mods"
 depends = ["MF17h1"]
 note = "MF17h1 put the original 20 buffs' stun, no casting, scale steps and regeneration on OnStats totals (Stunned, NoCasting, Girth / Size, Regeneration): the original recomputes them from the effect set at every change, so per-event OnApply / OnEnd would not be exact (two strengthens are one step; any removal unstuns without a stun left). What is left for mods is one-shot or periodic action: a damage-over-time buff, a heal on expiry. Names must not clash with the cast hooks of the same module (OnTick, OnEnd are taken): e.g. OnEffectApplied(effect, unit), OnEffectEnded(effect, unit, reason), OnEffectTick(effect, unit) for kinds whose module has it (cost only for those), with a small effect binding (Damage / Heal of the unit by the effect's caster-less hit, Remove). Decide with the user whether these belong here or in MF17h3."
 order = 1397
+status = "review"
+started = "2026-11-11"

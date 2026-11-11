@@ -5,6 +5,7 @@
 #include "game/objects/map_object.h"
 #include "game/net/net_link.h"   // netlink::DriverSession (SetGameResult)
 #include "game/script/script.h"
+#include "game/script/script_lua_scheduler.h"
 #include "game/ai/sector_map.h"
 #include "game/spells/spell.h"
 #include "game/units/unit.h"
@@ -58,6 +59,8 @@ void WorldServer::Tick(char force) {
     if (scriptsActive != 0 || force) MainScript()->Tick();
     SecondScript()->Tick();
     UpdateUnits();
+    // The active effects' one-shot hooks of the tick (docs/modding.md, "Active effects").
+    if (MainScript()->runner) MainScript()->runner->spells.RunEffectHooks(*this);
 }
 
 void WorldServer::WakeUnitsAround(const Vector3& position, float radius) {
@@ -161,6 +164,7 @@ void WorldServer::TickSleepingEffects() {
         bool expired = false;
         for (int i = 0; i < std::ssize(object->effects); ++i) {
             if (--object->effects[i].ticksLeft <= 0) expired = true;
+            else EffectTicked(*object, object->effects[i]);
         }
         if (expired) AddToUpdateMap(object);
     }

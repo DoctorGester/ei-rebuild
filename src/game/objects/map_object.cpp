@@ -46,8 +46,12 @@ void RemoveOutdatedEffects(MapObject* object, const MapEffect* effect) {
             float difference = e->strength - effect->strength;
             outdated = std::fabs(difference) < kSameStrength;
         }
-        if (outdated) object->effects.erase(object->effects.begin() + i);
-        else ++i;
+        if (outdated) {
+            EffectEnded(*object, *e, EffectEnd::Renewed);
+            object->effects.erase(object->effects.begin() + i);
+        } else {
+            ++i;
+        }
     }
 }
 
@@ -106,6 +110,8 @@ void MapObject::SetEffectCount(int count) {
 void MapObject::AddEffect(const MapEffect* effect) {
     if (std::ssize(effects) >= kMaxEffects) return;   // RemoveOutdatedEffects keeps the list far below this
     effects.push_back(*effect);
+    effects.back().serial = MapEffect::NewSerial();
+    const MapEffect added = effects.back();
     MarkChanged(NetField::Effects);
     const bool scales = ScalesWith(effects.back());
     const bool stuns = EffectTotals()[EffectStat::Stunned] > 0.0f;
@@ -114,6 +120,7 @@ void MapObject::AddEffect(const MapEffect* effect) {
     EffectsChanged();
     if (scales) RecomputeScale();
     if (effect->ticksLeft > 1) RemoveOutdatedEffects(this, effect);
+    EffectApplied(*this, added);
 }
 
 void MapObject::EffectRemoved(bool scales) {
@@ -132,14 +139,17 @@ int MapObject::RemoveEffects(std::uint8_t record) {
             continue;
         }
         const bool scales = ScalesWith(effects[i]);
+        const MapEffect gone = effects[i];
         effects.erase(effects.begin() + static_cast<std::ptrdiff_t>(i));
         EffectRemoved(scales);
+        EffectEnded(*this, gone, EffectEnd::Removed);
         ++removed;
     }
     return removed;
 }
 
 void MapObject::ClearEffects() {
+    for (const MapEffect& effect : effects) EffectEnded(*this, effect, EffectEnd::Died);
     effects = {};
     MarkChanged(NetField::Effects);
     ScaleEffectChanged(true);

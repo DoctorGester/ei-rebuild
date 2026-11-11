@@ -317,15 +317,16 @@ void UnitServer::GetAttackParams(AttackParams* out) {
         out->speed = weapon->weight;
         float base = WeaponAttackBonus(weapon->prototypeId);
         float bonus = stats.WeaponSkillBonus(out->weaponType, self);
-        out->attack = lib::Truncate(bonus + base);
+        out->attack = lib::Truncate((bonus + base) + EffectTotal(self, EffectStat::Attack));
         base = WeaponDefenceBonus(weapon->prototypeId);
         bonus = stats.WeaponSkillBonus(out->weaponType, self);
-        out->defence = lib::Truncate(bonus + base);
+        out->defence = lib::Truncate((bonus + base) + EffectTotal(self, EffectStat::Defence));
     } else {
         out->damageMin = stats.damage;
         out->damageMax = stats.damageSpread + stats.damage;
-        out->attack = lib::Truncate(stats.combat[UnitStats::CombatIndex::Attack]);
-        out->defence = lib::Truncate(stats.combat[UnitStats::CombatIndex::Defence]);
+        out->attack = lib::Truncate(stats.combat[UnitStats::CombatIndex::Attack] + EffectTotal(self, EffectStat::Attack));
+        out->defence =
+            lib::Truncate(stats.combat[UnitStats::CombatIndex::Defence] + EffectTotal(self, EffectStat::Defence));
         out->speed = stats.combat[UnitStats::CombatIndex::Speed];
         if (weapon) {
             out->weaponType = weapon->GetType();
@@ -710,10 +711,11 @@ void UnitServer::UpdateProtection() {
     float factor = unit->player ? 1.0f : DefenceFactors()[options::g_options.difficulty];
     ItemWeapon* weapon = unit->GetWeapon(unit->activeWeapon);
     if (unit->player && weapon) {
-        float bonus = stats.WeaponSkillBonus(weapon->GetType(), unit);
+        float bonus = stats.WeaponSkillBonus(weapon->GetType(), unit) + EffectTotal(unit, EffectStat::Defence);
         protection.words[0] = static_cast<std::uint16_t>(static_cast<int>(bonus * factor));
     } else {
-        protection.words[0] = static_cast<std::uint16_t>(static_cast<int>(factor * stats.combat[UnitStats::CombatIndex::Defence]));
+        const float defence = stats.combat[UnitStats::CombatIndex::Defence] + EffectTotal(unit, EffectStat::Defence);
+        protection.words[0] = static_cast<std::uint16_t>(static_cast<int>(factor * defence));
     }
 }
 

@@ -86,6 +86,14 @@ float ScaledAtLeastOne(Unit* unit, float k, float value) {
     return SelectLess(one, s, s, one);
 }
 
+// A hit point maximum with the effects': plus MaxHitPoints, then Might's scale (at least 1).
+float EffectHitPoints(Unit* unit, float maximum) {
+    return ScaledAtLeastOne(unit, kHitPointEffect, maximum + EffectTotal(unit, EffectStat::MaxHitPoints));
+}
+
+// A mana maximum from the curve plus the effects' MaxMana.
+float EffectMana(Unit* unit, float maximum) { return maximum + EffectTotal(unit, EffectStat::MaxMana); }
+
 float LowestSlotRatio(const UnitStats* stats, int type) {
     float lowest = 1.0f;
     for (const UnitStatSlot& slot : stats->slots) {
@@ -118,12 +126,12 @@ void RefreshMaxima(UnitStats* stats, UnitVitals* vitals, Unit* unit) {
                                   &g_logicSettings.hpVal[4]);
     float scaled = curve * (stats->strength / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]);
     float maxHitPoints = (LevelValueOf(stats, kSkillHitPoints) * kPercent + 1.0f) * scaled;
-    float limit = ScaledAtLeastOne(unit, kHitPointEffect, maxHitPoints);
+    float limit = EffectHitPoints(unit, maxHitPoints);
     vitals->maxHitPoints = limit;
     curve = ExperienceCurve(&g_logicSettings.mpVal[3], &stats->experience, &g_logicSettings.mpVal[2],
                             &g_logicSettings.mpVal[4]);
     scaled = curve * (stats->dexterity / g_logicSettings.mpVal[0] * g_logicSettings.mpVal[1]);
-    vitals->maxMana = (LevelValueOf(stats, kSkillMana) * kPercent + 1.0f) * scaled;
+    vitals->maxMana = EffectMana(unit, (LevelValueOf(stats, kSkillMana) * kPercent + 1.0f) * scaled);
     stats->ScaleSlotMaxima(limit);
     vitals->hitPoints = stats->Reduce(vitals->maxHitPoints);
 }
@@ -159,6 +167,8 @@ bool RaiseLevel(UnitStats* stats, std::uint8_t* levels, int index, int amount, U
 
 } // namespace
 
+float EffectTotal(Unit* unit, EffectStat stat) { return unit ? unit->EffectTotals()[stat] : 0.0f; }
+
 // --- Regeneration ----------------------------------------------------------------------------
 
 bool UnitVitals::Regenerate(UnitStats* stats, Unit* unit, char inCombat) {
@@ -167,14 +177,16 @@ bool UnitVitals::Regenerate(UnitStats* stats, Unit* unit, char inCombat) {
     bool changed = false;
     regenTicks = 0;
     if (inCombat == 0 && mana < maxMana) {
-        float raised = (LevelValueOf(stats, kSkillManaRegen) * kPercent + 1.0f) * manaRegen * maxMana + mana;
+        const float share = manaRegen + EffectTotal(unit, EffectStat::ManaRegen);
+        float raised = (LevelValueOf(stats, kSkillManaRegen) * kPercent + 1.0f) * share * maxMana + mana;
         float limit = maxMana;
         float r = raised;
         mana = SelectLess(limit, r, limit, r);
         changed = true;
     }
     if (hitPoints < maxHitPoints) {
-        float rate = (LevelValueOf(stats, kSkillHitPointRegen) * kPercent + 1.0f) * hitPointRegen;
+        const float share = hitPointRegen + EffectTotal(unit, EffectStat::HitPointRegen);
+        float rate = (LevelValueOf(stats, kSkillHitPointRegen) * kPercent + 1.0f) * share;
         if (unit) {
             float boost = unit->EffectTotals()[EffectStat::Regeneration];
             if (boost > 0.0f) rate = boost * rate;
@@ -294,13 +306,11 @@ float UnitStats::RateValue() {
     return (level * kPercentB + 1.0f) * arms * base;
 }
 
-float ScaleDamageByEffects(Unit* unit, float value) { return ScaledAtLeastOne(unit, kDamageEffect, value); }
-
-float HitPointEffectScale(Unit* unit) { return EffectScale(unit, kHitPointEffect); }
-
-float ScaleHitPointsByEffects(Unit* unit, float value) {
-    return ScaledAtLeastOne(unit, kHitPointEffect, value);
+float ScaleDamageByEffects(Unit* unit, float value) {
+    return ScaledAtLeastOne(unit, kDamageEffect, value + EffectTotal(unit, EffectStat::Damage));
 }
+
+float ScaleHitPointsByEffects(Unit* unit, float value) { return EffectHitPoints(unit, value); }
 
 void UnitStats::RecomputeHitPoints(UnitVitals* vitals, Unit* unit) {
     if (IsTextKey(unit->id)) {
@@ -308,7 +318,7 @@ void UnitStats::RecomputeHitPoints(UnitVitals* vitals, Unit* unit) {
     } else {
         vitals->maxHitPoints = fixedMaxHitPoints;
     }
-    float limit = ScaledAtLeastOne(unit, kHitPointEffect, vitals->maxHitPoints);
+    float limit = EffectHitPoints(unit, vitals->maxHitPoints);
     vitals->maxHitPoints = limit;
     ScaleSlotMaxima(limit);
     float hitPoints = Reduce(vitals->maxHitPoints);
@@ -341,18 +351,28 @@ void UnitStats::Recompute(UnitVitals* vitals, Unit* unit) {
     for (UnitStatPair& protection : vitals->protection) protection.current = protection.base;
 
     // What the active effects add (their kinds' OnStats; the game's buffs in assets/spells/Buff.lua), every total
-    // added even when it is 0, as the original added its strongest values.
+    // added even when it is 0, as the original added its strongest values. The passes' order is docs/modding.md's
+    // ("Active effects"): the attributes first, so that everything worked out from them below has them.
     const EffectStats effects = unit->EffectTotals();
+    strength = effects[EffectStat::Strength] + strength;
+    dexterity = effects[EffectStat::Dexterity] + dexterity;
+    intelligence = effects[EffectStat::Intelligence] + intelligence;
     auto protect = [vitals, &effects](DamageType damage, EffectStat stat) {
         float& protection = vitals->protection[static_cast<int>(damage)].current;
         protection = effects[stat] + protection;
     };
+    protect(DamageType::Piercing, EffectStat::PiercingProtection);
+    protect(DamageType::Slashing, EffectStat::SlashingProtection);
+    protect(DamageType::Crushing, EffectStat::CrushingProtection);
     protect(DamageType::Fire, EffectStat::FireProtection);
     protect(DamageType::Lightning, EffectStat::LightningProtection);
     protect(DamageType::Acid, EffectStat::AcidProtection);
+    protect(DamageType::Other, EffectStat::GeneralProtection);
     perception[Sense::Sight].current = effects[EffectStat::Sight] + perception[Sense::Sight].current;
     perception[Sense::DaySight].current = effects[EffectStat::DaySight] + perception[Sense::DaySight].current;
     perception[Sense::Near].current = effects[EffectStat::NearSense] + perception[Sense::Near].current;
+    perception[Sense::Hearing].current = effects[EffectStat::Hearing] + perception[Sense::Hearing].current;
+    perception[Sense::Smell].current = effects[EffectStat::Smell] + perception[Sense::Smell].current;
     // The sight, hearing and near conspicuity stay at least 0.
     auto lower = [this, &effects](Sense sense, EffectStat stat) {
         float lowered = conspicuity[sense].current + effects[stat];
@@ -371,12 +391,12 @@ void UnitStats::Recompute(UnitVitals* vitals, Unit* unit) {
         vitals->maxHitPoints = (LevelValueOf(this, kSkillHitPoints) * kPercent + 1.0f) * scaled;
         curve = ExperienceCurve(&g_logicSettings.mpVal[3], &experience, &g_logicSettings.mpVal[2], &g_logicSettings.mpVal[4]);
         scaled = curve * (dexterity / g_logicSettings.mpVal[0] * g_logicSettings.mpVal[1]);
-        vitals->maxMana = (LevelValueOf(this, kSkillMana) * kPercent + 1.0f) * scaled;
+        vitals->maxMana = EffectMana(unit, (LevelValueOf(this, kSkillMana) * kPercent + 1.0f) * scaled);
     } else {
         vitals->maxHitPoints = fixedMaxHitPoints;
     }
 
-    float limit = ScaledAtLeastOne(unit, kHitPointEffect, vitals->maxHitPoints);
+    float limit = EffectHitPoints(unit, vitals->maxHitPoints);
     vitals->maxHitPoints = limit;
     float ratio = limit / slots[1].share;
     for (UnitStatSlot& slot : slots) {
@@ -397,7 +417,8 @@ void UnitStats::Recompute(UnitVitals* vitals, Unit* unit) {
     }
     load = unit->TotalItemWeight();
     loadFactor = movementKind == 1 ? LegsFactor() : 1.0f;
-    speed = speedBase * loadFactor;
+    const float moving = effects[EffectStat::Speed] + speedBase * loadFactor;
+    speed = SelectLess(0.0f, moving, moving, 0.0f);
     float arms = ArmsFactor();
     armsFactor = arms;
     rateBase = keyed ? dexterity * kPointTwo + kRateBaseOffset : kUnkeyedRateBase;
@@ -437,8 +458,8 @@ void UnitStats::RaiseStrength(int amount, Unit* unit) {
     // The strength in use rises with its base at once, so the slots scale to the new maximum (a hero at full
     // health stays there).
     strength = amount + strength;
-    vitals->maxHitPoints = ScaledAtLeastOne(unit, kHitPointEffect, HitPointCurve());
-    vitals->maxMana = ManaCurve();
+    vitals->maxHitPoints = EffectHitPoints(unit, HitPointCurve());
+    vitals->maxMana = EffectMana(unit, ManaCurve());
     ScaleSlotMaxima(vitals->maxHitPoints);
     vitals->hitPoints = Reduce(vitals->maxHitPoints);
     unit->baseScale.x += kPointTwo;
@@ -455,13 +476,10 @@ void UnitStats::RaiseDexterity(int amount, Unit* unit) {
     float curve = ExperienceCurve(&g_logicSettings.hpVal[3], &experience, &g_logicSettings.hpVal[2], &g_logicSettings.hpVal[4]);
     float scaled = curve * (strength / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]);
     float maxHitPoints = (SkillLevelValueCopy(kSkillHitPoints) * kPercent + 1.0f) * scaled;
-    float boosted = HitPointEffectScale(unit) * maxHitPoints;
-    float one = 1.0f;
-    float b = boosted;
-    vitals->maxHitPoints = SelectLess(one, b, b, one);
+    vitals->maxHitPoints = EffectHitPoints(unit, maxHitPoints);
     curve = ExperienceCurve(&g_logicSettings.mpVal[3], &experience, &g_logicSettings.mpVal[2], &g_logicSettings.mpVal[4]);
     scaled = curve * (dexterity / g_logicSettings.mpVal[0] * g_logicSettings.mpVal[1]);
-    vitals->maxMana = (SkillLevelValueCopy(kSkillMana) * kPercent + 1.0f) * scaled;
+    vitals->maxMana = EffectMana(unit, (SkillLevelValueCopy(kSkillMana) * kPercent + 1.0f) * scaled);
     ScaleSlotMaxima(vitals->maxHitPoints);
     vitals->hitPoints = Reduce(vitals->maxHitPoints);
     float lowered = unit->baseScale.y - kPointTwo;

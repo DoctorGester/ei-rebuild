@@ -8,7 +8,9 @@
 
 namespace luaapi {
 
-enum class Kind : unsigned char { Section, Binding, Global, Helper, CastMethod, StatsMethod, Hook, Field, Stat };
+enum class Kind : unsigned char {
+    Section, Binding, Global, Helper, CastMethod, StatsMethod, EffectMethod, Hook, Field, Stat
+};
 
 // One row of script_lua_api.inc.
 struct Row {
@@ -27,6 +29,7 @@ inline constexpr Row kRows[] = {
 #define EI_LUA_HELPER(name, params, returns, text) {Kind::Helper, "", #name, params, returns, text},
 #define EI_LUA_CAST_METHOD(name, params, returns, text) {Kind::CastMethod, "", #name, params, returns, text},
 #define EI_LUA_STATS_METHOD(name, params, returns, text) {Kind::StatsMethod, "", #name, params, returns, text},
+#define EI_LUA_EFFECT_METHOD(name, params, returns, text) {Kind::EffectMethod, "", #name, params, returns, text},
 #define EI_LUA_HOOK(name, params, returns, text) {Kind::Hook, "", #name, params, returns, text},
 #define EI_LUA_FIELD(owner, name, type, text) {Kind::Field, #owner, #name, type, "", text},
 #define EI_LUA_STAT(name, text) {Kind::Stat, "", #name, "", "", text},

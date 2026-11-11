@@ -25,8 +25,8 @@ and every scenario that starts the game.
 ## Statistics in play
 
 - `UnitVitals::Regenerate` (every world update): every 15th call mana (unless the unit has an order) gains `(1 + 0.01 *
-  skill 19) * regen * maximum`, hit points heal the slots by `maximum * (1 + 0.01 * skill 18) * regen` (times the effects'
-  Regeneration when positive) through `HealSlots`; returning 1 triggers `Recompute`: stats from bases plus skills 23-25, protection
+  skill 19) * (regen + the effects' ManaRegen) * maximum`, hit points heal the slots by `maximum * (1 + 0.01 * skill 18)
+  * (regen + HitPointRegen)` (times the effects' Regeneration when positive) through `HealSlots`; returning 1 triggers `Recompute`: stats from bases plus skills 23-25, protection
   and value pairs plus the active effects' totals (their kinds' OnStats: items_spells.md, "Active effects on scripts"), maxima from the experience curves `base ^ (ln(experience /
   divisor) / ln(logBase)) * stat / divisor * scale * (1 + 0.01 * skill)` (in the original's order), strengthen / weaken scale (at least 1), slot maxima, capacity, load, legs / arms factors, rate. The
   difficulty table scales hits on units without a player.

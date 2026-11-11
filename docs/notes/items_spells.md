@@ -373,6 +373,36 @@ twenty buffs' hook is Buff.lua's OnStats (a table by `effect.kind`), teleport's 
   is not; `UnitServer::EffectsChanged` sets MapObjectFlag::NoCasting from NoCasting. "Scales" (AddEffect and the
   removals: RecomputeHitPoints and RecomputeScale) is whether the effect's kind touched Might, Frailty, Girth or Size
   (`ScalesWith`, asked before a removal).
+- **The stats no game buff touches** (MF17h3): Strength, Dexterity, Intelligence (Recompute, right after the skill
+  levels', so the curves, the capacity and the rate have them), MaxHitPoints (unit_vitals.cpp's `EffectHitPoints`:
+  added before Might's scale, in every place that scale was: Recompute, RecomputeHitPoints, RefreshMaxima, the Raise
+  functions, `ScaleHitPointsByEffects`), MaxMana (`EffectMana`: the curve's maximum, so a text-key unit's only; a
+  monster's is its prototype's, set once, with no base to add to), HitPointRegen / ManaRegen (added to the vitals' share
+  in `Regenerate`), the four other protections, Hearing and Smell perception (Recompute), Attack and Defence
+  (`GetAttackParams` before the truncation, `UpdateProtection`'s defence word), Damage (`ScaleDamageByEffects`, before
+  Might's scale: every weapon and natural attack), Speed (Recompute: `speedBase * loadFactor` plus it, at least 0: the
+  packed speed byte wraps below 0), the skills (`WeaponSkillBonus`: melee / archery; `SpellSchoolSkill(school,
+  unit)`: elemental / sense / astral, only MayCast passes the unit; `AttributeWithItems`: science, taming). The order
+  is docs/modding.md's list ("Active effects", "The order they apply in"). Each is `x + total`, every time, so a
+  vanilla unit's numbers stay bit for bit (x + 0 is x but for a -0; the goldens hold). Not taken: the interface's skill
+  numbers and `GetSkill` (the bytes), a monster's mana maximum, the client's attack display (no values there).
+- **One-shot hooks** (MF17h1a): a kind's module's `OnEffectApplied(effect, unit)`, `OnEffectEnded(effect, unit,
+  reason)` and `OnEffectTick(effect, unit)` (ScriptSpellHost: `Queue`, `RunEffectHooks`, `CallEffectHook`). The
+  effects list's changes tell them (effect_stats.h: `EffectApplied` at the end of AddEffect, `EffectEnded` in
+  RemoveOutdatedEffects "renewed", RemoveEffects "removed", ClearEffects "died", RunTick's expiry "expired",
+  `EffectTicked` for each effect left after RunTick's and TickSleepingEffects' count down), which queue a call only when
+  the kind's module has the hook (`KindHooks`: looked up once a kind in the state; the cost of the game's buffs is that
+  lookup a tick an effect). The queue runs at the end of `WorldServer::Tick`, in order, also what hooks add meanwhile
+  (at most 10000 a tick): never inside the list's own loops, so a hook's damage that kills (ClearEffects) or a Remove
+  cannot pull the list from under them. A call skips an object no longer in the world; a tick's call looks the effect
+  up again by `MapEffect::serial` (a per-run number from AddEffect and Load, not saved or sent) and skips one already
+  gone. The hook's effect value is a new table (kind, value, ticks, power) whose methods (`effect:Damage`: a hit
+  without a caster through `ReceiveHit`; `effect:Heal`; `effect:Remove`: erased by serial, EffectRemoved, its own
+  "removed" call queued) work only while that hook runs (the table is the hook's: `HookTarget`). The world's bindings
+  are on; nothing of a hook is saved (the queue is empty between ticks). Stats stay in OnStats: the original
+  recomputes from the whole effect set, so per-event changes would not be exact (two strengthens are one step).
+  Checked by `mod_showcase_buff` (the showcase's Ember Brand: Strength down, burns every 20 ticks through
+  effect:Damage, "expired" after five, saved mid-brand and loaded: the same five burns and end).
 - **Bit-exact.** Each kind runs once with its strongest value (MaxKeepB from 0, the original's fold), by ascending
   kind; each stats call is one float operation with its argument rounded to a float. The protections: `Larger` of
   the protection's value and antimagic's from 0 is the original's `own >= antimagic ? own : antimagic`; Haste is

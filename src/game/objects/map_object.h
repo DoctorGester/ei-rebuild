@@ -32,6 +32,12 @@ struct MapEffect {
     float value = 0.0f;             // the spell's damage (its kind's OnStats sees the strongest)
     float strength = 0.0f;          // the spell's radius (saved; Rebirth compares it)
     std::uint8_t ending = 0;        // the client plays no end sound when set
+    // The effect's identity in this run (AddEffect, Load: NewSerial), by which a one-shot hook's effect:Remove finds
+    // it (ScriptSpellHost); neither saved nor sent.
+    std::uint32_t serial = 0;
+
+    // A serial no effect of this run has had.
+    static std::uint32_t NewSerial();
 
     // What it does: the activeEffect of the spell record at `type` (its `effect`, else its behaviour;
     // itemdb::ActiveEffectAt).
@@ -243,7 +249,7 @@ public:
     void Update();
 
     // Removes every effect (frees the array), marks part 3 changed and calls the vitals, stun (0) and scale
-    // virtuals.
+    // virtuals. The unit's death's (their one-shot hooks' reason "died").
     void ClearEffects();
     // After an effect left the array (it ran out, or RemoveEffects; `scales`: ScalesWith it, asked before): the scale
     // recomputed for a scaling one, part 3 marked changed, the scale and effects-changed virtuals, unstunned when the
