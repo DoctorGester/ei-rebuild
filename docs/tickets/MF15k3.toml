@@ -4,3 +4,5 @@ group = "mods"
 size = 2
 note = "After MF15k1. The viewer exe needs a unit-like carrier: a figure (models/figure_mesh) with an animation playing and its part points, drawn by the scene renderer without the Unit / MapObject game classes. Picks any figure from the install's archives (a hero by default)."
 order = 1386
+status = "review"
+started = "2026-11-11"
