@@ -6,5 +6,6 @@ model = "opus"
 depends = ["MF15c"]
 note = "User 2026-11-11 approved MF15's plan (build/mf15_particles.md). 0x40000000-range name-hash ids in the existing int; each effect declares a fallback type; the server sends the fallback to original clients (told apart by our login mark). Done: the per-connection fallback is dropped (an original client never receives a data effect's id: a server that plays a mod refuses unmarked clients at the join, MF16, and the original content uses only 0x2000 numbers); the fallback key is gone from the schema. The id already travelled and saved in the int (MF15c); checked by net_pair_mod_effect and mod_effect_save."
 order = 1345
-status = "review"
+status = "done"
 started = "2026-11-11"
+done = "2026-11-11"
