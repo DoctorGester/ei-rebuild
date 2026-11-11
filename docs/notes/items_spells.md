@@ -139,6 +139,35 @@ closes files from GetFile (reference counts only grow).
   ended the game: there are no spell sequences). `Spell` takes its numbers as the `SpellValues` base (CopyTo assigns it). `Light`: range sqrt(FLT_MAX);
   `LightFactory` makes lights 0x2E / 0x31.
 
+## Spell behaviours
+
+A spell record's place (Spell's `prototypeId >> 16`, `SpellValues::prototypeIndex`, `MapEffect::type`) says which
+record it is; its behaviour (`SpellRecord::behaviour`, `Spell::Behaviour()`, `MapEffect::Behaviour()`) says what it
+does. The load (`SpellDatabase::Read`, `SetBehaviours`) gives the game's 42 records the behaviour of their place, so for
+them the two are one number and every golden stays; a record after them (a mod's: the showcase's "spark", 42) gets
+`SpellType::None`, which starts nothing.
+
+- What reads the behaviour: `SpellEffect::Start`, `UpdateMissile`, `UpdateLasting`, `UpdateFootprint`, `DamageKindOf`
+  (spell_effect*.cpp), the cut spells in `CastSpell`, `FillCastKind`'s Rick / curse magic, the healing item triggers
+  (combat_actions, combat_update), the effects' stat reads (`HasEffect`, `EffectValue`, `AddEffect`'s scale and stun,
+  unit_vitals' strongest per behaviour) and the client's looks and sounds (`MergesParticles`, `ParticleSourceType`,
+  `SoundFolder`, map_object_client_effects.cpp). A behaviour without a look (None) gets no particle source and no
+  log. The HUD's buff icons and the AI's "has it already" option effect keep the record (icon) and the behaviour.
+- What the tables say of a spell is `itemdb::UseOf(record)` (`Spell::Use()`, spell_behaviour.cpp): the AI's option
+  kind (`ai`), the damage type of the AI's estimate (`GetSpellDamage`), `offensive` (the HUD's use at once aims at the
+  nearest enemy), `turnsVictim` (`CreateMissile`: the victim sees the caster, diplomacy counts an attack) and
+  `fighting` (`UnitServer::IsFighting`: the battle music). The game's 42 have one row each (`kGameSpells`, with
+  Rebirth's FixSpellSelfCasting and FixPlaingBattleMusicFromAntimagic in it); a None record reads its TOML fields
+  `ai`, `damage_type` and `offensive` (offensive also standing for turnsVictim and fighting). The fields of a game
+  record are not read: its row is its behaviour's.
+- Limits: a spell's place is a byte (prototypeIndex, MapEffect::type, saved and sent), a modifier's place + 1 a signed
+  byte (`Spell::modifiers`); the load leaves out spells past 256 and modifiers past 127 with a warning.
+- Moving the game's spells onto the scripted path later (their records' rows as fields) needs `turnsVictim` and
+  `fighting` to be fields of their own: the game's rows differ from `offensive` there (Lichdom and Charm are
+  offensive and turn nobody; Rick and curse magic are not fighting).
+- Checked by ei_unit_check's spell behaviour cases (tests/unit/spell_behaviour.cpp: a fake 300-record table cut to
+  256, the game's rows whatever the fields say, a new record's fields) and by every golden staying the same.
+
 ## Spell effects
 
 `SpellEffect` (world.h calls it `Projectile`) is one cast spell and embeds its Spell. The world server ticks `Update`;
@@ -147,7 +176,7 @@ missile, the lasting one through `EnterLasting` or `kStateEnded`; the charm leav
 tick), 1 missile in flight (`UpdateMissile`), 2 lasting (`UpdateLasting`), else it ends (footprint cleared, the three effect objects dropped). The three counted effect objects
 (visual, sound, light) are also in the world's timed objects; replacing one removes and releases the old.
 
-Spell types: 0 / 0x28 fire arrow, 1 / 0x29 lightning, 2 acid ray, 3 fireball, 4 light strike, 5 acid column, 6 fire
+Spell behaviours: 0 / 0x28 fire arrow, 1 / 0x29 lightning, 2 acid ray, 3 fireball, 4 light strike, 5 acid column, 6 fire
 wall, 7 light wall, 8 poison cloud, 9-0x11, 0x13, 0x19, 0x1A, 0x1D-0x22, 0x25, 0x26 buffs (the target's AddEffect gets a
 record with byte 1 = trunc(power x 16)), 0x12 fireworks, 0x14 clairvoyance, 0x15 possession, 0x17 vision fog, 0x18
 healing, 0x1B link, 0x1C teleport, 0x24 charm, 0x27 campfire. `SpellType` names all 42 after the spell database's

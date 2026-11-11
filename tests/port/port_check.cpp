@@ -37,6 +37,7 @@ int RunTexturePngChecks();
 int RunMapFolderChecks();
 int RunFigureGltfChecks();
 int RunLuaNumberChecks();
+int RunSpellBehaviourChecks();
 
 namespace {
 void Check(bool ok, const char* message) {
@@ -66,6 +67,7 @@ int main() {
     Check(RunMapFolderChecks() == 0, "maps as folders and back");
     Check(RunFigureGltfChecks() == 0, "figure models as glTF and back");
     Check(RunLuaNumberChecks() == 0, "script floats across the Lua boundary");
+    Check(RunSpellBehaviourChecks() == 0, "the spells' behaviours over a fake table");
     Check(CallerCaptured(), "caller frame starts at the return address");
     Check(lib::FormatLocalTime(0, "%Y-%m-%d").size() == 10, "format saved timestamp");
     const std::string tooLong(128, 'x');

@@ -8,6 +8,7 @@
 
 #include "lib/vecmath.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -29,6 +30,79 @@ enum class SpellSchool : int {
     Domination = 7,
     None = 8,
 };
+
+// What a spell does (SpellRecord::behaviour, Spell::Behaviour()): the game's 42 spells, then None. The game's records
+// have the behaviour of their own place in the spell database (the order of database.res, Spell's prototypeId >> 16),
+// so for them the place and the behaviour are one number; a record after them does nothing (None).
+// Names from the prototypes' names (the code name where it differs), the sound folders under magic\ and the Start*
+// functions. The 1.06 database and Rebirth's both have all 42. Shapechange and Comprehend start nothing; Teleport's
+// record on the caster stuns it like Stun's (the client draws no particles for it). An active effect holds the place
+// of the spell that made it (MapEffect::type; MapEffect::Behaviour() reads the record's behaviour).
+enum class SpellType : int {
+    FireArrow = 0x00,               // "arrow"
+    Lightning = 0x01,               // "Lightning Arc"
+    AcidRay = 0x02,
+    Fireball = 0x03,
+    InvokeLightning = 0x04,         // "inv_lit": the light strike
+    AcidColumn = 0x05,
+    FireWall = 0x06,
+    LightningWall = 0x07,           // "litnwall" ("Smtg Lightning"): the light wall
+    AcidFog = 0x08,                 // the poison cloud
+    ProtectionFromFire = 0x09,      // "prot_fire", sounds in magic\Fireshield
+    ProtectionFromLightning = 0x0A, // "prot_electro", magic\Lightsheild
+    ProtectionFromAcid = 0x0B,      // "prot_acid", magic\PoisonShield
+    EagleSight = 0x0C,
+    Infravision = 0x0D,
+    DetectLife = 0x0E,
+    Invisibility = 0x0F,
+    Silence = 0x10,
+    Lichdom = 0x11,
+    Fireworks = 0x12,
+    Stench = 0x13,
+    Clairvoyance = 0x14,            // "clairvoyence"
+    Possession = 0x15,
+    Shapechange = 0x16,
+    VisionFog = 0x17,
+    Healing = 0x18,
+    Stun = 0x19,
+    Antimagic = 0x1A,
+    Link = 0x1B,
+    Teleport = 0x1C,
+    Strengthen = 0x1D,              // "strength"
+    Weaken = 0x1E,                  // "weak"
+    Regeneration = 0x1F,
+    Feeblemind = 0x20,
+    Speed = 0x21,
+    Slow = 0x22,
+    Comprehend = 0x23,
+    Charm = 0x24,
+    Enlarge = 0x25,
+    Shrink = 0x26,
+    Campfire = 0x27,                // StartAtGround: the effect stands at the ground point
+    RickMagic = 0x28,               // "rick_magic", school fire: a fire arrow with the RikArrowSmoke trail
+    CurseMagic = 0x29,              // "curse_magic", school lightning: lightning (CreateLightning's flag 1)
+    None = 0xFF,                    // no behaviour of its own: it starts nothing, the tables read the record's fields
+};
+// The behaviours of the game's own records, places 0 to 0x29.
+inline constexpr std::uint32_t kGameSpellCount = 42;
+
+// How the AI uses a spell (SpellRecord::ai; the AI's option kinds, unit_ai.h's AIOptionKind): None it never casts.
+enum class SpellAi : int {
+    None = 0,
+    Attack = 1,         // at an enemy
+    AreaAttack = 2,     // at enemies around a point
+    LastingArea = 3,    // an area that hurts for a while
+    Curse = 4,          // an effect on an enemy that does not have it
+    Protect = 5,        // an effect on an ally that does not have it
+    Enhance = 6,        // the same, not when only allies are chosen
+    Heal = 7,
+};
+
+// A spell's place is a byte in the values a spell copies (SpellValues::prototypeIndex) and in an active effect
+// (MapEffect::type, saved and sent to the clients); a modifier's place + 1 a signed byte in a spell's modifier list
+// (Spell::modifiers). The load leaves out the records past these (SpellDatabase::Read).
+inline constexpr std::size_t kMaxSpellRecords = 256;
+inline constexpr std::size_t kMaxModifierRecords = 127;
 
 namespace itemdb {
 
@@ -71,7 +145,39 @@ struct SpellRecord {
     // shows the level when the 'e' byte is set.
     std::uint8_t allowedModifiers[5] = {};
     std::uint32_t classMask = 0;        // bit (class - 1): the class templates that may use it
+    // What the spell does, set by the load (SetBehaviours; not in spells.sdb or its TOML).
+    SpellType behaviour = SpellType::None;
+    // TOML only (`ai`, `damage_type`, `offensive`): what the game's tables read for a record whose behaviour has no
+    // row of its own (UseOf).
+    SpellAi ai = SpellAi::None;
+    DamageType damageType = DamageType::Other;
+    bool offensive = false;
 };
+
+// How the game's tables use a spell (UseOf).
+struct SpellUse {
+    SpellAi ai = SpellAi::None;
+    DamageType damageType = DamageType::Other;  // the AI's estimate of its damage (UnitServer::GetSpellDamage)
+    bool offensive = false;     // the HUD's use at once aims it at the nearest enemy, not at the caster
+    bool turnsVictim = false;   // the unit it is cast at sees the caster and counts as attacked (CreateMissile)
+    bool fighting = false;      // casting it is fighting (UnitServer::IsFighting: the battle music)
+};
+
+// The row of the record's behaviour for the game's 42; for None the record's fields, `offensive` also standing for
+// turnsVictim and fighting.
+SpellUse UseOf(const SpellRecord& record);
+
+// Each record's behaviour from its place: the first kGameSpellCount their own, the others None.
+void SetBehaviours(std::vector<SpellRecord>& records);
+
+// The records past `limit` erased; how many there were.
+template <class Record>
+std::size_t LeaveOutPast(std::vector<Record>& records, std::size_t limit) {
+    if (records.size() <= limit) return 0;
+    const std::size_t extra = records.size() - limit;
+    records.erase(records.begin() + static_cast<std::ptrdiff_t>(limit), records.end());
+    return extra;
+}
 
 // The spell database's three lists of 0x34-byte records (chunks 3-5 of spells.sdb): the spell recipes of
 // scrolls, armours and weapons (item_stock.h's SpellRecipe; ItemStock::FillSpellMaps reads them).
@@ -145,5 +251,10 @@ namespace itemdb {
 // The records of its tables typed (null when the index is out of range).
 inline SpellRecord* SpellAt(std::uint32_t index) { return g_spellDatabase.spells.At(index); }
 inline SpellModifierRecord* SpellModifierAt(std::uint32_t index) { return g_spellDatabase.modifiers.At(index); }
+// The behaviour of the record at `index` (None out of range: an active effect of a database without it).
+inline SpellType BehaviourAt(std::uint32_t index) {
+    const SpellRecord* record = SpellAt(index);
+    return record ? record->behaviour : SpellType::None;
+}
 
 } // namespace itemdb

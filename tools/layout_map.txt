@@ -356,6 +356,7 @@ spell.h                     spells/spell.h                    # Light and LightF
 spell.cpp                   spells/spell.cpp
 spell_db.h                  spells/spell_db.h           new   # the spell records, tables and database, out of item_db.h (C168i)
 spell_db.cpp                spells/spell_db.cpp
+spell_behaviour.cpp         spells/spell_behaviour.cpp
 spell_manager.cpp           spells/spell_manager.cpp
 spell_effect.cpp            spells/spell_effect.cpp
 spell_effect_update.cpp     spells/spell_effect_update.cpp

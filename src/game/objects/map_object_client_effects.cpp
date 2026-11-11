@@ -17,6 +17,7 @@
 #include "lib/crt.h"
 #include <cstdint>
 #include <cstring>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -33,13 +34,12 @@ constexpr float kPowerScale = 0.0625f;                // power / 16
 
 constexpr ParticleType kRingSource = ParticleType::ClayRing;        // Lichdom's ring
 constexpr ParticleType kScaleRingSource = ParticleType::Modifier1;   // strengthen / weaken
-constexpr ParticleType kFallbackSource = ParticleType::BlueGas;
 
 // The sound distances (10 and 50), read from the exe.
 constexpr float kSoundNear = 10.0f;
 constexpr float kSoundFar = 50.0f;
 
-// The effect types whose several entries share one particle source (the strongest power wins).
+// The behaviours whose several effects share one particle source (the strongest power wins).
 bool MergesParticles(SpellType type) {
     switch (type) {
     case SpellType::ProtectionFromFire: case SpellType::ProtectionFromLightning: case SpellType::ProtectionFromAcid:
@@ -53,8 +53,8 @@ bool MergesParticles(SpellType type) {
     }
 }
 
-// The particle source type of a lasting effect source; unknown types log and take 0x2013.
-ParticleType ParticleSourceType(SpellType type) {
+// The particle source type of a lasting effect's behaviour; none for a behaviour without a look (None).
+std::optional<ParticleType> ParticleSourceType(SpellType type) {
     switch (type) {
     case SpellType::ProtectionFromFire: return ParticleType::SphereFire;
     case SpellType::ProtectionFromLightning: return ParticleType::SphereElectricity;
@@ -69,13 +69,11 @@ ParticleType ParticleSourceType(SpellType type) {
     case SpellType::Feeblemind: return ParticleType::FeebleMind;
     case SpellType::Speed: return ParticleType::FeetCloud2;
     case SpellType::Slow: return ParticleType::FeetCloud1;
-    default:
-        game::DebugLog("ERROR: Spell effect on map object with unknown particle effect");
-        return kFallbackSource;
+    default: return std::nullopt;
     }
 }
 
-// The folder of an effect type's sounds ("" for types without).
+// The folder of a behaviour's effect sounds ("" for those without).
 const char* SoundFolder(SpellType type) {
     switch (type) {
     case SpellType::ProtectionFromFire: return "magic\\Fireshield";
@@ -176,15 +174,15 @@ void MapObjectClientSpecific::EffectsChanged(bool first) {
 
 void MapObjectClientSpecific::UpdateEffectParticles(bool first) {
     MapObject* mapObject = owner;
-    // The effects, those of the merging types once each with the highest power.
+    // The effects, those of the merging behaviours once each with the highest power.
     std::vector<MapEffect> wanted;
     if (std::ssize(mapObject->effects) > 0) {
         for (int i = 0; i < std::ssize(mapObject->effects); ++i) {
             const MapEffect& effect = mapObject->effects[i];
             bool merged = false;
-            if (MergesParticles(effect.Type())) {
+            if (MergesParticles(effect.Behaviour())) {
                 for (int j = 0; j < std::ssize(wanted); ++j) {
-                    if (wanted[j].type != effect.type) continue;
+                    if (wanted[j].Behaviour() != effect.Behaviour()) continue;
                     if (effect.power > wanted[j].power) wanted[j].power = effect.power;
                     merged = true;
                     break;
@@ -197,7 +195,7 @@ void MapObjectClientSpecific::UpdateEffectParticles(bool first) {
     for (int i = 0; i < std::ssize(particles); ++i) particles[i].present = 0;
 
     for (int w = 0; w < std::ssize(wanted); ++w) {
-        SpellType spellType = wanted[w].Type();
+        SpellType spellType = wanted[w].Behaviour();
         int power = wanted[w].power;
         // The same effect at the same power keeps its record.
         bool kept = false;
@@ -243,7 +241,9 @@ void MapObjectClientSpecific::UpdateEffectParticles(bool first) {
         case SpellType::Shrink:
             break;
         default: {
-            ParticleSource* source = g_clientWorld.particleManager->CreateSource(static_cast<int>(ParticleSourceType(spellType)));
+            const std::optional<ParticleType> look = ParticleSourceType(spellType);
+            if (!look) break;
+            ParticleSource* source = g_clientWorld.particleManager->CreateSource(static_cast<int>(*look));
             added.source = source;
             source->Attach(owner);
             source->ScaleSize(static_cast<float>(power) * kPowerScale / source->baseSize);
@@ -287,11 +287,11 @@ void MapObjectClientSpecific::UpdateEffectParticles(bool first) {
 
 void MapObjectClientSpecific::UpdateEffectSounds(bool first) {
     MapObject* mapObject = owner;
-    // The effect types, once each.
+    // The effects' behaviours, once each.
     SpellType types[256];
     int typeCount = 0;
     for (int i = 0; i < std::ssize(mapObject->effects); ++i) {
-        SpellType spellType = mapObject->effects[i].Type();
+        SpellType spellType = mapObject->effects[i].Behaviour();
         bool known = false;
         for (int j = 0; j < typeCount && !known; ++j) known = types[j] == spellType;
         if (!known) types[typeCount++] = spellType;

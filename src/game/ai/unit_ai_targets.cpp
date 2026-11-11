@@ -304,21 +304,20 @@ constexpr float kAttackSpellWeight = 1.3f;
 constexpr float kHelpWeight = 1.0f;
 constexpr float kHealWeight = 10.0f;
 
-// The option kind per spell type.
-constexpr AIOptionKind kSpellKinds[42] = {
-    AIOptionKind::SpellAttack, AIOptionKind::SpellAttack, AIOptionKind::SpellAttack, AIOptionKind::AreaAttack, AIOptionKind::AreaAttack, AIOptionKind::AreaAttack,
-    AIOptionKind::LastingArea, AIOptionKind::LastingArea, AIOptionKind::LastingArea, AIOptionKind::Protect, AIOptionKind::Protect, AIOptionKind::Protect,
-    AIOptionKind::Enhance, AIOptionKind::Enhance, AIOptionKind::Enhance, AIOptionKind::Enhance, AIOptionKind::Enhance, AIOptionKind::Enhance,
-    AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::Unused,
-    AIOptionKind::Heal, AIOptionKind::Curse, AIOptionKind::Protect, AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::Protect,
-    AIOptionKind::Curse, AIOptionKind::Enhance, AIOptionKind::Curse, AIOptionKind::Enhance, AIOptionKind::Unused, AIOptionKind::Unused,
-    AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::SpellAttack, AIOptionKind::SpellAttack};
-
-// The option kind of a spell by its type: 1..7, 8 for none; 0 without a spell.
+// The option kind of a spell by its use (Spell::Use): 1..7, 8 for none; 0 without a spell.
 AIOptionKind SpellKind(const Spell* spell) {
     if (!spell) return AIOptionKind::Weapon;
-    unsigned type = static_cast<unsigned>(spell->Type());
-    return type < std::size(kSpellKinds) ? kSpellKinds[type] : AIOptionKind::Unused;
+    switch (spell->Use().ai) {
+    case SpellAi::Attack: return AIOptionKind::SpellAttack;
+    case SpellAi::AreaAttack: return AIOptionKind::AreaAttack;
+    case SpellAi::LastingArea: return AIOptionKind::LastingArea;
+    case SpellAi::Curse: return AIOptionKind::Curse;
+    case SpellAi::Protect: return AIOptionKind::Protect;
+    case SpellAi::Enhance: return AIOptionKind::Enhance;
+    case SpellAi::Heal: return AIOptionKind::Heal;
+    case SpellAi::None: break;
+    }
+    return AIOptionKind::Unused;
 }
 } // namespace
 
@@ -402,7 +401,7 @@ void AIAttention::Build(Unit* unit) {
             case AIOptionKind::Curse:
             case AIOptionKind::Protect:
             case AIOptionKind::Enhance:
-                effect = static_cast<int>(spell->Type());
+                effect = static_cast<int>(spell->Behaviour());
                 break;
             case AIOptionKind::Heal:
                 radius = spell->damage;

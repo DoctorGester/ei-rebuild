@@ -85,7 +85,7 @@ void SpellEffect::HitUnitsAlong(const Vector3& direction) {
 
 namespace {
 
-// What a spell type deals: its damage type, and a hitKind of 1 for the spells that burn an area over time.
+// What a behaviour deals: its damage type, and a hitKind of 1 for the spells that burn an area over time.
 struct SpellDamageKind {
     DamageType type = {};
     int hitKind = 0;
@@ -98,7 +98,7 @@ constexpr SpellDamageKind kFireArea{DamageType::Fire, 1};
 constexpr SpellDamageKind kLightningArea{DamageType::Lightning, 1};
 constexpr SpellDamageKind kAcidArea{DamageType::Acid, 1};
 
-// The damage kind of `type`; null for the spells that deal no damage.
+// The damage kind of the behaviour `type`; null for the spells that deal no damage.
 const SpellDamageKind* DamageKindOf(SpellType type) {
     switch (type) {
     case SpellType::FireArrow: case SpellType::Fireball: case SpellType::RickMagic: return &kFireHit;
@@ -122,7 +122,7 @@ void SpellEffect::GetDamage(DamageInfo* out) {
     out->calledShot = 0;
 
     const Spell* record = HeldSpell();
-    if (const SpellDamageKind* kind = DamageKindOf(record->Type())) {
+    if (const SpellDamageKind* kind = DamageKindOf(record->Behaviour())) {
         out->Weight(kind->type) = 1.0f;
         out->amount = record->damage;
         out->hitKind = kind->hitKind;
@@ -173,7 +173,7 @@ void SpellEffect::Load(ByteStream* stream) {
     stream->ReadValue(timer);
     stream->ReadValue(flags);
     stream->ReadValue(position);
-    UpdateFootprint(HeldSpell()->Type(), 1);
+    UpdateFootprint(HeldSpell()->Behaviour(), 1);
 }
 
 void SpellEffect::Save(ByteStream* stream) {
@@ -571,7 +571,7 @@ void SpellEffect::Start(SpellType type) {
     case SpellType::Teleport: StartTeleport(this); break;
     case SpellType::Charm: StartCharm(this); break;
     case SpellType::Campfire: StartAtGround(this); break;
-    default: state = kStateEnded; break;   // Shapechange, Comprehend and above CurseMagic
+    default: state = kStateEnded; break;   // Shapechange, Comprehend and None
     }
     UpdateFootprint(type, 1);
 }
@@ -711,7 +711,7 @@ void SpellEffect::CreatePointLight(const Vector3& at, const Vector3& color, floa
 SpellEffect::SpellEffect() = default;
 
 SpellEffect::~SpellEffect() {
-    if (footprintStamped) UpdateFootprint(HeldSpell()->Type(), 0);
+    if (footprintStamped) UpdateFootprint(HeldSpell()->Behaviour(), 0);
     ReleaseVisual();
     ReleaseSound();
     ReleaseLight();

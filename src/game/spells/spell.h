@@ -28,56 +28,6 @@ class EffectParticle;
 class EffectPointLight;
 enum class ParticleType : int;
 
-// The spell types: the spell prototype index (the order of the spell database in database.res, Spell's
-// prototypeId >> 16), also an active effect's type (MapEffect::type: a buff copies its spell's). Names from the
-// prototypes' names (the code name where it differs), the sound folders under magic\ and the Start* functions. The
-// 1.06 database and Rebirth's both have all 42. Shapechange and Comprehend start nothing; Teleport's record on the
-// caster stuns it like Stun's (the client draws no particles for it). MapEffect::Type() reads the byte.
-enum class SpellType : int {
-    FireArrow = 0x00,               // "arrow"
-    Lightning = 0x01,               // "Lightning Arc"
-    AcidRay = 0x02,
-    Fireball = 0x03,
-    InvokeLightning = 0x04,         // "inv_lit": the light strike
-    AcidColumn = 0x05,
-    FireWall = 0x06,
-    LightningWall = 0x07,           // "litnwall" ("Smtg Lightning"): the light wall
-    AcidFog = 0x08,                 // the poison cloud
-    ProtectionFromFire = 0x09,      // "prot_fire", sounds in magic\Fireshield
-    ProtectionFromLightning = 0x0A, // "prot_electro", magic\Lightsheild
-    ProtectionFromAcid = 0x0B,      // "prot_acid", magic\PoisonShield
-    EagleSight = 0x0C,
-    Infravision = 0x0D,
-    DetectLife = 0x0E,
-    Invisibility = 0x0F,
-    Silence = 0x10,
-    Lichdom = 0x11,
-    Fireworks = 0x12,
-    Stench = 0x13,
-    Clairvoyance = 0x14,            // "clairvoyence"
-    Possession = 0x15,
-    Shapechange = 0x16,
-    VisionFog = 0x17,
-    Healing = 0x18,
-    Stun = 0x19,
-    Antimagic = 0x1A,
-    Link = 0x1B,
-    Teleport = 0x1C,
-    Strengthen = 0x1D,              // "strength"
-    Weaken = 0x1E,                  // "weak"
-    Regeneration = 0x1F,
-    Feeblemind = 0x20,
-    Speed = 0x21,
-    Slow = 0x22,
-    Comprehend = 0x23,
-    Charm = 0x24,
-    Enlarge = 0x25,
-    Shrink = 0x26,
-    Campfire = 0x27,                // StartAtGround: the effect stands at the ground point
-    RickMagic = 0x28,               // "rick_magic", school fire: a fire arrow with the RikArrowSmoke trail
-    CurseMagic = 0x29,              // "curse_magic", school lightning: lightning (CreateLightning's flag 1)
-};
-
 // The bits of Spell::targetFlags (saved as the number). The low 16 bits restrict the targets (CanAffect; the
 // modifiers "f?" set them; a spell with none and one target is a single missile); "it" / "ic" (the cast-flag
 // modifiers, HasCastFlagModifier) say when an item casts it; the prototype's targetKind sets the aim. The races
@@ -139,28 +89,23 @@ public:
     // The prototype record. Every spell has one and a record for each modifier: the spells come from the spell
     // constructor (records of the database), copies (CopyTo) and the loaders, which check what they load
     // (HasRecords; HasEveryRecord in item_manager.h), so the readers take the records unchecked.
-    itemdb::SpellRecord* GetPrototype();
+    itemdb::SpellRecord* GetPrototype() const;
     // The prototype and every modifier name a record of the spell database; false for a spell of a save, a
     // party or a player made with another database.
     bool HasRecords();
     // Ends the game (game::FatalExit) without the records (HasRecords).
     void RequireRecords();
 
-    // The prototype index of the packed id.
-    SpellType Type() const { return static_cast<SpellType>(prototypeId >> 16); }
+    // What it does: its record's behaviour (for the game's records their place, prototypeId >> 16).
+    SpellType Behaviour() const { return itemdb::BehaviourAt(prototypeId >> 16); }
+    // How the game's tables use it (itemdb::UseOf).
+    itemdb::SpellUse Use() const { return itemdb::UseOf(*GetPrototype()); }
 
     // At most 8.
     int GetModifierCount();
 
     // "ic" or "it": the modifiers that set cast flags 0x20000 and 0x10000 when the spell is constructed.
     bool HasCastFlagModifier();
-
-    // The elemental damage type the spell deals (Fire, Lightning or Acid), Other for none.
-    DamageType GetDamageType();
-
-    // True for the attack spells (FireArrow to AcidFog, Lichdom, Stench, Stun, Weaken, Feeblemind, Slow, Charm,
-    // Shrink; with Rebirth's FixSpellSelfCasting also RickMagic and CurseMagic).
-    bool IsOffensive();
 
     // By the target flags in the low 16 bits of flags; either may be null.
     bool CanAffect(const Unit* caster, MapObject* target) const;
@@ -224,13 +169,13 @@ public:
     // `direction` (only x and y are used): the wall spells.
     void HitUnitsAlong(const Vector3& direction);
 
-    // The casting state of spell `type` (the prototype index): its effect objects, the instant hits, the
+    // The casting state of the behaviour `type` (Spell::Behaviour()): its effect objects, the instant hits, the
     // next state (1 missile, 2 lasting, 3 done; some failed casts leave it at 0) and the timer.
     void Start(SpellType type);
     // The old visual leaves the world's timed objects and is released.
     void SetVisual(Effect* visual);
     // The walls (FireWall, LightningWall) and the areas (AcidFog, Campfire) block the AI map while they last.
-    // Nothing without a visual or for other types.
+    // Nothing without a visual or for other behaviours.
     void UpdateFootprint(SpellType type, int stamp);
     // It becomes the visual.
     void CreateArrow(const Vector3& from, EngineObject* target, ParticleType particleType, float power, const char* sound,
@@ -286,7 +231,7 @@ public:
     int timer = 0;                        // ticks left in the next state
     std::uint8_t silentEnd = 0;           // copied into the buff record; healing: skip when at full health
 
-    // The visual as the effect class its spell type creates.
+    // The visual as the effect class its spell's behaviour creates.
     template <class T> T* Visual() const { return static_cast<T*>(visual.Get()); }
 
     Spell* HeldSpell() { return &spell; }

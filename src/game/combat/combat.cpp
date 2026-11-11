@@ -166,7 +166,7 @@ void UnitServer::GetSpellDamage(std::uint32_t source, DamageWords* out) {
     *out = DamageWords{};
     if (spell) {
         auto value = static_cast<std::uint16_t>(lib::Truncate(SpellDamage(spell)));
-        out->words[1 + static_cast<int>(spell->GetDamageType())] = value;
+        out->words[1 + static_cast<int>(spell->Use().damageType)] = value;
     }
     out->words[0] = 0x7FFF;
 }
@@ -195,11 +195,7 @@ Spell* UnitServer::SpellOfSource(std::uint32_t source) {
 bool UnitServer::IsFighting() {
     if (action.kind == UnitOrderKind::CastAt || action.kind == UnitOrderKind::CastOn) {
         Spell* spell = SpellOfSource(action.source);
-        if (spell) {
-            SpellType spellType = spell->Type();
-            if (spellType <= SpellType::AcidFog) return true;
-            // Antimagic is not a hostile cast (Rebirth's FixPlaingBattleMusicFromAntimagic; the original counted it).
-        }
+        if (spell && spell->Use().fighting) return true;
     }
     return action.kind == UnitOrderKind::Attack;
 }

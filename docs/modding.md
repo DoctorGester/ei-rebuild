@@ -310,7 +310,8 @@ the record is left out`); the record is not read. The names (docs/notes/mods.md,
 | npc `stats` | `{ strength, dexterity, intelligence }` |
 | spell `school` | `fire`, `lightning`, `acid`, `illusion`, `divination`, `enchantment`, `healing`, `domination`, `none` |
 | spell `target_kind`, `allowed_modifiers`; modifier `kind` | `unit`, `point`; `{ range, targets, area, effect, duration }`; `range`, `targets`, `area`, `effect`, `duration`, `mana`, `filter`, `item` |
-| true / false | `buildable`, `shows_wounds`, `cast_effect`, `swap_feet`, `voiced`, `needs_sight` |
+| spell `ai`, `damage_type` (a new spell's only: the game's 42 keep their own) | how the AI casts it: `none` (never, the default), `attack`, `area_attack`, `lasting_area`, `curse`, `protect`, `enhance`, `heal`; the damage types' names (`general` the default) |
+| true / false | `buildable`, `shows_wounds`, `cast_effect`, `swap_feet`, `voiced`, `needs_sight`, a new spell's `offensive` (cast at enemies: the hotkey aims it at the nearest, the target turns on the caster, the battle music) |
 
 A table gives only the elements it changes (`perception = { sight = 9.0 }`); a long one can be a sub-table of the
 record (`[model.step_sounds]` after the model's other fields). A value without a name is a number: the game data has
@@ -642,5 +643,5 @@ for the quest, and its hammer and boots are yours. Read its files as a recipe fo
 
 What it cannot do yet: add a zone beside the game's (it replaces zone 1: the zone list is one text read whole), show
 a new weapon in the hero's hand or a new helmet or body armour on him (those are parts of the hero's figure), give a
-new spell an effect (a spell's effect is the game's code for its place in the table), and its island keeps zone 1's
+new spell an effect (the game's 42 spells have their code; a spell after them does nothing yet), and its island keeps zone 1's
 path-finding graph. The pictures and models are made by `tools/make_showcase_mod.py` in this repository.
