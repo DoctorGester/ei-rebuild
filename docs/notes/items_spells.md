@@ -325,11 +325,11 @@ zone's server state that Eris saves. Only the server runs it; clients see what i
 - **Checks in the game** (tools/make_spell_mod.py: "mf17d_bolt", a bolt and a blow through the game's own bindings
   CreateLightning and InflictDamage, 60 ticks): `mod_spell_ai` (zone1's wolf 1804 given the spell casts it at the
   hero by its ai = "attack"), `mod_spell_hero` (Ingos' stock has its scroll and prototype, `campstock`; the camp draws
-  the mod's pictures, `read mod`; the container put on, the hero casts it from the HUD at a wolf; the client has the
+  the mod's pictures, `read mod`; the container put on, the hero casts it at once, Ctrl and its key, at a spawned
+  wolf made an enemy by SetPlayer (world.md: AddUnitToServer's units are on the hero's side); the client has the
   bolt, `clientbolts`), `net_pair_mod_spell` (make_mod_pair.py spell, its blow 20: the host's server casts it, the peer's
   client has the bolt, `clientbolts`, and the target below its maximum hit points, `clienthurt`; a blow of 5 left
-  the hero's as they were). The HUD's use at once (Ctrl and the key)
-  found no target for the game's lightning either in mod_spell_hero's setup, so the scenario casts with a click.
+  the hero's as they were).
 - **Checks.** `--lua-check`'s host cases (tools/convert/lua_check.cpp `CheckSpellHost`: timers in order with payloads,
   Finish, OnTick to the cap, idle, a hook's error, a wait in a hook, no bindings at the top level and the file said
   once, a timer naming no function, a cast saved after each of its first six ticks ending as the unbroken one; the

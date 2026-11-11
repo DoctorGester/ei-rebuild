@@ -2,12 +2,27 @@
   "scenario": "mod_spell_hero",
   "install": "rebirth",
   "recorded": "2026-11-11",
-  "commit": "c66101b49",
+  "commit": "be5200ba4",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MF17d: new scenarios, a scripted spell cast by the AI, by the hero from the HUD after the trader and the camp, and by a network host's server with the bolt on the peer",
+  "reason": "MF17d1: mod_spell_hero casts at once (Ctrl + 3) at a wolf made an enemy by SetPlayer; MF17e1: the showcase's Chain Spark record has skill 0, so mod_showcase_spell puts it on the new game's hero without GiveSkill / GiveIntelligence, and the saves holding the spell container have skillNeeded 0",
   "source": "image",
-  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "digest: 9 of 20 records differ, first at record 11 (world update 240, tick 189, frame 47, zone gz1g); outcomes the same; max unit move 2.54 (obj1937, record 19)",
+    "  first difference at record 11 (world update 240, tick 189, frame 47, zone gz1g): 4 fields",
+    "    obj1000011214 (80 unhuma \"\") #ai: A919683B in the old golden, 2320236D in the new run",
+    "    obj1006693925 (80 unanwiwo \"BoltWolf\") #ai: A919683B in the old golden, 2320236D in the new run",
+    "    obj1006693925 (80 unanwiwo \"BoltWolf\") #unit: 2E120492 in the old golden, EB551CED in the new run",
+    "    ... 1 more",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  units: 8 of 54 differ",
+    "    #ai: 8 units, 9 records, from 11; hash only (no numbers kept)",
+    "    #unit: 3 units, 9 records, from 11; hash only (no numbers kept)",
+    "    pos: 1 unit, 2 records, from 18; moved 2.54 at obj1937 80 unmoto \"\", record 19",
+    "  client: 1 of 1 differ",
+    "... 5 more lines"
+  ]
 }
