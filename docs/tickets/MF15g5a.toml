@@ -4,3 +4,5 @@ group = "mods"
 size = 2
 note = "User 2026-11-11 approved. From MF15g5: the CastingIllusion family (Illusion, Domination, Enchantment, Healing) differ only in [vars] and texture, three of the CastingFire family only in a few vars and texture. Add a general like = \"<effect>\": the effect starts from that effect's resolved definition (after mod layers) and its own fields replace or add; arrays (particle, on) by a rule written in docs/modding.md 'Effects'. A mod retuning the base also changes its variants (accepted). Rewrite the variants on it; effect_check and vanilla/Rebirth --golden the same. The viewer shows the resolved effect. Start after MF15g6 (same files). User 2026-11-11: after this, MF15l reviews the whole effect format. User 2026-11-11: bit-exact particles not required; a variant may differ slightly if it looks the same."
 order = 1383
+status = "running"
+started = "2026-11-11"
