@@ -1,0 +1,13 @@
+{
+  "scenario": "mod_showcase_buff",
+  "install": "vanilla",
+  "recorded": "2026-11-11",
+  "commit": "e89ed308e",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "New scenario: the showcase mod's Ember Brand (MF17h3 stats, MF17h1a one-shot hooks).",
+  "source": "image",
+  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs"
+}
