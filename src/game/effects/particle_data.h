@@ -26,7 +26,7 @@ public:
     // logged once).
     std::shared_ptr<const Record> Find(std::string_view name);
     // The effect whose id is `id` (a peer's update, a save): Res\effects is listed through the layers at the first id
-    // not met yet.
+    // not met yet. An original type's id answers its built-in effect (assets/effects), null while the type is code.
     std::shared_ptr<const Record> FindById(std::int32_t id);
     // Every effect forgotten (a switch of mods; LoadDatabases).
     void Reset();
@@ -46,6 +46,10 @@ private:
     bool scanned = false;
 };
 extern Registry g_effects;
+
+// The text of the built-in effect `name` (assets/effects, built into the executable; any case), empty when there is
+// none: the original effects on data, the bottom layer below the mods' files of their names.
+std::string_view BuiltinText(std::string_view name);
 
 // ---- The particle side (particle_create.cpp, particle_manager.cpp) --------------------------------------------------
 

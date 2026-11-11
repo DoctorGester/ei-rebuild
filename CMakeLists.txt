@@ -173,6 +173,16 @@ file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*/*.cpp src/lib/*.cpp src/a
 add_library(ei_game OBJECT ${EI_GAME_SOURCES})
 target_include_directories(ei_game PRIVATE src third_party)
 target_link_libraries(ei_game PUBLIC ei_render ei_platform tomlc17 stb_dxt wuffs cgltf eris PRIVATE SDL3::SDL3-static)
+# The original effects on data (assets/effects/*.effect.toml) built into the game as bytes at build time
+# (src/game/effects/embed_effects.cmake; docs/notes/effects.md, "The original effects on data").
+file(GLOB EI_BUILTIN_EFFECTS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/assets/effects/*.effect.toml)
+add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/effect_files/builtin.h
+    COMMAND ${CMAKE_COMMAND} -DFOLDER=${CMAKE_SOURCE_DIR}/assets/effects -DOUT=${CMAKE_BINARY_DIR}/effect_files/builtin.h
+            -P ${CMAKE_SOURCE_DIR}/src/game/effects/embed_effects.cmake
+    DEPENDS ${EI_BUILTIN_EFFECTS} ${CMAKE_SOURCE_DIR}/src/game/effects/embed_effects.cmake
+    COMMENT "Writing assets/effects as bytes"
+    VERBATIM)
+target_sources(ei_game PRIVATE ${CMAKE_BINARY_DIR}/effect_files/builtin.h)
 
 # The new renderer (docs/notes/renderer.md) on SDL3's GPU API (src/render/gpu.h: Direct3D 12 on Windows, Vulkan
 # elsewhere). Not part of ei_platform: the offline checks link the renderer without the game.
@@ -362,13 +372,13 @@ add_executable(ei-convert tools/convert/convert.cpp tools/convert/convert_databa
                tools/convert/convert_textures.cpp tools/convert/convert_mobs.cpp
                tools/convert/convert_models.cpp tools/convert/convert_scripts.cpp tools/convert/lua_check.cpp
                tools/convert/lua_globals.cpp tools/convert/example_mod.cpp tools/convert/effect_check.cpp
-               ${CMAKE_BINARY_DIR}/effects/reference.h ${EI_GAME_CALLS} ${EI_SDL_CALLS})
+               ${CMAKE_BINARY_DIR}/effect_files/reference.h ${EI_GAME_CALLS} ${EI_SDL_CALLS})
 target_include_directories(ei-convert PRIVATE src third_party ${CMAKE_BINARY_DIR})
 # --effect-check's reference (tests/effects/reference.txt, the original particle types' recorded C++ runs) built into
 # the tool as bytes (src/render/embed.cmake).
-add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/effects/reference.h
+add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/effect_files/reference.h
     COMMAND ${CMAKE_COMMAND} -DSOURCE=${CMAKE_SOURCE_DIR}/tests/effects/reference.txt -DNAME=kReference
-            -DOUT=${CMAKE_BINARY_DIR}/effects/reference.h -P ${CMAKE_SOURCE_DIR}/src/render/embed.cmake
+            -DOUT=${CMAKE_BINARY_DIR}/effect_files/reference.h -P ${CMAKE_SOURCE_DIR}/src/render/embed.cmake
     DEPENDS ${CMAKE_SOURCE_DIR}/tests/effects/reference.txt ${CMAKE_SOURCE_DIR}/src/render/embed.cmake
     COMMENT "Writing the effect check's reference as bytes"
     VERBATIM)
@@ -432,6 +442,8 @@ endif()
 
 # The settings checks read the expected new settings file (tests/unit/settings_defaults.ini) from the source tree.
 set_property(SOURCE tests/unit/settings_file.cpp APPEND PROPERTY COMPILE_DEFINITIONS "EI_SOURCE_DIR=\"${CMAKE_SOURCE_DIR}\"")
+# The data effects' checks read the effects the notes and the modding guide write out (docs/notes/effects.md).
+set_property(SOURCE tests/unit/particle_record.cpp APPEND PROPERTY COMPILE_DEFINITIONS "EI_SOURCE_DIR=\"${CMAKE_SOURCE_DIR}\"")
 
 if(WIN32)
     # The game is a windowed program whose entry is main.

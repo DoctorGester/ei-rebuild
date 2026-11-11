@@ -198,6 +198,7 @@ struct ParticleKind {
     Expr velocity[3];
     Expr speed;             // outward from the spawn's centre
     Expr drag, gravity[3], wind;
+    bool moves = false;     // a velocity, speed, gravity or wind given (else a world-space particle stays put)
     Expr sizeStart, sizeTick, growth;
     std::uint32_t rgb = 0xFFFFFF;
     Expr rgbTick[3];

@@ -711,6 +711,8 @@ private:
         kind.drag = Field(node["drag"], context);
         Fields3(node["gravity"], context, kind.gravity);
         kind.wind = Field(node["wind"], context);
+        kind.moves = !kind.speed.Empty() || !kind.wind.Empty();
+        for (int i = 0; i < 3; ++i) kind.moves = kind.moves || !kind.velocity[i].Empty() || !kind.gravity[i].Empty();
 
         const RawNode& size = node["size"];
         if (size.kind == RawNode::Kind::Table) {

@@ -2,7 +2,7 @@
 // emitters (effect_check.h; docs/notes/effects.md, "Checks").
 #include "effect_check.h"
 
-#include "effects/reference.h"
+#include "effect_files/reference.h"
 #include "game/app/singletons.h"
 #include "game/core/random.h"
 #include "game/effects/effects.h"

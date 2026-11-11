@@ -18,6 +18,8 @@
 #include "platform/log.h"
 #include "platform/platform.h"
 
+#include "effect_files/builtin.h"
+
 #include <cmath>
 #include <limits>
 #include <vector>
@@ -39,7 +41,19 @@ std::string Lower(std::string_view text) {
     return lower;
 }
 
+// The built-in file of the effect `name` (assets/effects, any case), or null.
+const builtin_effects::File* Builtin(std::string_view name) {
+    for (const builtin_effects::File& file : builtin_effects::kFiles)
+        if (text::CompareIgnoringCase(file.name, name) == 0) return &file;
+    return nullptr;
+}
+
 } // namespace
+
+std::string_view BuiltinText(std::string_view name) {
+    const builtin_effects::File* file = Builtin(name);
+    return file ? std::string_view(reinterpret_cast<const char*>(file->bytes), file->size) : std::string_view();
+}
 
 Registry::Entry& Registry::EntryOf(std::string_view name) {
     const std::string key = Lower(name);
@@ -53,22 +67,40 @@ Registry::Entry& Registry::EntryOf(std::string_view name) {
 void Registry::Load(Entry& entry) {
     entry.loaded = true;
     const std::string key = Lower(entry.name);
-    const std::int32_t id = IdOf(key);
+    const builtin_effects::File* builtin = Builtin(key);
+    const int original = ParticleTypeByName(key);
+    if (original != kNoParticleType && !builtin) {   // an original type whose effect is still code
+        if (!FindRecordFile(std::string(kFolder) + "\\" + entry.name + ".effect", false).tomls.empty())
+            game::Warning("effects: %s is an original effect still in code; its file is left out", entry.name);
+        return;
+    }
+    const std::int32_t id = original != kNoParticleType ? original : IdOf(key);
     if (auto other = idNames.find(id); other != idNames.end() && other->second != key) {
         game::Warning("effects: %s and %s share the id 0x%X; %s is left out", other->second, key,
                       static_cast<unsigned>(id), key);
         return;
     }
     const RecordFile file = FindRecordFile(std::string(kFolder) + "\\" + entry.name + ".effect", false);
-    if (file.tomls.empty()) return;
+    if (file.tomls.empty() && !builtin) return;
     RawNode merged;
+    std::string from = file.tomls.empty() ? std::string() : file.tomls.front().path;
+    if (builtin && !file.replaced) {
+        const std::string path = std::string("assets\\effects\\") + builtin->name + std::string(kExtension);
+        toml::Document document;
+        if (!document.Parse(BuiltinText(key), path)) {
+            game::Warning("effects: %s", document.Error());
+            return;
+        }
+        merged = Copy(document.Root(), path);
+        if (from.empty()) from = path;
+    }
     MergeTomls(file, [&merged](const toml::Value& root, const std::string& path) {
         const RawNode layer = Copy(root, path);
         if (!merged.Exists()) merged = layer;
         else MergeOver(merged, layer);
     });
     std::vector<std::string> errors;
-    entry.record = Read(merged, entry.name, &errors);
+    entry.record = Read(merged, entry.name, &errors, id);
     for (const std::string& error : errors) game::Warning("effects: %s", error);
     if (!entry.record) {
         game::Warning("effects: %s does not load; it shows nothing", entry.name);
@@ -76,7 +108,7 @@ void Registry::Load(Entry& entry) {
     }
     idNames[id] = key;
     ei::Log("effects: %s (0x%X) from %s: %zu particle kinds, %zu stages, %zu inputs, %zu anchor groups",
-            entry.name.c_str(), static_cast<unsigned>(id), file.tomls.front().path.c_str(), entry.record->particles.size(),
+            entry.name.c_str(), static_cast<unsigned>(id), from.c_str(), entry.record->particles.size(),
             entry.record->stages.size(), entry.record->inputs.size(), entry.record->anchors.size());
 }
 
@@ -96,6 +128,7 @@ void Registry::Scan() {
                 !lower.ends_with(kExtension))
                 continue;
             const std::string key = lower.substr(0, lower.size() - kExtension.size());
+            if (ParticleTypeByName(key) != kNoParticleType) continue;   // an original type's: found by its type
             const std::int32_t id = IdOf(key);
             auto [at, added] = idNames.emplace(id, key);
             if (!added && at->second != key) {
@@ -109,7 +142,10 @@ void Registry::Scan() {
 }
 
 std::shared_ptr<const Record> Registry::FindById(std::int32_t id) {
-    if (!IsDataId(id)) return nullptr;
+    if (!IsDataId(id)) {
+        const std::string_view name = ParticleTypeName(id);
+        return !name.empty() && Builtin(name) ? Find(name) : nullptr;
+    }
     auto found = idNames.find(id);
     if (found == idNames.end() && !scanned) {
         Scan();
@@ -159,9 +195,12 @@ void WriteSource(ParticleSource& s, State& state) {
     Value(v, SourceValue::Alpha) = s.alpha;
     Value(v, SourceValue::Param) = s.typeParam;
     Value(v, SourceValue::BaseSize) = s.baseSize;
-    const ParticleSource::Attachment carrier = s.AttachmentOffset();
-    Value(v, SourceValue::CarrierRadius) = carrier.radius;
-    Value(v, SourceValue::CarrierZ) = carrier.offset.z;
+    if (state.record->readsCarrier) {
+        // AttachmentOffset measures the carrier's bounds again: only for the effects that read them.
+        const ParticleSource::Attachment carrier = s.AttachmentOffset();
+        Value(v, SourceValue::CarrierRadius) = carrier.radius;
+        Value(v, SourceValue::CarrierZ) = carrier.offset.z;
+    }
     Value(v, SourceValue::Attached) = s.attachedTo ? 1.0f : 0.0f;
     Value(v, SourceValue::Distance) = s.distance;
     Value(v, SourceValue::MotionX) = s.motion.x;
@@ -181,6 +220,7 @@ void WriteSource(ParticleSource& s, State& state) {
     Value(v, SourceValue::ExtentZ) = s.extent.z;
     Value(v, SourceValue::TurnCos) = s.turnCos;
     Value(v, SourceValue::TurnSin) = s.turnSin;
+    Value(v, SourceValue::Emitting) = lib::Has(s.flags, ParticleSourceFlag::Emitting) ? 1.0f : 0.0f;
 }
 
 // A particle's own values (`p.*`) as its update or emission reads them.
@@ -248,7 +288,10 @@ Vector3 SpawnOffset(const ParticleSource& s, const ParticleKind& kind, const Env
         const float z = axis(2, s.spreadMin.z, s.spreadMax.z);
         return {x, y, z};
     }
-    case SpawnShape::Ball: return RandomInBall() * kind.radius.Run(env, 1.0f);
+    case SpawnShape::Ball: {
+        const Vector3 v = RandomInBall();
+        return v * kind.radius.Run(env, 1.0f);
+    }
     case SpawnShape::Shell: {
         const Vector3 v = RandomInBall();
         const float length = Length(v);
@@ -309,21 +352,28 @@ int EmitKind(ParticleSource& s, Particle& p, int kindIndex, int anchor, int inde
     values[ParticleValue::Life] = static_cast<float>(p.life);
     for (std::size_t i = 0; i < kind.vars.size(); ++i) p.vars[i] = kind.vars[i].start.Run(env);
 
-    const Vector3 centre = s.origin + AnchorPosition(state, anchor);
+    const Vector3 centre = anchor >= 0 ? s.origin + AnchorPosition(state, anchor) : s.origin;
     Vector3 offset = SpawnOffset(s, kind, env);
-    offset = offset + Vector3{kind.offset[0].Run(env), kind.offset[1].Run(env), kind.offset[2].Run(env)};
-    p.pos = centre + offset;
+    if (!kind.offset[0].Empty() || !kind.offset[1].Empty() || !kind.offset[2].Empty())
+        offset = offset + Vector3{kind.offset[0].Run(env), kind.offset[1].Run(env), kind.offset[2].Run(env)};
+    const bool placed = kind.shape != SpawnShape::Point || !kind.offset[0].Empty() || !kind.offset[1].Empty() ||
+                        !kind.offset[2].Empty();
+    p.pos = placed ? offset + centre : centre;
     if (!kind.onGround.Empty())
         p.pos.z = g_clientWorld.RawSurfaceHeightAt(p.pos.x, p.pos.y) + kind.onGround.Run(env);
     if (kind.space == Space::Source) p.drift = p.pos - s.origin;
     else if (kind.space == Space::Anchor) p.drift = p.pos - centre;
     WriteParticle(p, values);
 
+    const bool velocityGiven = !kind.velocity[0].Empty() || !kind.velocity[1].Empty() || !kind.velocity[2].Empty();
     p.velocity = {kind.velocity[0].Run(env), kind.velocity[1].Run(env), kind.velocity[2].Run(env)};
     if (!kind.speed.Empty()) {
         const float length = Length(offset);
         const float speed = kind.speed.Run(env);
-        if (length > 0.0f) p.velocity = p.velocity + offset * (speed / length);
+        if (length > 0.0f) {
+            const Vector3 outward = offset * speed / length;
+            p.velocity = velocityGiven ? p.velocity + outward : outward;
+        }
     }
     WriteParticle(p, values);
 
@@ -340,7 +390,8 @@ int EmitKind(ParticleSource& s, Particle& p, int kindIndex, int anchor, int inde
 
 void SetUp(ParticleSource& s, std::shared_ptr<const Record> record) {
     const Record& r = *record;
-    ParticleSourceFlag flags = ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive;
+    ParticleSourceFlag flags = ParticleSourceFlag::Emitting;
+    if (r.keepAlive) flags |= ParticleSourceFlag::KeepAlive;
     if (r.attach == Attach::AttachedOnly) flags |= ParticleSourceFlag::AttachedOnly;
     if (r.part >= 0) flags |= ParticleSourceFlag::OnPart;
     if (r.ticksWhilePaused) flags |= ParticleSourceFlag::TicksWhilePaused;
@@ -373,12 +424,16 @@ void TickData(ParticleSource& s) {
     WriteSource(s, state);
     state.Step(g_particleRandom);
 
+    if (state.stopRequested) {
+        state.stopRequested = false;
+        s.Stop();
+    }
     int tries = state.emitting ? Truncated(state.rate, 0, std::numeric_limits<int>::max() / 2) : 0;
     s.emitCount = tries + state.burst;
     s.emitChance = Truncated(state.chance, 0, 100);
-    s.emitSpacing = state.emitting ? state.record->spacing * s.baseSize : std::numeric_limits<float>::infinity();
     if (state.ended) s.flags &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
     state.sawEmitting = lib::Has(s.flags, ParticleSourceFlag::Emitting);
+    Value(state.source, SourceValue::Emitting) = state.sawEmitting ? 1.0f : 0.0f;
 
     for (const std::string& name : state.effects) {
         int type = kNoParticleType;
@@ -400,7 +455,12 @@ int EmitData(ParticleSource& s, Particle& p, int index) {
     Value(state.source, SourceValue::Index) = static_cast<float>(index);
     Value(state.source, SourceValue::Particles) = static_cast<float>(s.particles.size());
     Value(state.source, SourceValue::Total) = static_cast<float>(state.total);
-    return EmitKind(s, p, -1, -1, index);
+    if (!EmitKind(s, p, -1, -1, index)) return 0;
+    if (state.record->once) {
+        s.flags &= ~ParticleSourceFlag::Emitting;
+        state.sawEmitting = false;
+    }
+    return 1;
 }
 
 void EmitQueued(ParticleSource& s) {
@@ -430,11 +490,10 @@ int UpdateData(ParticleSource& s, Particle& p) {
     const Env env = ParticleEnv(state, p, values);
     for (std::size_t i = 0; i < kind.vars.size(); ++i) p.vars[i] = kind.vars[i].tick.Run(env, p.vars[i]);
 
-    p.velocity = p.velocity * kind.drag.Run(env, 1.0f);
-    p.velocity = p.velocity + Vector3{kind.gravity[0].Run(env), kind.gravity[1].Run(env), kind.gravity[2].Run(env)};
-    if (!kind.wind.Empty()) p.velocity = p.velocity + s.windDirection * (s.windStrength * kind.wind.Run(env));
     switch (kind.space) {
-    case Space::World: p.pos = p.pos + p.velocity; break;
+    case Space::World:
+        if (kind.moves) p.pos = p.pos + p.velocity;
+        break;
     case Space::Source:
         p.drift = p.drift + p.velocity;
         p.pos = s.origin + p.drift;
@@ -444,6 +503,10 @@ int UpdateData(ParticleSource& s, Particle& p) {
         p.pos = s.origin + AnchorPosition(state, p.state) + p.drift;
         break;
     }
+    if (!kind.drag.Empty()) p.velocity = p.velocity * kind.drag.Run(env);
+    if (!kind.gravity[0].Empty() || !kind.gravity[1].Empty() || !kind.gravity[2].Empty())
+        p.velocity = p.velocity + Vector3{kind.gravity[0].Run(env), kind.gravity[1].Run(env), kind.gravity[2].Run(env)};
+    if (!kind.wind.Empty()) p.velocity = p.velocity + s.windDirection * (s.windStrength * kind.wind.Run(env));
 
     if (!kind.sizeTick.Empty()) p.size = kind.sizeTick.Run(env);
     else if (!kind.growth.Empty()) p.size = p.size * kind.growth.Run(env);

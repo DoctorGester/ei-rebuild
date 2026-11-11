@@ -628,6 +628,9 @@ frame = { start = "pick(16)", delay = 1 }
   `chance`, `pick`; tables (`fade[p.age]`) and curves (`glow(p.t)`) from `[tables]` and `[curves]`.
 - **Layers**: a mod's file of the name merges over a lower one field by field, a particle kind or stage by its `name`;
   `replace = true` replaces it whole.
+- **The game's own effects** are written the same way as they move to data (`assets/effects` in the source:
+  FireStar, AcidStar, CurseStars, PortalStar so far); a mod's `Res\effects\FireStar.effect.toml` retunes the fire
+  arrow's flash with only the fields it names.
 - **Problems** are `warning: effects: <file>:<line>: ...` lines in `ei-rebuild.log`; an effect with an error shows
   nothing. An unknown key is only noted.
 - In a network game every player needs the same effect files: they count in the mod's content hash.

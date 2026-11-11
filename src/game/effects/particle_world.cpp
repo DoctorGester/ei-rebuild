@@ -481,7 +481,7 @@ void TickTornado(ParticleSource& s) {
     }
 }
 
-// --- Portal and PortalStar ---------------------------------------------------------------------------------
+// --- Portal ------------------------------------------------------------------------------------------------
 
 // Portal: the first particle is the glow above the portal (state 1). The others start
 // at a random point of the disc (denser near the edge), spin round it (four in eleven or so the
@@ -587,24 +587,6 @@ int UpdatePortal(ParticleSource& s, Particle& p) {
 
 // Portal: |size| * 10 tries per tick (truncated by the game's _ftol).
 void TickPortal(ParticleSource& s) { s.emitCount = static_cast<int>(s.size * 10.0f); }
-
-int EmitPortalStar(ParticleSource& s, Particle& p, int) {
-    p.color = 0xFFFFFF;
-    p.life = 15;
-    p.frame = 0;
-    p.pos = s.origin;
-    p.size = 0.0f;
-    return 1;
-}
-
-// PortalStar: while the source emits, full colour and a random size of 0.8-1.2 times
-// the source's; dropped once it stops.
-int UpdatePortalStar(ParticleSource& s, Particle& p) {
-    if (!(s.flags & ParticleSourceFlag::Emitting)) return 0;
-    p.color = 0xFFFFFFFF;
-    p.size = (g_particleRandom.Below(0.4f) + 0.8f) * s.size;
-    return 1;
-}
 
 // --- ZoneExit ----------------------------------------------------------------------------------------------
 

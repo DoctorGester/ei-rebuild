@@ -372,13 +372,14 @@ struct ScriptLightning {
     int id = -1;
 };
 
-// One particle type CreateParticleSource accepts (64 entries).
+// One particle type CreateParticleSource accepts by its table (the original's 64 entries less the types on data, which
+// it finds by name in the effects' registry).
 struct ScriptParticleType {
     const char* name = nullptr;
     int type = 0;           // EffectParticle::type (0x2000..)
     int lifetime = 0;       // ticks, -1 forever
 };
-constexpr int kScriptParticleTypeCount = 64;
+constexpr int kScriptParticleTypeCount = 60;
 
 namespace scriptir {
 struct Block;
