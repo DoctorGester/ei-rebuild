@@ -1,22 +1,23 @@
 # World server, world client and game flow
 
-Files: `world.h` (layouts), `game_flow.h`, `saved_parties.h`, `save_file.h`, `frame_lists.h`, `world_*.cpp` (server, client, tick, zone / map, save, sync, units, game flow in
-`app/game_flow.cpp`, quests, party, briefing, guard, weather, loot, spells), `figure_mesh*.cpp`, `party_manager.cpp`,
-`class_templates.cpp`. Scenarios: `world`, `world_client`, `world_load` (new game, eight `AddUnitToServer` wolves, one name
-added twice, three `RemoveObjectFromServer`, `load savea`, one more spawn), `party_records`, `sandbox_*`.
+Files: `world.h` (layouts), `game_flow.h`, `saved_parties.h`, `save_file.h`, `frame_lists.h`, `world_*.cpp` (server,
+client, tick, zone / map, save, sync, units, game flow in `app/game_flow.cpp`, quests, party, briefing, guard, weather,
+loot, spells), `figure_mesh*.cpp`, `party_manager.cpp`, `class_templates.cpp`. Scenarios: `world`, `world_client`,
+`world_load` (new game, eight `AddUnitToServer` wolves, one name added twice, three `RemoveObjectFromServer`, `load
+savea`, one more spawn), `party_records`, `sandbox_*`.
 
 ## Structures
 
 - `WorldServer` and `WorldClient` share the `World` base: the player list, FindObject (and a version restricted to
   units), IsNight (time of day before 6 or from 22 h), the ground and surface heights (the server from its coarse grid,
-  the client from the terrain; slots 29 / 30 combine platforms with them), `worldHandle`, the update count and
-  countdowns. Virtual slots are named in world.h (map_objects.md has the low-confidence ones).
+  the client from the terrain; `GroundHeightAt` / `SurfaceHeightAt` combine platforms with them), `worldHandle`, the
+  update count and countdowns. The world's virtuals: world.h (map_objects.md, "Virtual slot names").
 - Globals are declared in app/singletons.h (the game server and multiplayer client session, the game clock,
   the server tick, the game flow, the item and effect managers, the briefing texts).
 - `Player::dirty` (`PlayerDirty`): weather-like settings, time, a 0..1 value, countdowns; the named float variables
   ("gtime" ...); units; the party.
-- `MapObjectIdMap` / `EffectIdMap` = `hash_map<unsigned, T*>` plus the highest key. Server maps: units to update (inserting sets the unit's
-  sleep counter to `((unit >> 5) & 15) + 0x80`), every object by id, map objects saved with the zone, non-unit map
+- `MapObjectIdMap` / `EffectIdMap` = `hash_map<unsigned, T*>` plus the highest key. Server maps: units to update
+  (inserting sets the unit's sleep counter to `((unit >> 5) & 15) + 0x80`), every object by id, map objects saved with the zone, non-unit map
   objects, named objects, timed objects (spells / effects stamped with the tick). `RemoveObjectFromServer` erases from
   all of them. Shared objects: `sharedObjects` ({id, player, value, objects}, from a multiplayer client's corpse loot)
   and a list of {id, player index (-1 = everyone)}.
@@ -25,8 +26,8 @@ added twice, three `RemoveObjectFromServer`, `load savea`, one more spawn), `par
   name, `aiMap` (with its `events`). Zone exits: a rectangle, a rotation, a target ("none" = no exit), an entrance.
 - Client: `session` (a `Player`; its connection is the PlayerClient, `Client()`), text-key heroes, every object, objects
   answering IsSynchronised, screen entries (id, RECT), `ticksRun` (Segment counts it), `tickFraction`. Sector grids
-  (objects and a second one): cells of 16 x 16 world units (cell = FISTP shifted right by 4 as unsigned, so negatives land
-  outside), each a list of counted object pointers. Platforms (`PlatformSet`): `SurfaceHeight` projects the point onto
+  (objects and a second one): cells of 16 x 16 world units (cell = the rounded coordinate shifted right by 4 as
+  unsigned, so negatives land outside), each a list of counted object pointers. Platforms (`PlatformSet`): `SurfaceHeight` projects the point onto
   each plane along z and keeps the highest z (margin 0.5), `Contains` tests (x, y) (margin 0.1), `AddBox` keeps only
   faces with normal z >= 0.8. The bird is the EffectMoshka (effects.md).
 - Ownership: each world owns its managers (and the client its terrain, sounds, texts, music, sky, numbers and bird) as
@@ -38,7 +39,7 @@ added twice, three `RemoveObjectFromServer`, `load savea`, one more spawn), `par
   a manager.
 - Time: the day is 24 hours; time of day = fmod(tick * secondsPerTick + base, 24); a speed s gives secondsPerTick = 1 /
   s / 15 (0: stopped, also for NaN; negative: the setting). The client's lighting (WorldClient::UpdateLighting) takes it
-  at the drawn frame, the tick plus `tickFraction`, so the sun turns a little every frame (R25a). Wind: direction and
+  at the drawn frame, the tick plus `tickFraction`, so the sun turns a little every frame. Wind: direction and
   strength (ChangeWind clamps it).
 
 ## Server update path
@@ -47,8 +48,8 @@ added twice, three `RemoveObjectFromServer`, `load savea`, one more spawn), `par
 max(perception * factor, minimum) * 2 + 20)`; accept new players; unless paused each player's tick; rebuild the "Heroes"
 script group; each player's `SyncPlayer` (0 disconnects).
 
-`Tick`: `++tick`; every 64 ticks (tick & 63 == 3) `RollWeather` then `UpdateWeather` (rain, lightning via `ShowBolt`: a script line on the
-mission script's queue, one time in four only a thunder sound); timed objects (one returning 0 from `RunTick` is released
+`Tick`: `++tick`; every 64 ticks (tick & 63 == 3) `RollWeather` then `UpdateWeather` (rain, lightning via `ShowBolt`: a
+script line on the mission script's queue, one time in four only a thunder sound); timed objects (one returning 0 from `RunTick` is released
 and its id erased after the walk); the AI event time wheel; countdowns (any running sets the countdown dirty bit for
 every player); missiles; script command queues (the world's first only while enabled or `force`, the mission script's
 always); `UpdateUnits`. `AddToUpdateMap` is the map insertion of `WakeUnitsAround` / `InvokeAlarm`.
@@ -56,23 +57,21 @@ always); `UpdateUnits`. `AddToUpdateMap` is the map insertion of `WakeUnitsAroun
 **Per-player sync** (`SyncPlayer`): zone (`SendZone`), weather, time, wind, countdowns when dirty; then the map objects
 the player should see (camera range, own units, named objects, the units its units can hear: max(perception * factor,
 minimum) * k + c via the sector map) and the timed objects whose reach covers the camera, compared with what it was sent.
-Object sets (`world_object_sets.cpp`) are sorted by id (world/object_order.h); `DiffObjectSets` gives new objects a reference
-and releases gone ones (added / kept / removed).
+Object sets (`world_object_sets.cpp`) are sorted by id (world/object_order.h); `DiffObjectSets` gives new objects a
+reference and releases gone ones (added / kept / removed).
 
 **The view range** (`world_sync.cpp`): 100 units in the ground plane around the player's `lastPosition`, the camera
 position the client sends every update (message 0x40), or the deploy point a zone start sends with the camera placement.
-The main menu sees its whole zone (`SeesWholeZone`: every map and timed object, wherever the camera is): its camera is the
-client's own path (`MainMenu.cam`), started by the menu screen that the server's game state message opens, so the
-server learns it an update after that message. At start-up the client's first camera (the launch position 30, 30)
-covers the menu's objects; after a game it was still over the game's map, the menu's dynamic objects (the signpost,
-the troll, the fire) came an update after the menu was shown, and at 120 frames a second its first eight frames had the
-map and its lights without them (R61; scenario `render_menu_return`). The menu's static objects come with the zone
-(`SendFreshObjects`) whatever the range.
+The main menu sees its whole zone (`SeesWholeZone`: every map and timed object, wherever the camera is): its camera is
+the client's own path (`MainMenu.cam`), started by the menu screen that the server's game state message opens, so the
+server learns it an update after that message. Without it, after a game the camera was still over the game's map and
+the menu's dynamic objects (the signpost, the troll, the fire) came an update after the menu was shown (scenario
+`render_menu_return`). The menu's static objects come with the zone (`SendFreshObjects`) whatever the range.
 
 ## Zone loading, saving, loading, game flow
 
-- **State machine** (`GameFlow`, game_flow.h: state, request target, request party, multiplayer zone, zone switch started):
-  every request first runs `TeardownZone` (views reset, lists, `.mob` list, script state, `ClearMapObjects`, missiles,
+- **State machine** (`GameFlow`, game_flow.h: state, request target, request party, multiplayer zone, zone switch
+  started): every request first runs `TeardownZone` (views reset, lists, `.mob` list, script state, `ClearMapObjects`, missiles,
   timed objects). Kind 3 (new game) empties saves\current (`ClearSaveFolder`) and starts zone1; kind 2 loads. Requests
   acted on by the flow's update: 2 load, 3, 4 go to a zone (also BeginMultiplayerGame), 5 / 6 with a party copy.
 - **NewZone**: checks map / .mob paths (the missing-file texts), shows the loading movie, reads the AI graph, clears
@@ -80,26 +79,25 @@ map and its lights without them (R61; scenario `render_menu_return`). The menu's
   `ResetZone`; marks every player dirty; then `LoadMapObjects` for the .mob and `SendFreshObjects` for a new zone (it
   moves the objects answering IsSynchronised 0 out of the map-object maps). It reloads only when the map or .mob name
   changed. `ResetState` adds map name, diplomacy, command queues, AI map and state fields.
-- **Weather across a load** (differs from the original on purpose, user 2026-11-05; R57d): a fresh zone starts clear
+- **Weather across a load** (differs from the original on purpose, the user's decision): a fresh zone starts clear
   (LoadMap sets `weather` 0), a save's load (a slot, a revisited zone from saves\current, a multiplayer zone) keeps
-  the `weather` LoadSave read. The original cleared it three times over: LoadMap for every load, SetClimate (any
-  weather stopped; StartZone and StartNetworkZone set the zone's climate after the load) and BattleScreen::CreateScreen
-  (`SetWeather(0, 0)`, after every load). Here LoadMap clears it only for a fresh zone, SetClimate only when the
-  climate changes (a revisit sets the climate the save had) and the battle screen leaves it alone. LoadMap sets
+  the `weather` LoadSave read. The original cleared it in LoadMap for every load, in SetClimate (StartZone and
+  StartNetworkZone set the zone's climate after the load) and in BattleScreen::CreateScreen. Here LoadMap clears it
+  only for a fresh zone, SetClimate only when the climate changes (a revisit sets the climate the save had) and the
+  battle screen leaves it alone. LoadMap sets
   `weatherStrength` (the fade the weather message carries) to 0 for every zone, so the client's rain / snow layer is
   at the zone's weather at once; LoadSave's SetTime runs UpdateWeather, which sets `weatherFactor` (0.9 in rain or
   snow, the units' sight) from it (no roll: below). Checked by render_weather_save and
   zone_visuals (`weatherstate`).
 - **The weather's rolls are not saved.** UpdateRain rolls on `g_random` (seeded from the system at every start, not
-  saved) once its delay (`WorldServer::weatherDelay`, the original's global 007C2DFC: 10 after a change, counting down
-  every check) runs out: rain starts 1 in 101, stops 1 in 31. Only Tick rolls (RollWeather, every 64 ticks); the
-  original rolled in every UpdateWeather, so SetTime and SetTimeSpeed rolled too (differs on purpose, user
-  2026-11-08): a load ran three checks before its first frame (LoadSave's SetTimeSpeed and SetTime, StartZone's
-  SetTime from "gtime") and a save in rain came back clear about 1 load in 11; a script's FixWorldTime or SetTime
-  threw the dice early. A script's `SetWeather` sets the delay as a roll's change does (kWeatherChangeDelay, 10
-  checks, about half a minute), so the asked weather holds that long before a roll may end it (differs on purpose:
-  the original's scripted rain could stop at the next check). A slot keeps the delay in visuals.sav (renderer.md, "What a save keeps of the picture",
-  WeatherDelay; a save without it starts at 0); a revisit keeps the session's. So a load opens in the saved weather,
+  saved) once its delay (`WorldServer::weatherDelay`: 10 after a change, counting down every check) runs out: rain
+  starts 1 in 101, stops 1 in 31. Only Tick rolls (RollWeather, every 64 ticks); the original rolled in every
+  UpdateWeather, so SetTime and SetTimeSpeed rolled too (differs on purpose, the user's decision): a load ran three
+  checks before its first frame and a save in rain came back clear about 1 load in 11. A script's `SetWeather` sets the
+  delay as a roll's change does (kWeatherChangeDelay, 10 checks, about half a minute), so the asked weather holds that
+  long before a roll may end it (differs on purpose: the original's scripted rain could stop at the next check). A slot
+  keeps the delay in visuals.sav (renderer.md, "What a save keeps of the picture", WeatherDelay; a save without it
+  starts at 0); a revisit keeps the session's. So a load opens in the saved weather,
   and the next roll comes when the saved game's would have (its outcome is `g_random`'s).
 - Zone start: `AIEventTable::Setup` sizes the grid 1 - ftol(size x -0.125) each way, zeroes the cells and copies
   "normal.dat" of aiinfo.res. `BuildZoneTable` reads the maps folder's *.mq files (allod 0 / 1 / 2 by three name lists,
@@ -117,18 +115,18 @@ map and its lights without them (R61; scenario `render_menu_return`). The menu's
   map draws it neutral and the use at once (Ctrl and a spell key, `WorldClient::NearestVisibleUnit`) passes it over.
 - **A record's texture names.** The creation message's primary and secondary textures are the record's texts 3 and 4,
   which only a save fills: a record made by `AddMember` (AddUnitToServer, AddUnitToParty) has them empty, as the
-  original's had (its record constructor 0065F5F0 sets every text empty, FillFromPrototype 006621F0 writes texts 2 and
-  6). A hero's skins are named "mo<id>p" / "mo<id>s" on the client; any other unit's texture is named "" and found
+  original's had (its constructor sets every text empty, FillFromPrototype writes texts 2 and 6). A hero's skins are named "mo<id>p" / "mo<id>s" on the client; any other unit's texture is named "" and found
   nowhere, so its figure draws untextured (white lit: pale in the light), the original's look. No map script of either
   install calls AddUnitToServer: the missions add units at run time with AddMob (21 calls: an extra .mob whose unit
-  records name their textures, B007 / B008) or reveal placed hidden ones; zone4hadagans' AddUnitToParty("DrPlen",
-  "DragonkinGreenF3") made such a record, so DrPlen came back untextured in the next zone (the original's bug, fixed:
-  R49a). AddUnitToParty now has `WorldServer::TakeLookFromUnit` copy the map unit's names (the server companion's
-  parentIname and skinTexture) into the record; the record's save and load carry them (`party_join_skin`: a placed
-  wolf joins, the party is saved and loaded, the zone changes, `unitskins` checks the client's names). A mercenary's
-  hire (`world_quests.cpp`, `AddMember` with the unit's prototype) still leaves them empty. The scenarios' AddUnitToServer spawns lack that step; the harness's
-  `skin` step gives them the textures the maps place their kind with (render_unit_skin; a generated .mob through
-  AddMob, as tools/make_trap_mob.py does for traps, would be the game's own way but moves the goldens).
+  records name their textures) or reveal placed hidden ones. zone4hadagans' AddUnitToParty("DrPlen",
+  "DragonkinGreenF3") made such a record, so DrPlen came back untextured in the next zone (the original's bug, fixed):
+  AddUnitToParty has `WorldServer::TakeLookFromUnit` copy the map unit's names (the server companion's parentIname and
+  skinTexture) into the record, and the record's save and load carry them (`party_join_skin`: a placed wolf joins, the
+  party is saved and loaded, the zone changes, `unitskins` checks the client's names). A mercenary's hire
+  (`world_quests.cpp`, `AddMember` with the unit's prototype) leaves them empty. The scenarios' AddUnitToServer spawns
+  lack that step; the harness's `skin` step gives them the textures the maps place their kind with (render_unit_skin; a
+  generated .mob through AddMob, as tools/make_trap_mob.py does for traps, would be the game's own way but moves the
+  goldens).
 - **Saving** (`SaveGame`; autosave "savea" on zone entry when the option is on): saves\current files are copied into
   saves\<slot>, scenario.sav gets the global state (header 0xDEAD), mission.sav the world (header 0x102, zone kinds 0 and
   2); prints "Saved <slot>". `SaveFileWrite` compresses with the LZ coder, checks by decompressing (mismatch: a 0 flag and
@@ -157,13 +155,12 @@ map and its lights without them (R61; scenario `render_menu_return`). The menu's
   from the map centre unless the exit has a heading; the first command queue runs 5x.
   A zone that cannot be entered (EnterZone 0: its map or objects missing, NewZone refusing them after the old zone was
   torn down, or its saves\current file gone) goes to the main menu with the warning "Zone <name> cannot be entered", as
-  a zone map.txt lacks does (StartZone); playing on left the battle screen over no world, reading the party's units
-  (MF13d2: gz21g, whose zonemichel files no install has). A network zone the same (StartNetworkZone 0, the base torn
-  down: `GameFlow::NetworkZoneNotEntered`): the same warning, then flow state 7, which closes both sessions
-  (CloseSessions) and loads the main menu; from the flow's request 6 at once (ProcessRequest runs again), from
-  SetNetworkZone (a server without a local client, inside ServerSession::SetMap) at the flow's next request, as a
-  session released there would return into freed memory. A hosted game used to play on with no world (MF13d2a:
-  net_zone_missing_map, a mod's map.toml naming objects for z3q1-z3q3 that no install has).
+  a zone map.txt lacks does (StartZone); playing on would leave the battle screen over no world (gz21g, whose
+  zonemichel files no install has). A network zone the same (StartNetworkZone 0, the base torn down:
+  `GameFlow::NetworkZoneNotEntered`): the same warning, then flow state 7, which closes both sessions (CloseSessions)
+  and loads the main menu; from the flow's request 6 at once (ProcessRequest runs again), from SetNetworkZone (a server
+  without a local client, inside ServerSession::SetMap) at the flow's next request, as a session released there would
+  return into freed memory (net_zone_missing_map: a mod's map.toml naming objects for z3q1-z3q3 that no install has).
 - **Briefings**: the client's speaker is the second word of the first "#show" line of section "briefing <name>" that is
   not "Hero"; the variable is "b.<speaker>.<name>" or "b.elder.<name>"; `MarkBriefing` / `ForgetBriefing` set / remove it
   (loading the zone's quests first for "<zone>_N" names); `OnVariableChanged` passes "q." variables to the quest log.
@@ -199,22 +196,20 @@ part of the view matrix only), class and touched-model lists; out of view: flag 
 in view, a pending figure change applied and the object goes on the shadow list. The view-space depth starts at zero
 (the original's NaN heap leftovers made `Less(x, x)` true and crashed its unguarded partition).
 
-The first pass is `CollectCells` (R37f2): the same verdicts a cell at a time. Every object is placed (its drawn pose,
+The first pass is `CollectCells`: the same verdicts a cell at a time. Every object is placed (its drawn pose,
 steps and light) and keeps its world boxes (the clip volume, the shadow volume, the casters' sphere) until its pose,
 place, bounds or scale change; a cell's union of boxes decides all of its objects when it is wholly out of or inside the
 view's planes by a margin, an object's own box next, and only the undecided ones take the exact `ClipTest`. The cells'
-caster spheres it files (`CasterCell`, frame_lists.h) let the casters' walk outside the view pass over a cell none of whose
-spheres can reach the shadow map. The visible lists sort on 64-bit keys (`object_order::SortForDraw`: the texture's and
+caster spheres it files (`CasterCell`, frame_lists.h) let the casters' walk outside the view pass over a cell none of
+whose spheres can reach the shadow map. The visible lists sort on 64-bit keys (`object_order::SortForDraw`: the texture's and
 figure's ranks, the depth's bits) to the permutation `DrawBefore`'s sort gives.
 
 **Picking**: `PickGround` / `PickSurface` invert the view for pixel (x, y) giving the ray x = a z + b, y = c z + d,
 iterate z = height(x, y) from half the terrain's height range up to 100 times until |dz| <= 0.01, then up to 100
-bisection steps; x, y clamp at 0. `PickSurface` uses the platforms, `PickGround` `Terrain::HeightAt`. `Pick` (by bounds or by parts)
-sort the screen entries with `DepthLess`.
+bisection steps; x, y clamp at 0. `PickSurface` uses the platforms, `PickGround` `Terrain::HeightAt`. `Pick` (by
+bounds or by parts) sorts the screen entries with `DepthLess`.
 
-**Sorts**: `lib::IntroSort` (lib/intro_sort.h) reproduces STLport (median of three, unguarded Hoare partition, recursion
-on the right part, heap sort at the depth limit, insertion sort of the first 16 then unguarded): objects with equal keys
-keep its order.
+**Sorts**: `lib::IntroSort` keeps STLport's order of equal keys (standalone.md section 3).
 
 **Client maps**: `AddObject` (an already listed id is only referenced and released; the grid listing is removed before it
 is appended), `RemoveObject`, `ClearMaps`, `CreatePartyUnits` (per record the figure's part names "hd", "bd", "hp", "hr" ->
@@ -288,4 +283,3 @@ as its owner at exit: a fault there shows as a crash on quit.
 ## Known points
 
 - save_file.h's SaveFileRead parameters `minimum` / `maximum` are swapped in meaning (ReadHeader takes newest, oldest).
-- The torch's slot 16 takes `float` (flame->volume), so a signalling NaN could be quietened.

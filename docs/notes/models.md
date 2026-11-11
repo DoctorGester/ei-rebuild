@@ -1,9 +1,10 @@
 # Models, resources, the draw layer, terrain and ground prints
 
-Code: `scene/scene_renderer.h` (the scene renderer), `pipeline.h` / `scene/pipeline.cpp` (the transform pipeline), `render_helper.h`,
-`device.h`, `link_loader.h/.cpp`, `figure_*.cpp`, `link_figure.cpp`, `renderer_init.cpp`, `renderer_strip.cpp`, `renderer_sprites.cpp`, `renderer_lines.cpp`,
-`device_*.cpp`, `unit_skins.cpp`, `terrain*.cpp`, `ground_print.cpp` (with prints.db's load), `ground_decal.cpp`, `acks_db.cpp` (with acks.db's load), `water_tweens.cpp`, `dib.cpp`,
-`resource*.cpp`. Algorithms are described in each file's header comment. Scenario: `models` in
+Code: `scene/scene_renderer.h` (the scene renderer), `pipeline.h` / `scene/pipeline.cpp` (the transform pipeline),
+`render_helper.h`, `device.h`, `link_loader.h/.cpp`, `figure_*.cpp`, `link_figure.cpp`, `renderer_init.cpp`,
+`renderer_strip.cpp`, `renderer_sprites.cpp`, `renderer_lines.cpp`, `device_*.cpp`, `unit_skins.cpp`, `terrain*.cpp`,
+`ground_print.cpp` (with prints.db's load), `ground_decal.cpp`, `acks_db.cpp` (with acks.db's load), `water_tweens.cpp`,
+`dib.cpp`, `resource*.cpp`. Algorithms are described in each file's header comment. Scenario: `models` in
 `tests/scenarios/batch_battle_spells.txt` (the draw functions run in every scenario; ribbons and sprites in `spells`).
 
 ## Resources
@@ -11,8 +12,7 @@ Code: `scene/scene_renderer.h` (the scene renderer), `pipeline.h` / `scene/pipel
 - Archives (`.res`) are `MappedResource`s over a `platform::MappedFile`, opened read only (the game never opened one
   writable). `ResourceManager` lists them; `FindEntry`, `ListFiles` and `WildcardMatch` look names up. Mod folders and
   Rebirth's archive overrides sit in front (rebirth.md, "Resources and paths").
-- The sound system's file reader (`ResourceStream`) reads loose files only; the original's archive path in it had no
-  callers.
+- The sound system's file reader (`ResourceStream`) reads loose files only.
 - Kept: `ResourceStream::Seek` treats "from the current position" of a loose file as "from the start"; `ListFiles`
   copies a name into a 1 KB buffer without a length check; `MappedResource::CloseFile`'s message prints the data
   pointer as the name; `GetFile` leaks its buffer on a failed read and on an in-memory archive does not report the
@@ -26,15 +26,14 @@ Code: `scene/scene_renderer.h` (the scene renderer), `pipeline.h` / `scene/pipel
   data), the open chunk list (the last node is the current chunk; its occurrence index picks which chunk the next
   EnterChunk looks for), a loading flag; Serialize functions read and write through the same code. A failed EnterChunk
   when loading still pushes a chunk (callers never pop it; `RestoreTop` pops them).
-- prints.db (`PrintsDatabase`, ground_print.h): chunk 1 blood and bloody footprints, 2 footprints, 3 scorch; chunks 2 / 3 of a
-  record are {alpha, life, lifetime} (`PrintLook`).
+- prints.db (`PrintsDatabase`, ground_print.h): chunk 1 blood and bloody footprints, 2 footprints, 3 scorch; chunks
+  2 / 3 of a record are {alpha, life, lifetime} (`PrintLook`).
 - acks.db (acks_db.h): three tables {vector of records, hash_map<string, record*>}: units by prototype name (kinds up to
   0x29; 0x29 the environment speeches, matched against `WorldClient::EnvironmentFlags`), models by model name
   (0x2E..0x32, fallback through the prototype's model), extras by prototype name (0x2A..0x2D); each record a
   hash_map<kind, vector<SpeechRecord>*>. The load fills the units' kind map: 0..0x15 to lists 0..21, 0x16..0x1B null,
   0x1C..0x1F to 22..25, 0x20..0x22 to 28..30, 0x23 / 0x24 to 26 / 27, 0x27 / 0x28 to 31 / 32, 0x2A the named speeches.
-  `Find` adds a null entry for a missing name. The original picked through a temporary vector of pointers; ours counts
-  and indexes (same draws).
+  `Find` adds a null entry for a missing name. A pick counts and indexes, with the original's draws.
 - Water level changes (`TweenArray`): SetTarget (script `SetWaterLevel`), Tick every world update (the removal test is
   "value == 0 or unordered"), Save, Load (applies each level). Kept: Load reads the count into its stream argument's
   slot; SetTarget appends an uninitialised entry before overwriting all of it.
@@ -58,16 +57,15 @@ end.
 
 `LinkMesh` (link_figure.h): part headers (map<string, LinkPartHeader>), the morph coefficients, six arrays (vertex
 packets, normal packets, texture coordinates, 6-byte corners, dwords, words), ranges by name, the loader. The loader
-(`LinkFigureLoader`, link_loader.h; one per world view) has the figure sets, the device object and a cache by name; it opens
-figures.res and menus.res at startup. A .lnk lists the parts; each is a FIG / FIG8 (or older headerless) record morphed
+(`LinkFigureLoader`, link_loader.h; one per world view) has the figure sets, the device object and a cache by name; it
+opens figures.res and menus.res at startup. A .lnk lists the parts; each is a FIG / FIG8 (or older headerless) record morphed
 by three coefficients s, t, u and appended. An object's part drawn through its figure finds its ranges once per figure
 (`FigureMesh::PartIn`, keyed by `LinkMesh::serial`); a figure without the part draws nothing (`DrawLit` returns
 false). A unit's or lever's part keeps its picking rectangle in its drawer (`screen`, from its box; renderer.md
-section 3, "Picking"; the part headers keep none).
-Morphs are plain floats: FIG8 lerp(lerp(lerp(c0,c1,s), lerp(c2,c3,s), t),
-lerp(lerp(c4,c5,s), lerp(c6,c7,s), t), u); old records lerp(lerp(lerp(c0,c1,s), c2, t), lerp(lerp(c3,c4,s), c5, t), u).
-Kept: RemorphFigPart reads every record as FIG8; an empty part
-name in a .lnk keeps the previous one; a missing link file gives null; `AddArchive` leaks the archive when opening fails
+section 3, "Picking"; the part headers keep none). Morphs are plain floats: FIG8 lerp(lerp(lerp(c0,c1,s),
+lerp(c2,c3,s), t), lerp(lerp(c4,c5,s), lerp(c6,c7,s), t), u); old records lerp(lerp(lerp(c0,c1,s), c2, t),
+lerp(lerp(c3,c4,s), c5, t), u). Kept: RemorphFigPart reads every record as FIG8; an empty part name in a .lnk keeps the
+previous one; a missing link file gives null; `AddArchive` leaks the archive when opening fails
 and passes the `std::string` by value to "%s".
 
 ## Renderer
@@ -75,8 +73,7 @@ and passes the `std::string` by value to "%s".
 `SceneRenderer` (the global renderer) holds the transform pipeline (matrix stacks; projection.cpp, renderer.md) and the
 device holder. Its draws hand their triangles to src/render.
 - **Renderer creation**: the projection takes the camera's near distance and field of view and has no far plane
-  (renderer.md, "The view's depth"); the sun and
-  ambient go to the GPU lighting only.
+  (renderer.md, "The view's depth"); the sun and ambient go to the GPU lighting only.
 - **Mesh draws**: `TextureDevice::DrawMesh` hands a `render::MeshDraw` over whole (the GPU clips it) with the device's
   fog, in one pass of the current material; `DrawFlatBlocks` the same for the selection marker and the ground prints.
   Nothing is projected on the CPU for drawing.
@@ -99,7 +96,7 @@ device holder. Its draws hand their triangles to src/render.
   line lists); stage 0's colour and alpha operations off around the draw (renderer.md, "Pass state").
 - `ClipTest` answers as the original's 8 corner codes of the cube, then of the box, but decides first from each clip
   plane's range over the volume, with a margin of 2^-16 of a bound; the corner codes are computed only when a plane is
-  within the margin, or a value is NaN or infinite (checked equal on 12.6 M calls; saves 0.1-0.3 ms a frame in forests).
+  within the margin, or a value is NaN or infinite.
 - Kept: `DrawSprites` returns 0 on a failed draw without restoring the blend states, and its sort writes a
   dropped sprite's key into the next free record; `ShearMatrix` sets m[10] to 0 after zero-filling.
 
@@ -110,8 +107,8 @@ terrain_sector.h), `terrain.cpp`, `terrain_landscape.cpp`, `terrain_lights.cpp`,
 - **The map file** `<map>.MP` (`Terrain::LoadMap`): 0x26 bytes of header (magic CE4AF672, height range, sectors x / y,
   pages, page size, texture count, tile size, material count (16 bits), animated texture count), the materials (0x2C
   bytes each), a class per texture, (texture, frames) word pairs; the size must be exactly that. Missing: the game ends
-  (`game::FatalExit`) with "Unable to open file \"path\""; short or mismatched: "Wrong file format: path". Width / height = sectors x 32; tiles
-  per row = page / tile; a material's absorption is 1 / (1 - opacity), its colour the file's light factor x colour
+  (`game::FatalExit`) with "Unable to open file \"path\""; short or mismatched: "Wrong file format: path". Width /
+  height = sectors x 32; tiles per row = page / tile; a material's absorption is 1 / (1 - opacity), its colour the file's light factor x colour
   capped at 1. Sixteen extra textures of class 15 follow the map's for the extra pages. The ambient sound set is
   "Dungeon", or "Ingos" / "Suslanger" by zone, else "Gipat"; the one-shot count per sound class is how many of
   `ambient\<set>\<class>\day\<n>.wav` exist (each probe holds a reference on the wave that is never given back).
@@ -124,16 +121,17 @@ terrain_sector.h), `terrain.cpp`, `terrain_landscape.cpp`, `terrain_lights.cpp`,
   file and the sectors from it, so these readers see the same files.
 - **Landscape passes, light tests**: `DrawGround` / `DrawWater` differ only in the page range (ground
   0..LayerPages()-1, water the next LayerPages(); LayerPages() = pages + the two extra pages); a page's texture is
-  bound at the first sector with tiles on it. `DrawPages` per visible sector: clip test, the pending water levels, then the drawn sectors
-  handed over once a pass (`render::TerrainPass`; src/render keeps the zone's meshes and draws them). Every sector draws its full mesh (the original's distance LOD levels
-  and seams are gone; the two LOD options stay in the settings file, read by nothing). `EdgeFade` is the map edge's
+  bound at the first sector with tiles on it. `DrawPages` per visible sector: clip test, the pending water levels, then
+  the drawn sectors handed over once a pass (`render::TerrainPass`; src/render keeps the zone's meshes and draws them).
+  Every sector draws its full mesh: there are no distance LOD levels or seams (the two LOD options in the settings
+  file are read by nothing). `EdgeFade` is the map edge's
   fade byte. The GPU lights the terrain: the original's vertex lighting, sun shadow ray march, point light areas and
   relight countdowns are not ported (renderer.md says what looks different); `AddLight` / `RemoveLight` keep only the
   table of shown lights (it holds them: removing a light it never registered releases nothing).
 - Animated tiles: the GPU works their frames out from `Terrain::tileSteps` and a hash of each tile's place (renderer.md
-  section 13, item 3b); nothing steps or draws a random number on the CPU. Waves: nothing moves them per frame; `Terrain::WaterVertex`
-  (terrain.cpp) works a water vertex out where a height query asks, terrain_water.hlsl's `waved` the drawn ones (renderer.md
-  section 13, item 3).
+  section 13, item 3b); nothing steps or draws a random number on the CPU. Waves: nothing moves them per frame;
+  `Terrain::WaterVertex` (terrain.cpp) works a water vertex out where a height query asks, terrain_water.hlsl's `waved`
+  the drawn ones (renderer.md section 13, item 3).
 - Ambience: sixteen sound classes (name, variants, weight, pan limit, chance %); the class votes are sorted by the
   game's qsort (`ByWeight`).
 - The original's faults, fixed: HeightAt with only a cell's diagonal corners (v00, v11) gives their mean height
@@ -180,5 +178,5 @@ the indices use.
 
 `Dib` (dib.h): colour table, bits (`std::vector`), header, image size, colour count, masks; used for loose
 `textures\*.bmp` overrides and screenshots (Scroll Lock; `CaptureSurfaceRect` / `CaptureSurface` in surface.cpp copy
-16, 24 and 32-bit rows from the last to the first). Rows are padded to four bytes (`DibRowBytes`; the original sized them
-unpadded and skewed screenshots whose row was not a multiple of four bytes). `Read` / `Write` read and write BMP files.
+16, 24 and 32-bit rows from the last to the first). Rows are padded to four bytes (`DibRowBytes`; unpadded rows skewed
+screenshots whose row was not a multiple of four bytes). `Read` / `Write` read and write BMP files.

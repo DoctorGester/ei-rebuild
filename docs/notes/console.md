@@ -1,8 +1,8 @@
 # Developer console
 
 Code: `console.h` / `console.cpp` (streams, executor, tokenizer, script lines), `console_commands.cpp` (handlers),
-`console_window.cpp` (window text and placement), `console_addon.cpp` (Rebirth's commands and AutoExec, `rebirth.md`).
-The window's drawing and key input are in `console/console_window.cpp` (`ui.md`). Scenario: `tests/scenarios/console.txt`
+`console_window.cpp` (window text and placement, drawing and key input: `ui.md`), `console_addon.cpp` (Rebirth's
+commands and AutoExec, `rebirth.md`). Scenario: `tests/scenarios/console.txt`
 (public commands, the tokenizer's cases, the cheat word, every command's messages and settings, script lines,
 listvar / loadvar through `.\saves\`, give, the window's own input).
 
@@ -17,8 +17,8 @@ listvar / loadvar through `.\saves\`, give, the window's own input).
   with the next line once the category is shown again; a sync of a hidden category hands an empty line to the window
   (the harness drops empty lines). Sync hands the line to the console window through the interface and empties it.
 - AddText splits at '\n': the first piece continues the last line, so each message line ends with an empty line that
-  the next message fills. Visible lines: `(height - 24s) / 15s - 1`
-  with s = height43 / 600 (ui.md, "Console window"; 7 lines in the default 150-unit window at any size). The harness reads each synced line through
+  the next message fills. Visible lines: `(height - 24s) / 15s - 1` with s = height43 / 600 (ui.md, "Console window";
+  7 lines in the default 150-unit window at any size). The harness reads each synced line through
   `console::g_consoleLineObserver`.
 
 ## Executor
@@ -41,8 +41,8 @@ takes its trail byte. The first token is the command.
 
 ## Original bugs kept
 
-Visible behaviour of the original kept until the user decides (rewrite-guide rule 9; C84 triaged the list, with a
-recommendation per entry). Crashes, undefined behaviour and invisible bookkeeping are fixed, not listed.
+Visible behaviour of the original kept until the user decides (rewrite-guide rule 9). Crashes, undefined behaviour and
+invisible bookkeeping are fixed, not listed.
 
 None left. The cheat word must match the whole command; `fps` without 1 / on or 0 / off (or with no argument) toggles
 the frame rate.

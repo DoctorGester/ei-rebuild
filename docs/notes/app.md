@@ -42,7 +42,6 @@ arguments...)`) sit at the loop's calls: the frame capture between the interface
 (the camera's update), "speed" (the server and client updates), the frame step, and the loop's message peeks and
 clock reads named in `ei::mainloop::g_site`.
 
-
 Dropped on purpose: the original chose the interface or the window procedure for an event waiting before the first
 pass by the top byte of a reused stack slot (it hung depending on where a string lay); ours always gives it to the
 interface. Kept: `SetUpCursors`' last argument has only its low byte set; "res\speech.res" is built twice;
@@ -54,14 +53,13 @@ Ours leave the quit posted (the movie ends on it) and the main loop ends on it.
 ## Options
 
 `GameOptions` (options.h) is a global that `Load` fills at the start of GameMain: every option from the settings
-file, a missing one with its catalog row's default (the original's constructor held placeholder defaults, such as a
-camera turning about 7 and pitching about 700 times as fast as an install's; they are gone). The master server's name
-is read but not saved (EI_Plugin's NewMaster stopped saving it). Settings are `ei_settings.ini` beside the exe,
-described by `src/game/app/settings_catalog.inc`, which holds each setting's one default (`docs/settings.md` is
-generated from it by `tools/gen_settings_doc.py`, a build check).
+file, a missing one with its catalog row's default. The master server's name is read but not saved (as Rebirth's
+EI_Plugin had it). Settings are `ei_settings.ini` beside the exe, described by `src/game/app/settings_catalog.inc`,
+which holds each setting's one default (`docs/settings.md` is generated from it by `tools/gen_settings_doc.py`, a build
+check).
 
-The camera's defaults are freer than the original's (P12; Rebirth's starter offered them as its "Камера Чейза" preset):
-the pitch -45..90 on the maps and the village screens, the distances 3..50 with hard limits 3..70 on both,
+The camera's defaults are freer than the original's (Rebirth's starter offered them as its "Камера Чейза" preset): the
+pitch -45..90 on the maps and the village screens, the distances 3..50 with hard limits 3..70 on both,
 CameraMinHeight 0 and NearClipDistance 1. Every camera value is written at exit (`GameOptions::Save` writes the whole
 table), so a file written by an earlier build keeps that build's values (30..60, 10..50, 3, 2, ...) until those lines
 are deleted; the defaults reach new files and missing lines. The original's FarClipDistance is not read (the
@@ -75,7 +73,7 @@ keeps the line. The camera's side: core.md, "Camera".
 - Key bindings (key_bindings.cpp): config\keyboard.ini of "command key" lines, key texts from the platform's key
   names; `platform.md` for the keys themselves.
 - The lever table (objects/lever.cpp, Levers.ldb).
-- `DelayedProtectionCheck` (the original's copy protection on every new object: a 1% `rand()` draw, then a list nothing
-  fills) is gone; the harness made the original's return at once, so nothing depends on its draw.
+- The original's copy protection on every new object (a 1% `rand()` draw, then a list nothing fills) is not ported;
+  nothing depends on its draw.
 - Caught file errors: `platform::File` throws `platform::FileError` by value; `Dib::Read` / `Write` catch it, the
   script reader reads whole files with `platform::ReadWholeFile`, which does not throw.

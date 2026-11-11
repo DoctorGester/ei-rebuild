@@ -10,15 +10,16 @@ A worker does ONE ticket, given in its prompt: do it, commit, report, stop.
 
 1. Merge main into your worktree (once, now; never again before handing back), then `python tools/work.py start <ID>`.
 2. Read `README.md`, `docs/rewrite-guide.md` (every rule comes from a real bug), `docs/comment-guide.md`, your
-   ticket (`python tools/tickets.py show <ID>`: note, files, dependencies, its group's note and doc) and the notes
-   of your area (`docs/notes/README.md` lists them). Read tickets one at a time (`tickets.py show`, `list`), not the whole folder.
+   ticket (`python tools/tickets.py show <ID>`: note, files, dependencies, its group's note and doc) and your area's
+   notes (`docs/notes/README.md` lists them). Read tickets one at a time (`tickets.py show`, `list`), not the folder.
 3. Work in few turns: read whole sections at once, send independent reads and edits together.
 
 ## Tickets
 
 One file per ticket, `docs/tickets/<ID>.toml`; the live status is in the shared work database
 (`docs/notes/work-board.md`). Both only through `tools/tickets.py`, never by hand.
-- Branch ready: `python tools/tickets.py set <ID> review`; commit your ticket's file (it carries the status line) with your work.
+- Branch ready: `python tools/tickets.py set <ID> review`, and commit your ticket's file (it carries the status line)
+  with your work.
 - A note: `tickets.py note <ID> "<text>" --append` adds to it; a plain `note` refuses to overwrite a note that is not
   empty (`--replace` says it is meant).
 - Follow-up work you found: `python tools/tickets.py add <NEW-ID> --group <key> --title "..." --note "..."
@@ -31,14 +32,17 @@ One file per ticket, `docs/tickets/<ID>.toml`; the live status is in the shared 
 ## Build and test
 
 - `build.cmd verify` (the image with the harness: what the runs use) and `build.cmd release` (the product), by full
-  path, with no errors or warnings; both run the build checks (`tools/build_checks.py`), which must pass. Debug and asan builds are the coordinator's: debug as a compile check every few merges, asan with a suite run on it after memory-handling tickets and every few merges (user 2026-11-04).
-- A fresh worktree's first build takes most objects from the compiler cache that every checkout shares
-  (`docs/notes/standalone.md`, "The compiler cache"). Debug information then names the first compiling checkout's paths.
+  path, with no errors or warnings; both run the build checks (`tools/build_checks.py`), which must pass. Debug and
+  asan builds are the coordinator's: debug as a compile check every few merges, asan with a suite run after
+  memory-handling tickets and every few merges.
+- A fresh worktree's first build takes most objects from the compiler cache every checkout shares
+  (`docs/notes/standalone.md`, "The compiler cache"); debug information then names the first compiling checkout's
+  paths.
 - Games only through `python tools/work.py test <ID> [run_all args]` (scenario names for a subset,
   `--rebirth-only`, `--golden`, at most `--jobs 4`): it queues on the machine's 16 game slots. Never call
   `tools/run_all.py` directly, never leave a game running. Equivalence sweeps stay under about 5 minutes per run.
 - Without scenario names `work.py test` plays the smoke tier (`config/smoke_scenarios.csv`: the runs that reach the
-  most code, both installs; H74). `--full` plays the whole image suite (and `--full --rebirth-only` the Rebirth set),
+  most code, both installs). `--full` plays the whole image suite (and `--full --rebirth-only` the Rebirth set),
   as the coordinator's merge runs always do. `--converted` without names plays only when a file the converted installs
   read changed against main (`run_all.CONVERTED_PATHS`; it says so and stops otherwise).
 - Timing runs (frame times, profiles, any number compared across builds) pass `--quiet`: each game then runs alone,
@@ -75,8 +79,8 @@ The user's standing decisions:
 - Every build is x64; the platform layer (`src/platform`, SDL3) is the direction; Linux builds and runs its checks.
 
 Safety on the machine:
-- Never write under `F:\games` (the installs) or the registry; scratch runs set `Work path` to
-  `.\` in their own `ei_settings.ini`. Don't install anything.
+- Never write under `F:\games` (the installs) or the registry; scratch runs set `Work path` to `.\` in their own
+  `ei_settings.ini`. Don't install anything.
 - Never recursive-delete a folder that holds junctions: remove each link with `cmd /c rmdir <link>` first.
 - Never switch the display mode or use exclusive full screen. A game lasts at most 60 s.
 - The repo is public: never commit game data.

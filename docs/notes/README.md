@@ -19,7 +19,7 @@ Engine and game:
 - `effects.md`: particles and world effects.
 - `items_spells.md`: items, spells, texts, textures, registry files, trader stock, the party.
 - `script.md`: the mission script engine and the text reader.
-- `lua-scripting.md`: the plan for Lua mission scripts (tickets L).
+- `lua-scripting.md`: mission scripts on Lua: the generated Lua, the scheduler, saves (Eris).
 - `models.md`: models, resources, the draw layer, terrain and ground prints.
 - `sound.md`: sound, music and movies (src/audio, src/video).
 - `rebirth.md`: what the Rebirth edition patches, and the patch flags.
@@ -27,11 +27,12 @@ Engine and game:
 
 Drawing and the interface:
 - `renderer.md`: the renderer (src/render). Renderer workers read it whole.
+- `frame-plan.md`: the frame-cost plan and its measurements.
 - `ui.md`: the interface's screens.
 - `ui-native.md`: how the interface's surfaces and text draw on the GPU.
 
 Program and platform:
-- `file-layout.md`: src/game's and src/engine's folders and file names (the C168 plan, the engine library), the map
+- `file-layout.md`: src/game's and src/engine's folders and file names, the engine library, the map
   tools/layout_map.txt and its tool.
 - `standalone.md`: the exe: how it runs, its data, the settings file, the library ports, UTF-8, the drop-in exe.
 - `platform.md`: the platform layer (src/platform) and its rule.

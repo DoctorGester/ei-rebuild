@@ -15,16 +15,9 @@ Files: `net/net_session.h` (sessions, lobby, message base), `net_session*.cpp`, 
   compresses, decompresses the result and compares; a checksum above save version 0x6B).
 - Multiplayer: the server / client sessions, the lobby, the master server, `DriverLink`s (remote players only), trades,
   kick / ban, zone commands, awards, shared files. Scenarios: `net_lobby` (the host's client joins its own server over
-  loopback), the pairs (`peer` in harness.md): `net_pair_kick` (kick by serial, ban by name, a refused join),
-  `net_pair_leave` (shared files, a peer lost in the zone, LeaveZone), `net_pair_quest` (a quest done, CompleteZone and
-  its awards, a fake master), `net_pair_master` (the master's server list, a bad update), `net_second_master`, `net_pair_lobby` (direct queries, the address book), `net_pair_password` (a refused and an admitted join);
-  `net_host_death` (one hosted game: its hero killed in the game zone, the zone saved and entered again);
-  `net_zone_vars` (one hosted game: z6q3's script raises server variables), `net_zone_leader` (z7q3's script asks for the leader)
-  and `net_pair_companion` (ours: a companion picked in the base, fighting, dying, written back, restored in the next
-  zone and taken off the list, "Companions" below); `net_pair_mod_same`, `net_pair_mod_differ`, `net_pair_mod_none`
-  (ours: the mods compared at the join, "Mods" below), `net_pair_mod_list` (ours: the connection screen's list names
-  the host's mod) and `net_pair_mod_effect` (ours: a mod's data effect started by the host's server, shown on the
-  peer; effects.md, "Data effects").
+  loopback), `net_second_master`, the hosted games and the pairs of standalone-verification.md section 3 (`peer` in
+  harness.md), `net_pair_companion` ("Companions" below), `net_pair_mod_*` ("Mods" below) and `net_pair_mod_effect` (a
+  mod's data effect started by the host's server, shown on the peer; effects.md, "Data effects").
 
 ## The multiplayer game
 
@@ -54,11 +47,12 @@ Files: `net/net_session.h` (sessions, lobby, message base), `net_session*.cpp`, 
   `maxPlayers` as it keeps its game type (`ClientSession::maxPlayers`, `PlayerLimit`: the HUD portraits and the chat
   strip are laid out for it). The pause mode stays on the server (`PlayerServer::OnPause`, `World::SetServerPaused`).
   Scenarios: `net_pair_portraits` (limit 8 on both games, the peer pausing under AnyPlayer), `net_host_pause` (Off).
-- **Kick / ban**: console `kick` / `ban` without a name opens the host's player pick (a face click sends KickBySerial / BanBySerial
-  with the serial); with a name, KickByName / BanByName (guests whose name starts with it). A banned address's join is refused.
+- **Kick / ban**: console `kick` / `ban` without a name opens the host's player pick (a face click sends KickBySerial /
+  BanBySerial with the serial); with a name, KickByName / BanByName (guests whose name starts with it). A banned
+  address's join is refused.
 - **Shared files**: the server shares each queued zone's .mq (a File message, 64-byte FileChunk messages); a client
   that lacks one answers with a FileRequest and keeps the chunks without writing the file (Rebirth's MQClient, always
-  on; the original wrote it into Maps).
+  on).
 - **A lost client**: the server drops it after the session timeout (60 s; text 4 to both); its own game shows the
   lost server box and returns to the main menu.
 - The console's "@" commands do nothing in a network game (the harness's `hit` step acts on the world instead).
@@ -88,14 +82,15 @@ list again. Scenario `net_pair_companion`.
   companions.
 - **The join** (`PlayerServer::OnAddCompanion`): a dword (1: the client's list asked for again at the zone's start; a 0
   is read and dropped, logged: nothing in a zone changes the list; the harness's `askcompanion` sends one), then a sized
-  block, the hero's party saved without variables. Taken when the option is on, the player is joined in a network zone, its hero lives, the party has room (1 + companions) and the
-  block is one record of known items and spells; else read and dropped (logged). The record is appended
+  block, the hero's party saved without variables. Taken when the option is on, the player is joined in a network zone,
+  its hero lives, the party has room (1 + companions) and the block is one record of known items and spells; else read
+  and dropped (logged). The record is appended
   (`PartyUnitRecord::CopyFrom`: every field, the items copied into the player's party), gets the next free object id
   (as OnNewParty's), follows the hero (`leaderId`), and its unit is made beside the hero (`WorldServer::CreateUnits`,
   a Player mode, the Heroes group); the party is sent. Orders need nothing new: the walk / attack / cast / use handlers
-  take any unit id with a Player mode (they never checked the owner; nor do they now).
+  take any unit id with a Player mode (they do not check the owner).
 - **Taken off the list**: in the base only, on the client (`SavedParties::companions`); the zone's records go home
-  with the party. `ClientMessage::RemoveCompanion` (0x52) is no longer sent; the server reads and drops it (logged).
+  with the party. Our client sends no `ClientMessage::RemoveCompanion` (0x52); the server reads and drops it (logged).
 - **Death**: a companion's death (`PlayerServer::CompanionDied`, from the unit's death report when it is not the
   leader) takes the hero's experience penalty at once, on the unit and on its record; it lies dead, nothing dropped
   (money and backpack are the hero's). The hero's death keeps the rule above for the hero; the living companions are
@@ -110,21 +105,21 @@ list again. Scenario `net_pair_companion`.
   multiplayer game begins (leaving a game and joining or hosting another). In each network zone of the game the 0x84
   answer sets `PlayerClient::restoreCompanions`; once the hero's unit stands (the in-zone tick, `RestoreCompanions`)
   every file is asked for (restore dword 1; files past this host's limit dropped). A joined game does not know the
-  limit in the base, so its list may be longer than the host takes. A regroup after the hero's death keeps them (above). The
-  leave box waits for every living unit of the party in the
-  exit, the companions too (`WorldClient::PartyInExit`, unchanged); the exits stay closed while another player is in
-  the game, as before (`GameFlow::UpdateMultiplayerVariable`: "z.MPGame1" at 1 while the server counts more than
-  one). A hero cannot be two at once: the window offers only heroes that are neither the played one nor a companion.
+  limit in the base, so its list may be longer than the host takes. A regroup after the hero's death keeps them
+  (above). The leave box waits for every living unit of the party in the exit, the companions too
+  (`WorldClient::PartyInExit`); the exits stay closed while another player is in the game
+  (`GameFlow::UpdateMultiplayerVariable`: "z.MPGame1" at 1 while the server counts more than one). A hero cannot be two at once: the window offers only heroes that are neither the played one nor a companion.
 - **Experience and awards**: a kill's experience (`ShareAmongSoloPlayers`, the multiplayer share) is split per player
   first, as the original did among players of one hero: each player whose hero stands gets a part in proportion to the
   square root of its hero's experience; the player's heroes (the hero and its companions) then share that part in
   proportion to the square roots of theirs. A hero alone takes its whole part (the weight over itself is exactly 1), so
-  games without companions share as before; companions do not take experience from the other players. Quest experience, gold and items come through the Award message 60 s after
-  the zone, when the companions are back in their files: they go to the hero and the party as before.
+  games without companions share as the original; companions do not take experience from the other players. Quest
+  experience, gold and items come through the Award message 60 s after the zone, when the companions are back in their
+  files: they go to the hero and the party.
 
 ## Mods (ours)
 
-Peers learn each other's mod from the lobby's info answer and at the join (MF16): the mod's title and its content
+Peers learn each other's mod from the lobby's info answer and at the join: the mod's title and its content
 hash (`modidentity::Identity`, src/game/net/mod_identity.h; the hash: mods.md, "Mods in multiplayer"). Scenarios
 `net_pair_mod_same`, `net_pair_mod_differ`, `net_pair_mod_none` and `net_pair_mod_list`.
 - **The mark** (`net::WriteModMark` / `ReadModMark`, net_lobby.cpp): `kModMark` "ei-rebuild mod" with its zero, a
@@ -132,8 +127,7 @@ hash (`modidentity::Identity`, src/game/net/mod_identity.h; the hash: mods.md, "
   after the login's 20-byte password (`JoinWithPassword`); our server after the info answer's entry (`SendInfo`), an
   acceptance's join id (`SendAccepted`) and a refusal's reason when the reason is `ModMismatch` (4). An original peer
   reads none of it: its server reads the password's 20 bytes at most, its client the entry, the id and the reason
-  byte. No mark (the packet ends before it)
-  means the original game, which counts as playing no mod.
+  byte. No mark (the packet ends before it) means the original game, which counts as playing no mod.
 - **The server** (`ServerSession::Admit`, after the ban check, before the password and the limit): a client whose mod
   is not the server's (`modidentity::Agrees`: the same title and hash) is refused with `ModMismatch` and the server's
   mark. Each refused join (address and join id: a client asks again until answered) is logged ("mod: refused the join
@@ -154,9 +148,9 @@ hash (`modidentity::Identity`, src/game/net/mod_identity.h; the hash: mods.md, "
 - **The list**: the client reads the mark after an info answer's entry (`ClientBase::OnInfo`: `ServerEntry::mod`,
   `modRead`; an original server's answer has none, the original game). The connection screen names the selected
   host's mod in its details and dims the rows of hosts this game cannot join for the mods (`ServerEntry::ModAgrees`,
-  `modidentity::Listed`: `lmp_mod_listed`, `lmp_mod_cannot_join`, `lmp_mod_cannot_join_version`; ui.md,
-  "MpConnectScreen::DrawListVanilla"). Entries without an answer read (the master's
-  list, the address book's saved replies) show no mod and count as joinable. Joining such a host is still tried and
+  `modidentity::Listed`: `lmp_mod_listed`, `lmp_mod_cannot_join`, `lmp_mod_cannot_join_version`; ui.md, "MpConnectScreen::DrawListVanilla").
+  Entries without an answer read (the master's list, the address book's saved replies) show no mod and count as
+  joinable. Joining such a host is still tried and
   refused as above: the list only shows it. A switch to the host's mod from the list (when it is in the menu's list) is
   not offered: mods switch only in the main menu (`app::RequestModSwitch`).
 - **The texts** are the game's when its texts have the key (a texts.toml of a mod or a converted install can carry
@@ -169,25 +163,23 @@ hash (`modidentity::Identity`, src/game/net/mod_identity.h; the hash: mods.md, "
 - `SessionBase : RefCounted`: frame, time (a double holding float sums), the connections and the UDP socket driver.
   A connection hands each received message to its session's `OnMessage` (the connection, a `MessageEvent`: Created,
   Changed or Removed, the message), one switch on the message's `Type()` per session. `ServerBase` / `ClientBase` are
-  the lobby layers; `ServerSession` / `ClientSession` on top. +8 of both sessions is the magic 0xDEC0AD07.
+  the lobby layers; `ServerSession` / `ClientSession` on top. Both sessions hold the magic 0xDEC0AD07.
 - Packet kinds (first byte, `net::PacketKind`): Master (0xFF, -1), Update 0, Leave 1, (2 none), GetInfo 3, Login 4,
   Info 5, Accepted 6, Rejected 7 (the join id and a `RefusalReason`: Full 1, Banned 2, WrongPassword 3; ours
-  ModMismatch 4, "Mods"). The other
-  numbers of the wire are enums too, in `net/net_session.h`: `AwardKind`, `CommandKind`, `PlayerStatus` (the state of a
-  client's login record: InZone 0, InBase 1, InCamp 2, Connecting 3, Fresh 4); the player link's message types are
-  `ServerMessage` / `ClientMessage` (`player_messages.h`), the connection states `PlayerServer::State` /
-  `PlayerClient::State`, a map object's delta fields `NetField` (`net_delta.h`). Values equal the old numbers; the
-  dispatch switches are on the enums.
+  ModMismatch 4, "Mods"). The other numbers of the wire are enums too, in `net/net_session.h`: `AwardKind`,
+  `CommandKind`, `PlayerStatus` (the state of a client's login record: InZone 0, InBase 1, InCamp 2, Connecting 3, Fresh
+  4); the player link's message types are `ServerMessage` / `ClientMessage` (`player_messages.h`), the connection states
+  `PlayerServer::State` / `PlayerClient::State`, a map object's delta fields `NetField` (`net_delta.h`).
 - Message types: client to server: Login (5), Say (6), Command (7, {kind, text}), FileRequest (13), Party (15, a trade
   offer), PartyMember (16, a MemoryStream); server to client: Player (1), Line (2, chat), Host (3, "host:port" + zone),
   Binding (4), Zone (8), Map (9), Variable (10), File (11), FileChunk (12), Award (14), Trade (17). Duplicate layouts
   share a class: `TextMessage` (Say / Zone / Map); Binding and FileRequest hold their typed pair. Each class has its `kType`
   (`MessageType`, the wire's type byte) and `Type()`, `OnShutdown`, Write and Read (object references go through the
-  connection passed in); `CreateMessage` makes one by type. `OnShutdown` (a still-shared message losing its owner) gives every field a constructor
-  sets its new value (version 1, references dropped); the fields a constructor leaves unset keep theirs, as the
-  original's destroy-and-construct-in-place left them. Only the messages a second share of an object clones (Say, Command, FileChunk, Award, ServerEntry)
-  have `Clone` and a copy constructor; `RefObject::Clone` of any other class is a fatal error, and `OnShutdown` is
-  empty unless a class overrides it (H43g1 cut the clones the coverage runs never reached).
+  connection passed in); `CreateMessage` makes one by type. `OnShutdown` (a still-shared message losing its owner)
+  gives every field a constructor sets its new value (version 1, references dropped); the fields a constructor leaves
+  unset keep theirs, as the original's destroy-and-construct-in-place left them. Only the messages a second share of an
+  object clones (Say, Command, FileChunk, Award, ServerEntry) have `Clone` and a copy constructor; `RefObject::Clone` of
+  any other class is a fatal error, and `OnShutdown` is empty unless a class overrides it.
 - Command kinds (host only, `CommandKind`): PreviewMap, Zone ("_1" enter, "_2" leave, "_3" finish), KickByName /
   BanByName, KickBySerial / BanBySerial.
 - Rates: 12500 local / 2500 otherwise, clamped 500..50000. Say is announced as "^<number><name>^7: <text>".
@@ -214,20 +206,17 @@ A connection to one peer tracks every replicated object (a Message, whose versio
 version differs from the one last sent (a 1 bit, type, id, the object's Write) or whose object went away (a 0 bit,
 type, id). Every packet is remembered in the send history with what it carried, so an acknowledgement or its absence
 marks entries delivered or resends them. A reliable byte stream travels in front of the entries in chunks of up to 255
-bytes; the entries themselves are never resent once delivered or superseded (the original's per-type "reliable" entry
-flag was never set, so its reliable-entry path is gone). The peer keeps received objects in `records` (`RecordKey`: type
+bytes; the entries themselves are never resent once delivered or superseded. The peer keeps received objects in `records` (`RecordKey`: type
 << 16 | id); an object reference in a message is a flag bit (1: an object the writer received from the reader), the
 type and the id. A connection holds its session (`session`, from AddClient: the socket it sends on, the OnMessage and
-CollectReplicated it calls; the original read a current-session global set during the session's Tick). Its timings are
-constants (`kPeerTimeout` 60 s, `kMaxRoundTrip` 5 s, `kIdReuseTime` 75 s; the original's session fields nothing
-changed). A connection is silent after 3 round trips idle. `Connection::OnShutdown` (the session dropped a
+CollectReplicated it calls). Its timings are constants (`kPeerTimeout` 60 s, `kMaxRoundTrip` 5 s, `kIdReuseTime`
+75 s). A connection is silent after 3 round trips idle. `Connection::OnShutdown` (the session dropped a
 connection a message still holds) restores a new connection's state (`ConnectionState`, id 0).
 - Within a priority the original sent entries in the order of their addresses, so send order and net ids followed the
   heap. Ours keys the priority maps by a serial handed out as `CollectChanges` walks the session's lists (players,
   variables, the binding, chat lines, files), so they follow the lists; the goldens hold no net ids or send order.
-- The client's player list (`ChatWindow::ShowPlayers`) lists nobody while the binding is missing, and the original's
-  binding handler did not refresh it (players read before the binding left the base without faces); ours refreshes it
-  at the binding.
+- The client's player list (`ChatWindow::ShowPlayers`) lists nobody while the binding is missing, so it is refreshed
+  at the binding too (the original's was not: players read before the binding left the base without faces).
 - Kept: `SendUpdate`'s entry that overflows the budget stays in the packet uncounted, the rest of that priority
   waits, lower priorities are still tried. `ReadRecord`'s skip path creates a throwaway object. `ClientSession::ApplyParty`
   creates and drops a member's object with a positive id.
@@ -293,13 +282,13 @@ client reads them back; single player too, through the loopback.
 
 ## Unreached in the shipped game
 
-Kept on purpose (they carry a game action or the protocol), each with a one-line comment at the definition; the
-coverage runs of H43 never reached them:
+Kept on purpose (they carry a game action or the protocol), each with a one-line comment at the definition; no
+coverage run reaches them:
 - `ServerSession::RemoveVariable` (GSDelVar's multiplayer branch in `script_exec.cpp`): the only live GSDelVar calls
   (zone13.mob, zone2.mob) sit behind single-player story variables.
 - Handlers for messages our own peer never sends, kept for a vanilla peer: `PlayerClient::OnDisconnect` (0x01) and
   `OnObjectValues` (0x0C); `PlayerServer::OnLeave` (0x01), `OnRefreshParty` (0x02), `OnBriefingDone` (0x07),
-  and `OnUnitLookup` (ClientMessage::UnitLookup, 0x38, reads and drops; 0x37 has no handler). The other handlers H43g1 listed (`SendGoTo`, `SendFollow`,
-  `TakeExit`, `OnGoTo`, `OnFollow`, `OnTakeExit`, `OnWeaponRemoved`, `ItemsTaken`, `ItemTaken`, `SendWeaponRemoved`) have
-  callers in play (the hud's orders, a broken weapon, taken loot); the scenarios just do not click them.
+  and `OnUnitLookup` (ClientMessage::UnitLookup, 0x38, reads and drops; 0x37 has no handler).
+- Reached in play but not by the scenarios: `SendGoTo`, `SendFollow`, `TakeExit`, `OnGoTo`, `OnFollow`, `OnTakeExit`,
+  `OnWeaponRemoved`, `ItemsTaken`, `ItemTaken`, `SendWeaponRemoved` (the hud's orders, a broken weapon, taken loot).
 - The `SessionBase` handlers of the packet kinds a session does not serve log an error and are not empty.
