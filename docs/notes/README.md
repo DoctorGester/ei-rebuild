@@ -27,7 +27,6 @@ Engine and game:
 
 Drawing and the interface:
 - `renderer.md`: the renderer (src/render). Renderer workers read it whole.
-- `frame-plan.md`: the frame-cost plan and its measurements.
 - `ui.md`: the interface's screens.
 - `ui-native.md`: how the interface's surfaces and text draw on the GPU.
 
