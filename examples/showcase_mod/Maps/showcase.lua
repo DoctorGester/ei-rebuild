@@ -1,5 +1,5 @@
--- The showcase island's script (docs/modding.md, "Scripts"): the whole of zone 1's script, which the mod replaces.
--- One quest: break the golem (Maps\zone1.mob.toml's object 4001) that guards the path with its two shards; its
+-- The showcase island's script (docs/modding.md, "Scripts"): the script of the mod's own zone (Res\texts\map.toml).
+-- One quest: break the golem (Maps\showcase.mob.toml's object 4001) that guards the path with its two shards; its
 -- reward is the mod's hammer and boots. Taking it gives the party the mod's spell for the fight: a spell container of
 -- Chain Spark (Res\database\spells.sdb.toml's "spark"), which the camp's magic page puts on a hero. The quest's title
 -- and objective are Res\texts\texts.toml's "quest showcase_golem", its experience Res\database\quests.qdb.toml's
@@ -10,7 +10,7 @@ GlobalVars {
     Golem = "object",
 }
 
-local QUEST = "q.gz1g.showcase_golem"   -- 1 taken, 2 done; QUEST .. ".1" its one objective
+local QUEST = "q.showcase.showcase_golem"   -- 1 taken, 2 done; QUEST .. ".1" its one objective
 
 -- The quest ends when the golem falls.
 GolemFalls = Script {

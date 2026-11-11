@@ -135,19 +135,10 @@ void GlobalMap::LeftDown(UiEvent& event) {
 
 // --- Ui global map places ----------------------------------------------------------------------------
 
-// The global map's (GlobalMap, ui_camp.h) places: the titles and positions of its allod, zones and quests
-// from the texts and map.txt, the zone selection's marker colours and its refresh. See docs/notes/ui.md
-// ("Camp, global map, hero screens").
+// The global map's (GlobalMap, ui_camp.h) places: the titles of its allod, zones and quests from the texts, the
+// zone selection's marker colours and its refresh. See docs/notes/ui.md ("Camp, global map, hero screens").
 
-namespace {
-
-constexpr const char* kMapText = "map.txt";
-constexpr const char* kPositionLine = "#position";
-constexpr const char* kMissingNumber = "0";
-
-} // namespace
-
-// --- titles and positions ------------------------------------------------------------------------
+// --- titles ------------------------------------------------------------------------------------
 
 std::string GlobalMap::PlaceTitle(std::string_view prefix, std::string_view name) {
     TextManager* texts = g_clientWorld.texts.get();
@@ -156,27 +147,6 @@ std::string GlobalMap::PlaceTitle(std::string_view prefix, std::string_view name
     key += name;
     if (texts->Open(key)) title = texts->ReadLine(true);
     return title;
-}
-
-std::optional<Vector3> GlobalMap::MapPosition(std::string_view prefix, std::string_view name, bool positionLine) {
-    TextManager* texts = g_clientWorld.texts.get();
-    std::string key;
-    std::vector<std::string> words;
-    texts->Open(kMapText);
-    key = prefix;
-    key += name;
-    std::optional<Vector3> position;
-    if (texts->FindLine(key) && (!positionLine || texts->FindLine(kPositionLine))) {
-        texts->NextLine();
-        if (!texts->IsPastEnd(texts->cursor)) {
-            words = texts->Split(true);
-            while (words.size() < 3) words.push_back(kMissingNumber);
-            position = Vector3{str::ToFloat(words[0]), str::ToFloat(words[1]),
-                               str::ToFloat(words[2])};
-        }
-    }
-    texts->Close();
-    return position;
 }
 
 // --- the selected zone ---------------------------------------------------------------------------

@@ -85,10 +85,6 @@ public:
 
     // The first line of the text `prefix` + `name` ("allod ", "zone ", "quest "); empty when there is none.
     static std::string PlaceTitle(std::string_view prefix, std::string_view name);
-    // From map.txt: the numbers on the line after the entry `prefix` + `name` (with `positionLine`, after the
-    // entry's "#position" line; missing numbers 0); none when map.txt has no such entry (the original left
-    // its uninitialised locals).
-    static std::optional<Vector3> MapPosition(std::string_view prefix, std::string_view name, bool positionLine);
     // On gipat a zone and its link are selected together. -1 selects nothing.
     void SelectZone(int index, bool isLink);
     // The tip hidden, the title and every sprite but the zone markers and the tip's two shown, nothing selected.

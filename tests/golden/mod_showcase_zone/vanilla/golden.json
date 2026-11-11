@@ -1,0 +1,13 @@
+{
+  "scenario": "mod_showcase_zone",
+  "install": "vanilla",
+  "recorded": "2026-11-11",
+  "commit": "8341df8a4",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "MF13a: the showcase mod's island is a zone of its own (showcase) reached through gz1g's merged exit 3, no longer zone 1 replaced: the runs start in gz1g and enter the island with the harness's zone step, the quest variables are q.showcase.*, the island's AI graph is built at the load; mod_showcase_zone walks into the island and back",
+  "source": "image",
+  "saves": "10 decoded saves (tools/savefile.py), the same in 2 runs"
+}

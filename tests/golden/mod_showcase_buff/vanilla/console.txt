@@ -1,5 +1,8 @@
   Activated!
   Cannot open file autoexec.cfg for reading
+  0
+  Saved savea
+  1
   Showcase mod: the island loads
   Showcase mod: the party has the Chain Spark
   Saved savea

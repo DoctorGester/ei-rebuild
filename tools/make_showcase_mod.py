@@ -12,9 +12,9 @@ seeded generator, so the same script writes the same files. The hand-written fil
 databases, map objects and script) are in examples/showcase_mod as they are.
 
 Made files:
-  Maps\\zone1\\map.toml, heights.png, tiles.png      the island's ground (zone 1's map replaced; 8 x 6 sectors)
-  Res\\textures\\zone1000.png                        its ground page: grass, earth, rock and sand tiles
-  Res\\textures\\zone1map.png, zone1quest.png        its minimap and objectives pictures
+  Maps\\showcase\\map.toml, heights.png, tiles.png   the island's ground (the mod's own zone; 8 x 6 sectors)
+  Res\\textures\\showcase000.png                     its ground page: grass, earth, rock and sand tiles
+  Res\\textures\\showcasemap.png, showcasequest.png  its minimap and objectives pictures
   Res\\textures\\scgolem00.png                       the golem's skin
   Res\\figures\\scgolem.glb                          the golem: its parts and 13 animations
   Res\\textures\\scshard00.png                       the golem's shards' skin (the golem's figure, smaller)
@@ -117,12 +117,12 @@ def mix(a, b, t):
 
 # --- The ground ----------------------------------------------------------------------------------------------------
 
-SECTORS = (8, 6)                                   # zone 1's size: the exits of its map.txt record fit it
+SECTORS = (8, 6)                                   # Res\texts\map.toml's size of the zone
 WIDTH, HEIGHT = 32 * SECTORS[0], 32 * SECTORS[1]   # cells (world units)
 HEIGHT_RANGE = 20.0
-START = (54.0, 138.0)                              # the party's arrival: map.txt's gz1g exit 1, (49, 133)-(59, 143)
-GOLEM = (78.0, 116.0)                              # the golem's guard post (Maps\zone1.mob.toml)
-EXIT = (187.0, 114.0)                              # map.txt's gz1g exit 2 to the base bz1g, (181, 108)-(193, 120)
+START = (54.0, 138.0)                              # the party's arrival: map.toml's exit 1, (49, 133)-(59, 143)
+GOLEM = (78.0, 116.0)                              # the golem's guard post (Maps\showcase.mob.toml)
+EXIT = (187.0, 114.0)                              # map.toml's exit 2 to the base bz1g, (181, 108)-(193, 120)
 
 # The ground page: 8 x 8 tiles of 64 pixels; the game draws a tile's inner 48 (its UVs keep 8 pixels from each edge).
 PAGE, TILE, INNER, MARGIN = 512, 64, 48, 8
@@ -189,9 +189,9 @@ def ground_layers(rng):
 
 
 def island_map(heights, tiles, darker):
-    """zone1map / zone1quest (256 x 256, the minimap's and the objectives screen's picture of the island): the tiles'
-    colours shaded by the slope, the map's 256 x 192 cells at the picture's top (zone 1's pictures cover the map's
-    width)."""
+    """showcasemap / showcasequest (256 x 256, the minimap's and the objectives screen's picture of the island): the
+    tiles' colours shaded by the slope, the map's 256 x 192 cells at the picture's top (as zone 1's pictures cover the
+    map's width)."""
     size = 256
     pixels = []
     for y in range(size):
@@ -212,9 +212,9 @@ def island_map(heights, tiles, darker):
 def map_toml():
     classes = [CLASSES[kind] for kind in KINDS for _ in range(16)]
     lines = [
-        '# The showcase island (tools/make_showcase_mod.py): zone 1\'s map replaced (docs/modding.md, "Maps as',
-        '# folders"). Its normals are worked out from heights.png; it has no water.',
-        'name = "Zone1"',
+        '# The showcase island (tools/make_showcase_mod.py): the map of the mod\'s own zone (docs/modding.md, "Maps',
+        '# as folders"). Its normals are worked out from heights.png; it has no water.',
+        'name = "Showcase"',
         'height_range = %r' % HEIGHT_RANGE,
         'sectors = [%d, %d]' % SECTORS,
         'pages = 1',
@@ -230,7 +230,7 @@ def map_toml():
 
 
 def ground_page(rng):
-    """zone1000: the four kinds' tiles. Each tile's inner 48 pixels repeat a kind's pattern of period 48, so tiles of
+    """showcase000: the four kinds' tiles. Each tile's inner 48 pixels repeat a kind's pattern of period 48, so tiles of
     one kind meet without a seam; each tile adds a few spots of its own inside."""
     patterns = {kind: Fractal(rng, 4, 4, float(INNER)) for kind in KINDS}
     pixels = [None] * (PAGE * PAGE)
@@ -720,12 +720,12 @@ def made_files():
     def rng(name):
         return random.Random('showcase:' + name)
     heights, tiles = ground_layers(rng('ground'))
-    files['Maps/zone1/map.toml'] = map_toml().encode()
-    files['Maps/zone1/heights.png'] = png(WIDTH + 1, HEIGHT + 1, 'grey16', heights)
-    files['Maps/zone1/tiles.png'] = png(WIDTH // 2, HEIGHT // 2, 'rgb', tiles)
-    files['Res/textures/zone1000.png'] = png(PAGE, PAGE, 'rgb', ground_page(rng('page')))
-    files['Res/textures/zone1map.png'] = png(256, 256, 'rgb', island_map(heights, tiles, 1.0))
-    files['Res/textures/zone1quest.png'] = png(256, 256, 'rgb', island_map(heights, tiles, 0.8))
+    files['Maps/showcase/map.toml'] = map_toml().encode()
+    files['Maps/showcase/heights.png'] = png(WIDTH + 1, HEIGHT + 1, 'grey16', heights)
+    files['Maps/showcase/tiles.png'] = png(WIDTH // 2, HEIGHT // 2, 'rgb', tiles)
+    files['Res/textures/showcase000.png'] = png(PAGE, PAGE, 'rgb', ground_page(rng('page')))
+    files['Res/textures/showcasemap.png'] = png(256, 256, 'rgb', island_map(heights, tiles, 1.0))
+    files['Res/textures/showcasequest.png'] = png(256, 256, 'rgb', island_map(heights, tiles, 0.8))
     size, pixels = golem_texture(rng('golem skin'))
     files['Res/textures/scgolem00.png'] = png(size, size, 'rgb', pixels)
     files['Res/figures/scgolem.glb'] = golem()

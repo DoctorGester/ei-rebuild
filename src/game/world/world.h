@@ -411,8 +411,9 @@ public:
     // virtual with 0.
     void PrepareSave();
     // Reads the zone's AI graph into the memory stream `out`: the 0x31415926 chunk of the .mob file when
-    // there is one, else the whole <map>.grp file. 1 when found.
-    int ReadAIGraph(std::string_view map, std::string_view mob, ByteStream* out);
+    // there is one, else the whole <map>.grp file; `out` stays empty when neither is there (a mod's new zone:
+    // NewZone and LoadSave then build the graph after the load's refresh).
+    void ReadAIGraph(std::string_view map, std::string_view mob, ByteStream* out);
     // The zone's scripts from the .mob file's 0xA000 chunk (its 0xACCEECCB text packed and XORed,
     // decoded by the game's routine, or the plain 0xACCEECCA text) become the only line of the first
     // command queue.

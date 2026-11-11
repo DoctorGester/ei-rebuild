@@ -67,6 +67,7 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `tests/scenarios/mod_showcase.txt` | the showcase mod played: the island, the golem's fight, the quest and its reward |
 | `figure_gltf.h` (`IsWornModel`, `JoinWorn`), `resource.cpp` (`WornSetFile`, `JoinedSet`) | an item's worn model joined to the figure sets that lack its parts ("Worn models") |
 | `tests/scenarios/mod_showcase_worn.txt` | the showcase hammer in the hero's hand (`unitpart`) |
+| `src/game/map/map_database.cpp`, `tests/scenarios/mod_showcase_zone.txt` | the zone table, map.txt and a mod's `Res\texts\map.toml` merged by name ("Zones from a mod"); the showcase's zone walked into and out of |
 | `src/engine/models/figure_gltf_animation.cpp`, `figure_gltf_glb.h` | a set's animations as glTF animations and back ("Animations as glTF"); the pieces the two files share (the .glb's writer, the reader's accessors) |
 | `tests/scenarios/mod_gltf_animation.txt` | a mod's glTF hero whose idle is twice as slow, played in a new game |
 | `src/game/script/script_lua_mission.cpp` | a .mob's script from a .lua ("Scripts in Lua"): `Script::LoadLua`; `Script::Runner`, `GlobalValues`, `GlobalGroup` and the scheduler's views for the digest and the saves |
@@ -704,7 +705,8 @@ for the TOML, looked for as a record file's (`FindRecordFile` without reading th
 top first, down to the first that has the .mob); the top one that parses is the whole of the objects, the weather and
 the player table (no merge: a mod's file holds every record, as a camera path's). The scripts are still read from the
 `.mob` (`MobFile::ReadChunks(false)`: its script chunks alone), and so are the AI graph (`ReadAIGraph`) and the main
-script (`LoadZoneScripts`); with a TOML the `.mob` may be missing (no scripts then). The `.lua` the TOML's `script`
+script (`LoadZoneScripts`); with a TOML the `.mob` may be missing (no scripts then, and the graph built at the load:
+"Zones from a mod"). The `.lua` the TOML's `script`
 key names runs in place of the scripts when it is there ("Scripts in Lua"). Both readers build one
 `mapspec::MobContents` (map_spec.h: the records, the weather, the player table, the relations flag, the scripts, the
 TOML's `script` key), which `mapspec::LoadMob` applies as the zone loader did.
@@ -808,9 +810,51 @@ Zone 1's TOML (777 records, 12,824 lines, 0.3 MB) reads in about 10 ms.
   and the game's `.mob` read; two more records at the file's end (a unit without a class, one of a tree's class, ids
   2010 and 2011) are left out with their warnings (`expectlog`). A map unit is found by its id (`GetObject`): `GetObjectByName` found none of the
   pigs by the names the TOML gives.
-- Still binary in a mod: the `.mob`'s AI graph chunk (0x31415926, `ReadAIGraph`) comes from the game's `.mob` (or none
-  when no layer has one); a mod that moves objects keeps the game's graph, which the TOML does not carry. Its scripts
-  can be a `.lua` ("Scripts in Lua").
+- Still binary in a mod: the `.mob`'s AI graph chunk (0x31415926, `ReadAIGraph`) comes from the game's `.mob` (or the
+  `.grp`; built at the load when no layer has either: "Zones from a mod"); a mod that moves objects keeps the game's
+  graph, which the TOML does not carry (MF13d). Its scripts can be a `.lua` ("Scripts in Lua").
+
+## Zones from a mod
+
+The zone table (`MapDatabase`, map_database.cpp: the allods, the zones with their exits, the quests' global map places)
+is texts.res's `map.txt` and `map-LMP.txt`, read once at `StartGame` (`LoadAll`) and for a quest's folder
+(`GameFlow::RegisterQuests`: `<folder>\map.txt`). A mod adds zones, exits and quests to it, or changes the game's, with
+`Res\texts\map.toml` (MF13a, user 2026-11-11), the common TOML records ("Records as TOML": `FindRecord("map")` in
+texts.res's place, each layer's file merged bottom first, `replace = true` the whole table): after the texts are read
+each `[[allod]]`, `[[zone]]` and `[[quest]]` merges into the record of its `name` (matched without case, as the game's
+`FindMap`), or is added. A zone's `[[zone.exit]]` with `number` n (1-based, map.txt's `#exit n`) merges into its n-th
+exit; one without, or past the last, is added (target "none" until it names one). The keys are those of map.txt's
+lines, one `Fields(record, visit)` per record (`name`, `allod`, `kind`, `map`, `mob`, `camera`, `size`, `minimap`,
+`objectives_map`, `figure`, `position`, `weather`, `sky`, `cage`, `restrict`; an exit's `target`, `entrance`, `deploy`,
+`remove`, `angle`, `pass_time`, `view`, `deploy_angle`, its angles in degrees). A zone given another allod moves from
+the old allod's list to the new one's; a new zone joins its allod's. A record that does not read is logged ("warning:
+map: <file> line n: ...") and left out whole. The guide's "Zones" has the format.
+
+The texts' reader changed with it: map.txt's `#position` line and a `#quest`'s places are kept on the records
+(`MapRecord::position`, `MapQuestRecord`) rather than looked up again in the text, so the global map
+(`ui_global_map.cpp`: the party's arrow, a way's, a quest's) and the objectives screen's places
+(`ui_objectives.cpp`, `LoadQuestPlaces`) read a mod's zones as the game's. Two differences from the old lookups, both
+in data no golden reached: a quest with no places line (vanilla q46ak, q47ck, q52k, q64h; ten in Lost in Astral) has no
+places, where the old reader took the next header as one place at (0, 0); and a multiplayer base zone (map-LMP.txt's
+bz1mpg ...) has its own position on the global map, where the lookup read map.txt only and gave (0, 0, 0).
+
+A new zone needs no `.mpr` (a map folder: "Maps as folders") and no `.mob` (`NewZone` takes a `.mob.toml` alone:
+`MapFileMissing` of both). With neither a `.mob` graph chunk nor a `.grp` (`ReadAIGraph` leaves the graph empty, where
+it was a fatal "Can't load graph"), `NewZone` and `LoadSave` build the region graph once the load's refresh has
+measured the cells (`BuildAIGraph`, world_save.cpp: `RefreshArea` over the whole map with the units out, as the editor
+made the files' graphs; built in `LoadMap` instead, before `EndRefresh`, every cell was a wall and no unit walked). A
+save of such a zone has an empty base, so `WriteDiff` writes no graph bytes and its load builds the graph again
+(`savefile.py` reads a mission save again without the graph's changes when it does not decode with them).
+
+### Checks
+
+- `mod_showcase_zone` (vanilla): the showcase mod's zone, reached by walking: a new game on the first island, the hero
+  walks onto gz1g's merged exit 3 east of the landing and is ordered onto it, the leave question, and the party arrives
+  on the island in its exit 1's deploy rectangle (the island's script, the quest's variable, the golem standing); back
+  through the island's exit 1 into gz1g's exit 3 deploy rectangle, and in again from the island's save (the golem and
+  the variable kept, the graph built again).
+- The showcase scenarios ("The showcase mod") enter the island with the harness's `zone showcase 0` once the new
+  game's battle screen is up.
 
 ## Scripts in Lua
 
@@ -1332,31 +1376,31 @@ the start.
 
 `examples/showcase_mod/` (MF13, user 2026-11-10): a mod made only of our own files, so it lives in the public repo and
 releases ship it ready-made (MF12 adds the Mods folder; the package copies the folder whole into `Mods\showcase_mod\`).
-A new game starts on its island: its ground, a stone golem of its own and two smaller shards of it guarding the path,
-one quest that gives the mod's spell, Chain Spark, and whose reward is the mod's hammer and boots. Hand-written: config,
-texts, databases, the golem's animation list, the map objects, the scripts and the effects. Made by
-`tools/make_showcase_mod.py --write` (procedural pixels and boxes from one seeded generator per file, no game file read;
-`--check` compares pixels and glTF data, not bytes, since zlib's output may differ between versions): the map folder's
-PNGs and `map.toml`, the ground page and minimap pictures, the golem's skin and `.glb`, the item models and textures,
-the shards' skin, the spell's pictures and its effects' texture. About 0.5 MB. LICENSE.txt: the files are ours, under
-the repo's MIT license.
+An exit from the first island leads to its island: its ground, a stone golem of its own and two smaller shards of it
+guarding the path, one quest that gives the mod's spell, Chain Spark, and whose reward is the mod's hammer and boots.
+Hand-written: config, texts, databases, the golem's animation list, the map objects, the scripts and the effects. Made
+by `tools/make_showcase_mod.py --write` (procedural pixels and boxes from one seeded generator per file, no game file
+read; `--check` compares pixels and glTF data, not bytes, since zlib's output may differ between versions): the map
+folder's PNGs and `map.toml`, the ground page and minimap pictures, the golem's skin and `.glb`, the item models and
+textures, the shards' skin, the spell's pictures and its effects' texture. About 0.5 MB. LICENSE.txt: the files are
+ours, under the repo's MIT license.
 
 Each part, its format, and what the formats could not do (each gap a ticket):
 
 | Part | Files | Format | Gap |
 |---|---|---|---|
-| The zone | `Maps\zone1\` (map.toml, heights.png, tiles.png), `Maps\zone1.mob.toml`, `Maps\zone1.lua`; `Res\textures\zone1000.png` (the ground page), `zone1map.png`, `zone1quest.png` (minimap, objectives map); texts' `zone gz1g` | map folder, map objects TOML, Lua, PNG | It replaces zone 1 (map.txt's gz1g: `#res zone1 zone1`): a mod cannot add a zone, since map.txt is one texts entry read whole (MF13a). A new game enters it with no extra step, its 8 x 6 sectors keep gz1g's exits fitting: the party lands at exit 1's (49, 133)-(59, 143), exit 2 at (181, 108)-(193, 120) still leads to the base bz1g. The AI region graph is zone 1's, read from the game's zone1.mob (MF13d) |
+| The zone | `Res\texts\map.toml` (the zone "showcase" on allod gipat, its two exits, and gz1g's merged exit 3 to it), `Maps\showcase\` (map.toml, heights.png, tiles.png), `Maps\showcase.mob.toml`, `Maps\showcase.lua`; `Res\textures\showcase000.png` (the ground page), `showcasemap.png`, `showcasequest.png` (minimap, objectives map); texts' `zone showcase` | zone table TOML, map folder, map objects TOML, Lua, PNG | None (MF13a): a zone of its own beside the game's ("Zones from a mod"). gz1g's exit 3 (63, 134)-(69, 142), east of the landing's ruins, leads to it; the party arrives at the island's exit 1 (49, 133)-(59, 143), which leads back; exit 2 (181, 108)-(193, 120) leads to the base bz1g. No `.mob` and no `.grp`: the AI region graph is built at the load |
 | The enemy | `Res\figures\scgolem.glb` (15 boxes, 13 animations), `Res\database\scgolem.adb.toml`, `units.udb.toml` (`[[model]]` "Showcase Golem", `[[unit]]` "ShowcaseGolem"), `Res\textures\scgolem00.png` (the placement's `parent_iname`) | glTF set, records TOML, databases TOML, PNG | None. No sounds: `sound_folder` empty, the animations' `sounds` empty; its footsteps name the game's stone steps. The shards (`[[unit]]` "ShowcaseShard", 4002 and 4003 by the golem) are the golem's model at scale 0.3 in their own skin (`Res\textures\scshard00.png`) |
 | The weapon | items.idb.toml `[[weapon]]` "showcase hammer" (club number 9), `Res\figures\initwehm9.glb` (inventory model, loose figure, part `weapon`), `Res\figures\hm_09.glb` (its worn model: `rh3.club09` under `rh3.axe00`, "Worn models"), `Res\redress\unhumahm_09.gr.0.png` (the weapons' strip of the hero's second texture) | databases TOML, glTF loose and worn, PNG | None (MF13c) |
 | The armour | `[[armor]]` "showcase boots" (boots number 20), `initarbt20.glb`, `Res\redress\unhumabt_20.le.0.png` (a layer over the hero's 256 x 256 skin: opaque where the feet and shins are) | as the weapon | None: boots, gloves, shirts and trousers are skin layers, no part. Helmets, body armour and leggings take a worn model as the weapon does (none shipped) |
 | The spell | spells.sdb.toml `[[spell]]` "spark" (Chain Spark, `script = "chain_spark.lua"`, icon 101), `Res\spells\chain_spark.lua`, `Res\effects\ChainSpark.effect.toml`, `ChainSparkHit.effect.toml`, `ChainSparkShock.effect.toml`, `ChainSparkCast.effect.toml` (the record's `cast_look`), `Res\textures\chainspark.png` (the effects' 16 pictures), `spell0101.png`, `prototype0101.png`, texts' `SPELL spark` | databases TOML, Lua, data effects, PNG | None (MF17e): a scripted spell (items_spells.md, "Scripted spells"). The spark (a missile carrying ChainSpark) strikes, then an arc reaches the nearest enemy within the radius not struck yet and the spark leaps along it 10 ticks later (a timer), each strike 0.6 of the one before (12, 7.2, 4.32), each leaving its victim shocked 40 ticks (the spell's own active effect: OnStats slows as the game's slow, the record's `look` ChainSparkShock) and starting ChainSparkHit on it, up to `target_count`; the last chain's strikes go into the game variables `chain_spark.*`. No sounds of its own: the game's lightning sound |
 | The buff | spells.sdb.toml `[[spell]]` "ember" (Ember Brand, `script = "ember_brand.lua"`, `duration` 120, `damage` 5, `look` the game's SphereFire), `Res\spells\ember_brand.lua` | databases TOML, Lua | None (MF17h3, MF17h1a): a curse, the spell's own active effect. OnStats subtracts its value from Strength (a stat no game buff touches); OnEffectTick burns 2 fire every 20 ticks left (`effect:Damage`, no caster); OnEffectApplied / OnEffectEnded say so on the console; the burns and the end into the game variables `ember_brand.*`. No item carries it: `CastSpellUnit("ember", ...)` |
-| The quest | `Maps\zone1.lua` (sets `q.gz1g.showcase_golem` and its objective `.1`, gives the spell container `spell container[spark]`, watches the golem, `QuestComplete`, `GiveItem`), `quests.qdb.toml` (its experience), texts' `quest showcase_golem` | Lua, databases TOML, texts TOML | None |
+| The quest | `Maps\showcase.lua` (sets `q.showcase.showcase_golem` and its objective `.1`, gives the spell container `spell container[spark]`, watches the golem, `QuestComplete`, `GiveItem`), `quests.qdb.toml` (its experience), texts' `quest showcase_golem` | Lua, databases TOML, texts TOML | None |
 
 Notes from making it:
-- A map folder with no `.mpr` of the mod's: the mod's `Maps\zone1\` makes Rebirth's Maps rule (`SelectMaps`) read the
-  zone's map from the mod, the folder alone (the game's zone1.mpr is not read), and the `.mob` from the game's folder
-  (`zone1.mob.toml` is not a `.mob`). The map is named `Zone1` (map.toml `name`), so its ground pages are `zone1000..`.
+- A map folder with no `.mpr`: the mod's `Maps\showcase\` makes Rebirth's Maps rule (`SelectMaps`) read the zone's map
+  from the mod. The map is named `Showcase` (map.toml `name`), so its ground pages are `showcase000..`. Until MF13a
+  the island replaced zone 1 and kept zone1.mob's graph (a mod could not add a zone).
 - A map page's tiles count from the page's bottom row up (texture 0 is the bottom-left 64 x 64), and the game draws a
   tile's inner 48 x 48 pixels (8 kept from each edge), so tiles that meet seamlessly repeat their pattern every 48.
 - A figure's root is placed by its animations' root translations: the golem's hips are 1.15 above its origin (the
@@ -1380,12 +1424,13 @@ Notes from making it:
 
 ### Checks
 
-- `mod_showcase` (both installs; tools/make_showcase_mod.py copies the folder into the run's saves): a new game on the
-  island (the script's line, the quest's variable 1), the hero (god mode) walks to the golem, which walks to it and
-  attacks (`objplayed cwalk`, `uattack01` from the glTF), and breaks it in the fight; the quest is done (variable 2, the
-  message log's lines), the party has the hammer at granite's damage (`modweapon showcase hammer 14.4 21.6`); captures
-  of the fight, the broken golem and the camp's inventory with both items; the trace has each kind of file read from
-  the mod, and the game's zone1.mob read, its zone1.mpr not. The shards join the fight and fall.
+- `mod_showcase` (both installs; tools/make_showcase_mod.py copies the folder into the run's saves): a new game, then
+  the island (`zone showcase 0`; the script's line, the quest's variable 1), the hero (god mode) walks to the golem,
+  which runs to it and attacks (`objplayed crun`, `uattack01` from the glTF), and breaks it in the fight; the quest is
+  done (variable 2, the message log's lines), the party has the hammer at granite's damage (`modweapon showcase hammer
+  14.4 21.6`); captures of the fight, the broken golem and the camp's inventory with both items; the trace has each kind
+  of file read from the mod (map.toml, the map folder, the `.mob.toml` and `.lua`, the textures). The shards join the
+  fight and fall.
 - `mod_showcase_spell` (both installs): the quest's spell container put on the new game's hero, its skills and
   attributes as they start, in the camp (the mod's picture read), the hero casts Chain Spark at the golem from the HUD; three strikes, 12 / 7.2 / 4.32 in the game variables
   (and so in the digest), golem, shard 4002, shard 4003; saved after the first strike and loaded: the chain goes on

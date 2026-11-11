@@ -15,6 +15,10 @@ waitmenu
 console thingamabob
 
 newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitwindow 15 battle
+zone showcase 0
+waitzone 30 showcase
 waitline 20 Showcase mod: the island loads
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @GodMode(0,1)

@@ -3,7 +3,7 @@
 # the mod's data effects Res\effects\ChainSpark.effect.toml and ChainSparkHit.effect.toml, the shock it leaves on a
 # struck unit (its own active effect: `look`) ChainSparkShock.effect.toml, the caster's while it casts (`cast_look`)
 # ChainSparkCast.effect.toml; its pictures are Res\textures\spell0101.png and prototype0101.png (icon 101). The
-# island's quest gives it (Maps\zone1.lua).
+# island's quest gives it (Maps\showcase.lua).
 
 [[spell]]
 name = "Chain Spark"

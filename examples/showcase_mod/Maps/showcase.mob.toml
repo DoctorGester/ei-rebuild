@@ -1,6 +1,6 @@
-# The showcase island's objects (docs/modding.md, "Map objects"): the whole of zone 1's objects, which the mod
-# replaces with its own. Its script is zone1.lua beside it.
-script = "zone1.lua"
+# The showcase island's objects (docs/modding.md, "Map objects"): the objects of the mod's own zone, which has no
+# .mob. Its script is showcase.lua beside it.
+script = "showcase.lua"
 applies_relations = true
 
 [[weather]]

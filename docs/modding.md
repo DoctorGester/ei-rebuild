@@ -539,7 +539,63 @@ call_radius = 5.0
   out.
 
 Moving or adding objects keeps the zone's AI graph from the `.mob` (a building moved onto a path does not change how
-the AI plans its way across the map).
+the AI plans its way across the map). A zone with no `.mob` anywhere (a mod's new zone, [Zones](#zones)) has its graph
+built from its map when it loads.
+
+## Zones
+
+The game's zones, their exits and the islands (allods) they lie on are its zone table, `map.txt` (and `map-LMP.txt`
+for multiplayer) in `texts.res`. A mod adds zones or changes the game's with `Res\texts\map.toml`, merged over the table
+by name: a zone (allod, quest) the table has takes the keys given and keeps the rest; a new name is a new zone. So a
+mod's file holds only its own zones and what it changes of the game's, never a copy of `map.txt`.
+
+```toml
+# Res\texts\map.toml
+[[zone]]
+name = "showcase"                 # what exits, LeaveToZone and the q.<zone>.* / z.<zone> variables name it by
+allod = "gipat"                   # the island it lies on (its global map)
+kind = "game"                     # game (a battle zone), brief (a base), edge (a way between zones)
+map = "showcase"                  # Maps\showcase.mpr or the map folder Maps\showcase\
+mob = "showcase"                  # Maps\showcase.mob, or Maps\showcase.mob.toml alone
+size = [8, 6]                     # in sectors: the minimap's and objectives map's extent
+minimap = "showcasemap"           # Res\textures: the minimap's picture
+objectives_map = "showcasequest"  # and the objectives screen's
+position = [-2.37, 0.12, 0.805]   # where the global map's arrow stands while the party is here
+
+[[zone.exit]]                     # exits in order: exit 1, 2, ...
+target = "gz1g"                   # the zone it leads to ("none": nowhere)
+entrance = 3                      # which exit of the target the party arrives at
+deploy = [49.0, 133.0, 59.0, 143.0]   # x1, y1, x2, y2: where the party stands arriving through this exit
+remove = [42.0, 134.0, 47.0, 142.0]   # the area that leads out (the deploy rectangle when left out)
+view = 90.0                       # the camera's turn on arrival, degrees
+
+[[zone]]
+name = "gz1g"                     # a game zone: only what changes
+[[zone.exit]]
+number = 3                        # its exit 3 (after the game's two): a new exit
+target = "showcase"
+entrance = 1
+deploy = [57.0, 135.0, 61.0, 141.0]
+remove = [63.0, 134.0, 69.0, 142.0]
+```
+
+- Zone keys: `name`, `allod`, `kind`, `map`, `mob`, `camera` (a base's camera path), `size`, `minimap`,
+  `objectives_map`, `figure` (its marker on the global map; a zone without one is not shown there), `position`,
+  `weather` (`none`, `rain`, `snow`, `tornado`; a new zone has rain), `sky` (`normal`, `cave`), `cage` (true: a base
+  where the party does not walk to the people), `restrict` (`[x, y, radius]`: the camera kept in that circle).
+- Exit keys: `number`, `target`, `entrance`, `deploy`, `remove`, `angle` (the area's turn about its centre, degrees),
+  `pass_time` (the way's time on the global map), `view`, `deploy_angle` (the party's facing on arrival, degrees).
+  `number` is the exit's place, as map.txt's `#exit n` and the `entrance` of other exits count: the zone's exit of
+  that number takes the keys given; an exit without one, or past the zone's last, is added at the end. A new exit
+  leads nowhere until it has a `target`.
+- `[[allod]]` (`name`, `figures`: its five global map figures) and `[[quest]]` (`name`, `position` on the global map,
+  `places`: `[[x, y], ...]` the objectives screen marks) merge the same way.
+- A zone given another `allod` moves to that island's list. Names match without case, as the game looks them up.
+- A record with an unknown key, or a value of the wrong type, is logged (`warning: map: <file> line n: ...`) and left
+  out whole; `replace = true` at the top makes the file the whole table (map.txt and map-LMP.txt not read).
+- A new zone needs its map (a folder of its own is enough: [Maps as folders](#maps-as-folders)), its objects
+  ([Map objects](#map-objects): the `.mob.toml` alone is enough; the AI graph is then built at the load), a name text
+  (`"zone <name>"` in `Res\texts\texts.toml`) and a way in: an exit of a game zone, or a script's `LeaveToZone`.
 
 ## Scripts
 
@@ -1827,20 +1883,19 @@ game reading each of the mod's files.
 ## The showcase mod
 
 `examples/showcase_mod/` is a whole small mod made only of new files (no game data, so release packages carry it):
-a new game starts on an island of its own in place of the first one, where a stone golem and its two shards guard
-the path; the quest gives you a spell for the fight, Chain Spark; break the golem, and its hammer and boots are yours.
-Read its files as a recipe for each kind of new content:
+an exit east of a new game's landing on the first island leads to an island of its own, where a stone golem and its
+two shards guard the path; the quest gives you a spell for the fight, Chain Spark; break the golem, and its hammer and
+boots are yours. Read its files as a recipe for each kind of new content:
 
 | Part | Files |
 |---|---|
-| A zone | `Maps\zone1\map.toml`, `heights.png`, `tiles.png` (a map folder with no `.mpr`), `Res\textures\zone1000.png` (its ground tiles), `zone1map.png` / `zone1quest.png` (the minimap and objectives pictures), `Maps\zone1.mob.toml` (its objects), `Maps\zone1.lua` (its script) |
+| A zone | `Res\texts\map.toml` (the zone "showcase", its two exits, and the first island's exit 3 to it; [Zones](#zones)), `Maps\showcase\map.toml`, `heights.png`, `tiles.png` (a map folder with no `.mpr`), `Res\textures\showcase000.png` (its ground tiles), `showcasemap.png` / `showcasequest.png` (the minimap and objectives pictures), `Maps\showcase.mob.toml` (its objects, no `.mob`), `Maps\showcase.lua` (its script), `"zone showcase"` in `Res\texts\texts.toml` (its name) |
 | A creature | `Res\figures\scgolem.glb` (parts and animations), `Res\database\scgolem.adb.toml` (its animation list), `units.udb.toml` (a `[[model]]` and a `[[unit]]`), `Res\textures\scgolem00.png` (the skin its placement names); the shards: a second `[[unit]]` on the golem's model at a smaller scale, `Res\textures\scshard00.png` |
 | A weapon, boots | `items.idb.toml`, `Res\figures\initwehm9.glb`, `initarbt20.glb` (inventory models: a loose figure named `initwe<type code><number>` / `initar...`, one part `weapon` / `armor`), `Res\figures\hm_09.glb` (the hammer's worn model, in the hand: [Worn models](#worn-models)), `Res\redress\unhumahm_09.gr.0.png`, `unhumabt_20.le.0.png` (their textures: the hammer's in the weapons' strip, the boots' a layer over the hero's skin) |
-| A quest | `Maps\zone1.lua` (the quest's variable `q.<zone>.<quest>`, its reward), `quests.qdb.toml` (its experience), `Res\texts\texts.toml` (`quest <name>`: the title, the description, `#subobj` lines) |
-| A spell | `spells.sdb.toml` (Chain Spark's record, `script` naming its file), `Res\spells\chain_spark.lua` (its mechanic: a missile with `OnHit`, the next victim by `FindUnits`, `Damage`, `Apply`, `Effect`, `Bolt`, a timer for the leap; [Spells](#spells)), `Res\textures\spell0101.png`, `prototype0101.png` (its pictures, `icon = 101`), `Maps\zone1.lua` (`GiveItem` of its spell container); `tests/scenarios/mod_showcase_spell.txt` casts it |
+| A quest | `Maps\showcase.lua` (the quest's variable `q.<zone>.<quest>`, its reward), `quests.qdb.toml` (its experience), `Res\texts\texts.toml` (`quest <name>`: the title, the description, `#subobj` lines) |
+| A spell | `spells.sdb.toml` (Chain Spark's record, `script` naming its file), `Res\spells\chain_spark.lua` (its mechanic: a missile with `OnHit`, the next victim by `FindUnits`, `Damage`, `Apply`, `Effect`, `Bolt`, a timer for the leap; [Spells](#spells)), `Res\textures\spell0101.png`, `prototype0101.png` (its pictures, `icon = 101`), `Maps\showcase.lua` (`GiveItem` of its spell container); `tests/scenarios/mod_showcase_spell.txt` casts it |
 | A buff | `spells.sdb.toml` (Ember Brand's record, `code = "ember"`), `Res\spells\ember_brand.lua` (a curse: `OnStats` lowers the victim's `Strength`, `OnEffectTick` burns it every 20 ticks with `effect:Damage`, `OnEffectEnded` says how it went; [Active effects](#active-effects)); `tests/scenarios/mod_showcase_buff.txt` casts it with `CastSpellUnit` |
 | An effect | `Res\effects\showcase_aura.effect.toml` (orbs trailing light and rising motes, driven by its inputs; `tests/scenarios/mod_effect.txt` starts it from the console); the spell's `ChainSpark.effect.toml` (the missile's spark and its trail) , `ChainSparkHit.effect.toml` (a strike's flash and ring of sparks), `ChainSparkShock.effect.toml` (the look of the shock a strike leaves: the record's `look`, [Active effects](#active-effects)) and `ChainSparkCast.effect.toml` (the caster's look while it casts: the record's `cast_look`, a variant of the game's CastingElectricity; [Records that name effects](#records-that-name-effects)), all on the mod's own texture `Res\textures\chainspark.png` (16 pictures, 4 x 4) |
 
-What it cannot do yet: add a zone beside the game's (it replaces zone 1: the zone list is one text read whole), and
-its island keeps zone 1's path-finding graph. The pictures and models are made by `tools/make_showcase_mod.py` in this
+The pictures and models are made by `tools/make_showcase_mod.py` in this
 repository.

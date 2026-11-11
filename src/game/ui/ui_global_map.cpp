@@ -146,7 +146,7 @@ void GlobalMap::CreateScreen() {
     MapRecord* current = g_mapDatabase.FindMap(LocalPlayerZone());
     AllodRecord* allod = g_mapDatabase.FindAllod(current->allod);
     allodTitle = PlaceTitle("allod ", allod->name);
-    position = MapPosition("#zone ", current->name, true).value_or(Vector3{});
+    position = current->position.value_or(Vector3{});
     const std::string& allodName = allod->name;
     LoadTexture((allodName + "Map"), TextureKind::Interface);
     LoadTexture((allodName + "Sys"), TextureKind::Interface);
@@ -207,7 +207,8 @@ void GlobalMap::CreateScreen() {
             quest.name = parts[2];
             quest.zone = i;
             quest.title = PlaceTitle("quest ", parts[2]);
-            quest.position = MapPosition("#quest ", parts[2], false).value_or(Vector3{});
+            const MapQuestRecord* record = g_mapDatabase.FindQuest(parts[2]);
+            quest.position = record ? record->position.value_or(Vector3{}) : Vector3{};
             UiMesh* sprite = AddSprite(allod->otherNames[kAllodQuestMarker]);
             questMarkers.push_back(sprite);
             sprite->localPosition = builder.ModelPoint(quest.position);
@@ -234,7 +235,7 @@ void GlobalMap::CreateScreen() {
             link.zone = i;
             link.name = way->name;
             link.title = PlaceTitle("zone ", way->name);
-            link.position = MapPosition("#zone ", way->name, true).value_or(Vector3{});
+            link.position = way->position.value_or(Vector3{});
             UiMesh* sprite = AddSprite(way->figure);
             linkMarkers.push_back(sprite);
             sprite->localPosition = builder.ModelPoint(link.position);
