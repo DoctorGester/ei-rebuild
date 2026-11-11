@@ -1,0 +1,8 @@
+id = "D8c"
+title = "Trim docs: harness, standalone, game-area notes, README and guides"
+group = "docs"
+size = 2
+model = "opus"
+files = ["docs/notes/standalone.md docs/notes/standalone-verification.md docs/notes/harness.md docs/notes/network.md docs/notes/rebirth.md docs/notes/world.md docs/notes/core.md docs/notes/units.md docs/notes/models.md docs/notes/sound.md docs/notes/combat.md docs/notes/work-board.md docs/notes/map_objects.md docs/notes/ai.md docs/notes/unit_ai.md docs/notes/objects.md docs/notes/float-maths.md docs/notes/app.md docs/notes/console.md docs/notes/README.md docs/rewrite-guide.md docs/worker-brief.md docs/comment-guide.md README.md"]
+note = "User 2026-11-12: trim pass on docs/notes and the .md files. Per file: cut history and ticket narrative (what used to be, which ticket did what, before/after numbers of finished work) unless a rule's reason needs it; cut what is no longer true (check the code), repeats of other notes (point to the one place instead), and wordiness. Keep every fact a worker or modder needs, the files' structure, and headings that code or other docs cite (grep for '<file>.md, \"<heading>\"' before renaming or removing one; update the citers). Plain sentences, the house style (docs/comment-guide.md). Generated parts stay untouched: docs/notes/file-layout.md (tools/layout.py listing), docs/settings.md (gen_settings_doc.py), docs/modding.md's <!-- lua-api --> blocks. Report lines before/after per file. README.md is the public page: trim for players. docs/worker-brief.md and CLAUDE.md are the workers' brief: keep every rule."
+order = 1415
