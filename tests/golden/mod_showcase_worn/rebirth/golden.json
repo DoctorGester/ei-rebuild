@@ -1,0 +1,13 @@
+{
+  "scenario": "mod_showcase_worn",
+  "install": "rebirth",
+  "recorded": "2026-11-11",
+  "commit": "6f950face",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "MF13c: new scenario mod_showcase_worn, the showcase hammer's worn model in the hero's hand",
+  "source": "image",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+}

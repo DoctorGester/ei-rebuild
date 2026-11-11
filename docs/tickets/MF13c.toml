@@ -4,5 +4,5 @@ group = "mods"
 size = 3
 note = "MF13 found: a weapon in hand and a helmet / body armour / leggings are parts of every unit figure that can wear them (unhuma's rh3.hammerNN, hd.armorNN, bd.armorNN; WeaponModelParts, LoadPart), so a new item number has no worn model unless the mod ships the whole hero figure (game data). The showcase hammer (number 9) is drawn in the inventory from its own glTF but is not seen in the hero's hand; its boots (type 5) are a skin layer and need no part. Wanted: a worn model from a glTF of the item (e.g. the inventory figure or <code>_<nn>.glb) attached to the hand / armour bones when the unit figure lacks the part."
 order = 1330
-status = "running"
+status = "review"
 started = "2026-11-11"
