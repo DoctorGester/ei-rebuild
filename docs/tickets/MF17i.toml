@@ -1,0 +1,6 @@
+id = "MF17i"
+title = "Lua API reference generated from the bindings: a LuaLS definition file and the docs' reference section"
+group = "mods"
+size = 2
+note = "User 2026-11-11 asked whether the Lua API description is generated or exported anywhere: it is not; docs/modding.md ('Spells', 'Active effects', mission scripts) is written by hand and the bindings are registered in several places (script_lua.cpp, script_spell_host.cpp, the mission script functions). Give every binding one declaration (name, arguments with types, returns, a one-line description) that both registers it and is exported: ei-convert --lua-api writes a LuaLS definition file (---@meta, ---@class cast, ---@param ...) so VS Code / any Lua language server gives completion and type checks for mods, and the reference tables in docs/modding.md are generated from the same data (a build check fails when they drift, like gen_settings_doc.py). The release ships the definition file with the tools (release-after-mods). lua_check covers that every registered binding is declared."
+order = 1401
