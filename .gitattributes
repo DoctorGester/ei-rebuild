@@ -1,1 +1,2 @@
 config/harness/** -text
+*.md text eol=lf

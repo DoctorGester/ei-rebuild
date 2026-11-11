@@ -2,7 +2,7 @@
 # GPU) on SDL_GPU's Direct3D 12 driver with WARP, the software adapter (docs/notes/harness.md, "The Windows CI job"; H61,
 # H62g), as suites-macos.yml does for macOS. On every push to main or claude/** and on pull requests (as Linux), and by hand (Actions > Windows > Run workflow). The full suites were tried
 # here (H62c to H62g) and cost more than they gave: WARP draws a frame in 0.3 to 0.8 s, so the runs took 70 to 140
-# minutes a shard and some pictures grep -h "failed|error|out of date|differ|problem|lua_api" build_release.log from the desktop's; the user cut them to a smoke test (2026-11-06).
+# minutes a shard and some pictures differ from the desktop's; the user cut them to a smoke test (2026-11-06).
 #
 # build-release / build-verify (parallel): build.cmd release and build.cmd verify, as on a desktop: the MSVC of the
 # runner's Visual Studio (EI_VSROOT from vswhere), warnings and the build checks included (build.cmd runs them; they
@@ -65,7 +65,7 @@ jobs:
       - name: Visual Studio
         run: |
           vs=$("/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe" -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | tr -d '\r')
-          [ -n "$vs" ] || { echo "::grep -h "failed|error|out of date|differ|problem|lua_api" build_release.log::no Visual Studio with the x64 C++ tools"; exit 1; }
+          [ -n "$vs" ] || { echo "::error::no Visual Studio with the x64 C++ tools"; exit 1; }
           echo "EI_VSROOT=$vs" >> $GITHUB_ENV
           echo "Visual Studio: $vs"
           ls "$(cygpath -u "$vs")/VC/Tools/MSVC"
@@ -77,7 +77,7 @@ jobs:
           tail -40 build_release.log
           grep -h "warning" build_release.log | head -20 || true
           grep -h "failed\|error\|out of date\|differ\|problem\|lua_api" build_release.log | grep -v "0 failed\|0 problems\|0 differ" | head -40 || true
-          [ $ok = 1 ] || { echo "::grep -h "failed|error|out of date|differ|problem|lua_api" build_release.log::build release failed"; exit 1; }
+          [ $ok = 1 ] || { echo "::error::build release failed"; exit 1; }
           ! grep -q "warning C\|warning LNK" build_release.log
 
   build-verify:
@@ -96,7 +96,7 @@ jobs:
       - name: Visual Studio
         run: |
           vs=$("/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe" -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | tr -d '\r')
-          [ -n "$vs" ] || { echo "::grep -h "failed|error|out of date|differ|problem|lua_api" build_release.log::no Visual Studio with the x64 C++ tools"; exit 1; }
+          [ -n "$vs" ] || { echo "::error::no Visual Studio with the x64 C++ tools"; exit 1; }
           echo "EI_VSROOT=$vs" >> $GITHUB_ENV
           echo "Visual Studio: $vs"
           ls "$(cygpath -u "$vs")/VC/Tools/MSVC"
@@ -107,10 +107,10 @@ jobs:
           echo "build verify: $(( $(date +%s) - start )) s" | tee -a $GITHUB_STEP_SUMMARY
           tail -60 build_verify.log
           grep -h "warning" build_verify.log | head -20 || true
-          grep -h "failed|error|out of date|differ|problem|lua_api" build_release.log\|error\|out of date\|differ\|problem" build_verify.log | grep -v "0 failed\|0 problems\|0 differ" | head -40 || true
+          grep -h "failed\|error\|out of date\|differ\|problem\|lua_api" build_verify.log | grep -v "0 failed\|0 problems\|0 differ" | head -40 || true
           if [ $ok = 0 ]; then
             # the build checks (they draw on WARP) can fail with the exe built: say so and let the suites run
-            [ -f build/verify/ei-rebuild.exe ] || { echo "::grep -h "failed|error|out of date|differ|problem|lua_api" build_release.log::build verify failed"; exit 1; }
+            [ -f build/verify/ei-rebuild.exe ] || { echo "::error::build verify failed"; exit 1; }
             echo "::warning::build verify failed after linking ei-rebuild.exe (the build checks?): see the log"
           fi
           ! grep -q "warning C\|warning LNK" build_verify.log
@@ -122,7 +122,7 @@ jobs:
             build/verify/ei-rebuild.exe
             build/verify/ei-rebuild.map
           retention-days: 3
-          if-no-files-found: grep -h "failed|error|out of date|differ|problem|lua_api" build_release.log
+          if-no-files-found: error
 
   smoke:
     needs: build-verify
@@ -167,16 +167,16 @@ jobs:
           mkdir -p "$DATA"
           shopt -s nullglob
           parts=(stub-data-checkout/ei-stub-data.tar.zst*)
-          [ ${#parts[@]} -gt 0 ] || { echo "::grep -h "failed|error|out of date|differ|problem|lua_api" build_release.log::no ei-stub-data.tar.zst* in the stub data repository"; exit 1; }
+          [ ${#parts[@]} -gt 0 ] || { echo "::error::no ei-stub-data.tar.zst* in the stub data repository"; exit 1; }
           case "${parts[0]}" in
             *.enc | *.enc.*)
-              [ -n "$KEY" ] || { echo "::grep -h "failed|error|out of date|differ|problem|lua_api" build_release.log::the stub data is encrypted and EI_STUB_DATA_KEY is not set"; exit 1; }
+              [ -n "$KEY" ] || { echo "::error::the stub data is encrypted and EI_STUB_DATA_KEY is not set"; exit 1; }
               cat "${parts[@]}" | openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:KEY | zstd -dq | tar -x -C "$DATA" ;;
             *)
               cat "${parts[@]}" | zstd -dq | tar -x -C "$DATA" ;;
           esac
           rm -rf stub-data-checkout
-          [ -d "$DATA/vanilla" ] || { echo "::grep -h "failed|error|out of date|differ|problem|lua_api" build_release.log::the stub data has no vanilla/"; exit 1; }
+          [ -d "$DATA/vanilla" ] || { echo "::error::the stub data has no vanilla/"; exit 1; }
           echo "stub data: $(du -sm "$DATA" | cut -f1) MB unpacked"
           echo "DATA_WIN=$(cygpath -w "$DATA")" >> $GITHUB_ENV
 
@@ -194,7 +194,7 @@ jobs:
             echo '```'
           } >> $GITHUB_STEP_SUMMARY
           if [ $ok = 0 ] || grep -q "not passed:" gate.txt; then
-            echo "::grep -h "failed|error|out of date|differ|problem|lua_api" build_release.log::boot did not pass: WARP may not draw on the runner; the logs follow"
+            echo "::error::boot did not pass: WARP may not draw on the runner; the logs follow"
             for f in build/verify/runs/*/launch.txt build/verify/runs/*/ei-rebuild.log; do
               echo "=== $f"; tail -40 "$f" || true
             done
@@ -222,7 +222,7 @@ jobs:
             echo '```'
           } | tee -a $GITHUB_STEP_SUMMARY
 
-      # What a run that did not pass or grep -h "failed|error|out of date|differ|problem|lua_api" build_release.logs needs to be understood without the machine (tools/ci_details.py).
+      # What a run that did not pass or differs needs to be understood without the machine (tools/ci_details.py).
       - name: Differences in detail
         if: always()
         env:
@@ -237,14 +237,14 @@ jobs:
             echo '```'
           } 2>&1 | tee -a $GITHUB_STEP_SUMMARY
 
-      # The job fails on a grep -h "failed|error|out of date|differ|problem|lua_api" build_release.logence or a run that did not pass.
+      # The job fails on a difference or a run that did not pass.
       - name: Verdict
         run: |
           bad=0
-          if [ ! -s suite_image.txt ]; then echo "::grep -h "failed|error|out of date|differ|problem|lua_api" build_release.log::the smoke suite printed nothing"; bad=1; fi
-          if grep -q "GOLDENS DIFFER" suite_image.txt; then echo "::grep -h "failed|error|out of date|differ|problem|lua_api" build_release.log::GOLDENS DIFFER on WARP (see the summary)"; bad=1; fi
-          if grep -q "^not passed:" suite_image.txt; then echo "::grep -h "failed|error|out of date|differ|problem|lua_api" build_release.log::scenarios did not pass"; bad=1; fi
-          if ! grep -q "GOLDENS THE SAME" suite_image.txt; then echo "::grep -h "failed|error|out of date|differ|problem|lua_api" build_release.log::no GOLDENS THE SAME line in the suite output"; bad=1; fi
+          if [ ! -s suite_image.txt ]; then echo "::error::the smoke suite printed nothing"; bad=1; fi
+          if grep -q "GOLDENS DIFFER" suite_image.txt; then echo "::error::GOLDENS DIFFER on WARP (see the summary)"; bad=1; fi
+          if grep -q "^not passed:" suite_image.txt; then echo "::error::scenarios did not pass"; bad=1; fi
+          if ! grep -q "GOLDENS THE SAME" suite_image.txt; then echo "::error::no GOLDENS THE SAME line in the suite output"; bad=1; fi
           exit $bad
 
       - name: Remove the data
