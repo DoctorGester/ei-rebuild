@@ -6,5 +6,6 @@ model = "opus"
 files = ["docs/modding.md docs/notes/mods.md docs/notes/effects.md docs/notes/lua-scripting.md docs/notes/script.md docs/notes/items_spells.md"]
 note = "User 2026-11-12: trim pass on docs/notes and the .md files. Per file: cut history and ticket narrative (what used to be, which ticket did what, before/after numbers of finished work) unless a rule's reason needs it; cut what is no longer true (check the code), repeats of other notes (point to the one place instead), and wordiness. Keep every fact a worker or modder needs, the files' structure, and headings that code or other docs cite (grep for '<file>.md, \"<heading>\"' before renaming or removing one; update the citers). Plain sentences, the house style (docs/comment-guide.md). Generated parts stay untouched: docs/notes/file-layout.md (tools/layout.py listing), docs/settings.md (gen_settings_doc.py), docs/modding.md's <!-- lua-api --> blocks. Report lines before/after per file. docs/modding.md is the modders' guide: trim for them (shorter, no internals that belong in notes/mods.md); ei-convert --lua-api-docs --check must still pass (build.cmd release runs it)."
 order = 1414
-status = "running"
+status = "done"
 started = "2026-11-12"
+done = "2026-11-12"
