@@ -246,8 +246,8 @@ void CheckState() {
     Expect("vars start", state.vars[0] == 1.0f);
     Expect("three anchors on their circle at the vector input's height",
            state.anchors.size() == 3 && state.source[kSourceValues] == 3.0f &&
-               std::fabs(state.anchors[1].values[static_cast<int>(AnchorValue::Y)] - 2.0f) < 1e-6f &&
-               state.anchors[2].values[static_cast<int>(AnchorValue::Z)] == 3.0f);
+               std::fabs(state.anchors[1].values[static_cast<int>(AnchorValue::PositionY)] - 2.0f) < 1e-6f &&
+               state.anchors[2].values[static_cast<int>(AnchorValue::PositionZ)] == 3.0f);
     state.Step(random);
     state.Step(random);
     Expect("vars tick", state.vars[0] == 3.0f);
@@ -356,8 +356,10 @@ void CheckPlacement() {
     if (!record) return Expect("the placed record reads", false);
     const ParticleKind& kind = record->particles[0];
     Expect("eight vars, the last after the spawn", kind.vars.size() == 8 && !kind.vars[6].afterSpawn && kind.vars[7].afterSpawn);
-    Expect("the position's start and tick", kind.position[0].text == "origin.x + p.dx" && !kind.position[2].Empty() &&
-                                                kind.positionTick[1].text == "p.y + up.y" && !kind.positionTick[2].Empty());
+    Expect("the position's start and tick", kind.position.text == "[origin.x + p.dx, origin.y, origin.z]" &&
+                                                kind.position.width == 3 && kind.positionTick.width == 3 &&
+                                                kind.positionTick.text ==
+                                                    "[p.x + side.x * spread_min.x, p.y + up.y, p.z + spread_max.z]");
     errors.clear();
     Expect("a var that reads the spawn before it draws refuses the effect",
            Read(Parse(kEarly, "early.effect.toml"), "Early", &errors) == nullptr && errors.size() == 1 &&
@@ -526,12 +528,12 @@ void CheckExtensions() {
         const float* values = anchor.values;
         drawn = drawn && values[static_cast<int>(AnchorValue::SpawnX)] == v.x &&
                 values[static_cast<int>(AnchorValue::SpawnZ)] == v.z &&
-                values[static_cast<int>(AnchorValue::X)] == v.x / std::sqrt(length2);
+                values[static_cast<int>(AnchorValue::PositionX)] == v.x / std::sqrt(length2);
     }
     Expect("each added anchor draws its ball in turn, its x reads a.spawn", drawn && random.Next() == expected.Next());
     Expect("a.index counts the group, a.count is its size",
-           state.anchors[2].values[static_cast<int>(AnchorValue::Y)] == 2.0f &&
-               state.anchors[0].values[static_cast<int>(AnchorValue::Z)] == 3.0f);
+           state.anchors[2].values[static_cast<int>(AnchorValue::PositionY)] == 2.0f &&
+               state.anchors[0].values[static_cast<int>(AnchorValue::PositionZ)] == 3.0f);
     state.BeforeEmission(random);
     Expect("its condition then keeps it from adding more", state.anchors.size() == 3);
     Expect("a list input set from game code", state.SetList("path", {{7.0f, 8.0f, 9.0f}}) && !state.SetList("made", {}) &&
@@ -997,6 +999,71 @@ lifetime = 3
            ResolveLike(plain, "Plain", layers, &errors) && errors.empty() && plain["texture"].text == "A");
 }
 
+// Vector values: a vector input and vars of three lanes, vec3, swizzles, the vector functions, a var that reads a var
+// declared after it (the reader's second pass widens that one), ball(), and the refusals.
+constexpr const char* kVectors = R"toml(
+texture = "Stun"
+[inputs]
+aim = { type = "vector", default = [3, 4, 0] }
+[vars]
+early = "later.z + 1"
+dir = "normalize(aim)"
+far = "length(aim) + dot(aim, vec3(1, 0, 0))"
+turned = "cross(vec3(1, 0, 0), vec3(0, 1, 0)).z + aim.yx.x"
+point = "ball()"
+mid = "lerp(vec3(0), vec3(10, 20, 30), 0.5) + dir.y"
+later = "vec3(1, 2, 3)"
+[[particle]]
+name = "spark"
+lifetime = 1
+)toml";
+
+constexpr const char* kWideParticle = R"toml(
+texture = "Stun"
+[[particle]]
+name = "spark"
+lifetime = 1
+vars = { a = "vec3(1)", b = "vec3(2)", c = "vec3(3)" }
+)toml";
+
+void CheckVectors() {
+    std::vector<std::string> errors;
+    const std::shared_ptr<const Record> record = Read(Parse(kVectors, "vectors.effect.toml"), "Vectors", &errors);
+    for (const std::string& error : errors) std::printf("ei_unit_check: particle record: unexpected: %s\n", error.c_str());
+    if (!record) return Expect("the vector record reads", false);
+    State state(record);
+    IsaacRandom random, fresh;
+    state.Step(random);
+    auto find = [&](std::string_view name) {
+        for (const Var& v : record->vars)
+            if (v.name == name) return &v;
+        return static_cast<const Var*>(nullptr);
+    };
+    auto lane = [&](std::string_view name, int k = 0) {
+        const Var* v = find(name);
+        return v && k < v->width ? state.vars[v->slot + k] : std::nanf("");
+    };
+    auto width = [&](std::string_view name) { return find(name) ? find(name)->width : 0; };
+    Expect("vars take their expressions' lanes", width("dir") == 3 && width("far") == 1 && width("point") == 3 &&
+                                                     width("later") == 3 && record->varFloats == 15);
+    Expect("normalize", std::fabs(lane("dir", 0) - 0.6f) < 1e-6f && std::fabs(lane("dir", 1) - 0.8f) < 1e-6f);
+    Expect("length and dot", lane("far") == 8.0f);
+    Expect("cross and a swizzle", lane("turned") == 5.0f);
+    const Vector3 ball = RandomInBall(fresh);
+    Expect("ball() is RandomInBall", lane("point", 0) == ball.x && lane("point", 1) == ball.y && lane("point", 2) == ball.z);
+    Expect("a per-lane lerp plus a scalar", std::fabs(lane("mid", 2) - 15.8f) < 1e-5f);
+    Expect("a var reads a later vector var (0 at the start: it starts after)", lane("early") == 1.0f);
+
+    Names names;
+    std::string error;
+    Run("vec3(1, 2, 3) + vec2(1, 1)", names, nullptr, &error);
+    Expect("vectors of different widths are refused", !error.empty());
+    errors.clear();
+    Expect("a particle's vars hold at most eight floats",
+           Read(Parse(kWideParticle, "wide.effect.toml"), "Wide", &errors) == nullptr && !errors.empty() &&
+               errors[0].find("at most 8 floats") != std::string::npos);
+}
+
 } // namespace
 
 int RunParticleRecordChecks() {
@@ -1012,5 +1079,6 @@ int RunParticleRecordChecks() {
     CheckBlastFeatures();
     CheckWrittenEffects();
     CheckLike();
+    CheckVectors();
     return failures;
 }

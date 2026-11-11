@@ -11,6 +11,8 @@
 #include <charconv>
 #include <cmath>
 #include <initializer_list>
+#include <map>
+#include <optional>
 
 namespace effectdata {
 
@@ -177,33 +179,122 @@ namespace {
 
 constexpr int kMaxAnchors = 4096;   // per group
 
-constexpr std::string_view kSourceNames[kSourceValues] = {
-    "size", "height", "growth", "alpha", "param", "base_size", "age", "stage_age", "stage", "carrier_radius",
-    "carrier_z", "attached", "distance", "motion.x", "motion.y", "motion.z", "origin.x", "origin.y", "origin.z",
-    "count", "index", "total", "wind.x", "wind.y", "wind.z", "wind_strength", "extent.x", "extent.y", "extent.z",
-    "turn_cos", "turn_sin", "emitting", "spread_min.x", "spread_min.y", "spread_min.z", "spread_max.x",
-    "spread_max.y", "spread_max.z", "side.x", "side.y", "side.z", "up.x", "up.y", "up.z", "carrier_unit",
-    "carrier_running", "carrier_dead", "carrier_axis.x", "carrier_axis.y", "carrier_axis.z", "carrier_bounds_radius",
-    "carrier_left_foot.x", "carrier_left_foot.y", "carrier_left_foot.z", "carrier_right_foot.x",
-    "carrier_right_foot.y", "carrier_right_foot.z", "carrier_axis_y.x", "carrier_axis_y.y", "carrier_axis_y.z",
-    "carrier_unit_radius", "sun.r", "sun.g", "sun.b",
+// A value's name, its place in its scope and its lanes (a vector's 3: `origin`, whose `origin.x` is the first).
+struct Named {
+    std::string_view name;
+    int index = 0;
+    int width = 1;
 };
-// The source values a `set` action may write (the [source] table's numbers).
-constexpr std::string_view kSettableSourceNames[] = {
-    "size", "height", "growth", "alpha", "param", "spread_min.x", "spread_min.y", "spread_min.z", "spread_max.x",
-    "spread_max.y", "spread_max.z", "extent.x", "extent.y", "extent.z",
+constexpr int At(SourceValue v) { return static_cast<int>(v); }
+constexpr int At(AnchorValue v) { return static_cast<int>(v); }
+constexpr int At(ParticleValue v) { return static_cast<int>(v); }
+
+constexpr Named kSourceNames[] = {
+    {"size", At(SourceValue::Size)},
+    {"height", At(SourceValue::Height)},
+    {"growth", At(SourceValue::Growth)},
+    {"alpha", At(SourceValue::Alpha)},
+    {"param", At(SourceValue::Param)},
+    {"base_size", At(SourceValue::BaseSize)},
+    {"age", At(SourceValue::Age)},
+    {"stage_age", At(SourceValue::StageAge)},
+    {"stage", At(SourceValue::Stage)},
+    {"carrier_radius", At(SourceValue::CarrierRadius)},
+    {"carrier_z", At(SourceValue::CarrierZ)},
+    {"attached", At(SourceValue::Attached)},
+    {"distance", At(SourceValue::Distance)},
+    {"motion", At(SourceValue::MotionX), 3},
+    {"origin", At(SourceValue::OriginX), 3},
+    {"count", At(SourceValue::Particles)},
+    {"index", At(SourceValue::Index)},
+    {"total", At(SourceValue::Total)},
+    {"wind", At(SourceValue::WindX), 3},
+    {"wind_strength", At(SourceValue::WindStrength)},
+    {"extent", At(SourceValue::ExtentX), 3},
+    {"turn_cos", At(SourceValue::TurnCos)},
+    {"turn_sin", At(SourceValue::TurnSin)},
+    {"emitting", At(SourceValue::Emitting)},
+    {"spread_min", At(SourceValue::SpreadMinX), 3},
+    {"spread_max", At(SourceValue::SpreadMaxX), 3},
+    {"side", At(SourceValue::SideX), 3},
+    {"up", At(SourceValue::UpX), 3},
+    {"carrier_unit", At(SourceValue::CarrierUnit)},
+    {"carrier_running", At(SourceValue::CarrierRunning)},
+    {"carrier_dead", At(SourceValue::CarrierDead)},
+    {"carrier_axis", At(SourceValue::CarrierAxisX), 3},
+    {"carrier_bounds_radius", At(SourceValue::CarrierBoundsRadius)},
+    {"carrier_left_foot", At(SourceValue::CarrierLeftFootX), 3},
+    {"carrier_right_foot", At(SourceValue::CarrierRightFootX), 3},
+    {"carrier_axis_y", At(SourceValue::CarrierAxisYX), 3},
+    {"carrier_unit_radius", At(SourceValue::CarrierUnitRadius)},
+    {"sun", At(SourceValue::SunR), 3},
 };
-constexpr std::string_view kSettableText = "size, height, growth, alpha, param, spread_min.*, spread_max.*, extent.*";
-constexpr std::string_view kAnchorNames[kAnchorValues] = {"index", "count", "age", "ticks", "x", "y", "z",
-                                                          "spawn.x", "spawn.y", "spawn.z"};
-constexpr std::string_view kParticleNames[kParticleValues] = {
-    "age", "life", "t", "x", "y", "z", "vx", "vy", "vz", "size", "alpha", "frame", "anchor", "index",
-    "spawn.x", "spawn.y", "spawn.z",
+// The source values a `set` action and a particle's `source` may write (the [source] table's), and their lanes
+// (`spread_min.x` one of them).
+constexpr Named kSettableSourceNames[] = {
+    {"size", At(SourceValue::Size)},
+    {"height", At(SourceValue::Height)},
+    {"growth", At(SourceValue::Growth)},
+    {"alpha", At(SourceValue::Alpha)},
+    {"param", At(SourceValue::Param)},
+    {"spread_min", At(SourceValue::SpreadMinX), 3},
+    {"spread_max", At(SourceValue::SpreadMaxX), 3},
+    {"extent", At(SourceValue::ExtentX), 3},
+};
+constexpr std::string_view kSettableText = "size, height, growth, alpha, param, spread_min, spread_max, extent";
+constexpr Named kAnchorNames[] = {
+    {"index", At(AnchorValue::Index)},
+    {"count", At(AnchorValue::GroupSize)},
+    {"age", At(AnchorValue::Age)},
+    {"ticks", At(AnchorValue::Ticks)},
+    {"position", At(AnchorValue::PositionX), 3},
+    {"spawn", At(AnchorValue::SpawnX), 3},
+    {"x", At(AnchorValue::PositionX)},
+    {"y", At(AnchorValue::PositionY)},
+    {"z", At(AnchorValue::PositionZ)},
+};
+constexpr Named kParticleNames[] = {
+    {"age", At(ParticleValue::Age)},
+    {"life", At(ParticleValue::Life)},
+    {"t", At(ParticleValue::T)},
+    {"position", At(ParticleValue::PositionX), 3},
+    {"velocity", At(ParticleValue::VelocityX), 3},
+    {"size", At(ParticleValue::Size)},
+    {"alpha", At(ParticleValue::Alpha)},
+    {"frame", At(ParticleValue::Frame)},
+    {"anchor", At(ParticleValue::Anchor)},
+    {"index", At(ParticleValue::Index)},
+    {"spawn", At(ParticleValue::SpawnX), 3},
+    {"color", At(ParticleValue::ColorR), 3},
+    {"x", At(ParticleValue::PositionX)},
+    {"y", At(ParticleValue::PositionY)},
+    {"z", At(ParticleValue::PositionZ)},
+    {"vx", At(ParticleValue::VelocityX)},
+    {"vy", At(ParticleValue::VelocityY)},
+    {"vz", At(ParticleValue::VelocityZ)},
 };
 constexpr std::string_view kParts[] = {
     "effect_point", "head", "above_head", "left_hand", "right_hand", "left_leg", "right_leg", "body",
     "body00", "body01", "body02", "body03", "body04",
 };
+
+template <std::size_t N>
+const Named* Find(const Named (&names)[N], std::string_view name) {
+    for (const Named& named : names)
+        if (named.name == name) return &named;
+    return nullptr;
+}
+
+// A settable source value by name, or one lane of one (`extent.z`); null when there is none.
+std::optional<Named> SettableSource(std::string_view name) {
+    if (const Named* whole = Find(kSettableSourceNames, name)) return *whole;
+    const std::size_t dot = name.rfind('.');
+    if (dot == std::string_view::npos || dot + 2 != name.size()) return std::nullopt;
+    const Named* vector = Find(kSettableSourceNames, name.substr(0, dot));
+    const std::size_t lane = std::string_view("xyz").find(name.back());
+    if (!vector || vector->width != 3 || lane == std::string_view::npos) return std::nullopt;
+    return Named{name, vector->index + static_cast<int>(lane), 1};
+}
 
 template <std::size_t N>
 int IndexIn(const std::string_view (&names)[N], std::string_view name) {
@@ -216,6 +307,12 @@ int IndexIn(const std::vector<std::string>& names, std::string_view name) {
     for (std::size_t i = 0; i < names.size(); ++i)
         if (names[i] == name) return static_cast<int>(i);
     return -1;
+}
+
+const Var* FindVar(const std::vector<Var>& vars, std::string_view name) {
+    for (const Var& var : vars)
+        if (var.name == name) return &var;
+    return nullptr;
 }
 
 std::string Joined(std::initializer_list<std::string_view> names) {
@@ -233,10 +330,14 @@ struct Context {
     int particle = -1;
 };
 
+// The vars' widths a read found, by scope and name ("<scope>:<var>": the effect's "", "a<group>", "p<kind>").
+using Widths = std::map<std::string, int, std::less<>>;
+
 class Reader {
 public:
-    Reader(const RawNode& root, std::string_view name, std::vector<std::string>* errors, std::int32_t id)
-        : root(root), errors(errors) {
+    Reader(const RawNode& root, std::string_view name, std::vector<std::string>* errors, std::int32_t id,
+           const Widths& known)
+        : root(root), errors(errors), widths(known) {
         record = std::make_shared<Record>();
         record->name = std::string(name);
         record->id = id != 0 ? id : IdOf(name);
@@ -253,7 +354,7 @@ public:
         ReadTables();
         ReadInputs();
         Declare();
-        ReadVars(root["vars"], {}, &record->vars);
+        ReadVars(root["vars"], {}, &record->vars, "");
         ReadEmit();
         for (std::size_t i = 0; i < record->stages.size(); ++i) ReadStage(Element("stage", i), record->stages[i]);
         ReadReactions();
@@ -263,6 +364,9 @@ public:
         if (record->particles.empty()) Error(root, "no [[particle]]: the effect emits nothing");
         return fatal ? nullptr : record;
     }
+
+    // The widths the vars' expressions gave.
+    Widths found;
 
 private:
     void Error(const RawNode& at, const std::string& what) {
@@ -503,52 +607,64 @@ private:
             if (!Text((*stage)["name"], &s.name)) Error(*stage, "a [[stage]] without its name");
         }
         for (const RawNode* anchor : Tables("anchor")) {
+            const std::string scope = "a" + std::to_string(record->anchors.size());
             Anchor& a = record->anchors.emplace_back();
             if (!Text((*anchor)["name"], &a.name)) Error(*anchor, "an [[anchor]] without its name");
-            DeclareVars((*anchor)["vars"], &a.vars, false, true);
+            a.varFloats = DeclareVars((*anchor)["vars"], &a.vars, scope, false, true);
         }
         for (const RawNode* particle : Tables("particle")) {
+            const std::string scope = "p" + std::to_string(record->particles.size());
             ParticleKind& kind = record->particles.emplace_back();
             if (!Text((*particle)["name"], &kind.name)) Error(*particle, "a [[particle]] without its name");
-            DeclareVars((*particle)["vars"], &kind.vars, true);
+            if (DeclareVars((*particle)["vars"], &kind.vars, scope, true) > kParticleVars)
+                Error(*particle, "a particle's vars hold at most " + std::to_string(kParticleVars) +
+                                     " floats (a vector three)");
         }
-        DeclareVars(root["vars"], &record->vars, false);
+        record->varFloats = DeclareVars(root["vars"], &record->vars, "", false);
     }
-    // A particle's or an anchor's var named as one of its own values (`p.z`, `a.age`) would never be read: refused.
-    void DeclareVars(const RawNode& table, std::vector<Var>* vars, bool particle, bool anchor = false) {
+    // The vars of `table`, each at the width a read before found (`scope`: where `known` keeps them), placed one after
+    // another; the floats they take. A particle's or an anchor's var named as one of its own values (`p.size`, `a.age`)
+    // would never be read: refused.
+    int DeclareVars(const RawNode& table, std::vector<Var>* vars, const std::string& scope, bool particle,
+                    bool anchor = false) {
+        int floats = 0;
         for (const auto& [name, value] : table.keys) {
-            if ((particle && IndexIn(kParticleNames, name) >= 0) || (anchor && IndexIn(kAnchorNames, name) >= 0))
+            if ((particle && Find(kParticleNames, name)) || (anchor && Find(kAnchorNames, name)))
                 Error(value, "var '" + name + "' is the name of the " + (particle ? "particle's" : "anchor's") +
                                  " own value " + (particle ? "p." : "a.") + name);
-            vars->push_back({name, {}, {}});
+            Var& var = vars->emplace_back();
+            var.name = name;
+            const auto width = widths.find(scope + ":" + name);
+            var.width = width != widths.end() ? width->second : 1;
+            var.slot = floats;
+            floats += var.width;
         }
-        if (particle && vars->size() > static_cast<std::size_t>(kParticleVars))
-            Error(table, "a particle has at most " + std::to_string(kParticleVars) + " vars");
+        return floats;
     }
 
     // ---- expressions ----
 
     Resolved Resolve(std::string_view name, Context context) const {
-        auto value = [](Scope scope, int index) {
-            return Resolved{Resolved::Kind::Value, scope, static_cast<std::uint16_t>(index), 0.0f};
+        auto value = [](Scope scope, int index, int width = 1) {
+            Resolved r{Resolved::Kind::Value, scope, static_cast<std::uint16_t>(index), 0.0f};
+            r.width = static_cast<std::uint8_t>(width);
+            return r;
         };
         auto constant = [](float v) { return Resolved{Resolved::Kind::Constant, Scope::Source, 0, v}; };
         if (name.starts_with("p.")) {
             if (context.particle < 0) return {};
             const std::string_view field = name.substr(2);
-            if (const int i = IndexIn(kParticleNames, field); i >= 0) return value(Scope::Particle, i);
-            const auto& vars = record->particles[context.particle].vars;
-            for (std::size_t i = 0; i < vars.size(); ++i)
-                if (vars[i].name == field) return value(Scope::ParticleVar, static_cast<int>(i));
+            if (const Named* own = Find(kParticleNames, field)) return value(Scope::Particle, own->index, own->width);
+            if (const Var* var = FindVar(record->particles[context.particle].vars, field))
+                return value(Scope::ParticleVar, var->slot, var->width);
             return {};
         }
         if (name.starts_with("a.")) {
             if (context.anchor < 0) return {};
             const std::string_view field = name.substr(2);
-            if (const int i = IndexIn(kAnchorNames, field); i >= 0) return value(Scope::Anchor, i);
-            const auto& vars = record->anchors[context.anchor].vars;
-            for (std::size_t i = 0; i < vars.size(); ++i)
-                if (vars[i].name == field) return value(Scope::AnchorVar, static_cast<int>(i));
+            if (const Named* own = Find(kAnchorNames, field)) return value(Scope::Anchor, own->index, own->width);
+            if (const Var* var = FindVar(record->anchors[context.anchor].vars, field))
+                return value(Scope::AnchorVar, var->slot, var->width);
             return {};
         }
         if (name.starts_with("anchors.")) {
@@ -572,44 +688,39 @@ private:
                     list.axis = static_cast<std::uint8_t>(axis);
                     return list;
                 }
-                if (input->type == InputType::Vector) {
-                    const int axis = field == "x" ? 0 : field == "y" ? 1 : field == "z" ? 2 : -1;
-                    return axis < 0 ? Resolved{} : value(Scope::Input, input->slot + axis);
-                }
                 if (input->type == InputType::Enum) {
                     const int index = IndexIn(input->values, field);
                     return index < 0 ? Resolved{} : constant(static_cast<float>(index));
                 }
                 return {};
             }
-        }
-        if (const std::size_t dot = name.find('.'); dot != std::string_view::npos) {
             // An anchor group's field by the anchor's number: `ring.angle[i]`.
             const std::string_view group = name.substr(0, dot), field = name.substr(dot + 1);
             for (std::size_t g = 0; g < record->anchors.size() && g < 256; ++g) {
                 if (record->anchors[g].name != group) continue;
                 Resolved at{Resolved::Kind::AnchorAt, Scope::Anchor, 0, 0.0f};
                 at.group = static_cast<std::uint8_t>(g);
-                if (const int i = IndexIn(kAnchorNames, field); i >= 0) {
-                    at.index = static_cast<std::uint16_t>(i);
+                if (const Named* own = Find(kAnchorNames, field)) {
+                    at.index = static_cast<std::uint16_t>(own->index);
+                    at.width = static_cast<std::uint8_t>(own->width);
                     return at;
                 }
-                const auto& vars = record->anchors[g].vars;
-                for (std::size_t i = 0; i < vars.size(); ++i) {
-                    if (vars[i].name != field) continue;
+                if (const Var* var = FindVar(record->anchors[g].vars, field)) {
                     at.scope = Scope::AnchorVar;
-                    at.index = static_cast<std::uint16_t>(i);
+                    at.index = static_cast<std::uint16_t>(var->slot);
+                    at.width = static_cast<std::uint8_t>(var->width);
                     return at;
                 }
                 return {};
             }
         }
-        if (const Input* input = record->FindInput(name))
-            return input->type == InputType::Vector || input->type == InputType::List ? Resolved{}
-                                                                                      : value(Scope::Input, input->slot);
-        for (std::size_t i = 0; i < record->vars.size(); ++i)
-            if (record->vars[i].name == name) return value(Scope::SourceVar, static_cast<int>(i));
-        if (const int i = IndexIn(kSourceNames, name); i >= 0) return value(Scope::Source, i);
+        if (const Input* input = record->FindInput(name)) {
+            if (input->type == InputType::List)
+                return {Resolved::Kind::List, Scope::Input, static_cast<std::uint16_t>(input->list), 0.0f};
+            return value(Scope::Input, input->slot, input->type == InputType::Vector ? 3 : 1);
+        }
+        if (const Var* var = FindVar(record->vars, name)) return value(Scope::SourceVar, var->slot, var->width);
+        if (const Named* own = Find(kSourceNames, name)) return value(Scope::Source, own->index, own->width);
         if (const int i = IndexIn(record->tableNames, name); i >= 0)
             return {Resolved::Kind::Table, Scope::Source, static_cast<std::uint16_t>(i), 0.0f};
         if (const int i = IndexIn(record->curveNames, name); i >= 0)
@@ -645,13 +756,31 @@ private:
         default: Error(node, "a number or an expression expected"); return {};
         }
     }
-    void Fields3(const RawNode& node, Context context, Expr* out) {
-        if (!node.Exists()) return;
-        if (node.kind != RawNode::Kind::Array || node.items.size() != 3) return Error(node, "[x, y, z] expected");
-        for (int i = 0; i < 3; ++i) out[i] = Field(node.items[i], context);
+    // A point: one expression of three lanes (or one, the same in all three) or `[x, y, z]`, three of one lane.
+    Expr VectorField(const RawNode& node, Context context) {
+        if (!node.Exists()) return {};
+        if (node.kind == RawNode::Kind::Array) {
+            if (node.items.size() != 3) {
+                Error(node, "[x, y, z] expected");
+                return {};
+            }
+            std::vector<Expr> parts;
+            for (const RawNode& item : node.items) {
+                Expr part = Field(item, context);
+                if (part.Empty()) return {};
+                if (part.width != 1) Error(item, "[x, y, z] holds three values of one lane each");
+                parts.push_back(std::move(part));
+            }
+            std::string error;
+            return effectdata::Joined(parts, &error);
+        }
+        Expr expr = Field(node, context);
+        if (!expr.Empty() && expr.width != 1 && expr.width != 3)
+            Error(node, "a point expected (three lanes), not " + std::to_string(expr.width));
+        return expr;
     }
 
-    void ReadVars(const RawNode& table, Context context, std::vector<Var>* vars) {
+    void ReadVars(const RawNode& table, Context context, std::vector<Var>* vars, const std::string& scope) {
         for (std::size_t i = 0; i < table.keys.size() && i < vars->size(); ++i) {
             const RawNode& spec = table.keys[i].second;
             Var& var = (*vars)[i];
@@ -670,14 +799,18 @@ private:
             } else {
                 var.start = Field(spec, context);
             }
+            int width = 1;
+            for (const Expr* expr : {&var.start, &var.tick})
+                if (!expr->Empty()) width = std::max(width, expr->width);
+            found[scope + ":" + var.name] = width;
             if (context.particle >= 0 && !var.afterSpawn && ReadsSpawn(var.start))
                 Error(spec, "var '" + var.name + "' reads p.spawn before the spawn draws: give it after_spawn = true");
         }
     }
     static bool ReadsSpawn(const Expr& expr) {
         for (const Instruction& i : expr.code)
-            if (i.op == Op::Load && i.scope == Scope::Particle && i.index >= static_cast<int>(ParticleValue::SpawnX) &&
-                i.index <= static_cast<int>(ParticleValue::SpawnZ))
+            if (i.op == Op::Load && i.scope == Scope::Particle && i.index + i.width > At(ParticleValue::SpawnX) &&
+                i.index <= At(ParticleValue::SpawnZ))
                 return true;
         return false;
     }
@@ -786,18 +919,21 @@ private:
             } else if (Text(node["set"], &name)) {
                 action.kind = Action::Kind::Set;
                 const Input* input = record->FindInput(name);
-                const int own = IndexIn(kSettableSourceNames, name);
-                const int var = IndexOfVar(name);
-                if (input && input->type != InputType::Vector && input->type != InputType::Event) {
+                const Var* var = FindVar(record->vars, name);
+                const std::optional<Named> own = SettableSource(name);
+                if (input && input->type != InputType::Event && input->type != InputType::List) {
                     action.target = input->slot;
-                } else if (!input && var >= 0) {
+                    action.width = input->type == InputType::Vector ? 3 : 1;
+                } else if (!input && var) {
                     action.kind = Action::Kind::SetVar;
-                    action.target = var;
-                } else if (!input && own >= 0) {
+                    action.target = var->slot;
+                    action.width = var->width;
+                } else if (!input && own) {
                     action.kind = Action::Kind::SetSource;
-                    action.target = IndexIn(kSourceNames, name);
+                    action.target = own->index;
+                    action.width = own->width;
                 } else {
-                    Error(node, "'" + name + "' is no float, bool or enum input, no var, nor " +
+                    Error(node, "'" + name + "' is no float, vector, bool or enum input, no var, nor " +
                                     std::string(kSettableText));
                 }
                 action.value = Field(node["value"], context);
@@ -840,11 +976,6 @@ private:
         }
         return actions;
     }
-    int IndexOfVar(std::string_view name) const {
-        for (std::size_t i = 0; i < record->vars.size(); ++i)
-            if (record->vars[i].name == name) return static_cast<int>(i);
-        return -1;
-    }
     int KindIndex(const RawNode& at, const std::string& name) {
         for (std::size_t i = 0; i < record->particles.size(); ++i)
             if (record->particles[i].name == name) return static_cast<int>(i);
@@ -864,19 +995,20 @@ private:
     void ReadSpawn(const RawNode& spawn, Context context, Spawn* out, std::initializer_list<std::string_view> known) {
         Known(spawn, known);
         Integer(spawn["tries"], &out->tries);
-        Fields3(spawn["shift"], context, out->shift);
+        out->shift = VectorField(spawn["shift"], context);
         static constexpr std::string_view kShapes[] = {"point", "box", "ball", "shell", "disc", "ring", "flat_ball",
                                                        "segment"};
         out->shape = static_cast<SpawnShape>(Choice(spawn["shape"], kShapes, 0));
         out->radius = Field(spawn["radius"], context);
-        Fields3(spawn["min"], context, out->boxMin);
-        Fields3(spawn["max"], context, out->boxMax);
-        Fields3(spawn["from"], context, out->from);
-        Fields3(spawn["to"], context, out->to);
+        out->boxMin = VectorField(spawn["min"], context);
+        out->boxMax = VectorField(spawn["max"], context);
+        out->from = VectorField(spawn["from"], context);
+        out->to = VectorField(spawn["to"], context);
     }
 
     void ReadAnchor(const RawNode& node, int group) {
-        Known(node, {"name", "count", "spawn", "ticks", "vars", "x", "y", "z", "radius", "angle", "at_create"});
+        Known(node, {"name", "count", "spawn", "ticks", "vars", "position", "x", "y", "z", "radius", "angle",
+                     "at_create"});
         Anchor& anchor = record->anchors[group];
         const Context context{group, -1};
         anchor.count = Field(node["count"], {});
@@ -885,15 +1017,27 @@ private:
                   {"shape", "radius", "min", "max", "from", "to", "tries", "shift"});
         Flag(node["at_create"], &anchor.atCreate);
         anchor.ticks = Field(node["ticks"], context);
-        ReadVars(node["vars"], context, &anchor.vars);
+        ReadVars(node["vars"], context, &anchor.vars, "a" + std::to_string(group));
         anchor.cylindrical = node["radius"].Exists() || node["angle"].Exists();
-        if (anchor.cylindrical && (node["x"].Exists() || node["y"].Exists()))
-            Error(node, "anchor '" + anchor.name + "': x / y or radius / angle, not both");
-        anchor.x = Field(node["x"], context);
-        anchor.y = Field(node["y"], context);
-        anchor.z = Field(node["z"], context);
-        anchor.radius = Field(node["radius"], context);
-        anchor.angle = Field(node["angle"], context);
+        const bool axes = node["x"].Exists() || node["y"].Exists() || node["z"].Exists();
+        if (anchor.cylindrical && (node["x"].Exists() || node["y"].Exists() || node["position"].Exists()))
+            Error(node, "anchor '" + anchor.name + "': position or radius / angle, not both");
+        if (axes && node["position"].Exists()) Error(node, "anchor '" + anchor.name + "': position or x / y / z, not both");
+        if (anchor.cylindrical) {
+            anchor.radius = Field(node["radius"], context);
+            anchor.angle = Field(node["angle"], context);
+            anchor.z = Field(node["z"], context);
+        } else if (axes) {
+            std::vector<Expr> parts;
+            for (const char* axis : {"x", "y", "z"}) {
+                Expr part = Field(node[axis], context);
+                parts.push_back(part.Empty() ? ConstantExpr(0.0f) : std::move(part));
+            }
+            std::string error;
+            anchor.position = effectdata::Joined(parts, &error);
+        } else {
+            anchor.position = VectorField(node["position"], context);
+        }
     }
 
     void ReadParticle(const RawNode& node, int index) {
@@ -907,7 +1051,7 @@ private:
         kind.when = Field(node["when"], {});   // before the particle and its anchor are chosen
         kind.lifetime = Field(node["lifetime"], context);
         if (kind.lifetime.Empty()) Error(node, "particle '" + kind.name + "': no lifetime");
-        ReadVars(node["vars"], context, &kind.vars);
+        ReadVars(node["vars"], context, &kind.vars, "p" + std::to_string(index));
         static constexpr std::string_view kPicks[] = {"cycle", "random", "first"};
         kind.pick = static_cast<AnchorPick>(Choice(node["pick"], kPicks, 0));
         kind.anchorIndex = Field(node["anchor_index"], context);
@@ -927,24 +1071,23 @@ private:
         const RawNode& spawn = node["spawn"];
         ReadSpawn(spawn, context, &kind.spawn,
                   {"shape", "radius", "min", "max", "from", "to", "tries", "shift", "offset", "on_ground"});
-        Fields3(spawn["offset"], context, kind.offset);
+        kind.offset = VectorField(spawn["offset"], context);
         kind.onGround = Field(spawn["on_ground"], context);
         const RawNode& position = node["position"];
         if (position.kind == RawNode::Kind::Table) {
             Known(position, {"start", "tick"});
-            Fields3(position["start"], context, kind.position);
-            Fields3(position["tick"], context, kind.positionTick);
+            kind.position = VectorField(position["start"], context);
+            kind.positionTick = VectorField(position["tick"], context);
         } else {
-            Fields3(position, context, kind.position);
+            kind.position = VectorField(position, context);
         }
 
-        Fields3(node["velocity"], context, kind.velocity);
+        kind.velocity = VectorField(node["velocity"], context);
         kind.speed = Field(node["speed"], context);
         kind.drag = Field(node["drag"], context);
-        Fields3(node["gravity"], context, kind.gravity);
+        kind.gravity = VectorField(node["gravity"], context);
         kind.wind = Field(node["wind"], context);
-        kind.moves = !kind.speed.Empty() || !kind.wind.Empty();
-        for (int i = 0; i < 3; ++i) kind.moves = kind.moves || !kind.velocity[i].Empty() || !kind.gravity[i].Empty();
+        kind.moves = !kind.speed.Empty() || !kind.wind.Empty() || !kind.velocity.Empty() || !kind.gravity.Empty();
 
         const RawNode& size = node["size"];
         if (size.kind == RawNode::Kind::Table) {
@@ -959,15 +1102,12 @@ private:
         }
 
         const RawNode& color = node["color"];
-        if (color.kind == RawNode::Kind::String) {
+        if (color.kind == RawNode::Kind::String && IsHexColour(color.text)) {
             std::uint32_t rgb = 0;
-            const char* first = color.text.data();
-            const auto [end, failed] = std::from_chars(first, first + color.text.size(), rgb, 16);
-            if (color.text.size() != 6 || failed != std::errc() || end != first + color.text.size())
-                Error(color, "particle '" + kind.name + "': color is \"RRGGBB\" or [r, g, b]");
+            std::from_chars(color.text.data(), color.text.data() + color.text.size(), rgb, 16);
             kind.rgb = rgb;
         } else if (color.Exists()) {
-            Fields3(color, context, kind.rgbTick);
+            kind.color = VectorField(color, context);
         }
         const RawNode& alpha = node["alpha"];
         if (alpha.kind == RawNode::Kind::Table) {
@@ -1010,6 +1150,12 @@ private:
                                         "starts an effect or sets an input or a var");
         }
     }
+    // "RRGGBB": a colour's six hex digits (any other string is an expression).
+    static bool IsHexColour(std::string_view text) {
+        return text.size() == 6 && std::all_of(text.begin(), text.end(), [](char c) {
+                   return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+               });
+    }
     // A particle's `source = { ... }`: the source's values, the effect's vars and (`a.<var>`) its anchor's vars it sets
     // at each update, in the file's order.
     void ReadWrites(const RawNode& writes, ParticleKind& kind, Context context) {
@@ -1019,31 +1165,28 @@ private:
         using To = ParticleKind::Write::To;
         for (const auto& [name, value] : writes.keys) {
             if (name == "a" && value.kind == RawNode::Kind::Table) {
-                const int group = kind.anchor;
                 for (const auto& [var, expr] : value.keys) {
-                    int index = -1;
-                    if (group >= 0)
-                        for (std::size_t i = 0; i < record->anchors[group].vars.size(); ++i)
-                            if (record->anchors[group].vars[i].name == var) index = static_cast<int>(i);
-                    if (index < 0) {
+                    const Var* target = kind.anchor >= 0 ? FindVar(record->anchors[kind.anchor].vars, var) : nullptr;
+                    if (!target) {
                         Error(expr, "particle '" + kind.name + "': source sets a.<var>, a var of its anchor (at), not 'a." +
                                         var + "'");
                         continue;
                     }
-                    kind.writes.push_back({To::AnchorVar, index, Field(expr, context)});
+                    kind.writes.push_back({To::AnchorVar, target->slot, target->width, Field(expr, context)});
                 }
                 continue;
             }
-            if (const int var = IndexOfVar(name); var >= 0) {
-                kind.writes.push_back({To::Var, var, Field(value, context)});
+            if (const Var* var = FindVar(record->vars, name)) {
+                kind.writes.push_back({To::Var, var->slot, var->width, Field(value, context)});
                 continue;
             }
-            if (IndexIn(kSettableSourceNames, name) < 0) {
+            const std::optional<Named> own = SettableSource(name);
+            if (!own) {
                 Error(value, "particle '" + kind.name + "': source sets " + std::string(kSettableText) +
                                  ", an effect var or a.<var>, not '" + name + "'");
                 continue;
             }
-            kind.writes.push_back({To::Source, IndexIn(kSourceNames, name), Field(value, context)});
+            kind.writes.push_back({To::Source, own->index, own->width, Field(value, context)});
         }
     }
     static bool ReadsAnchor(const Expr& expr) {
@@ -1056,6 +1199,7 @@ private:
 
     const RawNode& root;
     std::vector<std::string>* errors = nullptr;
+    const Widths& widths;     // the vars' widths an earlier read found
     std::shared_ptr<Record> record;
     bool fatal = false;
 };
@@ -1068,9 +1212,28 @@ std::shared_ptr<const Record> Read(const RawNode& root, std::string_view name, s
         errors->push_back(root.Where() + ": no effect");
         return nullptr;
     }
-    return Reader(root, name, errors, id).Run();
+    // A var takes the widest lanes of its expressions, which may read vars declared after it: the record is read again
+    // with the widths found until none widens (a vector var's start widens it at the first read, so most files take
+    // one read and vector vars two).
+    Widths widths;
+    for (int pass = 0;; ++pass) {
+        std::vector<std::string> problems;
+        Reader reader(root, name, &problems, id, widths);
+        std::shared_ptr<const Record> record = reader.Run();
+        bool widened = false;
+        for (const auto& [var, width] : reader.found) {
+            const auto before = widths.find(var);
+            if (width > (before != widths.end() ? before->second : 1)) {
+                widths[var] = width;
+                widened = true;
+            }
+        }
+        if (!widened || pass == 4) {
+            errors->insert(errors->end(), problems.begin(), problems.end());
+            return record;
+        }
+    }
 }
-
 // ---- The state machine ---------------------------------------------------------------------------------------------
 
 namespace {
@@ -1081,32 +1244,41 @@ int Count(float value) {
     return static_cast<int>(std::lround(value));
 }
 
-float SourceValueOf(const Env& env, SourceValue which) {
+// The source's vector whose x is `x`.
+Vector3 SourceVectorOf(const Env& env, SourceValue x) {
     const float* source = env.scopes[static_cast<int>(Scope::Source)];
-    return source ? source[static_cast<int>(which)] : 0.0f;
+    if (!source) return {};
+    const int at = static_cast<int>(x);
+    return {source[at], source[at + 1], source[at + 2]};
 }
+
+// The effect's or an anchor's vars `only` picks started (`tick` false) or ticked (an empty tick keeps its var), in
+// order: each reads the ones before it as they now are.
+template <typename Only>
+void Update(const std::vector<Var>& specs, float* vars, const Env& env, bool tick, Only only) {
+    for (const Var& var : specs) {
+        if (!only(var)) continue;
+        const Expr& expr = tick ? var.tick : var.start;
+        if (!expr.Empty()) Store(vars + var.slot, var.width, expr.RunLanes(env));
+        else if (!tick) Store(vars + var.slot, var.width, Lanes{});
+    }
+}
+bool All(const Var&) { return true; }
 
 } // namespace
 
 Vector3 SpawnPoint(const Spawn& spawn, const Env& env, IsaacRandom& random) {
     constexpr float kTwoPi = kPi + kPi;
-    Vector3 shifted;
-    const Vector3* shift = nullptr;
-    if (!spawn.shift[0].Empty() || !spawn.shift[1].Empty() || !spawn.shift[2].Empty()) {
-        shifted = {spawn.shift[0].Run(env), spawn.shift[1].Run(env), spawn.shift[2].Run(env)};
-        shift = &shifted;
-    }
+    const Vector3 shifted = spawn.shift.RunVector(env, {});
+    const Vector3* shift = spawn.shift.Empty() ? nullptr : &shifted;
     switch (spawn.shape) {
     case SpawnShape::Point: return {};
     case SpawnShape::Box: {
-        auto axis = [&](int i, SourceValue low, SourceValue high) {
-            const float from = spawn.boxMin[i].Run(env, SourceValueOf(env, low));
-            const float to = spawn.boxMax[i].Run(env, SourceValueOf(env, high));
-            return random.Range(from, to);
-        };
-        const float x = axis(0, SourceValue::SpreadMinX, SourceValue::SpreadMaxX);
-        const float y = axis(1, SourceValue::SpreadMinY, SourceValue::SpreadMaxY);
-        const float z = axis(2, SourceValue::SpreadMinZ, SourceValue::SpreadMaxZ);
+        const Vector3 low = spawn.boxMin.RunVector(env, SourceVectorOf(env, SourceValue::SpreadMinX));
+        const Vector3 high = spawn.boxMax.RunVector(env, SourceVectorOf(env, SourceValue::SpreadMaxX));
+        const float x = random.Range(low.x, high.x);
+        const float y = random.Range(low.y, high.y);
+        const float z = random.Range(low.z, high.z);
         return {x, y, z};
     }
     case SpawnShape::Ball: {
@@ -1140,10 +1312,8 @@ Vector3 SpawnPoint(const Spawn& spawn, const Env& env, IsaacRandom& random) {
         return Vector3{x, y, 0.0f} * spawn.radius.Run(env, 1.0f);
     }
     case SpawnShape::Segment: {
-        const Vector3 from = {spawn.from[0].Run(env), spawn.from[1].Run(env), spawn.from[2].Run(env)};
-        const Vector3 to = {spawn.to[0].Run(env, SourceValueOf(env, SourceValue::ExtentX)),
-                            spawn.to[1].Run(env, SourceValueOf(env, SourceValue::ExtentY)),
-                            spawn.to[2].Run(env, SourceValueOf(env, SourceValue::ExtentZ))};
+        const Vector3 from = spawn.from.RunVector(env, {});
+        const Vector3 to = spawn.to.RunVector(env, SourceVectorOf(env, SourceValue::ExtentX));
         const float t = random.Range(0.0f, 1.0f);
         return from + (to - from) * t;
     }
@@ -1165,7 +1335,7 @@ State::State(std::shared_ptr<const Record> effect) : record(std::move(effect)) {
     for (const Input& input : record->inputs)
         if (input.type == InputType::List) SetList(input.name, input.points);
     pendingEvents.assign(record->inputValues, 0);
-    vars.assign(record->vars.size(), 0.0f);
+    vars.assign(record->varFloats, 0.0f);
 }
 
 float State::AnchorAt(const void* context, int group, Scope scope, int field, float number) {
@@ -1282,7 +1452,7 @@ void State::Step(IsaacRandom& random) {
         Start(random);
     } else {
         const Env env = SourceEnv(&random);
-        for (std::size_t i = 0; i < record->vars.size(); ++i) vars[i] = record->vars[i].tick.Run(env, vars[i]);
+        Update(record->vars, vars.data(), env, true, All);
         StepAnchors(random);
     }
     if (stopPending) {
@@ -1343,9 +1513,9 @@ void State::Died(const ParticleKind& kind, const Env& env, const Vector3& place)
         }
         case Action::Kind::Effect: effects.push_back({action.effect, true, place}); break;
         case Action::Kind::Set:
-            if (action.target >= 0) inputs[action.target] = action.value.Run(env);
+            if (action.target >= 0) Store(&inputs[action.target], action.width, action.value.RunLanes(env));
             break;
-        case Action::Kind::SetVar: vars[action.target] = action.value.Run(env); break;
+        case Action::Kind::SetVar: Store(&vars[action.target], action.width, action.value.RunLanes(env)); break;
         default: break;   // refused at the read
         }
     }
@@ -1356,17 +1526,13 @@ bool State::Holds(const Reaction& reaction, IsaacRandom& random) const {
 }
 
 void State::Create(IsaacRandom& random) {
-    const Env env = SourceEnv(&random);
-    for (std::size_t i = 0; i < record->vars.size(); ++i)
-        if (record->vars[i].atCreate) vars[i] = record->vars[i].start.Run(env);
+    Update(record->vars, vars.data(), SourceEnv(&random), false, [](const Var& var) { return var.atCreate; });
     MakeAnchors(random, true);
 }
 
 void State::Start(IsaacRandom& random) {
     started = true;
-    const Env env = SourceEnv(&random);
-    for (std::size_t i = 0; i < record->vars.size(); ++i)
-        if (!record->vars[i].atCreate) vars[i] = record->vars[i].start.Run(env);
+    Update(record->vars, vars.data(), SourceEnv(&random), false, [](const Var& var) { return !var.atCreate; });
     // The anchors made with the source tick from the first tick on; the others are made now.
     if (!anchors.empty()) StepAnchors(random);
     MakeAnchors(random, false);
@@ -1407,12 +1573,14 @@ void State::Run(const std::vector<Action>& actions, IsaacRandom& random, int dep
             break;
         }
         case Action::Kind::Set:
-            if (action.target >= 0) inputs[action.target] = action.value.Run(SourceEnv(&random));
+            if (action.target >= 0) Store(&inputs[action.target], action.width, action.value.RunLanes(SourceEnv(&random)));
             break;
-        case Action::Kind::SetVar: vars[action.target] = action.value.Run(SourceEnv(&random)); break;
+        case Action::Kind::SetVar:
+            Store(&vars[action.target], action.width, action.value.RunLanes(SourceEnv(&random)));
+            break;
         case Action::Kind::SetSource:
-            source[action.target] = action.value.Run(SourceEnv(&random));
-            sourceWrites.push_back(action.target);
+            Store(&source[action.target], action.width, action.value.RunLanes(SourceEnv(&random)));
+            for (int k = 0; k < action.width; ++k) sourceWrites.push_back(action.target + k);
             break;
         case Action::Kind::Stage: Enter(action.target, random, depth); break;
         case Action::Kind::Effect: effects.push_back({action.effect}); break;
@@ -1447,21 +1615,18 @@ void State::Run(const std::vector<Action>& actions, IsaacRandom& random, int dep
 namespace {
 
 void Place(const Anchor& group, const Env& env, AnchorState& anchor) {
-    float* values = anchor.values;
-    float x, y;
+    Vector3 at;
     if (group.cylindrical) {
         const float radius = group.radius.Run(env);
         const float angle = group.angle.Run(env);
-        x = lib::Cos(angle) * radius;
-        y = lib::Sin(angle) * radius;
+        at = {lib::Cos(angle) * radius, lib::Sin(angle) * radius, group.z.Run(env)};
     } else {
-        x = group.x.Run(env);
-        y = group.y.Run(env);
+        at = group.position.RunVector(env, {});
     }
-    const float z = group.z.Run(env);
-    values[static_cast<int>(AnchorValue::X)] = x;
-    values[static_cast<int>(AnchorValue::Y)] = y;
-    values[static_cast<int>(AnchorValue::Z)] = z;
+    float* values = anchor.values + static_cast<int>(AnchorValue::PositionX);
+    values[0] = at.x;
+    values[1] = at.y;
+    values[2] = at.z;
 }
 
 } // namespace
@@ -1486,7 +1651,7 @@ void State::AddAnchors(int group, int count, IsaacRandom& random) {
         anchor.group = group;
         anchor.values[static_cast<int>(AnchorValue::Index)] = static_cast<float>(made + i);
         anchor.values[static_cast<int>(AnchorValue::GroupSize)] = size;
-        anchor.vars.assign(spec.vars.size(), 0.0f);
+        anchor.vars.assign(spec.varFloats, 0.0f);
         Env env = AnchorEnv(index, &random);
         const Vector3 point = SpawnPoint(spec.spawn, env, random);
         anchor.values[static_cast<int>(AnchorValue::SpawnX)] = point.x;
@@ -1494,7 +1659,7 @@ void State::AddAnchors(int group, int count, IsaacRandom& random) {
         anchor.values[static_cast<int>(AnchorValue::SpawnZ)] = point.z;
         anchor.values[static_cast<int>(AnchorValue::Ticks)] =
             spec.ticks.Empty() ? -1.0f : static_cast<float>(Count(spec.ticks.Run(env)));
-        for (std::size_t v = 0; v < spec.vars.size(); ++v) anchor.vars[v] = spec.vars[v].start.Run(env);
+        Update(spec.vars, anchor.vars.data(), env, false, All);
         Place(spec, env, anchor);
     }
     source[kSourceValues + group] += static_cast<float>(count);
@@ -1511,7 +1676,7 @@ void State::StepAnchors(IsaacRandom& random) {
         float& ticks = values[static_cast<int>(AnchorValue::Ticks)];
         if (ticks > 0.0f) ticks -= 1.0f;
         const Env env = AnchorEnv(static_cast<int>(i), &random);
-        for (std::size_t v = 0; v < group.vars.size(); ++v) anchor.vars[v] = group.vars[v].tick.Run(env, anchor.vars[v]);
+        Update(group.vars, anchor.vars.data(), env, true, All);
         Place(group, env, anchor);
         if (ticks == 0.0f) anchor.live = false;
         else ++live[anchor.group];

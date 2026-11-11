@@ -211,9 +211,8 @@ std::uint8_t Channel(float value) { return static_cast<std::uint8_t>(Truncated(v
 
 Vector3 AnchorPosition(const State& state, int anchor) {
     if (anchor < 0) return {};
-    const float* values = state.anchors[anchor].values;
-    return {values[static_cast<int>(AnchorValue::X)], values[static_cast<int>(AnchorValue::Y)],
-            values[static_cast<int>(AnchorValue::Z)]};
+    const float* values = state.anchors[anchor].values + static_cast<int>(AnchorValue::PositionX);
+    return {values[0], values[1], values[2]};
 }
 
 // The carrier's radius and centre height, at their first read in a tick (State::measure): particlehost::MeasureCarrier
@@ -351,14 +350,17 @@ void WriteParticle(const Particle& p, ParticleValues& v) {
     v[ParticleValue::Age] = static_cast<float>(p.age);
     v[ParticleValue::Life] = static_cast<float>(p.life);
     v[ParticleValue::T] = p.age + p.life > 0 ? static_cast<float>(p.age) / static_cast<float>(p.age + p.life) : 1.0f;
-    v[ParticleValue::X] = p.pos.x;
-    v[ParticleValue::Y] = p.pos.y;
-    v[ParticleValue::Z] = p.pos.z;
-    v[ParticleValue::VX] = p.velocity.x;
-    v[ParticleValue::VY] = p.velocity.y;
-    v[ParticleValue::VZ] = p.velocity.z;
+    v[ParticleValue::PositionX] = p.pos.x;
+    v[ParticleValue::PositionY] = p.pos.y;
+    v[ParticleValue::PositionZ] = p.pos.z;
+    v[ParticleValue::VelocityX] = p.velocity.x;
+    v[ParticleValue::VelocityY] = p.velocity.y;
+    v[ParticleValue::VelocityZ] = p.velocity.z;
     v[ParticleValue::Size] = p.size;
     v[ParticleValue::Alpha] = static_cast<float>(p.color >> 24);
+    v[ParticleValue::ColorR] = static_cast<float>((p.color >> 16) & 0xFF);
+    v[ParticleValue::ColorG] = static_cast<float>((p.color >> 8) & 0xFF);
+    v[ParticleValue::ColorB] = static_cast<float>(p.color & 0xFF);
     v[ParticleValue::Frame] = static_cast<float>(p.frame);
     v[ParticleValue::Anchor] = static_cast<float>(p.state);
 }
@@ -396,11 +398,9 @@ int ChooseAnchor(const State& state, int group, AnchorPick pick) {
 }
 
 std::uint32_t Rgb(const ParticleKind& kind, const Env& env, std::uint32_t current) {
-    if (kind.rgbTick[0].Empty() && kind.rgbTick[1].Empty() && kind.rgbTick[2].Empty()) return current & 0xFFFFFFu;
-    const std::uint32_t r = Channel(kind.rgbTick[0].Run(env, static_cast<float>((current >> 16) & 0xFF)));
-    const std::uint32_t g = Channel(kind.rgbTick[1].Run(env, static_cast<float>((current >> 8) & 0xFF)));
-    const std::uint32_t b = Channel(kind.rgbTick[2].Run(env, static_cast<float>(current & 0xFF)));
-    return r << 16 | g << 8 | b;
+    if (kind.color.Empty()) return current & 0xFFFFFFu;
+    const Vector3 rgb = kind.color.RunVector(env, {});
+    return std::uint32_t{Channel(rgb.x)} << 16 | std::uint32_t{Channel(rgb.y)} << 8 | Channel(rgb.z);
 }
 
 // The live anchor of `group` numbered `number` (wrapped by the live count; -1: none live).
@@ -412,6 +412,12 @@ int NumberedAnchor(const State& state, int group, float number) {
     const int n = static_cast<int>(live.size());
     const int at = Truncated(number, std::numeric_limits<int>::min() / 2, std::numeric_limits<int>::max() / 2) % n;
     return live[at < 0 ? at + n : at];
+}
+
+// A new particle's vars started: those after its spawn's draw (`afterSpawn`) or those before.
+void StartVars(const ParticleKind& kind, const Env& env, Particle& p, bool afterSpawn) {
+    for (const Var& var : kind.vars)
+        if (var.afterSpawn == afterSpawn) Store(p.vars + var.slot, var.width, var.start.RunLanes(env));
 }
 
 // What EmitKind made.
@@ -451,8 +457,7 @@ Emitted EmitKind(ParticleSource& s, Particle& p, int kindIndex, int anchor, int 
     Env env = ParticleEnv(state, p, values);
     p.life = Truncated(kind.lifetime.Run(env, 1.0f), 1, std::numeric_limits<int>::max());
     values[ParticleValue::Life] = static_cast<float>(p.life);
-    for (std::size_t i = 0; i < kind.vars.size(); ++i)
-        if (!kind.vars[i].afterSpawn) p.vars[i] = kind.vars[i].start.Run(env);
+    StartVars(kind, env, p, false);
     if (numbered) {
         anchor = NumberedAnchor(state, kind.anchor, kind.anchorIndex.Run(env));
         if (anchor < 0) return Emitted::None;
@@ -466,16 +471,11 @@ Emitted EmitKind(ParticleSource& s, Particle& p, int kindIndex, int anchor, int 
     values[ParticleValue::SpawnX] = offset.x;
     values[ParticleValue::SpawnY] = offset.y;
     values[ParticleValue::SpawnZ] = offset.z;
-    for (std::size_t i = 0; i < kind.vars.size(); ++i)
-        if (kind.vars[i].afterSpawn) p.vars[i] = kind.vars[i].start.Run(env);
-    if (!kind.offset[0].Empty() || !kind.offset[1].Empty() || !kind.offset[2].Empty())
-        offset = offset + Vector3{kind.offset[0].Run(env), kind.offset[1].Run(env), kind.offset[2].Run(env)};
-    const bool placed = kind.spawn.shape != SpawnShape::Point || !kind.offset[0].Empty() || !kind.offset[1].Empty() ||
-                        !kind.offset[2].Empty();
-    if (!kind.position[0].Empty()) {
-        const float x = kind.position[0].Run(env);
-        const float y = kind.position[1].Run(env);
-        p.pos = {x, y, kind.position[2].Run(env)};
+    StartVars(kind, env, p, true);
+    if (!kind.offset.Empty()) offset = offset + kind.offset.RunVector(env, {});
+    const bool placed = kind.spawn.shape != SpawnShape::Point || !kind.offset.Empty();
+    if (!kind.position.Empty()) {
+        p.pos = kind.position.RunVector(env, {});
     } else {
         p.pos = placed ? offset + centre : centre;
     }
@@ -485,8 +485,8 @@ Emitted EmitKind(ParticleSource& s, Particle& p, int kindIndex, int anchor, int 
     else if (kind.space == Space::Anchor) p.drift = p.pos - centre;
     WriteParticle(p, values);
 
-    const bool velocityGiven = !kind.velocity[0].Empty() || !kind.velocity[1].Empty() || !kind.velocity[2].Empty();
-    p.velocity = {kind.velocity[0].Run(env), kind.velocity[1].Run(env), kind.velocity[2].Run(env)};
+    const bool velocityGiven = !kind.velocity.Empty();
+    p.velocity = kind.velocity.RunVector(env, {});
     if (!kind.speed.Empty()) {
         const float length = Length(offset);
         const float speed = kind.speed.Run(env);
@@ -696,16 +696,12 @@ int UpdateKind(ParticleSource& s, State& state, const ParticleKind& kind, Partic
         case FrameMode::Free: break;   // kept past the grid (drawn as the first frame)
         }
     }
-    for (std::size_t i = 0; i < kind.vars.size(); ++i) p.vars[i] = kind.vars[i].tick.Run(env, p.vars[i]);
+    for (const Var& var : kind.vars)
+        if (!var.tick.Empty()) Store(p.vars + var.slot, var.width, var.tick.RunLanes(env));
 
-    // The move: by the position's tick when given (all three from this tick's values), else by the velocity.
-    const bool ticked = !kind.positionTick[0].Empty();
-    Vector3 next;
-    if (ticked) {
-        next.x = kind.positionTick[0].Run(env);
-        next.y = kind.positionTick[1].Run(env);
-        next.z = kind.positionTick[2].Run(env);
-    }
+    // The move: by the position's tick when given (from this tick's values), else by the velocity.
+    const bool ticked = !kind.positionTick.Empty();
+    const Vector3 next = kind.positionTick.RunVector(env, {});
     switch (kind.space) {
     case Space::World:
         if (ticked) p.pos = next;
@@ -721,8 +717,7 @@ int UpdateKind(ParticleSource& s, State& state, const ParticleKind& kind, Partic
         break;
     }
     if (!kind.drag.Empty()) p.velocity = p.velocity * kind.drag.Run(env);
-    if (!kind.gravity[0].Empty() || !kind.gravity[1].Empty() || !kind.gravity[2].Empty())
-        p.velocity = p.velocity + Vector3{kind.gravity[0].Run(env), kind.gravity[1].Run(env), kind.gravity[2].Run(env)};
+    if (!kind.gravity.Empty()) p.velocity = p.velocity + kind.gravity.RunVector(env, {});
     if (!kind.wind.Empty()) p.velocity = p.velocity + s.windDirection * (s.windStrength * kind.wind.Run(env));
 
     if (!kind.sizeTick.Empty()) p.size = kind.sizeTick.Run(env);
@@ -732,15 +727,15 @@ int UpdateKind(ParticleSource& s, State& state, const ParticleKind& kind, Partic
     // The values this particle sets (the source's, the effect's vars, its anchor's): the next particles' updates and the
     // emission read them.
     for (const ParticleKind::Write& write : kind.writes) {
-        const float written = write.value.Run(env);
+        const Lanes written = write.value.RunLanes(env);
         switch (write.to) {
         case ParticleKind::Write::To::Source:
-            state.source[write.index] = written;
-            WriteBack(s, write.index, written);
+            Store(&state.source[write.index], write.width, written);
+            for (int k = 0; k < write.width; ++k) WriteBack(s, write.index + k, written.v[k]);
             break;
-        case ParticleKind::Write::To::Var: state.vars[write.index] = written; break;
+        case ParticleKind::Write::To::Var: Store(&state.vars[write.index], write.width, written); break;
         case ParticleKind::Write::To::AnchorVar:
-            if (p.state >= 0) state.anchors[p.state].vars[write.index] = written;
+            if (p.state >= 0) Store(&state.anchors[p.state].vars[write.index], write.width, written);
             break;
         }
     }

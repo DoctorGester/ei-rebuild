@@ -106,30 +106,35 @@ inline constexpr int kSourceValues = static_cast<int>(SourceValue::Values);
 enum class AnchorValue : std::uint16_t {
     Index,          // its number in its group
     GroupSize,      // the anchors its group made so far
-    Age, Ticks, X, Y, Z,
-    SpawnX, SpawnY, SpawnZ,     // its spawn shape's point, drawn when it is made
+    Age, Ticks,
+    PositionX, PositionY, PositionZ,    // `a.position`, relative to the source's origin
+    SpawnX, SpawnY, SpawnZ,     // `a.spawn`: its spawn shape's point, drawn when it is made
     Values
 };
 inline constexpr int kAnchorValues = static_cast<int>(AnchorValue::Values);
 
 // A particle's own values (Scope::Particle, `p.<name>`); the values before this tick's update.
 enum class ParticleValue : std::uint16_t {
-    Age, Life, T, X, Y, Z, VX, VY, VZ, Size, Alpha, Frame, Anchor, Index,
-    SpawnX, SpawnY, SpawnZ,     // the spawn shape's point, at the emission (0 in the update)
+    Age, Life, T,
+    PositionX, PositionY, PositionZ,    // `p.position`
+    VelocityX, VelocityY, VelocityZ,    // `p.velocity`
+    Size, Alpha, Frame, Anchor, Index,
+    SpawnX, SpawnY, SpawnZ,     // `p.spawn`: the spawn shape's point, at the emission (0 in the update)
+    ColorR, ColorG, ColorB,     // `p.color` (0..255)
     Values
 };
 inline constexpr int kParticleValues = static_cast<int>(ParticleValue::Values);
-// The vars a particle kind may declare.
+// The floats a particle kind's vars hold between them (a vector var takes its lanes).
 inline constexpr int kParticleVars = 8;
 
 // The kinds of input an effect declares: what game code (and later Lua) drives it with.
 enum class InputType : std::uint8_t {
     Float,
-    Vector,     // three values, read as `<name>.x`, `.y`, `.z`
+    Vector,     // three values, read as one vector `<name>` (`<name>.x` its x)
     Bool,       // 0 or 1
     Event,      // fired: its value is the times it fired before this tick, for one tick
     Enum,       // a value's index; `<name>.<value>` are the constants
-    List,       // points: `<name>.count`, and `<name>.x[i]`, `.y[i]`, `.z[i]` (held to the ends)
+    List,       // points: `<name>.count`, and `<name>[i]` a point (held to the ends)
 };
 
 struct Input {
@@ -142,9 +147,11 @@ struct Input {
     int list = -1;                      // a list's place in State::lists
 };
 
-// A named value with its start and its change per tick (an empty `tick` keeps it).
+// A named value with its start and its change per tick (an empty `tick` keeps it); a vector takes its lanes.
 struct Var {
     std::string name;
+    int slot = 0;               // its first float in its vars' array
+    int width = 1;              // its lanes (the widest of its start and tick)
     Expr start;
     Expr tick;
     bool afterSpawn = false;    // a particle's: its start runs after the spawn shape draws (it reads p.spawn.*)
@@ -174,6 +181,7 @@ struct Action {
     Kind kind = Kind::Emit;
     Expr count;
     Expr value;
+    int width = 1;      // a set's: the floats its target takes
     Expr time, decay;   // a shake's
     Expr alpha;         // a scorch's
     int target = -1;
@@ -220,10 +228,10 @@ enum class SpawnShape : std::uint8_t { Point, Box, Ball, Shell, Disc, Ring, Flat
 struct Spawn {
     SpawnShape shape = SpawnShape::Point;
     Expr radius;
-    Expr boxMin[3], boxMax[3];  // the box's (empty: the source's spread)
-    Expr from[3], to[3];        // the segment's ends (empty: 0 and the source's extent)
+    Expr boxMin, boxMax;        // the box's corners (empty: the source's spread)
+    Expr from, to;              // the segment's ends (empty: 0 and the source's extent)
     int tries = 10;             // a ball's and a shell's draws of the cube (RandomInBall; 0: until inside)
-    Expr shift[3];              // a ball's and a shell's: added to each draw of the cube before it is tested
+    Expr shift;                 // a ball's and a shell's: added to each draw of the cube before it is tested
 };
 
 // The point of `spawn` in `env`: the shape's expressions and draws in the order x, y, z (the defaults read the
@@ -238,8 +246,9 @@ struct Anchor {
     Spawn spawn;        // drawn first when one is made (a.spawn.*)
     Expr ticks;         // each one's life (empty: lasts)
     std::vector<Var> vars;
-    Expr x, y, z;       // or, cylindrical: x = cos(angle) * radius, y = sin(angle) * radius
-    Expr radius, angle;
+    int varFloats = 0;  // the floats its vars hold
+    Expr position;      // or, cylindrical: x = cos(angle) * radius, y = sin(angle) * radius, then z
+    Expr radius, angle, z;
     bool cylindrical = false;
     bool atCreate = false;  // its `count` anchors are made when the source is made (State::Create), ticked from the
                             // first tick on
@@ -257,23 +266,23 @@ struct ParticleKind {
     std::string name;
     Expr when;              // the regular emission takes the first kind for which it holds (empty: always)
     Expr lifetime;
-    std::vector<Var> vars;  // at most kParticleVars
+    std::vector<Var> vars;  // at most kParticleVars floats between them
     int anchor = -1;        // emitted at one of these anchors
     AnchorPick pick = AnchorPick::Cycle;
     Expr anchorIndex;       // given: the anchor is the group's live one of this number (wrapped), taken after the vars
     Space space = Space::World;
     Spawn spawn;
-    Expr offset[3];
-    Expr position[3];       // given: the start's position, instead of the spawn's point plus offset and centre
-    Expr positionTick[3];   // given: the position each tick (world space; the offset in source and anchor space)
+    Expr offset;
+    Expr position;          // given: the start's position, instead of the spawn's point plus offset and centre
+    Expr positionTick;      // given: the position each tick (world space; the offset in source and anchor space)
     Expr onGround;          // given: the spawn's z is the ground's height plus it
-    Expr velocity[3];
+    Expr velocity;
     Expr speed;             // outward from the spawn's centre
-    Expr drag, gravity[3], wind;
+    Expr drag, gravity, wind;
     bool moves = false;     // a velocity, speed, gravity or wind given (else a world-space particle stays put)
     Expr sizeStart, sizeTick, growth;
     std::uint32_t rgb = 0xFFFFFF;
-    Expr rgbTick[3];
+    Expr color;             // given: the colour each tick (0..255 a lane)
     Expr alphaStart, alphaTick;
     Expr frameStart, frameDelay, frameTick;
     FrameMode frameMode = FrameMode::Loop;
@@ -284,6 +293,7 @@ struct ParticleKind {
         enum class To : std::uint8_t { Source, Var, AnchorVar };
         To to = To::Source;
         int index = 0;
+        int width = 1;
         Expr value;
     };
     std::vector<Write> writes;
@@ -332,6 +342,7 @@ struct Record {
     int inputValues = 0;
     int lists = 0;              // its list inputs
     std::vector<Var> vars;
+    int varFloats = 0;          // the floats its vars hold
     std::vector<Stage> stages;
     std::vector<Reaction> reactions;
     std::vector<Anchor> anchors;
