@@ -4,9 +4,9 @@
 # "mf17d_bolt" at its leader from 3 units off ("serverscript" CastSpellUnit, as a script or a trap casts: no caster);
 # only the server runs the spell's Lua (OnCast's line here), whose bolt (CreateLightning, a timed object) and blow
 # (InflictDamage) are the world's: both clients have the bolt (clientbolts) for the cast's 60 ticks, then it goes
-# (OnEnd). Both peers load the same spell records and file (the mod's content hash counts Res\spells\: mods.md, "Mods in
-# multiplayer"), and an original client is refused by a server that plays a mod. The client's view of the blow (the
-# target's hit points) is MF17e's check, with MF17c's cast:Damage.
+# (OnEnd), and the peer's client has the blow (clienthurt: the leader below its maximum hit points). Both peers load
+# the same spell records and file (the mod's content hash counts Res\spells\: mods.md, "Mods in multiplayer"), and an
+# original client is refused by a server that plays a mod.
 # A clickground lands where the clicked pixel's ray meets the ground (the vanilla runs play in a 4:3 window, the
 # Rebirth runs at the desktop's size; net_pair_leave).
 # prepare: make_mod_pair.py spell spell

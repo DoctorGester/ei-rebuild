@@ -400,6 +400,9 @@ bool ClientObject(int id, const char* part, ObjectState* out);
 bool ClientLight(int id, ObjectState* out);
 // The client world's lightning bolts (EffectLightning): each one's ends as "x y z - x y z".
 std::vector<std::string> ClientBolts();
+// The client world's living units whose packed hit points (as the server last sent them) are below their maximum:
+// each one's "id <id> hp <hit points> of <maximum>".
+std::vector<std::string> ClientHurt();
 // Animation switches blend (FigureAnimationState::SetBlends; "animblend on|off").
 void SetAnimationBlends(bool on);
 // The blends begun so far in world figures (FigureAnimationState::WorldBlendsBegun; "animblend count").

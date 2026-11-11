@@ -14787,7 +14787,7 @@ cunit4651 #place 6D2CA665
 cunit4767 #place 7027819A
 cunit4768 #place 480CEC9D
 cunit4896 #place E2196965
-@ 105 update 2120 frame 423 tick 1677 zone - hash 6929F442 n 992
+@ 105 update 2120 frame 423 tick 1677 zone - hash 7E919BB4 n 992
 world tick 1677
 world updates 2120
 aievents tick 1677
@@ -14799,7 +14799,9 @@ cunit4767 #place 15994AC2
 cunit4768 #place 6791573E
 cunit4896 #place 9E088E30
 cunit4896 #unit 020C5A1C
-@ 106 update 2140 frame 427 tick 1697 zone - hash CBC69D0F n 992
+cunit1000000013 #unit 4AFBBC2E
+cunit1000000013 #vitals 4753B03B
+@ 106 update 2140 frame 427 tick 1697 zone - hash BF3AE476 n 992
 world tick 1697
 world updates 2140
 aievents tick 1697
@@ -14810,7 +14812,8 @@ cunit4651 #place 607AFA64
 cunit4767 #place D35BB913
 cunit4896 #place 573F10EB
 cunit4896 #unit E6DE0C8B
-@ 107 update 2160 frame 431 tick 1717 zone - hash 7A0964C1 n 992
+cunit1000000013 #unit C9E4AD6E
+@ 107 update 2160 frame 431 tick 1717 zone - hash 0EF51DB8 n 992
 world tick 1717
 world updates 2160
 aievents tick 1717
@@ -14823,7 +14826,7 @@ cunit4651 #unit 7784FE1F
 cunit4767 #place 25B38C9F
 cunit4896 #place 8FDD2397
 cunit4896 #unit 020C5A1C
-@ 108 update 2180 frame 435 tick 1737 zone - hash BA7206EA n 992
+@ 108 update 2180 frame 435 tick 1737 zone - hash CE8E7F93 n 992
 world tick 1737
 world updates 2180
 aievents tick 1737
@@ -14834,7 +14837,7 @@ cunit4651 #place A496B39E
 cunit4768 #place A2D41B3C
 cunit4896 #place 6625B678
 cunit4896 #unit 07DCCEF0
-@ 109 update 2200 frame 439 tick 1757 zone - hash 77C8DCEA n 992
+@ 109 update 2200 frame 439 tick 1757 zone - hash 0334A593 n 992
 world tick 1757
 world updates 2200
 aievents tick 1757
@@ -14847,7 +14850,7 @@ cunit4767 #place 282C4ED1
 cunit4767 #unit 5BDD157A
 cunit4768 #place EA468BA5
 cunit4896 #place 710ACCF4
-@ 110 update 2220 frame 443 tick 1777 zone - hash 446F9B79 n 992
+@ 110 update 2220 frame 443 tick 1777 zone - hash 3093E200 n 992
 world tick 1777
 world updates 2220
 aievents tick 1777
@@ -14861,7 +14864,7 @@ cunit4767 #unit 883601F0
 cunit4768 #place 40524F8A
 cunit4768 #unit 2B4CD5E2
 cunit4896 #place 2A9402AD
-@ 111 update 2240 frame 447 tick 1797 zone - hash 43D56A12 n 992
+@ 111 update 2240 frame 447 tick 1797 zone - hash 3729136B n 992
 world tick 1797
 world updates 2240
 aievents tick 1797
@@ -14872,7 +14875,7 @@ cunit4767 #place 45359DAA
 cunit4768 #place DEA66FAF
 cunit4768 #unit CE664CF9
 cunit4896 #place 31473171
-@ 112 update 2260 frame 451 tick 1817 zone - hash 90AD987F n 992
+@ 112 update 2260 frame 451 tick 1817 zone - hash E451E106 n 992
 world tick 1817
 world updates 2260
 aievents tick 1817
@@ -14882,7 +14885,7 @@ cunit4651 #place A32193D5
 cunit4651 #unit 7784FE1F
 cunit4767 #place 4269C1F6
 cunit4768 #place 4F56B909
-@ 113 update 2280 frame 455 tick 1837 zone - hash 494C9565 n 992
+@ 113 update 2280 frame 455 tick 1837 zone - hash 3DB0EC1C n 992
 world tick 1837
 world updates 2280
 aievents tick 1837

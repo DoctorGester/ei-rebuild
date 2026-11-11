@@ -64,7 +64,7 @@ SPELL = '''-- MF17d's spell (tools/make_spell_mod.py): a bolt from the caster to
 -- and a blow of lightning; the bolt goes after LIFE ticks and the cast with it. The hooks say on the console who cast
 -- it at whom and count the casts into game variables.
 local LIFE = 60
-local DAMAGE = 5
+local DAMAGE = {damage}
 local BOLT_ID = 1700
 
 local spell = {}
@@ -125,12 +125,13 @@ def write(path, data, append=False):
         f.write(data)
 
 
-def add_spell(root):
-    """The spell's files into the mod folder `root`, its records and texts after any the mod's TOML files have."""
+def add_spell(root, damage=5):
+    """The spell's files into the mod folder `root`, its records and texts after any the mod's TOML files have; its
+    blow takes `damage` hit points before protections (the pair's 20: a blow of 5 left its hero's hit points as they were)."""
     for database, texts in (('database', 'texts'), ('databaselmp', 'textslmp')):
         write(os.path.join(root, 'Res', database, 'spells.sdb.toml'), SPELL_RECORD.encode('utf-8'), append=True)
         write(os.path.join(root, 'Res', texts, 'texts.toml'), TEXTS.encode('utf-8'), append=True)
-    write(os.path.join(root, 'Res', 'spells', CODE + '.lua'), SPELL.encode('utf-8'))
+    write(os.path.join(root, 'Res', 'spells', CODE + '.lua'), SPELL.replace('{damage}', str(damage)).encode('utf-8'))
     write(os.path.join(root, 'Res', 'textures', 'spell0100.png'), png(64, 64, (90, 150, 230)))
     write(os.path.join(root, 'Res', 'textures', 'prototype0100.png'), png(64, 64, (230, 200, 60)))
 

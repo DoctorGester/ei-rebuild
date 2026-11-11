@@ -183,7 +183,9 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   index), `effect <name> check <least particles> [<stage>]` requires a source with that many particles, in that stage
   (`harness_objects_image.cpp`'s `DataEffectStep`; `mod_effect`). `clientbolts <least> [<most>]` requires that many
   lightning bolts (EffectLightning) in this game's client world, a peer's too, and logs their ends
-  (`net_pair_mod_spell`).
+  (`net_pair_mod_spell`); `clienthurt <least> [<most>]` that many living client units below their maximum hit points
+  (the packed vitals the server sent), each logged with its id and hit points (`net_pair_mod_spell`'s peer: the blow
+  of the host's spell).
 - `resolution <WxH|desktop>` and `widescreen 0|1` (or `EI_RESOLUTION` / `EI_WIDESCREEN`) set the run's window; without
   them runs play in a window of 960x720 on the vanilla data and 1280x720 on Rebirth's (each takes its goldens' shape;
   FullScreen 0 unless the scenario says `fullscreen 1`).
