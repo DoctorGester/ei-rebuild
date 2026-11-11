@@ -330,32 +330,32 @@ Risks:
 
 | Folder | Files | Lines today | Move batch |
 |---|---|---|---|
-| `ai/` | 28 | 12553 | C168f |
-| `app/` | 23 | 6943 | C168e |
-| `combat/` | 13 | 6395 | C168f |
+| `ai/` | 28 | 12552 | C168f |
+| `app/` | 23 | 6950 | C168e |
+| `combat/` | 13 | 6390 | C168f |
 | `console/` | 5 | 2038 | C168e |
-| `core/` | 27 | 3875 | C168d |
-| `data/` | 16 | 5716 | C168d |
-| `effects/` | 23 | 10831 | C168g |
-| `items/` | 10 | 2896 | C168g |
-| `map/` | 15 | 4177 | C168e |
+| `core/` | 27 | 3881 | C168d |
+| `data/` | 16 | 5799 | C168d |
+| `effects/` | 30 | 13372 | C168g |
+| `items/` | 10 | 2958 | C168g |
+| `map/` | 15 | 4292 | C168e |
 | `models/` | 25 | 8219 | C168g |
-| `mods/` | 10 | 944 | C168d |
-| `net/` | 21 | 8165 | C168h |
-| `objects/` | 23 | 8143 | C168f |
+| `mods/` | 10 | 971 | C168d |
+| `net/` | 21 | 8194 | C168h |
+| `objects/` | 23 | 8166 | C168f |
 | `players/` | 24 | 5473 | C168e |
-| `saves/` | 7 | 828 | C168d |
+| `saves/` | 7 | 848 | C168d |
 | `scene/` | 30 | 4397 | C168g |
-| `script/` | 31 | 10004 | C168h |
+| `script/` | 33 | 10577 | C168h |
 | `sound/` | 3 | 1679 | C168e |
-| `spells/` | 8 | 2578 | C168g |
+| `spells/` | 9 | 2641 | C168g |
 | `terrain/` | 12 | 3559 | C168g |
-| `ui/` | 97 | 33118 | C168h |
-| `units/` | 27 | 9794 | C168f |
-| `world/` | 35 | 10235 | C168e |
-| all | 513 | 162560 | |
+| `ui/` | 97 | 33143 | C168h |
+| `units/` | 27 | 9839 | C168f |
+| `world/` | 35 | 10289 | C168e |
+| all | 523 | 166227 | |
 
-560 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
+570 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
 
 ### Every file
 
@@ -535,14 +535,21 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 |---|---|---|---|
 | effects.h | effects/effects.h |  |  |
 | effects_weather.cpp | effects/effects_weather.cpp |  |  |
+| embed_effects.cmake | effects/embed_effects.cmake |  |  |
 | lightning.cpp | effects/lightning.cpp |  |  |
 | lightning.h | effects/lightning.h |  |  |
 | particle_blasts.cpp | effects/particle_blasts.cpp |  |  |
 | particle_casting.cpp | effects/particle_casting.cpp |  |  |
 | particle_common.h | effects/particle_common.h |  |  |
 | particle_create.cpp | effects/particle_create.cpp |  |  |
+| particle_data.cpp | effects/particle_data.cpp |  |  |
+| particle_data.h | effects/particle_data.h |  |  |
+| particle_expr.cpp | effects/particle_expr.cpp |  |  |
+| particle_expr.h | effects/particle_expr.h |  |  |
 | particle_manager.cpp | effects/particle_manager.cpp |  |  |
 | particle_marks.cpp | effects/particle_marks.cpp |  |  |
+| particle_record.cpp | effects/particle_record.cpp |  |  |
+| particle_record.h | effects/particle_record.h |  |  |
 | particle_world.cpp | effects/particle_world.cpp |  |  |
 | vis_fog_manager.cpp | effects/vis_fog_manager.cpp |  |  |
 | weather_field.cpp | effects/weather_field.cpp |  |  |
@@ -821,6 +828,8 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | script_parse.h | script/script_parse.h |  |  |
 | script_parse_load.cpp | script/script_parse_load.cpp |  |  |
 | script_save.cpp | script/script_save.cpp |  |  |
+| script_spell_host.cpp | script/script_spell_host.cpp |  |  |
+| script_spell_host.h | script/script_spell_host.h |  |  |
 | script_vars.cpp | script/script_vars.cpp |  |  |
 
 #### `sound/` (C168e)
@@ -837,6 +846,7 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 |---|---|---|---|
 | spell.cpp | spells/spell.cpp |  |  |
 | spell.h | spells/spell.h |  | Light and LightFactory leave for scene/light.h (C168b) |
+| spell_behaviour.cpp | spells/spell_behaviour.cpp |  |  |
 | spell_db.cpp | spells/spell_db.cpp |  |  |
 | spell_db.h | spells/spell_db.h | new | the spell records, tables and database, out of item_db.h (C168i) |
 | spell_effect.cpp | spells/spell_effect.cpp |  |  |

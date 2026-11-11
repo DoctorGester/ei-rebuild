@@ -368,6 +368,7 @@ effects_weather.cpp         effects/effects_weather.cpp
 weather_particles.cpp       effects/weather_particles.cpp
 weather_field.h             effects/weather_field.h
 weather_field.cpp           effects/weather_field.cpp
+embed_effects.cmake         effects/embed_effects.cmake
 vis_fog_manager.cpp         effects/vis_fog_manager.cpp
 particle_common.h           effects/particle_common.h
 particle_create.cpp         effects/particle_create.cpp
