@@ -6,7 +6,7 @@
 #include "game/objects/object3d.h"
 #include "game/objects/torch.h"
 #include "game/saves/save_versions.h"
-#include "game/spells/spell.h"   // SpellType, BehaviourAt
+#include "game/spells/spell.h"   // SpellType, ActiveEffectAt
 #include "game/units/unit.h"   // MapObjectServer
 #include "game/objects/map_object_manager.h"
 #include "game/world/world.h"   // World

@@ -298,14 +298,6 @@ void StartPoisonCloud(SpellEffect* e) {
     EnterLasting(e);
 }
 
-// The buffs (Start lists them). The target gets the spell's BuffRecord; the effect itself ends.
-void ApplyBuff(SpellEffect* e) {
-    e->state = kStateEnded;
-    if (!e->target) return;
-    MapEffect record = e->BuffRecord();
-    e->target->AddEffect(&record);
-}
-
 // Fireworks (five numbered sounds).
 void StartFirework(SpellEffect* e) {
     Vector3 centre = e->targetPoint;
@@ -472,12 +464,6 @@ void SpellEffect::Start(SpellType type) {
     case SpellType::FireWall: StartFireWall(this, from); break;
     case SpellType::LightningWall: StartLightWall(this, from); break;
     case SpellType::AcidFog: StartPoisonCloud(this); break;
-    case SpellType::ProtectionFromFire: case SpellType::ProtectionFromLightning: case SpellType::ProtectionFromAcid:
-    case SpellType::EagleSight: case SpellType::Infravision: case SpellType::DetectLife: case SpellType::Invisibility:
-    case SpellType::Silence: case SpellType::Lichdom: case SpellType::Stench: case SpellType::Stun:
-    case SpellType::Antimagic: case SpellType::Strengthen: case SpellType::Weaken: case SpellType::Regeneration:
-    case SpellType::Feeblemind: case SpellType::Speed: case SpellType::Slow: case SpellType::Enlarge:
-    case SpellType::Shrink: ApplyBuff(this); break;
     case SpellType::Fireworks: StartFirework(this); break;
     case SpellType::Clairvoyance: StartClairvoyance(this); break;
     case SpellType::Possession: StartPossession(this); break;

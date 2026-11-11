@@ -21,8 +21,8 @@ class MapObjectClientSpecific;
 struct DeltaState;
 enum class SpellType : int;   // spell_db.h
 
-// An active effect (an array): the record of a buff spell (the buffs SpellEffect::Start applies) or of Teleport,
-// which stuns its caster like Stun. Strengthen, Weaken, Enlarge and Shrink scale the object.
+// An active effect (an array): what a spell's cast:Apply puts on the object (the buffs, Buff.lua) or Teleport's
+// record, which stuns its caster like Stun. Strengthen, Weaken, Enlarge and Shrink scale the object.
 struct MapEffect {
     std::uint8_t type = 0;          // the place of the spell record that made it (spell_db.h)
     std::uint8_t power = 0;
@@ -31,7 +31,8 @@ struct MapEffect {
     float strength = 0.0f;          // the spell's radius (saved; Rebirth compares it)
     std::uint8_t ending = 0;        // the client plays no end sound when set
 
-    // What it does: the behaviour of the spell record at `type` (itemdb::BehaviourAt).
+    // What it does: the activeEffect of the spell record at `type` (its `effect`, else its behaviour;
+    // itemdb::ActiveEffectAt).
     SpellType Behaviour() const;
 
     // One tick less; whether any are left (0 / 1).

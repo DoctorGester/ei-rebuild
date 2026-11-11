@@ -1,0 +1,13 @@
+{
+  "scenario": "spells_old_buff",
+  "install": "rebirth",
+  "recorded": "2026-11-11",
+  "commit": "f87541c5a",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "MF17g5: spells_old_buff new, recorded on the build from before the buffs moved onto Buff.lua (a pre-port save's active buffs loaded, counting down and ending); the ported build must match it.",
+  "source": "image",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+}

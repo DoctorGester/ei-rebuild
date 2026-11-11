@@ -1,0 +1,22 @@
+# A save from before the buffs moved onto Res\spells\Buff.lua (MF17g5; docs/notes/items_spells.md, "The game's spells
+# on scripts"). tests/saves/buff_old was made on vanilla data by a build from before the port: a new game, the
+# god-mode hero, a WolfTutor wolf added 25 squares east (BuffWolf), then script casts: shrink, speed, protection from
+# fire, invisibility and strengthen on the hero, stun, slow, weaken and feeblemind on the wolf, and F5 ten frames
+# later. The save holds the active effects on the units (MapEffect: the record's place, power, ticks left, value and
+# strength); loaded now, each one does what it did (its record's `effect`) and counts down and ends as before, as the
+# pre-port build's run of this scenario did.
+# prepare: copy_save.py tests/saves/buff_old save2
+reject Script error
+waitmenu
+console thingamabob
+load save2
+waitwindow 30 battle
+check IsAlive(GetObjectByName("BuffWolf"))
+dump loaded
+frames 100
+dump running
+frames 300
+dump later
+check IsAlive(GetLeader())
+report
+quit
