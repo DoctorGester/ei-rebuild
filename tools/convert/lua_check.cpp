@@ -983,7 +983,7 @@ void CheckSpellHost(TestWorld& world) {
         cast(top, "world.lua", 0);
         Expect(!host.Cast(top) && reported.size() == 3 &&
                    reported.back() == "Res\\spells\\world.lua did not load: world.lua:1: GetObjectID: no bindings at a "
-                                      "spell file's top level",
+                                      "spell file's top level or in OnStats",
                "no bindings at a spell file's top level");
         SpellEffect again;
         cast(again, "world.lua", 0);
@@ -1117,6 +1117,124 @@ void CheckSpellHost(TestWorld& world) {
     records.resize(first);
 }
 
+// The effect kinds' OnStats (ScriptSpellHost::EffectTotals): the game's buffs in Buff.lua and Teleport.lua (built
+// in) give what the C++ recompute did for their strongest values, and a test file's hook: one float operation per
+// call, the kinds in order, what each touched, a failing hook adding nothing, an unknown stat, no world bindings, and
+// the stats value only while its hook runs.
+void CheckEffectStats() {
+    const std::map<std::string, std::string> files = {{"stats.lua", R"lua(
+local spell = {}
+function spell.OnStats(effect, stats)
+    if effect.kind == "broken" then
+        stats:Add("Haste", 100)
+        error("broken")
+    elseif effect.kind == "unknown" then
+        stats:Add("Speed", 1)
+    elseif effect.kind == "world" then
+        GetObjectID(nil)
+    else
+        stats:Add("Sight", effect.value)
+        stats:Multiply("Sight", 3)
+        stats:Subtract("Sight", 0.1)
+        stats:Larger("NearSense", effect.value)
+        _G.kept = stats
+    end
+end
+return spell
+)lua"}};
+    std::vector<itemdb::SpellRecord>& records = g_spellDatabase.spells.records;
+    const std::size_t first = records.size();
+    const char* const kCodes[][2] = {
+        {"prot_fire", "Buff.lua"}, {"Antimagic", "Buff.lua"}, {"invisibility", "Buff.lua"}, {"speed", "Buff.lua"},
+        {"slow", "Buff.lua"},      {"strength", "Buff.lua"},  {"teleport", "Teleport.lua"}, {"enlarge", "Buff.lua"},
+        {"plain", "stats.lua"},    {"broken", "stats.lua"},   {"unknown", "stats.lua"},    {"world", "stats.lua"},
+        {"silent", "Nothing.lua"},
+    };
+    for (const auto& [code, script] : kCodes) {
+        itemdb::SpellRecord& record = records.emplace_back();
+        record.code = code;
+        record.script = script;
+    }
+    const auto place = [first](int n) { return static_cast<int>(first) + n; };
+
+    std::vector<std::string> reported;
+    Script script;
+    ScriptLuaScheduler& scheduler = script.Runner();
+    scheduler.report = [&reported](const std::string& message) { reported.push_back(message); };
+    scheduler.spells.readModule = [&files](const std::string& file, std::string* text) {
+        if (const auto found = files.find(file); found != files.end()) {
+            *text = found->second;
+            return true;
+        }
+        const std::string_view builtin = itemdb::BuiltinSpellFile(file);
+        text->assign(builtin);
+        return !builtin.empty();
+    };
+    ScriptSpellHost& host = scheduler.spells;
+    const auto totalsOf = [&host](std::vector<EffectKindStats> kinds) {
+        EffectStats totals;
+        host.EffectTotals(kinds, totals);
+        return std::pair{totals, kinds};
+    };
+    const auto bits = [](float value) { return std::bit_cast<std::uint32_t>(value); };
+
+    {
+        const auto [totals, kinds] = totalsOf({{place(0), 3.0f}, {place(1), 5.0f}});
+        Expect(totals[EffectStat::FireProtection] == 5.0f && totals[EffectStat::LightningProtection] == 5.0f &&
+                   totals[EffectStat::AcidProtection] == 5.0f,
+               "a protection is the larger of its own and antimagic's (the kind by its code in lower case)");
+        Expect(kinds[0].touched.count() == 1 && kinds[1].touched.count() == 3, "what each kind touched");
+    }
+    Expect(totalsOf({{place(0), 7.0f}, {place(1), 5.0f}}).first[EffectStat::FireProtection] == 7.0f,
+           "a stronger protection than antimagic's");
+    {
+        const float invisible = 33.3f;
+        const float speed = 2.7f;
+        const float slow = 1.1f;
+        const auto [totals, kinds] = totalsOf({{place(2), invisible}, {place(3), speed}, {place(4), slow}});
+        Expect(bits(totals[EffectStat::SightConspicuity]) == bits(0.0f - invisible * 0.01f),
+               "invisibility: the float product of its value and 0.01, subtracted");
+        Expect(bits(totals[EffectStat::Haste]) == bits(speed - slow), "speed less slow, as floats");
+    }
+    {
+        const auto [totals, kinds] = totalsOf({{place(5), 0.0f}, {place(6), 0.0f}, {place(7), 0.0f}});
+        Expect(totals[EffectStat::Girth] == 1.0f && totals[EffectStat::Size] == 1.0f &&
+                   totals[EffectStat::Stunned] == 1.0f && totals[EffectStat::Might] == 0.0f,
+               "strength, enlarge (a step at value 0) and teleport's stun");
+        Expect(kinds[0].touched[lib::Index(EffectStat::Might)] && kinds[0].touched[lib::Index(EffectStat::Girth)] &&
+                   kinds[1].touched[lib::Index(EffectStat::Stunned)],
+               "strength touches Might and Girth, teleport Stunned");
+    }
+    {
+        const float value = 1.7f;
+        const auto [totals, kinds] = totalsOf({{place(8), value}, {place(9), 1.0f}, {place(10), 1.0f}, {place(11), 1.0f},
+                                               {place(12), 1.0f}});
+        Expect(bits(totals[EffectStat::Sight]) == bits(value * 3.0f - 0.1f) &&
+                   totals[EffectStat::NearSense] == value && totals[EffectStat::Haste] == 0.0f,
+               "one float operation a call, in order; a failing hook adds nothing");
+        Expect(kinds[1].touched.none() && kinds[4].touched.none(), "a failed hook or a missing file touches nothing");
+        const bool said = reported.size() == 4 && reported[0] == "stats.lua:6: broken" &&
+                          reported[1] == "stats.lua:8: stats:Add: no stat Speed" &&
+                          reported[2] == "stats.lua:10: GetObjectID: no bindings at a spell file's top level or in "
+                                         "OnStats" &&
+                          reported[3] == "Res\\spells\\Nothing.lua did not load: no such file";
+        Expect(said, "the hooks' errors reported: an error, an unknown stat, a world binding, a file that is not there");
+        if (!said)
+            for (const std::string& message : reported) std::printf("lua_check: reported: %s\n", message.c_str());
+    }
+    lua_State* L = scheduler.lua.State();
+    lua_getglobal(L, "kept");
+    lua_getfield(L, -1, "Add");
+    lua_insert(L, -2);
+    lua_pushstring(L, "Sight");
+    lua_pushnumber(L, 1);
+    Expect(lua_pcall(L, 3, 0, 0) != LUA_OK && std::string(lua_tostring(L, -1)) == "stats:Add: only while OnStats runs",
+           "the stats value works only in OnStats");
+    lua_pop(L, 1);
+    Expect(!scheduler.lua.worldOff, "the world's bindings on again after OnStats");
+    records.resize(first);
+}
+
 // An effect of a particle type this build does not know (a mod's or a newer build's, from a peer or a save): its world
 // object starts, starts again and ticks without a source, no fatal exit; the type is logged once, a known type is
 // not logged.
@@ -1173,6 +1291,7 @@ int Main() {
     CheckCases();
     CheckRuntime();
     CheckSpellHost(world);
+    CheckEffectStats();
     CheckUnknownParticleType();
     Expect(world.OnlyWorldReferences(), "every reference released at the end");
     std::printf("lua_check: %d checks, %d failed\n", g_checks, g_failures);

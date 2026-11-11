@@ -81,6 +81,9 @@ std::vector<std::string> SetBehaviours(std::vector<SpellRecord>& records) {
         else records[i].behaviour = i < kGameSpellCount ? static_cast<SpellType>(i) : SpellType::None;
         records[i].activeEffect =
             records[i].effect == kOwnEffect ? records[i].behaviour : static_cast<SpellType>(records[i].effect);
+        if (records[i].effect == kOwnEffect) records[i].effectKind = static_cast<int>(i);
+        else if (records[i].effect == static_cast<int>(SpellType::None)) records[i].effectKind = -1;
+        else records[i].effectKind = records[i].effect;
     }
     std::vector<std::string> unnamed;
     for (SpellRecord& record : records) {

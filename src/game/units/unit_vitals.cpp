@@ -3,7 +3,6 @@
 // the body slots' healing, the experience curves and experience gain. See unit.h and
 // docs/notes/units.md ("Statistics in play").
 #include "game/objects/map_object.h"
-#include "game/spells/spell.h"
 #include "game/units/unit.h"
 
 #include "game/data/text_manager.h"
@@ -35,8 +34,6 @@ constexpr float kUnkeyedRateBase = 15.0f;                           // 0x4170000
 constexpr int kRegenPeriod = 15;
 constexpr int kSlotArms = 2;
 constexpr int kSlotLegs = 3;
-
-constexpr int kEffectTypes = 0x28;
 
 constexpr int kSkillBodyB0 = 15;      // raises perception[1] by its percentage
 constexpr int kSkillHitPoints = 16;
@@ -74,11 +71,12 @@ UnitVitals* ServerVitals(Unit* unit) {
     return server->GetClassId() == ClassId::MapObjectServer ? &server->vitals : nullptr;
 }
 
-// strengthen / weaken scale: (1 + v(0x1D) * k) / (1 + v(0x1E) * k); 1 without a unit.
+// The effects' scale of hit points or damage: (1 + Might * k) / (1 + Frailty * k); 1 without a unit.
 float EffectScale(Unit* unit, float k) {
     if (!unit) return 1.0f;
-    float strengthen = unit->EffectValue(SpellType::Strengthen) * k + 1.0f;
-    return strengthen / (unit->EffectValue(SpellType::Weaken) * k + 1.0f);
+    const EffectStats& effects = unit->EffectTotals();
+    float strengthen = effects[EffectStat::Might] * k + 1.0f;
+    return strengthen / (effects[EffectStat::Frailty] * k + 1.0f);
 }
 
 float ScaledAtLeastOne(Unit* unit, float k, float value) {
@@ -178,7 +176,7 @@ bool UnitVitals::Regenerate(UnitStats* stats, Unit* unit, char inCombat) {
     if (hitPoints < maxHitPoints) {
         float rate = (LevelValueOf(stats, kSkillHitPointRegen) * kPercent + 1.0f) * hitPointRegen;
         if (unit) {
-            float boost = unit->EffectValue(SpellType::Regeneration);
+            float boost = unit->EffectTotals()[EffectStat::Regeneration];
             if (boost > 0.0f) rate = boost * rate;
         }
         float scale = maxHitPoints;
@@ -342,38 +340,29 @@ void UnitStats::Recompute(UnitVitals* vitals, Unit* unit) {
     intelligence = (record ? record->Value() : 0.0f) + intelligence;
     for (UnitStatPair& protection : vitals->protection) protection.current = protection.base;
 
-    float strongest[kEffectTypes] = {};
-    for (const MapEffect& effect : unit->effects) {
-        const auto type = static_cast<std::uint32_t>(effect.Behaviour());
-        if (type >= static_cast<std::uint32_t>(kEffectTypes)) continue;
-        float value = effect.value;
-        float old = strongest[type];
-        strongest[type] = SelectLess(old, value, value, old);
-    }
-    auto strongestOf = [&strongest](SpellType type) { return strongest[static_cast<int>(type)]; };
-    // A protection spell adds the larger of its own and Antimagic's value to its damage type's protection.
-    const float general = strongestOf(SpellType::Antimagic);
-    auto protect = [vitals, general](DamageType damage, float own) {
+    // What the active effects add (their kinds' OnStats; the game's buffs in assets/spells/Buff.lua), every total
+    // added even when it is 0, as the original added its strongest values.
+    const EffectStats effects = unit->EffectTotals();
+    auto protect = [vitals, &effects](DamageType damage, EffectStat stat) {
         float& protection = vitals->protection[static_cast<int>(damage)].current;
-        protection = SelectLess(own, general, general, own) + protection;
+        protection = effects[stat] + protection;
     };
-    protect(DamageType::Fire, strongestOf(SpellType::ProtectionFromFire));
-    protect(DamageType::Lightning, strongestOf(SpellType::ProtectionFromLightning));
-    protect(DamageType::Acid, strongestOf(SpellType::ProtectionFromAcid));
-    perception[Sense::Sight].current = strongestOf(SpellType::EagleSight) + perception[Sense::Sight].current;
-    perception[Sense::DaySight].current = strongestOf(SpellType::Infravision) + perception[Sense::DaySight].current;
-    perception[Sense::Near].current = strongestOf(SpellType::DetectLife) + perception[Sense::Near].current;
-    float lowered = conspicuity[Sense::Sight].current - strongestOf(SpellType::Invisibility) * kPercentB;
-    float l = lowered;
-    conspicuity[Sense::Sight].current = SelectLess(0.0f, l, l, 0.0f);
-    lowered = conspicuity[Sense::Hearing].current - strongestOf(SpellType::Silence);
-    l = lowered;
-    conspicuity[Sense::Hearing].current = SelectLess(0.0f, l, l, 0.0f);
-    lowered = conspicuity[Sense::Near].current - strongestOf(SpellType::Lichdom);
-    l = lowered;
-    conspicuity[Sense::Near].current = SelectLess(0.0f, l, l, 0.0f);
-    conspicuity[Sense::Smell].current = strongestOf(SpellType::Stench) + conspicuity[Sense::Smell].current;
-    float hasteDelta = strongestOf(SpellType::Speed) - strongestOf(SpellType::Slow);
+    protect(DamageType::Fire, EffectStat::FireProtection);
+    protect(DamageType::Lightning, EffectStat::LightningProtection);
+    protect(DamageType::Acid, EffectStat::AcidProtection);
+    perception[Sense::Sight].current = effects[EffectStat::Sight] + perception[Sense::Sight].current;
+    perception[Sense::DaySight].current = effects[EffectStat::DaySight] + perception[Sense::DaySight].current;
+    perception[Sense::Near].current = effects[EffectStat::NearSense] + perception[Sense::Near].current;
+    // The sight, hearing and near conspicuity stay at least 0.
+    auto lower = [this, &effects](Sense sense, EffectStat stat) {
+        float lowered = conspicuity[sense].current + effects[stat];
+        conspicuity[sense].current = SelectLess(0.0f, lowered, lowered, 0.0f);
+    };
+    lower(Sense::Sight, EffectStat::SightConspicuity);
+    lower(Sense::Hearing, EffectStat::HearingConspicuity);
+    lower(Sense::Near, EffectStat::NearConspicuity);
+    conspicuity[Sense::Smell].current = effects[EffectStat::SmellConspicuity] + conspicuity[Sense::Smell].current;
+    float hasteDelta = effects[EffectStat::Haste];
 
     if (keyed) {
         float curve =

@@ -174,6 +174,8 @@ ClassId Spell::GetClassId() { return ClassId::Spell; }
 
 SpellType MapEffect::Behaviour() const { return ActiveEffectAt(type); }
 
+int MapEffect::Kind() const { return itemdb::EffectKindAt(type); }
+
 int MapEffect::Tick() {
     --ticksLeft;
     return ticksLeft > 0 ? 1 : 0;

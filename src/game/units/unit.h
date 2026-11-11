@@ -961,6 +961,7 @@ public:
     std::string parentIname;
     std::string skinTexture;
     std::vector<std::string> strings;
+    ActiveEffectStats effectStats;   // the owner's effect totals (MapObject::EffectTotals; not saved)
 };
 inline MapObjectServer* MapObject::ServerCompanion() const { return companion ? companion->ServerSide() : nullptr; }
 inline UnitVitals& MapObject::Vitals() const { return ServerCompanion()->vitals; }

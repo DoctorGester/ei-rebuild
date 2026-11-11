@@ -6,7 +6,7 @@
 #include "game/objects/object3d.h"
 #include "game/objects/torch.h"
 #include "game/saves/save_versions.h"
-#include "game/spells/spell.h"   // SpellType, ActiveEffectAt
+#include "game/spells/spell.h"   // SpellType
 #include "game/units/unit.h"   // MapObjectServer
 #include "game/objects/map_object_manager.h"
 #include "game/world/world.h"   // World
@@ -101,24 +101,21 @@ void MapObject::AddEffect(const MapEffect* effect) {
     if (std::ssize(effects) >= kMaxEffects) return;   // RemoveOutdatedEffects keeps the list far below this
     effects.push_back(*effect);
     MarkChanged(NetField::Effects);
-    SpellType spellType = effect->Behaviour();
-    bool scales = spellType == SpellType::Strengthen || spellType == SpellType::Weaken || spellType == SpellType::Enlarge ||
-                  spellType == SpellType::Shrink;
+    const bool scales = ScalesWith(effects.back());
+    const bool stuns = EffectTotals()[EffectStat::Stunned] > 0.0f;
     ScaleEffectChanged(scales);
-    if (spellType == SpellType::Stun || spellType == SpellType::Teleport) SetStunned(1);
+    if (stuns) SetStunned(1);
     EffectsChanged();
     if (scales) RecomputeScale();
     if (effect->ticksLeft > 1) RemoveOutdatedEffects(this, effect);
 }
 
-void MapObject::EffectRemoved(SpellType spellType) {
-    bool scales = spellType == SpellType::Strengthen || spellType == SpellType::Weaken || spellType == SpellType::Enlarge ||
-                  spellType == SpellType::Shrink;
+void MapObject::EffectRemoved(bool scales) {
     if (scales) RecomputeScale();
     MarkChanged(NetField::Effects);
     ScaleEffectChanged(scales);
     EffectsChanged();
-    if (!HasEffect(SpellType::Stun) && !HasEffect(SpellType::Teleport)) SetStunned(0);
+    if (!(EffectTotals()[EffectStat::Stunned] > 0.0f)) SetStunned(0);
 }
 
 int MapObject::RemoveEffects(std::uint8_t record) {
@@ -128,9 +125,9 @@ int MapObject::RemoveEffects(std::uint8_t record) {
             ++i;
             continue;
         }
-        const SpellType spellType = effects[i].Behaviour();
+        const bool scales = ScalesWith(effects[i]);
         effects.erase(effects.begin() + static_cast<std::ptrdiff_t>(i));
-        EffectRemoved(spellType);
+        EffectRemoved(scales);
         ++removed;
     }
     return removed;
@@ -144,25 +141,27 @@ void MapObject::ClearEffects() {
     RecomputeScale();
 }
 
-float MapObject::EffectValue(SpellType spellType) {
-    float best = 0.0f;
-    for (int i = 0; i < std::ssize(effects); ++i) {
-        MapEffect effect = effects[i];   // the record is copied twice
-        if (effect.Behaviour() != spellType) continue;
-        best = MaxKeepB(best, effect.value);   // a NaN takes the value
-    }
-    return best;
+const EffectStats& MapObject::EffectTotals() {
+    MapObjectServer* server = ServerCompanion();
+    return server ? server->effectStats.Of(*this) : kNoEffectStats;
+}
+
+bool MapObject::ScalesWith(const MapEffect& effect) {
+    MapObjectServer* server = ServerCompanion();
+    if (!server) return false;
+    server->effectStats.Of(*this);
+    return server->effectStats.Touches(effect.Kind(),
+                                       {EffectStat::Might, EffectStat::Frailty, EffectStat::Girth, EffectStat::Size});
 }
 
 void MapObject::RecomputeScale() {
     ApplyBaseScale();
-    int strength = (HasEffect(SpellType::Strengthen) ? 1 : 0) -
-                   (HasEffect(SpellType::Weaken) ? 1 : 0);
-    float strengthLevel = static_cast<float>(strength);
-    int size = (HasEffect(SpellType::Enlarge) ? 1 : 0) -
-               (HasEffect(SpellType::Shrink) ? 1 : 0);
-    float total = static_cast<float>(size) + strengthLevel;
-    if (size == 0) {
+    // The effects' steps: the original's levels of strengthen less weaken and enlarge less shrink.
+    const EffectStats& totals = EffectTotals();
+    const float strengthLevel = totals[EffectStat::Girth];
+    const float size = totals[EffectStat::Size];
+    float total = size + strengthLevel;
+    if (size == 0.0f) {
         if (strengthLevel != 0.0f) {
             float step = strengthLevel * kScaleStep;
             scale.x = MaxKeepB(0.0f, step + scale.x);

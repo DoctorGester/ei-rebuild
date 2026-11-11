@@ -122,5 +122,13 @@ int RunSpellBehaviourChecks() {
     Expect("ai_effect: the named record's effect, else the record's own",
            UseOf(records[44]).effect == SpellType::Slow && UseOf(records[46]).effect == SpellType::Stun &&
                UseOf(slowRecord).effect == SpellType::Slow);
+    // effectKind: the record whose script's OnStats gives the effect its stats.
+    records[47].effect = static_cast<int>(SpellType::None);
+    itemdb::SetBehaviours(records);
+    Expect("effectKind: the named game spell's place, its own, none",
+           slowRecord.effectKind == static_cast<int>(SpellType::Slow) &&
+               records[46].effectKind == static_cast<int>(SpellType::Stun) && records[45].effectKind == 45 &&
+               records[static_cast<int>(SpellType::Fireball)].effectKind == static_cast<int>(SpellType::Fireball) &&
+               records[47].effectKind == -1);
     return failures;
 }

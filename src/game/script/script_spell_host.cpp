@@ -13,6 +13,7 @@
 #include "game/units/acks_db.h"
 #include "game/units/unit.h"
 
+#include "lib/float_select.h"
 #include "lib/text_case.h"
 #include "platform/platform.h"
 
@@ -319,6 +320,36 @@ ScriptSpellHost::ScriptSpellHost(ScriptLuaScheduler& owner)
     lua_pushvalue(L, -1);
     scheduler.lua.AddPermanent("ei.cast");
     castMeta = luaL_ref(L, LUA_REGISTRYINDEX);
+
+    // OnStats' stats value, its metatable and methods, and its effect value, permanents too.
+    lua_newtable(L);
+    lua_createtable(L, 0, 1);
+    lua_createtable(L, 0, 4);
+    const int statMethods = lua_gettop(L);
+    const auto statMethod = [this, statMethods](const char* name, lua_CFunction function) {
+        lua_pushlightuserdata(L, this);
+        lua_pushcclosure(L, function, 1);
+        lua_pushvalue(L, -1);
+        scheduler.lua.AddPermanent(std::format("ei.stats.{}", name).c_str());
+        lua_setfield(L, statMethods, name);
+    };
+    statMethod("Add", StatAdd);
+    statMethod("Subtract", StatSubtract);
+    statMethod("Larger", StatLarger);
+    statMethod("Multiply", StatMultiply);
+    lua_pushvalue(L, statMethods);
+    scheduler.lua.AddPermanent("ei.stats.methods");
+    lua_setfield(L, -2, "__index");
+    lua_pushvalue(L, -1);
+    scheduler.lua.AddPermanent("ei.stats.meta");
+    lua_setmetatable(L, -2);
+    lua_pushvalue(L, -1);
+    scheduler.lua.AddPermanent("ei.stats");
+    statsValue = luaL_ref(L, LUA_REGISTRYINDEX);
+    lua_createtable(L, 0, 2);
+    lua_pushvalue(L, -1);
+    scheduler.lua.AddPermanent("ei.effect");
+    effectValue = luaL_ref(L, LUA_REGISTRYINDEX);
 }
 
 ScriptSpellHost::~ScriptSpellHost() {
@@ -326,6 +357,8 @@ ScriptSpellHost::~ScriptSpellHost() {
     luaL_unref(L, LUA_REGISTRYINDEX, casts);
     luaL_unref(L, LUA_REGISTRYINDEX, modules);
     luaL_unref(L, LUA_REGISTRYINDEX, castMeta);
+    luaL_unref(L, LUA_REGISTRYINDEX, statsValue);
+    luaL_unref(L, LUA_REGISTRYINDEX, effectValue);
 }
 
 void ScriptSpellHost::NewEntry(SpellEffect& effect, int key) {
@@ -347,7 +380,7 @@ void ScriptSpellHost::NewEntry(SpellEffect& effect, int key) {
 
 bool ScriptSpellHost::Cast(SpellEffect& effect) {
     NewEntry(effect, nextCast++);
-    PushModule(effect);
+    PushModule(ScriptOf(effect));
     const bool loaded = lua_istable(L, -1);
     lua_pop(L, 1);
     if (!loaded) {
@@ -461,6 +494,68 @@ bool ScriptSpellHost::Tick(SpellEffect& effect) {
 
 void ScriptSpellHost::Forget(SpellEffect& effect) { Drop(effect); }
 
+void ScriptSpellHost::EffectTotals(std::vector<EffectKindStats>& kinds, EffectStats& totals) {
+    totals = {};
+    const bool worldWasOff = scheduler.lua.worldOff;
+    scheduler.lua.worldOff = true;
+    const int base = lua_gettop(L);
+    for (EffectKindStats& kind : kinds) {
+        kind.touched.reset();
+        const itemdb::SpellRecord* record = itemdb::SpellAt(static_cast<std::uint32_t>(kind.kind));
+        if (!record || record->script.empty()) continue;
+        PushModule(record->script);
+        if (!lua_istable(L, -1) || lua_getfield(L, -1, "OnStats") != LUA_TFUNCTION) {
+            lua_settop(L, base);
+            continue;
+        }
+        lua_rawgeti(L, LUA_REGISTRYINDEX, effectValue);
+        std::string code = record->code;
+        text::LowerInPlace(code.data(), code.size());
+        lua_pushstring(L, code.c_str());
+        lua_setfield(L, -2, "kind");
+        lua_pushnumber(L, scriptlua::ToLuaNumber(kind.value));
+        lua_setfield(L, -2, "value");
+        lua_rawgeti(L, LUA_REGISTRYINDEX, statsValue);
+        const EffectStats before = totals;
+        statsTotals = &totals;
+        statsKind = &kind;
+        const int status = lua_pcall(L, 2, 0, 0);
+        statsTotals = nullptr;
+        statsKind = nullptr;
+        if (status != LUA_OK) {
+            Report(lua_tostring(L, -1) ? lua_tostring(L, -1) : "(no message)");
+            totals = before;
+            kind.touched.reset();
+        }
+        lua_settop(L, base);
+    }
+    scheduler.lua.worldOff = worldWasOff;
+}
+
+int ScriptSpellHost::Stat(lua_State* L, StatOperation operation, const char* method) {
+    auto* host = static_cast<ScriptSpellHost*>(lua_touserdata(L, lua_upvalueindex(1)));
+    const char* name = luaL_checkstring(L, 2);
+    const float x = scriptlua::FromLuaNumber(luaL_checknumber(L, 3));
+    if (!host->statsTotals) return luaL_error(L, "stats:%s: only while OnStats runs", method);
+    const auto found = std::find(kEffectStatNames.begin(), kEffectStatNames.end(), std::string_view(name));
+    if (found == kEffectStatNames.end()) return luaL_error(L, "stats:%s: no stat %s", method, name);
+    const auto index = static_cast<std::size_t>(found - kEffectStatNames.begin());
+    float& total = (*host->statsTotals)[index];
+    switch (operation) {
+    case StatOperation::Add: total = total + x; break;
+    case StatOperation::Subtract: total = total - x; break;
+    case StatOperation::Larger: total = MaxKeepB(total, x); break;
+    case StatOperation::Multiply: total = total * x; break;
+    }
+    host->statsKind->touched.set(index);
+    return 0;
+}
+
+int ScriptSpellHost::StatAdd(lua_State* L) { return Stat(L, StatOperation::Add, "Add"); }
+int ScriptSpellHost::StatSubtract(lua_State* L) { return Stat(L, StatOperation::Subtract, "Subtract"); }
+int ScriptSpellHost::StatLarger(lua_State* L) { return Stat(L, StatOperation::Larger, "Larger"); }
+int ScriptSpellHost::StatMultiply(lua_State* L) { return Stat(L, StatOperation::Multiply, "Multiply"); }
+
 bool ScriptSpellHost::Adopt(SpellEffect& effect) {
     PushEntry(L, effect.castKey);
     const bool found = lua_istable(L, -1);
@@ -478,7 +573,7 @@ bool ScriptSpellHost::Adopt(SpellEffect& effect) {
 
 bool ScriptSpellHost::Resume(SpellEffect& effect) {
     const int base = lua_gettop(L);
-    PushModule(effect);
+    PushModule(ScriptOf(effect));
     const bool resumes = lua_istable(L, -1) && lua_getfield(L, -1, "OnResume") == LUA_TFUNCTION;
     lua_settop(L, base);
     if (!resumes) return false;
@@ -1291,8 +1386,7 @@ int ScriptSpellHost::Vision(lua_State* L) {
     return PushHandle(L, shown);
 }
 
-void ScriptSpellHost::PushModule(const SpellEffect& effect) {
-    const std::string& file = ScriptOf(effect);
+void ScriptSpellHost::PushModule(const std::string& file) {
     std::string key = file;
     text::LowerInPlace(key.data(), key.size());
     lua_rawgeti(L, LUA_REGISTRYINDEX, modules);
@@ -1395,7 +1489,7 @@ ScriptSpellHost::Hook ScriptSpellHost::Call(const SpellEffect& effect, const cha
     const int base = lua_gettop(L) - arguments;
     PushEntry(L, effect.castKey);
     const int entry = lua_gettop(L);
-    PushModule(effect);
+    PushModule(ScriptOf(effect));
     if (!lua_istable(L, entry) || !lua_istable(L, -1) || lua_getfield(L, -1, name) != LUA_TFUNCTION) {
         lua_settop(L, base);
         return Hook::Absent;
@@ -1446,7 +1540,7 @@ bool ScriptSpellHost::Settle(SpellEffect& effect, Hook result) {
     const bool timers = lua_istable(L, -1) && lua_rawlen(L, -1) > 0;
     lua_pop(L, 2);
     const bool pending = timers || effect.OwnsPending();
-    PushModule(effect);
+    PushModule(ScriptOf(effect));
     const bool ticks = lua_istable(L, -1) && lua_getfield(L, -1, "OnTick") == LUA_TFUNCTION;
     lua_settop(L, entry - 1);
     // A cast with OnTick lives at most its spell's duration; one paced by its timers alone at most kDefaultTickCap

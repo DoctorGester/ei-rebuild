@@ -60,4 +60,9 @@ function spell.OnResume(cast, old)
     Schedule(cast, old.ticks)
 end
 
+-- The arrival's effect (the record's `effect`, "teleport") stuns the caster while it lasts.
+function spell.OnStats(effect, stats)
+    stats:Add("Stunned", 1)
+end
+
 return spell
