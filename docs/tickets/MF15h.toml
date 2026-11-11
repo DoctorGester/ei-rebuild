@@ -6,3 +6,5 @@ model = "opus"
 depends = ["MF15e"]
 note = "User 2026-11-11 approved MF15's plan (build/mf15_particles.md). Records reference effects by name so mods can give spells and units new effects."
 order = 1348
+status = "running"
+started = "2026-11-11"
