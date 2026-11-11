@@ -2,18 +2,27 @@
   "scenario": "mod_effect_save",
   "install": "vanilla",
   "recorded": "2026-11-11",
-  "commit": "0b2a34d83",
+  "commit": "02c622087",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MF13d merged with MF13a: the showcase zone's graph is built by MF13d's builder and saved against zeros (no rebuild at a load); mod_showcase_long_walk enters the showcase zone first.",
+  "reason": "MF15j2: the scenarios set server inputs on the showcase aura (more steps, waits); the data effect's world object saves its inputs after its fields",
   "source": "image",
   "saves": "14 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save showcase_mod/save1/mission.sav: 214487 fields in 1 records differ: aigraph 214487",
-    "  aigraph: 214487 fields in 1 records; first aigraph diff.size: (none) in the old golden, 466952 in the new run",
-    "save showcase_mod/savea/mission.sav: 214487 fields in 1 records differ: aigraph 214487",
-    "  aigraph: 214487 fields in 1 records; first aigraph diff.size: (none) in the old golden, 466952 in the new run"
+    "digest: 7 of 13 records differ, first at record 6 (world update 140, tick 120, frame 27, zone showcase); outcomes CHANGED: quest variables (deaths unknown: hash only); max unit move 1.43 (obj4001, record 8)",
+    "  digest: the records no longer line up at record 6: the old golden world update 140 tick 120, the new run world update 140 tick 130",
+    "  first difference at record 6 (world update 140, tick 120, frame 27, zone showcase): 19 fields",
+    "    world (world) tick: 120 in the old golden, 130 in the new run (d 10)",
+    "    random (random) isaac.count: 139 in the old golden, 97 in the new run (d 42)",
+    "    random (random) crt.rand: 0x3B1B1BF6 in the old golden, 0xB921F9F5 in the new run",
+    "    ... 16 more",
+    "  outcomes: CHANGED quest variables (deaths unknown: vitals differ, only a hash is kept); same: zone, spawns, money, party and items, game result, script",
+    "    quest variables: 1 variables differ (gtime); first from record 7: player0 gtime: 6.09555578 in the old golden, 6.04555559 in the new run",
+    "  world: 1 of 1 differ",
+    "    tick: 1 world, 3 records, from 6; max |d| 19 at world tick, record 8: 121 -> 140",
+    "    secondsPerTick: 1 world, 1 record, from 8; max |d| 1.2e-10 (1 ulps) at world secondsPerTick, record 8: 0.00111111137 -> 0.00111111125",
+    "... 31 more lines"
   ]
 }

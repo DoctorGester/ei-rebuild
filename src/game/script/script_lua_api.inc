@@ -457,6 +457,11 @@ EI_LUA_BINDING(AttachParticleSource, AttachParticleSource, "id: number, object: 
                "the effect follows the object of that id")
 EI_LUA_BINDING(AttachParticles, AttachParticles, "id: number, object: object", "", "the effect follows the object")
 EI_LUA_BINDING(SetParticleSourceSize, SetParticleSourceSize, "id: number, size: number", "", "the effect's size")
+EI_LUA_BINDING(SetParticleInput, SetParticleInput, "id: number, input: string, value: number, y?: number, z?: number",
+               "", "an input of one of your effects (`Res\\effects`) set for every player: a number, a flag (0 / 1) or "
+               "a choice's index, or a vector by three numbers")
+EI_LUA_BINDING(FireParticleEvent, FireParticleEvent, "id: number, event: string", "",
+               "an event input of one of your effects fired for every player")
 EI_LUA_BINDING(CreateLightning, CreateLightning,
                "id: number, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, width: number", "",
                "a lightning bolt from one point to the other; a negative id takes a new one")
@@ -638,6 +643,12 @@ EI_LUA_CAST_METHOD(Light, "at: position, options?: LightOptions", "integer",
 EI_LUA_CAST_METHOD(SetVelocity, "handle: integer, velocity: point", "boolean",
                    "the cast's bolt, missile, effect or light of that handle moves by so much a tick from now on (a "
                    "light sent up as it fades); false when it is gone")
+EI_LUA_CAST_METHOD(SetInput, "handle: integer, input: string, value: number|boolean|string|point", "boolean",
+                   "an input of the cast's effect of that handle (one of yours, `Res\\effects`) set for every player: a "
+                   "number, a flag, a choice by its name or a vector; false when it is gone or has no such input")
+EI_LUA_CAST_METHOD(Fire, "handle: integer, event: string", "boolean",
+                   "an event input of the cast's effect of that handle fired for every player; false when it is gone or "
+                   "has no such event")
 EI_LUA_CAST_METHOD(Eye, "unit: object", "point",
                    "the point a unit's spells start from (its eye), where the game's lightning puts its light")
 EI_LUA_CAST_METHOD(HitPoint, "unit: object", "point",

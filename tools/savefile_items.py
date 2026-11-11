@@ -77,7 +77,7 @@ def read_point_light(r):
 def read_particle(r):
     """CEffectParticle::Save (006794E0)."""
     r.vec('position')
-    r.x32('particleType')
+    kind = r.x32('particleType')
     r.f32('size')
     r.id('attachedTo')
     r.vec('velocity')
@@ -86,6 +86,12 @@ def read_particle(r):
     r.id('unitId')
     r.f32('alpha')
     r.f32('param164')
+    if kind & 0x40000000:
+        # A data effect's: the inputs the server set (game/effects/effect_inputs.cpp), by the record's order.
+        for i in range(r.i32('inputCount')):
+            with r.scope(f'input{i}'):
+                r.i32('index')
+                r.vec('value')
 
 
 def read_wall(r):

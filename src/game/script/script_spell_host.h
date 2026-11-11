@@ -106,6 +106,8 @@ public:
     static int Sound(lua_State* L);
     static int Light(lua_State* L);
     static int SetVelocity(lua_State* L);
+    static int SetInput(lua_State* L);
+    static int Fire(lua_State* L);
     static int Eye(lua_State* L);
     static int HitPoint(lua_State* L);
     static int IsUnit(lua_State* L);

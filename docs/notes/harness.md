@@ -202,7 +202,7 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
 - Data effects (effects.md, "Data effects"): `effect <name> set <input> <value | x y z | enum value>`, `effect <name>
   fire <event>` drive the client's running sources of that effect through the inputs game code uses
   (`effectdata::SetInput` / `Fire`); `effect <name> value <input> <expected>` requires an input's value (an enum's as its
-  index), `effect <name> check <least particles> [<stage>]` requires a source with that many particles, in that stage
+  index) or an effect var's (its first lane) in every source of it, `effect <name> check <least particles> [<stage>]` requires a source with that many particles, in that stage
   (`harness_objects_image.cpp`'s `DataEffectStep`; `mod_effect`). `effectviewer <command>` opens and drives the
   effect viewer (effects.md, "The effect viewer"; the commands in harness.cpp's list, `tools::effect_viewer::Command`;
   `folder out [<name>]` saves into the run's output folder; `effect_viewer`). `clientbolts <least> [<most>]` requires that many

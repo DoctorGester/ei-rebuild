@@ -1,10 +1,10 @@
 // Rebirth's extra script commands and functions (addon.dll's AddNewScriptCommands, v0.12.4.2): the extended keyword
 // table, the dispatch to the handlers (script_addon_*.cpp) and the parser's '?' / '+' signature letters. See
 // script_addon.h and docs/notes/rebirth.md.
-// The table is the game's keywords (script.h's kScriptKeywords) plus the 69 records (name, signature, handler):
-// a name already in the table (case-insensitive) keeps its id and gets the record's signature as its function
-// signature (the first letter is one of "FGOS") or command signature (both cleared first); a new name is appended
-// with id 300 + the record's index. A map by id finds the record before the game's own switch runs.
+// The table is the game's keywords (script.h's kScriptKeywords) plus the 69 records (name, signature, handler) and
+// two of ours after them (a data effect's inputs): a name already in the table (case-insensitive) keeps its id and
+// gets the record's signature as its function signature (the first letter is one of "FGOS") or command signature
+// (both cleared first); a new name is appended with id 300 + the record's index. A map by id finds the record before the game's own switch runs.
 #include "game/script/script_addon.h"
 #include "game/script/script_addon_handlers.h"
 
@@ -102,9 +102,12 @@ const Record kRecords[] = {
     {"PauseGame", "f", PauseGame},
     {"SetWeather", "s", SetWeather},
     {"AddMobEx", "s?f", AddMobEx},
+    // Ours, after addon's: a data effect's inputs set on the server (script_effects.cpp).
+    {"SetParticleInput", "fsf?ff", SetParticleInput},
+    {"FireParticleEvent", "fs", FireParticleEvent},
 };
 constexpr int kRecordCount = static_cast<int>(sizeof(kRecords) / sizeof(kRecords[0]));
-static_assert(kRecordCount == 69);
+static_assert(kRecordCount == 69 + 2);
 constexpr int kFirstNewId = 300;
 
 bool IsAsciiAlpha(char c) { return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'); }

@@ -1005,6 +1005,8 @@ The functions also work in the spells' hooks. These tables, and the spells' belo
 | `AttachParticleSource(id: number, object: number)` |  | the effect follows the object of that id |
 | `AttachParticles(id: number, object: object)` |  | the effect follows the object |
 | `SetParticleSourceSize(id: number, size: number)` |  | the effect's size |
+| `SetParticleInput(id: number, input: string, value: number, y?: number, z?: number)` |  | an input of one of your effects (`Res\effects`) set for every player: a number, a flag (0 / 1) or a choice's index, or a vector by three numbers |
+| `FireParticleEvent(id: number, event: string)` |  | an event input of one of your effects fired for every player |
 | `CreateLightning(id: number, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, width: number)` |  | a lightning bolt from one point to the other; a negative id takes a new one |
 | `DeleteLightning(id: number)` |  | removes every bolt of that id |
 | `CreateSound(x: number, y: number, z: number, volume: number, radius: number, sound: string)` (`CreateFX`) |  | plays the sound once at (x, y, z) |
@@ -1229,6 +1231,11 @@ frame = { start = "pick(16)", delay = 1 }
 - **Problems** are `warning: effects: <file>:<line>: ...` lines in `ei-rebuild.log`; an effect with an error shows
   nothing. An unknown key is only noted.
 - In a network game every player needs the same effect files: they count in the mod's content hash.
+- **Inputs set for every player**: a script's `SetParticleInput(id, "charge", 1)` and `FireParticleEvent(id, "pulse")`
+  (on a `CreateParticleSource` id) and a spell's `cast:SetInput(handle, "mode", "storm")` and `cast:Fire(handle,
+  "pulse")` (on a `cast:Effect` handle) set the input on the server: every player's effect takes it, also one who
+  comes later or loads a save (it takes the values as they stand and the events fired so far). A value your effect
+  changes itself (a `set` action) stays as the effect left it until the server sets another.
 
 ### Records that name effects
 
@@ -1502,6 +1509,8 @@ return spell
 | `cast:SoundLoop(at: position, loop: string\|string[], options?: SoundLoopOptions)` | `integer` | sounds that go on while the cast holds them: `first` once, then `loop` (a name, or a list played in random order) over and over, as the fireball's flight and the walls sound. Gives a handle |
 | `cast:Light(at: position, options?: LightOptions)` | `integer` | a point light, by default in the record's `light_color` and `light_range`, rising by `rise` a tick or moving by `velocity`. Gives a handle |
 | `cast:SetVelocity(handle: integer, velocity: point)` | `boolean` | the cast's bolt, missile, effect or light of that handle moves by so much a tick from now on (a light sent up as it fades); false when it is gone |
+| `cast:SetInput(handle: integer, input: string, value: number\|boolean\|string\|point)` | `boolean` | an input of the cast's effect of that handle (one of yours, `Res\effects`) set for every player: a number, a flag, a choice by its name or a vector; false when it is gone or has no such input |
+| `cast:Fire(handle: integer, event: string)` | `boolean` | an event input of the cast's effect of that handle fired for every player; false when it is gone or has no such event |
 | `cast:Eye(unit: object)` | `point` | the point a unit's spells start from (its eye), where the game's lightning puts its light |
 | `cast:HitPoint(unit: object)` | `point` | the point where a hit on the unit shows, as the game's missiles splash: the ground below it plus its height as it stands (lower crawling, lying or dead, so ask after the damage); another object's position |
 | `cast:IsUnit(object: object)` | `boolean` | whether it is a unit (false for nil, a unit that is gone, or another object) |

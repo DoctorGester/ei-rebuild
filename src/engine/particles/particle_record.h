@@ -148,6 +148,12 @@ struct Input {
     std::vector<Vector3> points;        // a list's default
     int slot = 0;                      // its first value in the input array (a list's: its count)
     int list = -1;                      // a list's place in State::lists
+
+    // The value a float, bool or enum input holds when set to `value` (a bool's 0 / 1, an enum's index floored); none
+    // for another type or an index outside an enum's values.
+    std::optional<float> Holds(float value) const;
+    // An enum's index of its value `wanted`; -1 when it has none.
+    int ValueIndex(std::string_view wanted) const;
 };
 
 // A named value with its start and its change per tick (an empty `tick` keeps it; a tick alone also starts it); a vector

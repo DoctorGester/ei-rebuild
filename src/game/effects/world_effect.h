@@ -6,6 +6,7 @@
 // particle source (Start). See docs/notes/effects.md.
 
 #include "engine/core/core_transform.h"
+#include "game/effects/effect_inputs.h"
 #include "game/effects/effects.h"
 #include "game/effects/lightning.h"
 #include "game/net/net_delta.h"
@@ -21,6 +22,9 @@
 #include <vector>
 
 class ScriptGroup;
+namespace effectdata {
+struct Input;
+}
 
 // The common base (abstract). The world's timed objects (World::timedObjects) are reached through Reset,
 // Radius and Position.
@@ -181,6 +185,13 @@ public:
     void SetColors(float newAlpha, float newTypeParam);
     void SetTarget(const Vector3& target);
     void Attach();                                // attaches the source to attachedTo
+    // The server's: an input of its data effect set (a float, bool or enum index; a vector; an enum by its value's
+    // name) or an event fired, kept, sent to every client and saved (`inputs`); false when it is no data effect or
+    // has no input of that name and type.
+    bool SetInput(std::string_view input, float value);
+    bool SetInput(std::string_view input, const Vector3& value);
+    bool SetInput(std::string_view input, std::string_view value);
+    bool Fire(std::string_view event);
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
     bool RunTick() override;
@@ -194,6 +205,7 @@ public:
     Vector3 target;            // moves towards it
     Ref<ParticleSource> source;    // reference counted
     int unitId = -1;           // a unit whose position is used when unpacking, -1: none
+    effectinputs::Entries inputs;   // the inputs the server set (a client's: as last received)
 
 protected:
     // The fields every particle effect sends; answers the position they carry.
@@ -203,6 +215,15 @@ protected:
     // What this object gives its source beyond the particle effect's fields, before the source's "spawn" reactions:
     // a wall's direction.
     virtual void Shape(ParticleSource&) {}
+
+    effectinputs::Entries applied;   // a client's: `inputs` as its source took them (empty when the source is made)
+
+private:
+    // A client's: the inputs that changed since the source took them given to it, in index order (an event fired as
+    // often as its count grew).
+    void ApplyInputs();
+    // The input `name` of the data effect and its place in the record; null when it is no data effect or has none.
+    const effectdata::Input* FindInput(std::string_view name, int* index) const;
 };
 
 // A particle wall (class id 0x5A; an effect whose [server] wall is set: the fire wall's Tendril, Link).

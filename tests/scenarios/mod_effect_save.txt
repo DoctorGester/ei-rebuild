@@ -3,6 +3,8 @@
 # zone's world object keeps the effect's id in the type int an original type's number takes, the loaded client finds
 # the effect by the id (Registry::FindById lists Res\effects through the layers at the first id not met) and runs it
 # again, caught up past its first stage (rise, 18 ticks: a lasting effect catches up 30); nothing logged as unknown.
+# MF15j2: inputs the server set (SetParticleInput: the mode storm, a charge that bursts it) are saved with the object
+# and taken by the loaded client's new source (its mode, and one burst again).
 # prepare: make_showcase_mod.py
 mod harness_saves\showcase_mod
 reject Script error
@@ -22,6 +24,11 @@ frames 2
 effect showcase_aura check 1 rise
 wait 1500
 effect showcase_aura check 20 glow
+console @SetParticleInput(60,"mode",1)
+console @SetParticleInput(60,"charge",1)
+wait 300
+effect showcase_aura value mode 1
+effect showcase_aura value bursts 1
 
 key esc
 waitwindow 10 escmenu
@@ -36,6 +43,8 @@ waitwindow 30 battle
 waitfor 20 IsGreater(HP(GetLeader()),0)
 frames 5
 effect showcase_aura check 5 glow
+effect showcase_aura value mode 1
+effect showcase_aura value bursts 1
 wait 1000
 effect showcase_aura check 20 glow
 expectnonewlog particles: unknown particle type

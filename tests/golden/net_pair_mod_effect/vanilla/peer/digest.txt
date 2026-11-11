@@ -14823,3 +14823,13 @@ cunit4517 #place 41A3FB3E
 cunit4651 #place 4ECE8614
 cunit4767 #place 94D14966
 cunit4768 #place B1AED4A3
+@ 114 update 2300 frame 459 tick 1857 zone - hash E3FB94BB n 992
+world tick 1857
+world updates 2300
+aievents tick 1857
+client tick 1977
+client ticksRun 422
+cunit4517 #place B6CF884E
+cunit4651 #place 0CD55197
+cunit4651 #unit 956A8761
+cunit4768 #place D6F81211

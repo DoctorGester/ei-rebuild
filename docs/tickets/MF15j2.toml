@@ -7,3 +7,5 @@ depends = ["MF15j"]
 files = ["src/game/effects/world_effect_visual.cpp", "src/game/effects/world_effect.h", "src/game/effects/particle_data.cpp"]
 note = "From MF15j. Today only a client's source takes SetInput / Fire (game code on the client, the harness's effect step). Design on the effect object's network fields: the server's EffectParticle keeps the inputs it set (input index by the record's order, value; events as a counter) and packs them after its existing fields only when its type is a data id (0x40000000 range: an original client never meets one, network.md 'Mods'), so the original types' packets and saves stay as they are; Unpack applies them to the source (SetValue / SetVector / SetEnum, an event when its counter grows), Load / Save the same; deterministic: applied before the client's next source tick, in index order. Checks: a net_pair scenario with the showcase mod (the host's serverscript sets an input, both clients see the stage move), a save with a set input, unit check of the pack round trip. Script / Lua binding to set it on the server."
 order = 1375
+status = "review"
+started = "2026-11-11"

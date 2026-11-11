@@ -20,6 +20,7 @@
 #include "lib/float_select.h"
 #include "lib/maths.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <functional>
@@ -29,6 +30,9 @@
 using namespace effect;
 
 namespace {
+
+// The most times a client fires an event the server fired at once (a source made late, many fired between updates).
+constexpr int kMostFiredAtOnce = 16;
 
 // The light's range fields: range, range^2 and 1 / range^2.
 void SetLightRange(Light* light, float range) {
@@ -166,6 +170,8 @@ void EffectParticle::Reset() {
     type = 0;
     attachedTo = -1;
     unitId = -1;
+    inputs.clear();
+    applied.clear();
 }
 
 Vector3* EffectParticle::Position(const ScriptGroup* group) {
@@ -214,6 +220,7 @@ Vector3 EffectParticle::UnpackFields(DeltaReader& field) {
     field.ReadDelta(&unitId, 4);
     alpha = field.ReadFloat16();
     typeParam = field.ReadFloat16();
+    if (effectdata::IsDataId(type)) inputs = effectinputs::Unpack(field);
     moving = IsMoving(velocity);
     return position;
 }
@@ -245,6 +252,7 @@ void EffectParticle::Spawn() {
         source->typeParam = typeParam;
         Attach();
         Shape(*source);
+        ApplyInputs();
         return;
     }
 
@@ -258,6 +266,8 @@ void EffectParticle::Spawn() {
     source->alpha = alpha;
     source->typeParam = typeParam;
     Attach();
+    applied.clear();
+    ApplyInputs();   // before the catch-up: the new source plays from the inputs the server has set
 
     // Catch up with the ticks since the effect began (at most 30 for lasting types).
     int age = g_clientWorld.tick - startTick;
@@ -285,6 +295,7 @@ void EffectParticle::Pack(DeltaWriter& field) {
     field.WriteDelta(&value, 4);
     field.WriteFloat16(alpha);
     field.WriteFloat16(typeParam);
+    if (effectdata::IsDataId(type)) effectinputs::Pack(field, inputs);
 }
 
 void EffectParticle::SetAttachedTo(int objectId) {
@@ -326,6 +337,80 @@ void EffectParticle::Attach() {
     if (object == nullptr) source->localPosition = saved;
 }
 
+const effectdata::Input* EffectParticle::FindInput(std::string_view name, int* index) const {
+    if (!effectdata::IsDataId(type)) return nullptr;
+    const std::shared_ptr<const effectdata::Record> record = effectdata::g_effects.FindById(type);
+    const effectdata::Input* found = record ? record->FindInput(name) : nullptr;
+    if (found) *index = static_cast<int>(found - record->inputs.data());
+    return found;   // the registry keeps the record until a switch of mods
+}
+
+bool EffectParticle::SetInput(std::string_view input, float value) {
+    int index = 0;
+    const effectdata::Input* found = FindInput(input, &index);
+    const std::optional<float> held = found ? found->Holds(value) : std::nullopt;
+    if (!held) return false;
+    effectinputs::At(inputs, index) = {1, {*held, 0.0f, 0.0f}};
+    MarkChanged();
+    return true;
+}
+
+bool EffectParticle::SetInput(std::string_view input, const Vector3& value) {
+    int index = 0;
+    const effectdata::Input* found = FindInput(input, &index);
+    if (!found || found->type != effectdata::InputType::Vector) return false;
+    effectinputs::At(inputs, index) = {1, value};
+    MarkChanged();
+    return true;
+}
+
+bool EffectParticle::SetInput(std::string_view input, std::string_view value) {
+    int index = 0;
+    const effectdata::Input* found = FindInput(input, &index);
+    const int chosen = found ? found->ValueIndex(value) : -1;
+    if (chosen < 0) return false;
+    effectinputs::At(inputs, index) = {1, {static_cast<float>(chosen), 0.0f, 0.0f}};
+    MarkChanged();
+    return true;
+}
+
+bool EffectParticle::Fire(std::string_view event) {
+    int index = 0;
+    const effectdata::Input* found = FindInput(event, &index);
+    if (!found || found->type != effectdata::InputType::Event) return false;
+    effectinputs::Entry& entry = effectinputs::At(inputs, index);
+    entry.set = 1;
+    entry.value.x += 1.0f;
+    MarkChanged();
+    return true;
+}
+
+void EffectParticle::ApplyInputs() {
+    if (!source->data) return;
+    const effectdata::Record& record = *source->data->record;
+    const int count = static_cast<int>(std::min(inputs.size(), record.inputs.size()));
+    if (std::ssize(applied) < count) applied.resize(static_cast<std::size_t>(count));
+    for (int i = 0; i < count; ++i) {
+        const effectinputs::Entry& entry = inputs[i];
+        effectinputs::Entry& taken = applied[i];
+        if (!entry.set || (taken.set && effectinputs::Same(taken.value, entry.value))) continue;
+        const effectdata::Input& input = record.inputs[i];
+        switch (input.type) {
+        case effectdata::InputType::Vector: effectdata::SetInput(*source, input.name, entry.value); break;
+        case effectdata::InputType::Event: {
+            // As often as the count grew (a new source: as often as the server fired it), a few at most.
+            const float grown = entry.value.x - taken.value.x;
+            for (int n = 0; n < kMostFiredAtOnce && static_cast<float>(n) < grown; ++n)
+                effectdata::Fire(*source, input.name);
+            break;
+        }
+        case effectdata::InputType::List: break;   // the server sets none
+        default: effectdata::SetInput(*source, input.name, entry.value.x); break;
+        }
+        taken = entry;
+    }
+}
+
 void EffectParticle::Load(ByteStream* stream) {
     stream->ReadValue(localPosition);
     stream->ReadValue(type);
@@ -340,6 +425,7 @@ void EffectParticle::Load(ByteStream* stream) {
     if (stream->version < kVersionEffectAlpha) return;
     stream->ReadValue(alpha);
     stream->ReadValue(typeParam);
+    if (effectdata::IsDataId(type)) inputs = effectinputs::Load(stream);
 }
 
 void EffectParticle::Save(ByteStream* stream) {
@@ -353,6 +439,7 @@ void EffectParticle::Save(ByteStream* stream) {
     stream->WriteValue(unitId);
     stream->WriteValue(alpha);
     stream->WriteValue(typeParam);
+    if (effectdata::IsDataId(type)) effectinputs::Save(stream, inputs);
 }
 
 bool EffectParticle::RunTick() {
@@ -394,6 +481,8 @@ void EffectWall::Reset() {
     target = Vector3{0.0f, 0.0f, 0.0f};
     type = 0;
     unitId = -1;
+    inputs.clear();
+    applied.clear();
     direction = Vector3{0.0f, 0.0f, 0.0f};
 }
 

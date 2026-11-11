@@ -1268,15 +1268,24 @@ float State::AnchorAt(const void* context, int group, Scope scope, int field, fl
     return 0.0f;
 }
 
+std::optional<float> Input::Holds(float value) const {
+    switch (type) {
+    case InputType::Float: return value;
+    case InputType::Bool: return value != 0.0f ? 1.0f : 0.0f;
+    case InputType::Enum:
+        if (!(value >= 0.0f) || value >= static_cast<float>(values.size())) return std::nullopt;
+        return std::floor(value);
+    default: return std::nullopt;
+    }
+}
+
+int Input::ValueIndex(std::string_view wanted) const { return type == InputType::Enum ? IndexIn(values, wanted) : -1; }
+
 bool State::SetValue(std::string_view input, float value) {
     const Input* found = record->FindInput(input);
-    if (!found || found->type == InputType::Vector || found->type == InputType::Event) return false;
-    if (found->type == InputType::Bool) value = value != 0.0f ? 1.0f : 0.0f;
-    if (found->type == InputType::Enum) {
-        if (!(value >= 0.0f) || value >= static_cast<float>(found->values.size())) return false;
-        value = std::floor(value);
-    }
-    inputs[found->slot] = value;
+    const std::optional<float> held = found ? found->Holds(value) : std::nullopt;
+    if (!held) return false;
+    inputs[found->slot] = *held;
     return true;
 }
 
@@ -1291,8 +1300,7 @@ bool State::SetVector(std::string_view input, float x, float y, float z) {
 
 bool State::SetEnum(std::string_view input, std::string_view value) {
     const Input* found = record->FindInput(input);
-    if (!found || found->type != InputType::Enum) return false;
-    const int index = IndexIn(found->values, value);
+    const int index = found ? found->ValueIndex(value) : -1;
     if (index < 0) return false;
     inputs[found->slot] = static_cast<float>(index);
     return true;

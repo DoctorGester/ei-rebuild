@@ -509,7 +509,7 @@ if(WIN32)
     # lib::ParseIpv4, lib/maths.h, the save pictures, the bounded text reads, the tagged stream blocks and the byte
     # buffers with their cursor and coder, the mod's path map, the weather's particle field, the TOML writer and reader,
     # the PNG textures, the glTF figure models, the script floats through Lua, the spells' behaviours, the data
-    # effects' records, without the
+    # effects' records and their server inputs, without the
     # game. build.cmd runs it.
     add_executable(ei_unit_check tests/unit/unit_check.cpp tests/unit/settings_file.cpp tests/unit/hash_map.cpp
                    tests/unit/ini_file.cpp tests/unit/ipv4.cpp tests/unit/maths.cpp tests/unit/save_picture.cpp
@@ -521,6 +521,7 @@ if(WIN32)
                    src/engine/data/map_folder.cpp src/lib/png.cpp src/game/effects/weather_field.cpp src/engine/core/buffer.cpp src/engine/core/coder.cpp
                    tests/unit/figure_gltf.cpp src/engine/models/figure_gltf.cpp src/engine/models/figure_gltf_animation.cpp src/lib/json.cpp src/lib/vecmath.cpp tests/unit/lua_number.cpp
                    tests/unit/particle_record.cpp src/engine/particles/particle_expr.cpp src/engine/particles/particle_record.cpp src/engine/core/random.cpp src/lib/crt.cpp
+                   tests/unit/effect_inputs.cpp src/game/effects/effect_inputs.cpp src/game/net/net_delta.cpp
                    src/audio/audio.cpp src/game/app/settings_document.cpp src/engine/core/core_streams.cpp src/engine/data/ini_file.cpp
                    src/game/saves/save_picture.cpp src/lib/qoi.cpp src/engine/core/asset_text.cpp src/lib/hash_map.cpp src/lib/ipv4.cpp
                    src/lib/text_case.cpp src/lib/calendar.cpp src/lib/str.cpp src/lib/crt_format.cpp
@@ -565,6 +566,7 @@ else()
                    tests/unit/figure_gltf.cpp src/engine/models/figure_gltf.cpp src/engine/models/figure_gltf_animation.cpp src/lib/json.cpp src/lib/vecmath.cpp tests/unit/lua_number.cpp
                    tests/unit/spell_behaviour.cpp src/game/spells/spell_behaviour.cpp
                    tests/unit/particle_record.cpp src/engine/particles/particle_expr.cpp src/engine/particles/particle_record.cpp src/engine/core/random.cpp src/lib/crt.cpp
+                   tests/unit/effect_inputs.cpp src/game/effects/effect_inputs.cpp src/game/net/net_delta.cpp src/engine/core/core_streams.cpp
                    ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS} ${EI_SDL_CALLS})
     target_include_directories(ei_port_check PRIVATE src third_party)
     target_link_libraries(ei_port_check PRIVATE ei_platform tomlc17 stb_dxt wuffs cgltf eris SDL3::SDL3-static miniz)

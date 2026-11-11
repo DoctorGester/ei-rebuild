@@ -3,7 +3,7 @@ showcase_mod/current/gz1g.visuals.sav 15c7316df0091840
 showcase_mod/save1/gz1g.sav fdd9d9eb9722e0e4
 showcase_mod/save1/gz1g.visuals.sav 15c7316df0091840
 showcase_mod/save1/info.sav 6bd61ba84e1e23e1
-showcase_mod/save1/mission.sav d5af086bce2b23f8
+showcase_mod/save1/mission.sav 4d4f5f7ea360df4e
 showcase_mod/save1/scenario.sav eee8e4e14f4d396d
 showcase_mod/save1/visuals.sav 4d4bef41d23b82f6
 showcase_mod/savea/gz1g.sav fdd9d9eb9722e0e4

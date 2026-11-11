@@ -164,9 +164,31 @@ particle side, the inputs). The guide for modders: docs/modding.md, "Effects".
   study's per-connection fallback was dropped, user rule: one uniform path). When the original effects move to data
   (MF15g) they must keep their 0x2000 numbers as their ids on the wire, since a server without a mod admits original
   clients.
+- **Inputs the server sets** (game/effects/effect_inputs.h): the server's `EffectParticle::SetInput` (a float, bool
+  or enum index; a vector; an enum by its value's name) and `Fire` (an event) keep the value in `inputs`, one entry
+  per input of the record in its order (`set`, the value; an event's x counts its firings), and mark the object
+  changed. Only for a data id: `Pack` writes the entries after the particle fields (a wall's direction after them),
+  `UnpackFields` reads them, `Save` / `Load` the same, so the original types' packets and saves are as they were (a
+  data id is ours alone: "No fallback for original clients"). The entries go as they are (`WriteBoth` / `ReadRaw`),
+  not as delta words: a client's new object reads the server's first channel against the snapshot its own creation
+  wrote (`Effect::Create`'s SendFull, with type 0 and no entries), so entries the server added after its first write
+  would read as unchanged words of nothing (the first try lost the connection in mod_effect).
+  - A client gives its source the entries that changed since it took them (`ApplyInputs`, in index order:
+    `effectdata::SetInput`, an event fired as often as its count grew, 16 at most at once): in `Spawn`, so before the
+    source's next tick. A source made new (the object's first update, a load, a zone entered) takes them all before
+    its catch-up ticks: the values as they stand, each event fired as often as the server fired it. A value the
+    effect changed itself (showcase_aura's burst sets `charge` back to 0) stays until the server sets another.
+  - List inputs are not sent (the server refuses them).
+  - Script: `SetParticleInput(id, input, value [, y, z])` and `FireParticleEvent(id, event)` on a script's particle
+    source (ours, in the extended keyword table after Rebirth's: script_addon.cpp; Lua mission scripts by the same
+    names); a spell's Lua: `cast:SetInput(handle, input, value)` (number, boolean, value name or point) and
+    `cast:Fire(handle, event)` on its `cast:Effect`.
 - Checks: `net_pair_mod_effect` (both peers on the showcase mod, in z3q2: the host's server starts `showcase_aura` by
   name with the harness's `serverscript`, both clients run it, stages by ticks, nothing logged unknown; capture
-  `peer_effect`), `mod_effect_save` (started, saved, loaded: the source made again from the id, caught up into glow).
+  `peer_effect`; then the server sets `mode`, `charge` and fires `pulse`, and both clients' sources read storm, one
+  burst and one pulse: the aura's `bursts` / `pulses` vars, `effect ... value`), `mod_effect_save` (started, inputs
+  set, saved, loaded: the source made again from the id with the saved inputs, caught up into glow with its burst),
+  `tests/unit/effect_inputs.cpp` (the entries packed and read back whole and as a change, saved and loaded).
 
 ### The schema
 
@@ -183,7 +205,8 @@ numbers), `[curves]` (name = `[[t, value], ...]`, linear, held at the ends).
 - **Inputs** (`name = { type, default, values }`): `float`, `vector` (a vector `name`), `bool` (0 / 1),
   `event` (its value is the times it fired before this tick, for one tick), `enum` (`values` listed; its value is
   the index, `name.value` the constants). Game code: `effectdata::SetInput(source, name, float | Vector3 | value
-  name)`, `effectdata::Fire(source, event)` (particle_data.h); the harness's `effect` step does the same. `list`:
+  name)`, `effectdata::Fire(source, event)` (particle_data.h); the harness's `effect` step does the same. On the
+  server the world object keeps them for every client (`EffectParticle::SetInput` / `Fire`, "Inputs the server sets"). `list`:
   points (`default = [[x, y, z], ...]`, empty without one), read as `name.count` and `name[i]`, a point (truncated,
   held to the ends as a table's entries; 0 while empty); `SetInput(source, name, std::vector<Vector3>)`.
 - **Fields** (a var, a particle's `position`, `velocity`, `size`, `alpha`, `frame`, an anchor's `position`): a value
@@ -413,9 +436,8 @@ The others, by what drives them:
 
 The runtime has what they need from MF15j: `ground` (anchors on the ground, kill planes), `add_anchor` (with
 "before_emit", CastSwirl's orbiters), `pick = "first"` and `anchor_index`, a `list` input (ShapeChange's path),
-`on_death` (a particle's sub-emission or sub-effect). `shake` came with Mushroom (MF15g4).
-Still to add: inputs the server sets and every client replicates (today only the client's sources take SetInput /
-Fire; MF15j2). No original type needs them.
+`on_death` (a particle's sub-emission or sub-effect). `shake` came with Mushroom (MF15g4). Inputs the server sets
+("In multiplayer and saves" below) came with MF15j2; no original type needs them.
 
 ### The format review (MF15l)
 
