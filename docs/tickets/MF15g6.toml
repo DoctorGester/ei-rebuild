@@ -1,0 +1,9 @@
+id = "MF15g6"
+title = "Port effect families to data, batch 6: FireBlast, LightningBlast (with MF15j1's scorch and spawn event), Geyser, Tornado / CurseHolder, ShapeChange; kSpecs and the per-type dispatch gone"
+group = "mods"
+size = 3
+model = "opus"
+depends = ["MF15g4"]
+files = ["assets/effects", "src/game/effects/particle_blasts.cpp", "src/game/effects/particle_world.cpp", "src/game/effects/world_effect_visual.cpp", "tools/convert/effect_check.cpp"]
+note = "From MF15g4. Left after MF15g5: FireBlast (15 fragments, flames, smoke), LightningBlast (a bolt of ten points, bursts, sparks; its shake now the data shake action), Geyser (vents with eruption / pause vars), Tornado / CurseHolder (6 funnel rings leaning with motion; CurseHolder's tint), ShapeChange (one glow per path point: the list input). Takes MF15j1's rest: a scorch action and a 'spawn' reaction event EffectParticle::Spawn fires for a data source after the catch-up (g_clientRandom drawn where it is today), then Spawn's two type checks go. MF15j2 (server-set inputs) only if a type cannot work without it. End state: kSpecs, ParticleSpec, SetupElements, the Emit / Update / Tick dispatch in particle_manager.cpp and ParticleElement's views deleted; every original effect on data. Same workflow and rules as MF15g4."
+order = 1379
