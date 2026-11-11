@@ -1,0 +1,71 @@
+# MF15f1: what an effect's Lua hooks cost (docs/notes/effects.md, "Lua hooks"; the MF15 study's section 3.2,
+# build/mf15_particles.md in the main checkout). tools/make_lua_mod.py effecthooks adds two effects to the mod:
+# mf15f1_hooks, 2,100 sparks (100 a tick, 21 ticks each) whose script's on_spawn places each and on_update turns each,
+# 2,100 calls a tick over the budget of 2,000; and mf15f1_data, the same effect without the script. Both start at
+# the hero, off (`level` 0); each in turn is switched on while the other is off, then "renderstats" logs the main
+# thread's CPU and wall time per frame: none, data, hooks, data, hooks. On the virtual clock a frame runs five world
+# ticks (harness.cpp, "frametime"), so five budgets a frame; the `effect ... check` lines give the ticks run.
+# Numbers only (no check but the budget reached): compare in a --quiet run (docs/notes/harness.md, "Timing runs").
+# prepare: make_lua_mod.py effecthooks
+mod harness_saves\lua_mod
+reject Script error
+reject warning: effects:
+timeout 60
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitwindow 15 battle
+console @GodMode(0,1)
+console @CreateParticleSource(62,Add(GetX(GetLeader()),3),GetY(GetLeader()),GetZ(GetLeader()),2,"mf15f1_data")
+console @CreateParticleSource(63,Add(GetX(GetLeader()),3),GetY(GetLeader()),GetZ(GetLeader()),2,"mf15f1_hooks")
+frames 30
+effect mf15f1_data check 0
+effect mf15f1_hooks check 0
+renderstats -
+frames 240
+renderstats none
+
+effect mf15f1_data set level 1
+frames 30
+effect mf15f1_data check 1900
+renderstats -
+frames 240
+renderstats data
+effect mf15f1_data set level 0
+
+effect mf15f1_hooks set level 1
+frames 30
+effect mf15f1_hooks check 1900
+renderstats -
+frames 240
+renderstats hooks
+effect mf15f1_hooks check 1900
+effect mf15f1_hooks set level 0
+expectlog the particle budget (2000 calls a tick) is spent
+
+frames 30
+renderstats -
+frames 240
+renderstats none_again
+
+effect mf15f1_data set level 1
+frames 30
+renderstats -
+frames 240
+renderstats data_again
+effect mf15f1_data set level 0
+
+effect mf15f1_hooks set level 1
+frames 30
+renderstats -
+frames 240
+renderstats hooks_again
+effect mf15f1_hooks check 1900
+effect mf15f1_hooks set level 0
+frames 30
+renderstats -
+frames 240
+renderstats none_last
+report
+quit

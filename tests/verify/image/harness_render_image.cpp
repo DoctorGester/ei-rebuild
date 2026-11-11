@@ -4,6 +4,7 @@
 
 #include "../harness_capture.h"
 #include "../harness_digest.h"
+#include "../harness_timing.h"
 
 #include "platform/log.h"
 #include "system/harness_system.h"
@@ -468,6 +469,14 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         const long long now =
             std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
         const double frameCpuMs = static_cast<double>(cycles - lastCycles) * msPerCycle;
+        // The world updates' and the client ticks' share of it (MF15f1: the particles tick in the client's).
+        static unsigned long long lastServer = 0, lastClient = 0;
+        const unsigned long long server = timing::PartCycles(timing::Server);
+        const unsigned long long client = timing::PartCycles(timing::Client);
+        const double serverMs = static_cast<double>(server - lastServer) * msPerCycle;
+        const double clientMs = static_cast<double>(client - lastClient) * msPerCycle;
+        lastServer = server;
+        lastClient = client;
         const double frameWallMs = lastTicks ? static_cast<double>(now - lastTicks) / 1e6 : static_cast<double>(now) / 1e6;
         lastCycles = cycles;
         lastTicks = now;
@@ -494,7 +503,7 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             "decals projected: %.1f prints %.3f ms (%.0f vertices); flat draws: %.1f, %.3f ms "
             "(%.0f vertices); shadow builds %.1f, %.3f ms; "
             "shadow maps %.1f draws in %.1f calls, CPU ms %.3f; morphed meshes %.1f "
-            "(%.0f corners); weather %.3f ms (%.0f vertices); main thread ms CPU %.2f / wall %.2f; quality: msaa %d (%d samples, the device gives %d), "
+            "(%.0f corners); weather %.3f ms (%.0f vertices); main thread ms CPU %.2f / wall %.2f (world updates %.2f, client ticks %.2f); quality: msaa %d (%d samples, the device gives %d), "
             "anisotropy %d",
             argument.c_str(), t.frames, t.width, t.height, count(F::Count::TerrainSectors), count(F::Count::TerrainBatches), count(F::Count::Meshes),
             count(F::Count::MeshPasses), count(F::Count::FlatMeshes), countKb(F::Count::FlatVertexBytes),
@@ -512,7 +521,7 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             count(F::Count::FlatDraws), ms(F::Time::FlatMs), count(F::Count::FlatDrawVertices), count(F::Count::ShadowBuilds), ms(F::Time::ShadowBuildMs),
             count(F::Count::ShadowDraws), count(F::Count::ShadowCalls), ms(F::Time::ShadowMs), count(F::Count::MorphMeshes), count(F::Count::MorphCorners),
             ms(F::Time::WeatherMs), count(F::Count::WeatherVertices), frameCpuMs / n,
-            frameWallMs / n, quality.msaa, quality.targetSamples, quality.deviceSamples, quality.anisotropy);
+            frameWallMs / n, serverMs / n, clientMs / n, quality.msaa, quality.targetSamples, quality.deviceSamples, quality.anisotropy);
         Log("harness: %s", text);
         frames->push_back(text);
         // The GPU's times ("gputiming"), only logged: they differ from run to run.

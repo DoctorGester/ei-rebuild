@@ -1,6 +1,6 @@
 r"""A mod whose zone 1 mission script is Lua (docs/notes/mods.md, "Scripts in Lua"; tests/scenarios/mod_lua_*.txt).
 
-usage: python tools/make_lua_mod.py <saves dir> plain|changed|none|named|broken|spell|spellapi|addmob
+usage: python tools/make_lua_mod.py <saves dir> plain|changed|none|named|broken|spell|spellapi|effecthooks|addmob
 
 Writes <saves dir>\lua_mod (the scenarios' `mod harness_saves\lua_mod`): a config.reg with [MOD] Title, Rebirth.txt and
   plain    Maps\zone1.lua   the game's zone1.mob script as ei-convert writes it (a converted install's own Maps\zone1.lua,
@@ -22,6 +22,10 @@ Writes <saves dir>\lua_mod (the scenarios' `mod harness_saves\lua_mod`): a confi
            Res\effects\mf17c_glow.effect.toml  world binding of the cast (docs/modding.md, "Spells") on the unit nearest
                             its point, fires two missiles with OnHit and keeps a data effect (GLOW_EFFECT) for 300 ticks;
                             its values go into the game variables mf17c.*
+  effecthooks Res\effects\mf15f1_hooks.effect.toml, mf15f1_hooks.lua  MF15f1's timing effect (HOOKS_EFFECT): 2,100
+           Res\effects\mf15f1_data.effect.toml  sparks whose script's on_spawn and on_update run at the particle
+                            budget, and its data alone (a variant without the script); no Maps\zone1.lua
+                            (tests/scenarios/effect_hooks_cost.txt)
 and for addmob, no mod:
   addmob   <saves dir>\l8b_addmob.lua  the Lua of <saves dir>\l8b_addmob.mob (make_trap_mob.py makes the .mob, no
                             script in it), which `AddMob("..\saves\l8b_addmob.mob")` loads into zone 1's mission script
@@ -203,6 +207,59 @@ size = 0.2
 color = "80C0FF"
 frame = { start = "pick(16)", delay = 1 }
 '''
+HOOKS_EFFECT = b'''# MF15f1's timing effect (tools/make_lua_mod.py effecthooks; tests/scenarios/effect_hooks_cost.txt):
+# with `level` at 1, 100 sparks a tick that live 21 ticks. Its script places each (on_spawn) and turns each round the
+# centre at every update it lives through (on_update): 100 + 2,000 calls a tick, over the particle budget (2,000),
+# so the hooks run at it.
+texture = "Teleport"
+blend = "additive"
+script = "mf15f1_hooks.lua"
+
+[inputs]
+level = { type = "float", default = 0.0 }
+
+[emit]
+rate = "level * 100"
+max = 2400
+
+[[particle]]
+name = "spark"
+lifetime = 21
+position = "origin + disc() * size"
+velocity = "vec3(0, 0, 0.02)"
+size = 0.1
+color = "FFD890"
+alpha = { tick = "255 * (1 - p.t)" }
+frame = { start = "pick(16)", delay = 1 }
+'''
+# The same effect as its data alone: the variant without the script.
+DATA_EFFECT = b'''# MF15f1's timing effect as data alone (tools/make_lua_mod.py effecthooks): mf15f1_hooks without its script.
+like = "mf15f1_hooks"
+script = ""
+'''
+HOOKS_SCRIPT = '''-- MF15f1's timing hooks (tools/make_lua_mod.py effecthooks): written as a modder would, through e:get and p:get / p:set.
+local TURN = 0.05
+local hooks = {}
+
+-- Each spark on a ring round the source, at a random turn.
+function hooks.on_spawn(e, p, index)
+    local x, y, z = e:get("origin")
+    local angle = e:random(0, 2 * math.pi)
+    local out = e:get("size") * e:random(0.5, 1)
+    p:set("position", x + math.cos(angle) * out, y + math.sin(angle) * out, z + 0.1)
+end
+
+-- Each spark turned round the centre at every update.
+function hooks.on_update(e, p)
+    local cx, cy = e:get("origin")
+    local x, y, z = p:get("position")
+    local dx, dy = x - cx, y - cy
+    local c, s = math.cos(TURN), math.sin(TURN)
+    p:set("position", cx + dx * c - dy * s, cy + dx * s + dy * c, z)
+end
+
+return hooks
+'''
 BROKEN = '-- L8b (tools/make_lua_mod.py broken): Lua does not load this file.\nfunction WorldScript(\n'
 ADDMOB = '''-- L8b (tools/make_lua_mod.py addmob): the Lua of an AddMob'd .mob, loaded into zone 1's mission script while it
 -- runs (docs/notes/mods.md, "Scripts in Lua").
@@ -264,7 +321,7 @@ def changed(text, definition, lines):
 
 
 def main():
-    kinds = ('plain', 'changed', 'none', 'named', 'broken', 'spell', 'spellapi', 'addmob')
+    kinds = ('plain', 'changed', 'none', 'named', 'broken', 'spell', 'spellapi', 'effecthooks', 'addmob')
     if len(sys.argv) != 3 or sys.argv[2] not in kinds:
         sys.exit(__doc__)
     kind = sys.argv[2]
@@ -299,6 +356,11 @@ def main():
         write(os.path.join(root, 'Res', 'database', 'spells.sdb.toml'), SPELL_API_RECORD)
         write(os.path.join(root, 'Res', 'spells', 'mf17c_storm.lua'), SPELL_API.encode('utf-8'))
         write(os.path.join(root, 'Res', 'effects', 'mf17c_glow.effect.toml'), GLOW_EFFECT)
+    elif kind == 'effecthooks':
+        effects = os.path.join(root, 'Res', 'effects')
+        write(os.path.join(effects, 'mf15f1_hooks.effect.toml'), HOOKS_EFFECT)
+        write(os.path.join(effects, 'mf15f1_hooks.lua'), HOOKS_SCRIPT.encode('utf-8'))
+        write(os.path.join(effects, 'mf15f1_data.effect.toml'), DATA_EFFECT)
     print(f'{root}: {kind}')
 
 

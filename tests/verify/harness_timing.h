@@ -26,6 +26,9 @@ private:
     int outer;    // the part this scope interrupted (-1: none), resumed at its end
 };
 
+// The main thread's cycles spent in `part` so far (renderstats: the world updates' and the client ticks' share).
+unsigned long long PartCycles(Part part);
+
 // A frame of the main loop has ended (the after-frame peek, before a pair's turn is handed on).
 void FrameEnd();
 

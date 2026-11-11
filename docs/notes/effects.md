@@ -408,6 +408,16 @@ game/script/script_lua_api.h takes its rows for ei-convert's LuaLS file and docs
   stopping at the budget and the next renewal; a failing hook and an endless loop logged once, their effects running
   on; the live methods against the declarations); the `mod_effect_lua` scenario (the showcase mod's showcase_hooks:
   the script's inputs, an event answered, stages; captures `spiral`, `flare`).
+- **The cost** (MF15f1, `effect_hooks_cost`, a timing run: `work.py test <ID> effect_hooks_cost --vanilla-only
+  --quiet`; tools/make_lua_mod.py effecthooks): one source of 2,100 sparks (100 a tick, 21 ticks each) as its data
+  alone and with a script whose on_spawn places each spark and on_update turns each round the centre through `e:get`
+  and `p:get` / `p:set`, 2,100 calls a tick against the budget of 2,000. `renderstats` gives the client ticks' CPU
+  time (five ticks a frame on the virtual clock). Two quiet runs, 2026-11-11, per tick: the zone alone 0.04-0.05 ms,
+  the data 0.16 ms (0.11 ms over the zone: about 55 ns a particle-tick, as the study's "game: ~55 ns"), with the
+  hooks 0.69-0.70 ms (0.54 ms more for 2,000 calls: about 270 ns a call, the study's "accessor" row of 155-250 ns a
+  particle; the whole source about 6x its data). The budget's 2,000 calls are then about 0.55 ms a tick, at the low
+  end of the 0.4-2 ms the study gives. A frame of the run: 2.1 ms with the data, 4.8-5.2 ms with the hooks. The
+  world updates' share (the server, its mission script) varies from run to run and is no part of it.
 
 ### The original effects on data
 
@@ -612,6 +622,10 @@ over a scene of its own. The game's exe has none of it: no src/tools, no imgui (
   - The Fields tab edits the parsed tree and writes it back as TOML (`WriteToml`), which drops the text's comments.
     The Text tab keeps the text as typed.
   - A text that fails to parse, or reads with errors, keeps the last record and lists the problems.
+  - Scripts (MF15f1): the Lua runtime keeps a script from its first use until `effectlua::Reset`, so the viewer resets
+    it at a pick, a Scan (the Scan again button, the `scan` command) and a save (`Viewer::ReadScripts`), and makes
+    the picked effect's source again up to its tick (the old source's hooks belong to the closed state). An edit saved
+    in another editor takes effect there; the registry's records are untouched (the document is the TOML's).
 - **Saving**:
   - The file goes to `<folder>\Res\effects\<name>.effect.toml`, and an edited built-in file gets `replace = true`.
   - The default folder is the active mod's folder when it lies outside the game folder, else
@@ -630,6 +644,8 @@ over a scene of its own. The game's exe has none of it: no src/tools, no imgui (
 - **Check**: the `effect_viewer` scenario (ei-effects on the showcase mod).
   - Portal from its built-in file: pause, scrub, step, a field edited and the file saved into the run's output folder.
   - showcase_aura on the figure, with its enum, float and event inputs and its stages.
+  - showcase_hooks with its script rewritten in the run's copy of the mod (the harness's `write` step): a scan plays
+    the new script up to the same tick (its on_start's `burst`: the stage flare), a save the next (no hooks: glow).
   - Tornado from its built-in file, on the figure walking its circle, running.
   - A new effect from the template with a tick reaction that starts Teleport: the sub-effect's particles hold while
     paused and are the same after a scrub to the same tick.

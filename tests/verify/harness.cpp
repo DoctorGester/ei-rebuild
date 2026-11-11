@@ -467,7 +467,8 @@
 //                             the last renderstats (render::TakeFrameStats, R16: hand-over, GPU uploads,
 //                             draws and state changes, images made, CPU time, morphed meshes; R16e: the
 //                             ground decals' projections, flat draws and object shadow builds) and the
-//                             main thread's CPU and wall time per frame; "-" only starts a new count
+//                             main thread's CPU and wall time per frame (with the world updates' and the
+//                             client ticks' CPU time, MF15f1); "-" only starts a new count
 //   checkplayers              require the base screen on top, of a network client with a live binding, to
 //                             list every player the client holds (its chat window's faces; UB1: the order
 //                             of the players and the binding in an update follows the server's heap)

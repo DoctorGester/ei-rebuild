@@ -6,6 +6,9 @@
 #   saved into the run's output folder (never the install): `replace = true` and the edited rate in it;
 # - a mod's data effect (showcase_aura, from the mod's Res\effects) on the figure, driven through its typed inputs (the
 #   enum `mode` by its value's name, the float `charge`, the event `pulse`): stepped through its first stages;
+# - a script edited on disk (MF15f1): showcase_hooks.lua, in the mod's copy in the run's folder, rewritten by the
+#   harness so that on_start sets `burst` (the stage flare at once): a scan reads it again and the effect plays it up to
+#   the same tick; rewritten without hooks, a save reads it again (the stage glow);
 # - an original type with a carrier's motion (Tornado, its built-in file) plays on the figure walking its circle;
 # - captures: the docked windows over each.
 # exe: ei-effects
@@ -54,6 +57,20 @@ wait 600
 effectviewer expect particles 20
 capture viewer_aura
 frames 3
+
+effectviewer pick showcase_hooks
+effectviewer place focus 3 0 0
+effectviewer pause
+effectviewer step 5
+effectviewer expect stage glow
+write harness_saves\showcase_mod\Res\effects\showcase_hooks.lua local hooks = {}\nfunction hooks.on_start(e) e:set("burst", 1) end\nreturn hooks
+effectviewer scan
+effectviewer expect tick 5
+effectviewer expect stage flare
+write harness_saves\showcase_mod\Res\effects\showcase_hooks.lua return {}
+effectviewer save
+effectviewer expect tick 5
+effectviewer expect stage glow
 
 effectviewer pick Tornado
 effectviewer place figure
