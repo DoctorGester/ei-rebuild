@@ -8,6 +8,7 @@
 #include "game/world/camera.h"
 #include "engine/core/core_streams.h"
 #include "game/effects/effects.h"
+#include "game/effects/effects_particles.h"
 #include "engine/models/figure_manager.h"
 #include "game/app/game_flow.h"
 #include "game/app/singletons.h"
@@ -665,6 +666,7 @@ void WorldClient::Create() {
     materialManager->Init(this);
     lightFactory = std::make_unique<LightFactory>();
     lightFactory->Init(this);
+    particlehost::Use(WorldParticleHost());
     particleManager = std::make_unique<ParticleManager>();
     particleManager->Init(this);
 

@@ -384,11 +384,14 @@ particle_data.h             particles/particle_data.h
 particle_data.cpp           particles/particle_data.cpp
 particle_source.h           particles/particle_source.h
 particle_host.h             particles/particle_host.h
+particle_figure_host.h      particles/particle_figure_host.h  new   # the particle host without the game's world: a figure alone carries the sources (MF15k2)
+particle_figure_host.cpp    particles/particle_figure_host.cpp  new
 embed_effects.cmake         particles/embed_effects.cmake
 
 # ---- effects: the game's particle effects, the world's effect objects, lightning, weather, the visibility fog ------
 effects.h                   effects/effects.h
 effects_weather.cpp         effects/effects_weather.cpp
+effects_particles.h         effects/effects_particles.h   new   # the client world's particle host (MF15k2)
 effects_particles.cpp       effects/effects_particles.cpp
 weather_particles.cpp       effects/weather_particles.cpp
 weather_field.h             effects/weather_field.h

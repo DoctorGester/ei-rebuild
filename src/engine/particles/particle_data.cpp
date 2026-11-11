@@ -7,6 +7,7 @@
 
 #include "engine/core/engine_globals.h"
 #include "engine/core/random.h"
+#include "engine/models/figure_instance.h"
 #include "engine/data/resource.h"
 #include "engine/scene/light.h"
 #include "engine/scene/scene_renderer.h"
@@ -214,16 +215,46 @@ Vector3 AnchorPosition(const State& state, int anchor) {
     return {values[0], values[1], values[2]};
 }
 
-// The carrier's radius and centre height, at their first read in a tick (State::measure): particlehost::MeasureCarrier
-// measures the carrier's bounds again, so only when an expression reads them.
+// The carrier's radius and centre height, at their first read in a tick (State::measure): the host's MeasureCarrier
+// measures the carrier's bounds again, so only when an expression reads them. A free source's: (0, 0, 0) and 0.1.
 void MeasureCarrier(void* context) {
     ParticleSource& s = *static_cast<ParticleSource*>(context);
     State& state = *s.data;
     if (state.measured) return;
     state.measured = true;
-    const particlehost::Measure carrier = particlehost::MeasureCarrier(s.attachedTo);
+    const particlehost::Measure carrier = s.attachedTo ? particlehost::Current().MeasureCarrier(*s.attachedTo)
+                                                       : particlehost::Measure{{0.0f, 0.0f, 0.0f}, 0.1f};
     Value(state.source, SourceValue::CarrierRadius) = carrier.radius;
     Value(state.source, SourceValue::CarrierZ) = carrier.offset.z;
+}
+
+// The carrier's values (SourceValue::CarrierUnit ... CarrierUnitRadius): what the host says the carrier is, its axes;
+// a free source's 0, its feet at its origin.
+void WriteCarrier(const ParticleSource& s, std::vector<float>& v) {
+    FigureInstance* carrier = s.attachedTo;
+    const particlehost::CarrierState state =
+        carrier ? particlehost::Current().DescribeCarrier(*carrier) : particlehost::CarrierState{};
+    Value(v, SourceValue::CarrierUnit) = state.unit ? 1.0f : 0.0f;
+    Value(v, SourceValue::CarrierRunning) = state.unit && state.running ? 1.0f : 0.0f;
+    Value(v, SourceValue::CarrierDead) = state.unit && state.dead ? 1.0f : 0.0f;
+    const Vector3 axis = carrier ? carrier->localRotation.AxisX() : Vector3{};
+    Value(v, SourceValue::CarrierAxisX) = axis.x;
+    Value(v, SourceValue::CarrierAxisY) = axis.y;
+    Value(v, SourceValue::CarrierAxisZ) = axis.z;
+    Value(v, SourceValue::CarrierBoundsRadius) = state.boundsRadius;
+    Value(v, SourceValue::CarrierUnitRadius) = state.unit ? state.unitRadius : 0.0f;
+    const Vector3 axisY = carrier ? carrier->localRotation.AxisY() : Vector3{};
+    Value(v, SourceValue::CarrierAxisYX) = axisY.x;
+    Value(v, SourceValue::CarrierAxisYY) = axisY.y;
+    Value(v, SourceValue::CarrierAxisYZ) = axisY.z;
+    const Vector3 left = state.unit ? state.leftFoot : s.origin;
+    const Vector3 right = state.unit ? state.rightFoot : s.origin;
+    Value(v, SourceValue::CarrierLeftFootX) = left.x;
+    Value(v, SourceValue::CarrierLeftFootY) = left.y;
+    Value(v, SourceValue::CarrierLeftFootZ) = left.z;
+    Value(v, SourceValue::CarrierRightFootX) = right.x;
+    Value(v, SourceValue::CarrierRightFootY) = right.y;
+    Value(v, SourceValue::CarrierRightFootZ) = right.z;
 }
 
 // The values that change when the source lets go of its carrier.
@@ -233,7 +264,7 @@ void WriteAttachment(ParticleSource& s, State& state) {
     Value(v, SourceValue::OriginX) = s.origin.x;
     Value(v, SourceValue::OriginY) = s.origin.y;
     Value(v, SourceValue::OriginZ) = s.origin.z;
-    if (state.record->readsUnit) particlehost::WriteCarrier(s, v);
+    if (state.record->readsUnit) WriteCarrier(s, v);
 }
 
 // A source value (SourceValue: size, height, growth, alpha, param, the spread box, the extent) written back to the
@@ -264,13 +295,14 @@ void WriteBack(ParticleSource& s, int which, float value) {
 void ApplyActions(ParticleSource& s, State& state) {
     for (const int written : state.sourceWrites) WriteBack(s, written, state.source[written]);
     state.sourceWrites.clear();
-    for (const ShakeRequest& shake : state.shakes) particlehost::ShakeCamera(s.origin, shake.time, shake.strength, shake.decay);
+    for (const ShakeRequest& shake : state.shakes)
+        particlehost::Current().ShakeCamera(s.origin, shake.time, shake.strength, shake.decay);
     state.shakes.clear();
     // The angle is the client's generator's (the original drew it there).
     for (const ScorchRequest& scorch : state.scorches) {
         const float angle = ScaleWord(g_clientRandom.Next(), 6.3f);
         const float alpha = MinKeepA(scorch.alpha, 1.0f);
-        particlehost::AddScorchMark(s.origin.x, s.origin.y, scorch.radius, scorch.radius, angle, alpha);
+        particlehost::Current().AddScorchMark(s.origin.x, s.origin.y, scorch.radius, scorch.radius, angle, alpha);
     }
     state.scorches.clear();
     const bool detached = state.stopRequested || state.letGo;
@@ -336,7 +368,7 @@ void WriteSource(ParticleSource& s, State& state) {
     Value(v, SourceValue::SunR) = sun ? sun->color[0] : 0.0f;
     Value(v, SourceValue::SunG) = sun ? sun->color[1] : 0.0f;
     Value(v, SourceValue::SunB) = sun ? sun->color[2] : 0.0f;
-    if (state.record->readsUnit) particlehost::WriteCarrier(s, v);
+    if (state.record->readsUnit) WriteCarrier(s, v);
 }
 
 // A particle's own values (`p.*`) as its update or emission reads them.
@@ -479,7 +511,7 @@ Emitted EmitKind(ParticleSource& s, Particle& p, int kindIndex, int anchor, int 
         p.pos = placed ? offset + centre : centre;
     }
     if (!kind.onGround.Empty())
-        p.pos.z = particlehost::GroundHeight(p.pos.x, p.pos.y) + kind.onGround.Run(env);
+        p.pos.z = particlehost::Current().GroundHeight(p.pos.x, p.pos.y) + kind.onGround.Run(env);
     if (kind.space == Space::Source) p.drift = p.pos - s.origin;
     else if (kind.space == Space::Anchor) p.drift = p.pos - centre;
     WriteParticle(p, values);
@@ -600,8 +632,8 @@ void SetUp(ParticleSource& s, std::shared_ptr<const Record> record) {
     s.data = std::make_unique<State>(std::move(record));
     s.data->measure = MeasureCarrier;
     s.data->measureContext = &s;
-    s.data->ground = particlehost::GroundHeight;
-    s.data->platform = particlehost::PlatformPlane;
+    s.data->ground = [](float x, float y) { return particlehost::Current().GroundHeight(x, y); };
+    s.data->platform = [](float x, float y, int which) { return particlehost::Current().PlatformPlane(x, y, which); };
     if (std::any_of(r.vars.begin(), r.vars.end(), [](const Var& var) { return var.atCreate; }) ||
         std::any_of(r.anchors.begin(), r.anchors.end(), [](const Anchor& anchor) { return anchor.atCreate; })) {
         WriteSource(s, *s.data);

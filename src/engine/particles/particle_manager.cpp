@@ -9,6 +9,7 @@
 #include "engine/scene/scene_renderer.h"
 #include "engine/scene/pipeline.h"
 #include "engine/core/random.h"
+#include "engine/models/figure_instance.h"
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -116,36 +117,51 @@ void ParticleManagerClearQuietStart(ParticleManager* manager) {
 
 // --- Particle attach ---------------------------------------------------------------------------------
 
-// Particle sources that follow an object: Attach and StopAndClear. The object a source follows is a map object
-// (attachedTo); where the source sits on it is the host's (particlehost::CarrierPoint).
+// Particle sources that follow an object: Attach and StopAndClear. The object a source follows is a figure
+// (attachedTo); its list of sources and where a part of it is are the host's (particle_host.h).
+
+namespace {
+
+particlehost::Host* g_host = nullptr;
+
+} // namespace
+
+void particlehost::Use(Host& host) { g_host = &host; }
+
+particlehost::Host& particlehost::Current() { return *g_host; }
+
+Vector3 ParticleSource::CarrierPoint() const {
+    if (!(flags & ParticleSourceFlag::OnPart)) return attachedTo->localPosition;
+    return particlehost::Current().PartPoint(*attachedTo, attachPoint);
+}
 
 void ParticleSource::ReleaseAllParticles() {
     for (Particle* p : particles) Manager()->ReleaseParticle(p);
     particles.clear();
 }
 
-void ParticleSource::Attach(MapObject* object) {
-    MapObject* old = attachedTo;
+void ParticleSource::Attach(FigureInstance* object) {
+    FigureInstance* old = attachedTo;
     if (old == object) {
         if (!old) origin = localPosition;
         return;
     }
-    attachedTo = nullptr;
     if (old) {
         if (!object) {
             // Let go where the source is: the attachment point becomes part of the position.
-            localPosition = particlehost::CarrierPoint(*this, old) + localPosition;
+            localPosition = CarrierPoint() + localPosition;
         }
+        attachedTo = nullptr;
         // Drops the source and calls Attach(null) again (nothing to do then but the origin).
-        particlehost::LetGo(old, this);
+        particlehost::Current().LetGo(*old, this);
     }
     attachedTo = object;
     if (!object) {
         origin = localPosition;
         return;
     }
-    particlehost::Follow(object, this);
-    origin = particlehost::CarrierPoint(*this, attachedTo);
+    particlehost::Current().Follow(*object, this);
+    origin = CarrierPoint();
 }
 
 void ParticleSource::StopAndClear() {
@@ -187,7 +203,7 @@ std::vector<ParticleDepth> g_drawOrder;
 // The attachment point plus the local position, or the local position alone.
 Vector3 ParticleSource::WorldPosition() {
     if (attachedTo) {
-        return particlehost::CarrierPoint(*this, attachedTo) + localPosition;
+        return CarrierPoint() + localPosition;
     }
     return localPosition;
 }
@@ -216,7 +232,7 @@ int ParticleManager::DrawAll(SceneRenderer* renderer) {
     for (int i = 0; i < std::ssize(order); ++i) {
         ParticleSource* s = order[i].source;
         if (s->flags & ParticleSourceFlag::NotDrawn) continue;
-        if (particlehost::Hidden(s->attachedTo)) continue;
+        if (s->attachedTo && particlehost::Current().Hidden(*s->attachedTo)) continue;
         if (s->additiveBlend && !additive) {
             renderer->SetBlend(render::Blend::SourceAlpha, render::Blend::One);
             additive = true;
@@ -250,7 +266,7 @@ constexpr int kReserve = 0x1000;
 
 // How far the frame is between the last tick and the next, clamped to [0, 1] (NaN gives 1).
 float Interpolation() {
-    float fraction = particlehost::TickFraction();
+    float fraction = particlehost::Current().TickFraction();
     float clamped = MinKeepA(1.0f, fraction);
     return MaxKeepB(clamped, 0.0f);
 }
@@ -339,7 +355,7 @@ void RestorePrevious(Particle* p) {
 // position alone); the emission point moves there.
 void Follow(ParticleSource& s) {
     if (s.attachedTo) {
-        Vector3 at = particlehost::CarrierPoint(s, s.attachedTo) + s.localPosition;
+        Vector3 at = s.CarrierPoint() + s.localPosition;
         s.motion = at - s.origin;
         s.origin = at;
     } else {
@@ -458,12 +474,12 @@ void ParticleSource::AddParticle(Particle* p) {
 // alive (ParticleSourceFlag::KeepAlive) or has particles, an attached one while it emits or has particles.
 bool ParticleSource::RunTick() {
     if (hiddenTicks >= kIdleAfterHidden && (flags & ParticleSourceFlag::IdlesOffScreen)) return true;
-    const particlehost::Wind wind = particlehost::CurrentWind();
+    const particlehost::Wind wind = particlehost::Current().CurrentWind();
     windDirection = wind.direction;
     windStrength = wind.strength;
     boundsMin = {kBoundsFar, kBoundsFar, kBoundsFar};
     boundsMax = {-kBoundsFar, -kBoundsFar, -kBoundsFar};
-    if (attachedTo && particlehost::Removed(attachedTo)) Attach(nullptr);
+    if (attachedTo && particlehost::Current().Removed(*attachedTo)) Attach(nullptr);
 
     Follow(*this);
     BuildBasis(*this);

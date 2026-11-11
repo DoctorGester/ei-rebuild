@@ -7,6 +7,7 @@
 #include "engine/core/core_streams.h"
 #include "engine/core/random.h"
 #include "game/effects/effects.h"
+#include "game/effects/effects_particles.h"
 #include "game/effects/world_effect.h"
 #include "game/objects/map_object.h"
 #include "game/objects/map_object_manager.h"
@@ -1445,6 +1446,7 @@ void CheckUnknownParticleType() {
     constexpr int kUnknownType = 0x7123;
     std::vector<std::string> lines;
     g_logCapture = &lines;
+    particlehost::Use(WorldParticleHost());
     g_clientWorld.particleManager = std::make_unique<ParticleManager>();
     g_clientWorld.particleManager->Init(&g_clientWorld);
     {

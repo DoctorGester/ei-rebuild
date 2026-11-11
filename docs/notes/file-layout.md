@@ -228,8 +228,9 @@ themselves). Includes name the tree: `#include "engine/core/ref.h"`, `#include "
   crossing (the back-references left); the list only shrinks: a new crossing fails, and so does a listed one that is
   gone (`engine_layers.py --write` rewrites the list, keeping each kept line's comment).
 - Files are in the engine's folders or the game's by what they need: maps as folders and the .MP header are data/'s;
-  the maps folder's functions are mods/maps_folder.h's; the peers' mod identity is net/'s; the particle core's calls
-  into the world are `particle_host.h`'s functions, which the game defines (game/effects/effects_particles.cpp). The
+  the maps folder's functions are mods/maps_folder.h's; the peers' mod identity is net/'s; the particle core asks
+  the world through `particle_host.h`'s host interface (MF15k2: the game's on the client world,
+  game/effects/effects_particles.h; the engine's FigureHost without it; effects.md, "The host"). The
   program's window and title, its error box and lib/crt.h's FatalExit / Warning are core/program_window's (no
   app.cpp needed); an item's texts are items/'s (item_texts.h), not the text manager's.
 - **The engine reads no settings (MF15k1d).** The settings file, its catalog and the game options are app/'s; the
@@ -243,7 +244,7 @@ themselves). Includes name the tree: `#include "engine/core/ref.h"`, `#include "
   (Camera::Create / Init) and its axis scales (screen_layout). The matrices stay on the pipeline's stacks. The
   Camera object (following, the ground under it, limits, shakes, saved views, recorded paths, the drawn view's
   smoothing) is world/'s, `g_camera` in app/singletons.h; the particles' shakes reach it through
-  particlehost::ShakeCamera.
+  the particle host's ShakeCamera.
 - **The scene reaches the world through its context (MF15k1b).** ManagerContext's scene getters
   (`GetTextureManager`, `GetLightFactory`, `SceneTime`: whole ticks plus the fraction) answer from the client world
   and null or 0 for another context (world/manager_context.cpp, as the other getters: plain members, not virtuals with
@@ -251,7 +252,7 @@ themselves). Includes name the tree: `#include "engine/core/ref.h"`, `#include "
   (the client world, set by app/main_loop.cpp before the start, and by ei-convert's effect check): the texture loads
   and lookups, the material stages, the sun (AddDefaultLight), the animated sheets' and the sky's clock. The present
   (`present_window::Present`) and a print's texture bound by name (ground_print.cpp) are the game's. These getters
-  are among the seams MF15k2's host interface takes for a program without the world.
+  are left for a program without the world (MF15k4: the texture lookups through the scene renderer's `world`).
 - **The engine has the figure, the game its objects (MF15k3).** `FigureInstance` (models/figure_instance.h) is the
   figure in the scene (model, morph, link figure, parts, animation state and database, the drawn step) and Object3D's
   base; the skeleton (models/animation.h), the .adb database and the animation keys (models/animation_db.h), the part
@@ -260,7 +261,8 @@ themselves). Includes name the tree: `#include "engine/core/ref.h"`, `#include "
   0x43) is the game's: the world's figure manager is game/ui/ui_mesh.h's InterfaceFigureManager, which makes it, and
   NewFigureSprite / NewBlankSprite load one. ManagerContext's `GetMaterialManager` joins the scene getters.
 - The check reads includes only. Code of the engine that calls a function defined in ei_game links only because both
-  are in the same programs today; such calls are the seams MF15k2 turns into a host interface.
+  are in the same programs today (ManagerContext's members, world/manager_context.cpp); the particle core's went
+  behind its host (MF15k2), the rest are MF15k4's to cut for its exe.
 
 ## The target tree
 

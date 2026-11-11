@@ -3,8 +3,7 @@
 Code: the particle core (part of the engine library: file-layout.md, "The engine library"): `particle_source.h`
 (the types, the manager, the sources), `particle_manager.cpp` (the manager, attach, draw, tick), `particle_create.cpp`
 (the types' names, Create), the data runtime (`particle_expr.*`, `particle_record.*`, `particle_data.*`: "Data
-effects" below) and `particle_host.h`, what the core asks of the world (the ground, the platforms, the wind, the tick
-fraction, the scorch marks, the carriers), answered on the client world by the game's `effects_particles.cpp`. The
+effects" below) and `particle_host.h`, what the core asks of the world ("The host" below). The
 game's: `effects.h` (the rain and snow, the visibility fog), `effects_weather.cpp`, `world_effect*.cpp`. Scenarios:
 `particles.txt` (every source type it can make), `effects.txt`, `spells*`, `effects_bow`.
 
@@ -58,6 +57,30 @@ Kept:
   rays' age from -100 before they are chosen (a free Shower stops after 106 ticks; its file);
   CastingFire ... Divination's swirl pick 0 is the effect's state read as a swirl (its radius and size as x and y, z
   0; their files).
+
+## The host
+
+- `particlehost::Host` (particle_host.h) is what the core asks of the world its sources are in: the ground's height,
+  the platforms' plane, the wind, the tick fraction, scorch marks, camera shakes, and the carriers. A carrier is a
+  `FigureInstance` (`ParticleSource::attachedTo`; the game's map objects are figures, map_objects.md "Figures"). The
+  host keeps each carrier's sources (Follow, LetGo), says whether it was taken out (Removed) or is hidden, where a
+  part of it is (PartPoint, with ParticleSourceFlag::OnPart), its measure (radius, centre height) and what it is to
+  the effects (`CarrierState`: a unit, running, dead, its radii, its feet). The core asks only for a carrier that is
+  there: a free source's values (no carrier: measure 0.1, no unit, feet at the origin) and the carrier's axes (its
+  rotation) are the core's own (particle_data.cpp, WriteCarrier).
+- One host per program, set with `particlehost::Use` before a source is made (`Current()` answers it). Two exist:
+  - the game's (game/effects/effects_particles.h, `WorldParticleHost`): the client world, its platforms, the camera,
+    Object3D's effect sources, Unit's values. The client world uses it where it makes its particle manager
+    (world_client_maps.cpp), and ei-convert's checks where they make theirs (effect_check, lua_check);
+  - `particlehost::FigureHost` (particle_figure_host.h), a world of its own for a program without the game's (the
+    effect viewer's exe, MF15k4): the ground flat at `groundHeight`, no platforms, its own `wind` and
+    `tickFraction`, no scorch marks or shakes; its own list of carried figures and their sources (a reference each);
+    a figure's parts by name (FigureInstance::PartPoint, unscaled; the effect point its "rh3"), its measure the box
+    of its parts' points; `unit`, `running`, `dead`, `unitRadius` say what every figure is. `Remove` / `Restore` take
+    a figure out and back as a map object's Removed flag does; `LetGoAll` before a figure is destroyed.
+- Check: `ei-convert --effect-check`'s world-less case (RunWithoutWorld: Stun on a figure's hand, walking, running,
+  moved, taken away; ZoneExit on a ground at 2) with its own particle manager, the host not the client world. The
+  textures still load by name through the scene renderer's `world` (LoadNamedTexture), a seam MF15k4 cuts.
 
 ## Data effects
 
@@ -266,7 +289,7 @@ last drawn point's y and z). Constants `pi`, `deg`. Names, by where the expressi
   `carrier_unit`, `carrier_running`, `carrier_dead` (0 / 1), `carrier_unit_radius` (the unit's own radius, 0 else), `carrier_axis.x/y/z`, `carrier_axis_y.x/y/z` (its own x and
   y axes; 0 when free), `carrier_bounds_radius` (its bounds' radius as it stands, not measured again),
   `carrier_left_foot.x/y/z`, `carrier_right_foot.x/y/z` (its "ll3" / "rl3" parts, else its body, else its position
-  raised by its bounds' top, as particlehost::WriteCarrier finds a part; the origin without a unit carrier); written at the tick's
+  raised by its bounds' top, as the host's DescribeCarrier finds a part; the origin without a unit carrier); written at the tick's
   start only for an effect that reads one of them), `anchors.<group>` (live count), `stage.<name>`;
 - in an anchor's and its particles' fields: `a.index`, `a.count`, `a.age`, `a.ticks` (left), `a.position` (`a.x/y/z`
   its lanes), `a.spawn`, `a.<var>`;
@@ -564,9 +587,8 @@ camera, all without a second start-up. It also lets the harness drive the viewer
   - Not a separate exe yet: an `ei-effects` entry point needs GameMain's whole start (the worlds, the databases,
     the window, the renderer, the interface) and a zone with a unit, which is what the new game gives. The user
     (2026-11-11) wants it as its own exe all the same: on the engine library (file-layout.md, "The engine library";
-    ei_engine with the particle core, MF15k1), once the particle core's world calls (`particle_host.h`) are an
-    interface (MF15k2) and a figure plays without a unit (FigureInstance, map_objects.md, "Figures"), the viewer is
-    MF15k4's exe.
+    ei_engine with the particle core, MF15k1), its sources on `particlehost::FigureHost` ("The host": MF15k2) and a
+    figure that plays without a unit (FigureInstance, map_objects.md, "Figures"), the viewer is MF15k4's exe.
   - The in-game panel (the harness's `effectviewer open`, over a game started as usual) is the same viewer.
   - A base zone (map list kind 2) has no 3D scene, so `--zone` wants a battle zone.
   - tests/scenarios/effect_viewer_standalone.txt starts the exe with `--effects Portal` (run_all's `# arguments:` line).
@@ -581,7 +603,7 @@ camera, all without a second start-up. It also lets the harness drive the viewer
   - Its draws come from the viewer's own IsaacRandom, swapped with `g_particleRandom` around its set-up and its ticks.
     The game's generator is untouched, and every replay draws the same.
   - It is placed as EffectParticle::Spawn places a spawned effect (localPosition, ScaleSize(size / baseSize),
-    Attach). On a unit outside the party it draws only while its unit is shown (`particlehost::Hidden`).
+    Attach). On a unit outside the party it draws only while its unit is shown (the host's Hidden).
   - The viewer lets go of it before the worlds are emptied (`worldsEnding`, from StopGame).
 - **Sub-effects** (a data effect's `effect` actions, `on_death` too): StartEffects makes those of a source with
   OwnClock through `effectdata::g_startOwnClock`, which the viewer sets at Open (`StartChild`): unheld, one reference

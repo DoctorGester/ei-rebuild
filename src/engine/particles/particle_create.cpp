@@ -1,5 +1,5 @@
-// ParticleSource set-up: the types' names, Create (from the effect's record), Reset and Clear.
-// More: docs/notes/effects.md, "Particle sources".
+// ParticleSource set-up: the types' names, the attach points' parts, Create (from the effect's record), Reset and
+// Clear. More: docs/notes/effects.md, "Particle sources".
 #include "engine/core/core_transform.h"
 #include "engine/particles/particle_source.h"
 #include "engine/particles/particle_data.h"
@@ -56,6 +56,10 @@ void BuildFrames(ParticleSource* s) {
     }
 }
 
+// The part each AttachPoint asks for (EffectPoint none); Body asks for "bd" twice (the fallback part).
+constexpr const char* kPartNames[13] = {nullptr, "hd", "hd", "lh2", "rh2", "ll2", "rl2", "bd",
+                                        "body00", "body01", "body02", "body03", "body04"};
+
 // The unknown types logged so far.
 std::set<int> g_unknownTypes;
 
@@ -72,6 +76,8 @@ std::string_view ParticleTypeName(int type) {
     const int index = type - kFirstType;
     return index >= 0 && index < kTypeCount ? kTypeNames[index] : std::string_view();
 }
+
+const char* AttachPointPart(AttachPoint point) { return kPartNames[static_cast<int>(point)]; }
 
 int ParticleTypeByName(std::string_view name) {
     for (std::size_t i = 0; i < std::size(kTypeNames); ++i)
@@ -117,7 +123,7 @@ void ParticleSource::Clear() {
     ReleaseAllParticles();
     texture.Reset();
     if (attachedTo)
-        particlehost::LetGo(attachedTo, this);
+        particlehost::Current().LetGo(*attachedTo, this);
     Reset();
 }
 

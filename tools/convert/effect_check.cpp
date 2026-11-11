@@ -7,6 +7,10 @@
 #include "game/app/singletons.h"
 #include "engine/core/random.h"
 #include "game/effects/effects.h"
+#include "game/effects/effects_particles.h"
+#include "engine/models/figure_instance.h"
+#include "engine/models/figure_mesh.h"
+#include "engine/particles/particle_figure_host.h"
 #include "engine/particles/particle_data.h"
 #include "engine/models/texture.h"
 #include "game/objects/map_object.h"
@@ -428,7 +432,7 @@ std::vector<std::string> Run(const Case& c, int index, std::ofstream* dump, Coar
                     s->typeParam = step.value;
                     std::vector<Vector3> points;
                     for (int i = 0; s->attachedTo && i < 2500 && !(static_cast<float>(i) > step.value); ++i)
-                        points.push_back(s->attachedTo->PositionAt(i + g_clientWorld.tick));
+                        points.push_back(carrier->PositionAt(i + g_clientWorld.tick));
                     effectdata::SetInput(*s, "path", points);
                     break;
                 }
@@ -646,10 +650,89 @@ int CompareCoarse(const std::vector<std::string>& output) {
     return failures ? 1 : 0;
 }
 
+bool Same(const Vector3& a, const Vector3& b) { return a.x == b.x && a.y == b.y && a.z == b.z; }
+
+// The world-less case: effects on a figure alone with particle_figure_host.h's host and a particle manager of their
+// own, the client world not asked (as the effect viewer's exe runs them): Stun on the figure's right hand ("rh3"),
+// walking then running, the figure taken away; ZoneExit free on a ground raised to 2. The number of checks that fail.
+int RunWithoutWorld() {
+    int failures = 0;
+    auto expect = [&failures](bool holds, const char* what) {
+        if (holds) return;
+        std::printf("effect_check: world-less: %s\n", what);
+        ++failures;
+    };
+    particlehost::FigureHost host;
+    host.groundHeight = 2.0f;
+    particlehost::Use(host);
+    auto manager = std::make_unique<ParticleManager>();
+    manager->Init(nullptr);
+
+    // Not owned by a manager: references held here, deleted at the end.
+    auto* figure = new FigureInstance();
+    figure->Create();
+    figure->localPosition = {5.0f, 6.0f, 1.0f};
+    auto* hand = new FigureMesh();
+    hand->AddRef();
+    hand->name = "rh3";
+    hand->localPosition = {0.25f, 0.0f, 1.5f};
+    figure->AddPart(hand);
+    const Vector3 handAt = {5.25f, 6.0f, 2.5f};
+
+    ParticleSource* stun = manager->CreateSource(static_cast<int>(ParticleType::Stun));
+    expect(stun != nullptr, "Stun makes a source");
+    if (stun) {
+        stun->AddRef();
+        stun->Attach(figure);
+        expect(stun->attachedTo == figure && host.SourcesOn(*figure).size() == 1, "Stun follows the figure");
+        expect(Same(stun->origin, handAt), "Stun sits on the figure's right hand");
+        stun->RunTick();
+        expect(stun->particles.size() == 1, "a walking figure gets one star a tick");
+        // The count the last star set: four from the tick after the first star of a running figure.
+        host.running = true;
+        stun->RunTick();
+        const std::size_t before = stun->particles.size();
+        figure->localPosition = figure->localPosition + Vector3{1.0f, 0.0f, 0.0f};
+        stun->RunTick();
+        expect(stun->particles.size() == before + 4, "a running figure gets four stars a tick");
+        expect(Same(stun->origin, handAt + Vector3{1.0f, 0.0f, 0.0f}), "Stun moves with the figure");
+        host.Remove(*figure);
+        stun->RunTick();
+        expect(!stun->attachedTo && host.SourcesOn(*figure).empty(), "Stun lets go of a figure taken away");
+        stun->Release();
+    }
+
+    ParticleSource* exit = manager->CreateSource(static_cast<int>(ParticleType::ZoneExit));
+    expect(exit != nullptr, "ZoneExit makes a source");
+    if (exit) {
+        exit->AddRef();
+        exit->localPosition = {1.0f, 1.0f, 0.0f};
+        exit->Attach(nullptr);
+        exit->alpha = 3.0f;
+        exit->typeParam = 1.5f;
+        for (int tick = 0; tick < 3; ++tick) exit->RunTick();
+        expect(!exit->particles.empty(), "ZoneExit emits");
+        bool onGround = !exit->particles.empty();
+        for (const Particle* p : exit->particles) onGround = onGround && p->pos.z >= 2.0f && p->pos.z < 3.0f;
+        expect(onGround, "ZoneExit's particles stand on the flat ground");
+        exit->Release();
+    }
+
+    host.LetGoAll(*figure);
+    manager.reset();
+    figure->parts.clear();
+    delete hand;
+    delete figure;
+    particlehost::Use(WorldParticleHost());
+    std::printf("effect_check: world-less: %d checks failed\n", failures);
+    return failures;
+}
+
 } // namespace
 
 int Main(const Options& options) {
     effectdata::g_effects.Reset();
+    particlehost::Use(WorldParticleHost());
     // The sources take their textures by name (no archive opened: the check reads no game data).
     g_clientWorld.textureManager = std::make_unique<TextureManager>();
     g_clientWorld.textureManager->SetContext(&g_clientWorld);
@@ -678,6 +761,8 @@ int Main(const Options& options) {
         }
     }
     if (options.record.empty()) coarse = CoarseLines();
+    // The world-less case while the texture manager is there (its sources take their textures by name too).
+    const int worldless = options.record.empty() && options.recordCoarse.empty() ? RunWithoutWorld() : 0;
     IsaacRandom::SetDrawObserver(nullptr);
     g_sceneRenderer.sun.Take();
     delete sun;
@@ -730,7 +815,8 @@ int Main(const Options& options) {
         std::printf("effect_check: %zu cases, %zu of %zu lines as the reference, %d cases differ\n", cases.size(), matched,
                     reference.size(), failures);
     }
-    return CompareCoarse(coarse) || failures ? 1 : 0;
+    const int coarseFailed = CompareCoarse(coarse);
+    return worldless || coarseFailed || failures ? 1 : 0;
 }
 
 }   // namespace effect_check
