@@ -3,7 +3,9 @@
 // docs/notes/items_spells.md ("Spell behaviours").
 #include "game/spells/spell_db.h"
 
+#include <algorithm>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace itemdb {
@@ -64,15 +66,28 @@ constexpr SpellUse kGameSpells[kGameSpellCount] = {
 
 SpellUse UseOf(const SpellRecord& record) {
     const auto behaviour = static_cast<std::uint32_t>(record.behaviour);
-    if (behaviour < kGameSpellCount) return kGameSpells[behaviour];
-    return {record.ai, record.damageType, record.offensive, record.offensive, record.offensive};
+    SpellUse use = behaviour < kGameSpellCount
+                       ? kGameSpells[behaviour]
+                       : SpellUse{record.ai, record.damageType, record.offensive, record.offensive, record.offensive};
+    use.effect = record.aiEffect;
+    return use;
 }
 
-void SetBehaviours(std::vector<SpellRecord>& records) {
+std::vector<std::string> SetBehaviours(std::vector<SpellRecord>& records) {
     for (std::size_t i = 0; i < records.size(); ++i) {
         if (!records[i].script.empty()) records[i].behaviour = SpellType::Scripted;
         else records[i].behaviour = i < kGameSpellCount ? static_cast<SpellType>(i) : SpellType::None;
     }
+    std::vector<std::string> unnamed;
+    for (SpellRecord& record : records) {
+        record.aiEffect = record.behaviour;
+        if (static_cast<std::uint32_t>(record.behaviour) < kGameSpellCount || record.aiEffectCode.empty()) continue;
+        const auto named = std::find_if(records.begin(), records.end(),
+                                        [&](const SpellRecord& other) { return other.code == record.aiEffectCode; });
+        if (named != records.end()) record.aiEffect = named->behaviour;
+        else unnamed.push_back(record.code);
+    }
+    return unnamed;
 }
 
 } // namespace itemdb

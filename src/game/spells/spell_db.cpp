@@ -137,7 +137,9 @@ void SpellDatabase::Read(const RecordFile& file) {
         game::Warning("spells.sdb: %d modifiers past the first %d are left out (a spell holds its modifiers' places "
                       "as signed bytes)", static_cast<int>(extra), static_cast<int>(kMaxModifierRecords));
     }
-    SetBehaviours(spells.records);
+    for (const std::string& code : SetBehaviours(spells.records))
+        game::Warning("spells.sdb: spell %s: its ai_effect names no spell (the AI looks for its own effect)",
+                      code.c_str());
     spells.FileNames();
     modifiers.FileNames();
 }
@@ -206,6 +208,7 @@ void Fields(SpellRecord& r, Visit& v) {
     v("ai", Enum<SpellAi>{r.ai, kSpellAis});
     v("damage_type", Enum<DamageType>{r.damageType, kDamageTypeNames});
     v("offensive", dbtoml::Bool{r.offensive});
+    v("ai_effect", r.aiEffectCode);
     v("script", r.script);
 }
 

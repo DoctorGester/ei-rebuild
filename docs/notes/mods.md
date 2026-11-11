@@ -1377,8 +1377,10 @@ server that plays a mod).
   acceptance the modded peer does not take), `net_pair_mod_none` (the peer without a mod refused, and as an original
   client refused too), `net_pair_mod_list` (the peer without a mod lists the host's mod from its info answer, the row
   marked as one it cannot join; then the host as the original game, joinable), `net_pair_mod_effect` (a data effect
-  started by the host's server shown on the peer; effects.md, "In multiplayer and saves"); `tools/make_mod_pair.py` copies each game's mod (the peer's into the run folder's
-  `peer\harness_saves`).
+  started by the host's server shown on the peer; effects.md, "In multiplayer and saves"), `net_pair_mod_spell` (a
+  scripted spell the host's server casts, its bolt in the peer's client; items_spells.md, "Scripted spells");
+  `tools/make_mod_pair.py` copies each game's mod (the peer's into the run folder's `peer\harness_saves`; `spell`: the
+  showcase with that spell added).
 
 ## Open questions
 

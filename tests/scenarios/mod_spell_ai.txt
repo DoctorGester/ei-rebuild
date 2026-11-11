@@ -1,0 +1,35 @@
+# MF17d: the AI casting a scripted spell (docs/notes/items_spells.md, "Scripted spells"; tools/make_spell_mod.py). As in
+# unit_ai_cast, one of zone1's own wolves (1804; units with script ids get no spell options) gets the mod's spell
+# "mf17d_bolt" (GiveUnitSpell: a unit's own slots) and an alarm rebuilds its options: the record's ai = "attack" makes
+# it a spell attack (AIAttention::Build through UseOf, as the game's own spells), its damage 30 of lightning the
+# estimate that beats the bite. The hero (god mode) walks towards it and stops; the wolf casts the spell at it through
+# the order the game's spells take (OrderCast, the cast animation, CastSpell), and the zone's server state runs the
+# file: OnCast's line names the wolf and the hero, the bolt (CreateLightning) and the blow (InflictDamage); the timer
+# takes the bolt away after 60 ticks and the cast finishes.
+# prepare: make_spell_mod.py
+mod harness_saves\spell_mod
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 40 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+check IsAlive(GetObject(1804))
+
+console @GiveUnitSpell(GetObject(1804),"mf17d_bolt")
+console @InvokeAlarm(0,GetX(GetObject(1804)),GetY(GetObject(1804)))
+frames 2
+console @MoveToObject(GetLeader(),GetObject(1804))
+waitfor 40 IsLess(DistanceUnitUnit(GetLeader(),GetObject(1804)),12)
+console @BlockUnit(GetLeader(),1)
+waitline 20 MF17d: OnCast mf17d_bolt by 1804 at
+check IsEqual(GSGetVar(0,"mf17d.caster"),1804)
+check IsEqual(GSGetVar(0,"mf17d.target"),GetObjectID(GetLeader()))
+frames 2
+clientbolts 1
+waitline 10 MF17d: OnEnd finished at tick 60
+check IsAlive(GetLeader())
+report
+quit

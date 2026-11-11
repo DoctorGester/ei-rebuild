@@ -154,22 +154,26 @@ nothing.
   (combat_actions, combat_update), the effects' stat reads (`HasEffect`, `EffectValue`, `AddEffect`'s scale and stun,
   unit_vitals' strongest per behaviour) and the client's looks and sounds (`MergesParticles`, `ParticleSourceType`,
   `SoundFolder`, map_object_client_effects.cpp). A behaviour without a look (None) gets no particle source and no
-  log. The HUD's buff icons and the AI's "has it already" option effect keep the record (icon) and the behaviour.
+  log. The HUD's buff icons keep the record (its icon).
 - What the tables say of a spell is `itemdb::UseOf(record)` (`Spell::Use()`, spell_behaviour.cpp): the AI's option
   kind (`ai`), the damage type of the AI's estimate (`GetSpellDamage`), `offensive` (the HUD's use at once aims at the
   nearest enemy), `turnsVictim` (`CreateMissile`: the victim sees the caster, diplomacy counts an attack) and
-  `fighting` (`UnitServer::IsFighting`: the battle music). The game's 42 have one row each (`kGameSpells`, with
-  Rebirth's FixSpellSelfCasting and FixPlaingBattleMusicFromAntimagic in it); a Scripted or None record reads its TOML fields
-  `ai`, `damage_type` and `offensive` (offensive also standing for turnsVictim and fighting). The fields of a game
-  record are not read: its row is its behaviour's.
+  `fighting` (`UnitServer::IsFighting`: the battle music), and `effect`, the behaviour the AI's curse, protect and
+  enhance options look for on a unit (`HasEffect`: "has it already"; the record's `aiEffect`). The game's 42 have one
+  row each (`kGameSpells`, with Rebirth's FixSpellSelfCasting and FixPlaingBattleMusicFromAntimagic in it) and look for
+  their own behaviour; a Scripted or None record reads its TOML fields `ai`, `damage_type` and `offensive` (offensive
+  also standing for turnsVictim and fighting) and `ai_effect`: the code of the spell whose effect it gives (a scripted
+  spell applying the game's slow says `ai_effect = "slow"`), resolved by the load (`SetBehaviours`) to that record's
+  behaviour; without it, or naming no spell (a load warning), its own. The fields of a game record are not read: its
+  row is its behaviour's.
 - Limits: a spell's place is a byte (prototypeIndex, MapEffect::type, saved and sent), a modifier's place + 1 a signed
   byte (`Spell::modifiers`); the load leaves out spells past 256 and modifiers past 127 with a warning.
 - Moving the game's spells onto the scripted path later (their records' rows as fields) needs `turnsVictim` and
   `fighting` to be fields of their own: the game's rows differ from `offensive` there (Lichdom and Charm are
   offensive and turn nobody; Rick and curse magic are not fighting).
 - Checked by ei_unit_check's spell behaviour cases (tests/unit/spell_behaviour.cpp: a fake 300-record table cut to
-  256, the game's rows whatever the fields say, a new record's fields, a script making any record Scripted) and by
-  every golden staying the same.
+  256, the game's rows whatever the fields say, a new record's fields, a script making any record Scripted, ai_effect
+  resolved, unknown or empty) and by every golden staying the same.
 
 ## Scripted spells
 
@@ -241,7 +245,24 @@ zone's server state that Eris saves. Only the server runs it; clients see what i
   has no cast ...`.
 - **Zone teardown.** The host goes with its scheduler (`Script::Reset`); its live casts' effects let go of it and end
   at their next update, with no hook. An effect that goes first (the projectile list cleared) drops its entry.
-- **Mods in multiplayer**: `Res\spells\` counts in the mod's content hash (mods.md, "Mods in multiplayer").
+- **In the game** a Scripted record goes the game's spells' ways, with nothing of its own: the AI's options by UseOf
+  (`ai`, `damage_type` for the estimate, `ai_effect`; units with script names get no spell options, as for any spell),
+  the HUD's column, keys and targeting by `target_kind` and its use at once by `offensive`, the item pictures
+  `spell%04d` / `prototype%04d` by `icon` (a mod's `Res\textures\` PNG), and the ways to get it: `GiveUnitSpell` (a
+  unit's own slots; a party unit reads its party record), `GiveItem("spell container[<code>]")` put on in the camp, the
+  trader's magic stock by `sold_by` and a `[[scroll_recipe]]` (its scrolls and the spell maker's prototype loot item,
+  `prototype.<code>`), and the camp's spell maker from that prototype. Casting pays the mana and plays the cast
+  animation as for any spell.
+- **Mods in multiplayer**: only the server runs the Lua; clients see its timed objects (a bolt, particles, lights) and
+  the units' replicated state. `Res\spells\` counts in the mod's content hash (mods.md, "Mods in multiplayer"), so both
+  peers have the same records and files, and an original client is refused by a server that plays a mod.
+- **Checks in the game** (tools/make_spell_mod.py: "mf17d_bolt", a bolt and a blow through the game's own bindings
+  CreateLightning and InflictDamage, 60 ticks): `mod_spell_ai` (zone1's wolf 1804 given the spell casts it at the
+  hero by its ai = "attack"), `mod_spell_hero` (Ingos' stock has its scroll and prototype, `campstock`; the camp draws
+  the mod's pictures, `read mod`; the container put on, the hero casts it from the HUD at a wolf; the client has the
+  bolt, `clientbolts`), `net_pair_mod_spell` (make_mod_pair.py spell: the host's server casts it, the peer's client
+  has the bolt; the peer's view of the blow is MF17e's, with cast:Damage). The HUD's use at once (Ctrl and the key)
+  found no target for the game's lightning either in mod_spell_hero's setup, so the scenario casts with a click.
 - **Checks.** `--lua-check`'s host cases (tools/convert/lua_check.cpp `CheckSpellHost`: timers in order with payloads,
   Finish, OnTick to the cap, idle, a hook's error, a wait in a hook, no bindings at the top level and the file said
   once, a timer naming no function, a cast saved after each of its first six ticks ending as the unbroken one; the

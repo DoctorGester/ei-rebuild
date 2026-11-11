@@ -1,0 +1,79 @@
+# MF17d: a scripted spell through the trader, the camp and the HUD (docs/notes/items_spells.md, "Scripted spells";
+# tools/make_spell_mod.py's "mf17d_bolt", place 42, icon 100).
+# - The trader: Ingos' camp (class 3) opens with the mod's scroll and prototype in its magic stock (the record's sold_by
+#   and its [[scroll_recipe]]; campstock reads the class template's stock).
+# - The camp: a spell container of it and its prototype (the spell maker's loot item, "prototype.mf17d_bolt") given;
+#   the magic page draws them with the mod's pictures (Res\textures\spell0100.png, prototype0100.png) and puts the
+#   container on the hero (campputon, as in spells_hero), so the HUD's spell column holds healing, 0x0C and the mod's
+#   spell (hudstate: prototype 42 in slot 2).
+# - The HUD: its key (3) and a click on a wolf at +3 cast it as the hero's spells are cast (OrderCast, mana, the cast
+#   animation, CastSpell); the zone's server state runs the file: OnCast's line, the caster and the target in game
+#   variables, the wolf's blow; the cast ends after 60 ticks. (The use at once, Ctrl and the key, aims an offensive
+#   spell at the nearest unit the hero sees: here it finds none for the game's lightning either, so it is not used.)
+# prepare: make_spell_mod.py
+mod harness_saves\spell_mod
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+console @GiveSkill(GetLeader(),"elemental",5)
+console @GiveIntelligence(GetLeader(),60)
+
+# The trader's stock.
+screen 5 3
+waitwindow 15 camp
+campstock 3 scroll mf17d_bolt 1
+campstock 3 prototype mf17d_bolt 1
+key esc
+waitwindow 15 battle
+waitfor 10 IsGreater(HP(GetLeader()),0)
+
+# The camp's magic page: the container and the prototype drawn with the mod's pictures, the container put on.
+console @GiveItem(0,"spell container[mf17d_bolt]")
+frames 5
+console @GiveItem(0,"prototype.mf17d_bolt")
+frames 5
+screen 5
+waitwindow 15 camp
+clickregion 5
+wait 500
+campputon 3008 1
+frames 3
+read mod Res\textures\spell0100.mmp yes
+read mod Res\textures\prototype0100.mmp yes
+key esc
+waitwindow 15 battle
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+
+# The hero's portrait: selects it and shows its spells.
+click 400 560
+frames 3
+hudstate
+
+console @AddUnitToServer("BoltWolf","WolfTutor","BoltWolf",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("BoltWolf"))
+console @BlockUnit(GetObjectByName("BoltWolf"),1)
+wait 500
+
+# The mod's spell key, then the wolf.
+waitunit 10 BoltWolf
+check Not(IsUnitBlocked(GetLeader()))
+key 3
+frames 2
+clickunit BoltWolf
+waitline 15 MF17d: OnCast mf17d_bolt by
+check IsEqual(GSGetVar(0,"mf17d.caster"),GetObjectID(GetLeader()))
+check IsEqual(GSGetVar(0,"mf17d.target"),GetObjectID(GetObjectByName("BoltWolf")))
+frames 2
+clientbolts 1
+waitline 10 MF17d: OnEnd finished at tick 60
+check IsAlive(GetLeader())
+report
+quit

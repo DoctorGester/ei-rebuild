@@ -307,6 +307,24 @@ bool CampItems(void* camp, int* page, std::vector<void*>* items, std::vector<uns
 void CampTakeItem(void* camp, void* item, int mode) {
     static_cast<CampPages*>(static_cast<UiWindow*>(camp))->TakeItem(static_cast<Item*>(item), mode);
 }
+bool TraderMagic(int type, std::vector<std::string>* items) {
+    ClassTemplate* trader = g_partyManager.templates.Find(type);
+    if (!trader) return false;
+    for (Item* item : trader->SpellsParty()->items) {
+        std::string text = "other";
+        if (item && item->Kind() == ItemKind::Scroll && item->spell) {
+            text = "scroll " + item->spell->GetPrototype()->code;
+        } else if (item && item->Kind() == ItemKind::Loot) {
+            const ItemLoot* loot = item->AsLoot();
+            const itemdb::SpellRecord* record =
+                loot->kind == LootKind::Record && loot->recordType == LootRecordType::Spell ? itemdb::SpellAt(loot->index)
+                                                                                             : nullptr;
+            if (record) text = "prototype " + record->code;
+        }
+        items->push_back(text);
+    }
+    return true;
+}
 void PickSurface(void* world, float* out, int x, int y) {
     *reinterpret_cast<Vector3*>(out) = static_cast<WorldClient*>(world)->PickSurface(x, y);
 }
@@ -836,6 +854,20 @@ bool ClientLight(int id, ObjectState* out) {
         found = true;
     }
     return found;
+}
+
+std::vector<std::string> ClientBolts() {
+    std::vector<std::string> bolts;
+    ObjectListIterator walk;
+    for (EngineObject* object = walk.First(g_clientWorld.TimedObjectManager()); object; object = walk.Next()) {
+        if (object->GetClassId() != ClassId::EffectLightning) continue;
+        auto* bolt = static_cast<EffectLightning*>(object);
+        char text[160];
+        std::snprintf(text, sizeof(text), "%.2f %.2f %.2f - %.2f %.2f %.2f", bolt->from.x, bolt->from.y, bolt->from.z,
+                      bolt->to.x, bolt->to.y, bolt->to.z);
+        bolts.emplace_back(text);
+    }
+    return bolts;
 }
 
 } // namespace ei::verify::image
