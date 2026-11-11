@@ -5,5 +5,5 @@ size = 3
 model = "opus"
 note = "User 2026-11-11: the showcase mod's TOML values (class_mask = 0x1, adb key = 0x2890000 / flags = 0xE, items type = 4, object_class = 51, blood_kind = 8, ...), unnamed arrays (combat, perception, mode_speeds, action_speeds, damage_weights, protection, sounds), a 32x32 relations matrix and 32 player names in .mob.toml cannot be authored by hand. One uniform path: ei-convert writes the readable form and the game reads only it, for idb, udb (models), adb, sdb, qdb, mob.toml, map.toml, config.reg.toml. Enums by name; bit masks as name lists; adb key/flags split into named parts; fixed-meaning arrays as named tables; ids/parents by name where possible; defaults omitted; unknown bits in a small explicit field only when non-zero; unknown names a load error with file:line and the valid names. Plan in docs/notes/mods.md first. Rewrite the example and showcase mods and docs/modding.md. Goldens unchanged (normal and --converted --golden --rebirth)."
 order = 1333
-status = "running"
+status = "review"
 started = "2026-11-11"
