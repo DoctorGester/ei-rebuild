@@ -1,0 +1,10 @@
+  Activated!
+  graphthreads: bz1g (basegipat, basecam) 32 x 32 blocks: the same
+  graphthreads: gz1g (zone1, zone1) 64 x 48 blocks: the same
+  graphthreads: gz4g (zone4, zone4) 128 x 80 blocks: the same
+  graphthreads: bz1mpg (basegipat, basecam-mp) 32 x 32 blocks: the same
+  Cannot open file autoexec.cfg for reading
+  0
+  Saved savea
+  1
+  1

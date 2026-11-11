@@ -1,0 +1,13 @@
+{
+  "scenario": "ai_graph_threads",
+  "install": "vanilla",
+  "recorded": "2026-11-11",
+  "commit": "34e1d2f91",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "New scenario (MF13d1): four zones' region graphs built on the processors equal one search measuring every block in order.",
+  "source": "image",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+}
