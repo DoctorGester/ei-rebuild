@@ -407,7 +407,7 @@ A map can be a folder, `Maps\<zone>\`, which stands over `Maps\<zone>.mpr` (ei-c
 
 | File | Holds |
 |---|---|
-| `map.toml` | the header: `name`, `height_range`, `sectors = [x, y]`, `water_sectors`, the tile classes (sounds, prints), animated tiles, water `[[material]]` |
+| `map.toml` | the header: `name`, `height_range`, `sectors = [x, y]`, `water_sectors`, the tile classes (`classes`: per tile texture its surface by name, as `step_sounds`, or `line`), animated tiles, water `[[material]]` |
 | `heights.png` | the ground's height, a pixel a vertex, 16-bit grey: value x height_range / 65534 |
 | `normals.png` | the ground's normals (16-bit RGB) |
 | `offsets.png` | the vertices' sideways shifts (8-bit RGB: 128 is none) |

@@ -14,11 +14,15 @@ water_sectors = [
     "........",
     "........",
 ]
-# Per tile texture its class: 0 grass, 1 earth, 2 rock, 3 sand (footsteps and prints).
+# Per tile texture its class: the ground's surface (footsteps and prints).
 classes = [
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-    3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+    "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass",
+    "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass",
+    "ground", "ground", "ground", "ground", "ground", "ground", "ground", "ground",
+    "ground", "ground", "ground", "ground", "ground", "ground", "ground", "ground",
+    "stone", "stone", "stone", "stone", "stone", "stone", "stone", "stone",
+    "stone", "stone", "stone", "stone", "stone", "stone", "stone", "stone",
+    "sand", "sand", "sand", "sand", "sand", "sand", "sand", "sand",
+    "sand", "sand", "sand", "sand", "sand", "sand", "sand", "sand",
 ]
 animated = []

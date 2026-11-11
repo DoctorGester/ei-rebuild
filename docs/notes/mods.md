@@ -447,9 +447,12 @@ Kept as numbers (quantities, indexes, a player number): `number`, `variant`, `ma
 unit's `level`, `size_class` (the AI map's size class), `foot_part` (the "ll<n>" part), `side` (the owner's player
 number), `player`, an item's `attack_interval`, a quest item's `id`, a loot record's `index`, the eyes, the chances.
 
-Left for MF14a (the rest of the formats): spells.sdb (`cast_type`, `school`, `target_kind`, `allowed_modifiers`,
-`skill`), quests.qdb, perks.pdb, Levers.ldb, a lever's `lock.mask`, map.toml (`classes` by surface name),
-config.reg.toml (`Single`, `Multi` as booleans), an NPC's `attributes` and `skills`, the unit level records.
+Also by name: spells.sdb's `school`, `target_kind` (`unit`, `point`), `allowed_modifiers` (`{ range, targets, area,
+effect, duration }`), a modifier's `kind`, `needs_sight`; map.toml's `classes` (the surfaces, `line` 16).
+
+Left for MF14a: a spell's `cast_type`, quests.qdb, perks.pdb, Levers.ldb, a lever's `lock.mask`, map.toml's
+`[[material]] kind`, config.reg.toml (`Single`, `Multi` as booleans: the registry writer knows no key's meaning), an
+NPC's `attributes` and `skills`, the unit level records, acks.db and prints.db (already names and numbers).
 
 ## Textures as PNG
 
@@ -584,7 +587,7 @@ objects as TOML"; the quest zones stay as they are.
 
 | File | What | Pixels |
 |---|---|---|
-| `map.toml` | the header: `name` (the files' name inside the archive), `height_range`, `sectors = [x, y]`, `pages`, `page_size`, `tile_size`, `water_sectors` (a text per row of sectors: `W` with water, `.` without), `classes` (per tile texture its class 0 .. 15: sounds and prints), `animated` (`{texture, frames}`), `[[material]]` (`kind`, `colour`, `opacity`, `light`, `priority`) | |
+| `map.toml` | the header: `name` (the files' name inside the archive), `height_range`, `sectors = [x, y]`, `pages`, `page_size`, `tile_size`, `water_sectors` (a text per row of sectors: `W` with water, `.` without), `classes` (per tile texture its class by name: the surfaces of "Readable values", `line` 16; another as a number), `animated` (`{texture, frames}`), `[[material]]` (`kind`, `colour`, `opacity`, `light`, `priority`) | |
 | `heights.png` | the ground's heights, a vertex a pixel | 16-bit grey |
 | `normals.png` | the ground's normals | 16-bit RGB: the sector file's codes widened by repeating their bits: x and y 1000 + 1000 x (11 bits), z 1000 z (10 bits); a normal map's look, up is (0.49, 0.49, 0.98) |
 | `offsets.png` | the ground vertices' sideways displacements | 8-bit RGB: R = 128 + x, G = 128 + y (1/252 of a cell a step), B 128 |
