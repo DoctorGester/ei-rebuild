@@ -176,9 +176,11 @@ script's. Checked by `ei-convert --lua-check` (build checks; ctest `port_lua`) a
 
 - **The state.** Libraries base (without `dofile` / `loadfile`), coroutine, table, string, math (without `random` /
   `randomseed`: a draw outside the game's generator; scripts draw through `Random`), utf8; no io, os, package or debug.
-  `print` writes a console line, `load` takes text only (the prelude's; bytecode could break the state), `pairs` walks
-  the keys sorted (the prelude's: numbers, strings by their bytes, false, true, then the rest; a `__pairs` first),
-  since Lua's own walk follows the string hashes, whose seed changes every run (L8). The runtime of a state is in its
+  `print` writes a console line, `load` takes text only (bytecode could break the state), `pairs` walks the keys
+  sorted (numbers, strings by their bytes, false, true, then the rest; a `__pairs` first), since Lua's own walk
+  follows the string hashes, whose seed changes every run (L8). The sandbox is `engine/core/lua_sandbox.h`'s, shared
+  with the effects' hooks' state (effects.md, "Lua hooks"); its `pairs` and `load` go in after the prelude, which keeps
+  Lua's own. The runtime of a state is in its
   extra space (`ScriptLua::Of`).
 - **Generated from the keyword table.** The constructor walks `KeywordTable()` (the game's table with Rebirth's):
   every entry with a function or command signature gets a binding, 276; the 11 punctuation and section words none.

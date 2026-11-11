@@ -81,7 +81,7 @@ void Spawned(ParticleSource& s);
 // Null when no tool runs; the manager makes and holds the others (CreateSource).
 inline ParticleSource* (*g_startOwnClock)(ParticleManager& manager, int type) = nullptr;
 
-// ---- The inputs: how game code (and later Lua) drives an effect ------------------------------------------------------
+// ---- The inputs: how game code (and the Lua hooks, particle_lua.h) drives an effect ---------------------------------
 
 // A float, bool (0 / 1) or enum (its index) input; false when the source is no data effect or has no such input.
 bool SetInput(ParticleSource& s, std::string_view input, float value);

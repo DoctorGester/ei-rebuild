@@ -678,11 +678,11 @@ end
 
 ### Lua in an editor
 
-The whole API (the functions below, the spells' cast value, methods and hooks, the active effects' stats) is one Lua
-definition file for a Lua language server, so an editor completes the names and checks the arguments' types:
-`examples\lua_api\ei_api.lua` beside ei-convert in a release (the repository's `examples/lua_api/ei_api.lua`), or
-written anew by `ei-convert --lua-api <file>`. In VS Code with the Lua extension (sumneko's LuaLS), put a
-`.luarc.json` in the mod's folder that names the file's folder as a library:
+The whole API (the functions below, the spells' cast value, methods and hooks, the active effects' stats, the
+particle effects' hooks) is one Lua definition file for a Lua language server, so an editor completes the names and
+checks the arguments' types: `examples\lua_api\ei_api.lua` beside ei-convert in a release (the repository's
+`examples/lua_api/ei_api.lua`), or written anew by `ei-convert --lua-api <file>`. In VS Code with the Lua extension
+(sumneko's LuaLS), put a `.luarc.json` in the mod's folder that names the file's folder as a library:
 
 ```json
 {
@@ -692,7 +692,8 @@ written anew by `ei-convert --lua-api <file>`. In VS Code with the Lua extension
 ```
 
 In a spell file, annotate the table it returns (`local spell = {} ---@type ei.Spell`) and its hooks' arguments get
-their types: `cast` is an `ei.Cast`, `stats` an `ei.Stats`.
+their types: `cast` is an `ei.Cast`, `stats` an `ei.Stats`. In an effect's script (`local hooks = {} ---@type
+ei.EffectScript`, [Effect hooks](#effect-hooks)) `e` is an `ei.EffectSource` and `p` an `ei.Particle`.
 
 ### Script functions
 
@@ -1225,6 +1226,97 @@ frame = { start = "pick(16)", delay = 1 }
 - **Problems** are `warning: effects: <file>:<line>: ...` lines in `ei-rebuild.log`; an effect with an error shows
   nothing. An unknown key is only noted.
 - In a network game every player needs the same effect files: they count in the mod's content hash.
+
+### Effect hooks
+
+An effect can have a Lua script beside its file for what its data cannot say: `script = "<file>.lua"` at the top of
+the effect's file names `Res\effects\<file>.lua`, which returns a table of hooks. They drive the effect's inputs (the
+same `[inputs]` the game sets) and shape its particles; the data still makes and moves every particle, so a script
+costs little. The showcase mod's `showcase_hooks.effect.toml` and `showcase_hooks.lua` are a whole example: a spiral
+of flames whose arms the script places, its charge swelling and ebbing, embers the script turns round the centre.
+
+```lua
+-- Res\effects\my_aura.lua (my_aura.effect.toml says script = "my_aura.lua")
+local hooks = {}   ---@type ei.EffectScript
+
+function hooks.on_start(e)           -- the first tick: the inputs the data starts from
+    e:set("mode", "storm")
+    e.ring = 0                       -- `e` keeps your own fields from hook to hook
+end
+
+function hooks.on_tick(e, age)       -- every tick, before the data's step reads the inputs
+    e.ring = e.ring + 0.05
+    e:set("charge", 0.5 + 0.5 * math.sin(age * 0.1))
+end
+
+function hooks.on_event(e, name)     -- an event input fired, "stop", "spawn" or "end"
+    if name == "pulse" then e:fire("burst") end
+end
+
+function hooks.on_spawn(e, p, i)     -- each new particle, as the data made it
+    local x, y = e:get("origin")
+    local a = e:random(0, 2 * math.pi)
+    p:set("position", x + math.cos(a) * e.ring, y + math.sin(a) * e.ring, e:ground(x, y) + 0.1)
+end
+
+return hooks
+```
+
+- **Where it runs**: on each player's machine alone, as every particle does, in a Lua state of the effects' own
+  (not the mission scripts': their functions are not there). The sandbox is the scripts' (no files, `pairs` in one
+  order), `math.random` is gone: `e:random` and `e:pick` draw the particles' own generator. Nothing of it is saved:
+  a loaded game makes the effect again and `on_start` runs again. Keep a source's state in its `e`; a file's own
+  locals are shared by every source of the effect.
+- **When**: each tick `on_start` (the first tick), `on_tick`, then `on_event` for each event fired since the last tick
+  and `"stop"`, then the data's step (its vars, stages, reactions and rate), so what the hooks set counts this tick.
+  `on_spawn` runs for each particle the data made, after the data set it up; `on_update` (the opt-in: leave it out
+  unless you need it) for each live particle after the data moved it.
+- **The particle budget**: `on_spawn` and `on_update` share 2,000 calls a tick between every effect. When the game
+  catches an effect up (a spell's effect shown late, a loaded game, a zone's exits at its load: many ticks at once),
+  or many scripted effects run, the calls past it are skipped and those particles keep what the data gave them (the
+  log says so once per script). Write per-particle shapes in the data where you can.
+- **Problems**: a file that does not load, a hook that fails or runs too long (a million Lua steps) is a `warning:
+  effects:` line; the effect's hooks stop and it runs on as its data says. `print` writes to the log.
+
+<!-- lua-api: effect-script-hooks -->
+
+| Hook | When it runs |
+|---|---|
+| `on_start(e)` | once, at the effect's first tick, before its data starts (its vars, its first stage): inputs set here are what the start reads |
+| `on_tick(e, age)` | every tick (the first too, after `on_start`), before the data's step; `age` counts the ticks from 0 |
+| `on_event(e, name, count)` | after `on_tick`, for each event input fired since the last tick (`count`: how many times), `"stop"` when the game stopped the emission and `"spawn"` when the game's effect object put the effect into the world (count 1); `"end"` once, after the step in which the effect ended |
+| `on_spawn(e, p, index)` | each particle the data made, once it is made (`index`: its number in this tick's emission); within the particle budget |
+| `on_update(e, p)` | opt-in: each live particle, after the data moved it; within the particle budget, past it the data alone moves it |
+
+<!-- /lua-api -->
+
+`e`'s methods (only in its own hook):
+
+<!-- lua-api: effect-source-methods -->
+
+| Method | Gives | What it does |
+|---|---|---|
+| `e:set(input: string, value: number\|boolean\|string)`<br>`e:set(input: string, x: number, y: number, z: number)`<br>`e:set(input: string, points: point[])` | `boolean` | sets an input: a float, bool or enum (by its value's name or its index), a vector, a list's points; false when the effect has no such input of that type |
+| `e:fire(event: string)` | `boolean` | fires an event input (its reactions run in this tick's step when fired before it, else at the next); false when the effect has none of that name |
+| `e:get(name: string)` | `any` | a value of the effect: an input (a vector's x, y, z; an enum's value name; a list's count), a var (its numbers), `stage` (its name, nil before the first) or a source value as the expressions name it (`age`, `size`, `origin` (x, y, z), `count`, `carrier_radius`, ...) |
+| `e:random(lo?: number, hi?: number)` | `number` | a random number in [lo, hi) (without them in [0, 1)) from the particles' own generator |
+| `e:pick(n: integer)` | `integer` | a random whole number from 0 to n - 1, the same way |
+| `e:ground(x: number, y: number)` | `number` | the ground's height at the point |
+| `e:effect(name: string, x?: number, y?: number, z?: number)` |  | starts another effect, free, at the source's origin or at the point |
+
+<!-- /lua-api -->
+
+`p`'s methods (only in its `on_spawn` or `on_update`):
+
+<!-- lua-api: particle-methods -->
+
+| Method | Gives | What it does |
+|---|---|---|
+| `p:get(name: string)` | `any` | `position`, `velocity` (x, y, z), `size`, `alpha` (0..255), `frame`, `color` (r, g, b, 0..255 each), `age`, `life` (ticks left), `kind` (its kind's name) or a var of its kind (its numbers) |
+| `p:set(name: string, ...: number)` |  | sets `position` or `velocity` (x, y, z), `size`, `alpha`, `frame`, `color` (r, g, b), `life` or a var of its kind |
+| `p:kill()` |  | the particle dies at this update (its `on_death` runs); in `on_spawn` it is not kept |
+
+<!-- /lua-api -->
 
 ### Records that name effects
 
@@ -1912,6 +2004,7 @@ boots are yours. Read its files as a recipe for each kind of new content:
 | A spell | `spells.sdb.toml` (Chain Spark's record, `script` naming its file), `Res\spells\chain_spark.lua` (its mechanic: a missile with `OnHit`, the next victim by `FindUnits`, `Damage`, `Apply`, `Effect`, `Bolt`, a timer for the leap; [Spells](#spells)), `Res\textures\spell0101.png`, `prototype0101.png` (its pictures, `icon = 101`), `Maps\showcase.lua` (`GiveItem` of its spell container); `tests/scenarios/mod_showcase_spell.txt` casts it |
 | A buff | `spells.sdb.toml` (Ember Brand's record, `code = "ember"`), `Res\spells\ember_brand.lua` (a curse: `OnStats` lowers the victim's `Strength`, `OnEffectTick` burns it every 20 ticks with `effect:Damage`, `OnEffectEnded` says how it went; [Active effects](#active-effects)); `tests/scenarios/mod_showcase_buff.txt` casts it with `CastSpellUnit` |
 | An effect | `Res\effects\showcase_aura.effect.toml` (orbs trailing light and rising motes, driven by its inputs; `tests/scenarios/mod_effect.txt` starts it from the console); the spell's `ChainSpark.effect.toml` (the missile's spark and its trail) , `ChainSparkHit.effect.toml` (a strike's flash and ring of sparks), `ChainSparkShock.effect.toml` (the look of the shock a strike leaves: the record's `look`, [Active effects](#active-effects)) and `ChainSparkCast.effect.toml` (the caster's look while it casts: the record's `cast_look`, a variant of the game's CastingElectricity; [Records that name effects](#records-that-name-effects)), all on the mod's own texture `Res\textures\chainspark.png` (16 pictures, 4 x 4) |
+| An effect with Lua hooks | `Res\effects\showcase_hooks.effect.toml` and its script `showcase_hooks.lua` (a turning spiral of flames the script places, its charge swelling, embers the script turns, a flare the script starts at the event `pulse`; [Effect hooks](#effect-hooks)); `tests/scenarios/mod_effect_lua.txt` starts it from the console |
 
 The pictures and models are made by `tools/make_showcase_mod.py` in this
 repository.

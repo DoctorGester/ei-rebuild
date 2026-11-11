@@ -374,7 +374,7 @@ public:
     std::shared_ptr<const Record> Run() {
         Known(root, {"replace", "texture", "frames", "columns", "blend", "attach", "part", "flags", "server",
                      "source", "emit", "inputs", "vars", "stage", "on", "anchor", "particle", "tables",
-                     "curves"});
+                     "curves", "script"});
         ReadLook();
         ReadServer();
         ReadSource();
@@ -493,6 +493,7 @@ private:
     void ReadLook() {
         Text(root["texture"], &record->texture);
         if (record->texture.empty()) Error(root, "no texture");
+        Text(root["script"], &record->script);
         Integer(root["frames"], &record->frames);
         Integer(root["columns"], &record->columns);
         if (record->frames < 1) record->frames = 1;
@@ -1161,6 +1162,16 @@ private:
 };
 
 } // namespace
+
+bool FindSourceValue(std::string_view name, int* index, int* width) {
+    for (const Named& named : kSourceNames)
+        if (named.name == name) {
+            *index = named.index;
+            *width = named.width;
+            return true;
+        }
+    return false;
+}
 
 std::shared_ptr<const Record> Read(const RawNode& root, std::string_view name, std::vector<std::string>* errors,
                                    std::int32_t id) {

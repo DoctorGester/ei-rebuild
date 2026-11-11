@@ -4,6 +4,7 @@
 
 #include "engine/particles/particle_source.h"
 #include "engine/particles/particle_host.h"
+#include "engine/particles/particle_lua.h"
 
 #include "engine/core/engine_globals.h"
 #include "engine/core/random.h"
@@ -181,6 +182,7 @@ std::shared_ptr<const Record> Registry::FindById(std::int32_t id) {
 }
 
 void Registry::Reset() {
+    effectlua::Reset();
     byName.clear();
     idNames.clear();
     scanned = false;
@@ -450,6 +452,27 @@ void StartVars(const ParticleKind& kind, const Env& env, Particle& p) {
     for (const Var& var : kind.vars) Store(p.vars + var.slot, var.width, var.start.RunLanes(env));
 }
 
+// The effects the actions started: free sources of their own, at the source's origin or at their place (those of a
+// source on its own clock made by its clock's owner, g_startOwnClock).
+void StartEffects(ParticleSource& s, State& state) {
+    for (const Started& started : state.effects) {
+        int type = kNoParticleType;
+        if (std::shared_ptr<const Record> sub = g_effects.Find(started.name)) type = sub->id;
+        else type = ParticleTypeByName(started.name);
+        if (type == kNoParticleType) {
+            game::Warning("effects: %s: no effect %s to start", state.record->name, started.name);
+            continue;
+        }
+        ParticleSource* child = lib::Has(s.flags, ParticleSourceFlag::OwnClock) && g_startOwnClock
+                                    ? g_startOwnClock(*s.Manager(), type)
+                                    : s.Manager()->CreateSource(type);
+        if (!child) continue;
+        child->localPosition = started.placed ? started.place : s.origin;
+        child->Attach(nullptr);
+    }
+    state.effects.clear();
+}
+
 // What EmitKind made.
 enum class Emitted { None, Kept, Dropped };
 
@@ -533,6 +556,12 @@ Emitted EmitKind(ParticleSource& s, Particle& p, int kindIndex, int anchor, int 
     p.frame = Truncated(kind.frameStart.Run(env, 0.0f), 0, std::numeric_limits<int>::max());
     p.frameTimer = Truncated(kind.frameDelay.Run(env, 0.0f), 0, std::numeric_limits<int>::max());
     if (!kind.drop.Empty() && kind.drop.Run(env) != 0.0f) return Emitted::Dropped;
+    // Its script's on_spawn last: it sees the particle as the data made it.
+    if (effectlua::HasSpawn(s)) {
+        const bool kept = effectlua::OnSpawn(s, p, index, origin);
+        StartEffects(s, state);
+        if (!kept) return Emitted::Dropped;
+    }
     ++state.total;
     return Emitted::Kept;
 }
@@ -578,27 +607,6 @@ void AfterEmission(ParticleSource& s, State& state) {
     EmitReactionParticles(s, state);
 }
 
-// The effects the actions started: free sources of their own, at the source's origin or at their place (those of a
-// source on its own clock made by its clock's owner, g_startOwnClock).
-void StartEffects(ParticleSource& s, State& state) {
-    for (const Started& started : state.effects) {
-        int type = kNoParticleType;
-        if (std::shared_ptr<const Record> sub = g_effects.Find(started.name)) type = sub->id;
-        else type = ParticleTypeByName(started.name);
-        if (type == kNoParticleType) {
-            game::Warning("effects: %s: no effect %s to start", state.record->name, started.name);
-            continue;
-        }
-        ParticleSource* child = lib::Has(s.flags, ParticleSourceFlag::OwnClock) && g_startOwnClock
-                                    ? g_startOwnClock(*s.Manager(), type)
-                                    : s.Manager()->CreateSource(type);
-        if (!child) continue;
-        child->localPosition = started.placed ? started.place : s.origin;
-        child->Attach(nullptr);
-    }
-    state.effects.clear();
-}
-
 } // namespace
 
 void SetUp(ParticleSource& s, std::shared_ptr<const Record> record) {
@@ -627,6 +635,7 @@ void SetUp(ParticleSource& s, std::shared_ptr<const Record> record) {
     s.spreadMin = r.spreadMin;
     s.spreadMax = r.spreadMax;
     s.extent = r.extent;
+    s.script = effectlua::Attach(r);
     s.data = std::make_unique<State>(std::move(record));
     s.data->measure = MeasureCarrier;
     s.data->measureContext = &s;
@@ -642,9 +651,16 @@ void SetUp(ParticleSource& s, std::shared_ptr<const Record> record) {
 void TickData(ParticleSource& s) {
     State& state = *s.data;
     const bool emittingNow = lib::Has(s.flags, ParticleSourceFlag::Emitting);
-    if (state.sawEmitting && !emittingNow && !state.ended) state.Stopped();
+    const bool stopped = state.sawEmitting && !emittingNow && !state.ended;
+    if (stopped) state.Stopped();
     WriteSource(s, state);
+    // The script's hooks drive the inputs the step reads (the effects they start are made now: the step forgets them).
+    if (s.script) {
+        effectlua::BeforeStep(s, stopped);
+        StartEffects(s, state);
+    }
     state.Step(g_particleRandom);
+    if (s.script) effectlua::AfterStep(s);
     ApplyActions(s, state);
     int tries = state.emitting ? Truncated(state.rate, 0, std::numeric_limits<int>::max() / 2) : 0;
     s.emitCount = tries + state.burst;
@@ -656,10 +672,11 @@ void TickData(ParticleSource& s) {
 }
 
 void Spawned(ParticleSource& s) {
-    if (!s.data || !s.data->record->spawns) return;
+    if (!s.data || (!s.data->record->spawns && !s.script)) return;
     State& state = *s.data;
     WriteSource(s, state);
     state.Spawned(g_particleRandom);
+    effectlua::Spawned(s);
     ApplyEmissionActions(s, state);
     StartEffects(s, state);
 }
@@ -779,7 +796,13 @@ int UpdateData(ParticleSource& s, Particle& p) {
     State& state = *s.data;
     if (p.kind < 0 || p.kind >= std::ssize(state.record->particles)) return 0;
     const ParticleKind& kind = state.record->particles[p.kind];
-    const int alive = UpdateKind(s, state, kind, p);
+    int alive = UpdateKind(s, state, kind, p);
+    // Its script's opt-in on_update after the data's (within the particle budget).
+    if (alive && effectlua::HasUpdate(s)) {
+        const Vector3 origin = kind.space == Space::World ? Vector3{} : SpaceOrigin(s, state, kind, p.state);
+        if (!effectlua::OnUpdate(s, p, origin)) alive = 0;
+        StartEffects(s, state);
+    }
     // Its death: its on_death actions, the particles at this tick's emission, the effects at once.
     if (!alive && !kind.onDeath.empty()) {
         ParticleValues values;

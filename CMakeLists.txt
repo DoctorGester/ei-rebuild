@@ -93,9 +93,10 @@ add_library(tomlc17 STATIC third_party/tomlc17/tomlc17.c)
 set_target_properties(tomlc17 PROPERTIES C_STANDARD 17 C_STANDARD_REQUIRED ON)
 target_compile_options(tomlc17 PRIVATE $<IF:$<C_COMPILER_ID:MSVC>,/W0,-w>)
 # Lua 5.3 with Eris (third_party/eris, unmodified): the mission scripts' Lua runtime and its persistence
-# (src/game/script/script_lua.cpp; docs/notes/lua-scripting.md). Compiled as C++: a Lua error then unwinds through the
-# bindings' frames as an exception (Lua's own choice for C++), not as a longjmp past their destructors. POSIX's
-# functions outside Windows (mkstemp, not tmpnam). Without its warnings, as tomlc17.
+# (src/game/script/script_lua.cpp; docs/notes/lua-scripting.md) and the effects' hooks
+# (src/engine/particles/particle_lua.cpp). Compiled as C++: a Lua error then unwinds through the bindings' frames as an
+# exception (Lua's own choice for C++), not as a longjmp past their destructors. POSIX's functions outside Windows
+# (mkstemp, not tmpnam). Without its warnings, as tomlc17.
 file(GLOB EI_ERIS_SOURCES CONFIGURE_DEPENDS third_party/eris/*.c)
 add_library(eris STATIC ${EI_ERIS_SOURCES})
 set_source_files_properties(${EI_ERIS_SOURCES} PROPERTIES LANGUAGE CXX)
@@ -181,7 +182,7 @@ endif()
 file(GLOB EI_ENGINE_SOURCES CONFIGURE_DEPENDS src/lib/*.cpp src/engine/*/*.cpp)
 add_library(ei_engine OBJECT ${EI_ENGINE_SOURCES})
 target_include_directories(ei_engine PRIVATE src third_party)
-target_link_libraries(ei_engine PUBLIC ei_render ei_platform tomlc17 stb_dxt wuffs cgltf PRIVATE SDL3::SDL3-static)
+target_link_libraries(ei_engine PUBLIC ei_render ei_platform tomlc17 stb_dxt wuffs cgltf eris PRIVATE SDL3::SDL3-static)
 # The original effects on data (assets/effects/*.effect.toml) built into the engine as bytes at build time
 # (src/engine/particles/embed_effects.cmake; docs/notes/effects.md, "The original effects on data").
 file(GLOB EI_BUILTIN_EFFECTS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/assets/effects/*.effect.toml)

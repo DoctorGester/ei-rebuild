@@ -1,0 +1,60 @@
+# The showcase mod's effect with Lua hooks (docs/modding.md, "Effect hooks"): a five-armed spiral of flames on the
+# ground, turning, with embers circling it. Its data says what the particles are and how they fade; its script
+# (showcase_hooks.lua) drives its inputs and shapes the spiral: `charge` swells and ebbs, `mode` starts at "storm",
+# and the event `pulse` makes the script set `burst`, which flares the effect until the game fires `calm`.
+# A script starts it by name: CreateParticleSource(id, x, y, z, size, "showcase_hooks").
+
+texture = "Teleport"
+blend = "additive"
+script = "showcase_hooks.lua"
+
+[inputs]
+charge = { type = "float", default = 0.0 }
+mode = { type = "enum", values = ["calm", "storm"], default = "calm" }
+burst = { type = "float", default = 0.0 }
+pulse = { type = "event" }
+calm = { type = "event" }
+
+[emit]
+rate = "(mode == mode.storm ? 12 : 6) + charge * 10"
+max = 800
+
+[[stage]]
+name = "glow"
+until = "burst > 0"
+next = "flare"
+
+[[stage]]
+name = "flare"
+rate = 24
+enter = [{ emit = 30, kind = "ember" }]
+on = { calm = "glow" }
+
+[[on]]
+event = "calm"
+do = [{ set = "burst", value = 0 }]
+
+# The spiral's flames: the script places each on an arm (on_spawn); they rise a little and fade.
+[[particle]]
+name = "flame"
+when = "chance(75)"
+lifetime = "range(14, 22)"
+velocity = "vec3(0, 0, range(0.01, 0.03))"
+size = { start = "range(0.08, 0.14) * size", tick = "p.size * 0.96" }
+color = "FFA040"
+alpha = { start = 0, tick = "glow(p.t)" }
+frame = { start = "pick(16)", delay = 1 }
+
+# The embers: the script turns each round the centre at every update (on_update, the opt-in).
+[[particle]]
+name = "ember"
+lifetime = "range(30, 45)"
+spawn = "disc() * size * 1.2"
+position = "on_ground(origin + p.spawn, 0.3)"
+size = { start = "range(0.08, 0.12) * size" }
+color = "FFE0A0"
+alpha = { tick = "255 * (1 - p.t)" }
+frame = { start = "pick(16)", delay = 2 }
+
+[curves]
+glow = [[0.0, 0], [0.2, 255], [0.6, 200], [1.0, 0]]

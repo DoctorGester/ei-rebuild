@@ -9,6 +9,7 @@
 
 #include "engine/models/figure_instance.h"
 #include "engine/particles/particle_data.h"
+#include "engine/particles/particle_lua.h"
 #include "engine/particles/particle_source.h"
 
 #include "lib/maths.h"
@@ -254,6 +255,8 @@ void Viewer::Restart(int target) {
 
 void Viewer::Step() {
     if (!source || ended) return;
+    // The scripts' particle budget per tick of the viewer's clock, so a replay runs as the play did.
+    effectlua::NewTick();
     for (const Change& change : timeline)
         if (change.tick == tick) Make(change, false);
     std::swap(g_particleRandom, random);

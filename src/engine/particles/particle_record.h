@@ -129,7 +129,7 @@ inline constexpr int kParticleValues = static_cast<int>(ParticleValue::Values);
 // The floats a particle kind's vars hold between them (a vector var takes its lanes).
 inline constexpr int kParticleVars = 8;
 
-// The kinds of input an effect declares: what game code (and later Lua) drives it with.
+// The kinds of input an effect declares: what game code (and its Lua hooks) drives it with.
 enum class InputType : std::uint8_t {
     Float,
     Vector,     // three values, read as one vector `<name>` (`<name>.x` its x)
@@ -293,6 +293,8 @@ struct Record {
     std::string file;       // the top file, for messages
 
     std::string texture;
+    // Its Lua hooks' file in Res\effects (`script = "<file>.lua"`; empty: none): particle_lua.h runs it.
+    std::string script;
     int frames = 16;
     int columns = 4;
     bool additive = false;
@@ -335,6 +337,10 @@ struct Record {
     // The input named `name`, or null.
     const Input* FindInput(std::string_view name) const;
 };
+
+// The source value named `name` as an expression reads it (`size`, `origin`, `carrier_radius`...): its first SourceValue
+// and its lanes; false for a name that is none.
+bool FindSourceValue(std::string_view name, int* index, int* width);
 
 // The id a data effect travels and is saved under: 0x40000000 | the FNV-1a 32 of its lower-case name in the low 30
 // bits, apart from the original types' 0x2000 range.
@@ -391,7 +397,8 @@ class State {
 public:
     explicit State(std::shared_ptr<const Record> record);
 
-    // The inputs (game code and later Lua; particle_data.h): false when the effect has no input of that name and type.
+    // The inputs (game code and the Lua hooks; particle_data.h, particle_lua.h): false when the effect has no input of
+    // that name and type.
     bool SetValue(std::string_view input, float value);
     bool SetVector(std::string_view input, float x, float y, float z);
     bool SetEnum(std::string_view input, std::string_view value);
@@ -399,6 +406,8 @@ public:
     bool Fire(std::string_view event);
     // The source stopped emitting by the game's hand: the "stop" reactions run at the next step.
     void Stopped() { stopPending = true; }
+    // The times the event input at `slot` was fired since the last step (the Lua hooks' on_event, particle_lua.h).
+    int Pending(int slot) const { return pendingEvents[slot]; }
 
     // The vars and the anchor groups that start when the source is made (`at_create`), from the source values written
     // first.

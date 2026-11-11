@@ -23,6 +23,13 @@
 #include "game/script/script_lua_number.h"
 #include "game/script/script_lua_writer.h"
 #include "game/world/world.h"
+#include "engine/models/texture.h"
+#include "engine/particles/particle_data.h"
+#include "engine/particles/particle_figure_host.h"
+#include "engine/particles/particle_lua.h"
+#include "engine/particles/particle_source.h"
+#include "engine/scene/scene_renderer.h"
+#include "lib/toml.h"
 
 #include "eris/lauxlib.h"
 #include "eris/lua.h"
@@ -1473,6 +1480,278 @@ void CheckUnknownParticleType() {
     Expect(unknown == 1 && lines[0].starts_with(expected), "an unknown particle type is logged once");
 }
 
+// ---- The effects' Lua hooks (engine/particles/particle_lua.h) ----------------------------------------------------------
+
+constexpr const char* kHooksEffect = R"toml(
+texture = "Teleport"
+script = "check_hooks.lua"
+
+[inputs]
+level = { type = "float" }
+mode = { type = "enum", values = ["a", "b"] }
+dir = { type = "vector" }
+path = { type = "list" }
+pulse = { type = "event" }
+finish = { type = "float" }
+ok = { type = "float" }
+got = { type = "float" }
+flag = { type = "float" }
+stopped = { type = "float" }
+ended = { type = "float" }
+
+[vars]
+spin = 0.5
+
+[emit]
+rate = "level"
+max = 5000
+
+[[stage]]
+name = "run"
+until = "finish > 0"
+next = "end"
+
+[[on]]
+event = "pulse"
+do = [{ set = "flag", value = 1 }]
+
+[[particle]]
+name = "dot"
+lifetime = 1000
+vars = { n = 0 }
+)toml";
+
+// on_start drives the inputs (each type), on_tick reads them back and fires an event the same tick's step sees,
+// on_event answers it, the game's stop and the end; on_spawn places the particles (and drops one), on_update grows them.
+constexpr const char* kHooksScript = R"lua(
+local hooks = {}
+function hooks.on_start(e)
+    e.starts = (e.starts or 0) + 1
+    e:set("level", 3)
+    e:set("mode", "b")
+    e:set("dir", 1, 2, 3)
+    e:set("path", { { 1, 2, 3 }, { x = 4, y = 5, z = 6 } })
+    e:set("ok", (e:set("nothing", 1) == false and e:fire("nothing") == false and e:set("dir", 1) == false) and 1 or 0)
+end
+function hooks.on_tick(e, age)
+    if age == 1 then
+        local x, y, z = e:get("dir")
+        local fine = e.starts == 1 and x == 1 and y == 2 and z == 3 and e:get("mode") == "b" and e:get("level") == 3
+            and e:get("path") == 2 and e:get("count") == 3 and e:get("age") == 1 and e:get("stage") == "run"
+            and e:get("spin") == 0.5 and select("#", e:get("origin")) == 3
+        e:set("got", fine and 1 or 0)
+    end
+    if age == 2 then e:fire("pulse") end
+end
+function hooks.on_event(e, name, count)
+    if name == "pulse" and count == 1 then e:set("level", 7) end
+    if name == "stop" then e:set("stopped", 1) end
+    if name == "end" then e:set("ended", 1) end
+end
+function hooks.on_spawn(e, p, i)
+    p:set("position", 1, 2, 3 + i)
+    p:set("size", 0.5)
+    p:set("n", 10)
+    if i == 6 then p:kill() end
+end
+function hooks.on_update(e, p)
+    p:set("size", p:get("size") + 1)
+end
+return hooks
+)lua";
+
+// 300 particles a tick, each hook marking the particle it ran on.
+constexpr const char* kBudgetEffect = R"toml(
+texture = "Teleport"
+script = "check_budget.lua"
+
+[emit]
+rate = 300
+max = 5000
+
+[[particle]]
+name = "dot"
+lifetime = 1000
+size = 0.25
+vars = { n = 0 }
+)toml";
+
+constexpr const char* kBudgetScript = R"lua(
+return {
+    on_spawn = function(e, p) p:set("size", 1) end,
+    on_update = function(e, p) p:set("n", p:get("n") + 1) end,
+}
+)lua";
+
+// A hook that fails at its second tick and a file whose start never ends: their hooks go off, the effects run on.
+constexpr const char* kBrokenEffect = R"toml(
+texture = "Teleport"
+script = "check_broken.lua"
+
+[inputs]
+ticks = { type = "float" }
+
+[emit]
+rate = 1
+
+[[particle]]
+name = "dot"
+lifetime = 100
+)toml";
+
+constexpr const char* kBrokenScript = R"lua(
+return {
+    on_tick = function(e, age)
+        if age == 1 then error("broken on purpose") end
+        e:set("ticks", e:get("ticks") + 1)
+    end,
+}
+)lua";
+
+constexpr const char* kLoopEffect = R"toml(
+texture = "Teleport"
+script = "check_loop.lua"
+
+[emit]
+rate = 1
+
+[[particle]]
+name = "dot"
+lifetime = 100
+)toml";
+
+constexpr const char* kLoopScript = R"lua(
+return { on_start = function(e) while true do end end }
+)lua";
+
+ParticleSource* MadeEffect(ParticleManager& manager, const char* name, const char* text) {
+    toml::Document document;
+    if (!document.Parse(text, name)) {
+        Expect(false, std::format("effect hooks: {} does not parse: {}", name, document.Error()).c_str());
+        return nullptr;
+    }
+    std::vector<std::string> errors;
+    std::shared_ptr<const effectdata::Record> record = effectdata::Read(effectdata::Copy(document.Root(), name), name, &errors);
+    for (const std::string& error : errors) Expect(false, std::format("effect hooks: {}", error).c_str());
+    if (!record) return nullptr;
+    effectdata::g_effects.Put(name, record);
+    ParticleSource* source = manager.CreateSource(record->id);
+    if (!source) return nullptr;
+    source->localPosition = {};
+    source->Attach(nullptr);
+    return source;
+}
+
+float InputOf(const ParticleSource& s, const char* name) {
+    const effectdata::Input* input = s.data->record->FindInput(name);
+    return input ? s.data->inputs[input->slot] : -1.0f;
+}
+
+void CheckEffectHooks() {
+    std::vector<std::string> lines;
+    g_logCapture = &lines;
+    effectdata::g_effects.Reset();
+    particlehost::FigureHost host;
+    particlehost::Use(host);
+    // The sources take their textures by name (none is loaded).
+    g_clientWorld.textureManager = std::make_unique<TextureManager>();
+    g_clientWorld.textureManager->SetContext(&g_clientWorld);
+    ManagerContext* oldWorld = g_sceneRenderer.world;
+    g_sceneRenderer.world = &g_clientWorld;
+    auto manager = std::make_unique<ParticleManager>();
+    manager->Init(nullptr);
+    effectlua::PutScript("check_hooks.lua", kHooksScript);
+    effectlua::PutScript("check_budget.lua", kBudgetScript);
+    effectlua::PutScript("check_broken.lua", kBrokenScript);
+    effectlua::PutScript("check_loop.lua", kLoopScript);
+
+    std::set<std::string> source, particle;
+    for (const std::string& name : effectlua::MethodNames()) {
+        if (name.starts_with("source:")) source.insert(name.substr(7));
+        if (name.starts_with("particle:")) particle.insert(name.substr(9));
+    }
+    ExpectSame(source, Declared(luaapi::Kind::EffectSourceMethod), "effect source method");
+    ExpectSame(particle, Declared(luaapi::Kind::ParticleMethod), "particle method");
+
+    if (ParticleSource* s = MadeEffect(*manager, "check_hooks", kHooksEffect)) {
+        auto tick = [&] {
+            effectlua::NewTick();
+            s->RunTick();
+        };
+        tick();
+        const effectdata::Input* dir = s->data->record->FindInput("dir");
+        Expect(InputOf(*s, "level") == 3.0f && InputOf(*s, "mode") == 1.0f && dir &&
+                   s->data->inputs[dir->slot] == 1.0f && s->data->inputs[dir->slot + 2] == 3.0f &&
+                   InputOf(*s, "path") == 2.0f && InputOf(*s, "ok") == 1.0f,
+               "effect hooks: on_start sets each type of input (and an unknown one is refused)");
+        bool placed = s->particles.size() == 3;
+        for (std::size_t i = 0; placed && i < 3; ++i) {
+            const Particle& p = *s->particles[i];
+            placed = p.pos.x == 1.0f && p.pos.y == 2.0f && p.pos.z == 3.0f + static_cast<float>(i) && p.size == 0.5f &&
+                     p.vars[0] == 10.0f;
+        }
+        Expect(placed, "effect hooks: on_start's input drives the emission, on_spawn places each particle");
+        tick();
+        Expect(InputOf(*s, "got") == 1.0f, "effect hooks: e:get reads the inputs, the vars and the source's values");
+        Expect(s->particles.size() == 6 && s->particles[0]->size == 1.5f && s->particles[5]->size == 0.5f,
+               "effect hooks: on_update runs after the data's update of each live particle");
+        tick();
+        Expect(InputOf(*s, "flag") == 1.0f && InputOf(*s, "level") == 7.0f,
+               "effect hooks: an event fired in on_tick reaches on_event and the same tick's step");
+        Expect(s->particles.size() == 12, "effect hooks: a particle killed in on_spawn is not kept");
+        s->StopEmitting();
+        tick();
+        Expect(InputOf(*s, "stopped") == 1.0f && s->particles.size() == 12, "effect hooks: on_event \"stop\"");
+        effectdata::SetInput(*s, "finish", 1.0f);
+        tick();
+        Expect(s->data->ended && InputOf(*s, "ended") == 1.0f, "effect hooks: on_event \"end\"");
+    }
+
+    if (ParticleSource* s = MadeEffect(*manager, "check_budget", kBudgetEffect)) {
+        // A catch-up of ten ticks in one: the hooks' calls stop at the budget, the data runs every particle.
+        effectlua::NewTick();
+        for (int i = 0; i < 10; ++i) s->RunTick();
+        auto hooked = [s] {
+            int calls = 0;
+            for (const Particle* p : s->particles) calls += (p->size == 1.0f ? 1 : 0) + static_cast<int>(p->vars[0]);
+            return calls;
+        };
+        Expect(s->particles.size() == 3000 && effectlua::BudgetLeft() == 0 && hooked() == effectlua::kParticleBudget,
+               "effect hooks: a catch-up's particle hooks stop at the budget");
+        effectlua::NewTick();
+        s->RunTick();
+        Expect(hooked() == 2 * effectlua::kParticleBudget, "effect hooks: the budget is renewed at the next tick");
+        int told = 0;
+        for (const std::string& line : lines) told += line.find("the particle budget") != std::string::npos ? 1 : 0;
+        Expect(told == 1, "effect hooks: a spent budget is logged once per script");
+    }
+
+    if (ParticleSource* s = MadeEffect(*manager, "check_broken", kBrokenEffect)) {
+        for (int i = 0; i < 4; ++i) {
+            effectlua::NewTick();
+            s->RunTick();
+        }
+        int told = 0;
+        for (const std::string& line : lines) told += line.find("broken on purpose") != std::string::npos ? 1 : 0;
+        Expect(told == 1 && InputOf(*s, "ticks") == 1.0f && s->particles.size() == 4,
+               "effect hooks: a failing hook is logged once, its hooks go off and the effect runs on");
+    }
+    if (ParticleSource* s = MadeEffect(*manager, "check_loop", kLoopEffect)) {
+        effectlua::NewTick();
+        s->RunTick();
+        int told = 0;
+        for (const std::string& line : lines) told += line.find("instructions") != std::string::npos ? 1 : 0;
+        Expect(told == 1 && s->particles.size() == 1, "effect hooks: a hook that never ends is stopped");
+    }
+
+    manager.reset();
+    effectdata::g_effects.Reset();
+    g_sceneRenderer.world = oldWorld;
+    g_clientWorld.textureManager.reset();
+    particlehost::Use(WorldParticleHost());
+    g_logCapture = nullptr;
+}
+
 } // namespace
 
 int Main() {
@@ -1499,6 +1778,7 @@ int Main() {
     CheckSpellHost(world);
     CheckEffectStats();
     CheckUnknownParticleType();
+    CheckEffectHooks();
     Expect(world.OnlyWorldReferences(), "every reference released at the end");
     std::printf("lua_check: %d checks, %d failed\n", g_checks, g_failures);
     return g_failures ? 1 : 0;

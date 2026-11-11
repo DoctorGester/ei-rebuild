@@ -9,10 +9,11 @@
 namespace luaapi {
 
 enum class Kind : unsigned char {
-    Section, Binding, Global, Helper, CastMethod, StatsMethod, EffectMethod, Hook, Field, Stat
+    Section, Binding, Global, Helper, CastMethod, StatsMethod, EffectMethod, Hook, Field, Stat,
+    EffectScriptHook, EffectSourceMethod, ParticleMethod,   // the effects' (engine/particles/particle_lua_api.inc)
 };
 
-// One row of script_lua_api.inc.
+// One row of script_lua_api.inc or of the effects' particle_lua_api.inc.
 struct Row {
     Kind kind{};
     const char* owner = "";     // a Binding's keyword, a Field's class; else ""
@@ -34,6 +35,11 @@ inline constexpr Row kRows[] = {
 #define EI_LUA_FIELD(owner, name, type, text) {Kind::Field, #owner, #name, type, "", text},
 #define EI_LUA_STAT(name, text) {Kind::Stat, "", #name, "", "", text},
 #include "game/script/script_lua_api.inc"
+#define EI_EFFECT_LUA_HOOK(name, params, returns, text) {Kind::EffectScriptHook, "", #name, params, returns, text},
+#define EI_EFFECT_LUA_SOURCE_METHOD(name, params, returns, text) \
+    {Kind::EffectSourceMethod, "", #name, params, returns, text},
+#define EI_EFFECT_LUA_PARTICLE_METHOD(name, params, returns, text) {Kind::ParticleMethod, "", #name, params, returns, text},
+#include "engine/particles/particle_lua_api.inc"
 };
 
 // The Lua name of the keyword's binding (its EI_LUA_BINDING row's); null for a keyword without one.
