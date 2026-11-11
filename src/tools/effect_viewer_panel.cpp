@@ -26,7 +26,6 @@ using effectdata::RawNode;
 
 const char* OriginLabel(Origin origin) {
     switch (origin) {
-    case Origin::Code: return "code";
     case Origin::Builtin: return "data";
     case Origin::Mod: return "mod";
     }
@@ -269,31 +268,6 @@ void DrawState(const Viewer& v) {
     }
 }
 
-// What Create gave a source of code: its type's values, to start a data file from.
-void DrawMade(const MadeValues& m) {
-    if (!ImGui::BeginTable("made", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp)) return;
-    const auto row = [](const char* name, const char* format, auto... values) {
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn();
-        ImGui::TextUnformatted(name);
-        ImGui::TableNextColumn();
-        ImGui::Text(format, values...);
-    };
-    row("texture", "%s", m.texture.c_str());
-    row("frames", "%d (%d columns, %d ticks each)", m.frames, m.columns, m.frameDelay);
-    row("emit", "%d a tick, %d%% chance, every %.3g", m.emitCount, m.emitChance, m.emitSpacing);
-    row("particles", "at most %d, live %d ticks", m.maxParticles, m.lifetime);
-    row("elements", "%d", m.elements);
-    row("size", "%.3g (height %.3g, growth %.3g, base %.3g)", m.size, m.height, m.growth, m.baseSize);
-    row("alpha / param", "%.3g / %.3g", m.alpha, m.param);
-    row("spread", "%.3g %.3g %.3g .. %.3g %.3g %.3g", m.spreadMin.x, m.spreadMin.y, m.spreadMin.z, m.spreadMax.x,
-        m.spreadMax.y, m.spreadMax.z);
-    row("extent", "%.3g %.3g %.3g", m.extent.x, m.extent.y, m.extent.z);
-    row("blend", "%s", m.additive ? "additive" : "alpha");
-    row("flags", "0x%X, attach point %d", m.flags, m.attachPoint);
-    ImGui::EndTable();
-}
-
 // ---- The document ----------------------------------------------------------------------------------------------------
 
 // One field of the tree: true when it changed.
@@ -399,20 +373,7 @@ void DrawPanel(Viewer& v) {
         if (ImGui::CollapsingHeader("Place", ImGuiTreeNodeFlags_DefaultOpen)) DrawPlace(v);
         if (ImGui::CollapsingHeader("Drive", ImGuiTreeNodeFlags_DefaultOpen)) DrawDriving(v);
         if (ImGui::CollapsingHeader("Timeline")) DrawTimeline(v);
-        if (v.hasDocument) {
-            if (ImGui::CollapsingHeader("File", ImGuiTreeNodeFlags_DefaultOpen)) {
-                if (entry.origin == Origin::Code) {
-                    ImGui::TextWrapped("Converted from code: the game reads a file of this name once %s is on data.",
-                                       entry.name.c_str());
-                    if (ImGui::Button("Back to code")) v.BackToCode();
-                }
-                if (v.hasDocument) DrawDocument(v);
-            }
-        } else if (ImGui::CollapsingHeader("Values as made", ImGuiTreeNodeFlags_DefaultOpen)) {
-            ImGui::TextDisabled("%s plays from code: these are what its set-up gave the source.", entry.name.c_str());
-            DrawMade(v.made);
-            if (ImGui::Button("Convert to data")) v.ConvertToData();
-        }
+        if (v.hasDocument && ImGui::CollapsingHeader("File", ImGuiTreeNodeFlags_DefaultOpen)) DrawDocument(v);
     }
     if (!v.status.empty()) ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.4f, 1.0f), "%s", v.status.c_str());
     ImGui::End();

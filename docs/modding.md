@@ -631,16 +631,19 @@ frame = { start = "pick(16)", delay = 1 }
   `carrier_axis_y.x/y/z`, its feet
   `carrier_left_foot.x/y/z` and `carrier_right_foot.x/y/z`. A particle's own vars may not reuse the built-in names
   (`p.age`, `p.life`, `p.x`...). A var with `at_create = true` starts when the source is made (a random count drawn
-  once, before the first tick).
+  once, before the first tick); so does an anchor group with `at_create = true` (the fireball's fragments). The
+  scene's sun colour is `sun.r/g/b` (0..1: the tornado takes its colour from it).
 - **Reactions** (`[[on]] event = "tick"`, with a `when` condition) run actions each tick: `{ set = "height", value =
   ... }` changes an input, a var or the source's own `size`, `height`, `growth`, `alpha` or `param`, `{ stop_emitting =
   true }` ends the emission (the particles live on), `{ stop = true }` stops the source, `{ let_go = true }` lets go
   of the carrier (the source stays where it is), `{ shake = "size", time = 5, decay = 0.25 }` shakes the camera by
-  that strength around the source (as the mushroom's burst). `set` also takes the spread box and the extent
+  that strength around the source (as the mushroom's burst), `{ scorch = "size", alpha = 0.6 }` leaves a scorch mark
+  of that radius on the ground under it. `set` also takes the spread box and the extent
   (`spread_min.x`, `extent.y`...). `[[on]] event = "emit"` runs after each particle the emission makes,
   at once (the next particle of the tick sees it): a count for the next tick by the carrier's state, a stop when the
   carrier is dead, or `{ emit = 25, kind = "puff" }` (a burst of another kind made right after it, as the poison fog's
-  grid of puffs at its first particle).
+  grid of puffs at its first particle). `[[on]] event = "spawn"` runs once when the game's effect object puts the
+  effect into the world (a spell's blast): the fireball's and the lightning's scorch marks and the lightning's shake.
 - **Particles that change the source**: `source = { size = "..." }` in a particle kind sets the source's value at
   each of its updates (the particles after it read the new value), as a fading mark that shrinks its source; `drop =
   "..."` throws a particle away once it is made (its random draws stay drawn); `anchor_index = "p.gust"` starts it at
@@ -656,14 +659,16 @@ frame = { start = "pick(16)", delay = 1 }
   first light's orbit, a spark pulled towards a random swirl.
 - **Random points**: `ball_x()` draws a random point in the unit ball and gives its x, then `ball_y()` and `ball_z()`
   the same point's y and z (a random direction for three vars). The `ball` and `shell` spawns take `tries` (10: the
-  draws before the last is kept; 0: draw until the point is inside).
+  draws before the last is kept; 0: draw until the point is inside) and `shift = [x, y, z]` (the ball moved by it, so
+  more points fall on that side: the fireball's fragments fly upwards).
 - **Anchors made as it goes**: `{ add_anchor = "orb", count = 3 }` makes anchors at any time (`count = 0` in the
   `[[anchor]]` makes none at the start), and an anchor's own `spawn = { shape = "ball" }` gives each a random point
   (`a.spawn.x/y/z`) to place it by; `[[on]] event = "before_emit"` runs before each particle is made, so the first
   particle can find its anchors ready (`when = "anchors.orb == 0"`).
 - **The ground and lists**: `ground(x, y)` is the ground's height there (a kill plane: `kill = "p.z < ground(p.x,
   p.y)"`), `platform_height(x, y)` the height of a platform (a bridge, a floor) there and `platform_normal_x(x, y)`,
-  `_y`, `_z` its slope (0 and an upright normal where there is none); an input `{ type = "list" }` holds points the
+  `_y`, `_z` its slope (0 and an upright normal where there is none), `surface(x, y)` the top of what stands there
+  (the platform, else the ground: the path markers' glows); an input `{ type = "list" }` holds points the
   game gives (`path.count`, `path.x[i]`, `path.y[i]`, `path.z[i]`), with a `default = [[x, y, z], ...]`.
 - **When a particle dies**: `on_death = [{ emit = 4, kind = "ember" }, { effect = "Sparks" }]` emits particles of
   another kind where it died, at once, or starts an effect there.
@@ -672,7 +677,10 @@ frame = { start = "pick(16)", delay = 1 }
 - **Placing a particle yourself**: `position = [x, y, z]` starts it where the expressions say (`origin.x`, the
   source's motion, its `side` and `up` axes), and `position = { tick = [...] }` moves it each tick by your own sum
   instead of its velocity.
-- **The game's own effects** are written the same way as they move to data (`assets/effects` in the source:
+- **Frames**: `frame = { start, delay, mode, tick }`; past the texture's last frame `mode = "loop"` (the default)
+  starts again, `"hold"` stays on the last, `"die"` ends the particle and `"free"` keeps the number (drawn as the first
+  frame; a table read by it sees the real count).
+- **The game's own effects** are all written this way (`assets/effects` in the source:
   FireStar, AcidStar, CurseStars, PortalStar, Sparks, FeebleMind, ZoneExit, the trails FireBall, FireArrow,
   RikArrowSmoke, AcidRay, the fires and smokes CampFire, Fire, Smoke, Tendril, VulcanSmoke, and Portal, TeleportRing,
   Teleport, Banshee, BlueGas, Nuke, the marks on units Stun, Regeneration, VisionStar1-4, FeetCloud1 / 2, StartTrans,
@@ -680,7 +688,8 @@ frame = { start = "pick(16)", delay = 1 }
   showers Shower1-4, the poison clouds PoisonFog and PoisonCloud, the mushroom and its Transform, the dust GroundDust1
   / 2, the beam Link, the rings Modifier1-12 and ClayRing, the casting circles Cylinder1 / 2, the casts Casting,
   Healing, CastingFire, CastingElectricity, CastingAcid, CastingDivination, CastingIllusion, CastingDomination,
-  CastingEnchantment and CastingHealing, the regeneration orbs Silence and the bag's balls Bag so far); a mod's
+  CastingEnchantment and CastingHealing, the regeneration orbs Silence and the bag's balls Bag, the blasts FireBlast and
+  LightningBlast, the Geyser, the funnels Tornado and CurseHolder and the path markers' glow ShapeChange); a mod's
   `Res\effects\FireStar.effect.toml` retunes the fire arrow's flash with only
   the fields it names, and `Res\effects\ZoneExit.effect.toml` the glow over every zone exit.
 - **Problems** are `warning: effects: <file>:<line>: ...` lines in `ei-rebuild.log`; an effect with an error shows
@@ -691,8 +700,7 @@ frame = { start = "pick(16)", delay = 1 }
 
 `ei-rebuild --effects [<effect>]` starts the game with a panel on its left. Start a new game, or load a save, to get a
 world and a hero to play effects on. The panel lists:
-- the 83 original effect types, marked `data` when they run from a built-in file and `code` when they still run from
-  the game's code;
+- the 83 original effect types, marked `data`: each runs from its built-in file;
 - your mod's `Res\effects` files, marked `mod`.
 
 Pick one and it plays. Its textures and figures are your install's, as the game loads them.
@@ -722,10 +730,6 @@ Pick one and it plays. Its textures and figures are your install's, as the game 
   - The viewer writes nothing else, and nothing into the game folder unless you type that folder in.
 - **New effect**: type a name under the list and press New effect. It starts from the example above, plays at once
   and is saved like any other.
-- **Code types** show the values their set-up gives the source (texture, frames, emission, sizes, spread). Convert
-  to data writes them as a starting file with one particle kind, which plays in their place in the viewer. The line
-  below says whether it sets the source up as the code does. The particles' motion is still yours to write. The game
-  reads such a file only once the type itself is on data. Back to code drops the conversion.
 - **Sub-effects**: effects that a data effect starts itself (its `effect` actions) play on the viewer's clock, so
   they pause, step and scrub with it.
 - **Limits**: the viewer is part of the game and is not in saves or network games.

@@ -1,0 +1,138 @@
+# LightningBlast (0x2030, the TendriLight texture): the lightning spell's strike. At its first particle the source lays
+# a bolt of ten points on the ground around it (point 0 at the centre, the others within 0.3 of the size); each tick the
+# points move by their fork direction and fall (the fork's z dropping by 0.075), and from the tenth tick the source
+# stops emitting. The first twenty particles run along the bolt, two per point: the even ones ride their point, the odd
+# ones flash once. Then, while the source has fewer than 200 particles and the bolt is younger than five ticks, bursts
+# spread from the impact point; after them sparks jump between a random point and where it was. The world's effect
+# object leaves a scorch mark as wide as the effect and shakes the camera.
+# The original types on data: docs/notes/effects.md, "The original effects on data".
+
+texture = "TendriLight"
+frames = 15
+blend = "additive"
+
+[server]
+one_shot = 60
+script_lifetime = 200
+
+[source]
+spread_min = [-0.2, -0.2, -0.2]
+spread_max = [0.2, 0.2, 0.2]
+
+[emit]
+rate = "anchors.point > 0 ? 50 : 250"
+chance = 88
+max = 600
+
+[vars]
+along = 0           # the particles emitted along the bolt
+
+[tables]
+light_alpha = [0, 20, 44, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63]   # a spark's, by its life left
+
+[[on]]
+event = "spawn"
+do = [{ scorch = "base_size", alpha = "alpha * 0.6" }, { shake = 2, time = "base_size", decay = 0.25 }]
+
+[[on]]
+event = "before_emit"
+when = "anchors.point == 0"
+do = [{ add_anchor = "point", count = 10 }]
+
+[[on]]
+event = "emit"
+when = "along < 20"
+do = [{ set = "along", value = "along + 1" }]
+
+[[on]]
+event = "tick"
+when = "point.age[0] >= 10"
+do = [{ stop_emitting = true }]
+
+# A bolt point in the world: its direction (d*: none for point 0) at a random reach (r) and angle (ang), its place
+# (p*), its place before this tick's move (o*, b*) and its fork (f*), whose height falls.
+[[anchor]]
+name = "point"
+count = 0
+
+[anchor.vars]
+r = "range(0, 1)"
+ang = "range(0, 6.28318)"
+dx = "a.index == 0 ? 0 : sin(a.ang) * a.r"
+dy = "a.index == 0 ? 0 : cos(a.ang) * a.r"
+ox = { start = 0, tick = "a.px" }
+oy = { start = 0, tick = "a.py" }
+oz = { start = 0, tick = "a.pz" }
+px = { start = "size * a.dx * 0.3 + origin.x", tick = "a.px + a.fx" }
+py = { start = "size * a.dy * 0.3 + origin.y", tick = "a.py + a.fy" }
+pz = { start = "ground(a.px, a.py) + 0.3", tick = "a.pz + a.fz" }
+bx = { start = "a.px", tick = "a.ox" }
+by = { start = "a.py", tick = "a.oy" }
+bz = { start = "a.pz", tick = "a.oz" }
+inv = "1 / sqrt(a.dy * a.dy + a.dx * a.dx + 0.25)"
+fx = "a.dx * a.inv * 0.5"
+fy = "a.dy * a.inv * 0.5"
+fz = { start = "a.inv * 0.5 * 0.5", tick = "a.fz - 0.075" }
+
+# Along the bolt: the even ones ride point idx at 0.1; the odd ones flash on a random frame (12-15) for one tick.
+[[particle]]
+name = "along"
+when = "along < 20"
+lifetime = 11
+size = { start = "p.fl == 1 ? p.ss : 0", tick = "p.size == 0 ? p.ss : p.size" }
+frame = "p.fr"
+kill = "p.fl == 1 && p.size != 0"
+
+[particle.position]
+start = ["point.px[p.idx]", "point.py[p.idx]", "point.pz[p.idx]"]
+tick = ["point.px[p.idx]", "point.py[p.idx]", "point.pz[p.idx]"]
+
+[particle.vars]
+idx = "floor(along / 2)"
+fl = "along % 2"
+r = "p.fl == 1 ? range(0.5, 1.4) : 0"
+fr = "p.fl == 1 ? pick(4) + 12 : 0"
+ss = "p.fl == 0 ? 0.1 : p.idx == 0 ? size * 0.4 : p.r * size * 0.2"
+
+# A burst from the impact point: out at a random angle (an) and spread (sp), slowing by 0.6, shrinking by 0.9 and
+# cycling four frames over its life (l). Its first draw and the point of the disc it draws (flat_ball) are kept unused.
+[[particle]]
+name = "burst"
+when = "count < 200 && point.age[0] < 5"
+lifetime = 1000000000
+spawn = { shape = "flat_ball" }
+position = ["point.px[0] + cos(p.an) * p.sp * (size * 0.3)", "point.py[0] + sin(p.an) * p.sp * (size * 0.3)", "(1 - p.sp) * size * 0.1 + point.pz[0]"]
+velocity = ["cos(p.an) * p.sp * (size * 0.3)", "sin(p.an) * p.sp * (size * 0.3)", 0]
+drag = 0.6
+size = { start = 0, tick = "p.age == 1 ? p.ss : p.size * 0.9" }
+alpha = { start = 64, tick = "light_alpha[p.l]" }
+frame = { start = 8, tick = "p.frame - p.frame % 4 + (p.frame + 1) % 4" }
+kill = "p.l < 0"
+
+[particle.vars]
+kept = "pick(1)"
+u = "range(0, 1)"
+sp = "1 - p.u * p.u"
+an = "range(0, 6.28)"
+l = { start = "round(9 - p.sp * 3)", tick = "p.l - 1" }
+ss = { start = "range(0.1, 0.14) * (2 - p.sp) * size", after_spawn = true }
+
+# A spark at a random point that jumps to a random place (t*) between the point and where it was.
+[[particle]]
+name = "spark"
+lifetime = 7
+size = { start = 0, tick = "p.age == 1 ? p.ss : p.size * 0.9" }
+alpha = { start = 255, tick = "light_alpha[p.life - 1]" }
+frame = { start = 1, tick = "p.frame + 1" }
+
+[particle.position]
+start = ["point.px[p.idx]", "point.py[p.idx]", "point.pz[p.idx]"]
+tick = ["p.tx", "p.ty", "p.tz"]
+
+[particle.vars]
+idx = "pick(10)"
+ss = "range(0, 0.01) * 3 + 0.06"
+u = "range(0, 1)"
+tx = "p.u * point.px[p.idx] + (1 - p.u) * point.bx[p.idx]"
+ty = "p.u * point.py[p.idx] + (1 - p.u) * point.by[p.idx]"
+tz = "p.u * point.pz[p.idx] + (1 - p.u) * point.bz[p.idx]"

@@ -68,6 +68,9 @@ int EmitData(ParticleSource& s, Particle& p, int index);
 int UpdateData(ParticleSource& s, Particle& p);
 // The particles the tick's actions asked for, before the regular emission (and while it is off).
 void EmitQueued(ParticleSource& s);
+// The world's effect object made the source and caught it up (EffectParticle::Spawn): the "spawn" reactions run and
+// their actions apply at once (a scorch draws the client's generator there).
+void Spawned(ParticleSource& s);
 
 // Makes the effects a source with ParticleSourceFlag::OwnClock starts (StartEffects: its `effect` actions) for what
 // ticks that source (the effect viewer, src/tools): each with OwnClock too, so it pauses and scrubs with its parent.

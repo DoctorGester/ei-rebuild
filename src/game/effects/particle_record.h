@@ -88,6 +88,7 @@ enum class SourceValue : std::uint16_t {
     CarrierRightFootX, CarrierRightFootY, CarrierRightFootZ,
     CarrierAxisYX, CarrierAxisYY, CarrierAxisYZ,    // its own y axis (0 when free)
     CarrierUnitRadius,  // a unit carrier's own radius (Unit::Radius, by its size class; 0 for any other carrier)
+    SunR, SunG, SunB,   // the scene's sun colour (0..1 each; 0 without a sun)
     Values
 };
 inline constexpr int kSourceValues = static_cast<int>(SourceValue::Values);
@@ -158,11 +159,14 @@ struct Action {
         AddAnchor,  // `count` anchors of group `anchor` made now
         Shake,      // the camera shakes from the source's origin: `value` its strength, `time` its length in seconds,
                     // `decay` its fall per step (Camera::Shake)
+        Scorch,     // a scorch mark on the ground under the source's origin: `value` its radius, `alpha` its strength
+                    // (held to 1), at an angle the client's generator draws
     };
     Kind kind = Kind::Emit;
     Expr count;
     Expr value;
     Expr time, decay;   // a shake's
+    Expr alpha;         // a scorch's
     int target = -1;
     int particleKind = -1;
     int anchor = -1;
@@ -189,6 +193,7 @@ struct Reaction {
         Tick,   // every tick
         Emit,   // after each particle the emission makes (kept or dropped); its actions take effect at once
         BeforeEmit,     // before each particle the emission makes (after its try's chance roll), the same way
+        Spawn,  // the world's effect object made the source and caught it up (EffectParticle::Spawn), once
         Event,
     };
     On on = On::Start;
@@ -209,6 +214,7 @@ struct Spawn {
     Expr boxMin[3], boxMax[3];  // the box's (empty: the source's spread)
     Expr from[3], to[3];        // the segment's ends (empty: 0 and the source's extent)
     int tries = 10;             // a ball's and a shell's draws of the cube (RandomInBall; 0: until inside)
+    Expr shift[3];              // a ball's and a shell's: added to each draw of the cube before it is tested
 };
 
 // The point of `spawn` in `env`: the shape's expressions and draws in the order x, y, z (the defaults read the
@@ -226,13 +232,15 @@ struct Anchor {
     Expr x, y, z;       // or, cylindrical: x = cos(angle) * radius, y = sin(angle) * radius
     Expr radius, angle;
     bool cylindrical = false;
+    bool atCreate = false;  // its `count` anchors are made when the source is made (State::Create), ticked from the
+                            // first tick on
 };
 enum class Space : std::uint8_t {
     World,      // a particle moves on its own once emitted
     Source,     // its offset rides the source's origin
     Anchor,     // its offset rides its anchor
 };
-enum class FrameMode : std::uint8_t { Loop, Hold, Die };
+enum class FrameMode : std::uint8_t { Loop, Hold, Die, Free };
 enum class AnchorPick : std::uint8_t { Cycle, Random, First };
 
 // One kind of particle the effect emits.
@@ -295,6 +303,7 @@ struct Record {
     bool readsCarrier = false;  // an expression reads carrier_radius or carrier_z
     bool readsUnit = false;     // an expression reads one of the carrier's unit values (SourceValue::CarrierUnit...)
     bool beforeEmit = false;    // it has "before_emit" reactions
+    bool spawns = false;        // it has "spawn" reactions
 
     // [server]: read by the server.
     int oneShot = 0;            // the world object lives this many ticks (0: until removed)
@@ -363,6 +372,12 @@ struct ShakeRequest {
     float decay = 0.0f;
 };
 
+// A scorch mark an action asked for (particle_data.cpp lays it under the source's origin).
+struct ScorchRequest {
+    float radius = 0.0f;
+    float alpha = 0.0f;
+};
+
 // An effect an action started: at the source's origin, or at `place` (a dying particle's).
 struct Started {
     std::string name;
@@ -384,8 +399,11 @@ public:
     // The source stopped emitting by the game's hand: the "stop" reactions run at the next step.
     void Stopped() { stopPending = true; }
 
-    // The vars that start when the source is made (`at_create`), from the source values written first.
+    // The vars and the anchor groups that start when the source is made (`at_create`), from the source values written
+    // first.
     void Create(IsaacRandom& random);
+    // The "spawn" reactions: the world's effect object made the source (particle_data.cpp then applies their actions).
+    void Spawned(IsaacRandom& random);
     // The "emit" reactions, after a particle of the emission (particle_data.cpp then applies their actions).
     void Emitted(IsaacRandom& random);
     // The "before_emit" reactions, before a particle of the emission (the same way).
@@ -440,6 +458,7 @@ public:
     std::vector<Queued> queue;
     std::vector<Started> effects;
     std::vector<ShakeRequest> shakes;
+    std::vector<ScorchRequest> scorches;
 
 private:
     // Env::anchorAt: a field of group `group`'s anchor numbered `number` (as made, held to the ends), 0 when it has none.
@@ -448,7 +467,7 @@ private:
     void Enter(int index, IsaacRandom& random, int depth = 0);
     void Run(const std::vector<Action>& actions, IsaacRandom& random, int depth = 0);
     void React(Reaction::On on, IsaacRandom& random);
-    void MakeAnchors(IsaacRandom& random);
+    void MakeAnchors(IsaacRandom& random, bool atCreate);
     void AddAnchors(int group, int count, IsaacRandom& random);
     void StepAnchors(IsaacRandom& random);
     bool Holds(const Reaction& reaction, IsaacRandom& random) const;

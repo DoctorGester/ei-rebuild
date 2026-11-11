@@ -19,15 +19,15 @@ class Unit;
 
 namespace tools::effect_viewer {
 
-// Where an effect comes from: an original type still in code, an original type on data (its built-in file), or a
-// mod's effect (Res\effects through the layers) or one made in the viewer.
-enum class Origin : std::uint8_t { Code, Builtin, Mod };
+// Where an effect comes from: an original type (its built-in file), or a mod's effect (Res\effects through the
+// layers) or one made in the viewer.
+enum class Origin : std::uint8_t { Builtin, Mod };
 
 struct EffectEntry {
     std::string name;
     std::int32_t id = 0;   // the source's type: an original type's number or a data effect's id
-    Origin origin = Origin::Code;
-    std::string madeText;  // a new effect's or a code type's conversion's text (made in the viewer), played from it
+    Origin origin = Origin::Builtin;
+    std::string madeText;  // a new effect's text (made in the viewer), played from it
 };
 
 // What the viewer did to the source at a tick: made again at that tick by every replay (a restart, a scrub, an edit).
@@ -47,18 +47,6 @@ struct Change {
     Vector3 value;
 };
 
-// What Create gave the source (its type's spec entry, or its data record's set-up), before the viewer's size.
-struct MadeValues {
-    std::string texture;
-    int frames = 0, columns = 0, frameDelay = 0;
-    int emitCount = 0, emitChance = 0, maxParticles = 0, lifetime = 0, elements = 0;
-    float emitSpacing = 0.0f, size = 0.0f, height = 0.0f, growth = 0.0f, alpha = 0.0f, param = 0.0f, baseSize = 0.0f;
-    Vector3 spreadMin, spreadMax, extent;
-    bool additive = false;
-    std::uint32_t flags = 0;
-    int attachPoint = 0;
-};
-
 class Viewer {
 public:
     // The effects there are: the 83 original types, then the mods' (Res\effects through the layers).
@@ -66,15 +54,10 @@ public:
     // The entry named `name` (any case), or -1.
     int Find(std::string_view name) const;
 
-    // The entry `index` played from its start (its document loaded when it is data, or started from its made text).
+    // The entry `index` played from its start (its document loaded, or started from its made text).
     void Pick(int index);
     // A new effect `name` from the template, picked; false (`status` says why) for a name taken or not a file's stem.
     bool NewEffect(std::string_view name);
-    // The picked code type written as a data file from its values as made (its madeText), and played from it; `status`
-    // says whether the data sets the source up as the code does.
-    void ConvertToData();
-    // The picked type's conversion dropped: it plays from code again.
-    void BackToCode();
     // The source made again and run silently up to `target` ticks, the timeline's changes at their ticks.
     void Restart(int target);
     // One tick: the timeline's changes due first.
@@ -113,7 +96,6 @@ public:
     ParticleManager* manager = nullptr;    // the client world's, which made the source
     ParticleSource* source = nullptr;      // one reference of the viewer's; the manager does not hold or tick it
     std::vector<ParticleSource*> children; // the effects it started (and theirs), held and ticked as it is
-    MadeValues made;
     bool hasDocument = false;
     EffectDocument document;
     int tick = 0;                          // ticks run since the start

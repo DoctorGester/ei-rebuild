@@ -50,7 +50,8 @@ struct Env {
     // The ground's height at (x, y) for `ground(x, y)` (null: 0).
     float (*ground)(float x, float y) = nullptr;
     // The top platform's plane at (x, y) for `platform_height` and `platform_normal_x/y/z` (`which` 0: its height, 1-3:
-    // its normal; null: height 0 and normal (0, 0, 1), as off every platform).
+    // its normal; null: height 0 and normal (0, 0, 1), as off every platform), and `surface` (`which` 4: the ground's
+    // height or the platforms' above it, the higher; null: the ground's).
     float (*platform)(float x, float y, int which) = nullptr;
     // A field of an anchor group's anchor by its number (`<group>.<field>[i]`): `scope` Anchor (its own values) or
     // AnchorVar (its vars) (null: 0).
@@ -107,6 +108,8 @@ enum class Function : std::uint8_t {
     Ground,     // ground(x, y): the ground's height there (Env::ground)
     // platform_height(x, y), platform_normal_x / _y / _z(x, y): the plane of the top platform there (Env::platform)
     PlatformHeight, PlatformNormalX, PlatformNormalY, PlatformNormalZ,
+    // surface(x, y): what stands there: the ground's height or a platform's above it, the higher (Env::platform 4)
+    Surface,
     // ball_x(): a point drawn in the unit ball (RandomInBall: ten tries of the cube, the last kept), its x;
     // ball_y(), ball_z(): the same point's y and z (no draw)
     BallX, BallY, BallZ,
@@ -135,9 +138,10 @@ public:
 // A random point of the cube [-1, 1)^3, drawn x, y, z.
 Vector3 RandomInCube(IsaacRandom& random);
 // A random point in the unit ball: `tries` draws of the cube, the first inside kept, else the last; `tries` 0: drawn
-// until inside, its surface included, and off its centre (0 < length squared <= 1). `lengthSquared` (when given) gets
-// its squared length.
-Vector3 RandomInBall(IsaacRandom& random, float* lengthSquared = nullptr, int tries = 10);
+// until inside, its surface included, and off its centre (0 < length squared <= 1). `shift` (when given) is added to
+// each draw before it is tested. `lengthSquared` (when given) gets its squared length.
+Vector3 RandomInBall(IsaacRandom& random, float* lengthSquared = nullptr, int tries = 10,
+                     const Vector3* shift = nullptr);
 
 // `text` compiled against `resolve`; an empty Expr and `error` set (the column and what is wrong) when it does not
 // compile.

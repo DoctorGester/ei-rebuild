@@ -1,0 +1,78 @@
+# Geyser (0x2009, the Fireworks texture): three vents that erupt in turn. A vent erupts for 1-7 ticks in a random
+# direction (up to 10 degrees off vertical) with a random strength, then rests 3-36 ticks. The first particle marks
+# the source and flickers while it emits. Then each particle comes from a random vent: while the vent erupts a drop
+# flies along its direction (jittered by up to 20 / 10 degrees) from a random place of the spread box, falls by 0.06 of
+# the height a tick, shrinks by 0.9, fades by 9 and cycles four frames; otherwise a puff of mist near the source that
+# shows for one tick.
+# The original types on data: docs/notes/effects.md, "The original effects on data".
+
+texture = "Fireworks"
+blend = "additive"
+
+[source]
+height = 0.3
+spread_min = [-0.1, -0.1, -0.02]
+spread_max = [0.1, 0.1, 0.02]
+
+[emit]
+rate = 20
+chance = 88
+
+[vars]
+v = 0               # the vent of the particle being made
+
+# Each particle first draws its vent.
+[[on]]
+event = "before_emit"
+do = [{ set = "v", value = "pick(3)" }]
+
+# A vent: erupting the tick before (e), its pause (pa), whether a new eruption starts (n), the eruption's ticks left
+# (t), its direction (yaw, tilt) and strength (pow). The starts are the first tick's eruption.
+[[anchor]]
+name = "vents"
+count = 3
+
+[anchor.vars]
+e = { start = 0, tick = "a.t > 0" }
+pa = { start = -1, tick = "a.e ? (a.t == 1 ? pick(34) + 3 : a.pa) : a.pa - 1" }
+n = { start = 1, tick = "!a.e && !(a.pa > 0)" }
+t = { start = "pick(7) + 1", tick = "a.e ? a.t - 1 : a.n ? pick(7) + 1 : a.t" }
+yaw = { start = "range(0, 360) * deg", tick = "a.n ? range(0, 360) * deg : a.yaw" }
+tilt = { start = "range(0, 10) * deg", tick = "a.n ? range(0, 10) * deg : a.tilt" }
+pow = { start = "range(0.4, 1)", tick = "a.n ? range(0.4, 1) : a.pow" }
+
+# The marker: flickering while the source emits, gone once it stops.
+[[particle]]
+name = "marker"
+when = "count == 0"
+lifetime = 1000000000
+frame = 15
+size = { start = 0, tick = "emitting ? range(0.03, 0.3) * size : p.size" }
+kill = "!emitting"
+
+[[particle]]
+name = "drop"
+when = "vents.t[v] > 0"
+lifetime = 1000000000
+position = ["range(0, spread_max.x - spread_min.x) + origin.x + spread_min.x", "range(0, spread_max.y - spread_min.y) + origin.y + spread_min.y", "range(0, spread_max.z - spread_min.z) + origin.z + spread_min.z"]
+velocity = ["sin(p.yw) * sin(p.tl) * p.pw * height", "cos(p.yw) * sin(p.tl) * p.pw * height", "cos(p.tl) * p.pw * height"]
+gravity = [0, 0, "-(height * 0.06)"]
+size = { start = 0, tick = "p.age == 1 ? p.ds * 0.9 : p.size * 0.9" }
+alpha = { start = 255, tick = "p.alpha - 9" }
+frame = { start = "p.fr", tick = "p.frame - p.frame % 4 + (p.frame + 1) % 4" }
+kill = "p.alpha <= 9"
+
+[particle.vars]
+fr = "pick(12)"
+yw = "range(-20, 20) * deg + vents.yaw[v]"
+tl = "range(-10, 10) * deg + vents.tilt[v]"
+pw = "range(0, 0.2) + vents.pow[v] - 0.1"
+ds = "size * 0.2"
+
+[[particle]]
+name = "mist"
+lifetime = 1
+position = ["range(0, spread_max.x * 0.5 - spread_min.x * 0.5) + origin.x + spread_min.x * 0.5", "range(0, spread_max.y * 0.5 - spread_min.y * 0.5) + origin.y + spread_min.y * 0.5", "origin.z"]
+size = "size * 0.01"
+frame = "p.fr"
+vars.fr = "pick(12)"

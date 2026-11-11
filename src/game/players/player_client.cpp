@@ -9,6 +9,7 @@
 #include "game/scene/camera.h"
 #include "game/console/console.h"
 #include "game/effects/effects.h"
+#include "game/effects/particle_data.h"
 #include "game/app/game_flow.h"
 #include "game/app/singletons.h"
 #include "game/items/item.h"
@@ -86,6 +87,7 @@ bool IsQuestVariable(const std::string& name) {
 
 constexpr int kKindNoPath = 3;               // OnPathMarker: no path to read
 constexpr int kPathParticles = static_cast<int>(ParticleType::ShapeChange);
+constexpr int kMaxPathGlows = 2500;          // the glows ShapeChange makes at most (its [emit] rate)
 constexpr int kMarkerParticles = static_cast<int>(ParticleType::GroundDust1);     // 0x203B with the flag
 constexpr float kMarkerSpeedA = 0.5f;
 constexpr std::uint32_t kMarkerSpeedB = 0x501502F9u;   // float bits (1e10)
@@ -470,10 +472,12 @@ bool PlayerClient::OnPathMarker() {
             auto* source = g_clientWorld.particleManager->CreateSource(kPathParticles);
             pathSource = source;
             source->Attach(walker);
-            source->typeParam = value;
-            if (kind == 0) source->glowKind = GlowKind::Green;
-            else if (kind == 1) source->glowKind = GlowKind::Grey;
-            else if (kind == 2) source->glowKind = GlowKind::Orange;
+            // The glows' points: the walker's path from now, up to `value` ahead (at most the source's 2500).
+            std::vector<Vector3> points;
+            for (int index = 0; index < kMaxPathGlows && !(static_cast<float>(index) > value); ++index)
+                points.push_back(walker->PositionAt(index + g_clientWorld.tick));
+            effectdata::SetInput(*source, "path", points);
+            if (kind >= 0 && kind <= 2) effectdata::SetInput(*source, "kind", static_cast<float>(kind));
             pathSource->RunTick();
             source->Attach(nullptr);
         }

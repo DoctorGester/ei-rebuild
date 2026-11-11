@@ -3,17 +3,19 @@
 #include "game/effects/particle_data.h"
 
 #include "game/effects/effects.h"
-#include "game/effects/particle_common.h"
 
 #include "game/app/singletons.h"
 #include "game/core/random.h"
 #include "game/data/resource.h"
 #include "game/scene/camera.h"
+#include "game/scene/light.h"
+#include "game/scene/scene_renderer.h"
 #include "game/objects/map_object.h"
 #include "game/units/unit.h"
 #include "game/world/world.h"
 
 #include "lib/crt.h"
+#include "lib/float_select.h"
 #include "lib/maths.h"
 #include "lib/text_case.h"
 #include "lib/toml.h"
@@ -74,11 +76,6 @@ void Registry::Load(Entry& entry) {
     const std::string key = Lower(entry.name);
     const builtin_effects::File* builtin = Builtin(key);
     const int original = ParticleTypeByName(key);
-    if (original != kNoParticleType && !builtin) {   // an original type whose effect is still code
-        if (!FindRecordFile(std::string(kFolder) + "\\" + entry.name + ".effect", false).tomls.empty())
-            game::Warning("effects: %s is an original effect still in code; its file is left out", entry.name);
-        return;
-    }
     const std::int32_t id = original != kNoParticleType ? original : IdOf(key);
     if (auto other = idNames.find(id); other != idNames.end() && other->second != key) {
         game::Warning("effects: %s and %s share the id 0x%X; %s is left out", other->second, key,
@@ -149,7 +146,7 @@ void Registry::Scan() {
 std::shared_ptr<const Record> Registry::FindById(std::int32_t id) {
     if (!IsDataId(id)) {
         const std::string_view name = ParticleTypeName(id);
-        return !name.empty() && Builtin(name) ? Find(name) : nullptr;
+        return !name.empty() ? Find(name) : nullptr;
     }
     auto found = idNames.find(id);
     if (found == idNames.end() && !scanned) {
@@ -212,8 +209,10 @@ void MeasureCarrier(void* context) {
 // The ground's height for `ground(x, y)` (State::ground).
 float GroundHeight(float x, float y) { return g_clientWorld.RawSurfaceHeightAt(x, y); }
 
-// The top platform's plane for `platform_height` and `platform_normal_x/y/z` (State::platform).
+// The top platform's plane for `platform_height` and `platform_normal_x/y/z`, and what stands there for `surface`
+// (State::platform).
 float PlatformPlane(float x, float y, int which) {
+    if (which == 4) return g_clientWorld.platforms.SurfaceHeight({x, y, 0.0f}, g_clientWorld.RawSurfaceHeightAt(x, y));
     const PlatformSet::SurfacePlaneResult plane = g_clientWorld.platforms.SurfacePlane(x, y);
     switch (which) {
     case 0: return plane.height;
@@ -290,6 +289,13 @@ void ApplyActions(ParticleSource& s, State& state) {
     state.sourceWrites.clear();
     for (const ShakeRequest& shake : state.shakes) g_camera.Shake(s.origin, shake.time, shake.strength, shake.decay);
     state.shakes.clear();
+    // The angle is the client's generator's (the original drew it there).
+    for (const ScorchRequest& scorch : state.scorches) {
+        const float angle = ScaleWord(g_clientRandom.Next(), 6.3f);
+        const float alpha = MinKeepA(scorch.alpha, 1.0f);
+        g_clientWorld.AddScorchMark(s.origin.x, s.origin.y, scorch.radius, scorch.radius, angle, alpha);
+    }
+    state.scorches.clear();
     const bool detached = state.stopRequested || state.letGo;
     if (state.stopRequested) {
         state.stopRequested = false;
@@ -349,6 +355,10 @@ void WriteSource(ParticleSource& s, State& state) {
     Value(v, SourceValue::UpX) = s.up.x;
     Value(v, SourceValue::UpY) = s.up.y;
     Value(v, SourceValue::UpZ) = s.up.z;
+    const Light* sun = g_sceneRenderer.sun;
+    Value(v, SourceValue::SunR) = sun ? sun->color[0] : 0.0f;
+    Value(v, SourceValue::SunG) = sun ? sun->color[1] : 0.0f;
+    Value(v, SourceValue::SunB) = sun ? sun->color[2] : 0.0f;
     if (state.record->readsUnit) WriteCarrier(s, v);
 }
 
@@ -614,7 +624,8 @@ void SetUp(ParticleSource& s, std::shared_ptr<const Record> record) {
     s.data->measureContext = &s;
     s.data->ground = GroundHeight;
     s.data->platform = PlatformPlane;
-    if (std::any_of(r.vars.begin(), r.vars.end(), [](const Var& var) { return var.atCreate; })) {
+    if (std::any_of(r.vars.begin(), r.vars.end(), [](const Var& var) { return var.atCreate; }) ||
+        std::any_of(r.anchors.begin(), r.anchors.end(), [](const Anchor& anchor) { return anchor.atCreate; })) {
         WriteSource(s, *s.data);
         s.data->Create(g_particleRandom);
     }
@@ -633,6 +644,15 @@ void TickData(ParticleSource& s) {
     if (state.ended) s.flags &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
     state.sawEmitting = lib::Has(s.flags, ParticleSourceFlag::Emitting);
     Value(state.source, SourceValue::Emitting) = state.sawEmitting ? 1.0f : 0.0f;
+    StartEffects(s, state);
+}
+
+void Spawned(ParticleSource& s) {
+    if (!s.data || !s.data->record->spawns) return;
+    State& state = *s.data;
+    WriteSource(s, state);
+    state.Spawned(g_particleRandom);
+    ApplyEmissionActions(s, state);
     StartEffects(s, state);
 }
 
@@ -694,6 +714,7 @@ int UpdateKind(ParticleSource& s, State& state, const ParticleKind& kind, Partic
         case FrameMode::Loop: p.frame %= s.frameCount; break;
         case FrameMode::Hold: p.frame = s.frameCount - 1; break;
         case FrameMode::Die: return 0;
+        case FrameMode::Free: break;   // kept past the grid (drawn as the first frame)
         }
     }
     for (std::size_t i = 0; i < kind.vars.size(); ++i) p.vars[i] = kind.vars[i].tick.Run(env, p.vars[i]);

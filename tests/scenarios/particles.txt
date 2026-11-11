@@ -1,4 +1,4 @@
-# Particles: sources of types in particle_blasts.cpp and particle_world.cpp and of original types on data,
+# Particles: sources of original types (all on data: docs/notes/effects.md, "The original effects on data"),
 # placed around the hero, and a few buffs on the hero (spell modifiers carry Modifier particles),
 # then deleted. Every source runs CParticleSource::Tick, AddParticle
 # and the particle pool (particle_manager.cpp) each world update; the camera and units use the

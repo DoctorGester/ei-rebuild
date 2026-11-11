@@ -33,6 +33,7 @@ constexpr FunctionName kFunctions[] = {
     {"log", Function::Log, 1},       {"ground", Function::Ground, 2},
     {"platform_height", Function::PlatformHeight, 2},     {"platform_normal_x", Function::PlatformNormalX, 2},
     {"platform_normal_y", Function::PlatformNormalY, 2},  {"platform_normal_z", Function::PlatformNormalZ, 2},
+    {"surface", Function::Surface, 2},
     {"ball_x", Function::BallX, 0},  {"ball_y", Function::BallY, 0}, {"ball_z", Function::BallZ, 0},
 };
 
@@ -329,6 +330,9 @@ float CallFunction(Function f, const float* a, const Env& env) {
         if (env.platform) return env.platform(a[0], a[1], which);
         return which == 3 ? 1.0f : 0.0f;
     }
+    case Function::Surface:
+        if (env.platform) return env.platform(a[0], a[1], 4);
+        return env.ground ? env.ground(a[0], a[1]) : 0.0f;
     }
     return 0.0f;
 }
@@ -360,18 +364,20 @@ Vector3 RandomInCube(IsaacRandom& random) {
     return {x, y, random.Range(-1.0f, 1.0f)};
 }
 
-Vector3 RandomInBall(IsaacRandom& random, float* lengthSquared, int tries) {
+Vector3 RandomInBall(IsaacRandom& random, float* lengthSquared, int tries, const Vector3* shift) {
     Vector3 v;
     float length2 = 0.0f;
     if (tries <= 0) {
         for (;;) {
             v = RandomInCube(random);
+            if (shift) v = v + *shift;
             length2 = LengthSquared(v);
             if (length2 <= 1.0f && length2 > 0.0f) break;   // random: never NaN
         }
     } else {
         for (;;) {
             v = RandomInCube(random);
+            if (shift) v = v + *shift;
             length2 = LengthSquared(v);
             if (length2 < 1.0f) break;   // random: never NaN
             if (!(--tries > 0)) break;

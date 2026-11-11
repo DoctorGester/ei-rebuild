@@ -11,33 +11,13 @@
 
 #include "lib/rounding.h"
 #include "lib/str.h"
-#include "lib/text_case.h"
 
 #include <climits>
 #include <cmath>
 #include <memory>
 #include <string>
 
-namespace {
-
-// The C++ particle types CreateParticleSource accepts (data effects are found by name after them):
-// name, EffectParticle type, lifetime in ticks (-1 forever).
-constexpr ScriptParticleType kScriptParticleTypes[kScriptParticleTypeCount] = {
-    {"FireBlast", 0x2002, 200},
-    {"LightningBlast", 0x2030, 200},
-    {"Geyser", 0x2009, -1},
-    {"Tornado", 0x200A, -1},
-    {"CurseHolder", 0x2050, -1},
-};
-
-} // namespace
-
 int ScriptParticleTypeByName(std::string_view name, int* lifetime) {
-    for (const ScriptParticleType& type : kScriptParticleTypes) {
-        if (text::CompareIgnoringCase(type.name, name) != 0) continue;
-        *lifetime = type.lifetime;
-        return type.type;
-    }
     if (std::shared_ptr<const effectdata::Record> effect = effectdata::g_effects.Find(name)) {
         *lifetime = effect->scriptLifetime;
         return effect->id;
