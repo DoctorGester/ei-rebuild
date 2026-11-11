@@ -14,6 +14,9 @@ std::string MapsFolder();
 // The full path of the map file `name`: `name` as it is
 // when its second character is ':' (a drive), else under the maps folder.
 std::string MapPath(std::string_view name);
+// Whether Rebirth's Maps rule takes the map file `name` from the mod's Maps\ (an archive also as its folder), not the
+// game's (modfolders::SelectMaps at MapPath's site). False without a mod.
+bool MapFromMod(std::string_view name);
 // Whether the maps folder has a file (or folder) `name`; an archive (a .mpr, a .mq) also as its folder
 // (data/resource.h, ResourceExists).
 bool MapFileExists(const char* name);

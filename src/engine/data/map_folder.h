@@ -82,8 +82,6 @@ struct MapData {
     std::vector<std::uint16_t> waterTiles;
     std::vector<std::uint16_t> waterMaterials;
     std::vector<Seam> seams;
-    // Assemble's: the highest of its places a file of the folder was read from (an index into them).
-    std::size_t topPlace = 0;
 
     int VertexColumns() const { return header.sectorsX * 32 + 1; }
     int VertexRows() const { return header.sectorsY * 32 + 1; }

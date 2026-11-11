@@ -659,10 +659,10 @@ objects as TOML"; the quest zones stay as they are.
 - Rebirth's Maps (mod_folders.cpp `SelectMaps`): a mod whose `Maps\` has `zone1\` reads the mod's `Maps\zone1.mpr` in
   place of the game's, so a mod that paints heights alone ships the archive (or its folder) with them, as the test mod
   does.
-- The AI region graph follows the ground (docs/notes/ai.md, "Built graphs"): a map whose highest folder file comes
-  from a place with no `<zone>.mob` (or `<map>.grp`) beside the folder has its graph built at the zone's load (the
-  showcase island, a mod's painted heights over the game's .mob); ei-convert's folders sit beside their .mob and read
-  its graph, so a converted install plays as the binary one.
+- The AI region graph follows the ground (docs/notes/ai.md, "Built graphs"): a zone whose map comes from the mod's
+  `Maps\` and its .mob from the game's has its graph built at the zone's load (the showcase island, a mod's painted
+  heights); ei-convert's folders sit beside their .mob and read its graph, so a converted install plays as the binary
+  one.
 - Not held (no loader reads them): each material's warp speed and reserved bytes, the water vertices' displacements; a
   sector flag byte 1 (water vertices without water tiles: none ship) comes back as 3.
 
@@ -810,8 +810,8 @@ Zone 1's TOML (777 records, 12,824 lines, 0.3 MB) reads in about 10 ms.
   2010 and 2011) are left out with their warnings (`expectlog`). A map unit is found by its id (`GetObject`): `GetObjectByName` found none of the
   pigs by the names the TOML gives.
 - Still binary in a mod: the `.mob`'s AI graph chunk (0x31415926, `ReadAIGraph`) comes from the game's `.mob` (or
-  none when no layer has one; then, or when the mod's map folder stands over the game's .mob, it is built from the
-  ground: docs/notes/ai.md, "Built graphs"); a mod that only moves objects keeps the game's graph, which the TOML does
+  none when no layer has one; then, or when the mod's map stands over the game's .mob, it is built from the ground:
+  docs/notes/ai.md, "Built graphs"); a mod that only moves objects keeps the game's graph, which the TOML does
   not carry. Its scripts
   can be a `.lua` ("Scripts in Lua").
 

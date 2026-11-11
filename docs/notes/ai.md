@@ -38,13 +38,13 @@ region (1, 2, ...) flooded from a queue of blocks.
 
 ### Built graphs
 
-The region map a zone starts with (MF13d). One rule: a zone's graph follows its ground. `WorldServer::NewZone`
-(world_save.cpp) reads the zone's graph (`ReadAIGraph`: the .mob's 0x31415926 chunk, else `<map>.grp`; one whose block
-grid is not the map's size counts as none) and `LoadMap` loads it (`RegionMap::LoadBlocks`), unless
-- the map is assembled from its folder (docs/notes/mods.md, "Maps as folders"; `AIMap::groundFolder`, from
-  `MappedResource::MapFolderPlace`: the folder the highest of the folder's files came from, `<place>\Maps\<zone>`) and
-  that place has no graph beside the folder (`GraphBesideGround`: `<place>\Maps\<zone>.mob` or `<map>.grp`): a mod's
-  map folder over the game's .mob (the showcase island, painted heights);
+The region map a zone starts with (MF13d). One rule, whatever the map's format: a zone's graph is no older than its
+ground. `WorldServer::NewZone` (world_save.cpp) reads the zone's graph (`ReadAIGraph`: the .mob's 0x31415926 chunk,
+else `<map>.grp`; one whose block grid is not the map's size counts as none) and `LoadMap` loads it
+(`RegionMap::LoadBlocks`), unless
+- the map comes from the mod's `Maps\` and the .mob from the game's (`MapFromMod`, Rebirth's Maps rule as
+  `SelectMaps` decides it for each file; docs/notes/mods.md, "Maps as folders"): a mod's ground under the game's graph
+  (the showcase island's folder, mod_map_heights' painted heights, rebirth_mod_maps' copy of zone2.mpr);
 - or no graph is found (the original ended the game with "Can't load AIGraph"), or none of the map's size: Lost in
   Astral's main menu map is 24 x 24 blocks but its zonemainmenunew.mob carries the game's 16 x 16 menu graph (one of its
   zones, 24 x 32, has a misfit too); `LoadBlocks` used to size the region grids by the graph, and region reads for
@@ -53,16 +53,17 @@ grid is not the map's size counts as none) and `LoadMap` loads it (`RegionMap::L
 Then the graph is built: `AIMap::BuildRegionGraph`, after `EndRefresh` (the objects' footprints stamped, the cells
 refreshed) and before `refreshUnits` goes on: the region map reset and attached blank, every unit lifted from the
 sector map, `RegionMap::UpdateBlocks` over every block (the editor's computation, which a refresh runs over its area),
-the units put back. Logged: "ai graph: built for W x H blocks, N units lifted, in T ms". A binary map, ei-convert's
-folder beside its .mob (a converted install) and a mod that ships both read the shipped graph; nothing tells a folder
-painted in place from ei-convert's, so ground changed in a converted install's own folder keeps the zone's graph (a
-mod's folder over it builds).
+the units put back. Logged: "ai graph: built for W x H blocks, N units lifted, in T ms". An install without a mod
+(binary or converted: ei-convert's folders sit beside their .mob), a mod that ships its zone's map and .mob (Lost in
+Astral) and a mod that ships only the .mob (its objects over the game's ground) read their graph. Nothing tells a
+folder painted in place from ei-convert's, so ground changed in a converted install's own folder keeps the zone's
+graph (the same change as a mod builds).
 
 - Saves: the graph is written as a difference (`WriteDiff`) from `ReadGraphBase`: the zone's graph when one fits the
   map, else zeros of the graph's size (`RegionMap::SavedSize`), whether the zone built its graph or not. A save's load
   (`LoadSave`) loads the AI map first (`LoadAIMap`), applies the difference over the same base and loads the result;
   it never builds.
-- Why not build for every folder map (measured 2026-11-11 with every map of the converted vanilla install built and
+- Why not build for every map made from a folder (measured 2026-11-11 with every map of the converted vanilla install built and
   compared with its shipped graph, 32 maps): the shipped graphs are not ours. With the units lifted the representative
   cells match (20 of 1.2 million block-classes differ) and every map has as many class-0 regions as its file, but 11%
   of the edge words differ (1,060,450 of 9,584,640), a quarter of those by 1, 1.2% (117,682) open in one and closed in

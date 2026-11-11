@@ -363,7 +363,6 @@ int AIMap::LoadTerrain(const std::string& full) {
     archive.ListFiles(&maps, "*.mp");
     if (maps.empty()) return 0;   // no map in the archive (the original read the first of none)
     std::string name = str::Left(maps[0], str::Find(maps[0], '.'));
-    groundFolder = archive.MapFolderPlace();
 
     MapDescription description;
     if (const int result = ReadDescription(archive, full, name, description); result != 1) return result;

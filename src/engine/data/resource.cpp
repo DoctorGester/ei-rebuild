@@ -236,7 +236,6 @@ void MappedResource::ForgetLooseFiles() {
     mapFolder.clear();
     folderMap.reset();
     folderMapMade = false;
-    folderMapPlace.clear();
     modelEntries.clear();
     modelEntriesRead = false;
     madeModels.clear();
@@ -863,8 +862,7 @@ const map_folder::MapData* MappedResource::FolderMap() {
     folderMapMade = true;
     const PathParts mapFiles = SplitPath(std::string("*") + kMapFileExtension);
     std::vector<map_folder::Place> places;
-    const std::vector<Source> sources = Sources();
-    for (const Source& source : sources) {
+    for (const Source& source : Sources()) {
         map_folder::Place& place = places.emplace_back();
         if (const LooseFiles* loose = source.loose) {
             place.has = [loose](std::string_view name) { return loose->byName.contains(LooseKey(name)); };
@@ -900,10 +898,7 @@ const map_folder::MapData* MappedResource::FolderMap() {
     std::optional<map_folder::MapData> map = map_folder::Assemble(
         places, std::string_view(mapFolder).substr(slash == std::string::npos ? 0 : slash + 1), &warnings);
     for (const std::string& line : warnings) game::Warning("maps: %s: %s", mapFolder, line);
-    if (!map) return nullptr;
-    const Source& top = sources[map->topPlace];
-    folderMapPlace = top.loose ? top.loose->folder : top.entries->mapFolder;
-    folderMap = std::make_shared<const map_folder::MapData>(std::move(*map));
+    if (map) folderMap = std::make_shared<const map_folder::MapData>(std::move(*map));
     return folderMap.get();
 }
 

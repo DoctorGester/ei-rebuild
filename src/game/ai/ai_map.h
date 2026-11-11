@@ -843,9 +843,6 @@ public:
     void QueueRefresh(Point first, Point last);
 
     bool loaded = false;                // set by Load
-    // Set by LoadTerrain: for a map assembled from its folder the folder its highest file came from
-    // (MappedResource::MapFolderPlace); empty for the archive's own files.
-    std::string groundFolder;
     bool batching = false;              // refreshes collect into the dirty rectangle
     std::uint8_t refreshUnits = 0;      // non-zero: a refresh also re-registers the units around it
     AIDirtyRect dirty;                  // the area to refresh when batching ends

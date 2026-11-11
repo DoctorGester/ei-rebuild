@@ -836,9 +836,6 @@ std::optional<MapData> Assemble(const std::vector<Place>& places, std::string_vi
 
     auto read = [&](Layer layer, std::string* bytes) { return places[at[layer]].read(kFileNames[layer], bytes); };
     MapData map;
-    map.topPlace = places.size();
-    for (int i = 0; i < static_cast<int>(Layer::Count); ++i)
-        if (used(static_cast<Layer>(i))) map.topPlace = std::min(map.topPlace, at[i]);
     bool hasOriginal = false;
     if (original != kNowhere) {
         const std::string& mapFile = places[original].mapFile;

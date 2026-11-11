@@ -135,18 +135,6 @@ void SavePlayers(WorldServer* world, ByteStream* stream) {
 constexpr const char* kCantLoadSavedMap = "CWorldServer::LoadSave()\n Can't load map.\n";
 constexpr const char* kCantLoadMap = "CWorldServer::NewZone()\n Can't load map.\n";
 
-// Whether the place a folder map's ground came from has the zone's graph: `mob` or `map`'s .grp beside
-// `groundFolder` (the map's `Maps\<zone>` in that place).
-bool GraphBesideGround(const std::string& groundFolder, std::string_view map, std::string_view mob) {
-    const std::size_t slash = groundFolder.find_last_of("\\/");
-    if (slash == std::string::npos) return false;
-    const std::string maps = groundFolder.substr(0, slash + 1);
-    auto fileName = [](std::string_view path) { return path.substr(path.find_last_of("\\/") + 1); };
-    const std::string_view mapName = fileName(map);
-    const std::string graphFile = std::string(mapName.substr(0, mapName.rfind('.'))) + ".grp";
-    return platform::IsFile(maps + std::string(fileName(mob))) || platform::IsFile(maps + graphFile);
-}
-
 // Whether the file `name` (an archive also as its folder) is neither there as named nor in the maps folder (Rebirth's
 // Maps names it first: `site`).
 bool MapFileMissing(std::string_view name, modfolders::MapsSite site) {
@@ -526,12 +514,12 @@ int WorldServer::NewZone(std::string_view map, std::string_view mob, std::option
     std::memset(alarms, 0, sizeof(alarms));
     aiMap.refreshUnits = false;
     if (!LoadAIMap(map)) game::FatalExit(kCantLoadMap);
-    // The zone's graph is read (ReadAIGraph) unless the map is made from a folder whose place has no graph beside it,
-    // or no graph of the map's size is found: then it is built once the objects stand (docs/notes/ai.md, "Built
-    // graphs").
+    // The zone's graph is read (ReadAIGraph) unless the map comes from the mod's Maps\ and the .mob from the game's (a
+    // mod's ground under the game's graph), or no graph of the map's size is found: then it is built once the objects
+    // stand (docs/notes/ai.md, "Built graphs").
     MemoryStream graph;
-    const bool graphFollowsGround = aiMap.groundFolder.empty() || GraphBesideGround(aiMap.groundFolder, map, mob);
-    const bool buildsGraph = !graphFollowsGround || !ReadAIGraph(map, mob, &graph);
+    const bool groundOverGraph = MapFromMod(map) && !MapFromMod(mob);
+    const bool buildsGraph = groundOverGraph || !ReadAIGraph(map, mob, &graph);
     if (!LoadMap(map, mob, &graph, 0))
         game::FatalExit(kCantLoadMap);
     ShowLoadProgress(kProgressObjects);
