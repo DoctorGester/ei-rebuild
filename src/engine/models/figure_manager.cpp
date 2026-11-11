@@ -6,13 +6,12 @@
 #include "engine/core/engine_object.h"   // EngineObject
 #include "engine/data/registry.h"
 #include "engine/models/animation.h"
+#include "engine/models/figure_instance.h"
 #include "engine/models/figure_mesh.h"
 #include "engine/models/link_loader.h"
 #include "engine/mods/mod_folders.h"
-#include "game/objects/object3d.h"
 #include "engine/scene/pipeline.h"
 #include "engine/scene/sky_object.h"
-#include "game/ui/ui_mesh.h"
 
 #include "lib/bytes.h"
 #include "lib/containers.h"
@@ -38,8 +37,6 @@ EngineObject* Create(int classId) {
     case FigureObjectType::LoosePart:
     case FigureObjectType::AttachedPart:
         return new FigureMesh();
-    case FigureObjectType::UiMesh:
-        return new UiMesh();
     case FigureObjectType::SkyObject:
         return new SkyObject();
     case FigureObjectType::AnimationTrack:
@@ -48,6 +45,8 @@ EngineObject* Create(int classId) {
         return new FigureBone();
     case FigureObjectType::AnimationState:
         return new FigureAnimationState();
+    case FigureObjectType::Instance:
+        return new FigureInstance();
     default:
         return nullptr;
     }
@@ -89,25 +88,6 @@ FigureMesh* FigureManager::NewPart(const std::string& modelName, std::string_vie
     part->name = partName;
     part->directory = modelName;
     return part;
-}
-
-UiMesh* FigureManager::NewBlankFigure() { return CreateObjectAs<UiMesh>(FigureObjectType::UiMesh, -1); }
-
-UiMesh* FigureManager::NewFigure(std::string_view name) {
-    auto* figure = NewBlankFigure();
-    figure->name = name;
-    figure->directory.clear();
-    const std::string path = std::string(name) + ".fig";
-    void* data = GetFile(path, nullptr);
-    if (!data) {
-        ReleaseObject(figure);
-        return nullptr;
-    }
-    char* cursor = static_cast<char*>(data);
-    figure->LoadFromMemory(&cursor);
-    figure->box.bounds.flags = 0;
-    CloseFile(data);
-    return figure;
 }
 
 int FigureManager::LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator, const char* animation) {
@@ -330,10 +310,10 @@ void FigureModel::Open(const void* mod, const void* bon, const void* anm) {
 
 // --- Figure factory ----------------------------------------------------------------------------------
 
-// The figure object factory: creates a scene object of a class id. 0x41 and 0x42 are FigureMeshes, 0x43 a
-// UiMesh (ui_mesh.h), 0x44 a SkyObject and 0x300B-0x300D an AnimationTrack, a FigureBone and a
-// FigureAnimationState. The new object's type gets the class id; an unknown id returns null. See
-// docs/notes/models.md.
+// The figure object factory: creates a scene object of a class id. 0x41 and 0x42 are FigureMeshes, 0x44 a SkyObject,
+// 0x300B-0x300D an AnimationTrack, a FigureBone and a FigureAnimationState, 0x300E a FigureInstance. The new
+// object's type gets the class id; an unknown id (0x43, the interface's sprite: the game's InterfaceFigureManager)
+// returns null. See docs/notes/models.md.
 
 EngineObject* CreateFigureObject(int classId) {
     EngineObject* object = Create(classId);

@@ -96,6 +96,7 @@ enum class ClassId : int {
     EffectSoundSeq = 0x63,
     EffectMoshka = 0x64,
     EffectTornado = 0x65,
+    FigureInstance = 0x100,   // ours: a figure alone (models/figure_instance.h)
 };
 
 class BaseManager;

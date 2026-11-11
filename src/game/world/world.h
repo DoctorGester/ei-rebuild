@@ -147,9 +147,8 @@ public:
     // Seconds per tick become 1 / speed (0: stopped; negative: the setting) times 1/15, keeping the time
     // of day (SetTime). The server's updates the players and weather as SetTime does.
     virtual void SetTimeSpeed(float speed);
-    // The client's managers; null on the server's world (world_client.cpp).
-    MaterialManager* GetMaterialManager();
-    TextureManager* GetTextureManager();
+    // The client's particle manager; null on the server's world (world_client.cpp; the texture and material managers:
+    // ManagerContext's getters).
     ParticleManager* ClientParticleManager();
     virtual MapObject* ObjectWithId(int id);
     // `object` moves to `position` (the client's sector map).

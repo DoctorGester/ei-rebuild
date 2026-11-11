@@ -1,9 +1,8 @@
 // The drawn motion of map objects between client ticks (drawn_motion.h; docs/notes/renderer.md section 14).
 #include "engine/scene/drawn_motion.h"
 
+#include "engine/models/figure_instance.h"
 #include "engine/scene/light.h"
-#include "game/objects/map_object.h"
-#include "game/objects/object3d.h"
 #include "platform/platform.h"
 
 #include <cstring>
@@ -48,9 +47,9 @@ void drawn::SetProgress(float reached, float passTicks) {
 
 float drawn::Back() { return g_back; }
 
-drawn::Pose drawn::OwnPose(const Object3D* object) { return Pose{object->localPosition, object->localRotation}; }
+drawn::Pose drawn::OwnPose(const FigureInstance* object) { return Pose{object->localPosition, object->localRotation}; }
 
-void drawn::Observe(Object3D* object) {
+void drawn::Observe(FigureInstance* object) {
     ObjectStep& step = object->drawnStep;
     if (step.seenTick == g_ticks) return;
     const bool oneTick = step.seenTick != 0 && step.seenTick + 1 == g_ticks;
@@ -62,7 +61,7 @@ void drawn::Observe(Object3D* object) {
     step.seenTick = g_ticks;
 }
 
-void drawn::NotePlaced(Object3D* object, const Pose& before) {
+void drawn::NotePlaced(FigureInstance* object, const Pose& before) {
     ObjectStep& step = object->drawnStep;
     if (!Same(OwnPose(object), before)) step.placedByFrame = true;
     if (!step.pathChanged) return;
@@ -77,14 +76,14 @@ void drawn::NotePlaced(Object3D* object, const Pose& before) {
     step.correctionStart = platform::FrameClock();
 }
 
-void drawn::NotePathChanged(Object3D* object) { object->drawnStep.pathChanged = true; }
+void drawn::NotePathChanged(FigureInstance* object) { object->drawnStep.pathChanged = true; }
 
-drawn::Pose drawn::PoseOf(const Object3D* object) {
+drawn::Pose drawn::PoseOf(const FigureInstance* object) {
     const ObjectStep& step = object->drawnStep;
     const Pose own = OwnPose(object);
     // An interface figure (the HUD unit panel's unit, a preview) stands where the interface put it in its own view:
     // the world's tick step and path change jump would move it there.
-    if (object->flags & MapObjectFlag::NoEdgeFade) return own;
+    if (object->flags & FigureFlag::NoEdgeFade) return own;
     Pose out = own;
     if (step.moving && step.seenTick == g_ticks && g_back > 0.0f && Same(own, step.to)) {
         out.position = own.position - (step.to.position - step.from.position) * g_back;
@@ -101,7 +100,7 @@ drawn::Pose drawn::PoseOf(const Object3D* object) {
     return out;
 }
 
-drawn::Pose drawn::Show(Object3D* object) {
+drawn::Pose drawn::Show(FigureInstance* object) {
     const Pose shown = PoseOf(object);
     ObjectStep& step = object->drawnStep;
     step.shown = shown.position;

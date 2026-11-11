@@ -11,8 +11,8 @@
 
 #include <cstdint>
 
+class FigureInstance;
 class Light;
-class Object3D;
 
 namespace drawn {
 
@@ -21,7 +21,7 @@ struct Pose {
     Quaternion rotation;
 };
 
-// An object's last tick step as the frames observe it (Object3D::drawnStep): the pose at the observation after the
+// An object's last tick step as the frames observe it (FigureInstance::drawnStep): the pose at the observation after the
 // tick before and after the last one, the tick count of the last observation, whether the frame moved it since
 // (a unit placed on its path) and whether the step is drawn. And a unit's path change: the place last shown, the
 // path changed since, the offset from the new place to the one shown before it and when it began to fade.
@@ -63,20 +63,20 @@ float Back();
 
 // The frame's look at `object` before anything places it at the frame's time (WorldClient::CollectVisible): the
 // first look after a tick takes the step the tick made.
-void Observe(Object3D* object);
+void Observe(FigureInstance* object);
 // After a frame's placement of `object` (a unit's AdvanceTime): a pose changed from `before` is the frame's. After
 // a path change the jump from the place shown last fades out over a short time instead of showing at once.
-void NotePlaced(Object3D* object, const Pose& before);
+void NotePlaced(FigureInstance* object, const Pose& before);
 // A unit's client path changed (UnitClientSpecific::MotionChanged): its next placement may jump.
-void NotePathChanged(Object3D* object);
+void NotePathChanged(FigureInstance* object);
 // The object's pose now.
-Pose OwnPose(const Object3D* object);
+Pose OwnPose(const FigureInstance* object);
 // The pose the draw shows: its own less the part of its last tick's step not reached yet, or its own when it has no
 // step, the frame placed it, or nothing is left to take back; plus what is left of a path change's jump. An
-// interface figure's (MapObjectFlag::NoEdgeFade during its draw) is its own: the interface placed it.
-Pose PoseOf(const Object3D* object);
+// interface figure's (FigureFlag::NoEdgeFade during its draw) is its own: the interface placed it.
+Pose PoseOf(const FigureInstance* object);
 // PoseOf, once a frame where the world's draw places the object (CollectVisible): the place is kept as shown.
-Pose Show(Object3D* object);
+Pose Show(FigureInstance* object);
 
 // The world's draw placed the object carrying `light` (an object's own light, MapObjectClientSpecific::light): the
 // light is drawn at `at` this pass.

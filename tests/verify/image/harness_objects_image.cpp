@@ -872,6 +872,59 @@ std::vector<std::string> ClientBolts() {
     return bolts;
 }
 
+std::string FigureAlone(const std::string& model, const std::string& animationName, const std::string& partName,
+                        float frames, std::vector<std::string>* lines) {
+    FigureManager* manager = g_clientWorld.figureManager.get();
+    auto* figure = manager->CreateObjectAs<FigureInstance>(FigureObjectType::Instance, kNoObjectId);
+    if (!figure) return "figurealone: the figure manager made no figure";
+    figure->AddRef();
+    std::vector<std::string> pieces;
+    if (model == "unhuma" || model == "unhufe")
+        for (const char* piece : kHeroFigureParts) pieces.push_back(std::strcmp(piece, "hr") == 0 ? "hr.01" : piece);
+    char text[256];
+    std::string failure;
+    auto pointText = [](const char* what, const Vector3& at) {
+        char line[128];
+        std::snprintf(line, sizeof(line), "%s %.4f %.4f %.4f", what, at.x, at.y, at.z);
+        return std::string(line);
+    };
+    if (!figure->Build(model, {0.5f, 0.5f, 0.5f}, pieces)) {
+        failure = "figurealone: no figure of " + model;
+    } else {
+        figure->Dress(model);
+        figure->animations = g_clientWorld.objectManager->AnimationDatabaseOf(model);
+        FigureAnimation* animation = nullptr;
+        if (figure->animations)
+            for (FigureAnimation& entry : figure->animations->animations)
+                if (std::string_view(entry.name, strnlen(entry.name, sizeof(entry.name))) == animationName) animation = &entry;
+        const FigureMesh* part = figure->FindPart(partName);
+        std::snprintf(text, sizeof(text), "harness: figurealone: %s: %d parts, %d bones, animation %s, part %s", model.c_str(),
+                      static_cast<int>(figure->parts.size()), static_cast<int>(figure->animation->bones.size()),
+                      animation ? "found" : "missing", part ? "found" : "missing");
+        lines->push_back(text);
+        if (!animation || !part) {
+            failure = "figurealone: " + model + " has no animation " + animationName + " or no part " + partName;
+        } else {
+            figure->RestartPose();
+            const Vector3 rest = figure->PartPoint(part, {1.0f, 1.0f, 1.0f});
+            figure->PlayAnimation(animation);
+            figure->animation->Advance(frames);
+            figure->animation->UpdatePose();
+            const Vector3 moved = figure->PartPoint(part, {1.0f, 1.0f, 1.0f});
+            lines->push_back("harness: figurealone: " + pointText("rest", rest));
+            std::snprintf(text, sizeof(text), "harness: figurealone: %s frame %.2f %s", animationName.c_str(),
+                          figure->animation->time, pointText("at", moved).c_str());
+            lines->push_back(text);
+            if (figure->animation->current != animation || figure->animation->time != frames)
+                failure = "figurealone: " + animationName + " is not at the frame asked for";
+            else if (!(DistanceSquared(rest, moved) > 1e-6f))
+                failure = "figurealone: " + partName + " did not move in " + animationName;
+        }
+    }
+    figure->Release();
+    return failure;
+}
+
 std::vector<std::string> ClientHurt() {
     std::vector<std::string> hurt;
     for (MapObject* object : g_clientWorld.objects) {

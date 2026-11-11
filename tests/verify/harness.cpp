@@ -2264,6 +2264,21 @@ std::string ClientHurtStep(const std::string& argument) {
     return "";
 }
 
+// --- figurealone <model> <animation> <part> <frames> ---------------------------------------------------------------
+// A figure alone (FigureInstance, MF15k3): the model built without a game object, the animation played and moved on,
+// the part's point read at rest and after; fails without the figure, the animation or the part, or when the part did
+// not move (figure_alone).
+std::string FigureAloneStep(const std::string& argument) {
+    char model[64] = "", animation[64] = "", part[64] = "";
+    float frames = 0.0f;
+    if (std::sscanf(argument.c_str(), "%63s %63s %63s %f", model, animation, part, &frames) != 4)
+        return "figurealone needs <model> <animation> <part> <frames>";
+    std::vector<std::string> lines;
+    const std::string failure = image::FigureAlone(model, animation, part, frames, &lines);
+    for (const std::string& line : lines) Log("%s", line.c_str());
+    return failure;
+}
+
 // --- waitwindow <seconds> <window> (ticket T1) ----------------------------------------------
 // The interface windows a scenario waits for, by name (WindowKind, harness_windows.h).
 
@@ -3019,7 +3034,7 @@ void RunSteps() {
                 Log("harness: %s", error.c_str());
                 g_failures.push_back(error);
             }
-        } else if (s.verb == "hudstate" || s.verb == "campputon" || s.verb == "campstock" || s.verb == "clientbolts" ||
+        } else if (s.verb == "hudstate" || s.verb == "campputon" || s.verb == "campstock" || s.verb == "clientbolts" || s.verb == "figurealone" ||
                    s.verb == "clienthurt" ||
                    s.verb == "modfile" || s.verb == "modlist" ||
                    s.verb == "modarchive" || s.verb == "mapfile" || s.verb == "playstream" ||
@@ -3037,6 +3052,7 @@ void RunSteps() {
                                 : s.verb == "campstock"     ? CampStock(s.argument)
                                 : s.verb == "clientbolts"   ? ClientBoltsStep(s.argument)
                                 : s.verb == "clienthurt"    ? ClientHurtStep(s.argument)
+                                : s.verb == "figurealone"   ? FigureAloneStep(s.argument)
                                 : s.verb == "folderprofile" ? folder_profile::Step()
                                 : s.verb == "modlist"       ? starter::ModListStep(s.argument)
                                 : s.verb == "modarchive"    ? starter::ModArchiveStep(s.argument)

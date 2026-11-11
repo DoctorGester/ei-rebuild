@@ -1,13 +1,14 @@
-// The figure animation state's skeleton (class 0x300D; FigureAnimationState in objects/object3d.h): its
+// The figure animation state's skeleton (class 0x300D; FigureAnimationState in animation.h): its
 // lifetime, the bones the skeleton file links (LinkPiece per link, then FindRoot), the meshes the bones
 // carry, and placing the skeleton when the animation or the figure's morph changes. FigureBone::Place is
 // the skeleton's pose: each bone of a figure takes its place from its parent and its animator, and places
 // the mesh it carries. See docs/notes/map_objects.md.
-#include "game/objects/object3d.h"   // FigureBone, AnimationDatabase
+#include "engine/models/animation.h"
 
 #include "engine/core/base_manager.h"
 #include "engine/core/core_maths.h"
-#include "engine/models/animation.h"   // AnimationTrack
+#include "engine/models/animation_db.h"   // AnimationDatabase
+#include "engine/models/figure_instance.h"   // the owner
 #include "engine/models/figure_manager.h"
 #include "engine/models/figure_mesh.h"   // FigureMesh
 
@@ -30,7 +31,7 @@ constexpr const char* kBoneClassName = "CAnimationNode";
 // The root places the skeleton at the owner's time factor at its scale z times its
 // default scale.
 void PlaceRoot(FigureAnimationState* state) {
-    Object3D* owner = state->owner;
+    FigureInstance* owner = state->owner;
     float factor = owner->AnimationFactor(owner->scale.z);
     Vector3 origin = factor * owner->defaultScale;
     state->root->Place(origin, state->BlendWeight());
@@ -58,7 +59,6 @@ void FigureAnimationState::Destroy() {
 }
 
 void FigureAnimationState::Reset() {
-    onEnd = nullptr;
     owner = nullptr;
     root = nullptr;
     bones.clear();
@@ -223,7 +223,7 @@ void FigureAnimationState::LoadBoneTracks(MappedResource* part, const FigureAnim
     }
 }
 
-// --- The bone's lifetime (FigureBone in objects/object3d.h) ---
+// --- The bone's lifetime (FigureBone in animation.h) ---
 
 // The figure factory makes bones; the animation state links them.
 

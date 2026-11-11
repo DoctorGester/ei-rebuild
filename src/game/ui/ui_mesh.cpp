@@ -17,6 +17,8 @@
 #include <cstdint>
 #include <cstring>
 #include <optional>
+#include <string>
+#include <string_view>
 #include <vector>
 
 namespace {
@@ -436,6 +438,36 @@ void UiMesh::Draw(SceneRenderer* renderer) {
     Pop(world);
     Pop(view);
     Pop(world);
+}
+
+// --- The class 0x43's maker -------------------------------------------------------------------
+
+EngineObject* InterfaceFigureManager::NewObject(int objectType) {
+    if (static_cast<FigureObjectType>(objectType) != FigureObjectType::UiMesh) return FigureManager::NewObject(objectType);
+    auto* sprite = new UiMesh();
+    sprite->type = objectType;
+    return sprite;
+}
+
+UiMesh* NewBlankSprite(FigureManager* manager) {
+    return manager->CreateObjectAs<UiMesh>(FigureObjectType::UiMesh, -1);
+}
+
+UiMesh* NewFigureSprite(FigureManager* manager, std::string_view name) {
+    auto* figure = NewBlankSprite(manager);
+    figure->name = name;
+    figure->directory.clear();
+    const std::string path = std::string(name) + ".fig";
+    void* data = manager->GetFile(path, nullptr);
+    if (!data) {
+        manager->ReleaseObject(figure);
+        return nullptr;
+    }
+    char* cursor = static_cast<char*>(data);
+    figure->LoadFromMemory(&cursor);
+    figure->box.bounds.flags = 0;
+    manager->CloseFile(data);
+    return figure;
 }
 
 // --- The class 0x43's lifetime and slots ---------------------------------------------------

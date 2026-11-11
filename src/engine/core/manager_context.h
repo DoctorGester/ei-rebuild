@@ -14,6 +14,7 @@ class ItemConstructor;
 struct ItemManager;
 class LightFactory;
 class LinkFigureLoader;
+class MaterialManager;
 struct MapObjectManager;
 class PlayerManager;
 class SpellConstructor;
@@ -50,9 +51,10 @@ public:
     // CopyItem here: WorldServer's plain member of that name would hide it.
     virtual Item* DuplicateItem(Item* item) { return MakeCopyOf(item); }
     // What the scene draws with (the scene renderer's world, scene_renderer.h; a texture's manager): the client world's
-    // texture manager, its light factory and its time in ticks (whole ticks plus the fraction of the current one: the
-    // animated meshes' and the sky's clock); null and 0 for another context.
+    // texture manager, its material manager, its light factory and its time in ticks (whole ticks plus the fraction of
+    // the current one: the animated meshes' and the sky's clock); null and 0 for another context.
     TextureManager* GetTextureManager();
+    MaterialManager* GetMaterialManager();
     LightFactory* GetLightFactory();
     float SceneTime();
 

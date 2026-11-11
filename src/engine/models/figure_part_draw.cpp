@@ -3,8 +3,8 @@
 // docs/notes/models.md ("Figure parts").
 #include "engine/models/figure_mesh.h"
 
+#include "engine/models/figure_instance.h"
 #include "engine/models/link_figure.h"
-#include "game/objects/object3d.h"
 #include "engine/models/material.h"
 #include "engine/scene/device.h"
 #include "engine/scene/pipeline.h"
@@ -32,10 +32,11 @@ constexpr std::uint32_t kSheet8x4 = 16;    // 32 frames
 
 constexpr float kByteScale = 255.0f;
 
-// The figure a mesh is drawn through: its owner's (Object3D::figure), or null for the mesh's own buffers.
+// The figure a mesh is drawn through: its owner's (FigureInstance::figure; an interface window's sprite has none), or
+// null for the mesh's own buffers.
 LinkMesh* OwnerFigure(const FigureMesh* mesh) {
     TransformObject* owner = mesh->object;
-    return owner ? static_cast<Object3D*>(owner)->figure.Get() : nullptr;
+    return owner ? static_cast<FigureInstance*>(owner)->figure.Get() : nullptr;
 }
 
 // The original's _ftol: truncated through 64 bits, the low half (0 for a NaN or a value beyond the range).

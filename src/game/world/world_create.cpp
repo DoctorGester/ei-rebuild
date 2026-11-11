@@ -33,6 +33,7 @@
 #include "game/terrain/terrain.h"
 #include "engine/data/text_manager.h"
 #include "game/ui/ui_flying_hit_points.h"
+#include "game/ui/ui_mesh.h"   // InterfaceFigureManager
 #include "game/units/unit.h"
 #include "game/objects/map_object_manager.h"
 #include "game/world/world.h"
@@ -58,7 +59,7 @@ void World::Create() {
     players->Init(this);
     objectManager = std::make_unique<MapObjectManager>();
     objectManager->Init(this);
-    figureManager = std::make_unique<FigureManager>();
+    figureManager = std::make_unique<InterfaceFigureManager>();
     figureManager->Init(this);
     timedObjectManager = std::make_unique<EffectManager>();
     timedObjectManager->Init(this);

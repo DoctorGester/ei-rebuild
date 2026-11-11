@@ -18,7 +18,6 @@
 
 class FigureAnimationState;
 class FigureMesh;
-class UiMesh;
 struct AnimationTrack;
 struct ClipBounds;
 struct FigureAnimation;
@@ -30,11 +29,12 @@ struct FigureModel;
 enum class FigureObjectType : int {
     LoosePart = 0x41,             // FigureMesh: a part that is not attached
     AttachedPart = 0x42,          // FigureMesh: an attached part
-    UiMesh = 0x43,                // UiMesh: a whole figure (NewBlankFigure)
+    UiMesh = 0x43,                // UiMesh: the interface's sprite (the game's: game/ui/ui_mesh.h, InterfaceFigureManager)
     SkyObject = 0x44,             // SkyObject
     AnimationTrack = 0x300B,      // AnimationTrack: a bone's animator
     FigureBone = 0x300C,          // FigureBone
     AnimationState = 0x300D,      // FigureAnimationState: a map object's skeleton
+    Instance = 0x300E,            // FigureInstance: a figure alone (ours)
 };
 
 // The figure factory: a new object of figure type `classId` with type set, or null for another type.
@@ -72,11 +72,6 @@ public:
     // the game).
     int LoadMenuRects(Rect* rects);
 
-    // (The interface's model manager too.) A figure object, loaded from "<name>.fig" when named (released and null
-    // when the file is missing); the empty object without a name.
-    UiMesh* NewFigure(std::string_view name);
-    // The empty figure object (no file read).
-    UiMesh* NewBlankFigure();
     // Object3D::LoadPart. A new figure part (class 0x42 when `attached`, else 0x41) named
     // `partName`; a null part faults, as in the original.
     FigureMesh* NewPart(const std::string& modelName, std::string_view partName, std::uint32_t attached);

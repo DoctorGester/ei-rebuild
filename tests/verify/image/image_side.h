@@ -403,6 +403,12 @@ std::vector<std::string> ClientBolts();
 // The client world's living units whose packed hit points (as the server last sent them) are below their maximum:
 // each one's "id <id> hp <hit points> of <maximum>".
 std::vector<std::string> ClientHurt();
+// A figure alone (FigureInstance, MF15k3; "figurealone"): `model` built by the client world's figure manager without a
+// game object (a hero's model with the heroes' parts and hair 1, another whole), dressed with the skin of its name,
+// its animation database's `animation` played and moved on `frames` frames; `part`'s point at rest and then each
+// logged into `lines`. The figure is let go after. The failure's text, or "".
+std::string FigureAlone(const std::string& model, const std::string& animation, const std::string& part, float frames,
+                        std::vector<std::string>* lines);
 // Animation switches blend (FigureAnimationState::SetBlends; "animblend on|off").
 void SetAnimationBlends(bool on);
 // The blends begun so far in world figures (FigureAnimationState::WorldBlendsBegun; "animblend count").

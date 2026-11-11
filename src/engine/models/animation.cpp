@@ -3,10 +3,9 @@
 #include "engine/models/animation.h"
 
 #include "engine/core/base_manager.h"
+#include "engine/models/figure_instance.h"
 #include "engine/models/figure_manager.h"
-#include "game/objects/object3d.h"
 #include "lib/vecmath.h"
-#include "game/world/world.h"
 #include "lib/bytes.h"
 #include "lib/rounding.h"
 #include "platform/platform.h"
@@ -114,7 +113,7 @@ ClassId AnimationTrack::GetClassId() { return ClassId::AnimationTrack; }
 // --- State -------------------------------------------------------------------------------------------
 
 // The figure's animation state (FigureAnimationState): what plays, the queue
-// behind it and the frame reached. See objects/object3d.h and docs/notes/map_objects.md.
+// behind it and the frame reached. See animation.h and docs/notes/map_objects.md.
 
 namespace {
 constexpr std::uint32_t kKeyEndMask = AnimationKeyOf(AnimationKeyFlag::Once | AnimationKeyFlag::Looped);   // what happens at the end
@@ -178,7 +177,6 @@ void FigureAnimationState::SetTime(float frame) {
         float frames = static_cast<float>(current->frameCount);
         if (frames >= time) break;             // on while below the frame reached, or NaN
         time -= frames;
-        if (onEnd) onEnd(owner);
         if (!queue.empty()) {
             current = PopQueued(this);
         } else if ((current->key & kKeyEndMask) != kKeyLoops) {
@@ -231,7 +229,7 @@ void FigureAnimationState::BeginBlend(const FigureAnimation* from, const FigureA
     if (!blends || !g_blends) return;
     blendStart = placedAt;
     blendLength = BlendMilliseconds(to);
-    if (!(owner->flags & MapObjectFlag::Preview)) ++g_worldBlends;
+    if (!(owner->flags & FigureFlag::Preview)) ++g_worldBlends;
 }
 
 void FigureAnimationState::SetBlends(bool on) { g_blends = on; }

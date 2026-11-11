@@ -32,7 +32,7 @@ int Mul(int a, int b) {
 
 // A new object of the model manager by name, or null.
 UiMesh* NewModelObject(std::string_view name) {
-    return g_clientWorld.figureManager->NewFigure(name);
+    return NewFigureSprite(g_clientWorld.figureManager.get(), name);
 }
 
 constexpr Quaternion kIdentityRotation = /*007C7E58*/ {1.0f, 0.0f, 0.0f, 0.0f};   // a static initialiser
@@ -291,7 +291,7 @@ UiMesh* UiWindow::AddSprite(std::string_view name) {
     return AddSceneObject(object);
 }
 
-UiMesh* UiWindow::AddBlankSprite() { return AddSceneObject(g_clientWorld.figureManager->NewBlankFigure()); }
+UiMesh* UiWindow::AddBlankSprite() { return AddSceneObject(NewBlankSprite(g_clientWorld.figureManager.get())); }
 
 UiMesh* UiWindow::AddSceneObject(UiMesh* object) {
     bool listed = false;

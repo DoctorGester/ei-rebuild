@@ -62,15 +62,6 @@ Rect BoxRect(const Matrix4& screen, const ClipBounds& bounds, const Rect& clamp)
 }
 } // namespace
 
-void ObjectWorldMatrix(const Quaternion* orientation, const Vector3& position, Matrix4* out) {
-    orientation->ToMatrix(out->m);
-    out->m[11] = position.z;
-    out->m[3] = position.x;
-    out->m[7] = position.y;
-    std::memset(&out->m[12], 0, 3 * sizeof(float));
-    out->m[15] = 1.0f;
-}
-
 // The object is in view (the caller's one test of its bounds): every part near enough is drawn whole and the GPU clips
 // it. The units' and levers' draws (`dirty`) also give each part its screen rectangle from its box.
 int Object3DClientSpecific::DrawParts(SceneRenderer* context, Rect* dirty) {
@@ -84,15 +75,7 @@ int Object3DClientSpecific::DrawParts(SceneRenderer* context, Rect* dirty) {
     if (object->animation) object->animation->PlaceForDraw();
 
     // The scene's sun and ambient colour: the parts are lit on the GPU (the point lights there too).
-    render::MeshLighting lighting{};
-    if (const Light* sun = g_sceneRenderer.sun) {
-        lighting.sun = true;
-        lighting.sunDirection = sun->direction;
-        for (int k = 0; k < 3; ++k) lighting.sunColour[k] = sun->color[k];
-    }
-    const float* ambient = AmbientColour();
-    for (int k = 0; k < 3; ++k) lighting.ambientColour[k] = ambient[k];
-    lighting.coefficient = options::kObjectsLightingCoeff;
+    render::MeshLighting lighting = FigureLighting(options::kObjectsLightingCoeff);
 
     // The object's matrix at the pose the draw shows (drawn_motion.h), times its extra scale when it has one, under the
     // screen stack's top (the camera with the viewport).

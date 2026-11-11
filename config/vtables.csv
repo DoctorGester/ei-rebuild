@@ -212,9 +212,9 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073D93C,26,,game,00500A70 00500AC0,00501AB0,SceneRenderer,-,stored only by game.exe's 00500A70 / 00500AC0: the scene renderer's (ours has no virtual functions)
 0073D9BC,3,,game,00506710 005068C0 0050A1C0,007005E3,AlignedAt8ArrayClass,-,CArray (an animation node's 24-byte records with an aligned block at +8); stored only by game.exe (ours is a std::vector)
 0073D9D8,13,,game,0050A5D0 0050A720,0050A700,AnimationTrack,src/engine/models/animation.h,class 0x300B (the figure factory)
-0073DA0C,13,,game,0050AF40 0050B1D0,0050B1B0,FigureBone,src/game/objects/object3d.h,class 0x300C (the figure factory)
+0073DA0C,13,,game,0050AF40 0050B1D0,0050B1B0,FigureBone,src/engine/models/animation.h,class 0x300C (the figure factory)
 0073DA40,3,,game,0050AF40 0050B1D0 0050C5F0 0050C730 0050DBC0,007005E3,BoneListClass,-,CList (a figure bone's children and an animation state's bones); stored only by game.exe (ours is a std::list)
-0073DA4C,13,,game,0050C5F0 0050C730,0050C710,FigureAnimationState,src/game/objects/object3d.h,class 0x300D (the figure and map object factories)
+0073DA4C,13,,game,0050C5F0 0050C730,0050C710,FigureAnimationState,src/engine/models/animation.h,class 0x300D (the figure and map object factories)
 0073DA80,3,,game,0050C5F0 0050C730 0050DE30,007005E3,AnimationStateListClass,-,CList (an animation state's queue); stored only by game.exe (ours is a std::list)
 0073DAA0,61,,game,0050E2D0 0050E660,0050E560,MapObject,src/game/objects/map_object.h,"MapObject's own table (slots 11, 12 _purecall)"
 0073DB94,3,,game,0050E2D0 0050E580 0050E660 0050FBC0,007005E3,DeltaFieldArrayClass,-,CArray<DeltaField> (a map object's network records); stored only by game.exe (ours is a std::vector)
