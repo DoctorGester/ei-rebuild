@@ -6,3 +6,5 @@ model = "opus"
 depends = ["MF17a"]
 note = "From build/mf17_spells.md (the MF17 design), sections 2.2, 2.4, 2.5. [[spell]] script = 'x.lua' (Res/spells/ through the layers); modules loaded at Script::Runner and after Restore with world bindings off at top level, not saved; CastSpell makes one SpellEffect for a scripted spell; state kStateScripted: on_cast, on_tick, on_end, cast:after timers by name, cast:finish, idle end, tick cap; errors on the console end the cast; casts table in the scheduler Eris save; cast key and owned-object list in the SpellEffect record (save version 0x75); Forget keeps a scripted cast. Checks: --lua-check host cases; a test-mod scenario saved and loaded mid-cast, golden the same both ways. User 2026-11-11: timers instead of waits inside hooks, spell files in Res\\spells\\ (both as designed); hooks named in the existing bindings' style (OnCast/OnTick/OnHit/OnEnd), not snake_case. User 2026-11-11: original spells must use the same functionality modders get; design the runtime so vanilla spells can move onto it (MF17g), not as a side path for mods only."
 order = 1356
+status = "running"
+started = "2026-11-11"
