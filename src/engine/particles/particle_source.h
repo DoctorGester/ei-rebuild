@@ -142,8 +142,8 @@ struct Particle {
 };
 
 
+class FigureInstance;
 class ParticleSource;
-class MapObject;
 class SceneRenderer;
 class Texture;
 
@@ -229,6 +229,8 @@ enum class AttachPoint : std::uint8_t {
     Body03,
     Body04,
 };
+// The part a source on `point` sits on ("hd", "lh2" ...: the first part whose name starts so); null for EffectPoint.
+const char* AttachPointPart(AttachPoint point);
 
 // The bounds a tick starts from: empty (each minimum above its maximum).
 inline constexpr float kBoundsFar = 100000.0f;
@@ -270,16 +272,19 @@ public:
     void StartEmitting();                           // Emitting and KeepAlive on
     void Stop();                                    // Emitting and KeepAlive off, detach
 
-    // Follow `object` (a map object, or null to let go): the old object
+    // Follow `object` (a figure: the game's map objects, the viewer's figure; null to let go): the old object
     // drops the source (its point is folded into the local position), the new one adds it, and
-    // the emission point becomes the new attachment point (particlehost::CarrierPoint, or the local position).
-    void Attach(MapObject* object);
+    // the emission point becomes the new attachment point (CarrierPoint).
+    void Attach(FigureInstance* object);
+    // Where the source sits on its carrier (not null): with ParticleSourceFlag::OnPart the host's point of the part
+    // attachPoint names, else the carrier's position.
+    Vector3 CarrierPoint() const;
     // Every particle back to the pool, emission off (Emitting and KeepAlive cleared), detached.
     void StopAndClear();
     void ReleaseAllParticles();
 
     // EngineObject's flags hold the ParticleSourceFlag bits, its type a ParticleType.
-    MapObject* attachedTo = nullptr;  // the object followed, null: none
+    FigureInstance* attachedTo = nullptr;  // the object followed, null: none
     Vector3 origin;                 // world emission point
     Vector3 motion;                 // movement since the last tick
     Vector3 side;                   // unit, motion x (0, 0, 1) (zero while still)
