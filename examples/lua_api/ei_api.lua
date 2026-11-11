@@ -35,6 +35,30 @@
 ---| "Size" # steps of the figure's size on every axis (enlarge and shrink 1 and -1)
 ---| "Stunned" # while above 0 the unit is stunned: no actions (stun; the teleport's arrival)
 ---| "NoCasting" # while above 0 the unit casts no spells, unless its natural weapon is spells only (feeblemind)
+---| "Strength" # added to the strength (after the skill levels'): with it the hit points, the carried weight and the skills it leads (no game buff touches this one or those below)
+---| "Dexterity" # added to the dexterity: with it the mana, the action rate and the skills it leads
+---| "Intelligence" # added to the intelligence: with it the experience gained and the magic skills
+---| "MaxHitPoints" # added to the hit point maximum, before `Might`'s scale
+---| "MaxMana" # added to the mana maximum of a hero or a named unit (another unit's is its prototype's, unchanged)
+---| "HitPointRegen" # added to the share of the maximum the hit points regenerate every 15 ticks while hurt (0.005: half a percent), before `Regeneration`'s factor
+---| "ManaRegen" # added to the share of the maximum the mana regenerates every 15 ticks out of a fight
+---| "PiercingProtection" # added to the unit's protection from piercing
+---| "SlashingProtection" # added to the unit's protection from slashing
+---| "CrushingProtection" # added to the unit's protection from crushing
+---| "GeneralProtection" # added to the unit's protection from general damage
+---| "Hearing" # added to the hearing range
+---| "Smell" # added to the sense of smell
+---| "Attack" # added to the attack of the unit's blows and shots (whole numbers count)
+---| "Defence" # added to the defence against blows (whole numbers count; none against shots)
+---| "Damage" # added to the damage of a weapon's or a natural attack's hit, before `Might`'s scale
+---| "Speed" # added to the movement speed, which stays at least 0
+---| "MeleeSkill" # added to the melee skill (the attack and defence with a blade, an axe, a club, ...)
+---| "ArcherySkill" # added to the archery skill (bows and crossbows)
+---| "ElementalSkill" # added to the elemental magic skill (fire, lightning, acid: what spells it may cast)
+---| "SenseSkill" # added to the sense magic skill (illusion, divination)
+---| "AstralSkill" # added to the astral magic skill (enchantment, healing, domination)
+---| "Science" # added to the science (the Use and Steal skills)
+---| "Taming" # added to the taming
 
 ---@class ei.Point
 ---@field x number
@@ -384,6 +408,30 @@ function Stats:Multiply(name, x) end
 ---@field kind string # its spell's code (lower case)
 ---@field value number # the strongest value of its kind's effects on the unit (from 0; the spell's damage unless `cast:Apply` gave one)
 
+---The one-shot hooks' effect (OnEffectApplied, OnEffectEnded, OnEffectTick): one active effect on a unit; its methods work only in its hook.
+---@class ei.ActiveEffect
+---@field kind string # its spell's code (lower case)
+---@field value number # its value (the spell's damage unless `cast:Apply` gave one)
+---@field ticks integer # the ticks it has left
+---@field power number # its look's size (its cast's power)
+local ActiveEffect = {}
+
+---a hit of `amount` of a damage type on the unit, as `cast:Damage`'s without a caster (no one has the credit; `noCredit` is not read). Gives the hit points lost
+---@param amount number
+---@param type string
+---@param options? ei.DamageOptions
+---@return number
+function ActiveEffect:Damage(amount, type, options) end
+
+---heals the unit as `cast:Heal` does; gives the hit points gained
+---@param amount number
+---@return number
+function ActiveEffect:Heal(amount) end
+
+---the effect taken off the unit now (its `OnEffectEnded` follows, `"removed"`); whether it was still on
+---@return boolean
+function ActiveEffect:Remove() end
+
 ---A spell file's table (Res\spells\<file>.lua returns it; annotate it `---@type ei.Spell`): the hooks, each optional, and the timers cast:After names.
 ---@class ei.Spell
 ---@field OnCast? fun(cast: ei.Cast) # once, when the cast starts
@@ -392,6 +440,9 @@ function Stats:Multiply(name, x) end
 ---@field OnEnd? fun(cast: ei.Cast, reason: "finished"|"idle"|"limit"|"error") # once, at the end of the cast: `reason` `"finished"`, `"idle"`, `"limit"` or `"error"`
 ---@field OnResume? fun(cast: ei.Cast, old: {state: "missile"|"lasting", ticks: integer, visual?: integer, sound?: integer, light?: integer, direction?: ei.Point}) # a save made before a game's spell moved onto this file held a cast of it in flight (`old.state` `"missile"`) or lingering (`"lasting"`), `old.ticks` left on the game's own count: the cast's objects are already its own (a missile still lands in `OnHit`, with a nil payload; `old.visual`, `old.sound` and `old.light` are their handles, for `cast:Release` later; `old.direction` the direction of its wall or bolt); set its timers and data here (the world methods are off in this hook, but `cast:Block`). Without it such a cast ends at once
 ---@field OnStats? fun(effect: ei.Effect, stats: ei.Stats) # the effect's kind on a unit works out its stats ([Active effects](#active-effects)); the world's functions are off in it
+---@field OnEffectApplied? fun(effect: ei.ActiveEffect, unit: ei.Object?) # an effect of the spell's kind came on a unit ([Active effects](#active-effects)), run at the end of that tick
+---@field OnEffectEnded? fun(effect: ei.ActiveEffect, unit: ei.Object?, reason: "expired"|"removed"|"renewed"|"died") # an effect of the spell's kind left a unit: `reason` `"expired"` (its ticks ran out), `"removed"` (`cast:Remove`, `effect:Remove`), `"renewed"` (a new one of the kind and strength replaced it) or `"died"` (the unit died)
+---@field OnEffectTick? fun(effect: ei.ActiveEffect, unit: ei.Object?) # every tick an effect of the spell's kind lasts on a unit, after its count down (`effect.ticks` left, above 0)
 ---@field [string] fun(cast: ei.Cast, payload: any)
 
 -- The mission scripts' functions (also in the spells' hooks).

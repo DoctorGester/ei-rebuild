@@ -468,7 +468,11 @@ void UnitStats::PackBodyProtection(Unit* unit, const UnitVitals* vitals, DamageW
 }
 
 float UnitStats::AttributeWithItems(int index, Unit* unit) {
-    if (!IsTextKey(unit->id)) return attributes[index];    // any index
+    // The effects' Science and Taming; the second attribute is read by nothing.
+    const float effect = index == 0 ? EffectTotal(unit, EffectStat::Science)
+                         : index == 2 ? EffectTotal(unit, EffectStat::Taming)
+                                      : 0.0f;
+    if (!IsTextKey(unit->id)) return attributes[index] + effect;    // any index
     float best = 0.0f;
     for (std::uint32_t i = 0; i < kQuickItems; ++i) {
         Item* item = unit->GetQuickItem(i);
@@ -478,21 +482,21 @@ float UnitStats::AttributeWithItems(int index, Unit* unit) {
         best = MaxKeepB(best, bonus);   // a select
     }
     switch (index) {
-    case 0: return (dexterity - kStatBase) + attributes[0] + best;
+    case 0: return (dexterity - kStatBase) + (attributes[0] + effect) + best;
     case 1: return (dexterity - kStatBase) + attributes[1] + best;
-    case 2: return (intelligence - kStatBase) + attributes[2] + best;
+    case 2: return (intelligence - kStatBase) + (attributes[2] + effect) + best;
     default: return 0.0f + best;
     }
 }
 
-float UnitStats::SpellSchoolSkill(SpellSchool spellSchool) {
+float UnitStats::SpellSchoolSkill(SpellSchool spellSchool, Unit* unit) {
     int school = static_cast<int>(spellSchool);
     if (school == 4) school = 3;
     else if (school == 6 || school == 7) school = 5;
     float base = 0.0f;
-    if (school >= 0 && school <= 2) base = skills[3];
-    else if (school >= 3 && school <= 4) base = skills[4];
-    else if (school >= 5 && school <= 7) base = skills[5];
+    if (school >= 0 && school <= 2) base = skills[3] + EffectTotal(unit, EffectStat::ElementalSkill);
+    else if (school >= 3 && school <= 4) base = skills[4] + EffectTotal(unit, EffectStat::SenseSkill);
+    else if (school >= 5 && school <= 7) base = skills[5] + EffectTotal(unit, EffectStat::AstralSkill);
     // skillLevels[school + 7] and its record.
     float level = SkillLevelValue(school + 7);
 

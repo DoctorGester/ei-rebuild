@@ -1,0 +1,36 @@
+  Activated!
+  Cannot open file autoexec.cfg for reading
+  Showcase mod: the island loads
+  Showcase mod: the party has the Chain Spark
+  Saved savea
+  1
+  Showcase mod: the ember brand on 4002 for 120 ticks
+  1
+  0
+  0
+  0
+  1
+  Saved save1
+  1
+  Showcase mod: the ember brand on 4002 expired after 5 burns
+  1
+  1
+  1
+  1
+  1
+  Cannot open file autoexec.cfg for reading
+  Loaded save1
+  1
+  1
+  1
+  1
+  1
+  0
+  0
+  0
+  Showcase mod: the ember brand on 4002 expired after 5 burns
+  1
+  1
+  1
+  1
+  1

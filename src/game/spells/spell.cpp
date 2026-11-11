@@ -186,6 +186,11 @@ int MapEffect::Tick() {
     return ticksLeft > 0 ? 1 : 0;
 }
 
+std::uint32_t MapEffect::NewSerial() {
+    static std::uint32_t last = 0;
+    return ++last;
+}
+
 void Spell::Destroy() {
     ClearState();
     modifiers = {};
@@ -213,6 +218,7 @@ Spell* Spell::Clone(SpellManager* manager) {
 // the map objects' Load / Save call for each of their effects).
 
 void MapEffect::Load(ByteStream* stream) {
+    serial = NewSerial();
     stream->ReadValue(type);
     stream->ReadValue(power);
     stream->ReadValue(ticksLeft);

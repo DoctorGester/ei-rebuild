@@ -151,9 +151,10 @@ float UnitStats::WeaponSkillBonus(WeaponType weaponType, Unit* unit) {
     if (type < 5 || type == 5 || type == 6) {
         int skill = type >= 5 ? 1 : 0;
         float level = LevelAsFloat(this, type);
-        if (!IsTextKey(unit->id)) return static_cast<float>(skills[skill]) + level;
+        const float effect = EffectTotal(unit, skill ? EffectStat::ArcherySkill : EffectStat::MeleeSkill);
+        if (!IsTextKey(unit->id)) return (static_cast<float>(skills[skill]) + effect) + level;
         float weapon = WeaponBonus(unit, skill);
-        float value = static_cast<float>(static_cast<int>(skills[skill]));
+        float value = static_cast<float>(static_cast<int>(skills[skill])) + effect;
         const SkillRecord* record = unitdb::SkillAt(static_cast<std::uint32_t>(skill));
         char stat = record->statNames.begin()[0][0];   // its first stat's letter
         float base;
@@ -164,9 +165,10 @@ float UnitStats::WeaponSkillBonus(WeaponType weaponType, Unit* unit) {
         return ((base + value) + weapon) + level;
     }
     if (type == 8) {
-        if (!IsTextKey(unit->id)) return static_cast<float>(skills[0]);
+        const float effect = EffectTotal(unit, EffectStat::MeleeSkill);
+        if (!IsTextKey(unit->id)) return static_cast<float>(skills[0]) + effect;
         float weapon = WeaponBonus(unit, 0);
-        return SkillWithBonus(0) + weapon;
+        return (SkillWithBonus(0) + effect) + weapon;
     }
     return 0.0f;
 }

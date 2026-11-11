@@ -35,9 +35,13 @@ bool MapObjectServer::RunTick() {
     do {
         if (!owner->effects[i].Tick()) {
             const bool scales = owner->ScalesWith(owner->effects[i]);
+            const MapEffect gone = owner->effects[i];
             owner->effects.erase(owner->effects.begin() + i);
             owner->EffectRemoved(scales);
+            EffectEnded(*owner, gone, EffectEnd::Expired);
             --i;
+        } else {
+            EffectTicked(*owner, owner->effects[i]);
         }
         ++i;
     } while (i < std::ssize(owner->effects));

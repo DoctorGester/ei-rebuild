@@ -8,8 +8,10 @@
 // objects it made in the SpellEffect's `owned` list. The modules are loaded from the files in every state (not saved),
 // their top level without the world's bindings. The cast value's methods (the bindings: FindUnits, Damage, Heal,
 // Apply, Missile, ...) are built on the SpellEffect functions the game's own spells call. A module's OnStats gives the
-// active effects of its spells their stats (EffectTotals).
+// active effects of its spells their stats (EffectTotals); its OnEffectApplied, OnEffectEnded and OnEffectTick act
+// as one of them comes, goes and lasts (Queue, RunEffectHooks).
 
+#include "game/objects/map_object.h"
 #include "game/script/script.h"
 #include "game/spells/effect_stats.h"
 
@@ -21,7 +23,11 @@
 
 class ScriptLuaScheduler;
 class SpellEffect;
+class World;
 struct lua_State;
+
+// An active effect's one-shot hook: OnEffectApplied, OnEffectEnded, OnEffectTick.
+enum class EffectCall : std::uint8_t { Applied, Ended, Tick };
 
 class ScriptSpellHost {
 public:
@@ -56,6 +62,16 @@ public:
     // code in lower case, value = the kind's strongest value} and the world's bindings off; what each touched is set
     // in its entry. A kind without the hook adds nothing, nor one whose hook fails (said on the console).
     void EffectTotals(std::vector<EffectKindStats>& kinds, EffectStats& totals);
+
+    // An effect of `object` came, went (`reason`) or lasted a tick (EffectApplied, EffectEnded, EffectTicked): kept
+    // for RunEffectHooks when its kind's module has the hook (asked once a kind: the cost of a kind without them is
+    // that lookup).
+    void Queue(MapObject& object, const MapEffect& effect, EffectCall call, EffectEnd reason);
+    // The world tick's end: the kept calls in their order, those queued meanwhile too (an effect:Remove's, a death's):
+    // OnEffectApplied(effect, unit), OnEffectEnded(effect, unit, reason), OnEffectTick(effect, unit) in the module of
+    // the effect's kind, with the world's bindings. None for an object no longer in the world, nor a tick of an effect
+    // already gone. At most kMaxEffectCalls a tick (more are said on the console and dropped).
+    void RunEffectHooks(World& world);
 
     // The `casts` table (by key: data, timers, tick, finished) and the key after the live casts' into the scheduler's
     // persisted table at `root`, and back.
@@ -117,7 +133,38 @@ public:
     static int StatLarger(lua_State* L);
     static int StatMultiply(lua_State* L);
 
+    // The one-shot hooks' effect value's methods (docs/modding.md, "Active effects"): effect:Damage(amount, type
+    // [, options]), effect:Heal(amount), effect:Remove(), on the hook's unit and effect; a Lua error outside its hook.
+    static int EffectDamage(lua_State* L);
+    static int EffectHeal(lua_State* L);
+    static int EffectRemove(lua_State* L);
+
+    static constexpr std::size_t kMaxEffectCalls = 10000;
+
 private:
+    // A queued one-shot hook: the object's id, the effect (a copy; a tick's is looked up again by its serial).
+    struct EffectHookCall {
+        int object = 0;
+        MapEffect effect;
+        EffectCall call = EffectCall::Applied;
+        EffectEnd reason = EffectEnd::Expired;
+    };
+    // The effect a one-shot hook runs for, while it runs: its value (the table), the object and the effect's serial.
+    struct EffectHookTarget {
+        const void* value = nullptr;
+        World* world = nullptr;
+        int object = 0;
+        std::uint32_t serial = 0;
+    };
+    // Which hooks a kind's module has (bit 1 << EffectCall each), kUnknownHooks before the first look.
+    static constexpr std::uint8_t kUnknownHooks = 0xFF;
+    std::uint8_t KindHooks(int kind);
+    // One queued call: the hook of the effect's kind with the effect value, the object and (OnEffectEnded) the reason.
+    void CallEffectHook(World& world, MapObject& object, const MapEffect& effect, EffectCall call, EffectEnd reason);
+    // The unit a one-shot hook's method acts on (null for another object or one that is gone); a Lua error outside the
+    // hook.
+    static EffectHookTarget& HookTarget(lua_State* L, const char* method);
+
     enum class StatOperation { Add, Subtract, Larger, Multiply };
     // A stats method's operation on the totals of the OnStats running; a Lua error outside one or for an unknown name.
     static int Stat(lua_State* L, StatOperation operation, const char* method);
@@ -197,6 +244,10 @@ private:
     int castMeta = 0;       // the registry's reference of the cast values' metatable
     int statsValue = 0;     // the registry's reference of OnStats' stats value (one, reused)
     int effectValue = 0;    // and of its effect value
+    int effectHookMeta = 0; // the registry's reference of the one-shot hooks' effect values' metatable
+    std::vector<std::uint8_t> kindHooks;     // KindHooks by kind
+    std::vector<EffectHookCall> effectCalls; // Queue's, for RunEffectHooks
+    EffectHookTarget* hookTarget = nullptr;  // while a one-shot hook runs
     EffectStats* statsTotals = nullptr;      // while an OnStats runs: the totals it adds to
     EffectKindStats* statsKind = nullptr;    // and its kind's entry
     int nextCast = 1;

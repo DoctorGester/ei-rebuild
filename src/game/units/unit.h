@@ -735,7 +735,8 @@ struct UnitStats {
     void LearnSkill(const SkillDatabase* database, const ::SkillLevelRecord* record);
     // The attack skill for weapon type `type` (0-4 use skill 0, 5 and 6 skill 1, 8 the bonused skill 0;
     // others 0): for text-key units the skill byte, the weapon prototype's bonus and the stat the skill's
-    // name starts with minus 25, plus the level value of skill `type`.
+    // name starts with minus 25, plus the level value of skill `type`. The skill byte with the unit's effects'
+    // MeleeSkill / ArcherySkill.
     float WeaponSkillBonus(WeaponType type, Unit* unit);
     // Can the unit learn skill level `record` of the skill database: learnable, the three stats at least the
     // record's, the required attribute and skill level present unless named "none" or empty, no known level
@@ -772,11 +773,12 @@ struct UnitStats {
     void PackBodyProtection(Unit* unit, const UnitVitals* vitals, DamageWords* out);
     // Attribute `index` for skill checks: the attribute byte for units without a text key; otherwise the
     // attribute with its stat bonus (stat - 25; 0 for other indices) plus the largest bonus of the unit's
-    // quick items.
+    // quick items. Attributes 0 and 2 with the unit's effects' Science / Taming.
     float AttributeWithItems(int index, Unit* unit);
     // The skill for spell school `school` (4 counts as 3, 6 and 7 as 5): skill byte 3 (schools 0-2), 4 (3-4)
-    // or 5 (5-7), plus the level value of skill school + 7, plus intelligence - 25.
-    float SpellSchoolSkill(SpellSchool school);
+    // or 5 (5-7) with `unit`'s effects' ElementalSkill / SenseSkill / AstralSkill (none without a unit: the
+    // interface's party records), plus the level value of skill school + 7, plus intelligence - 25.
+    float SpellSchoolSkill(SpellSchool school, Unit* unit = nullptr);
 
     std::uint32_t builtFlags = 0;       // bit 0 set when built from the prototype
     float experience = 0.0f;
@@ -915,12 +917,12 @@ void WearArmour(Unit* unit, int location, int layer, float amount);
 // The skill bonus byte of the weapon prototype `itemId >> 16`, as a float.
 float WeaponPrototypeSkillBonus(std::uint32_t itemId);
 
-// `value` scaled by the unit's strengthen / weaken effects (types 0x1D / 0x1E) with k = 0.003, at least 1: (1 +
-// strengthen * k) / (1 + weaken * k), 1 without a unit.
+// The unit's active effects' total `stat` (EffectTotals; 0 without a unit).
+float EffectTotal(Unit* unit, EffectStat stat);
+// An attack's damage `value` plus the unit's effects' Damage, scaled by their Might and Frailty with k = 0.003, at
+// least 1: (1 + Might * k) / (1 + Frailty * k), 1 without a unit.
 float ScaleDamageByEffects(Unit* unit, float value);
-// The scale itself with k = 0.005.
-float HitPointEffectScale(Unit* unit);
-// `value` scaled with k = 0.005, at least 1.
+// A hit point maximum plus the effects' MaxHitPoints, scaled the same with k = 0.005, at least 1.
 float ScaleHitPointsByEffects(Unit* unit, float value);
 static_assert(offsetof(UnitStats, attributes) == 0x6C8);
 static_assert(offsetof(UnitStats, skillLevels) == 0x6D3);

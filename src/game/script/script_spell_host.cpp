@@ -12,6 +12,7 @@
 #include "game/players/player.h"
 #include "game/units/acks_db.h"
 #include "game/units/unit.h"
+#include "game/world/world.h"
 
 #include "lib/float_select.h"
 #include "lib/text_case.h"
@@ -175,6 +176,9 @@ int CheckParticleType(lua_State* L, int index, const char* method) {
     return type;
 }
 
+// The one-shot hooks' names by EffectCall.
+constexpr const char* kEffectHookNames[] = {"OnEffectApplied", "OnEffectEnded", "OnEffectTick"};
+
 // Where a spell's effects start from an object: a unit's eye, another object's position.
 Vector3 StartPoint(MapObject* object) { return object->EyePoint(); }
 
@@ -319,6 +323,26 @@ ScriptSpellHost::ScriptSpellHost(ScriptLuaScheduler& owner)
     lua_pushvalue(L, -1);
     scheduler.lua.AddPermanent("ei.effect");
     effectValue = luaL_ref(L, LUA_REGISTRYINDEX);
+
+    // The one-shot hooks' effect values' metatable and methods, permanents (a value a script keeps persists).
+    lua_createtable(L, 0, 1);
+    lua_createtable(L, 0, 3);
+    const int effectMethods = lua_gettop(L);
+    const auto effectMethod = [this, effectMethods](const char* name, lua_CFunction function) {
+        lua_pushlightuserdata(L, this);
+        lua_pushcclosure(L, function, 1);
+        lua_pushvalue(L, -1);
+        scheduler.lua.AddPermanent(std::format("ei.activeEffect.{}", name).c_str());
+        lua_setfield(L, effectMethods, name);
+    };
+#define EI_LUA_EFFECT_METHOD(name, params, returns, text) effectMethod(#name, Effect##name);
+#include "game/script/script_lua_api.inc"
+    lua_pushvalue(L, effectMethods);
+    scheduler.lua.AddPermanent("ei.activeEffect.methods");
+    lua_setfield(L, -2, "__index");
+    lua_pushvalue(L, -1);
+    scheduler.lua.AddPermanent("ei.activeEffect");
+    effectHookMeta = luaL_ref(L, LUA_REGISTRYINDEX);
 }
 
 ScriptSpellHost::~ScriptSpellHost() {
@@ -329,6 +353,7 @@ ScriptSpellHost::~ScriptSpellHost() {
     luaL_unref(L, LUA_REGISTRYINDEX, castMeta);
     luaL_unref(L, LUA_REGISTRYINDEX, statsValue);
     luaL_unref(L, LUA_REGISTRYINDEX, effectValue);
+    luaL_unref(L, LUA_REGISTRYINDEX, effectHookMeta);
 }
 
 void ScriptSpellHost::NewEntry(SpellEffect& effect, int key) {
@@ -531,6 +556,164 @@ int ScriptSpellHost::Stat(lua_State* L, StatOperation operation, const char* met
     }
     host->statsKind->touched.set(index);
     return 0;
+}
+
+std::uint8_t ScriptSpellHost::KindHooks(int kind) {
+    if (kind < 0) return 0;
+    if (static_cast<std::size_t>(kind) >= kindHooks.size()) kindHooks.resize(static_cast<std::size_t>(kind) + 1, kUnknownHooks);
+    std::uint8_t& hooks = kindHooks[static_cast<std::size_t>(kind)];
+    if (hooks != kUnknownHooks) return hooks;
+    hooks = 0;
+    const itemdb::SpellRecord* record = itemdb::SpellAt(static_cast<std::uint32_t>(kind));
+    if (!record || record->script.empty()) return hooks;
+    const int base = lua_gettop(L);
+    PushModule(record->script);
+    if (lua_istable(L, base + 1)) {
+        const auto has = [this, base](const char* name) {
+            const bool function = lua_getfield(L, base + 1, name) == LUA_TFUNCTION;
+            lua_pop(L, 1);
+            return function;
+        };
+        if (has(kEffectHookNames[0])) hooks |= 1u << static_cast<int>(EffectCall::Applied);
+        if (has(kEffectHookNames[1])) hooks |= 1u << static_cast<int>(EffectCall::Ended);
+        if (has(kEffectHookNames[2])) hooks |= 1u << static_cast<int>(EffectCall::Tick);
+    }
+    lua_settop(L, base);
+    return hooks;
+}
+
+void ScriptSpellHost::Queue(MapObject& object, const MapEffect& effect, EffectCall call, EffectEnd reason) {
+    if (!(KindHooks(effect.Kind()) & (1u << static_cast<int>(call)))) return;
+    effectCalls.push_back({static_cast<int>(object.id), effect, call, reason});
+}
+
+void ScriptSpellHost::RunEffectHooks(World& world) {
+    for (std::size_t i = 0; i < effectCalls.size(); ++i) {
+        if (i == kMaxEffectCalls) {
+            Report(std::format("more than {} active effect hooks in one tick; the rest are dropped", kMaxEffectCalls));
+            break;
+        }
+        const EffectHookCall queued = effectCalls[i];   // the list may grow while the hook runs
+        MapObject* object = world.ObjectWithId(queued.object);
+        if (!object || (object->flags & MapObjectFlag::Removed)) continue;
+        MapEffect effect = queued.effect;
+        if (queued.call == EffectCall::Tick) {
+            const auto found = std::find_if(object->effects.begin(), object->effects.end(),
+                                            [&](const MapEffect& on) { return on.serial == effect.serial; });
+            if (found == object->effects.end()) continue;
+            effect = *found;
+        }
+        CallEffectHook(world, *object, effect, queued.call, queued.reason);
+    }
+    effectCalls.clear();
+}
+
+void ScriptSpellHost::CallEffectHook(World& world, MapObject& object, const MapEffect& effect, EffectCall call,
+                                     EffectEnd reason) {
+    const itemdb::SpellRecord* record = effect.KindRecord();
+    if (!record) return;
+    const int base = lua_gettop(L);
+    PushModule(record->script);
+    const char* name = kEffectHookNames[static_cast<int>(call)];
+    if (!lua_istable(L, base + 1) || lua_getfield(L, base + 1, name) != LUA_TFUNCTION) {
+        lua_settop(L, base);
+        return;
+    }
+    lua_createtable(L, 0, 4);
+    const int value = lua_gettop(L);
+    std::string code = record->code;
+    text::LowerInPlace(code.data(), code.size());
+    lua_pushstring(L, code.c_str());
+    lua_setfield(L, value, "kind");
+    SetNumber(L, value, "value", effect.value);
+    SetInteger(L, value, "ticks", effect.ticksLeft);
+    SetNumber(L, value, "power", static_cast<float>(effect.power) / 16.0f);
+    lua_rawgeti(L, LUA_REGISTRYINDEX, effectHookMeta);
+    lua_setmetatable(L, value);
+    scriptlua::PushObject(L, &object);
+    int arguments = 2;
+    if (call == EffectCall::Ended) {
+        lua_pushstring(L, kEffectEndNames[static_cast<int>(reason)].data());
+        ++arguments;
+    }
+
+    EffectHookTarget target{lua_topointer(L, value), &world, static_cast<int>(object.id), effect.serial};
+    EffectHookTarget* const outerTarget = hookTarget;
+    hookTarget = &target;
+    ScriptRun hookRun;
+    ScriptRun* const outerRun = scheduler.lua.currentRun;
+    scheduler.lua.currentRun = &hookRun;
+    const int status = lua_pcall(L, arguments, 0, 0);
+    scheduler.lua.currentRun = outerRun;
+    hookTarget = outerTarget;
+    if (status != LUA_OK) Report(lua_tostring(L, -1) ? lua_tostring(L, -1) : "(no message)");
+    lua_settop(L, base);
+}
+
+ScriptSpellHost::EffectHookTarget& ScriptSpellHost::HookTarget(lua_State* L, const char* method) {
+    auto* host = static_cast<ScriptSpellHost*>(lua_touserdata(L, lua_upvalueindex(1)));
+    if (!host->hookTarget || lua_topointer(L, 1) != host->hookTarget->value)
+        luaL_error(L, "effect:%s: only in its own hook (OnEffectApplied, OnEffectEnded, OnEffectTick)", method);
+    return *host->hookTarget;
+}
+
+// effect:Damage(amount, type [, {area, split}]): a hit of the hook's effect on its unit, as cast:Damage's without a
+// caster (no one has the credit). The hit points the unit lost; none for another object.
+int ScriptSpellHost::EffectDamage(lua_State* L) {
+    const EffectHookTarget& target = HookTarget(L, "Damage");
+    const float amount = scriptlua::FromLuaNumber(luaL_checknumber(L, 2));
+    const DamageType type = CheckDamageType(L, 3, "Damage");
+    CheckOptions(L, 4);
+    const int hitKind = BoolField(L, 4, "area", false) ? 1 : 0;
+    const int split = IntField(L, 4, "split", 1);
+    Unit* unit = UnitOrNull(target.world->ObjectWithId(target.object));
+    float lost = 0.0f;
+    if (unit) {
+        DamageInfo hit = SpellEffect::TypedHit(type, amount, hitKind);
+        SpellEffect::SplitHit(&hit, split);
+        const float before = unit->Vitals().hitPoints;
+        unit->ReceiveHit(&hit, nullptr, nullptr);
+        lost = before - unit->Vitals().hitPoints;
+    }
+    lua_pushnumber(L, scriptlua::ToLuaNumber(lost));
+    return 1;
+}
+
+// effect:Heal(amount): the unit healed as cast:Heal does. The hit points it gained.
+int ScriptSpellHost::EffectHeal(lua_State* L) {
+    const EffectHookTarget& target = HookTarget(L, "Heal");
+    const float amount = scriptlua::FromLuaNumber(luaL_checknumber(L, 2));
+    Unit* unit = UnitOrNull(target.world->ObjectWithId(target.object));
+    float gained = 0.0f;
+    if (unit) {
+        const float before = unit->Vitals().hitPoints;
+        unit->controller->Heal(amount);
+        gained = unit->Vitals().hitPoints - before;
+    }
+    lua_pushnumber(L, scriptlua::ToLuaNumber(gained));
+    return 1;
+}
+
+// effect:Remove(): the hook's effect taken off its unit now, as one that ran out (its OnEffectEnded follows with
+// "removed"). Whether it was still on.
+int ScriptSpellHost::EffectRemove(lua_State* L) {
+    const EffectHookTarget& target = HookTarget(L, "Remove");
+    MapObject* object = target.world->ObjectWithId(target.object);
+    bool removed = false;
+    if (object) {
+        const auto found = std::find_if(object->effects.begin(), object->effects.end(),
+                                        [&](const MapEffect& on) { return on.serial == target.serial; });
+        if (found != object->effects.end()) {
+            const bool scales = object->ScalesWith(*found);
+            const MapEffect gone = *found;
+            object->effects.erase(found);
+            object->EffectRemoved(scales);
+            EffectEnded(*object, gone, EffectEnd::Removed);
+            removed = true;
+        }
+    }
+    lua_pushboolean(L, removed);
+    return 1;
 }
 
 int ScriptSpellHost::StatAdd(lua_State* L) { return Stat(L, StatOperation::Add, "Add"); }

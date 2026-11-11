@@ -204,7 +204,7 @@ std::string DefinitionFile() {
         if (row.kind == Kind::Stat) out += std::string("---| \"") + row.name + "\" # " + row.text + "\n";
     out += "\n";
     for (const std::string& owner : Owners()) {
-        if (owner == "Cast" || owner == "Effect") continue;
+        if (owner == "Cast" || owner == "Effect" || owner == "ActiveEffect") continue;
         out += "---@class ei." + owner + "\n";
         Fields(out, owner);
         out += "\n";
@@ -223,6 +223,12 @@ std::string DefinitionFile() {
     out += "---OnStats' effect: one kind of active effect on a unit.\n---@class ei.Effect\n";
     Fields(out, "Effect");
     out += "\n";
+    out += "---The one-shot hooks' effect (OnEffectApplied, OnEffectEnded, OnEffectTick): one active effect on a "
+           "unit; its methods work only in its hook.\n---@class ei.ActiveEffect\n";
+    Fields(out, "ActiveEffect");
+    out += "local ActiveEffect = {}\n\n";
+    for (const Row& row : kRows)
+        if (row.kind == Kind::EffectMethod) Function(out, row, "ActiveEffect:", row.text);
 
     out += "---A spell file's table (Res\\spells\\<file>.lua returns it; annotate it `---@type ei.Spell`): the "
            "hooks, each optional, and the timers cast:After names.\n---@class ei.Spell\n";
@@ -317,7 +323,7 @@ std::string MethodsBlock(Kind kind, std::string_view prefix) {
 std::string OptionsBlock() {
     std::string out = "| Table | Key | Type | What it does |\n|---|---|---|---|\n";
     for (const std::string& owner : Owners()) {
-        if (owner == "Cast" || owner == "Effect" || owner == "Point") continue;
+        if (owner == "Cast" || owner == "Effect" || owner == "ActiveEffect" || owner == "Point") continue;
         bool first = true;
         for (const Row& row : kRows)
             if (row.kind == Kind::Field && owner == row.owner) {
@@ -346,6 +352,8 @@ std::vector<std::pair<std::string, std::string>> Blocks() {
         {"options", OptionsBlock()},
         {"effect-fields", FieldsBlock("Effect", "effect.", "Field")},
         {"stats-methods", MethodsBlock(Kind::StatsMethod, "stats:")},
+        {"active-effect-fields", FieldsBlock("ActiveEffect", "effect.", "Field")},
+        {"active-effect-methods", MethodsBlock(Kind::EffectMethod, "effect:")},
         {"stats", StatsBlock()},
     };
 }

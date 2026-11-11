@@ -30,3 +30,20 @@ ai = "attack"                   # a unit given it casts it at its enemies, its d
 damage_type = "lightning"
 offensive = true                # the HUD's cast at once aims it at the nearest enemy
 look = "ChainSparkShock"        # its own effect on a struck unit shows Res\effects\ChainSparkShock.effect.toml
+
+# The mod's buff (docs/modding.md, "Active effects"): Ember Brand, a curse on a unit, the spell's own active effect.
+# Res\spells\ember_brand.lua gives it: OnStats saps the victim's strength (a stat none of the game's buffs touches),
+# OnEffectTick burns it every 10 ticks, OnEffectEnded says how it went. Its look while it lasts is the game's fire
+# sphere. No item carries it: a mission script (or the console) casts it with CastSpellUnit("ember", ...).
+[[spell]]
+name = "Ember Brand"
+code = "ember"
+script = "ember_brand.lua"
+school = "fire"
+target_kind = "unit"
+damage = 5.0                    # the strength it saps (the effect's value)
+duration = 120                  # ticks the brand lasts
+icon = 101
+damage_type = "fire"
+offensive = true
+look = "SphereFire"

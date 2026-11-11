@@ -1310,6 +1310,7 @@ Each part, its format, and what the formats could not do (each gap a ticket):
 | The weapon | items.idb.toml `[[weapon]]` "showcase hammer" (hammer number 9), `Res\figures\initwehm9.glb` (inventory model, loose figure, part `weapon`), `Res\redress\unhumahm_09.gr.0.png` | databases TOML, glTF loose, PNG | Not seen in the hand: the hand's model is a part of every unit figure (`rh3.<type><nn>`), which a new number lacks (MF13c) |
 | The armour | `[[armor]]` "showcase boots" (boots number 20), `initarbt20.glb`, `Res\redress\unhumabt_20.le.0.png` (a layer over the hero's 256 x 256 skin: opaque where the feet and shins are) | as the weapon | None: boots, gloves, shirts and trousers are skin layers, no part. Helmets, body armour and leggings would need parts (MF13c) |
 | The spell | spells.sdb.toml `[[spell]]` "spark" (Chain Spark, `script = "chain_spark.lua"`, icon 101), `Res\spells\chain_spark.lua`, `Res\effects\ChainSpark.effect.toml`, `ChainSparkHit.effect.toml`, `Res\textures\chainspark.png` (the effects' 16 pictures), `spell0101.png`, `prototype0101.png`, texts' `SPELL spark` | databases TOML, Lua, data effects, PNG | None (MF17e): a scripted spell (items_spells.md, "Scripted spells"). The spark (a missile carrying ChainSpark) strikes, then an arc reaches the nearest enemy within the radius not struck yet and the spark leaps along it 10 ticks later (a timer), each strike 0.6 of the one before (12, 7.2, 4.32), each leaving its victim shocked 40 ticks (the spell's own active effect: OnStats slows as the game's slow, the record's `look` ChainSparkShock) and starting ChainSparkHit on it, up to `target_count`; the last chain's strikes go into the game variables `chain_spark.*`. No sounds of its own: the game's lightning sound |
+| The buff | spells.sdb.toml `[[spell]]` "ember" (Ember Brand, `script = "ember_brand.lua"`, `duration` 120, `damage` 5, `look` the game's SphereFire), `Res\spells\ember_brand.lua` | databases TOML, Lua | None (MF17h3, MF17h1a): a curse, the spell's own active effect. OnStats subtracts its value from Strength (a stat no game buff touches); OnEffectTick burns 2 fire every 20 ticks left (`effect:Damage`, no caster); OnEffectApplied / OnEffectEnded say so on the console; the burns and the end into the game variables `ember_brand.*`. No item carries it: `CastSpellUnit("ember", ...)` |
 | The quest | `Maps\zone1.lua` (sets `q.gz1g.showcase_golem` and its objective `.1`, gives the spell container `spell container[spark]`, watches the golem, `QuestComplete`, `GiveItem`), `quests.qdb.toml` (its experience), texts' `quest showcase_golem` | Lua, databases TOML, texts TOML | None |
 
 Notes from making it:
@@ -1349,6 +1350,9 @@ Notes from making it:
   attributes as they start, in the camp (the mod's picture read), the hero casts Chain Spark at the golem from the HUD; three strikes, 12 / 7.2 / 4.32 in the game variables
   (and so in the digest), golem, shard 4002, shard 4003; saved after the first strike and loaded: the chain goes on
   from the save to the same strikes. Captures: the spark in flight, the first strike and its arc, the leaps.
+- `mod_showcase_buff` (vanilla): a console cast of Ember Brand at shard 4002: its strength lower while it lasts and
+  back after, five burns (100, 80, 60, 40, 20 ticks left) that take hit points, "expired"; saved after the second burn
+  and loaded: the same five burns and end from the save's effect alone.
 
 ## Mods in multiplayer
 

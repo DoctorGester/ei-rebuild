@@ -12,6 +12,7 @@
 // EI_LUA_HELPER(name, params, returns, text)        the prelude's Lua function of that name, made a global
 // EI_LUA_CAST_METHOD(name, params, returns, text)   cast:name, ScriptSpellHost::name
 // EI_LUA_STATS_METHOD(name, params, returns, text)  stats:name, ScriptSpellHost::Stat<name>
+// EI_LUA_EFFECT_METHOD(name, params, returns, text) effect:name in the one-shot hooks, ScriptSpellHost::Effect<name>
 // EI_LUA_HOOK(name, params, returns, text)          a function a spell file's table may hold
 // EI_LUA_FIELD(owner, name, type, text)             a field of a value the game gives (Cast, Effect, Flight, Point)
 //                                                   or of an options table a method takes
@@ -39,6 +40,9 @@
 #endif
 #ifndef EI_LUA_STATS_METHOD
 #define EI_LUA_STATS_METHOD(name, params, returns, text)
+#endif
+#ifndef EI_LUA_EFFECT_METHOD
+#define EI_LUA_EFFECT_METHOD(name, params, returns, text)
 #endif
 #ifndef EI_LUA_HOOK
 #define EI_LUA_HOOK(name, params, returns, text)
@@ -550,6 +554,17 @@ EI_LUA_HOOK(OnResume,
 EI_LUA_HOOK(OnStats, "effect: effect, stats: stats", "",
             "the effect's kind on a unit works out its stats ([Active effects](#active-effects)); the world's "
             "functions are off in it")
+EI_LUA_HOOK(OnEffectApplied, "effect: ActiveEffect, unit: object", "",
+            "an effect of the spell's kind came on a unit ([Active effects](#active-effects)), run at the end of "
+            "that tick")
+EI_LUA_HOOK(OnEffectEnded,
+            "effect: ActiveEffect, unit: object, reason: \"expired\"|\"removed\"|\"renewed\"|\"died\"", "",
+            "an effect of the spell's kind left a unit: `reason` `\"expired\"` (its ticks ran out), `\"removed\"` "
+            "(`cast:Remove`, `effect:Remove`), `\"renewed\"` (a new one of the kind and strength replaced it) or "
+            "`\"died\"` (the unit died)")
+EI_LUA_HOOK(OnEffectTick, "effect: ActiveEffect, unit: object", "",
+            "every tick an effect of the spell's kind lasts on a unit, after its count down (`effect.ticks` left, "
+            "above 0)")
 
 // ---- Spells: the cast value ------------------------------------------------------------------------------------
 
@@ -788,6 +803,49 @@ EI_LUA_STAT(Girth,
 EI_LUA_STAT(Size, "steps of the figure's size on every axis (enlarge and shrink 1 and -1)")
 EI_LUA_STAT(Stunned, "while above 0 the unit is stunned: no actions (stun; the teleport's arrival)")
 EI_LUA_STAT(NoCasting, "while above 0 the unit casts no spells, unless its natural weapon is spells only (feeblemind)")
+EI_LUA_STAT(Strength,
+            "added to the strength (after the skill levels'): with it the hit points, the carried weight and the "
+            "skills it leads (no game buff touches this one or those below)")
+EI_LUA_STAT(Dexterity, "added to the dexterity: with it the mana, the action rate and the skills it leads")
+EI_LUA_STAT(Intelligence, "added to the intelligence: with it the experience gained and the magic skills")
+EI_LUA_STAT(MaxHitPoints, "added to the hit point maximum, before `Might`'s scale")
+EI_LUA_STAT(MaxMana,
+            "added to the mana maximum of a hero or a named unit (another unit's is its prototype's, unchanged)")
+EI_LUA_STAT(HitPointRegen,
+            "added to the share of the maximum the hit points regenerate every 15 ticks while hurt (0.005: half a "
+            "percent), before `Regeneration`'s factor")
+EI_LUA_STAT(ManaRegen, "added to the share of the maximum the mana regenerates every 15 ticks out of a fight")
+EI_LUA_STAT(PiercingProtection, "added to the unit's protection from piercing")
+EI_LUA_STAT(SlashingProtection, "added to the unit's protection from slashing")
+EI_LUA_STAT(CrushingProtection, "added to the unit's protection from crushing")
+EI_LUA_STAT(GeneralProtection, "added to the unit's protection from general damage")
+EI_LUA_STAT(Hearing, "added to the hearing range")
+EI_LUA_STAT(Smell, "added to the sense of smell")
+EI_LUA_STAT(Attack, "added to the attack of the unit's blows and shots (whole numbers count)")
+EI_LUA_STAT(Defence, "added to the defence against blows (whole numbers count; none against shots)")
+EI_LUA_STAT(Damage, "added to the damage of a weapon's or a natural attack's hit, before `Might`'s scale")
+EI_LUA_STAT(Speed, "added to the movement speed, which stays at least 0")
+EI_LUA_STAT(MeleeSkill, "added to the melee skill (the attack and defence with a blade, an axe, a club, ...)")
+EI_LUA_STAT(ArcherySkill, "added to the archery skill (bows and crossbows)")
+EI_LUA_STAT(ElementalSkill, "added to the elemental magic skill (fire, lightning, acid: what spells it may cast)")
+EI_LUA_STAT(SenseSkill, "added to the sense magic skill (illusion, divination)")
+EI_LUA_STAT(AstralSkill, "added to the astral magic skill (enchantment, healing, domination)")
+EI_LUA_STAT(Science, "added to the science (the Use and Steal skills)")
+EI_LUA_STAT(Taming, "added to the taming")
+
+// ---- Active effects: the one-shot hooks' values ----------------------------------------------------------------
+
+EI_LUA_FIELD(ActiveEffect, kind, "string", "its spell's code (lower case)")
+EI_LUA_FIELD(ActiveEffect, value, "number", "its value (the spell's damage unless `cast:Apply` gave one)")
+EI_LUA_FIELD(ActiveEffect, ticks, "integer", "the ticks it has left")
+EI_LUA_FIELD(ActiveEffect, power, "number", "its look's size (its cast's power)")
+EI_LUA_EFFECT_METHOD(Damage, "amount: number, type: string, options?: DamageOptions", "number",
+                     "a hit of `amount` of a damage type on the unit, as `cast:Damage`'s without a caster (no one "
+                     "has the credit; `noCredit` is not read). Gives the hit points lost")
+EI_LUA_EFFECT_METHOD(Heal, "amount: number", "number", "heals the unit as `cast:Heal` does; gives the hit points gained")
+EI_LUA_EFFECT_METHOD(Remove, "", "boolean",
+                     "the effect taken off the unit now (its `OnEffectEnded` follows, `\"removed\"`); whether it was "
+                     "still on")
 
 #undef EI_LUA_SECTION
 #undef EI_LUA_BINDING
@@ -795,6 +853,7 @@ EI_LUA_STAT(NoCasting, "while above 0 the unit casts no spells, unless its natur
 #undef EI_LUA_HELPER
 #undef EI_LUA_CAST_METHOD
 #undef EI_LUA_STATS_METHOD
+#undef EI_LUA_EFFECT_METHOD
 #undef EI_LUA_HOOK
 #undef EI_LUA_FIELD
 #undef EI_LUA_STAT

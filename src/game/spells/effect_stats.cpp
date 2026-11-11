@@ -5,6 +5,7 @@
 #include "game/objects/map_object.h"
 #include "game/script/script.h"
 #include "game/script/script_lua_scheduler.h"
+#include "game/script/script_spell_host.h"
 #include "game/world/world.h"
 
 #include "lib/float_select.h"
@@ -49,4 +50,21 @@ bool ActiveEffectStats::Touches(int kind, std::initializer_list<EffectStat> stat
                                      [](const EffectKindStats& entry, int value) { return entry.kind < value; });
     if (at == kinds.end() || at->kind != kind) return false;
     return std::any_of(stats.begin(), stats.end(), [&](EffectStat stat) { return at->touched[lib::Index(stat)]; });
+}
+
+ScriptSpellHost* EffectHost(MapObject& object) {
+    WorldServer* world = object.owner && object.ServerCompanion() ? object.ServerWorld() : nullptr;
+    return world ? &world->MainScript()->Runner().spells : nullptr;
+}
+
+void EffectApplied(MapObject& object, const MapEffect& effect) {
+    if (ScriptSpellHost* host = EffectHost(object)) host->Queue(object, effect, EffectCall::Applied, EffectEnd::Expired);
+}
+
+void EffectEnded(MapObject& object, const MapEffect& effect, EffectEnd reason) {
+    if (ScriptSpellHost* host = EffectHost(object)) host->Queue(object, effect, EffectCall::Ended, reason);
+}
+
+void EffectTicked(MapObject& object, const MapEffect& effect) {
+    if (ScriptSpellHost* host = EffectHost(object)) host->Queue(object, effect, EffectCall::Tick, EffectEnd::Expired);
 }

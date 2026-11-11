@@ -1308,6 +1308,9 @@ return spell
 | `OnEnd(cast, reason)` | once, at the end of the cast: `reason` `"finished"`, `"idle"`, `"limit"` or `"error"` |
 | `OnResume(cast, old)` | a save made before a game's spell moved onto this file held a cast of it in flight (`old.state` `"missile"`) or lingering (`"lasting"`), `old.ticks` left on the game's own count: the cast's objects are already its own (a missile still lands in `OnHit`, with a nil payload; `old.visual`, `old.sound` and `old.light` are their handles, for `cast:Release` later; `old.direction` the direction of its wall or bolt); set its timers and data here (the world methods are off in this hook, but `cast:Block`). Without it such a cast ends at once |
 | `OnStats(effect, stats)` | the effect's kind on a unit works out its stats ([Active effects](#active-effects)); the world's functions are off in it |
+| `OnEffectApplied(effect, unit)` | an effect of the spell's kind came on a unit ([Active effects](#active-effects)), run at the end of that tick |
+| `OnEffectEnded(effect, unit, reason)` | an effect of the spell's kind left a unit: `reason` `"expired"` (its ticks ran out), `"removed"` (`cast:Remove`, `effect:Remove`), `"renewed"` (a new one of the kind and strength replaced it) or `"died"` (the unit died) |
+| `OnEffectTick(effect, unit)` | every tick an effect of the spell's kind lasts on a unit, after its count down (`effect.ticks` left, above 0) |
 
 <!-- /lua-api -->
 
@@ -1561,8 +1564,54 @@ return spell
 | `Size` | steps of the figure's size on every axis (enlarge and shrink 1 and -1) |
 | `Stunned` | while above 0 the unit is stunned: no actions (stun; the teleport's arrival) |
 | `NoCasting` | while above 0 the unit casts no spells, unless its natural weapon is spells only (feeblemind) |
+| `Strength` | added to the strength (after the skill levels'): with it the hit points, the carried weight and the skills it leads (no game buff touches this one or those below) |
+| `Dexterity` | added to the dexterity: with it the mana, the action rate and the skills it leads |
+| `Intelligence` | added to the intelligence: with it the experience gained and the magic skills |
+| `MaxHitPoints` | added to the hit point maximum, before `Might`'s scale |
+| `MaxMana` | added to the mana maximum of a hero or a named unit (another unit's is its prototype's, unchanged) |
+| `HitPointRegen` | added to the share of the maximum the hit points regenerate every 15 ticks while hurt (0.005: half a percent), before `Regeneration`'s factor |
+| `ManaRegen` | added to the share of the maximum the mana regenerates every 15 ticks out of a fight |
+| `PiercingProtection` | added to the unit's protection from piercing |
+| `SlashingProtection` | added to the unit's protection from slashing |
+| `CrushingProtection` | added to the unit's protection from crushing |
+| `GeneralProtection` | added to the unit's protection from general damage |
+| `Hearing` | added to the hearing range |
+| `Smell` | added to the sense of smell |
+| `Attack` | added to the attack of the unit's blows and shots (whole numbers count) |
+| `Defence` | added to the defence against blows (whole numbers count; none against shots) |
+| `Damage` | added to the damage of a weapon's or a natural attack's hit, before `Might`'s scale |
+| `Speed` | added to the movement speed, which stays at least 0 |
+| `MeleeSkill` | added to the melee skill (the attack and defence with a blade, an axe, a club, ...) |
+| `ArcherySkill` | added to the archery skill (bows and crossbows) |
+| `ElementalSkill` | added to the elemental magic skill (fire, lightning, acid: what spells it may cast) |
+| `SenseSkill` | added to the sense magic skill (illusion, divination) |
+| `AstralSkill` | added to the astral magic skill (enchantment, healing, domination) |
+| `Science` | added to the science (the Use and Steal skills) |
+| `Taming` | added to the taming |
 
 <!-- /lua-api -->
+
+**The order they apply in.** The totals change a unit's stats where the game works them out, every total added even
+at 0 (the game's own buffs' numbers stay the same). `UnitStats::Recompute`, after a hit, a heal, a regeneration, an
+item change or an effect that comes or goes, rebuilds them from the unit's bases in this order:
+1. the bases, then the skill levels' bonuses (strength, dexterity, intelligence, the day sight's percentage);
+2. `Strength`, `Dexterity`, `Intelligence`: everything below that is worked out from them has them;
+3. the seven protections (`PiercingProtection` ... `GeneralProtection`, the protections from fire, lightning and acid);
+4. the perception (`Sight`, `DaySight`, `NearSense`, `Hearing`, `Smell`), then the conspicuity (`SightConspicuity`,
+   `HearingConspicuity`, `NearConspicuity` at least 0, `SmellConspicuity`);
+5. the hit point maximum: the experience curve and the strength (a hero's or a named unit's; another unit's fixed
+   maximum) plus `MaxHitPoints`, times `Might`'s scale over `Frailty`'s, at least 1; the mana maximum (a hero's or a
+   named unit's) the curve and the dexterity plus `MaxMana`;
+6. the carried weight's limit (from the strength), the movement speed plus `Speed` (at least 0), the action rate (from
+   the dexterity) plus `Haste` (at least 1);
+7. the hit points within the new maximum.
+
+The others are read where the game uses them, from the totals as they are then: `HitPointRegen` and `ManaRegen` (and
+`Regeneration`'s factor) at each regeneration; `Attack`, `Defence` and `Damage` (then `Might`'s scale of the damage) at
+each attack; `MeleeSkill` and `ArcherySkill` where the weapon skill counts (the attack and the defence with a weapon),
+`ElementalSkill`, `SenseSkill` and `AstralSkill` where a spell's skill is checked (whether the unit may cast it),
+`Science` and `Taming` where those skills are rolled; `Girth`, `Size` (the figure), `Stunned` and `NoCasting` as an
+effect comes or goes. The interface's skill numbers and `GetSkill` show the learnt skills, without the effects'.
 
 **How it shows.** The players' screens show an effect by fields of its kind's record (the spell its `effect` names,
 or the spell itself for `own`), since they have the effects' kinds but not their stats. The game's twenty buffs have
@@ -1593,6 +1642,66 @@ sound_end = "magic\\Fireshield\\end.wav"
 
 A unit that comes into view (or a load) with the effect already on shows the look and the loop at once, without the
 start sound or the ring; a unit that dies with it makes no end sound or ring.
+
+**One-shot hooks.** What an effect does as it comes, as it goes and while it lasts is the kind's module's too:
+`OnEffectApplied(effect, unit)`, `OnEffectEnded(effect, unit, reason)` and `OnEffectTick(effect, unit)` ([Spells](#spells),
+the hooks' table). They run on the server at the end of the tick in which it happened, in order, with the world's
+functions (and `Random`), each for one effect on one unit; a kind whose module has none of them costs nothing more.
+`OnEffectTick` runs every tick the effect lasts after its count down (`effect.ticks` left, above 0; also while the unit
+sleeps out of the player's sight), `OnEffectEnded` once as it goes. A unit that left the world (removed) gets no more
+of its hooks; a dead one gets `"died"`. Keep your numbers in `OnStats`: a stat that `OnEffectApplied` added and
+`OnEffectEnded` took away would come apart when two effects of a kind overlap (the strongest counts), when a renewed
+one replaces another, or in a save; the hooks are for what happens once or now and then: a burn every few ticks, a
+heal as it runs out. Nothing of a hook is saved: count ticks with `effect.ticks`.
+
+```lua
+-- Res\spells\ember_brand.lua: a curse that burns its victim every 10 ticks and saps its strength while it lasts.
+local spell = {}
+
+function spell.OnCast(cast)
+    if cast.target then cast:Apply(cast.target, "own", { ticks = 60, value = 5 }) end
+    cast:Finish()
+end
+
+function spell.OnStats(effect, stats)
+    stats:Subtract("Strength", effect.value)
+end
+
+function spell.OnEffectTick(effect, unit)
+    if effect.ticks % 10 == 0 then effect:Damage(1, "fire") end
+end
+
+function spell.OnEffectEnded(effect, unit, reason)
+    if reason == "expired" then effect:Heal(2) end
+end
+
+return spell
+```
+
+- **The effect** of these hooks is one effect on the unit (not a kind's strongest, as in `OnStats`):
+
+<!-- lua-api: active-effect-fields -->
+
+| Field | Type | What it holds |
+|---|---|---|
+| `effect.kind` | `string` | its spell's code (lower case) |
+| `effect.value` | `number` | its value (the spell's damage unless `cast:Apply` gave one) |
+| `effect.ticks` | `integer` | the ticks it has left |
+| `effect.power` | `number` | its look's size (its cast's power) |
+
+<!-- /lua-api -->
+
+- **Its methods** act on the hook's unit and effect, only while that hook runs:
+
+<!-- lua-api: active-effect-methods -->
+
+| Method | Gives | What it does |
+|---|---|---|
+| `effect:Damage(amount: number, type: string, options?: DamageOptions)` | `number` | a hit of `amount` of a damage type on the unit, as `cast:Damage`'s without a caster (no one has the credit; `noCredit` is not read). Gives the hit points lost |
+| `effect:Heal(amount: number)` | `number` | heals the unit as `cast:Heal` does; gives the hit points gained |
+| `effect:Remove()` | `boolean` | the effect taken off the unit now (its `OnEffectEnded` follows, `"removed"`); whether it was still on |
+
+<!-- /lua-api -->
 
 ## What stays in the original formats
 
@@ -1666,6 +1775,7 @@ Read its files as a recipe for each kind of new content:
 | A weapon, boots | `items.idb.toml`, `Res\figures\initwehm9.glb`, `initarbt20.glb` (inventory models: a loose figure named `initwe<type code><number>` / `initar...`, one part `weapon` / `armor`), `Res\redress\unhumahm_09.gr.0.png`, `unhumabt_20.le.0.png` (their textures; the boots' is a layer over the hero's skin) |
 | A quest | `Maps\zone1.lua` (the quest's variable `q.<zone>.<quest>`, its reward), `quests.qdb.toml` (its experience), `Res\texts\texts.toml` (`quest <name>`: the title, the description, `#subobj` lines) |
 | A spell | `spells.sdb.toml` (Chain Spark's record, `script` naming its file), `Res\spells\chain_spark.lua` (its mechanic: a missile with `OnHit`, the next victim by `FindUnits`, `Damage`, `Apply`, `Effect`, `Bolt`, a timer for the leap; [Spells](#spells)), `Res\textures\spell0101.png`, `prototype0101.png` (its pictures, `icon = 101`), `Maps\zone1.lua` (`GiveItem` of its spell container); `tests/scenarios/mod_showcase_spell.txt` casts it |
+| A buff | `spells.sdb.toml` (Ember Brand's record, `code = "ember"`), `Res\spells\ember_brand.lua` (a curse: `OnStats` lowers the victim's `Strength`, `OnEffectTick` burns it every 20 ticks with `effect:Damage`, `OnEffectEnded` says how it went; [Active effects](#active-effects)); `tests/scenarios/mod_showcase_buff.txt` casts it with `CastSpellUnit` |
 | An effect | `Res\effects\showcase_aura.effect.toml` (orbs trailing light and rising motes, driven by its inputs; `tests/scenarios/mod_effect.txt` starts it from the console); the spell's `ChainSpark.effect.toml` (the missile's spark and its trail) , `ChainSparkHit.effect.toml` (a strike's flash and ring of sparks) and `ChainSparkShock.effect.toml` (the look of the shock a strike leaves: the record's `look`, [Active effects](#active-effects)), all on the mod's own texture `Res\textures\chainspark.png` (16 pictures, 4 x 4) |
 
 What it cannot do yet: add a zone beside the game's (it replaces zone 1: the zone list is one text read whole), show
