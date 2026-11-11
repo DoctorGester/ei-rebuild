@@ -577,7 +577,7 @@ else()
                    tests/unit/figure_gltf.cpp src/engine/models/figure_gltf.cpp src/engine/models/figure_gltf_animation.cpp src/lib/json.cpp src/lib/vecmath.cpp tests/unit/lua_number.cpp
                    tests/unit/spell_behaviour.cpp src/game/spells/spell_behaviour.cpp
                    tests/unit/particle_record.cpp src/engine/particles/particle_expr.cpp src/engine/particles/particle_record.cpp src/engine/core/random.cpp src/lib/crt.cpp
-                   tests/unit/effect_inputs.cpp src/game/effects/effect_inputs.cpp src/game/net/net_delta.cpp src/engine/core/core_streams.cpp
+                   tests/unit/effect_inputs.cpp src/game/effects/effect_inputs.cpp src/game/net/net_delta.cpp src/engine/core/core_streams.cpp src/engine/core/buffer.cpp src/engine/core/coder.cpp
                    ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS} ${EI_SDL_CALLS})
     target_include_directories(ei_port_check PRIVATE src third_party)
     target_link_libraries(ei_port_check PRIVATE ei_platform tomlc17 stb_dxt wuffs cgltf eris SDL3::SDL3-static miniz)
