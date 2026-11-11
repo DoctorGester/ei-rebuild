@@ -12,11 +12,13 @@ class FigureManager;
 class Item;
 class ItemConstructor;
 struct ItemManager;
+class LightFactory;
 class LinkFigureLoader;
 struct MapObjectManager;
 class PlayerManager;
 class SpellConstructor;
 class SpellManager;
+class TextureManager;
 class World;
 class WorldClient;
 class WorldServer;
@@ -47,6 +49,12 @@ public:
     // A copy of an item: MakeCopyOf (the server's is WorldServer::CopyItem). Not called
     // CopyItem here: WorldServer's plain member of that name would hide it.
     virtual Item* DuplicateItem(Item* item) { return MakeCopyOf(item); }
+    // What the scene draws with (the scene renderer's world, scene_renderer.h; a texture's manager): the client world's
+    // texture manager, its light factory and its time in ticks (whole ticks plus the fraction of the current one: the
+    // animated meshes' and the sky's clock); null and 0 for another context.
+    TextureManager* GetTextureManager();
+    LightFactory* GetLightFactory();
+    float SceneTime();
 
     // (world/manager_context.cpp). The item factory makes an item of `item`'s kind,
     // prototype (high word of the packed id) and material (low word), which `item` then fills (its

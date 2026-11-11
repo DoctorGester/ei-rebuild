@@ -6,7 +6,7 @@
 #include "engine/scene/scene_renderer.h"
 #include "engine/models/link_figure.h"   // FigureMeshDrawer
 #include "engine/models/texture.h"
-#include "game/world/world.h"
+#include "engine/core/manager_context.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -101,7 +101,7 @@ void Sky::Draw(SceneRenderer* renderer, const Vector3& eye) {
         const Vector3 up{0.0f, 0.0f, 1.0f};
         // The world time in ticks: whole ticks plus
         // the fraction of the current one.
-        object->localRotation = Quaternion::AxisAngle(up, GameTime() * kSkyTurnRate);
+        object->localRotation = Quaternion::AxisAngle(up, renderer->world->SceneTime() * kSkyTurnRate);
     }
     object->localPosition = Vector3{x, y, z};
     float* m = object->worldMatrix.m;

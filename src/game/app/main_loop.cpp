@@ -19,6 +19,7 @@
 #include "engine/core/text_split.h"
 #include "engine/data/ini_file.h"
 #include "engine/scene/device.h"
+#include "game/app/present_window.h"
 #include "engine/models/dib.h"
 #include "engine/scene/drawn_motion.h"
 #include "engine/particles/particle_data.h"
@@ -641,6 +642,7 @@ int GameMain(char* commandLine) {
     g_startFolder = platform::CurrentFolder() + '\\';
     options->Load();
     FillEngineConfig(*options);
+    g_sceneRenderer.world = &g_clientWorld;
     // The layout comes from the configured resolution, which is the frame's size: the window made later may get a
     // smaller client area (a work area too small for it), and the renderer scales the frame into it.
     screen_layout::Configure(options->resolutionX, options->resolutionY);
@@ -698,7 +700,7 @@ void FrameStep(bool draw) {
     // The harness's frame capture reads the finished frame here (game/app/harness_hooks.h).
     if (auto hook = ei::mainloop::g_harnessHooks.beforePresent) hook();
     CursorDrawFrame(&g_cursor);
-    DevicePresent(g_sceneRenderer.device);
+    present_window::Present(g_sceneRenderer.device);
     if (!app::g_recordingFrames) return;
     const std::string path = std::format("{}shot{:04}.bmp", g_movieFolder, g_movieFrame);
     platform::File file;

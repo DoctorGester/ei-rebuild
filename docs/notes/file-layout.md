@@ -244,6 +244,14 @@ themselves). Includes name the tree: `#include "engine/core/ref.h"`, `#include "
   Camera object (following, the ground under it, limits, shakes, saved views, recorded paths, the drawn view's
   smoothing) is world/'s, `g_camera` in app/singletons.h; the particles' shakes reach it through
   particlehost::ShakeCamera.
+- **The scene reaches the world through its context (MF15k1b).** ManagerContext's scene getters
+  (`GetTextureManager`, `GetLightFactory`, `SceneTime`: whole ticks plus the fraction) answer from the client world
+  and null or 0 for another context (world/manager_context.cpp, as the other getters: plain members, not virtuals with
+  one override). A texture asks its own context; the scene's code without an object asks the scene renderer's `world`
+  (the client world, set by app/main_loop.cpp before the start, and by ei-convert's effect check): the texture loads
+  and lookups, the material stages, the sun (AddDefaultLight), the animated sheets' and the sky's clock. The present
+  (`present_window::Present`) and a print's texture bound by name (ground_print.cpp) are the game's. These getters
+  are among the seams MF15k2's host interface takes for a program without the world.
 - The check reads includes only. Code of the engine that calls a function defined in ei_game links only because both
   are in the same programs today; such calls are the seams MF15k2 turns into a host interface.
 
@@ -372,30 +380,30 @@ Risks:
 | Folder | Files | Lines today | Move batch |
 |---|---|---|---|
 | `ai/` | 28 | 12564 | C168f |
-| `app/` | 24 | 6903 | C168e |
+| `app/` | 24 | 6918 | C168e |
 | `combat/` | 13 | 6384 | C168f |
 | `console/` | 5 | 2038 | C168e |
-| `core/` | 29 | 3795 | C168d |
+| `core/` | 29 | 3803 | C168d |
 | `data/` | 19 | 6649 | C168d |
 | `effects/` | 17 | 4940 | C168g |
 | `items/` | 12 | 2958 | C168g |
 | `map/` | 11 | 3139 | C168e |
-| `models/` | 25 | 8229 | C168g |
+| `models/` | 25 | 8230 | C168g |
 | `mods/` | 9 | 801 | C168d |
 | `net/` | 23 | 8423 | C168h |
 | `objects/` | 23 | 8176 | C168f |
-| `particles/` | 11 | 4532 | C168g |
+| `particles/` | 11 | 4533 | C168g |
 | `players/` | 24 | 5486 | C168e |
 | `saves/` | 7 | 848 | C168d |
-| `scene/` | 27 | 3113 | C168g |
+| `scene/` | 27 | 3086 | C168g |
 | `script/` | 33 | 11958 | C168h |
 | `sound/` | 3 | 1715 | C168e |
 | `spells/` | 11 | 2174 | C168g |
-| `terrain/` | 12 | 3560 | C168g |
+| `terrain/` | 12 | 3580 | C168g |
 | `ui/` | 97 | 33146 | C168h |
 | `units/` | 27 | 9830 | C168f |
-| `world/` | 39 | 11579 | C168e |
-| all | 529 | 162940 | |
+| `world/` | 39 | 11582 | C168e |
+| all | 529 | 162961 | |
 
 570 files today; 55 fold into an owner, 10 split by meaning, 18 new files come out of the splits, 36 moves rename for meaning.
 

@@ -8,11 +8,9 @@
 #include "engine/scene/scene_renderer.h"
 #include "engine/scene/render_helper.h"   // RenderPreset
 #include "engine/models/texture.h"
+#include "engine/core/engine_globals.h"
 #include "engine/core/engine_object.h"
-#include "game/app/singletons.h"
-#include "game/terrain/ground_print.h"       // NamedTexture
-#include "game/app/present_window.h"
-#include "game/world/world.h"
+#include "engine/core/manager_context.h"
 #include "render/render.h"
 #include "render/render_state.h"
 
@@ -36,7 +34,7 @@ void SetStage(TextureDevice* device, int stage, MaterialStage& s) {
         return;
     }
     if (!s.name.empty()) {
-        s.texture.Assign(g_clientWorld.textureManager->FindTexture(s.name.data()));
+        s.texture.Assign(g_sceneRenderer.world->GetTextureManager()->FindTexture(s.name.data()));
         device->BindSurface(stage, s.texture ? s.texture->surface.Get() : nullptr);
         return;
     }
@@ -61,8 +59,7 @@ void TextureDevice::DrawIndexed() {
 
 // --- Device binds ------------------------------------------------------------------------------------
 
-// The device object's texture binds: a surface holder, a texture, a texture kept by name. See
-// docs/notes/renderer.md (section 12).
+// The device object's texture binds: a surface holder, a texture. See docs/notes/renderer.md (section 12).
 
 void TextureDevice::BindSurface(int stage, Surface* holder) { stageSurfaces[stage] = holder; }
 
@@ -70,13 +67,6 @@ void TextureDevice::BindTexture(int stage, Texture* texture) {
     BindSurface(stage, texture ? texture->surface.Get() : nullptr);
 }
 
-void TextureDevice::BindNamedTexture(int stage, NamedTexture* named) {
-    if (!named->texture && named->name.size() != 0) {
-        Texture* found = g_clientWorld.textureManager->FindTexture(named->name.data());
-        named->texture.Assign(found);
-    }
-    BindSurface(stage, named->texture ? named->texture->surface.Get() : nullptr);
-}
 
 // --- Device states -----------------------------------------------------------------------------------
 
@@ -106,15 +96,3 @@ void TextureDevice::SetMaterial(DeviceMaterial* newMaterial) {
     }
 }
 
-
-// --- Device present ----------------------------------------------------------------------------------
-
-// The device object's present, called once per frame by the frame function after the scene, the interface and the
-// software cursor are drawn. The game flips the primary's chain in full screen and copies the render target to the
-// primary at the client rectangle's corner in a window; here it ends the new renderer's frame, which shows it on the
-// game window placed first (full screen over its monitor, present_window.h). See docs/notes/renderer.md.
-
-void DevicePresent(TextureDevice* device) {
-    present_window::Update(device);
-    render::Present();
-}

@@ -14,6 +14,7 @@
 #include <vector>
 
 class Light;
+class ManagerContext;
 class RenderHelper;
 class TextureDevice;
 class Texture;
@@ -127,6 +128,9 @@ public:
     float gamma = 0.0f;
     // The view the world is drawn from.
     SceneView view;
+    // The world drawn: its texture manager, light factory and clock (ManagerContext's scene getters). The game sets
+    // its client world before the start (app/main_loop.cpp).
+    ManagerContext* world = nullptr;
     // The frame time (milliseconds; BeginScene / EndScene).
     std::uint32_t frameTime = 0;               // the last frame's
     std::uint32_t frameStart = 0;              // timeGetTime at this frame's BeginScene

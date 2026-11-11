@@ -1,5 +1,5 @@
-// ManagerContext's own members (manager_context.h): the base Create and the copy of an item that
-// the party and the client world make (their DuplicateItem).
+// ManagerContext's own members (manager_context.h): the base Create, the world's managers and clock the engine asks
+// for, and the copy of an item that the party and the client world make (their DuplicateItem).
 #include "engine/core/manager_context.h"
 
 #include "game/items/item.h"
@@ -43,6 +43,21 @@ BaseManager* ManagerContext::SpecificManager() {
 LinkFigureLoader* ManagerContext::FigureLoader() {
     World* world = ThisWorld();
     return world ? world->figureLoader.Get() : nullptr;
+}
+
+TextureManager* ManagerContext::GetTextureManager() {
+    WorldClient* client = ThisClientWorld();
+    return client ? client->textureManager.get() : nullptr;
+}
+
+LightFactory* ManagerContext::GetLightFactory() {
+    WorldClient* client = ThisClientWorld();
+    return client ? client->lightFactory.get() : nullptr;
+}
+
+float ManagerContext::SceneTime() {
+    WorldClient* client = ThisClientWorld();
+    return client ? static_cast<float>(client->tick) + client->tickFraction : 0.0f;
 }
 
 Item* ManagerContext::MakeCopyOf(Item* item) {

@@ -8,7 +8,9 @@
 #include "engine/models/material.h"
 #include "engine/scene/device.h"
 #include "engine/scene/pipeline.h"
-#include "game/world/world.h"
+#include "engine/core/engine_globals.h"
+#include "engine/core/manager_context.h"
+#include "engine/scene/scene_renderer.h"
 #include "lib/containers.h"
 #include "lib/rect.h"
 #include "render/render.h"
@@ -44,8 +46,7 @@ std::uint32_t Truncated(float value) { return static_cast<std::uint32_t>(static_
 void AnimateSheet(FigureMeshDrawer* drawer) {
     const std::uint32_t meshType = drawer->mesh->meshType;
     if (meshType < kTwoRows || meshType > kSheet8x4) return;
-    const WorldClient* world = &g_clientWorld;
-    drawer->Animate(static_cast<float>(world->tick) + world->tickFraction);
+    drawer->Animate(g_sceneRenderer.world->SceneTime());
 }
 
 // The mesh's arrays: its part `r` of `figure`, else its own buffers; the positions moved by its offsets.

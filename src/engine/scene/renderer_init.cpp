@@ -3,7 +3,7 @@
 // matrix stacks (projection, viewport, the fixed axis swap and their products), sets the pipeline's viewport,
 // the render state (render/render_state.h), a default light and the ambient colour, and creates
 // the counted helper object. Runs once at start-up. See docs/notes/models.md ("Renderer creation").
-#include "game/app/singletons.h"
+#include "engine/core/manager_context.h"
 #include "engine/scene/device.h"
 #include "engine/scene/scene_renderer.h"   // SceneRenderer
 #include "engine/scene/pipeline.h"
@@ -11,7 +11,6 @@
 #include "engine/core/engine_globals.h"
 #include "render/render_state.h"
 #include "engine/scene/light.h"
-#include "game/world/world.h"
 
 #include "lib/crt.h"
 #include "platform/platform.h"
@@ -136,7 +135,7 @@ void SceneRenderer::ResizeScreen(int width, int height) {
 // The default light: class 0x2E of the light factory, white, at (5, 5, -8), range 1e6,
 // +0x100 = 1e12, +0x104 = 1e-12.
 void SceneRenderer::AddDefaultLight() {
-    Light* light = g_clientWorld.lightFactory->CreateLight(kLightTypeDefault);
+    Light* light = world->GetLightFactory()->CreateLight(kLightTypeDefault);
     Vector3 lightColour = {1.0f, 1.0f, 1.0f};
     Vector3 position = {5.0f, 5.0f, -8.0f};
     light->SetDirectional(lightColour, position);
