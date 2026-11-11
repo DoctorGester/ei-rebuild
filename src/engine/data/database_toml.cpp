@@ -38,6 +38,28 @@ bool ValueOf(Names names, std::string_view name, std::int64_t& value) {
     return false;
 }
 
+void MergeNamedStrings(const toml::Value& table, Names names, std::string* values, const char* what,
+                       const std::string& path) {
+    if (!table.Exists()) return;
+    if (!table.IsTable()) {
+        game::Warning("%s: %s line %d: not a table", what, path, table.Line());
+        return;
+    }
+    for (int k = 0; k < table.Size(); ++k) {
+        const std::string_view key = table.KeyAt(k);
+        const Name* found = nullptr;
+        for (const Name& name : names)
+            if (key == name.name) found = &name;
+        std::string text;
+        if (!found || !ReadValue(table.ValueAt(k), text)) {
+            game::Warning("%s: %s line %d: %s is not a name with a text", what, path, table.ValueAt(k).Line(),
+                          std::string(key));
+            continue;
+        }
+        values[found->value] = text;
+    }
+}
+
 void CheckTables(const toml::Value& root, std::initializer_list<std::string_view> tables, const char* what,
                  const std::string& path) {
     for (int i = 0; i < root.Size(); ++i) {

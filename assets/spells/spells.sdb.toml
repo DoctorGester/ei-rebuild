@@ -3,6 +3,19 @@
 # Res\spells\ (these, built in too, unless a mod has its own) and say what the game's tables read of them
 # (docs/modding.md, "Spells"; docs/notes/items_spells.md, "Spell behaviours").
 
+# The effect a caster shows while it casts a spell of each school that has no cast_look of its own (and `none`, a cast
+# of no school), read whatever the database: the game's casting looks.
+[cast_looks]
+fire = "CastingFire"
+lightning = "CastingElectricity"
+acid = "CastingAcid"
+illusion = "CastingIllusion"
+divination = "CastingDivination"
+enchantment = "CastingEnchantment"
+healing = "CastingHealing"
+domination = "CastingDomination"
+none = "Casting"
+
 # The lightning arc: a bolt at each target it picks, striking at once.
 [[spell]]
 code = "lightning"

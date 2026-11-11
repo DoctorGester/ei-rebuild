@@ -15,7 +15,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 class ScriptGroup;
@@ -151,6 +153,12 @@ public:
     Ref<Light> light; // reference counted, null: none
     std::uint32_t lightFlags = 0; // LightFlag bits ored into the light's flags (saved)
 };
+
+// The particle type of the effect `name` (a game's by its name, a mod's from Res\effects): what EffectParticle::type
+// and ParticleManager::CreateSource take; none for an empty name or one no effect has (a warning, once per name). The
+// records' effect fields go through it (a spell's cast_look and looks, a model's blood_look and shock_look, a flame's
+// and a particle object's effect; docs/modding.md, "Records that name effects").
+std::optional<int> EffectTypeNamed(std::string_view name);
 
 // A particle source (class id 0x4A; CreateParticleSource).
 class EffectParticle : public Effect {

@@ -3,7 +3,7 @@
 // (SpellRecord::look ...; docs/notes/items_spells.md, "Active effects on scripts"), and the object's light.
 
 #include "game/effects/effects.h"
-#include "engine/particles/particle_data.h"
+#include "game/effects/world_effect.h"
 #include "engine/scene/light.h"
 #include "game/objects/map_object.h"
 #include "game/objects/object3d.h"
@@ -39,14 +39,6 @@ constexpr float kPowerScale = 0.0625f;                // power / 16
 // The sound distances (10 and 50), read from the exe.
 constexpr float kSoundNear = 10.0f;
 constexpr float kSoundFar = 50.0f;
-
-// The particle type of the data effect `name` (the game's by its script name, a mod's from Res\effects); none for an
-// empty name or one no effect has (the registry logs it).
-std::optional<int> EffectTypeNamed(const std::string& name) {
-    if (name.empty()) return std::nullopt;
-    if (std::shared_ptr<const effectdata::Record> effect = effectdata::g_effects.Find(name)) return effect->id;
-    return std::nullopt;
-}
 
 // The kind's ring (SpellRecord::lookRing) on `owner` at `power`: power / 16 times the record's ringScale, negated
 // as the kind goes (`ending`).
