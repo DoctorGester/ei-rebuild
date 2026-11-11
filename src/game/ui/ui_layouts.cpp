@@ -20,6 +20,7 @@
 #include "lib/vecmath.h"
 #include "game/scene/scene_renderer.h"
 #include "game/models/texture.h"
+#include "game/mods/mod_identity.h"
 #include "game/net/net_second_master.h"
 #include "game/ui/ui_cursor.h"
 #include "game/ui/ui_credits.h"
@@ -163,6 +164,7 @@ void MainMenu::LeftDown(UiEvent& event) {
         // Multiplayer: the hero screen (a server session starts). EI_Plugin's NewMaster first looks up its
         // second master server (when one is set).
         net::second_master::OnMultiplayerClick();
+        modidentity::Prepare();   // ours: the mod's content hash for the join (network.md, "Mods")
         std::string text = g_clientWorld.texts->TextManager::GetString("reserved_04");
         g_interface.ShowStatusText(text);
         g_serverWorld.SetServerPaused(1);

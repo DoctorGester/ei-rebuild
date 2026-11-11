@@ -18,8 +18,13 @@ struct Identity {
 };
 
 // The mod played now (platform::ModFolder): its title and hash made at the first call for that folder (logged) and
-// kept, since a mod changes only in the main menu outside a network session.
+// kept, since a mod changes only in the main menu outside a network session. The hash is Prepare's when it began one
+// for the folder (waited for if it is not done).
 const Identity& Played();
+// The main menu's Multiplayer button: the played mod's content hash begun on a thread of its own, so that hosting or
+// joining finds it made (a folder mod's counted files are read whole: Lost in Astral's 160 MB took seconds from a
+// cold disk). Nothing for no mod or a hash made or begun already.
+void Prepare();
 
 // Whether a peer of mod `theirs` plays with this game: the same title and hash. A peer that sent no mod mark (none:
 // the original game) counts as playing none.

@@ -11,6 +11,7 @@
 #include "platform/platform.h"
 
 #include <chrono>
+#include <future>
 #include <initializer_list>
 
 namespace modidentity {
@@ -23,6 +24,26 @@ struct PlayedMod {
     Identity identity;
 };
 PlayedMod g_played;
+
+// A content hash being made on a thread of its own (Prepare): the folder's, and the time it took.
+struct Hashed {
+    std::uint64_t hash = 0;
+    modhash::Count count = {};
+    double seconds = 0.0;
+};
+struct PendingHash {
+    std::string folder;
+    std::future<Hashed> result = {};
+};
+PendingHash g_pending;
+
+Hashed HashOf(const std::string& folder) {
+    const auto start = std::chrono::steady_clock::now();
+    Hashed hashed;
+    hashed.hash = modhash::ContentHash(folder, &hashed.count);
+    hashed.seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+    return hashed;
+}
 
 // Our texts, which the game's texts lack: Russian, English.
 struct AddedText {
@@ -80,6 +101,14 @@ std::string Hex(std::uint64_t hash) {
 
 } // namespace
 
+void Prepare() {
+    const std::string folder = platform::ModFolder();
+    if (folder.empty() || (g_played.made && g_played.folder == folder)) return;
+    if (g_pending.result.valid() && g_pending.folder == folder) return;
+    if (g_pending.result.valid()) g_pending.result.wait();   // another mod's, no longer wanted
+    g_pending = {folder, std::async(std::launch::async, HashOf, folder)};
+}
+
 const Identity& Played() {
     const std::string folder = platform::ModFolder();
     if (g_played.made && g_played.folder == folder) return g_played.identity;
@@ -90,11 +119,14 @@ const Identity& Played() {
     if (registry.Open(folder + "\\config.reg")) identity.title = registry.GetString("MOD", "Title", "");
     if (identity.title.empty()) identity.title = platform::ModName();
     const auto start = std::chrono::steady_clock::now();
-    modhash::Count count;
-    identity.hash = modhash::ContentHash(folder, &count);
-    const double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
-    ei::Log("mod: \"%s\", content hash %s over %u files of %.1f MB (%.2f s)", identity.title, Hex(identity.hash),
-            count.files, static_cast<double>(count.bytes) / (1024.0 * 1024.0), seconds);
+    Hashed hashed;
+    if (g_pending.result.valid() && g_pending.folder == folder) hashed = g_pending.result.get();
+    else hashed = HashOf(folder);
+    const double waited = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+    identity.hash = hashed.hash;
+    ei::Log("mod: \"%s\", content hash %s over %u files of %.1f MB (made in %.2f s, waited %.2f s)", identity.title,
+            Hex(identity.hash), hashed.count.files, static_cast<double>(hashed.count.bytes) / (1024.0 * 1024.0),
+            hashed.seconds, waited);
     return identity;
 }
 

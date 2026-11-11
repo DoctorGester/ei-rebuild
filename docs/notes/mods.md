@@ -1318,8 +1318,8 @@ server that plays a mod).
 
 - **The title**: config.reg's (or config.reg.toml's) `[MOD] Title`, else the mod's name (its folder's last part); empty
   without a mod. `modidentity::Played` makes it with the hash at the first call for the mod's folder and keeps both for
-  the program (a mod changes only in the main menu, never in a network session); the log names them with the time
-  taken ("mod: \"Showcase mod\", content hash ... over N files of M MB (S s)").
+  the program (a mod changes only in the main menu, never in a network session); the log names them with the times
+  ("mod: \"Showcase mod\", content hash ... over N files of M MB (made in S s, waited W s)").
 - **The content hash** (`modhash::ContentHash`): FNV-1a 64 over the counted files, ordered by their lower-case paths
   below the mod's folder, each its path, a zero byte, its size and its CRC-32. Counted (`modhash::Counted`) are the files
   that decide the game's course: config.reg / config.reg.toml (the archives it names, the plugins), everything below
@@ -1327,11 +1327,15 @@ server that plays a mod).
   `*.reg.toml`: ai.reg) and below `Res\` the database and texts archives and their loose folders (`database*`,
   `texts*`: records, databases, the zone table map.txt). Not counted: what only looks or sounds (textures, figures and
   their animations, redress, menus, sounds, speech, music, movies, cameras, streams: the world is the server's, so a
-  peer's own copy of these changes what it shows, not the game), the per-user `.ini` files the game writes into `Config\` (tutorial.ini, addrbook.ini) and the notes. The
-  effects' records (MF15c's `Res\effects\`) belong in the count once they exist.
+  peer's own copy of these changes what it shows, not the game), the per-user `.ini` files the game writes into
+  `Config\` (tutorial.ini, addrbook.ini) and the notes. The effects' records (MF15c's `Res\effects\`) belong in the
+  count once they exist.
 - **Cheap**: a zip mod's files are not unpacked, their CRC-32 is the zip's own (`platform::LayerFileCrc32`, the zip's
   list of files), so a mod hashes the same as a folder or as its zip, and Rebirth's LostInAstral.zip costs only its
-  list; a folder's counted files are read once (Lost in Astral's folder: about 160 MB of maps).
+  list. A folder's counted files are read once, on a thread of its own begun by the main menu's Multiplayer button
+  (`modidentity::Prepare`), so the hero screen's time covers it; `Played` waits for it, or hashes on the spot when
+  nothing began it. Lost in Astral's folder (226 files, 157.5 MB, nearly all maps): 0.41 s with the files cached, 4.3 s
+  from a cold disk; the showcase mod 0.01 s.
 - Both sides compare title and hash: another version of a mod (same title, other files) is refused as another mod is,
   with its own text.
 
