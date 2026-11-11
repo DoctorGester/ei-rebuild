@@ -129,7 +129,7 @@ constexpr std::string_view kSourceNames[kSourceValues] = {
     "size", "height", "growth", "alpha", "param", "base_size", "age", "stage_age", "stage", "carrier_radius",
     "carrier_z", "attached", "distance", "motion.x", "motion.y", "motion.z", "origin.x", "origin.y", "origin.z",
     "count", "index", "total", "wind.x", "wind.y", "wind_strength", "extent.x", "extent.y", "extent.z", "turn_cos",
-    "turn_sin",
+    "turn_sin", "emitting",
 };
 constexpr std::string_view kAnchorNames[kAnchorValues] = {"index", "count", "age", "ticks", "x", "y", "z"};
 constexpr std::string_view kParticleNames[kParticleValues] = {
@@ -170,11 +170,11 @@ struct Context {
 
 class Reader {
 public:
-    Reader(const RawNode& root, std::string_view name, std::vector<std::string>* errors)
+    Reader(const RawNode& root, std::string_view name, std::vector<std::string>* errors, std::int32_t id)
         : root(root), errors(errors) {
         record = std::make_shared<Record>();
         record->name = std::string(name);
-        record->id = IdOf(name);
+        record->id = id != 0 ? id : IdOf(name);
         record->file = root.file;
     }
 
@@ -301,11 +301,12 @@ private:
         if (root["part"].Exists()) record->part = Choice(root["part"], kParts, -1);
         const RawNode& flags = root["flags"];
         if (flags.Exists() && flags.kind != RawNode::Kind::Array) Error(flags, "a list of flags expected");
-        static constexpr std::string_view kFlags[] = {"ticks_while_paused", "idles_off_screen"};
+        static constexpr std::string_view kFlags[] = {"ticks_while_paused", "idles_off_screen", "keep_alive"};
         for (const RawNode& flag : flags.items) {
             switch (Choice(flag, kFlags, -1)) {
             case 0: record->ticksWhilePaused = true; break;
             case 1: record->idlesOffScreen = true; break;
+            case 2: record->keepAlive = true; break;
             default: break;
             }
         }
@@ -513,6 +514,11 @@ private:
             Expr expr = Compile(node.text, [this, context](std::string_view name) { return Resolve(name, context); },
                                 &error);
             if (expr.Empty()) Error(node, "\"" + node.text + "\": " + error);
+            for (const Instruction& i : expr.code)
+                if (i.op == Op::Load && i.scope == Scope::Source &&
+                    (i.index == static_cast<int>(SourceValue::CarrierRadius) ||
+                     i.index == static_cast<int>(SourceValue::CarrierZ)))
+                    record->readsCarrier = true;
             return expr;
         }
         default: Error(node, "a number or an expression expected"); return {};
@@ -585,15 +591,17 @@ private:
     }
     void ReadReactions() {
         for (const RawNode* node : Tables("on")) {
-            Known(*node, {"event", "do"});
+            Known(*node, {"event", "when", "do"});
             Reaction& reaction = record->reactions.emplace_back();
             if (!Text((*node)["event"], &reaction.event)) Error(*node, "an [[on]] without its event");
             if (reaction.event == "start") reaction.on = Reaction::On::Start;
             else if (reaction.event == "stop") reaction.on = Reaction::On::Stop;
+            else if (reaction.event == "tick") reaction.on = Reaction::On::Tick;
             else if (!reaction.event.empty()) {
                 reaction.on = Reaction::On::Event;
                 reaction.slot = EventSlot((*node)["event"], reaction.event);
             }
+            reaction.when = Field((*node)["when"], {});
             reaction.actions = Actions((*node)["do"]);
         }
     }
@@ -605,7 +613,7 @@ private:
             return actions;
         }
         for (const RawNode& node : list.items) {
-            Known(node, {"emit", "kind", "at", "set", "value", "stage", "effect", "end"});
+            Known(node, {"emit", "kind", "at", "set", "value", "stage", "effect", "end", "stop"});
             Action action;
             std::string name;
             if (node["emit"].Exists()) {
@@ -628,8 +636,10 @@ private:
                 action.kind = Action::Kind::Effect;
             } else if (node["end"].Exists()) {
                 action.kind = Action::Kind::End;
+            } else if (node["stop"].Exists()) {
+                action.kind = Action::Kind::Stop;
             } else {
-                Error(node, "an action is emit, set, stage, effect or end");
+                Error(node, "an action is emit, set, stage, effect, end or stop");
                 continue;
             }
             actions.push_back(std::move(action));
@@ -755,12 +765,13 @@ private:
 
 } // namespace
 
-std::shared_ptr<const Record> Read(const RawNode& root, std::string_view name, std::vector<std::string>* errors) {
+std::shared_ptr<const Record> Read(const RawNode& root, std::string_view name, std::vector<std::string>* errors,
+                                   std::int32_t id) {
     if (root.kind != RawNode::Kind::Table) {
         errors->push_back(root.Where() + ": no effect");
         return nullptr;
     }
-    return Reader(root, name, errors).Run();
+    return Reader(root, name, errors, id).Run();
 }
 
 // ---- The state machine ---------------------------------------------------------------------------------------------
@@ -869,13 +880,16 @@ void State::Step(IsaacRandom& random) {
     if (stopPending) {
         stopPending = false;
         for (const Reaction& reaction : record->reactions)
-            if (reaction.on == Reaction::On::Stop) Run(reaction.actions, random);
+            if (reaction.on == Reaction::On::Stop && Holds(reaction, random)) Run(reaction.actions, random);
     }
     const int stageBefore = stage;
     for (const Reaction& reaction : record->reactions) {
-        if (reaction.on == Reaction::On::Event && reaction.slot >= 0 && inputs[reaction.slot] > 0.0f)
+        if (reaction.on == Reaction::On::Event && reaction.slot >= 0 && inputs[reaction.slot] > 0.0f &&
+            Holds(reaction, random))
             Run(reaction.actions, random);
     }
+    for (const Reaction& reaction : record->reactions)
+        if (reaction.on == Reaction::On::Tick && Holds(reaction, random)) Run(reaction.actions, random);
     if (stage >= 0 && stage == stageBefore && !first) {
         const Stage& current = record->stages[stage];
         int to = -1;
@@ -892,15 +906,18 @@ void State::Step(IsaacRandom& random) {
     const Expr& rateExpr = current && !current->rate.Empty() ? current->rate : record->rate;
     const Expr& chanceExpr = current && !current->chance.Empty() ? current->chance : record->chance;
     const Expr& emittingExpr = current && !current->emitting.Empty() ? current->emitting : record->emitting;
-    if (record->once && total > 0) onceDone = true;
     rate = rateExpr.Run(env, 0.0f);
     chance = chanceExpr.Run(env, 100.0f);
-    emitting = !ended && !onceDone && emittingExpr.Run(env, 1.0f) != 0.0f;
+    emitting = !ended && emittingExpr.Run(env, 1.0f) != 0.0f;
 
     source[static_cast<int>(SourceValue::Stage)] = static_cast<float>(stage);
     source[static_cast<int>(SourceValue::StageAge)] = static_cast<float>(stageAge);
     ++age;
     ++stageAge;
+}
+
+bool State::Holds(const Reaction& reaction, IsaacRandom& random) const {
+    return reaction.when.Empty() || reaction.when.Run(SourceEnv(&random)) != 0.0f;
 }
 
 void State::Start(IsaacRandom& random) {
@@ -909,7 +926,7 @@ void State::Start(IsaacRandom& random) {
     for (std::size_t i = 0; i < record->vars.size(); ++i) vars[i] = record->vars[i].start.Run(env);
     MakeAnchors(random);
     for (const Reaction& reaction : record->reactions)
-        if (reaction.on == Reaction::On::Start) Run(reaction.actions, random);
+        if (reaction.on == Reaction::On::Start && Holds(reaction, random)) Run(reaction.actions, random);
     if (!record->stages.empty() && stage == -1) Enter(0, random);
 }
 
@@ -951,6 +968,9 @@ void State::Run(const std::vector<Action>& actions, IsaacRandom& random, int dep
         case Action::Kind::Stage: Enter(action.target, random, depth); break;
         case Action::Kind::Effect: effects.push_back(action.effect); break;
         case Action::Kind::End: ended = true; break;
+        case Action::Kind::Stop:
+            stopRequested = true;
+            break;
         }
     }
 }

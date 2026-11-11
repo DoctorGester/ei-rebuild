@@ -361,9 +361,17 @@ target_link_libraries(ei-rebuild PRIVATE ei_game)
 add_executable(ei-convert tools/convert/convert.cpp tools/convert/convert_databases.cpp tools/convert/convert_maps.cpp
                tools/convert/convert_textures.cpp tools/convert/convert_mobs.cpp
                tools/convert/convert_models.cpp tools/convert/convert_scripts.cpp tools/convert/lua_check.cpp
-               tools/convert/lua_globals.cpp tools/convert/example_mod.cpp
-               ${EI_GAME_CALLS} ${EI_SDL_CALLS})
-target_include_directories(ei-convert PRIVATE src third_party)
+               tools/convert/lua_globals.cpp tools/convert/example_mod.cpp tools/convert/effect_check.cpp
+               ${CMAKE_BINARY_DIR}/effects/reference.h ${EI_GAME_CALLS} ${EI_SDL_CALLS})
+target_include_directories(ei-convert PRIVATE src third_party ${CMAKE_BINARY_DIR})
+# --effect-check's reference (tests/effects/reference.txt, the original particle types' recorded C++ runs) built into
+# the tool as bytes (src/render/embed.cmake).
+add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/effects/reference.h
+    COMMAND ${CMAKE_COMMAND} -DSOURCE=${CMAKE_SOURCE_DIR}/tests/effects/reference.txt -DNAME=kReference
+            -DOUT=${CMAKE_BINARY_DIR}/effects/reference.h -P ${CMAKE_SOURCE_DIR}/src/render/embed.cmake
+    DEPENDS ${CMAKE_SOURCE_DIR}/tests/effects/reference.txt ${CMAKE_SOURCE_DIR}/src/render/embed.cmake
+    COMMENT "Writing the effect check's reference as bytes"
+    VERBATIM)
 target_link_libraries(ei-convert PRIVATE ei_game SDL3::SDL3-static)
 # The repository's examples folder copied beside ei-convert, as a release package has it: --example-mod reads its own
 # files from there (tools/convert/example_mod.h).
@@ -493,6 +501,8 @@ else()
     add_test(NAME port_platform COMMAND ei_port_check)
     # The mission scripts' Lua bindings on a small world of their own (tools/convert/lua_check.cpp).
     add_test(NAME port_lua COMMAND ei-convert --lua-check)
+    # The original particle types against their recorded C++ runs (tools/convert/effect_check.cpp).
+    add_test(NAME port_effects COMMAND ei-convert --effect-check)
     add_executable(ei_render_check tests/port/render_check.cpp tests/render/glyph_cases.cpp ${EI_PROGRAM_SOURCES}
                    ${EI_GAME_CALLS} ${EI_SDL_CALLS})
     target_include_directories(ei_render_check PRIVATE src tests ${CMAKE_BINARY_DIR})
