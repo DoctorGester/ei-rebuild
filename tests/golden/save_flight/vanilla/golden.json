@@ -2,18 +2,18 @@
   "scenario": "save_flight",
   "install": "vanilla",
   "recorded": "2026-11-11",
-  "commit": "c496dfe62",
+  "commit": "7341ededf",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "The fire arrow, Rick magic and the acid ray run on Missile.lua (MF17g2): only the missile record differs (state 4, owned objects instead of the C++ visual and light); outcomes, units and timed objects the same.",
+  "reason": "MF17g4: the fire wall, light wall and poison cloud run on LastingArea.lua; their casts' missile records take the scripted form (state 4, objects owned); outcomes, units and timed objects the same",
   "source": "image",
   "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
     "digest: 10 of 13 records differ, first at record 3 (world update 80, tick 80, frame 15, zone gz1g); outcomes the same; no unit position differs",
     "  first difference at record 3 (world update 80, tick 80, frame 15, zone gz1g): 1 fields",
-    "    missile3 (spell 0) #: D6F6B20F in the old golden, C5D56E36 in the new run",
+    "    missile2 (spell 6) #: 3BD9F71A in the old golden, 03DF5B51 in the new run",
     "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
     "  missiles: 1 of 4 differ",
     "    #: 1 missile, 10 records, from 3; hash only (no numbers kept)",
@@ -21,7 +21,7 @@
     "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
     "  missiles: 1 of 4 differ",
     "    #: 1 missile, 1 record, from 10; hash only (no numbers kept)",
-    "save saveq/mission.sav: 12 fields in 1 records differ: missile 12",
-    "  missile: 12 fields in 1 records; first missile3 position.x: 77.3332977 in the old golden, 54.0 in the new run; largest numeric d 265 at missile3 visual: 264 -> -1"
+    "save saveq/mission.sav: 22 fields in 2 records differ: missile 22",
+    "  missile: 22 fields in 2 records; first missile2 position.y: 151.0 in the old golden, 147.0 in the new run; largest numeric d 715 at missile2 timer: 715 -> 0"
   ]
 }

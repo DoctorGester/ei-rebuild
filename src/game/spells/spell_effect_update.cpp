@@ -17,7 +17,7 @@ using namespace spellfx;
 
 namespace {
 
-constexpr int kEndedTimer = -80;                       // the effects linger this long after ending
+constexpr int kEndedTimer = -80;                       // the fireworks' light lingers this long after they end
 
 // The timer counts one tick down; the value it had.
 int Tick(SpellEffect* e) {
@@ -33,83 +33,10 @@ void CountDown(SpellEffect* e) {
     if (Tick(e) < 0) e->state = kStateEnded;
 }
 
-// After the walls and clouds have ended: the timer keeps running down and the effect is removed
-// 80 ticks later.
-void Linger(SpellEffect* e) {
-    if (Tick(e) < kEndedTimer) e->state = kStateEnded;
-}
-
 void RiseLight(SpellEffect* e) {
     Vector3 rise{0.0f, 0.0f, LightRise(e)};
     if (e->light) e->light->SetVelocity(rise);
 }
-
-// The walls' and clouds' lasting tick: every 4th tick while the timer is not below zero `pulse` hits, then the
-// timer runs down; at -1 `end` takes the effect's objects away (each spell in its own order: the timed objects'
-// order is state); then Linger.
-void PulseUntilEnd(SpellEffect* e, void (*pulse)(SpellEffect*), void (*end)(SpellEffect*)) {
-    int ticks = e->timer;
-    if (ticks >= 0) {
-        if ((ticks & 3) == 0) pulse(e);
-        e->timer -= 1;
-        return;
-    }
-    if (ticks == -1) end(e);
-    Linger(e);
-}
-
-// FireWall: the wall burns along its direction every 4th tick; at -1 it goes out.
-void FireWallPulse(SpellEffect* e) {
-    if (!e->visual) return;
-    e->HitUnitsAlong(e->Visual<EffectWall>()->direction);
-    e->flags |= 1;
-}
-
-void FireWallEnd(SpellEffect* e) {
-    Vector3 at = e->position;
-    if (e->sound) at = e->sound->localPosition;
-    e->UpdateFootprint(SpellType::FireWall, 0);
-    e->ReleaseSound();
-    e->ReleaseVisual();
-    e->CreateSound("magic\\Firewall\\end.wav", at, kZeroVector, kVolume, kHearing);
-    RiseLight(e);
-}
-
-void FireWall(SpellEffect* e) { PulseUntilEnd(e, FireWallPulse, FireWallEnd); }
-
-// LightningWall: the light wall hits along its bolt every 4th tick; at -1 it goes out.
-void LightWallPulse(SpellEffect* e) {
-    if (!e->visual) return;
-    auto* bolt = e->Visual<EffectLightning>();
-    Vector3 along = bolt->to - bolt->from;
-    e->HitUnitsAlong(along);
-    e->flags |= 1;
-}
-
-void LightWallEnd(SpellEffect* e) {
-    RiseLight(e);
-    e->UpdateFootprint(SpellType::LightningWall, 0);
-    e->ReleaseSound();
-    e->ReleaseVisual();
-}
-
-void LightWall(SpellEffect* e) { PulseUntilEnd(e, LightWallPulse, LightWallEnd); }
-
-// AcidFog: the poison cloud hits every 4th tick; at -1 it goes.
-void PoisonCloudPulse(SpellEffect* e) {
-    e->HitUnitsInRadius();
-    e->flags |= 1;
-}
-
-void PoisonCloudEnd(SpellEffect* e) {
-    e->CreateSound("magic\\poison\\end.wav", e->targetPoint, kZeroVector, kVolume, kHearing);
-    RiseLight(e);
-    e->UpdateFootprint(SpellType::AcidFog, 0);
-    e->ReleaseSound();
-    e->ReleaseVisual();
-}
-
-void PoisonCloud(SpellEffect* e) { PulseUntilEnd(e, PoisonCloudPulse, PoisonCloudEnd); }
 
 // Campfire: hits every 4th tick, counting up, forever (until something else ends it).
 void CountingCloud(SpellEffect* e) {
@@ -257,7 +184,7 @@ int SpellEffect::Update() {
         if (!host || !host->Tick(*this)) state = kStateEnded;
         return 1;
     default:
-        UpdateFootprint(type, 0);
+        if (footprintStamped) Unblock();
         ReleaseOwned();
         ReleaseVisual();
         ReleaseSound();
@@ -269,9 +196,6 @@ int SpellEffect::Update() {
 void SpellEffect::UpdateLasting(SpellType type) {
     switch (type) {
     case SpellType::Healing: CountDown(this); break;
-    case SpellType::FireWall: FireWall(this); break;
-    case SpellType::LightningWall: LightWall(this); break;
-    case SpellType::AcidFog: PoisonCloud(this); break;
     case SpellType::Fireworks: Fireworks(this); break;
     case SpellType::Clairvoyance: Clairvoyance(this); break;
     case SpellType::Possession: Possession(this); break;

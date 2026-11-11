@@ -42,8 +42,8 @@ public:
     // onto a script), after the scheduler's Restore. When the module has OnResume the cast goes on as a scripted one:
     // an entry under a new key, the effect's visual, sound and light moved into its owned objects (a missile with a
     // payload key, so OnHit runs when it lands; their handles in `old`), OnResume(cast, old) with the world's
-    // bindings off, then the end test; the effect's state says how it went. False, the effect left as it was,
-    // without the hook.
+    // bindings off (but Block), then the end test; the effect's state says how it went. False, the effect left as it
+    // was, without the hook.
     bool Resume(SpellEffect& effect);
 
     // The `casts` table (by key: data, timers, tick, finished) and the key after the live casts' into the scheduler's
@@ -80,11 +80,14 @@ public:
     static int SoundLoop(lua_State* L);
     static int Release(lua_State* L);
     static int Noise(lua_State* L);
+    static int Across(lua_State* L);
+    static int Block(lua_State* L);
+    static int Unblock(lua_State* L);
 
 private:
     // The effect of the cast value `self` (argument 1) of a world method; a Lua error when the cast has ended or the
-    // bindings are off.
-    static SpellEffect& Self(lua_State* L, const char* method);
+    // bindings are off (`inResume`: a method that also works in OnResume).
+    static SpellEffect& Self(lua_State* L, const char* method, bool inResume = false);
     enum class Hook { Ran, Absent, Failed };
 
     // A new cast's entry under `key` (its data, timers, tick and seq), the effect live under it.
@@ -113,6 +116,7 @@ private:
     int modules = 0;        // the registry's reference of the loaded modules by file (false: it did not load)
     int castMeta = 0;       // the registry's reference of the cast values' metatable
     int nextCast = 1;
+    bool resuming = false;  // OnResume runs (Self lets the methods that work in it through)
     std::map<int, SpellEffect*> live;   // the effects of the live casts by key
     ScriptRun run;          // the run the hooks' commands run in
 };

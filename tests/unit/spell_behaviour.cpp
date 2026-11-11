@@ -43,10 +43,6 @@ int RunSpellBehaviourChecks() {
                                               records[255].behaviour == SpellType::None);
 
     // The game's rows, whatever the record's fields.
-    const itemdb::SpellUse fireWall = UseOf(records[static_cast<int>(SpellType::FireWall)]);
-    Expect("fire wall: a lasting area of fire, offensive and fighting",
-           fireWall.ai == SpellAi::LastingArea && fireWall.damageType == DamageType::Fire && fireWall.offensive &&
-               !fireWall.turnsVictim && fireWall.fighting);
     const itemdb::SpellUse healing = UseOf(records[static_cast<int>(SpellType::Healing)]);
     Expect("healing: a heal, no damage, not offensive or fighting",
            healing.ai == SpellAi::Heal && healing.damageType == DamageType::Other && !healing.offensive &&

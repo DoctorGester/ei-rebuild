@@ -17,17 +17,14 @@
 #include "game/world/world.h"
 #include "game/effects/world_effect.h"
 
-#include "lib/float_select.h"
 #include "lib/str.h"
 
-#include <bit>
 #include <cfloat>
 #include <cstdint>
 #include <string>
 
 namespace {
 constexpr float kTargetThreshold = 0.5f;
-constexpr float kWallHalfWidth = 1.0f;
 constexpr float kSplitDamage = 4.0f;
 } // namespace
 
@@ -52,30 +49,6 @@ void SpellEffect::HitUnitsInRadius() {
     }
 }
 
-void SpellEffect::HitUnitsAlong(const Vector3& direction) {
-    DamageInfo hit;
-    GetDamage(&hit);
-
-    // The wall's normal in the ground plane: s = 2 / sqrt(x^2 + y^2) (rounded to float), normal = (s * -y,
-    // s * x, 0). The normal has length 2, so the test against 1 accepts the units within 0.5 of the plane.
-    float x = direction.x;
-    float minusY = -direction.y;
-    float scale = 2.0f / std::sqrt(x * x + minusY * minusY);
-    float normalX = scale * minusY;
-    float normalY = scale * x;
-    float normalZ = 0.0f;
-
-    for (Unit* unit : world->aiMap.sectorMap.FindUnitsInRadius(position, HeldSpell()->radius)) {
-        const Unit* at = unit;
-        Vector3 d = at->localPosition - position;
-        float distance = Dot(Vector3{d.x, d.y, d.z}, Vector3{normalX, normalY, normalZ});
-        distance = AbsBits(distance);
-        if (distance > kWallHalfWidth) continue;
-        if (!AcceptsAreaSpells(unit)) continue;
-        HitUnit(&hit, unit);
-    }
-}
-
 namespace {
 
 // What a behaviour deals: its damage type, and a hitKind of 1 for the spells that burn an area over time.
@@ -85,17 +58,10 @@ struct SpellDamageKind {
 };
 
 constexpr SpellDamageKind kFireArea{DamageType::Fire, 1};
-constexpr SpellDamageKind kLightningArea{DamageType::Lightning, 1};
-constexpr SpellDamageKind kAcidArea{DamageType::Acid, 1};
 
 // The damage kind of the behaviour `type`; null for the spells that deal no damage.
 const SpellDamageKind* DamageKindOf(SpellType type) {
-    switch (type) {
-    case SpellType::AcidFog: return &kAcidArea;
-    case SpellType::FireWall: case SpellType::Campfire: return &kFireArea;
-    case SpellType::LightningWall: return &kLightningArea;
-    default: return nullptr;
-    }
+    return type == SpellType::Campfire ? &kFireArea : nullptr;
 }
 
 } // namespace
@@ -182,7 +148,6 @@ void SpellEffect::Load(ByteStream* stream) {
             if (entry.object) owned.push_back(std::move(entry));
         }
     }
-    UpdateFootprint(HeldSpell()->Behaviour(), 1);
 }
 
 void SpellEffect::Save(ByteStream* stream) {
@@ -235,67 +200,6 @@ namespace {
 
 // --- The spell types ----------------------------------------------------------------------------
 
-// The direction from the caster to the wall's centre; straight along x when it has no ground part
-// (both 0).
-Vector3 WallDirection(const Vector3& centre, const Vector3& from) {
-    Vector3 d = centre - from;
-    if (XY(d) == Vector2{0.0f, 0.0f}) d.x = 1.0f;
-    return d;
-}
-
-// FireWall: the wall across the line from the caster to the target point.
-void StartFireWall(SpellEffect* e, const Vector3& from) {
-    Vector3 centre = e->targetPoint;
-    float alpha = Power(e);
-    float size = Power(e);
-    e->CreateParticle(1, ParticleType::Tendril, centre, size, alpha, kZeroVector, nullptr);
-    Vector3 direction = WallDirection(centre, from);
-    Vector3 span = WallSpan(direction, e->HeldSpell()->radius);
-    if (e->visual) e->Visual<EffectWall>()->SetDirection(span);
-    e->position = centre;
-    EnterLasting(e);
-    centre.z = e->world->GridHeightAt(centre.x, centre.y) + 1.0f;
-    float radius = e->HeldSpell()->radius;
-    float range = Prototype(e)->lightRange;
-    PrototypeLight(e, centre, radius + range, kZeroVector);
-    e->CreateSoundSequence(centre, kZeroVector, "magic\\Firewall\\start.wav", "magic\\Firewall\\circle.wav", -1);
-}
-
-// LightningWall: the light wall, a lightning between the two ends of the same span.
-void StartLightWall(SpellEffect* e, const Vector3& from) {
-    Vector3 centre = e->targetPoint;
-    Vector3 direction = WallDirection(centre, from);
-    Vector3 span = WallSpan(direction, e->HeldSpell()->radius);
-    Vector3 a, b;
-    a = e->targetPoint - span;
-    b = span + e->targetPoint;
-    a.z = e->world->RawSurfaceHeightAt(a.x, a.y) + 1.0f;
-    b.z = e->world->RawSurfaceHeightAt(b.x, b.y) + 1.0f;
-    auto* bolt = CreateObject<EffectLightning>(e, ClassId::EffectLightning);
-    bolt->SetEnds(a, b, 0.0f);
-    e->SetVisual(bolt);
-    e->position = centre;
-    EnterLasting(e);
-    centre.z = e->world->GridHeightAt(centre.x, centre.y) + 1.0f;
-    float radius = e->HeldSpell()->radius;
-    float range = Prototype(e)->lightRange;
-    PrototypeLight(e, centre, radius + range, kZeroVector);
-    e->CreateSoundSequence(centre, kZeroVector, "", "magic\\Lightwall\\circle.wav", -1);
-}
-
-// AcidFog: the poison cloud at the target point.
-void StartPoisonCloud(SpellEffect* e) {
-    Vector3 centre = e->targetPoint;
-    centre.z = e->world->GridHeightAt(centre.x, centre.y) + 1.0f;
-    float alpha = Power(e);
-    e->CreateParticle(1, ParticleType::PoisonFog, centre, e->HeldSpell()->radius, alpha, kZeroVector,
-                      nullptr);
-    e->CreateSoundSequence(centre, kZeroVector, "magic\\poison\\start.wav", "magic\\poison\\circle.wav", -1);
-    float radius = e->HeldSpell()->radius;
-    float range = Prototype(e)->lightRange;
-    PrototypeLight(e, centre, radius + range, kZeroVector);
-    e->position = centre;
-    EnterLasting(e);
 }
 
 // Fireworks (five numbered sounds).
@@ -452,18 +356,8 @@ void StartAtGround(SpellEffect* e) {
 
 void SpellEffect::Start(SpellType type) {
     flags &= ~1u;
-    Vector3 from;
-    if (caster) {
-        from = caster->EyePoint();
-    } else {
-        from = position;
-    }
-
     // Every case sets the state itself: the lasting one or the end.
     switch (type) {
-    case SpellType::FireWall: StartFireWall(this, from); break;
-    case SpellType::LightningWall: StartLightWall(this, from); break;
-    case SpellType::AcidFog: StartPoisonCloud(this); break;
     case SpellType::Fireworks: StartFirework(this); break;
     case SpellType::Clairvoyance: StartClairvoyance(this); break;
     case SpellType::Possession: StartPossession(this); break;
@@ -476,7 +370,6 @@ void SpellEffect::Start(SpellType type) {
     case SpellType::Scripted: StartScripted(this); break;
     default: state = kStateEnded; break;   // Shapechange, Comprehend and None
     }
-    UpdateFootprint(type, 1);
 }
 
 void SpellEffect::SetVisual(Effect* object) {
@@ -484,33 +377,34 @@ void SpellEffect::SetVisual(Effect* object) {
     world->AddTimedObject(visual);
 }
 
-void SpellEffect::UpdateFootprint(SpellType type, int stamp) {
-    if (!visual) return;
-    AIMap* aiMap = &world->aiMap;
-    switch (type) {
-    case SpellType::FireWall: {
-        Vector3 direction;
-        direction = (Visual<EffectWall>()->direction);
-        g_spellFootprint.AlongDirection(aiMap, position, direction);
-        break;
-    }
-    case SpellType::LightningWall: {
-        const EffectLightning* bolt = Visual<EffectLightning>();
-        Vector3 half = (bolt->to - bolt->from) * 0.5f;
-        g_spellFootprint.AlongDirection(aiMap, position, half);
-        break;
-    }
-    case SpellType::AcidFog:
-    case SpellType::Campfire: g_spellFootprint.DiscAt(aiMap, position, HeldSpell()->radius); break;
-    default: return;
-    }
-    if (stamp) {
-        aiMap->StampFootprint(world->tick, &g_spellFootprint);
-        footprintStamped = 1;
-    } else {
-        aiMap->ClearFootprint(&g_spellFootprint);
-        footprintStamped = 0;
-    }
+namespace {
+
+// The cells of the effect's footprint, into the spells' footprint set.
+void ShapeFootprint(SpellEffect* e) {
+    AIMap* aiMap = &e->world->aiMap;
+    if (e->footprint.disc) g_spellFootprint.DiscAt(aiMap, e->footprint.at, e->footprint.radius);
+    else g_spellFootprint.AlongDirection(aiMap, e->footprint.at, e->footprint.along);
+}
+
+} // namespace
+
+void SpellEffect::Block(const SpellFootprint& shape) {
+    if (footprintStamped) Unblock();
+    footprint = shape;
+    ShapeFootprint(this);
+    world->aiMap.StampFootprint(world->tick, &g_spellFootprint);
+    footprintStamped = 1;
+}
+
+void SpellEffect::Unblock() {
+    ShapeFootprint(this);
+    world->aiMap.ClearFootprint(&g_spellFootprint);
+    footprintStamped = 0;
+}
+
+bool SpellEffect::WallParticle(int particleType) {
+    return particleType == static_cast<int>(ParticleType::Tendril) ||
+           particleType == static_cast<int>(ParticleType::Link);
 }
 
 EffectArrow* SpellEffect::NewArrow(const Vector3& from, EngineObject* missileTarget, int particleType, float size,
@@ -544,9 +438,7 @@ EffectParticle* SpellEffect::CreateParticle(int keep, ParticleType particleType,
 
 EffectParticle* SpellEffect::NewParticle(int particleType, const Vector3& at, float size, float alpha,
                                          const Vector3& velocity, EngineObject* attachTo) {
-    const bool wall = particleType == static_cast<int>(ParticleType::Tendril) ||
-                      particleType == static_cast<int>(ParticleType::Link);
-    ClassId classId = wall ? ClassId::EffectWall : ClassId::EffectParticle;
+    ClassId classId = WallParticle(particleType) ? ClassId::EffectWall : ClassId::EffectParticle;
     auto* particle = CreateObject<EffectParticle>(this, classId);   // a EffectWall for the walls
     particle->type = particleType;
     SetPosition(particle, at);
@@ -647,7 +539,7 @@ SpellEffect::SpellEffect() = default;
 
 SpellEffect::~SpellEffect() {
     if (host) host->Forget(*this);
-    if (footprintStamped) UpdateFootprint(HeldSpell()->Behaviour(), 0);
+    if (footprintStamped) Unblock();
     ReleaseOwned();
     ReleaseVisual();
     ReleaseSound();

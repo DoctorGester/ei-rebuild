@@ -1,0 +1,31 @@
+# A save from before the walls and the poison cloud moved onto their script (MF17g4; docs/notes/items_spells.md, "The
+# game's spells on scripts"). tests/saves/lasting_old was made on vanilla data by a build from before the port: a new
+# game, the god-mode hero at (54, 138), script casts at points: a short poison cloud (acid_fog{d0}) 15 south, 18 frames
+# later a fire wall 10 east (across the line from 4 south of it), a light wall 8 south (across the line from 4 west of
+# it) and a poison cloud 12 north a frame apart, and F5 7 frames later: the short cloud gone out with its light rising
+# away, the walls and the cloud burning (their counts 5 apart, so each pulses in another phase), each with its AI map
+# footprint. Loaded now, all four go on through LastingArea.lua's OnResume, their footprints stamped again: WolfTutor
+# wolves added in the two walls and the cloud (blocked where they stand) die at their next pulses, one added 16 east
+# heads for the hero past the fire wall, and every cast goes out at the end of its count and goes 80 ticks later, as
+# the C++ build's run of this scenario did.
+# prepare: copy_save.py tests/saves/lasting_old save2
+reject Script error
+waitmenu
+console thingamabob
+load save2
+waitwindow 30 battle
+dump loaded
+console @AddUnitToServer("FireWolf","WolfTutor","FireWolf",64,138,0) AddUnitToServer("LitWolf","WolfTutor","LitWolf",54,130,0) AddUnitToServer("FogWolf","WolfTutor","FogWolf",54,150,0) AddUnitToServer("PathWolf","WolfTutor","PathWolf",70,138,0)
+waitfor 10 IsAlive(GetObjectByName("PathWolf"))
+console @BlockUnit(GetObjectByName("FireWolf"),1) BlockUnit(GetObjectByName("LitWolf"),1) BlockUnit(GetObjectByName("FogWolf"),1)
+waitfor 20 Not(IsAlive(GetObjectByName("FireWolf")))
+waitfor 20 Not(IsAlive(GetObjectByName("LitWolf")))
+waitfor 20 Not(IsAlive(GetObjectByName("FogWolf")))
+dump hurt
+frames 30
+dump out
+frames 20
+dump after
+check IsAlive(GetLeader())
+report
+quit

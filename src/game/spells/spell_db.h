@@ -175,6 +175,9 @@ struct SpellRecord {
     // TOML only (`ends_with_target`): a cast ends at once, with no hook, when its target leaves the world (as every
     // spell of the game's does); without it a scripted cast goes on without its target.
     bool endsWithTarget = false;
+    // TOML only (`max_ticks`): the ticks a scripted cast lives at most; 0: no limit (its script ends it, as the walls'
+    // outlast their duration); -1, not given: the duration rule (ScriptSpellHost's Settle).
+    int maxTicks = -1;
     // TOML only (`ai_effect`): the code of the spell whose effect the AI's curse, protect and enhance options look
     // for on a unit (a scripted spell that applies another's buff names that one); empty: the record's own.
     std::string aiEffectCode;

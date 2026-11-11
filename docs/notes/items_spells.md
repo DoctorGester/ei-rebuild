@@ -188,13 +188,13 @@ after them (a mod's: the showcase's "spark", 42) `SpellType::None`, which starts
 The game's own spells move onto the scripted path family by family (MF17g; user 2026-11-11: the original content uses
 what modders get), so the code they ran and the switches and table rows that keyed on them go. On it now: the
 lightning arc and curse magic (assets/spells/Lightning.lua), the missiles: fire arrow, Rick magic and acid ray
-(Missile.lua), the fireball (Fireball.lua), the area strikes: light strike and acid column (Strike.lua), and the 20
-buffs (Buff.lua). Still in code: the walls and the poison cloud, and the rest (fireworks, clairvoyance, vision fog,
-healing, teleport, campfire; possession, link and charm are cut).
+(Missile.lua), the fireball (Fireball.lua), the area strikes: light strike and acid column (Strike.lua), the lasting
+areas: fire wall, light wall and poison cloud (LastingArea.lua), and the 20 buffs (Buff.lua). Still in code: the
+campfire and the rest (fireworks, clairvoyance, vision fog, healing, teleport; possession, link and charm are cut).
 
 - **Built in.** `assets/spells/` holds the scripts (CamelCase, by the spell they run) and `spells.sdb.toml`, the
   fields the game's records get: `script`, the use fields (`ai`, `damage_type`, `offensive`, `turns_victim`,
-  `fighting`), `cast_school`, `per_target`, `ends_with_target`. The build writes the folder into the exe
+  `fighting`), `cast_school`, `per_target`, `ends_with_target`, `max_ticks`. The build writes the folder into the exe
   (src/game/effects/embed_effects.cmake, `spell_files/builtin.h`). `SpellDatabase::MergeBuiltin` merges the TOML into
   the records of its codes right after the binary spells.sdb is read (never adding a record; a database without the
   code gets nothing), below every TOML layer, so a mod's spells.sdb.toml overrides any field. A whole-file TOML
@@ -204,7 +204,8 @@ healing, teleport, campfire; possession, link and charm are cut).
 - **What keeps them the same.** `per_target`: CastSpell casts each one as before, once at every target it picks
   (t runes, f-rune filters, sight). `ends_with_target`: the cast goes at once when its target leaves the world, as the
   game's spells do (`Forget`). The cap does not cut them: a cast paced by timers alone lives up to 600 ticks or its
-  duration (the game's durations of 1 are target counts). Their scripts do in order what the C++ did: the same
+  duration (the game's durations of 1 are target counts); the lasting areas, which outlast their duration (up to 2550
+  ticks with eight d runes, then 80 more), have `max_ticks = 0`, no limit. Their scripts do in order what the C++ did: the same
   objects made in the same order (their ids and the timed objects' order are state), the same hits, sounds at the
   same points, and the same ticks (the bolt's lifetime, a timer for the light's rise and one for the end, at the
   update the C++ timer reached them). Lua numbers are doubles: a script passes the cast's floats on as they are or
@@ -235,6 +236,16 @@ healing, teleport, campfire; possession, link and charm are cut).
   and hearing 1000), a light 5 above rising at `lightRise`, the hit (lightning, `unsorted`, `split`); a second bolt of
   width -7 at tick 3 for one tick, `Done` at 9. The acid column at the cast's point: the free `Nuke`, the start sound,
   a rising light, the hit (acid, `area`) at tick 15, `Done` at 32.
+- **The lasting areas** (LastingArea.lua): OnCast the fire wall (the `Tendril` at the point with `direction` the span,
+  `cast:Across` from the caster's eye or the cast's start to the point, the radius long: WallSpan of WallDirection;
+  the light the radius + `lightRange` at the ground + 1, then the start / circle `SoundLoop` there), the light wall (a
+  bolt of width 0 between the point -/+ the span, each end on the water's surface + 1, then the light and the circle
+  loop) or the cloud (the `PoisonFog` at the ground + 1, size the radius, then the loop, then the light), and `Block`
+  (the walls along the span, the light wall along half its bolt's `b - a`, the cloud a disc of the radius). The C++'s
+  count from the duration down, its first lasting update at tick 1 (`Schedule`): a pulse at each count divisible by 4
+  down to 0 (`FindUnits` area, unsorted, `along` the wall's span or the bolt's `b - a`; `Damage` area, split by the
+  duration, `noCredit` after the first pulse: the C++'s flags bit 0), `Out` at -1 (each spell's own order of the end
+  sound, the light sent up, `Unblock` and the releases) and `Done` 80 ticks after.
 - **What differs.** The `SpellEffect` record of a live cast is the scripted one (state 4, no visual / sound / light,
   its objects in `owned`; the digest's missile group, a save's projectile record) and its entry is in the Lua state's
   `casts` until it ends. The world, the units and the timed objects are the same. The saved `nextCast` is the key
@@ -247,7 +258,10 @@ healing, teleport, campfire; possession, link and charm are cut).
   update the C++ would have ended them. `old.visual`, `old.sound` and `old.light` are the handles of the objects the
   C++ held: Fireball.lua's resume of a ball in flight releases them at its blast (at the count + 2, the ball at + 1),
   Strike.lua's drops the light strike's bolt at tick 1, strikes its second bolt at its count's 5 and the column's hit
-  at its 15. A script without OnResume (Lightning.lua: its hit was dealt at the cast) leaves the cast as it was, and
+  at its 15. `old.direction` is the old visual's (a wall effect's extent, a bolt's `to - from`) and `Block` works in
+  OnResume (the C++'s load stamped the footprint; the AI map is not saved): LastingArea.lua's blocks a standing wall or
+  cloud again, takes the credit flag from the count (a pulse came when the count is below the duration's highest
+  multiple of 4) and schedules from `old.ticks` as OnCast does from the duration. A script without OnResume (Lightning.lua: its hit was dealt at the cast) leaves the cast as it was, and
   it ends at its next update (Update's state 1 and UpdateLasting's default) with its objects. The save version stays
   0x74.
 - **Cost.** A lightning cast is a few Lua calls at the start, a timer call at ticks 8 and 89 and the host's table walk
@@ -264,8 +278,9 @@ healing, teleport, campfire; possession, link and charm are cut).
   fighting, antimagic's by Rebirth's FixPlaingBattleMusicFromAntimagic). Old saves: an effect on a unit is its
   record's place and numbers (MapEffect, unchanged), read the same; a buff cast never lives past its first update, so
   no save holds one in the C++'s states.
-- **Next families**: MF17g4 the walls and the poison cloud, MF17g6 the rest; each ticket names the bindings and fields
-  it lacks.
+- **Next families**: MF17g4a the campfire (every zone's flames on the ground cast one, so every golden's missile
+  records and zone saves change; it counts up forever: `max_ticks = 0`), MF17g6 the rest; each ticket names the
+  bindings and fields it lacks.
 - Checked by `spells`, `combat_skills` and the other lightning and missile scenarios (the digest's missile records
   differ, all else the same), `spells_old_save` (tests/saves/lightning_old, made by the C++ build: both casts end at
   the load), `spells_old_missile` (tests/saves/missile_old, made by the C++ build: an acid ray lasting, a fire arrow in
@@ -274,9 +289,13 @@ healing, teleport, campfire; possession, link and charm are cut).
   sequence, an acid column before its hit and a light strike with its first bolt; all resume, the column and the far
   fireball kill their wolves; against the C++ build's run only the missile records differ), the fireball and strike
   scenarios (`spells`, `spells_cast`, `unit_ai_cast` and `unit_cast_at`: the AI's fireball, `unit_ai_corpse`: its
-  noise) and `--lua-check` (handles, SetVelocity, Eye, a demon bolt, the timer-paced cap, IsUnit, HitPoint, a free
+  noise), `spells_old_lasting` (tests/saves/lasting_old, made by the C++ build: a cloud gone out, two walls and a cloud
+  standing; all resume with their footprints, wolves added in the walls and the cloud die at their next pulses;
+  against the C++ build's run only the missile records differ), the lasting-area scenarios (`spells`, `spells_cast`,
+  `save_flight`: a wall of 750 ticks saved and loaded mid-cast, its footprint stamped again) and `--lua-check` (handles, SetVelocity, Eye, a demon bolt, the timer-paced cap, IsUnit, HitPoint, a free
   effect, OnResume of a C++ missile with bindings off and its hit and handles; Ground, Flight, SoundLoop, Release,
-  Noise, the Sound / Light / Effect options, FindUnits unsorted, Damage split, areaPower). The buffs: `spells`,
+  Noise, the Sound / Light / Effect options, FindUnits unsorted, Damage split, areaPower; Across, FindUnits along,
+  Effect direction, Block's arguments, Unblock, Block let through in OnResume). The buffs: `spells`,
   `map_objects`, `rebirth_fixes`, `particles` and the AI's protect / curse casts, and `spells_old_buff`
   (tests/saves/buff_old, made by the C++ build: shrink, speed, protection from fire, invisibility and strengthen on
   the hero, stun, slow, weaken and feeblemind on a wolf; against the C++ build's run of it the same).
@@ -323,10 +342,15 @@ zone's server state that Eris saves. Only the server runs it; clients see what i
   keep), `Sound` (`CreateSound`), `Light` (`NewPointLight`), `Eye` (`EyePoint`), `HitPoint` (`GridHeightAt` +
   `ModeSpeed`), `IsUnit`, `Ground` (`GridHeightAt`, or `RawSurfaceHeightAt` with `water`), `Flight` (`FlightTicks`,
   `ScaledToSpeed`), `SoundLoop` (`NewSoundSequence`, CreateSoundSequence's object), `Release` (the slot's release:
-  `RemoveTimedObject`), `Noise` (`aiMap.events.Noise` from the caster's controller); FindUnits' `unsorted` keeps the
-  sector map's order (HitUnitsInRadius'), Damage's `split` is `SpellEffect::SplitHit` (GetDamage's 4/n), Effect's
-  `param`, `target`, `unit` set the particle's typeParam, target and unitId before it goes into the world (what the
-  C++'s SetColors / SetTarget / unitId after it did; AddTimedObject marks it changed either way). Arguments are
+  `RemoveTimedObject`), `Noise` (`aiMap.events.Noise` from the caster's controller), `Across` (`WallSpan` of `WallDirection`), `Block` /
+  `Unblock` (`SpellEffect::Block`: the spells' footprint set `AlongDirection` / `DiscAt`, `StampFootprint` at the
+  world's tick, `ClearFootprint`; one per cast, cleared at its end and in the effect's destructor; kept in the entry's
+  `block`, stamped again by Adopt); FindUnits' `unsorted` keeps the sector map's order (HitUnitsInRadius'), its `along`
+  is the walls' plane test (HitUnitsAlong's: the normal 2 / sqrt(x^2 + y^2) long, |d . n| <= 1), Damage's `split` is
+  `SpellEffect::SplitHit` (GetDamage's 4/n), Effect's `param`, `target`, `unit` and `direction` (EffectWall's
+  SetDirection, only for Tendril and Link) set the particle's typeParam, target, unitId and extent before it goes into
+  the world (what the C++'s SetColors / SetTarget / unitId / SetDirection after it did; AddTimedObject marks it changed
+  either way). Arguments are
   all read (and a Lua error raised) before any C++ object is made: Lua is C, its errors are longjmps.
 - **Owned objects** (`SpellEffect::owned`, `SpellOwned`): every bolt, missile, effect and light a cast makes is in the
   world's timed objects and held by the effect with its ticks left (0: as long as the cast) and, for a missile, the key
@@ -340,7 +364,7 @@ zone's server state that Eris saves. Only the server runs it; clients see what i
   the next tick at the earliest), then OnTick, then the end test; before the timers, the owned objects' lives and an
   OnHit per arrived missile in the list's order. The end: Finish after any hook (the rest of that tick's hooks
   skipped), the tick cap (the spell's `duration`, else 600 ticks), or nothing pending (no timer, no owned object with
-  ticks left, no missile in flight and no OnTick: "idle"); a hook's Lua error goes to the console (`Script error: <file>:<line>: <message>`), then OnEnd(cast,
+  ticks left, no missile in flight and no OnTick: "idle"; the record's `max_ticks` replaces the cap, 0 none); a hook's Lua error goes to the console (`Script error: <file>:<line>: <message>`), then OnEnd(cast,
   "error"). The effect then ends as any spell does (state 3, removed at its next update).
 - **Hooks are not coroutines**: they run with `lua_pcall` on the state's main thread, so `Sleep` and the other waits
   raise an error (no yield outside a coroutine). Timers and OnTick do the pacing (user 2026-11-11). The bindings work
@@ -399,11 +423,12 @@ zone's server state that Eris saves. Only the server runs it; clients see what i
 the state: 0 casting (`Start`, a switch on the prototype whose `Start*` functions set the state themselves: the
 lasting one through `EnterLasting` or `kStateEnded`; the charm leaves it at 0 and so starts again every
 tick), 1 a missile in flight (only a save's from before its spell moved onto a script: it ends at its next update),
-2 lasting (`UpdateLasting`), 4 scripted, else it ends (footprint cleared, the three effect objects dropped). The three counted effect objects
+2 lasting (`UpdateLasting`), 4 scripted, else it ends (a scripted cast's footprint cleared, the owned and the three
+effect objects dropped). The three counted effect objects
 (visual, sound, light) are also in the world's timed objects; replacing one removes and releases the old.
 
-Spell behaviours: 0 / 0x28 fire arrow, 1 / 0x29 lightning, 2 acid ray, 3 fireball, 4 light strike, 5 acid column (all eight on scripts), 6 fire
-wall, 7 light wall, 8 poison cloud, 9-0x11, 0x13, 0x19, 0x1A, 0x1D-0x22, 0x25, 0x26 buffs (on Buff.lua: the target gets a
+Spell behaviours: 0 / 0x28 fire arrow, 1 / 0x29 lightning, 2 acid ray, 3 fireball, 4 light strike, 5 acid column, 6 fire
+wall, 7 light wall, 8 poison cloud (all eleven on scripts), 9-0x11, 0x13, 0x19, 0x1A, 0x1D-0x22, 0x25, 0x26 buffs (on Buff.lua: the target gets a
 record with byte 1 = trunc(power x 16)), 0x12 fireworks, 0x14 clairvoyance, 0x15 possession, 0x17 vision fog, 0x18
 healing, 0x1B link, 0x1C teleport, 0x24 charm, 0x27 campfire. `SpellType` names all 42 after the spell database's
 prototypes (0x16 shapechange and 0x23 comprehend start nothing).
@@ -416,13 +441,14 @@ Lights: the prototype's fields 23-27 are its light (`lightColor`, `lightRange`, 
 `lightRange / max(lightRiseDivisor, 1)` a tick, the impact lights 1.5 times faster and further.
 
 Hits: HitUnit skips units the spell may not affect (only checked with a caster) and calls the controller's TakeHit;
-HitUnitsInRadius (the poison cloud, the campfire) and HitUnitsAlong (fire wall, every 4th tick) hit units that area spells hit (size class
-set, or the prototype's height below 0.5); the wall only those within 0.5 of the vertical plane along its direction.
+HitUnitsInRadius (the campfire, every 4th tick) hits units that area spells hit (size class set, or the prototype's
+height below 0.5); the walls' FindUnits `along` only those within 0.5 of the vertical plane along their direction.
 
 Kept: healing and charm read the
 target's class without a null check; charm with a
 target or caster that is not a unit returns without changing state, so it restarts every tick; the light strike uses -7
-as bolt width factor (Strike.lua); the walls compute the normal with a z of 0 * k.
+as bolt width factor (Strike.lua); the light wall's footprint is half its bolt's `b - a` with the ends' heights in it
+(its reach grows with their difference), the fire wall's the span.
 
 Cut spells (H43b): WorldServer::CastSpell returns for possession, link and charm, so StartPossession, StartLink,
 StartCharm and their updates (Possession, Link) run for no cast; `spells_more` casts charm and link from the hero and

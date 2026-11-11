@@ -249,6 +249,7 @@ void Fields(SpellRecord& r, Visit& v) {
     v("per_target", dbtoml::Bool{r.perTarget});
     v("ends_with_target", dbtoml::Bool{r.endsWithTarget});
     v("effect", Enum<int>{r.effect, kEffectKinds});
+    v("max_ticks", r.maxTicks);
 }
 
 template <class Visit>
