@@ -1,0 +1,25 @@
+# A save from before the fireball and the area strikes moved onto their scripts (MF17g3; docs/notes/items_spells.md,
+# "The game's spells on scripts"). tests/saves/area_old was made on vanilla data by a build from before the port: a new
+# game, the god-mode hero, WolfTutor wolves added 60 squares east (FarWolf), 12 north (ColWolf) and 10 west (LitWolf),
+# then script casts at points: a fireball 5 squares south, a fireball at FarWolf, an acid column at ColWolf and a light
+# strike at LitWolf, and F5 in that tick: the near fireball in flight (6 ticks left, no sound sequence), the far one
+# in flight (88 left, its sound sequence), the acid column with its hit to come (30 left) and the light strike with its
+# first bolt (7 left; LitWolf dead). Loaded now, all four go on through Fireball.lua's and Strike.lua's OnResume: the
+# acid column kills ColWolf, the far fireball's blast kills FarWolf, as the C++ build's run of this scenario did.
+# prepare: copy_save.py tests/saves/area_old save2
+reject Script error
+waitmenu
+console thingamabob
+load save2
+waitwindow 30 battle
+check IsAlive(GetObjectByName("FarWolf"))
+dump loaded
+waitfor 20 Not(IsAlive(GetObjectByName("ColWolf")))
+dump column
+waitfor 20 Not(IsAlive(GetObjectByName("FarWolf")))
+dump blast
+frames 20
+dump after
+check IsAlive(GetLeader())
+report
+quit
