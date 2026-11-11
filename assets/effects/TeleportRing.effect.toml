@@ -24,7 +24,7 @@ lifetime = 15                                   # 12 shown, its end at 13 and th
 velocity = [0, 0, "p.rise"]                     # the rise a tick (grows by the drag after the move)
 drag = "p.age == 13 ? 1 : 1.05"
 size = { start = "(below(0.8) + 0.6) * size * 0.25", tick = "p.size * 0.97" }
-alpha = { tick = "fade[p.age]" }
+alpha = { start = 255, tick = "fade[p.age]" }
 frame = { start = 1, tick = "p.frame + 1" }
 kill = "p.age == 13"
 

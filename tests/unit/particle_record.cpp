@@ -347,6 +347,7 @@ texture = "Stun"
 [[particle]]
 name = "spark"
 lifetime = 2
+spawn = { shape = "ball" }
 vars = { dx = "p.spawn.x" }
 )toml";
 
@@ -1094,6 +1095,79 @@ void CheckVectors() {
                errors[0].find("at most 8 floats") != std::string::npos);
 }
 
+// MF15l1's one field form: a tick alone also starts; the spawn as one point expression, drawn before the vars (which
+// read it); a velocity's tick; an anchor's position as its start (by default its spawn's point) and its tick.
+constexpr const char* kFieldForms = R"toml(
+texture = "Stun"
+[vars]
+steps = { tick = "steps + 1" }
+[[anchor]]
+name = "orb"
+count = 2
+spawn = "vec3(a.index + 1, 0, 0)"
+[[anchor]]
+name = "ring"
+count = 1
+position = { start = "vec3(0, 0, 2)", tick = "a.position + vec3(1, 0, 0)" }
+[[anchor]]
+name = "fixed"
+count = 1
+position = { tick = "vec3(5, a.age, 0)" }
+[[particle]]
+name = "spark"
+lifetime = 4
+spawn = "ball() * size"
+vars = { out = "normalize(p.spawn)", fade = { tick = "p.fade + 2" } }
+velocity = { start = "p.out * 0.1", tick = "p.velocity * 0.9 + vec3(0, 0, -0.01)" }
+size = { tick = "p.size * 0.9" }
+alpha = { tick = "255 * (1 - p.t)" }
+frame = { tick = "p.frame + 1", mode = "hold" }
+)toml";
+
+constexpr const char* kVelocityTwice = R"toml(
+texture = "Stun"
+[[particle]]
+name = "spark"
+lifetime = 4
+velocity = { tick = "p.velocity * 0.9" }
+drag = 0.9
+)toml";
+
+void CheckFieldForms() {
+    std::vector<std::string> errors;
+    const std::shared_ptr<const Record> record = Read(Parse(kFieldForms, "forms.effect.toml"), "Forms", &errors);
+    for (const std::string& error : errors) std::printf("ei_unit_check: particle record: unexpected: %s\n", error.c_str());
+    if (!record) return Expect("the field forms record reads", false);
+    const ParticleKind& kind = record->particles[0];
+    Expect("a var's tick alone starts it", record->vars[0].start.text == "steps + 1" &&
+                                               kind.vars[1].start.text == "p.fade + 2" && !kind.vars[1].afterSpawn);
+    Expect("the spawn is one point expression", kind.spawn.point.width == 3 && kind.spawn.shape == SpawnShape::Point);
+    Expect("the velocity's start and tick", kind.velocity.text == "p.out * 0.1" && !kind.velocityTick.Empty());
+    Expect("size, alpha and frame ticks alone start them", kind.sizeStart.text == "p.size * 0.9" &&
+                                                               kind.alphaStart.text == kind.alphaTick.text &&
+                                                               kind.frameStart.text == "p.frame + 1" &&
+                                                               kind.frameMode == FrameMode::Hold);
+
+    State state(record);
+    IsaacRandom random;
+    auto at = [&](int anchor, int k) { return state.anchors[anchor].values[static_cast<int>(AnchorValue::PositionX) + k]; };
+    state.Step(random);
+    Expect("a source var's tick starts it", state.vars[0] == 1.0f);
+    Expect("an anchor starts at its spawn's point", state.anchors.size() == 4 && at(0, 0) == 1.0f && at(1, 0) == 2.0f &&
+                                                        state.anchors[1].values[static_cast<int>(AnchorValue::SpawnX)] == 2.0f);
+    Expect("an anchor's position start", at(2, 0) == 0.0f && at(2, 2) == 2.0f);
+    Expect("an anchor's position tick alone starts it", at(3, 0) == 5.0f && at(3, 1) == 0.0f);
+    state.Step(random);
+    Expect("then the var ticks", state.vars[0] == 2.0f);
+    Expect("an anchor without a tick stays", at(0, 0) == 1.0f && at(1, 0) == 2.0f);
+    Expect("an anchor's position ticks", at(2, 0) == 1.0f && at(2, 2) == 2.0f && at(3, 1) == 1.0f);
+
+    errors.clear();
+    Expect("a velocity tick and drag refuse the effect",
+           Read(Parse(kVelocityTwice, "twice.effect.toml"), "Twice", &errors) == nullptr && errors.size() == 1 &&
+               errors[0].find("not both") != std::string::npos);
+}
+
 } // namespace
 
 int RunParticleRecordChecks() {
@@ -1110,5 +1184,6 @@ int RunParticleRecordChecks() {
     CheckWrittenEffects();
     CheckLike();
     CheckVectors();
+    CheckFieldForms();
     return failures;
 }
