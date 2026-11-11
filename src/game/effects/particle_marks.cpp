@@ -439,55 +439,6 @@ int UpdateStun(ParticleSource& s, Particle& p) {
     return 1;
 }
 
-// --- CurseStars --------------------------------------------------------------------------------------------
-
-namespace {
-
-// By life.
-constexpr std::int32_t kCurseAlpha[24] = /*0078AC98*/ {0, 32, 64, 128, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-                                              255, 255, 255, 255, 255, 255, 255};
-
-} // namespace
-
-// CurseStars: a star at a random point of the ball of the source's size around the
-// source, drifting outwards (a tenth of the size per tick), for 20 ticks.
-int EmitCurseStars(ParticleSource& s, Particle& p, int) {
-    p.color = 0xFFFFFF;
-    p.frame = static_cast<int>(g_particleRandom.Next() & 15);
-    Vector3 a = RandomInBall() * s.size;
-    p.size = 0.0f;
-    p.pos = a + s.origin;
-    float length = std::sqrt(LengthSquared(a));
-    p.life = 20;
-    if (length > 0.0f) {
-        p.drift = a * (s.size * 0.1f) / length;
-    } else {
-        p.drift = {};
-    }
-    return 1;
-}
-
-// CurseStars: alpha by the life left (dropped past 0); a star's size starts
-// as a random part of the source's (0.04 of it, flickering) and shrinks by 0.95; it drifts (slowing
-// by 0.9). Without a carrier the source stops emitting and is let go (Attach(nullptr)).
-int UpdateCurseStars(ParticleSource& s, Particle& p) {
-    int life = --p.life;
-    if (life < 0) return 0;
-    p.color = (static_cast<std::uint32_t>(kCurseAlpha[life]) << 24) | 0xFFFFFF;
-    if (p.size == 0.0f) {
-        p.size = (g_particleRandom.Below(0.4f) + 0.8f) * s.size * 0.04f;
-    } else {
-        p.size *= 0.95f;
-    }
-    p.pos += p.drift;
-    float slow = 0.9f;
-    p.drift *= slow;
-    if (!s.attachedTo) {
-        s.Stop();
-    }
-    return 1;
-}
-
 // --- StartTrans --------------------------------------------------------------------------------------------
 
 namespace {
@@ -624,33 +575,6 @@ int UpdateSparks(ParticleSource& s, Particle& p) {
     p.size *= 0.9f;
     p.drift *= 0.6f;
     ++p.frame;
-    return 1;
-}
-
-// --- FireStar / AcidStar -----------------------------------------------------------------------------------
-
-// FireStar: a single flash at the source (the source stops emitting at once) with the source's lifetime as its
-// frame.
-int EmitFireStar(ParticleSource& s, Particle& p, int) {
-    float& flashSize = p.velocity.x;
-    s.flags &= ~ParticleSourceFlag::Emitting;
-    p.color = 0xFFFFFF;
-    p.life = 3;
-    p.frame = s.lifetime;
-    p.pos = s.origin;
-    p.size = 0.0f;
-    flashSize = s.size;
-    return 1;
-}
-
-// FireStar: shown for two ticks at the kept size (shrinking it by 0.9 each time), then dropped.
-int UpdateFireStar(ParticleSource&, Particle& p) {
-    float& flashSize = p.velocity.x;
-    if (--p.life <= 0) return 0;
-    float shrunk = flashSize * 0.9f;
-    p.color = 0xFFFFFFFF;
-    p.size = flashSize;
-    flashSize = shrunk;
     return 1;
 }
 

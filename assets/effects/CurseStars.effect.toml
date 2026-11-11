@@ -1,0 +1,33 @@
+# CurseStars (0x204F): stars around a cursed unit's body. Eight a tick at random points of the ball of the source's
+# size, drifting outwards (a tenth of the size per tick, slowing by 0.9) for 20 ticks, fading in by the life left; a
+# star shows at its first tick at a random 0.8-1.2 of 0.04 of the size and shrinks by 0.95. A source whose carrier is
+# gone stops (and is let go) at the first tick that still has a star.
+# The original types on data: docs/notes/effects.md, "The original effects on data".
+
+texture = "Healing"
+blend = "additive"
+attach = "attached_only"
+part = "body"
+
+[emit]
+rate = 8
+max = 300
+
+[[on]]
+event = "tick"
+when = "!attached && count > 0"
+do = [{ stop = true }]
+
+[[particle]]
+name = "star"
+lifetime = 21                                   # 20 shown, as the original counts down past 0
+vars = { cell = "pick(16)" }                    # the frame is drawn first
+spawn = { shape = "ball", radius = "size" }
+speed = "size * 0.1"
+drag = 0.9
+size = { start = 0, tick = "p.size == 0 ? (below(0.4) + 0.8) * size * 0.04 : p.size * 0.95" }
+alpha = { start = 0, tick = "fade[p.life - 1]" }
+frame = "p.cell"
+
+[tables]
+fade = [0, 32, 64, 128, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255]

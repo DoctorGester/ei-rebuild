@@ -478,10 +478,8 @@ int EmitParticle(ParticleSource& s, Particle& p, int index) {
     case ParticleType::ShapeChange: return EmitGlow(s, p, index);
     case ParticleType::GroundDust1: case ParticleType::GroundDust2: return EmitGroundDust(s, p, index);
     case ParticleType::Bag: return EmitBag(s, p, index);
-    case ParticleType::PortalStar: return EmitPortalStar(s, p, index);
     case ParticleType::Portal: return EmitPortal(s, p, index);
     case ParticleType::Cylinder1: case ParticleType::Cylinder2: return EmitCylinder(s, p, index);
-    case ParticleType::FireStar: case ParticleType::AcidStar: return EmitFireStar(s, p, index);
     case ParticleType::Sparks: return EmitSparks(s, p, index);
     case ParticleType::VisionStar1: case ParticleType::VisionStar2: case ParticleType::VisionStar3:
     case ParticleType::VisionStar4:
@@ -491,7 +489,6 @@ int EmitParticle(ParticleSource& s, Particle& p, int index) {
     case ParticleType::FeebleMind: return EmitFeebleMind(s, p, index);
     case ParticleType::FeetCloud1: case ParticleType::FeetCloud2: return EmitFeetCloud(s, p, index);
     case ParticleType::Stun: return EmitStun(s, p, index);
-    case ParticleType::CurseStars: return EmitCurseStars(s, p, index);
     case ParticleType::StartTrans: return EmitStartTrans(s, p, index);
     }
     return 0;
@@ -545,10 +542,8 @@ int UpdateParticle(ParticleSource& s, Particle& p) {
     case ParticleType::ShapeChange: return UpdateGlow(s, p);
     case ParticleType::GroundDust1: case ParticleType::GroundDust2: return UpdateGroundDust(s, p);
     case ParticleType::Bag: return UpdateBag(s, p);
-    case ParticleType::PortalStar: return UpdatePortalStar(s, p);
     case ParticleType::Portal: return UpdatePortal(s, p);
     case ParticleType::Cylinder1: case ParticleType::Cylinder2: return UpdateCylinder(s, p);
-    case ParticleType::FireStar: case ParticleType::AcidStar: return UpdateFireStar(s, p);
     case ParticleType::Sparks: return UpdateSparks(s, p);
     case ParticleType::VisionStar1: case ParticleType::VisionStar2: case ParticleType::VisionStar3:
     case ParticleType::VisionStar4:
@@ -558,7 +553,6 @@ int UpdateParticle(ParticleSource& s, Particle& p) {
     case ParticleType::FeebleMind: return UpdateFeebleMind(s, p);
     case ParticleType::FeetCloud1: case ParticleType::FeetCloud2: return UpdateFeetCloud(s, p);
     case ParticleType::Stun: return UpdateStun(s, p);
-    case ParticleType::CurseStars: return UpdateCurseStars(s, p);
     case ParticleType::StartTrans: return UpdateStartTrans(s, p);
     }
     return 0;
@@ -658,7 +652,7 @@ void Emit(ParticleSource& s) {
     if (s.data) effectdata::EmitQueued(s);
     if (!(s.flags & ParticleSourceFlag::Emitting)) return;
     if ((s.flags & ParticleSourceFlag::AttachedOnly) && !s.attachedTo) return;
-    int tries = std::lround(s.distance / s.emitSpacing);
+    int tries = s.data && !s.data->emitting ? 0 : std::lround(s.distance / s.emitSpacing);
     if (tries <= s.emitCount) tries = s.emitCount;
     int emitted = 0;
     if (tries > 0) {

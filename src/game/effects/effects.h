@@ -535,6 +535,8 @@ constexpr int kNoParticleType = -1;
 int ShownParticleType(int type);
 // The original type named `name` (ParticleType's names, any case), or kNoParticleType.
 int ParticleTypeByName(std::string_view name);
+// The name of the original type `type` (empty for another value).
+std::string_view ParticleTypeName(int type);
 
 // The particle renderer's shared arrays: one SpritePoint (position and size, interpolated between the last two
 // ticks) and one sprite (colour, texture frame) per particle.

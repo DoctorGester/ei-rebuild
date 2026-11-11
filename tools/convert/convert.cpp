@@ -4,6 +4,9 @@
 //        ei-convert --check <install or archive>...        only the round trips
 //        ei-convert --scripts <install>... [options]       the script survey and Lua check (convert_scripts.cpp)
 //        ei-convert --lua-check                             the scripts' Lua bindings on a small world (lua_check.cpp)
+//        ei-convert --effect-check [--record <file>] [--dump <file>]
+//                                                           the original particle types against their recorded C++
+//                                                           (effect_check.h)
 //        ei-convert --example-mod <game folder> [<mods folder>] the example mod made from the install (example_mod.h),
 //                                                           into <game folder>\starter\Mods by default
 // An install is walked for its archives (Res\<name>.res, or the folder of an unpacked one under a Res folder) and its
@@ -41,6 +44,7 @@
 #include "convert_scripts.h"
 #include "lua_check.h"
 #include "convert_textures.h"
+#include "effect_check.h"
 #include "example_mod.h"
 
 #include <bit>
@@ -671,6 +675,15 @@ int main(int argc, char** argv) {
     std::vector<fs::path> sources;
     if (argc >= 2 && std::strcmp(argv[1], "--scripts") == 0) return convert_scripts::Main({argv + 2, argv + argc});
     if (argc == 2 && std::strcmp(argv[1], "--lua-check") == 0) return lua_check::Main();
+    if (argc >= 2 && std::strcmp(argv[1], "--effect-check") == 0) {
+        std::string record, dump;
+        for (int i = 2; i < argc; ++i) {
+            if (i + 1 < argc && std::strcmp(argv[i], "--record") == 0) record = argv[++i];
+            else if (i + 1 < argc && std::strcmp(argv[i], "--dump") == 0) dump = argv[++i];
+            else return Usage();
+        }
+        return effect_check::Main(record, dump);
+    }
     if ((argc == 3 || argc == 4) && std::strcmp(argv[1], "--example-mod") == 0) {
         const fs::path install = fs::absolute(argv[2]);
         return example_mod::Write(install, argc == 4 ? fs::absolute(argv[3]) : install / "starter" / "Mods");

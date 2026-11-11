@@ -8,8 +8,9 @@ effects by family (`particle_casting.cpp`, `particle_marks.cpp`, `particle_blast
 ## Particle sources
 
 - `ParticleSource` (class id 0xC, an engine object; made by `NewParticleSource`). `Create` resets the source, then
-  takes its type's entry of `kSpecs` (particle_create.cpp; `type` 0x2000-0x2052, one entry each; the script names are
-  a table in the game's data: name, type, lifetime): flags, emission rates, lifetime, spread, sizes, the count of
+  takes its type's entry of `kSpecs` (particle_create.cpp; `type` 0x2000-0x2052, one entry per type still in code; a
+  type on data takes its record: "The original effects on data" below; the script names are a table in the game's
+  data: name, type, lifetime): flags, emission rates, lifetime, spread, sizes, the count of
   elements (made zeroed) and the texture (kind 6, by name, one UV rectangle per frame of a grid of `frameColumns`
   columns). Code runs only for the types whose elements start other than zero or whose set-up draws (`Setup*`,
   `SetupElements`).
@@ -68,7 +69,8 @@ Kept:
 An effect written as data (MF15c; plan: the MF15 study, approved by the user 2026-11-11): `Res\effects\<name>.effect.toml`,
 read through the mod layers and run by one C++ runtime inside the generic source tick above. The end state (MF15g)
 is every original effect on this path and the per-type `Emit*` / `Update*` / `Tick*` deleted: the original effects
-and a modder's use the same runtime, so nothing below is mod-only. Game code (and later Lua) drives an effect only
+and a modder's use the same runtime, so nothing below is mod-only (four are there now: "The original effects on
+data"). Game code (and later Lua) drives an effect only
 through the typed inputs it declares; the data maps them to rates, curves, stages, anchors and sub-effects.
 
 Code: `particle_expr.*` (expressions), `particle_record.*` (the layers merged, the schema read, the effect's state
@@ -121,7 +123,8 @@ particle side, the inputs). The guide for modders: docs/modding.md, "Effects".
 Top level: `texture` (an Effects texture, kind 6), `frames` (16), `columns` (4), `blend` (`alpha` | `additive`),
 `attach` (`free` | `attached_only`), `part` (`effect_point`, `head`, `above_head`, `left_hand`, `right_hand`,
 `left_leg`, `right_leg`, `body`, `body00`..`body04`: the source sits on that part of a unit), `flags`
-(`ticks_while_paused`, `idles_off_screen`). Tables: `[server]`, `[source]` (`size`,
+(`ticks_while_paused`, `idles_off_screen`, `keep_alive`: a free source lasts without particles until it ends, else
+only while it has some, as every original type). Tables: `[server]`, `[source]` (`size`,
 `height`, `growth`, `alpha`, `param`, `spread_min`, `spread_max`, `extent`: the source's starting values, which
 `ScaleSize` and the world object scale as an original type's), `[emit]` (`rate`, `chance`, `emitting`, `spacing`,
 `max`, `once`), `[inputs]`, `[vars]`, `[[stage]]`, `[[on]]`, `[[anchor]]`, `[[particle]]`, `[tables]` (name = list of
@@ -137,12 +140,15 @@ numbers), `[curves]` (name = `[[t, value], ...]`, linear, held at the ends).
   then `next`; `until` (a condition) then `next`; `on = { event = "stage" }`; `next = "end"` ends the effect. While it
   lasts its `rate`, `chance`, `emitting` stand over `[emit]`'s; `enter` is a list of actions run at its entry. One
   move per tick; moves made by the tick's actions count.
-- **Reactions** (`[[on]] event = "start" | "stop" | <event input>`, `do = [actions]`): "stop" when the game stops the
-  source's emission (StopEmitting, Stop).
+- **Reactions** (`[[on]] event = "start" | "stop" | "tick" | <event input>`, `when`, `do = [actions]`): "stop" when the
+  game stops the source's emission (StopEmitting, Stop); "tick" every tick (after the event reactions, before the
+  stage's move). `when` (a condition) runs the reaction only while it holds.
 - **Actions**: `{ emit = n, kind = "<particle>", at = "<anchor group>" }` (n particles of the kind, at each live
   anchor of the group; without `kind` n more tries of the regular emission this tick, which then emits only while the
   source emits), `{ set = "<input>", value = ... }`, `{ stage = "<name>" | "end" }`, `{ effect = "<name>" }` (another
-  effect started at the source's origin, free, on its own), `{ end = true }`.
+  effect started at the source's origin, free, on its own), `{ end = true }`, `{ stop = true }` (the source stops as
+  the game's Stop stops it: no emission, not kept alive, its carrier let go; the effect goes on and the game may
+  start it again).
 - **Anchors** (`[[anchor]]`): a group of points the source owns (rings, orbs, bolt points, swirls), made at the
   start: `count`, `ticks` (each one's life; none: it lasts), `vars` (per anchor), and its position relative to the
   source's origin, `x`, `y`, `z` or `radius`, `angle` (x = cos(angle) * radius, y = sin(angle) * radius), `z`. An
@@ -152,8 +158,11 @@ numbers), `[curves]` (name = `[[t, value], ...]`, linear, held at the ends).
   anchors, `pick = "cycle" | "random"`), `space` (`world`: moves on its own; `source`: its offset rides the source;
   `anchor`: rides its anchor), `spawn = { shape = point | box | ball | shell | disc | ring, radius, min, max (a box's;
   else the source's spread), offset = [x, y, z], on_ground (z = the ground's height plus it) }`, `velocity = [x, y,
-  z]`, `speed` (outward from the spawn's centre), `drag` (a factor per tick), `gravity = [x, y, z]`, `wind` (times the
-  world's wind), `size = value | { start, tick, growth }`, `color = "RRGGBB" | [r, g, b]` (expressions, each tick),
+  z]`, `speed` (outward from the spawn's centre: offset * speed / its length), `drag` (a factor per tick), `gravity =
+  [x, y, z]`, `wind` (times the world's wind; each tick the particle moves by its velocity, then drag, gravity and
+  wind change the velocity for the next tick, the originals' order; a world-space kind with none of velocity, speed,
+  gravity, wind stays put), `size = value | { start, tick, growth }`, `color = "RRGGBB" | [r, g, b]` (expressions,
+  each tick),
   `alpha = value | { start, tick }` (0..255), `frame = value | { start, delay (ticks per frame, 0 or none: still),
   mode = loop | hold | die, tick }`, `kill` (it dies once this holds).
 
@@ -166,7 +175,8 @@ a curve `name(t)`, a table `name[i]` (truncated, held to the ends). Constants `p
 expression runs:
 - everywhere: the inputs, the vars, the source's values (`size`, `height`, `growth`, `alpha`, `param`, `base_size`,
   `age`, `stage_age`, `stage`, `carrier_radius`, `carrier_z`, `attached`, `distance`, `motion.x/y/z`,
-  `origin.x/y/z`, `count`, `index`, `total`, `wind.x/y`, `wind_strength`, `extent.x/y/z`, `turn_cos`, `turn_sin`),
+  `origin.x/y/z`, `count`, `index`, `total`, `wind.x/y`, `wind_strength`, `extent.x/y/z`, `turn_cos`, `turn_sin`,
+  `emitting`: the source's emission flag, which the game's StopEmitting and Stop and an effect's `once` clear),
   `anchors.<group>` (live count), `stage.<name>`;
 - in an anchor's and its particles' fields: `a.index`, `a.count`, `a.age`, `a.ticks` (left), `a.x/y/z`, `a.<var>`;
 - in a particle's: `p.age`, `p.life`, `p.t` (age / (age + life)), `p.x/y/z`, `p.vx/vy/vz`, `p.size`, `p.alpha`,
@@ -177,14 +187,48 @@ offset), velocity, size, colour, frame. Every draw is `g_particleRandom`'s.
 
 ### One tick
 
-`TickSource` → `TickData`: the source's values written, `State::Step` (events of this tick, the start's work or the
-vars' and anchors' ticks, "stop" reactions, event reactions, the stage's move, the tick's rate / chance / emitting),
-then the source's `emitCount`, `emitChance` and `emitSpacing` set for the generic emission (not emitting: no tries;
-`spacing` times `baseSize`) and the started sub-effects made. `UpdateParticles` → `UpdateData` per particle (life,
-vars, velocity, motion, size, colour, frame, kill). `Emit` → `EmitQueued` (the actions' particles, emitting or not),
-then the generic tries → `EmitData`. A data source is kept alive (KeepAlive) until it ends (`next = "end"`, an `end`
-action, the game's Stop), then lasts while it has particles. Per particle: `Particle::age`, `kind`, `vars`; `state`
-its anchor, `drift` its offset in `source` / `anchor` space.
+`TickSource` → `TickData`: the source's values written (the carrier's radius and centre only when an expression reads
+them: measuring them recomputes the carrier's bounds), `State::Step` (events of this tick, the start's work or the
+vars' and anchors' ticks, "stop" reactions, event reactions, "tick" reactions, the stage's move, the tick's rate /
+chance / emitting), a `stop` action's Stop, then the source's `emitCount` and `emitChance` set for the generic
+emission (not emitting: no tries, none from the movement either; the spacing is the source's, `[emit] spacing` scaled
+by ScaleSize as an original type's) and the started sub-effects made. `UpdateParticles` → `UpdateData` per particle
+(life, vars, motion, then the velocity's change, size, colour, frame, kill). `Emit` → `EmitQueued` (the actions'
+particles, emitting or not), then the generic tries → `EmitData` (with `once`, the first particle clears the
+emission flag; the game may set it again). A data source with `keep_alive` lasts until it ends (`next = "end"`, an
+`end` action, the game's Stop), then while it has particles; without it, as an original type: a free source while it
+has particles (or the game's StopEmitting / StartEmitting set KeepAlive), an attached one while it emits or has
+particles. A particle's life counts down before its update and it dies at 0 (an original that dies below 0 gives its
+kind one tick more of `lifetime`). Per particle: `Particle::age`, `kind`, `vars`; `state` its anchor, `drift` its
+offset in `source` / `anchor` space.
+
+### The original effects on data
+
+FireStar, AcidStar, CurseStars and PortalStar (MF15d) run from `assets/effects/<Name>.effect.toml`, built into the
+executable (src/game/effects/embed_effects.cmake writes them as bytes at build time; `effectdata::BuiltinText`). Their
+C++ emitters and their `kSpecs` entries are gone.
+- **The built-in file is the bottom layer.** The registry reads it below the mod layers' files of the same name
+  (`Res\effects\FireStar.effect.toml` in a mod retunes the field it names), unless a mod's file says `replace = true`.
+- **The id is the original type** (`ParticleTypeByName`; 0x2041 for FireStar), so the world objects, the delta field,
+  the saves and the game code that names the type (`ParticleType::FireStar` in the spell impacts) are unchanged.
+  `FindById` answers an original type's id from its built-in file; a type still in code has none, and a mod's file of
+  such a type's name is left out (and not listed by `Scan`).
+- **What the C++ tables held moved into the file**: `[server] one_shot` (FireStar, AcidStar: 60; `OneShotTicks` reads
+  the record), `script_lifetime` (FireStar, AcidStar: 20; their `kScriptParticleTypes` entries are gone, and
+  CreateParticleSource finds the name in the registry), the spec's texture, flags, part, rates and limits.
+- **Moving a type** (MF15e-g): first add its cases to `tools/convert/effect_check.cpp` and record them from the C++
+  (`ei-convert --effect-check --record tests/effects/reference.txt`: only the new cases' lines may change in the diff);
+  then write its file, run the check until it holds (`--dump <file>` writes every tick's particles; dump both builds
+  and diff), delete its C++ and spec entry, and move its server and script values as above. Where the data needs an
+  engine feature to match, it is added to the runtime generally (the four needed: `[[on]] event = "tick"` with
+  `when`, the `stop` action, `emitting`, `once` clearing the flag, `keep_alive` off by default, the move before the
+  drag, `speed` scaled as `offset * speed / length`, no additions of zero to a still or unplaced particle).
+- **Exactness rules found**: an expression's operations are float operations in the written order, so
+  `(below(0.4) + 0.8) * size * 0.04` is the C++'s `(Below(0.4f) + 0.8f) * s.size * 0.04f` bit for bit; a draw the C++
+  makes before the position goes into a var (vars draw before the position: CurseStars's `cell = "pick(16)"`, which
+  is `Next() & 15`); a C++ update that returns before drawing when it drops a particle needs the draw behind a
+  condition (`emitting ? ... : p.size`) and the drop as `kill`; a C++ life that dies below 0 is `lifetime + 1` with its
+  table read at `p.life - 1`.
 
 ### The original state machines on inputs (MF15g's path)
 
@@ -271,10 +315,17 @@ a particle's death; a `segment` spawn shape.
 
 ### Checks
 
+- `ei-convert --effect-check` (build checks; ctest `port_effects`; tools/convert/effect_check.cpp): every original type
+  on data against the run recorded from its C++ (tests/effects/reference.txt, built into the tool): eleven cases
+  (carried, free, a fast carrier's distance tries, rescaled, StopEmitting / StartEmitting / Stop, the carrier removed
+  and back), each tick's particles (position, size, colour, frame, their previous values, the dead flag), origin,
+  bounds, flags, RunTick's answer and the particle generator's draws, hashed per tick. No game data (no texture is
+  loaded).
 - `tests/unit/particle_record.cpp` (ei_unit_check): expressions (precedence, short evaluation and its draws, tables,
   curves, errors), a record read and merged over a lower layer (a field by name, an element appended), problems named
   with file and line, the state machine driven by its inputs (stages by ticks, by `until` on an input, by an event;
-  enter and event actions; anchors; `next = "end"`).
+  enter and event actions; anchors; `next = "end"`), a tick reaction's `when` and the stop action, and every whole
+  effect written out in this file and in docs/modding.md read without a problem (EI_SOURCE_DIR).
 - `mod_effect` (both installs; the showcase mod's `Res\effects\showcase_aura.effect.toml`): CreateParticleSource by
   name, the client's source and its stages (`effect ... check`), inputs set by value and by enum name, the burst's
   `set` seen (`effect ... value`), an event fired; captures `calm`, `storm`; an unknown name makes nothing.

@@ -13,6 +13,7 @@
 #include "lib/text_case.h"
 #include "platform/log.h"
 
+#include <array>
 #include <cstdint>
 #include <iterator>
 #include <set>
@@ -89,8 +90,6 @@ constexpr ParticleSpec kCastSwirl = {.texture = "Casting2", .flags = kCarried, .
                                      .spreadMax = {0.04f, 0.04f, 0.04f}};
 constexpr ParticleSpec kCylinder = {.texture = "Casting2", .flags = kCarried, .emitCount = 30, .maxParticles = 600,
                                     .frameDelay = 1, .elementCount = 2};
-constexpr ParticleSpec kStar = {.texture = "FireArrowSmoke", .flags = kCarriedOnPart,
-                                .attachPoint = AttachPoint::Body, .emitCount = 1, .lifetime = 15};
 constexpr ParticleSpec kVisionStar = {.texture = "Stun", .flags = kCarriedOnPart, .attachPoint = AttachPoint::AboveHead,
                                       .additiveBlend = true, .emitCount = 3, .lifetime = 0};
 constexpr ParticleSpec kFeetCloud = {.texture = "VisionFog", .flags = kCarried, .additiveBlend = true, .emitCount = 8,
@@ -113,7 +112,8 @@ constexpr ParticleSpec Like(const ParticleSpec& base, ParticleType type) {
     return Like(base, type, [](ParticleSpec&) {});
 }
 
-// One entry per type, in the order of ParticleType from FireBall.
+// One entry per type still in code, in the order of ParticleType; the others are data (assets/effects,
+// ParticleSource::Create).
 constexpr ParticleSpec kSpecs[] = {
     {.type = FireBall, .texture = "FireSmoke", .emitChance = 88, .emitCount = 1, .lifetime = 15, .frameCount = 15,
      .frameDelay = 1, .emitSpacing = 0.09f, .size = 0.8f, .growth = 0.94f, .spreadMin = {-0.2f, -0.2f, -1.0f},
@@ -225,13 +225,10 @@ constexpr ParticleSpec kSpecs[] = {
     }),
     {.type = Bag, .texture = "Bag", .flags = kCarried, .emitCount = 100, .maxParticles = 800,
      .elementCount = kBagBalls},
-    {.type = PortalStar, .texture = "Casting6", .emitCount = 1, .maxParticles = 1},
     {.type = Portal, .texture = "Teleport", .additiveBlend = true, .emitCount = 50, .maxParticles = 800,
      .lifetime = 10, .frameDelay = 3, .elementCount = 1},
     Like(kCylinder, Cylinder1),
     Like(kCylinder, Cylinder2, [](ParticleSpec& spec) { spec.texture = "Casting1"; }),
-    Like(kStar, FireStar),
-    Like(kStar, AcidStar, [](ParticleSpec& spec) { spec.texture = "AcidRay"; }),
     Like(kMark, Sparks, [](ParticleSpec& spec) {
         spec.texture = "Casting6";
         spec.emitCount = 10;
@@ -254,10 +251,6 @@ constexpr ParticleSpec kSpecs[] = {
     Like(kVisionStar, VisionStar4, [](ParticleSpec& spec) { spec.lifetime = 3; }),
     Like(kMark, Stun, [](ParticleSpec& spec) { spec.attachPoint = AttachPoint::EffectPoint; }),
     Like(kArrowSmoke, RikArrowSmoke, [](ParticleSpec& spec) { spec.texture = "RikArrowSmoke"; }),
-    Like(kMark, CurseStars, [](ParticleSpec& spec) {
-        spec.texture = "Healing";
-        spec.emitCount = 8;
-    }),
     {.type = CurseHolder, .texture = "Tornado", .flags = kOnPart, .attachPoint = AttachPoint::Body, .emitCount = 4,
      .maxParticles = 800, .height = 0.2f, .tint = 0x19000000, .elementCount = 6},
     {.type = StartTrans, .texture = "ZoneExit", .flags = kOnPart, .attachPoint = AttachPoint::Body, .emitCount = 1,
@@ -265,13 +258,24 @@ constexpr ParticleSpec kSpecs[] = {
     Like(kMushroom, Transform),
 };
 
+constexpr int kTypeCount = static_cast<int>(Transform) - static_cast<int>(FireBall) + 1;
+
 constexpr bool SpecsInTypeOrder() {
-    for (int i = 0; i < std::ssize(kSpecs); ++i) {
-        if (static_cast<int>(kSpecs[i].type) != static_cast<int>(FireBall) + i) return false;
+    for (int i = 1; i < std::ssize(kSpecs); ++i) {
+        if (kSpecs[i].type <= kSpecs[i - 1].type) return false;
     }
     return true;
 }
-static_assert(SpecsInTypeOrder() && std::ssize(kSpecs) == static_cast<int>(Transform) - static_cast<int>(FireBall) + 1);
+static_assert(SpecsInTypeOrder());
+
+// Each type's entry in kSpecs, -1 for a type on data.
+constexpr std::array<int, kTypeCount> kSpecIndex = [] {
+    std::array<int, kTypeCount> index{};
+    index.fill(-1);
+    for (int i = 0; i < std::ssize(kSpecs); ++i)
+        index[static_cast<int>(kSpecs[i].type) - static_cast<int>(FireBall)] = i;
+    return index;
+}();
 
 // The types' names, in the order of ParticleType from FireBall.
 constexpr std::string_view kTypeNames[] = {
@@ -287,13 +291,13 @@ constexpr std::string_view kTypeNames[] = {
     "FeebleMind", "FeetCloud1", "FeetCloud2", "VisionStar4", "Stun", "RikArrowSmoke", "CurseStars", "CurseHolder",
     "StartTrans", "Transform",
 };
-static_assert(std::size(kTypeNames) == std::size(kSpecs));
+static_assert(std::size(kTypeNames) == kTypeCount);
 
-// The spec of `type`, or null for an unknown type.
+// The spec of `type`, or null for a type on data or an unknown type.
 const ParticleSpec* FindSpec(int type) {
     const int index = type - static_cast<int>(FireBall);
-    if (index < 0 || index >= std::ssize(kSpecs)) return nullptr;
-    return &kSpecs[index];
+    if (index < 0 || index >= kTypeCount || kSpecIndex[index] < 0) return nullptr;
+    return &kSpecs[kSpecIndex[index]];
 }
 
 // The types whose elements start other than zeroed, or whose set-up draws.
@@ -338,6 +342,11 @@ int ShownParticleType(int type) {
     if (g_unknownTypes.insert(type).second)
         ei::Log("particles: unknown particle type 0x%X, no effect shown (once per type)", static_cast<unsigned>(type));
     return kNoParticleType;
+}
+
+std::string_view ParticleTypeName(int type) {
+    const int index = type - static_cast<int>(FireBall);
+    return index >= 0 && index < kTypeCount ? kTypeNames[index] : std::string_view();
 }
 
 int ParticleTypeByName(std::string_view name) {
@@ -394,8 +403,8 @@ void ParticleSource::Clear() {
     Reset();
 }
 
-// Create. Sets the source up for its type from its spec, or from its data effect's record (CreateSource makes known
-// types only).
+// Create. Sets the source up for its type from its spec, or from its data effect's record: a mod's effect, or an
+// original type on data (CreateSource makes known types only).
 void ParticleSource::Create() {
     Reset();
     boundsMin = {kBoundsFar, kBoundsFar, kBoundsFar};

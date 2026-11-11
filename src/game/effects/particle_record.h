@@ -72,6 +72,7 @@ enum class SourceValue : std::uint16_t {
     WindX, WindY, WindStrength,
     ExtentX, ExtentY, ExtentZ,
     TurnCos, TurnSin,
+    Emitting,       // the source's emission flag (the game's StopEmitting and Stop, an effect's `once` clear it)
     Values
 };
 inline constexpr int kSourceValues = static_cast<int>(SourceValue::Values);
@@ -120,6 +121,8 @@ struct Action {
         Stage,      // stage `target` (-2: the effect ends)
         Effect,     // starts the effect `effect` at the source (a sub-emitter)
         End,        // the effect stops emitting and ends with its particles
+        Stop,       // the source stops as the game's Stop stops it (no emission, not kept alive, its carrier let go);
+                    // the effect goes on, and the game may start it again
     };
     Kind kind = Kind::Emit;
     Expr count;
@@ -144,10 +147,16 @@ struct Stage {
 };
 
 struct Reaction {
-    enum class On : std::uint8_t { Start, Stop, Event };
+    enum class On : std::uint8_t {
+        Start,
+        Stop,
+        Tick,   // every tick
+        Event,
+    };
     On on = On::Start;
     int slot = -1;      // the event input's
     std::string event;  // its name as written (the merge key)
+    Expr when;          // the reaction runs only while it holds (empty: always)
     std::vector<Action> actions;
 };
 
@@ -189,6 +198,7 @@ struct ParticleKind {
     Expr velocity[3];
     Expr speed;             // outward from the spawn's centre
     Expr drag, gravity[3], wind;
+    bool moves = false;     // a velocity, speed, gravity or wind given (else a world-space particle stays put)
     Expr sizeStart, sizeTick, growth;
     std::uint32_t rgb = 0xFFFFFF;
     Expr rgbTick[3];
@@ -213,6 +223,8 @@ struct Record {
     Attach attach = Attach::Free;
     int part = -1;          // an AttachPoint (the source then sits on that part); -1: on top of the bounds
     bool ticksWhilePaused = false, idlesOffScreen = false;
+    bool keepAlive = false;     // a free source lasts without particles until it ends (else only while it has some)
+    bool readsCarrier = false;  // an expression reads carrier_radius or carrier_z (the carrier's bounds are measured)
 
     // [server]: read by the server.
     int oneShot = 0;            // the world object lives this many ticks (0: until removed)
@@ -226,7 +238,7 @@ struct Record {
     Expr rate, chance, emitting;
     float spacing = 1000.0f;
     int maxParticles = 500;
-    bool once = false;
+    bool once = false;          // the source's emission flag cleared at its first particle of the regular emission
 
     std::vector<Input> inputs;
     int inputValues = 0;
@@ -249,9 +261,11 @@ std::int32_t IdOf(std::string_view name);
 inline constexpr std::int32_t kDataIdRange = 0x40000000;
 inline bool IsDataId(std::int32_t id) { return (id & kDataIdRange) != 0; }
 
-// `root` (the layers merged) read as the effect `name`. Every problem goes to `errors` ("<file>:<line>: ..."); null
-// when one makes the effect unusable (an expression that does not compile, an unknown name), so it shows nothing.
-std::shared_ptr<const Record> Read(const RawNode& root, std::string_view name, std::vector<std::string>* errors);
+// `root` (the layers merged) read as the effect `name`, whose id is `id` (0: IdOf(name); an original type's for the
+// original effects on data). Every problem goes to `errors` ("<file>:<line>: ..."); null when one makes the effect
+// unusable (an expression that does not compile, an unknown name), so it shows nothing.
+std::shared_ptr<const Record> Read(const RawNode& root, std::string_view name, std::vector<std::string>* errors,
+                                   std::int32_t id = 0);
 
 // ---- The state machine ---------------------------------------------------------------------------------------------
 
@@ -302,6 +316,7 @@ public:
     int total = 0;                  // particles emitted
     bool started = false;
     bool ended = false;
+    bool stopRequested = false;     // a `stop` action ran this tick (particle_data.cpp stops the source)
     bool sawEmitting = true;        // the source's Emitting flag after the last step (particle_data.cpp)
 
     // This tick's emission.
@@ -318,10 +333,10 @@ private:
     void Run(const std::vector<Action>& actions, IsaacRandom& random, int depth = 0);
     void MakeAnchors(IsaacRandom& random);
     void StepAnchors(IsaacRandom& random);
+    bool Holds(const Reaction& reaction, IsaacRandom& random) const;
 
     std::vector<int> pendingEvents;     // per input slot: fired since the last step
     bool stopPending = false;
-    bool onceDone = false;
 };
 
 } // namespace effectdata

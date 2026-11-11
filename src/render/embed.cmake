@@ -1,5 +1,5 @@
 # A file's bytes written as a C++ array, for files built into the executable (CMakeLists.txt runs it at build time for
-# the interface fonts, render_fonts.cpp).
+# the interface fonts, render_fonts.cpp, and ei-convert's effect check reference).
 # cmake -DSOURCE=<file> -DNAME=<array> -DOUT=<header> -P embed.cmake
 file(READ ${SOURCE} hex HEX)
 string(LENGTH "${hex}" digits)

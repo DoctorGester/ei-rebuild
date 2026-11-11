@@ -1,0 +1,16 @@
+# PortalStar (0x203D): a portal's star. One particle at the source, flickering at a random 0.8-1.2 of the source's
+# size while the source emits; it goes once the source stops.
+# The original types on data: docs/notes/effects.md, "The original effects on data".
+
+texture = "Casting6"
+
+[emit]
+rate = 1
+max = 1
+
+[[particle]]
+name = "star"
+lifetime = 2147483647                           # lasts while the source emits
+size = { start = 0, tick = "emitting ? (below(0.4) + 0.8) * size : p.size" }
+alpha = { start = 0, tick = 255 }
+kill = "!emitting"

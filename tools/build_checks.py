@@ -38,6 +38,9 @@ def checks(out):
         # The scripts' Lua bindings on a small world of their own (tools/convert/lua_check.cpp; docs/notes/
         # lua-scripting.md, "Bindings").
         [os.path.join(out, 'ei-convert.exe'), '--lua-check'],
+        # The original particle types' sources against the runs recorded from their C++ emitters, tick by tick
+        # (tools/convert/effect_check.cpp; docs/notes/effects.md, "Checks").
+        [os.path.join(out, 'ei-convert.exe'), '--effect-check'],
         # The interface canvases (src/render/render_ui) on the GPU (Direct3D 12) against CPU rules and GDI (tools/ui_check).
         [os.path.join(out, 'ei_ui_check.exe')],
         # The SDL backend's keys against Windows' layouts (tools/input_check).

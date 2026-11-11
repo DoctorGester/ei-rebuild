@@ -1,13 +1,16 @@
 // The data effects' records without the game (src/game/effects/particle_expr.h, particle_record.h): expressions
-// compiled and run, a record read from TOML and merged over a lower layer's, its problems reported, and the state
-// machine driven by its typed inputs: stages by ticks, by a condition on an input and by an event, enter and event
-// actions, anchors. ei_unit_check (unit_check.cpp) runs it.
+// compiled and run, a record read from TOML and merged over a lower layer's, its problems reported, the state machine
+// driven by its typed inputs: stages by ticks, by a condition on an input and by an event, enter and event actions,
+// anchors, conditional tick reactions and the stop action; and every whole effect the notes and the modding guide
+// write out read without a problem. ei_unit_check (unit_check.cpp) runs it.
 #include "../../src/game/effects/particle_record.h"
 #include "../../src/game/core/random.h"
 #include "../../src/lib/toml.h"
 
 #include <cmath>
 #include <cstdio>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -268,11 +271,85 @@ void CheckState() {
     Expect("the vector input", state.SetVector("aim", 0.0f, 0.0f, 7.0f) && !state.SetVector("charge", 0, 0, 0));
 }
 
+constexpr const char* kTicking = R"toml(
+texture = "Stun"
+flags = ["keep_alive"]
+[inputs]
+armed = { type = "bool" }
+[[on]]
+event = "tick"
+when = "armed && count > 0"
+do = [{ stop = true }]
+[[particle]]
+name = "star"
+lifetime = 3
+size = "emitting ? carrier_radius : 0"
+)toml";
+
+void CheckReactions() {
+    std::vector<std::string> errors;
+    const std::shared_ptr<const Record> record = Read(Parse(kTicking, "ticking.effect.toml"), "Ticking", &errors);
+    for (const std::string& error : errors) std::printf("ei_unit_check: particle record: unexpected: %s\n", error.c_str());
+    if (!record) return Expect("the ticking record reads", false);
+    Expect("keep_alive and a read of the carrier noted", record->keepAlive && record->readsCarrier);
+    const std::shared_ptr<const Record> original = Read(Parse(kTicking, "ticking.effect.toml"), "Ticking", &errors, 0x2041);
+    Expect("an original type's id given", original && original->id == 0x2041);
+    State state(record);
+    IsaacRandom random;
+    state.Step(random);
+    Expect("a tick reaction waits for its condition", !state.stopRequested);
+    state.SetValue("armed", 1.0f);
+    state.Step(random);
+    Expect("its condition reads the source's values (no particles yet)", !state.stopRequested);
+    state.source[static_cast<int>(SourceValue::Particles)] = 2.0f;
+    state.Step(random);
+    Expect("the condition holds: the stop asked for, the effect goes on",
+           state.stopRequested && !state.ended && state.emitting);
+}
+
+// The ```toml blocks of `file` (relative to the source tree) that are whole effects (a [[particle]]).
+std::vector<std::string> EffectBlocks(const char* file) {
+    std::ifstream in(std::string(EI_SOURCE_DIR) + "/" + file, std::ios::binary);
+    std::stringstream text;
+    text << in.rdbuf();
+    const std::string all = text.str();
+    Expect(std::string("reads ") + file, !all.empty());
+    std::vector<std::string> blocks;
+    for (std::size_t at = all.find("```toml"); at != std::string::npos; at = all.find("```toml", at)) {
+        at = all.find('\n', at);   // the fence's line, whatever its line end
+        if (at == std::string::npos) break;
+        const std::size_t end = all.find("```", at);
+        if (end == std::string::npos) break;
+        std::string block = all.substr(at, end - at);
+        if (block.find("[[particle]]") != std::string::npos) blocks.push_back(std::move(block));
+        at = end + 3;
+    }
+    return blocks;
+}
+
+void CheckWrittenEffects() {
+    int read = 0;
+    for (const char* file : {"docs/notes/effects.md", "docs/modding.md"}) {
+        int index = 0;
+        for (const std::string& block : EffectBlocks(file)) {
+            const std::string name = std::string(file) + " #" + std::to_string(++index);
+            std::vector<std::string> errors;
+            const std::shared_ptr<const Record> record = Read(Parse(block.c_str(), name.c_str()), "Written", &errors);
+            for (const std::string& error : errors) std::printf("ei_unit_check: particle record: %s\n", error.c_str());
+            Expect(name + " reads without a problem", record != nullptr && errors.empty());
+            ++read;
+        }
+    }
+    Expect("the notes' and the guide's effects found", read >= 2);
+}
+
 } // namespace
 
 int RunParticleRecordChecks() {
     CheckExpressions();
     CheckRecord();
     CheckState();
+    CheckReactions();
+    CheckWrittenEffects();
     return failures;
 }
