@@ -1,0 +1,98 @@
+# The showcase mod's Chain Spark (examples/showcase_mod; docs/notes/mods.md, "The showcase mod"; docs/modding.md,
+# "Spells"): a scripted spell with data effects of its own, cast by the hero from the HUD.
+# - The quest gives it: taking the quest puts a spell container of "spark" in the party's things (Maps\zone1.lua's
+#   line); the camp's magic page draws it with the mod's picture (Res\textures\spell0101.png) and puts it on the hero
+#   (GiveSkill / GiveIntelligence first, as in mod_spell_hero).
+# - The golem and its two shards have their AI modes cleared (UMClear: they stand and do not come at the hero, whose
+#   fight would end the chain). The hero walks beside them (about 6 from each), where it sees them, and casts the
+#   spell at the golem with its key (3) and a click. Res\spells\chain_spark.lua sends the spark (a missile carrying
+#   the data effect ChainSpark, Res\textures\chainspark.png's pictures) at the golem; each strike damages the unit
+#   (lightning), slows it, starts ChainSparkHit on it, draws an arc to the nearest enemy not struck yet within 5 (shard
+#   4002, then 4003) and sends the spark along it 10 ticks later (a timer). Its game variables hold each strike's
+#   damage: 12, 7.2 (12 x 0.6), 4.32 (7.2 x 0.6).
+# - The game is saved after the first strike, mid-chain (one strike in the variables), and plays on to the three
+#   strikes. The save is loaded: the chain goes on from it (its data, timer, arc and missile in the save) to the same
+#   strikes, both shards struck.
+# - Captures: four frames from the cast on (flight_1 to flight_4: the spark in flight, the first strike and its arc);
+#   ten frames from the save on (chain_1 to chain_10): the leaps and the strikes on the shards.
+# prepare: make_showcase_mod.py
+mod harness_saves\showcase_mod
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitline 20 Showcase mod: the party has the Chain Spark
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitwindow 10 battle
+console @GodMode(0,1)
+console @GiveSkill(GetLeader(),"elemental",5)
+console @GiveIntelligence(GetLeader(),60)
+console @UMClear(GetObject(4001))
+console @UMClear(GetObject(4002))
+console @UMClear(GetObject(4003))
+
+# The camp's magic page: the quest's spell container drawn with the mod's picture, put on the hero.
+screen 5
+waitwindow 15 camp
+clickregion 5
+wait 500
+campputon 3008 1
+frames 3
+read mod Res\textures\spell0101.mmp yes
+key esc
+waitwindow 15 battle
+waitfor 15 IsGreater(HP(GetLeader()),0)
+
+# The hero's portrait: selects it and shows its spells (healing, 0x0C, the Chain Spark).
+click 400 560
+frames 3
+hudstate
+
+console @MoveToPoint(GetLeader(),80,122)
+waitidle 30
+check IsAlive(GetObject(4002))
+check IsAlive(GetObject(4003))
+camera 82 117 0 16 55
+frames 3
+waitunit 10 #4001
+key 3
+frames 2
+clickunit #4001
+frames 1
+capture flight 4
+
+waitfor 15 IsGreater(GSGetVar(0,"chain_spark.strikes"),0)
+key esc
+waitwindow 10 escmenu
+click 395 120
+waitwindow 10 saveload
+clickregion 0
+waitline 15 Saved save1
+check IsEqual(GSGetVar(0,"chain_spark.strikes"),1)
+waitwindow 10 battle
+capture chain 10
+waitfor 10 IsEqual(GSGetVar(0,"chain_spark.strikes"),3)
+check IsEqual(GSGetVar(0,"chain_spark.strike1"),12)
+check IsEqual(GSGetVar(0,"chain_spark.strike2"),7.2)
+check IsEqual(GSGetVar(0,"chain_spark.strike3"),4.32)
+check IsLess(HP(GetObject(4002)),20)
+check IsLess(HP(GetObject(4003)),20)
+read mod Res\textures\chainspark.mmp yes
+read mod Res\effects\ChainSpark.effect.toml yes
+read mod Res\effects\ChainSparkHit.effect.toml yes
+read mod Res\spells\chain_spark.lua yes
+
+wait 300
+load save1
+waitwindow 30 battle
+waitfor 20 IsGreater(HP(GetLeader()),0)
+dump loaded_save1
+check IsEqual(GSGetVar(0,"chain_spark.strike1"),12)
+waitfor 10 IsEqual(GSGetVar(0,"chain_spark.strikes"),3)
+check IsEqual(GSGetVar(0,"chain_spark.strike2"),7.2)
+check IsEqual(GSGetVar(0,"chain_spark.strike3"),4.32)
+check IsLess(HP(GetObject(4002)),20)
+check IsLess(HP(GetObject(4003)),20)
+check IsAlive(GetLeader())
+report
+quit

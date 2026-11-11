@@ -2239,6 +2239,23 @@ std::string ClientBoltsStep(const std::string& argument) {
     return "";
 }
 
+// --- clienthurt <least> [<most>] ----------------------------------------------------------------------------------
+// The client world's living units below their maximum hit points (the vitals the server sent this game's client, also
+// a network peer's): logs each one, fails when there are fewer than <least> or more than <most> (net_pair_mod_spell:
+// the blow of the host's spell on the peer's client).
+std::string ClientHurtStep(const std::string& argument) {
+    int least = 0, most = INT_MAX;
+    if (std::sscanf(argument.c_str(), "%d %d", &least, &most) < 1) return "clienthurt needs <least> [<most>]";
+    const std::vector<std::string> hurt = image::ClientHurt();
+    const int count = static_cast<int>(hurt.size());
+    for (const std::string& unit : hurt) Log("harness: clienthurt: %s", unit.c_str());
+    Log("harness: clienthurt: %d (wanted %d to %d)", count, least, most);
+    if (count < least || count > most)
+        return "clienthurt: " + std::to_string(count) + " hurt units, wanted " + std::to_string(least) + " to " +
+               std::to_string(most);
+    return "";
+}
+
 // --- waitwindow <seconds> <window> (ticket T1) ----------------------------------------------
 // The interface windows a scenario waits for, by name (WindowKind, harness_windows.h).
 
@@ -2995,6 +3012,7 @@ void RunSteps() {
                 g_failures.push_back(error);
             }
         } else if (s.verb == "hudstate" || s.verb == "campputon" || s.verb == "campstock" || s.verb == "clientbolts" ||
+                   s.verb == "clienthurt" ||
                    s.verb == "modfile" || s.verb == "modlist" ||
                    s.verb == "modarchive" || s.verb == "mapfile" || s.verb == "playstream" ||
                    s.verb == "folderprofile" || s.verb == "modtext" || s.verb == "modack" || s.verb == "modweapon" ||
@@ -3009,6 +3027,7 @@ void RunSteps() {
                                 : s.verb == "campputon"     ? CampPutOn(s.argument)
                                 : s.verb == "campstock"     ? CampStock(s.argument)
                                 : s.verb == "clientbolts"   ? ClientBoltsStep(s.argument)
+                                : s.verb == "clienthurt"    ? ClientHurtStep(s.argument)
                                 : s.verb == "folderprofile" ? folder_profile::Step()
                                 : s.verb == "modlist"       ? starter::ModListStep(s.argument)
                                 : s.verb == "modarchive"    ? starter::ModArchiveStep(s.argument)

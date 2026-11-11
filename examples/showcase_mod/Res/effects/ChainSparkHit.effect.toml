@@ -1,0 +1,37 @@
+# The showcase mod's strike (docs/modding.md, "Effects"): Res\spells\chain_spark.lua starts it on each unit the spark
+# strikes. A white flash at the body, and a ring of sparks thrown out level around it that slow down, sink a little
+# and fade. The script's size (the spell's power, about 0.8) scales it.
+
+texture = "chainspark"          # Res\textures\chainspark.png: 16 pictures of a spark, 4 x 4
+blend = "additive"
+attach = "attached_only"
+part = "body"
+
+[server]
+one_shot = 30                   # the world object goes after 30 ticks
+
+[emit]
+rate = 25                       # once: the flash and 24 sparks in the first tick
+once = true
+
+[[particle]]
+name = "flash"
+when = "count == 0"
+lifetime = 6
+space = "source"
+size = { start = "size * 1.6", growth = 0.8 }
+color = "FFFFFF"
+alpha = { tick = "255 * (1 - p.t)" }
+frame = { start = "pick(16)", delay = 1 }
+
+[[particle]]
+name = "spark"
+lifetime = "range(12, 20)"
+spawn = { shape = "ring", radius = "size * 0.3" }
+speed = "range(0.08, 0.14) * size"
+drag = 0.88
+gravity = [0, 0, -0.002]
+size = { start = "range(0.2, 0.32) * size", growth = 0.95 }
+color = "90D0FF"
+alpha = { tick = "255 * (1 - p.t)" }
+frame = { start = "pick(16)", delay = 1 }

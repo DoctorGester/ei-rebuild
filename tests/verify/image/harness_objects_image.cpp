@@ -870,4 +870,17 @@ std::vector<std::string> ClientBolts() {
     return bolts;
 }
 
+std::vector<std::string> ClientHurt() {
+    std::vector<std::string> hurt;
+    for (MapObject* object : g_clientWorld.objects) {
+        if (!object || object->GetClassId() != ClassId::Unit) continue;
+        const UnitVitalsPacked& vitals = object->packedVitals;
+        if (object->IsDead() || vitals.hitPoints >= vitals.maxHitPoints) continue;
+        char text[96];
+        std::snprintf(text, sizeof(text), "id %d hp %d of %d", object->id, vitals.hitPoints, vitals.maxHitPoints);
+        hurt.emplace_back(text);
+    }
+    return hurt;
+}
+
 } // namespace ei::verify::image

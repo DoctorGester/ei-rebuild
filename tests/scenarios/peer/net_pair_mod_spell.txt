@@ -1,7 +1,8 @@
 # The peer of net_pair_mod_spell: the showcase mod with MF17d's spell (its own copy), joins the host's game, follows it
 # into the game zone (as in net_pair_mod_effect) and has the bolt of the spell the host's server cast: the timed object
-# the spell's Lua made there, in this client's world (clientbolts); a capture to look at. This game runs no spell Lua:
-# the "MF17d: OnCast" line is the host's alone.
+# the spell's Lua made there, in this client's world (clientbolts); and its blow: the target, the host's hero, below
+# its maximum hit points in this client's world, where no unit was before (clienthurt: the vitals the server sent);
+# a capture to look at. This game runs no spell Lua: the "MF17d: OnCast" line is the host's alone.
 rebirth resolution desktop
 timeout 180
 mod harness_saves\showcase_mod
@@ -45,11 +46,13 @@ frames 60
 clickground 59 43 dblclick
 waitwindow 60 battle
 frames 20
+clienthurt 0 0
 peersignal peerin
 
 peerwait 60 cast
 wait 500
 clientbolts 1
+clienthurt 1 1
 capture peer_bolt
 peersignal seen
 peerwait 60 done

@@ -17,6 +17,10 @@ Made files:
   Res\\textures\\zone1map.png, zone1quest.png        its minimap and objectives pictures
   Res\\textures\\scgolem00.png                       the golem's skin
   Res\\figures\\scgolem.glb                          the golem: its parts and 13 animations
+  Res\\textures\\scshard00.png                       the golem's shards' skin (the golem's figure, smaller)
+  Res\\textures\\chainspark.png                      the Chain Spark's 16 spark pictures (its data effects' texture)
+  Res\\textures\\spell0101.png, prototype0101.png     the Chain Spark's pictures (icon 101): its spell items and
+                                                     scrolls, the spell maker's prototype
   Res\\figures\\initwehm9.glb, initarbt20.glb         the hammer's and the boots' inventory models
   Res\\redress\\unhumahm_09.gr.0.png                  the hammer's texture (granite)
   Res\\redress\\unhumabt_20.le.0.png                  the boots' layer over the hero's skin (thin leather)
@@ -501,6 +505,103 @@ def golem_texture(rng):
     return size, pixels
 
 
+def shard_texture(rng):
+    """scshard00: the golem's shards' skin on the golem's layout (STONE_UV, FACE_UV): blue crystal with bright facet
+    edges, two white eyes."""
+    size = 128
+    facets = Fractal(rng, 3, 2, float(size))
+    glints = Fractal(rng, 8, 2, float(size))
+    pixels = []
+    for y in range(size):
+        for x in range(size):
+            t = facets.at(x, y)
+            # Facets: the noise in steps, each step a shade of blue; the steps' edges light up.
+            step = math.floor(t * 6) / 6
+            colour = mix((30, 70, 140), (120, 190, 250), step * 1.4 - 0.2)
+            if abs(t * 6 - round(t * 6)) < 0.06 or glints.at(x, y) > 0.78:
+                colour = (210, 240, 255)
+            if y < size // 4 and x >= size // 2:
+                colour = mix((20, 30, 60), colour, 0.3)
+                for ex in (size * 0.62, size * 0.88):
+                    if math.hypot(x - ex, y - size * 0.12) < 4:
+                        colour = (250, 250, 255)
+            pixels.append(colour)
+    return size, pixels
+
+
+# --- The Chain Spark --------------------------------------------------------------------------------------------------
+
+def jagged(rng, start, end, steps, sway):
+    """A lightning-like polyline from `start` to `end`: `steps` pieces, the inner points pushed across by up to `sway`."""
+    (x0, y0), (x1, y1) = start, end
+    length = math.hypot(x1 - x0, y1 - y0) or 1.0
+    nx, ny = -(y1 - y0) / length, (x1 - x0) / length
+    points = [start]
+    for i in range(1, steps):
+        t, push = i / steps, rng.uniform(-sway, sway)
+        points.append((x0 + (x1 - x0) * t + nx * push, y0 + (y1 - y0) * t + ny * push))
+    return points + [end]
+
+
+def polyline_distance(p, points):
+    return min(segment_distance(p, a, b) for a, b in zip(points, points[1:]))
+
+
+def spark_texture(rng):
+    """chainspark: the spark's 16 pictures (ChainSpark and ChainSparkHit), 4 x 4 cells of 32 x 32, row by row from the
+    top: a white glow with five jagged rays, other rays in each. White, its brightness in the alpha (the effects tint
+    and add it)."""
+    cell, columns = 32, 4
+    size = cell * columns
+    alpha = [0] * (size * size)
+    for frame in range(16):
+        ox, oy = (frame % columns) * cell, (frame // columns) * cell
+        centre = (cell / 2, cell / 2)
+        rays = []
+        for k in range(5):
+            angle = rng.uniform(0, 2 * math.pi)
+            reach = rng.uniform(9, 15)
+            rays.append(jagged(rng, centre, (centre[0] + math.cos(angle) * reach, centre[1] + math.sin(angle) * reach),
+                               4, 2.0))
+        for y in range(cell):
+            for x in range(cell):
+                p = (x + 0.5, y + 0.5)
+                glow = clamp(1 - math.hypot(p[0] - centre[0], p[1] - centre[1]) / 9) ** 2
+                ray = max(clamp(1 - polyline_distance(p, r) / 1.4) for r in rays)
+                fade = clamp(1 - math.hypot(p[0] - centre[0], p[1] - centre[1]) / 15.5)   # nothing at the cell's edge
+                alpha[(oy + y) * size + ox + x] = int(round(255 * clamp(glow + ray * fade)))
+    return size, [(255, 255, 255, a) for a in alpha]
+
+
+def spark_icon(background, rim, bolt, glow):
+    """A 64 x 64 picture of the spell: three sparks joined by a jagged arc on a round plate. spell0101 (the spell
+    items and scrolls) and prototype0101 (the spell maker's loot item) in their own colours."""
+    rng = random.Random('showcase:spark icon')   # the same arc in both
+    size = 64
+    nodes = [(14.0, 46.0), (30.0, 20.0), (50.0, 38.0)]
+    arcs = [jagged(rng, a, b, 5, 3.0) for a, b in zip(nodes, nodes[1:])]
+    pixels = []
+    for y in range(size):
+        for x in range(size):
+            p = (x + 0.5, y + 0.5)
+            r = math.hypot(p[0] - size / 2, p[1] - size / 2)
+            colour = mix(background, (0, 0, 0), r / 44)
+            if 28 <= r < 31:
+                colour = rim
+            elif r >= 31:
+                colour = mix(rim, (0, 0, 0), 0.6)
+            d = min(polyline_distance(p, a) for a in arcs)
+            colour = mix(colour, glow, clamp(1 - d / 4) * 0.7)
+            if d < 1.2:
+                colour = bolt
+            for n in nodes:
+                k = clamp(1 - math.hypot(p[0] - n[0], p[1] - n[1]) / 6)
+                if k > 0:
+                    colour = mix(colour, bolt, k * 1.5)
+            pixels.append(colour)
+    return size, pixels
+
+
 # --- The hammer and the boots ------------------------------------------------------------------------------------------
 
 HANDLE_UV = (0.0, 0.0, 0.25, 1.0)
@@ -599,6 +700,14 @@ def made_files():
     size, pixels = golem_texture(rng('golem skin'))
     files['Res/textures/scgolem00.png'] = png(size, size, 'rgb', pixels)
     files['Res/figures/scgolem.glb'] = golem()
+    size, pixels = shard_texture(rng('shard skin'))
+    files['Res/textures/scshard00.png'] = png(size, size, 'rgb', pixels)
+    size, pixels = spark_texture(rng('spark'))
+    files['Res/textures/chainspark.png'] = png(size, size, 'rgba', pixels)
+    size, pixels = spark_icon((40, 70, 150), (150, 180, 220), (235, 248, 255), (110, 200, 255))
+    files['Res/textures/spell0101.png'] = png(size, size, 'rgb', pixels)
+    size, pixels = spark_icon((120, 80, 40), (220, 190, 110), (255, 240, 190), (240, 200, 90))
+    files['Res/textures/prototype0101.png'] = png(size, size, 'rgb', pixels)
     files['Res/figures/initwehm9.glb'] = hammer_icon()
     size, pixels = hammer_texture(rng('hammer'))
     files['Res/redress/unhumahm_09.gr.0.png'] = png(size, size, 'rgb', pixels)

@@ -1,21 +1,26 @@
 Showcase mod for the Evil Islands rebuild (docs/modding.md in its repository).
 
 A new game starts on an island of the mod's own in place of the first island: its own ground, a stone golem of the
-mod's own guarding the path, and one quest. Break the golem, and its hammer and boots are the party's. The exit by
+mod's own and two shards of it guarding the path, and one quest. The quest gives the party a spell of the mod's own,
+Chain Spark (put it on a hero in the camp's magic page): a spark that strikes its target, then leaps on to the
+nearest enemy it has not struck, each strike weaker than the one before. Break the golem, and its hammer and boots are
+the party's. The exit by
 the old base's gate (east of the golem) still leads to the base, as on the first island.
 
 Files (every one the mod's own; LICENSE.txt):
 - config.reg.toml: the mod's title in the main menu's list.
 - Maps\zone1\: the island's ground (map.toml, heights.png, tiles.png), in place of the first island's.
-- Maps\zone1.mob.toml: the island's objects: the golem.
-- Maps\zone1.lua: the island's script: the quest.
+- Maps\zone1.mob.toml: the island's objects: the golem and its two shards.
+- Maps\zone1.lua: the island's script: the quest, and the spell it gives.
 - Res\textures\zone1000.png: the ground's tiles; zone1map.png, zone1quest.png: the island's maps.
 - Res\textures\scgolem00.png, Res\figures\scgolem.glb, Res\database\scgolem.adb.toml: the golem's skin, its figure
-  with its animations and its animation list.
-- Res\database\units.udb.toml: the golem's model and prototype.
+  with its animations and its animation list; Res\textures\scshard00.png: the shards' skin.
+- Res\database\units.udb.toml: the golem's model, its prototype and the shards'.
 - Res\database\items.idb.toml, Res\figures\initwehm9.glb, initarbt20.glb, Res\redress\*.png: the hammer and the boots,
   their inventory models and textures.
-- Res\database\spells.sdb.toml: a spell record, "Spark" (it has no effect yet: a new spell cannot have one).
+- Res\database\spells.sdb.toml, Res\spells\chain_spark.lua: the spell Chain Spark, its record and its script.
+- Res\effects\ChainSpark.effect.toml, ChainSparkHit.effect.toml, Res\textures\chainspark.png: the spell's spark in
+  flight and its strikes, and their pictures; Res\textures\spell0101.png, prototype0101.png: the spell's pictures.
 - Res\database\quests.qdb.toml, Res\texts\texts.toml: the quest's experience, the mod's texts.
 
 The pictures and models are made by tools/make_showcase_mod.py in the rebuild's repository.
