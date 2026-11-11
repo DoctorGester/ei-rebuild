@@ -4,5 +4,6 @@ group = "harness"
 size = 3
 note = "User 2026-11-11 agreed: ~310 vanilla + ~180 Rebirth runs (+ ~485 converted) is too many. 1) With the coverage build, record which functions each scenario reaches; list scenarios that reach nothing another doesn't and whose golden checks nothing unique (a digest section, a save, an outcome) as candidates to merge or drop; the list goes to the user before anything is deleted. 2) Merge scenarios that start a game to check one thing into shared longer runs where their steps fit (keep each check's assertion; goldens re-recorded by name for merged ones). 3) Tiers: a smoke set (~60, chosen for most coverage per run) for workers while iterating, the full set once per hand-back and at merge, the converted pass only when data or conversion code changed; run_all / work.py options and docs/worker-brief.md and docs/notes/harness.md updated. Report the before/after counts and coverage. Phase 1 done (2026-11-11): coverage.py scenarios + tools/suite_coverage.py; report build/h74/report.md (worktree agent-a520cbf076d0ec7fd). 492 runs (311 vanilla, 181 Rebirth); drop candidates 78 vanilla + 133 Rebirth (+4 csv-marked Rebirth listed apart); 81 runs into 15 merged runs; smoke 60 runs reach 8648/8741 functions. Awaiting the user's approval of the lists before phase 2."
 order = 1399
-status = "running"
+status = "done"
 started = "2026-11-11"
+done = "2026-11-11"
