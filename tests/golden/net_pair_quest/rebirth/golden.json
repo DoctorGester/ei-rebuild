@@ -1,24 +1,21 @@
 {
   "scenario": "net_pair_quest",
   "install": "rebirth",
-  "recorded": "2026-11-10",
-  "commit": "91b031ae6",
+  "recorded": "2026-11-11",
+  "commit": "325c1b848",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "L8c: the loop bindings set the counter global a converted loop names, as the game's loops do, so the digest's script record and the decoded saves compare the loops' counters again (L8a had left them out): the counters' values now recorded (script gobject, saves commands globals).",
+  "reason": "P12 merged onto L11/H70 main: the village camera distance moves base clicks, the Rebirth net games play out differently",
   "source": "image",
+  "saves": "2 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 420 of 521 records differ, first at record 65 (world update 1320, tick 1072, frame 263, zone z9q2); outcomes CHANGED: script; no unit position differs",
-    "  first difference at record 65 (world update 1320, tick 1072, frame 263, zone z9q2): 1 fields",
-    "    script (script) #gobject: E3E90D1C in the old golden, 96AE4FED in the new run",
-    "  outcomes: CHANGED script; same: zone, deaths, spawns, money, quest variables, party and items, game result",
-    "    script: script #gobject differs (hashes only), from record 65 (+419 more)",
-    "  script: 1 of 1 differ",
-    "    gobject: 1 script, 420 records, from 65; hash only (no numbers kept)",
-    "save current/z9q2.sav: 1 fields in 1 records differ: commands 1",
-    "  commands: 1 fields in 1 records; first commands globals.objects.2.value: ~loop in the old golden, 1000197 in the new run"
-  ],
-  "saves": "2 decoded saves (tools/savefile.py), the same in 2 runs"
+    "save current/z9q2.sav: 8562 fields in 335 records differ: obj 8553, item 4, world 3, missile 1, mapObjects 1",
+    "  obj: 8553 fields in 328 records; first obj576852 controller.queue.extra: 1031 in the old golden, 1037 in the new run; largest numeric d 1e+06 at obj2250 controller.motion.goal.z: 1000000.0 -> 0.0",
+    "  item: 4 fields in 4 records; first item201 condition: 166723.719 in the old golden, 166754.0 in the new run (d 30.3)",
+    "  world: 3 fields in 1 records; first world tick: 9467 in the old golden, 9212 in the new run; largest numeric d 256 at world lastRainBoltTick: 9411 -> 9155",
+    "  missile: 1 fields in 1 records; first missile0 timer: 8550 in the old golden, 8300 in the new run (d 250)",
+    "save current/z9q2.visuals.sav: differs (decoded 3f40d0b5f4eaa61f in the old golden, e5270e45ffcaede4 in the new run; the store has no copy of 3f40d0b5f4eaa61f)"
+  ]
 }

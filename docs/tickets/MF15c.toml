@@ -1,0 +1,8 @@
+id = "MF15c"
+title = "Data emitter runtime: TOML effect schema, registry by name, typed inputs"
+group = "mods"
+size = 3
+model = "opus"
+depends = ["MF15a"]
+note = "User 2026-11-11 approved MF15's plan (build/mf15_particles.md). C++ emitter runtime from Res\\effects\\<name>.effect.toml (MF14 style, field merge). User: state machines too, through generic data-driven extensions fed by typed inputs the effect declares (float/vector/bool/event/enum, e.g. phase, charge, target position); data maps inputs to rates, curves, phases and sub-emitters; game code (and later Lua) only drives the inputs. Design the input model so the 34 state-machine types could be expressed; show two (e.g. Healing, Casting) in the design."
+order = 1343

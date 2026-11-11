@@ -1,0 +1,8 @@
+id = "MF15d"
+title = "Bitwise C++-against-data equivalence check; first four types"
+group = "mods"
+size = 2
+model = "opus"
+depends = ["MF15c"]
+note = "User 2026-11-11 approved MF15's plan (build/mf15_particles.md). FireStar, AcidStar, CurseStars, PortalStar run from data, proven identical per tick to the C++ by a unit check."
+order = 1344

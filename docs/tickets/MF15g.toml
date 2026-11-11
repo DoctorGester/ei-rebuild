@@ -1,0 +1,8 @@
+id = "MF15g"
+title = "Port effect families to data (equivalence-checked, then the state machines via inputs)"
+group = "mods"
+size = 3
+model = "opus"
+depends = ["MF15d"]
+note = "User 2026-11-11 approved MF15's plan (build/mf15_particles.md). Trails, Sparks, Stun, ZoneExit, Shower, smoke, TeleportRing, Portal first; then the state-machine types through MF15c's typed inputs, code driving inputs only."
+order = 1347

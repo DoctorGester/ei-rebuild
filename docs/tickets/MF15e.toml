@@ -1,0 +1,8 @@
+id = "MF15e"
+title = "Effects by name hash on the wire and in saves; fallback for original clients"
+group = "mods"
+size = 2
+model = "opus"
+depends = ["MF15c"]
+note = "User 2026-11-11 approved MF15's plan (build/mf15_particles.md). 0x40000000-range name-hash ids in the existing int; each effect declares a fallback type; the server sends the fallback to original clients (told apart by our login mark)."
+order = 1345
