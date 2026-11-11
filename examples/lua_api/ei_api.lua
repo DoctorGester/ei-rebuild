@@ -112,7 +112,7 @@
 ---@field velocity? ei.Point # it flies by so much a tick
 ---@field target? ei.Position # a flying one heads for this point
 ---@field unit? ei.Object # a flying one starts on the players' screens at this unit's hand (the fireball)
----@field direction? ei.Point # a wall's (Tendril, Link) extent from its middle to an end (the fire wall's)
+---@field direction? ei.Point # a wall effect's ([server] wall: Tendril, Link) extent from its middle to an end (the fire wall's)
 ---@field lifetime? integer # ticks it lasts (else as long as the cast)
 ---@field free? boolean # not the cast's: it lives its own life
 
@@ -272,6 +272,19 @@ function Cast:Light(at, options) end
 ---@param velocity ei.Point
 ---@return boolean
 function Cast:SetVelocity(handle, velocity) end
+
+---an input of the cast's effect of that handle (one of yours, `Res\effects`) set for every player: a number, a flag, a choice by its name or a vector; false when it is gone or has no such input
+---@param handle integer
+---@param input string
+---@param value number|boolean|string|ei.Point
+---@return boolean
+function Cast:SetInput(handle, input, value) end
+
+---an event input of the cast's effect of that handle fired for every player; false when it is gone or has no such event
+---@param handle integer
+---@param event string
+---@return boolean
+function Cast:Fire(handle, event) end
 
 ---the point a unit's spells start from (its eye), where the game's lightning puts its light
 ---@param unit ei.Object?
@@ -1687,6 +1700,19 @@ function AttachParticles(id, object) end
 ---@param id number
 ---@param size number
 function SetParticleSourceSize(id, size) end
+
+---an input of one of your effects (`Res\effects`) set for every player: a number, a flag (0 / 1) or a choice's index, or a vector by three numbers
+---@param id number
+---@param input string
+---@param value number
+---@param y? number
+---@param z? number
+function SetParticleInput(id, input, value, y, z) end
+
+---an event input of one of your effects fired for every player
+---@param id number
+---@param event string
+function FireParticleEvent(id, event) end
 
 ---a lightning bolt from one point to the other; a negative id takes a new one
 ---@param id number

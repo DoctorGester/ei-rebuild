@@ -10,6 +10,9 @@
 texture = "Link"
 frames = 15
 
+[server]
+wall = true                                     # an EffectWall: the spell gives it its direction, the extent
+
 [source]
 spread_min = [-0.2, -0.2, -0.2]
 spread_max = [0.2, 0.2, 0.2]

@@ -516,9 +516,10 @@ private:
     }
     void ReadServer() {
         const RawNode& server = root["server"];
-        Known(server, {"one_shot", "script_lifetime"});
+        Known(server, {"one_shot", "script_lifetime", "wall"});
         Integer(server["one_shot"], &record->oneShot);
         Integer(server["script_lifetime"], &record->scriptLifetime);
+        Flag(server["wall"], &record->wall);
     }
     void ReadSource() {
         const RawNode& source = root["source"];
@@ -927,7 +928,8 @@ private:
         }
         for (const RawNode& node : list.items) {
             Known(node, {"emit", "kind", "at", "set", "value", "stage", "effect", "end", "stop", "stop_emitting",
-                         "let_go", "add_anchor", "count", "shake", "time", "decay", "scorch", "alpha"});
+                         "let_go", "add_anchor", "count", "shake", "time", "decay", "scorch", "alpha", "length",
+                         "angle"});
             Action action;
             std::string name;
             if (node["emit"].Exists()) {
@@ -986,6 +988,8 @@ private:
                 action.value = Field(node["scorch"], context);
                 action.alpha = Field(node["alpha"], context);
                 if (action.alpha.Empty()) action.alpha = ConstantExpr(1.0f);
+                action.length = Field(node["length"], context);
+                action.angle = Field(node["angle"], context);
             } else {
                 Error(node, "an action is emit, set, stage, effect, end, stop, stop_emitting, let_go, add_anchor, "
                             "shake or scorch");
@@ -1264,15 +1268,24 @@ float State::AnchorAt(const void* context, int group, Scope scope, int field, fl
     return 0.0f;
 }
 
+std::optional<float> Input::Holds(float value) const {
+    switch (type) {
+    case InputType::Float: return value;
+    case InputType::Bool: return value != 0.0f ? 1.0f : 0.0f;
+    case InputType::Enum:
+        if (!(value >= 0.0f) || value >= static_cast<float>(values.size())) return std::nullopt;
+        return std::floor(value);
+    default: return std::nullopt;
+    }
+}
+
+int Input::ValueIndex(std::string_view wanted) const { return type == InputType::Enum ? IndexIn(values, wanted) : -1; }
+
 bool State::SetValue(std::string_view input, float value) {
     const Input* found = record->FindInput(input);
-    if (!found || found->type == InputType::Vector || found->type == InputType::Event) return false;
-    if (found->type == InputType::Bool) value = value != 0.0f ? 1.0f : 0.0f;
-    if (found->type == InputType::Enum) {
-        if (!(value >= 0.0f) || value >= static_cast<float>(found->values.size())) return false;
-        value = std::floor(value);
-    }
-    inputs[found->slot] = value;
+    const std::optional<float> held = found ? found->Holds(value) : std::nullopt;
+    if (!held) return false;
+    inputs[found->slot] = *held;
     return true;
 }
 
@@ -1287,8 +1300,7 @@ bool State::SetVector(std::string_view input, float x, float y, float z) {
 
 bool State::SetEnum(std::string_view input, std::string_view value) {
     const Input* found = record->FindInput(input);
-    if (!found || found->type != InputType::Enum) return false;
-    const int index = IndexIn(found->values, value);
+    const int index = found ? found->ValueIndex(value) : -1;
     if (index < 0) return false;
     inputs[found->slot] = static_cast<float>(index);
     return true;
@@ -1512,8 +1524,12 @@ void State::Run(const std::vector<Action>& actions, IsaacRandom& random, int dep
         }
         case Action::Kind::Scorch: {
             const Env env = SourceEnv(&random);
-            const float radius = action.value.Run(env);
-            scorches.push_back({radius, action.alpha.Run(env)});
+            ScorchRequest scorch;
+            scorch.radius = action.value.Run(env);
+            scorch.length = action.length.Empty() ? scorch.radius : action.length.Run(env);
+            scorch.alpha = action.alpha.Run(env);
+            if (!action.angle.Empty()) scorch.angle = action.angle.Run(env);
+            scorches.push_back(scorch);
             break;
         }
         }

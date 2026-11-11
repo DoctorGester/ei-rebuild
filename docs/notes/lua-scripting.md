@@ -14,7 +14,8 @@ are in `rebirth.md` ("AddNewScriptCommands").
 What the original's executor did; the Lua path keeps its rules.
 
 - **Language.** It has no operators: every value comes from a built-in function. The game's table has 214 commands and
-  functions (and 11 punctuation and section words); Rebirth adds 69, 7 of them under a game name, so 276 in all.
+  functions (and 11 punctuation and section words); Rebirth adds 69, 7 of them under a game name, and ours 2 (a data
+  effect's inputs set on the server: SetParticleInput, FireParticleEvent), so 278 in all.
 - **Control flow.**
   - Each script instance re-checks its `if(...)then(...)` rules on every tick until KillScript.
   - For / ForIf walk a group from last to first.
@@ -51,8 +52,8 @@ IronMod has no scripts (databases only); `2utoexec.cfg` holds only commented lin
 loaded after another (vanilla 49: 21 AddMob'd, 28 network quests). The counts below are of the .mob scripts and the
 quest and engine texts (401 texts, 183,486 lines), without the harness lines.
 
-- **Keywords.** 276 in the table. The .mob scripts use 159 (vanilla 143); with the quest texts 160 (IsUnitVisible only
-  there). The harness's console lines reach 88 more. 27 are used nowhere: PlayFX, SetPlayerAggression,
+- **Keywords.** 278 in the table. The .mob scripts use 159 (vanilla 143); with the quest texts 160 (IsUnitVisible only
+  there). The harness's console lines reach 90 more. 27 are used nowhere: PlayFX, SetPlayerAggression,
   RemoveUnitFromControl, SetDirectionToObject, SetSpellAggression, SetSunLight, StartAnimation, ShowCredits, ShowBitmap,
   WaitEndAnimation, Sum, IsInSquare, GetBSZValue, GroupSub, IsUnitInWater, IsPlayerInSafety, GetAIClass,
   GetLootItemsCount, AlarmPosX, AlarmPosY, IsNight and Rebirth's DistancePointPoint, NearestUnit, UnitsNearPoint,
@@ -104,7 +105,7 @@ quest and engine texts (401 texts, 183,486 lines), without the harness lines.
 
 ### What it settled for L2-L9
 
-- **L2 (bindings).** All 276 are generated from the table; 160 are reached by the game's content, 88 more only by
+- **L2 (bindings).** All 278 are generated from the table; 160 are reached by the game's content, 90 more only by
   harness lines, 27 by nothing (bindings no scenario reaches). Rebirth's string and maths
   functions are reached only by harness lines.
 - **L3 (writer)**: no wait in a loop body, no nested loop, no ForIf, no #define and no written `!n!` in any shipped
@@ -181,7 +182,7 @@ script's. Checked by `ei-convert --lua-check` (build checks; ctest `port_lua`) a
   since Lua's own walk follows the string hashes, whose seed changes every run (L8). The runtime of a state is in its
   extra space (`ScriptLua::Of`).
 - **Generated from the keyword table.** The constructor walks `KeywordTable()` (the game's table with Rebirth's):
-  every entry with a function or command signature gets a binding, 276; the 11 punctuation and section words none.
+  every entry with a function or command signature gets a binding, 278; the 11 punctuation and section words none.
   A binding is one C closure (`CallBinding`) over that keyword's signature and a `ScriptCall` it reuses: the Lua
   arguments go into the call's slots as `LoadFunction` would put them (Rebirth's `?`: the rest optional, `+`: the
   letter before it repeated), then the same `CalcFloat` / `CalcObject` / `CalcGroup` / `scriptaddon::CalcString` runs

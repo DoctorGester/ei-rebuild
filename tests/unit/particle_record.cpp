@@ -139,6 +139,7 @@ blend = "additive"
 
 [server]
 one_shot = 60
+wall = true
 
 [inputs]
 charge = { type = "float", default = 0.25 }
@@ -239,7 +240,8 @@ void CheckRecord() {
                                                             record->particles[0].sizeTick.text == "p.size * 0.9" &&
                                                             record->particles[2].name == "ember");
     Expect("the inputs' slots", record->inputValues == 6 && record->FindInput("aim")->slot == 3);
-    Expect("the server block", record->oneShot == 60 && record->scriptLifetime == -1 && record->additive);
+    Expect("the server block", record->oneShot == 60 && record->scriptLifetime == -1 && record->wall &&
+                                     record->additive);
 
     // Problems: an unknown key is noted, an unknown name makes the record unusable.
     RawNode broken = Parse(kBase, "base.effect.toml");
@@ -758,7 +760,8 @@ stand = "surface(vec2(3, 4))"
 light = "sun.r + sun.g * 10"
 [[on]]
 event = "spawn"
-do = [{ scorch = "param * 2", alpha = "alpha * 0.5" }, { shake = 2, time = "base_size", decay = 0.25 }, { scorch = 1 }]
+do = [{ scorch = "param * 2", alpha = "alpha * 0.5" }, { shake = 2, time = "base_size", decay = 0.25 }, { scorch = 1 },
+      { scorch = 1, length = "param + 1", angle = "base_size" }]
 [[anchor]]
 name = "fragment"
 count = 4
@@ -791,6 +794,7 @@ void CheckBlastFeatures() {
     if (!record) return Expect("the blast features record reads", false);
     Expect("a spawn reaction marks the record", record->spawns && record->reactions[0].on == Reaction::On::Spawn);
     Expect("frame mode free reads", record->particles[0].frameMode == FrameMode::Free);
+    Expect("an effect is no wall without [server] wall", !record->wall);
 
     State state(record);
     state.ground = SumGround;
@@ -809,9 +813,13 @@ void CheckBlastFeatures() {
                state.anchors[0].values[static_cast<int>(AnchorValue::SpawnX)] == first.x);
     state.Spawned(random);
     Expect("a spawn reaction asks for its scorches and its shake",
-           state.scorches.size() == 2 && state.scorches[0].radius == 3.0f && state.scorches[0].alpha == 0.4f &&
+           state.scorches.size() == 3 && state.scorches[0].radius == 3.0f && state.scorches[0].alpha == 0.4f &&
                state.scorches[1].radius == 1.0f && state.scorches[1].alpha == 1.0f && state.shakes.size() == 1 &&
                state.shakes[0].strength == 2.0f && state.shakes[0].time == 3.0f);
+    Expect("a scorch is round and turned by the client's generator unless given a length and an angle",
+           state.scorches.size() == 3 && state.scorches[0].length == 3.0f && !state.scorches[0].angle &&
+               state.scorches[2].radius == 1.0f && state.scorches[2].length == 2.5f && state.scorches[2].angle &&
+               *state.scorches[2].angle == 3.0f);
     state.Step(random);
     Expect("the step clears the scorches", state.scorches.empty());
     Expect("anchors made with the source tick at the first step",

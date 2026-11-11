@@ -206,7 +206,7 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
 - Data effects (effects.md, "Data effects"): `effect <name> set <input> <value | x y z | enum value>`, `effect <name>
   fire <event>` drive the client's running sources of that effect through the inputs game code uses
   (`effectdata::SetInput` / `Fire`); `effect <name> value <input> <expected>` requires an input's value (an enum's as its
-  index), `effect <name> check <least particles> [<stage>]` requires a source with that many particles, in that stage
+  index) or an effect var's (its first lane) in every source of it, `effect <name> check <least particles> [<stage>]` requires a source with that many particles, in that stage
   (`harness_objects_image.cpp`'s `DataEffectStep`; `mod_effect`). The effect viewer is ei-effects' (its own harness:
   "ei-effects' scenarios" below). `clientbolts <least> [<most>]` requires that many
   lightning bolts (EffectLightning) in this game's client world, a peer's too, and logs their ends

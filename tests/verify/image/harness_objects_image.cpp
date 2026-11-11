@@ -582,7 +582,8 @@ std::string DataEffectStep(const std::string& argument) {
     words >> name >> verb;
     if (name.empty() || (verb != "set" && verb != "fire" && verb != "check" && verb != "value"))
         return "effect " + argument +
-               ": not <name> set <input> <value> | fire <event> | value <input> <value> | check <particles> [<stage>]";
+               ": not <name> set <input> <value> | fire <event> | value <input or var> <value> | check <particles> "
+               "[<stage>]";
     if (!g_clientWorld.particleManager) return "effect " + name + ": no client world";
     const std::int32_t id = effectdata::IdOf(name);
     std::vector<ParticleSource*> sources;
@@ -618,12 +619,21 @@ std::string DataEffectStep(const std::string& argument) {
         std::string input;
         float expected = 0.0f;
         words >> input >> expected;
-        const effectdata::State& state = *sources.front()->data;
-        const effectdata::Input* found = state.record->FindInput(input);
-        if (!found) return "effect " + name + ": no input " + input;
-        const float got = state.inputs[found->slot];
-        Log("harness: effect %s: input %s is %g (expected %g)", name.c_str(), input.c_str(), got, expected);
-        if (got != expected) return "effect " + name + ": input " + input + " is " + std::to_string(got);
+        // An input, else an effect var (its first lane), of each source.
+        for (ParticleSource* source : sources) {
+            const effectdata::State& state = *source->data;
+            float got = 0.0f;
+            if (const effectdata::Input* found = state.record->FindInput(input)) {
+                got = state.inputs[found->slot];
+            } else {
+                const auto var = std::find_if(state.record->vars.begin(), state.record->vars.end(),
+                                              [&](const effectdata::Var& v) { return v.name == input; });
+                if (var == state.record->vars.end()) return "effect " + name + ": no input or var " + input;
+                got = state.vars[var->slot];
+            }
+            Log("harness: effect %s: %s is %g (expected %g)", name.c_str(), input.c_str(), got, expected);
+            if (got != expected) return "effect " + name + ": " + input + " is " + std::to_string(got);
+        }
         return {};
     }
     int least = 0;

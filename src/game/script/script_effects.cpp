@@ -2,6 +2,7 @@
 // sources and lightning bolts (Script::pointLights, particles, fxSources, lightning). Saving
 // and loading them with the savegame. See script.h and docs/notes/script.md.
 #include "game/script/script.h"
+#include "game/script/script_addon_handlers.h"
 
 #include "engine/core/base_manager.h"
 #include "game/world/world.h"
@@ -175,6 +176,34 @@ void Script::CreateParticleSource(ScriptArgs args) {
     source->step.x = source->step.y = source->step.z = 0.0f;
     source->lifetime = lifetime;
 }
+
+namespace scriptaddon {
+
+// SetParticleInput(id, input, value [, y, z]): the input of the script's particle source `id` set on the server, a
+// float, bool or enum index by one value, a vector by three; every client's source takes it (EffectParticle::SetInput).
+// Nothing when no source has the id or its effect no such input.
+bool SetParticleInput(Call* call) {
+    ScriptArgs args(call->cmd);
+    const int id = lib::RoundEven(args.Float());
+    const std::string input = args.Text();
+    ScriptParticleSource* source = FindId(call->script->particles, id);
+    if (!source || !source->object) return true;
+    if (args.FloatCount() >= 4) source->object->SetInput(input, args.Point());
+    else source->object->SetInput(input, args.Float());
+    return true;
+}
+
+// FireParticleEvent(id, event): the event input of the script's particle source `id` fired on the server; every
+// client's source fires it.
+bool FireParticleEvent(Call* call) {
+    ScriptArgs args(call->cmd);
+    const int id = lib::RoundEven(args.Float());
+    ScriptParticleSource* source = FindId(call->script->particles, id);
+    if (source && source->object) source->object->Fire(args.Text());
+    return true;
+}
+
+} // namespace scriptaddon
 
 // MoveParticleSource(id, x, y, z, steps, delete when done). The source moves towards the
 // point in `steps` equal steps (one per tick); nothing when no source has the id.

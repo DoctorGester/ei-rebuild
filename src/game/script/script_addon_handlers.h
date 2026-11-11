@@ -36,6 +36,10 @@ bool Report(const char* function, const char* format, Args&&... args) {
 bool InvalidArguments(const char* function);
 
 
+// Ours (script_effects.cpp): SetParticleInput(id, input, value [, y, z]), FireParticleEvent(id, event).
+bool SetParticleInput(Call* call);
+bool FireParticleEvent(Call* call);
+
 // script_addon_math.cpp
 bool Sin(Call* call);
 bool Cos(Call* call);

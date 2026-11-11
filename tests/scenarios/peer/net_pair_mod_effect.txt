@@ -1,7 +1,7 @@
 # The peer of net_pair_mod_effect: the showcase mod (its own copy), joins the host's game, follows it into the game
 # zone (as in net_pair_database) and sees the data effect the host's server started by its name: its client made the
 # source from the id in the object's delta field (its own registry's showcase_aura), particles and stages running;
-# a capture to look at.
+# a capture to look at. Then the inputs the host's server set reach this client's source too (MF15j2).
 rebirth resolution desktop
 timeout 180
 mod harness_saves\showcase_mod
@@ -53,6 +53,13 @@ effect showcase_aura check 20 glow
 expectnonewlog particles: unknown particle type
 capture peer_effect
 peersignal seen
+peerwait 60 inputs
+wait 1000
+effect showcase_aura value mode 1
+effect showcase_aura value bursts 1
+effect showcase_aura value pulses 1
+effect showcase_aura check 20 glow
+peersignal taken
 peerwait 60 done
 peersignal leaving
 frames 2

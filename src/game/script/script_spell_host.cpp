@@ -1220,7 +1220,7 @@ int ScriptSpellHost::Missile(lua_State* L) {
 // effect (a data effect of Res\effects, or a game's type by the scripts' name: Sparks, LightningBlast, ...) at `at`
 // (default the cast's point; attached to the object `attach`, at its own place), size, alpha and param (its source's
 // parameter: the fire blast's spread) 1, moving by `velocity` ({x, y, z} a tick) towards `target` (a point: where a
-// flying one, the fire ball, ends), started on the clients at the unit `unit`'s hand, a wall's (Tendril, Link) extent
+// flying one, the fire ball, ends), started on the clients at the unit `unit`'s hand, a wall effect's ([server] wall) extent
 // `direction` ({x, y, z}: from its middle to an end); it lasts `lifetime` ticks, else as long as the cast (or as its
 // type's own life, when shorter). A `free` one is not the cast's: it lives its type's own life (a one-shot's) past the
 // cast's end. Its handle.
@@ -1249,7 +1249,7 @@ int ScriptSpellHost::Effect(lua_State* L) {
     Vector3 direction;
     MapObject* directionObject = nullptr;
     const bool walls = OptPosition(L, 9, &direction, &directionObject);
-    if (walls && !SpellEffect::WallParticle(particleType)) luaL_error(L, "Effect: a direction only for a wall effect");
+    if (walls && !WallEffect(particleType)) luaL_error(L, "Effect: a direction only for a wall effect");
     const float size = FloatField(L, 3, "size", 1.0f);
     const float alpha = FloatField(L, 3, "alpha", 1.0f);
     const float param = FloatField(L, 3, "param", 1.0f);
@@ -1376,6 +1376,56 @@ int ScriptSpellHost::SetVelocity(lua_State* L) {
         return 1;
     }
     lua_pushboolean(L, false);
+    return 1;
+}
+
+namespace {
+
+// The cast's particle effect of that handle (Effect), null when it has none.
+EffectParticle* OwnedParticle(const SpellEffect& effect, lua_Integer handle) {
+    for (const SpellOwned& entry : effect.owned) {
+        if (entry.object->id != handle) continue;
+        const ClassId kind = entry.object->GetClassId();
+        if (kind != ClassId::EffectParticle && kind != ClassId::EffectWall) return nullptr;
+        return static_cast<EffectParticle*>(entry.object.Get());
+    }
+    return nullptr;
+}
+
+} // namespace
+
+// cast:SetInput(handle, input, value): an input of the cast's data effect of that handle set on the server, kept and
+// sent to every client (EffectParticle::SetInput): a number (a float, a bool's 0 / 1, an enum's index), a boolean, an
+// enum's value by name or a vector {x, y, z}. False when the handle is no effect of the cast's or it has no such input.
+int ScriptSpellHost::SetInput(lua_State* L) {
+    SpellEffect& effect = Self(L, "SetInput");
+    EffectParticle* particle = OwnedParticle(effect, luaL_checkinteger(L, 2));
+    const char* input = luaL_checkstring(L, 3);
+    bool done = false;
+    switch (lua_type(L, 4)) {
+    case LUA_TNUMBER: done = particle && particle->SetInput(input, static_cast<float>(lua_tonumber(L, 4))); break;
+    case LUA_TBOOLEAN: done = particle && particle->SetInput(input, lua_toboolean(L, 4) ? 1.0f : 0.0f); break;
+    case LUA_TSTRING: done = particle && particle->SetInput(input, std::string_view(lua_tostring(L, 4))); break;
+    case LUA_TTABLE: {
+        Vector3 value;
+        MapObject* object = nullptr;
+        OptPosition(L, 4, &value, &object);
+        done = particle && particle->SetInput(input, value);
+        break;
+    }
+    default: return luaL_error(L, "SetInput: a number, a boolean, a string or a point {x, y, z} expected");
+    }
+    lua_pushboolean(L, done);
+    return 1;
+}
+
+// cast:Fire(handle, event): an event input of the cast's data effect of that handle fired on the server; every
+// client's source fires it. False when the handle is no effect of the cast's or it has no such event.
+int ScriptSpellHost::Fire(lua_State* L) {
+    SpellEffect& effect = Self(L, "Fire");
+    EffectParticle* particle = OwnedParticle(effect, luaL_checkinteger(L, 2));
+    const char* event = luaL_checkstring(L, 3);
+    lua_pushboolean(L, particle && particle->Fire(event));
     return 1;
 }
 

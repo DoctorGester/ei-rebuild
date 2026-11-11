@@ -201,8 +201,6 @@ public:
     // theirs while they stand), the footprint held before cleared first; Unblock clears the one held.
     void Block(const SpellFootprint& shape);
     void Unblock();
-    // A particle effect of this type is a wall (EffectWall, with a direction): Tendril, Link.
-    static bool WallParticle(int particleType);
     // A spell missile homing on `target` (its particle `particleType`, an original type or a data effect's id), not yet
     // in the world; with a `launcher` the client starts it at the launcher's effect point. Null when the manager makes
     // none.

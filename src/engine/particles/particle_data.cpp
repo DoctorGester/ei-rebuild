@@ -298,11 +298,11 @@ void ApplyActions(ParticleSource& s, State& state) {
     for (const ShakeRequest& shake : state.shakes)
         particlehost::Current().ShakeCamera(s.origin, shake.time, shake.strength, shake.decay);
     state.shakes.clear();
-    // The angle is the client's generator's (the original drew it there).
+    // An angle not given is the client's generator's (the original drew it there).
     for (const ScorchRequest& scorch : state.scorches) {
-        const float angle = ScaleWord(g_clientRandom.Next(), 6.3f);
+        const float angle = scorch.angle ? *scorch.angle : ScaleWord(g_clientRandom.Next(), 6.3f);
         const float alpha = MinKeepA(scorch.alpha, 1.0f);
-        particlehost::Current().AddScorchMark(s.origin.x, s.origin.y, scorch.radius, scorch.radius, angle, alpha);
+        particlehost::Current().AddScorchMark(s.origin.x, s.origin.y, scorch.length, scorch.radius, angle, alpha);
     }
     state.scorches.clear();
     const bool detached = state.stopRequested || state.letGo;

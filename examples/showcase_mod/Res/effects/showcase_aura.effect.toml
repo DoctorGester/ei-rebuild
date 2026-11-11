@@ -13,6 +13,8 @@ pulse = { type = "event" }
 
 [vars]
 spin = { start = 0, tick = "spin + 0.06 + charge * 0.12" }
+bursts = 0                    # the times it burst, and it pulsed (a network game's check reads them)
+pulses = 0
 
 [emit]
 rate = "mode == mode.storm ? 10 : 5"
@@ -34,11 +36,11 @@ next = "burst"
 name = "burst"
 ticks = 1
 next = "glow"
-enter = [{ emit = 12, kind = "spark", at = "orb" }, { set = "charge", value = 0 }]
+enter = [{ emit = 12, kind = "spark", at = "orb" }, { set = "charge", value = 0 }, { set = "bursts", value = "bursts + 1" }]
 
 [[on]]
 event = "pulse"
-do = [{ emit = 8, kind = "spark", at = "orb" }]
+do = [{ emit = 8, kind = "spark", at = "orb" }, { set = "pulses", value = "pulses + 1" }]
 
 # The orbs circle the source a third of a turn apart, the circle widening for the first 18 ticks, each bobbing.
 [[anchor]]

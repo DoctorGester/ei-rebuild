@@ -5,7 +5,9 @@
 # console's "@" lines do nothing in a network game): the world object's type is the effect's id (0x40000000 | the
 # name's FNV-1a), which travels in the object's delta field like an original type's number; the peer's client finds
 # it by the id in its own registry (Registry::FindById) and runs it. Both clients show it: particles, its stages by
-# their ticks; nothing logged as unknown. An original client never gets such an id: a server that plays a mod refuses
+# their ticks; nothing logged as unknown. MF15j2: the host's server then sets the effect's inputs (SetParticleInput,
+# FireParticleEvent: an enum, a float that moves its stage, an event), kept on the world object and sent after its
+# fields; both clients' sources take them (the mode storm, a burst once charged, a pulse: the aura's counting vars). An original client never gets such an id: a server that plays a mod refuses
 # it at the join (network.md, "Mods").
 # A clickground lands where the clicked pixel's ray meets the ground (the vanilla runs play in a 4:3 window, the
 # Rebirth runs at the desktop's size; net_pair_leave).
@@ -74,6 +76,16 @@ peersignal started
 wait 1500
 effect showcase_aura check 20 glow
 peerwait 60 seen
+serverscript SetParticleInput(60,"mode",1)
+serverscript SetParticleInput(60,"charge",1)
+serverscript FireParticleEvent(60,"pulse")
+peersignal inputs
+wait 1000
+effect showcase_aura value mode 1
+effect showcase_aura value bursts 1
+effect showcase_aura value pulses 1
+effect showcase_aura check 20 glow
+peerwait 60 taken
 expectnonewlog particles: unknown particle type
 frames 20
 peersignal done

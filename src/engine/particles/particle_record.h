@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -147,6 +148,12 @@ struct Input {
     std::vector<Vector3> points;        // a list's default
     int slot = 0;                      // its first value in the input array (a list's: its count)
     int list = -1;                      // a list's place in State::lists
+
+    // The value a float, bool or enum input holds when set to `value` (a bool's 0 / 1, an enum's index floored); none
+    // for another type or an index outside an enum's values.
+    std::optional<float> Holds(float value) const;
+    // An enum's index of its value `wanted`; -1 when it has none.
+    int ValueIndex(std::string_view wanted) const;
 };
 
 // A named value with its start and its change per tick (an empty `tick` keeps it; a tick alone also starts it); a vector
@@ -177,15 +184,16 @@ struct Action {
         AddAnchor,  // `count` anchors of group `anchor` made now
         Shake,      // the camera shakes from the source's origin: `value` its strength, `time` its length in seconds,
                     // `decay` its fall per step (Camera::Shake)
-        Scorch,     // a scorch mark on the ground under the source's origin: `value` its radius, `alpha` its strength
-                    // (held to 1), at an angle the client's generator draws
+        Scorch,     // a scorch mark on the ground under the source's origin: `value` its radius, `length` its radius
+                    // along its turn (none: `value`), `alpha` its strength (held to 1), `angle` its turn (none: the
+                    // client's generator draws it)
     };
     Kind kind = Kind::Emit;
     Expr count;
     Expr value;
     int width = 1;      // a set's: the floats its target takes
     Expr time, decay;   // a shake's
-    Expr alpha;         // a scorch's
+    Expr alpha, length, angle;   // a scorch's
     int target = -1;
     int particleKind = -1;
     int anchor = -1;
@@ -308,6 +316,7 @@ struct Record {
     // [server]: read by the server.
     int oneShot = 0;            // the world object lives this many ticks (0: until removed)
     int scriptLifetime = -1;    // CreateParticleSource's lifetime in ticks (-1: forever)
+    bool wall = false;          // the world object is an EffectWall: it carries a direction, the source's extent
 
     // [source]: the source's starting values.
     float size = 1.0f, height = 0.0f, growth = 0.0f, alpha = 1.0f, param = 1.0f;
@@ -376,7 +385,9 @@ struct ShakeRequest {
 // A scorch mark an action asked for (particle_data.cpp lays it under the source's origin).
 struct ScorchRequest {
     float radius = 0.0f;
+    float length = 0.0f;        // the radius along its turn
     float alpha = 0.0f;
+    std::optional<float> angle; // none: the client's generator draws it
 };
 
 // An effect an action started: at the source's origin, or at `place` (a dying particle's).

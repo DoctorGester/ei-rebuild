@@ -104,7 +104,7 @@ bool Run(ScriptLua& lua, const char* text) {
 // Every keyword bound once, under a name no other has.
 void CheckNames(ScriptLua& lua) {
     const std::vector<scriptlua::BindingName> names = scriptlua::BindingNames();
-    Expect(names.size() == 276 && lua.bindingCount == 276, "276 keywords bound");
+    Expect(names.size() == 278 && lua.bindingCount == 278, "278 keywords bound");
     std::set<std::string> seen;
     lua_State* L = lua.State();
     for (const scriptlua::BindingName& name : names) {

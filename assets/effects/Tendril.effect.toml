@@ -5,6 +5,9 @@
 
 like = "Fire"
 
+[server]
+wall = true                                      # an EffectWall: the spell gives it its direction, the extent
+
 [emit]
 rate = "clamp(floor(length(extent) * 14.285714), 6, 93)"
 max = 1500
@@ -17,3 +20,10 @@ along = "range(-1, 1)"                           # the part of the wall
 
 [particle.position]
 start = "on_ground(origin + p.half + p.along * vec3(extent.xy, 0), range(0, height))"
+
+# The scorch under a new wall: as long as the wall, as wide as half its size (the world object's, base_size).
+[[on]]
+event = "spawn"
+do = [
+    { scorch = "base_size * 0.5 + 0.3", length = "length(extent.xy) + base_size * 0.5 + 0.3", angle = "atan2(extent.y, extent.x)", alpha = "alpha * 0.6" },
+]

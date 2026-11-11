@@ -131,7 +131,13 @@ particle side, the inputs). The guide for modders: docs/modding.md, "Effects".
   unknown key is logged and the effect loads; an expression that does not compile, an unknown name or a record
   without a particle kind makes it unusable: it shows nothing, as an unknown type does (`ShownParticleType`).
 - The server reads `[server]`: `one_shot` (the world object lives that many ticks; `OneShotTicks` beside the
-  original's 60 / 120) and `script_lifetime` (CreateParticleSource's, as the script table's 200 or -1). Script
+  original's 60 / 120), `script_lifetime` (CreateParticleSource's, as the script table's 200 or -1) and `wall` (the
+  world object is an `EffectWall`, which carries a direction: `WallEffect`, world_effect.h; a spell's and a scripted
+  cast's `direction` only for such an effect; Tendril and Link).
+- **Walls** (`EffectWall`): its direction travels after the particle effect's fields and becomes the source's
+  `extent` (`EffectWall::Shape`) after the catch-up ticks and before the "spawn" reactions, which is where the fire
+  wall's scorch is (Tendril's file: a scorch with a `length` and an `angle` from the extent, as long as the wall and
+  as wide as half its size). Script
   `CreateParticleSource` takes a name its table lacks from the registry; sub-effects (`effect = ...`) name a data
   effect or an original type by its ParticleType name (`ParticleTypeByName`).
 - Res\effects counts in the mod's content hash (`modhash::Counted`, mods.md "Mods in multiplayer"): peers with other
@@ -142,8 +148,7 @@ particle side, the inputs). The guide for modders: docs/modding.md, "Effects".
   The game's choices are built-in data (assets/spells/spells.sdb.toml, assets/units/units.udb.toml, the flame's
   default). Game code turns a name into the type through `EffectTypeNamed` (world_effect.h; a missing name warns once).
   Still chosen in code by type: the world's own visuals with no record behind them (the bird's Bag, the weather's
-  Tornado), the interface's markers (path ShapeChange, flag GroundDust1 / 2, wisp Stun, the zone exits' ZoneExit), the
-  wall class and the fire wall's scorch (`SpellEffect::WallParticle`, `EffectWall::Unpack`: Tendril and Link, MF15h1),
+  Tornado), the interface's markers (path ShapeChange, flag GroundDust1 / 2, wisp Stun, the zone exits' ZoneExit),
   the unreached link spell's Link and the unreached placed trap's Mushroom.
 
 ### In multiplayer and saves
@@ -160,9 +165,31 @@ particle side, the inputs). The guide for modders: docs/modding.md, "Effects".
   study's per-connection fallback was dropped, user rule: one uniform path). When the original effects move to data
   (MF15g) they must keep their 0x2000 numbers as their ids on the wire, since a server without a mod admits original
   clients.
+- **Inputs the server sets** (game/effects/effect_inputs.h): the server's `EffectParticle::SetInput` (a float, bool
+  or enum index; a vector; an enum by its value's name) and `Fire` (an event) keep the value in `inputs`, one entry
+  per input of the record in its order (`set`, the value; an event's x counts its firings), and mark the object
+  changed. Only for a data id: `Pack` writes the entries after the particle fields (a wall's direction after them),
+  `UnpackFields` reads them, `Save` / `Load` the same, so the original types' packets and saves are as they were (a
+  data id is ours alone: "No fallback for original clients"). The entries go as they are (`WriteBoth` / `ReadRaw`),
+  not as delta words: a client's new object reads the server's first channel against the snapshot its own creation
+  wrote (`Effect::Create`'s SendFull, with type 0 and no entries), so entries the server added after its first write
+  would read as unchanged words of nothing (the first try lost the connection in mod_effect).
+  - A client gives its source the entries that changed since it took them (`ApplyInputs`, in index order:
+    `effectdata::SetInput`, an event fired as often as its count grew, 16 at most at once): in `Spawn`, so before the
+    source's next tick. A source made new (the object's first update, a load, a zone entered) takes them all before
+    its catch-up ticks: the values as they stand, each event fired as often as the server fired it. A value the
+    effect changed itself (showcase_aura's burst sets `charge` back to 0) stays until the server sets another.
+  - List inputs are not sent (the server refuses them).
+  - Script: `SetParticleInput(id, input, value [, y, z])` and `FireParticleEvent(id, event)` on a script's particle
+    source (ours, in the extended keyword table after Rebirth's: script_addon.cpp; Lua mission scripts by the same
+    names); a spell's Lua: `cast:SetInput(handle, input, value)` (number, boolean, value name or point) and
+    `cast:Fire(handle, event)` on its `cast:Effect`.
 - Checks: `net_pair_mod_effect` (both peers on the showcase mod, in z3q2: the host's server starts `showcase_aura` by
   name with the harness's `serverscript`, both clients run it, stages by ticks, nothing logged unknown; capture
-  `peer_effect`), `mod_effect_save` (started, saved, loaded: the source made again from the id, caught up into glow).
+  `peer_effect`; then the server sets `mode`, `charge` and fires `pulse`, and both clients' sources read storm, one
+  burst and one pulse: the aura's `bursts` / `pulses` vars, `effect ... value`), `mod_effect_save` (started, inputs
+  set, saved, loaded: the source made again from the id with the saved inputs, caught up into glow with its burst),
+  `tests/unit/effect_inputs.cpp` (the entries packed and read back whole and as a change, saved and loaded).
 
 ### The schema
 
@@ -179,7 +206,8 @@ numbers), `[curves]` (name = `[[t, value], ...]`, linear, held at the ends).
 - **Inputs** (`name = { type, default, values }`): `float`, `vector` (a vector `name`), `bool` (0 / 1),
   `event` (its value is the times it fired before this tick, for one tick), `enum` (`values` listed; its value is
   the index, `name.value` the constants). Game code: `effectdata::SetInput(source, name, float | Vector3 | value
-  name)`, `effectdata::Fire(source, event)` (particle_data.h); the harness's `effect` step does the same. `list`:
+  name)`, `effectdata::Fire(source, event)` (particle_data.h); the harness's `effect` step does the same. On the
+  server the world object keeps them for every client (`EffectParticle::SetInput` / `Fire`, "Inputs the server sets"). `list`:
   points (`default = [[x, y, z], ...]`, empty without one), read as `name.count` and `name[i]`, a point (truncated,
   held to the ends as a table's entries; 0 while empty); `SetInput(source, name, std::vector<Vector3>)`.
 - **Fields** (a var, a particle's `position`, `velocity`, `size`, `alpha`, `frame`, an anchor's `position`): a value
@@ -218,8 +246,9 @@ numbers), `[curves]` (name = `[[t, value], ...]`, linear, held at the ends).
   unchanged), `{ add_anchor = "<group>", count = n }` (n anchors of the group made now, 1 without a count; each as one
   made at the start: "Anchors" below), `{ shake = <strength>, time = <ticks>, decay = <factor> }` (the camera shaken
   about the source's origin, `Camera::Shake`, when the tick's actions are applied; Mushroom's burst), `{ scorch =
-  <radius>, alpha = <0..1, default 1> }` (a scorch mark on the ground at the source's origin, `World::AddScorchMark`,
-  turned by a draw of the client's own generator, `g_clientRandom`, and its alpha held to 1). After a stop or a
+  <radius>, alpha = <0..1, default 1>, length = <radius along its turn>, angle = <its turn> }` (a scorch mark on the
+  ground at the source's origin, `World::AddScorchMark`, its alpha held to 1; round without a `length`, turned by a
+  draw of the client's own generator, `g_clientRandom`, without an `angle`). After a stop or a
   let go the source's `attached`, `origin` and carrier values are written again, so the tick's particle updates and
   emission see the source free. `set` names an input, a var or one of the source's values `size`, `height`, `growth`,
   `alpha`, `param`, `spread_min`, `spread_max`, `extent` or one lane of them (`extent.z`) (written back to the source after the step,
@@ -408,9 +437,8 @@ The others, by what drives them:
 
 The runtime has what they need from MF15j: `ground` (anchors on the ground, kill planes), `add_anchor` (with
 "before_emit", CastSwirl's orbiters), `pick = "first"` and `anchor_index`, a `list` input (ShapeChange's path),
-`on_death` (a particle's sub-emission or sub-effect). `shake` came with Mushroom (MF15g4).
-Still to add: inputs the server sets and every client replicates (today only the client's sources take SetInput /
-Fire; MF15j2). No original type needs them.
+`on_death` (a particle's sub-emission or sub-effect). `shake` came with Mushroom (MF15g4). Inputs the server sets
+("In multiplayer and saves" below) came with MF15j2; no original type needs them.
 
 ### The format review (MF15l)
 
@@ -448,7 +476,7 @@ build/captures/mf15l2/), then the exact reference recorded again.
   `on_death` and "before_emit", MF15g4's "emit" reactions queueing a kind (and refused a kindless emit), the `shake`
   action and its form refused without a time, the `platform_*` functions, MF15g5's `ball()`,
   `<group>.<var>[i]`, the particle writes to vars and anchor vars and `jump`, MF15g6's "spawn" reaction with its
-  scorches and shake (and a refused emit), `at_create` anchors and their spawns, `surface` of a point, `sun` and the
+  scorches and shake (and a refused emit), MF15h1's scorch with a length and an angle (no draw) and `[server] wall`, `at_create` anchors and their spawns, `surface` of a point, `sun` and the
   frame mode `free`, and every whole effect written out in
   docs/modding.md (and in this file, which has none now) read without a problem (EI_SOURCE_DIR); MF15g5a's `like`:
   a variant over its base (a var and the texture replaced, a kind merged by name and one appended, a number array and
