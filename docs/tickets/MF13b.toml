@@ -4,4 +4,4 @@ group = "mods"
 size = 3
 note = "MF13 found: a spell's behaviour and look are the game's code for its place in spells.sdb (SpellType = prototypeId >> 16, the 42 places), so a new record (the showcase mod's 'spark', place 42) has none and nothing should cast it. Wanted: a field (e.g. kind = \"lightning\") that gives a new record an existing behaviour and particle look with its own numbers, every per-type table checked for a place past 41, the hero able to learn and cast it; particle effects stay code (say whether a data format for them is wanted). MF17 (build/mf17_spells.md): the Behaviour()/Type() split this needs is MF17a; kind = '<vanilla spell>' is then a small follow-on on it. MF17a (done): SpellRecord::behaviour is set by SetBehaviours (spell_behaviour.cpp) after the merge; kind = '<vanilla spell code>' only needs a TOML field that SetBehaviours turns into that SpellType for a record past 41. Every table and the client's looks already read the behaviour."
 order = 1329
-status = "later"
+status = "queued"
