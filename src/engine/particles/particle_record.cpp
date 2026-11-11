@@ -31,6 +31,25 @@ std::string_view MergeKey(const RawNode& element) {
     return {};
 }
 
+// `remove = true`: the element or var of that name taken out of the layer below.
+bool Removes(const RawNode& node) {
+    const RawNode& remove = node["remove"];
+    return remove.kind == RawNode::Kind::Bool && remove.flag;
+}
+
+// `before = "<name>"`: a new element or var goes before the one of that name (empty: after the last).
+std::string_view Before(const RawNode& node) {
+    const RawNode& before = node["before"];
+    return before.kind == RawNode::Kind::String ? std::string_view(before.text) : std::string_view();
+}
+
+// A new element or var as it is placed: without its `before`.
+RawNode Marked(const RawNode& node) {
+    RawNode placed = node;
+    std::erase_if(placed.keys, [](const auto& entry) { return entry.first == "before"; });
+    return placed;
+}
+
 bool IsTableArray(const RawNode& node) {
     return node.kind == RawNode::Kind::Array && !node.items.empty() &&
            std::all_of(node.items.begin(), node.items.end(),
@@ -79,8 +98,14 @@ void MergeOver(RawNode& below, const RawNode& above) {
         for (const auto& [key, value] : above.keys) {
             auto found = std::find_if(below.keys.begin(), below.keys.end(),
                                       [&key](const auto& entry) { return entry.first == key; });
-            if (found == below.keys.end()) below.keys.emplace_back(key, value);
-            else MergeOver(found->second, value);
+            if (found != below.keys.end() && Removes(value)) below.keys.erase(found);
+            else if (found != below.keys.end()) MergeOver(found->second, Marked(value));
+            else if (!Removes(value)) {
+                const std::string_view before = Before(value);
+                const auto at = std::find_if(below.keys.begin(), below.keys.end(),
+                                             [before](const auto& entry) { return entry.first == before; });
+                below.keys.emplace(at, key, Marked(value));
+            }
         }
         return;
     }
@@ -93,12 +118,23 @@ void MergeOver(RawNode& below, const RawNode& above) {
             bool matched = false;
             for (std::size_t i = 0; !key.empty() && i < below.items.size(); ++i) {
                 if (merged[i] || MergeKey(below.items[i]) != key) continue;
-                MergeOver(below.items[i], element);
-                merged[i] = true;
                 matched = true;
+                if (Removes(element)) {
+                    below.items.erase(below.items.begin() + static_cast<std::ptrdiff_t>(i));
+                    merged.erase(merged.begin() + static_cast<std::ptrdiff_t>(i));
+                    break;
+                }
+                MergeOver(below.items[i], Marked(element));
+                merged[i] = true;
                 break;
             }
-            if (!matched) below.items.push_back(element);
+            if (matched || Removes(element)) continue;
+            const std::string_view before = Before(element);
+            std::size_t at = below.items.size();
+            for (std::size_t i = 0; !before.empty() && i < below.items.size(); ++i)
+                if (MergeKey(below.items[i]) == before) at = std::min(at, i);
+            below.items.insert(below.items.begin() + static_cast<std::ptrdiff_t>(at), Marked(element));
+            merged.insert(merged.begin() + static_cast<std::ptrdiff_t>(at), true);
         }
         return;
     }
@@ -862,7 +898,7 @@ private:
     }
     void ReadReactions() {
         for (const RawNode* node : Tables("on")) {
-            Known(*node, {"event", "when", "do"});
+            Known(*node, {"name", "event", "when", "do"});
             Reaction& reaction = record->reactions.emplace_back();
             if (!Text((*node)["event"], &reaction.event)) Error(*node, "an [[on]] without its event");
             if (reaction.event == "start") reaction.on = Reaction::On::Start;

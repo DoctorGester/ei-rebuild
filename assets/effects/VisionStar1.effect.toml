@@ -2,7 +2,7 @@
 # (by 0.95) towards a random 0.1-1.9 of 0.3 * 0.05 of the source's size. Once the source stops emitting or loses its
 # carrier, the size shrinks a further 0.95 a tick, the source's size is zeroed and a star below 0.03 is gone (a new
 # one starts at size 0).
-# VisionStar3 and VisionStar4 are built on it (like = "VisionStar1"): what changes here changes them too.
+# VisionStar2, VisionStar3 and VisionStar4 are built on it (like = "VisionStar1"): what changes here changes them too.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
 texture = "Stun"

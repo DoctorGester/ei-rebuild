@@ -3,8 +3,9 @@
 // driven by its typed inputs: stages by ticks, by a condition on an input and by an event, enter and event actions,
 // anchors, conditional tick reactions and the stop action; a particle's position written out and its vars after the
 // spawn; the features the families of the original effects brought; and every whole effect the notes and the modding guide
-// write out read without a problem; a variant built on another effect by `like` (a chain, a missing base, a circle,
-// a mod over the base). ei_unit_check (unit_check.cpp) runs it.
+// write out read without a problem; a variant built on another effect by `like` (a var or kind put `before` the base's,
+// one taken out by `remove`, a chain, a missing base, a circle, a mod over the base); vector values. ei_unit_check
+// (unit_check.cpp) runs it.
 #include "../../src/engine/particles/particle_record.h"
 #include "../../src/engine/core/random.h"
 #include "../../src/lib/toml.h"
@@ -911,6 +912,22 @@ name = "ember"
 lifetime = 3
 )toml"},
         {"Ring3", "like = \"ring2\"\n[vars]\nspin = 3\n"},
+        {"Ring4", R"toml(
+like = "Ring"
+[vars]
+early = { start = 4, before = "spin" }
+lift = { remove = true }
+[[on]]
+event = "tick"
+remove = true
+[[particle]]
+name = "first"
+before = "mote"
+lifetime = 1
+[[particle]]
+name = "spark"
+remove = true
+)toml"},
         {"Lost", "like = \"Nowhere\"\n"},
         {"Self", "like = \"Self\"\n"},
         {"Ping", "like = \"Pong\"\n"},
@@ -972,6 +989,19 @@ lifetime = 3
     if (ring3)
         Expect("a chain takes every level's fields", ring3->texture == "B" && var(*ring3, "spin") == 3.0f &&
                                                           var(*ring3, "lift") == 5.0f && ring3->particles.size() == 3);
+
+    errors.clear();
+    const std::shared_ptr<const Record> ring4 = resolve("Ring4", &errors);
+    for (const std::string& error : errors) std::printf("ei_unit_check: particle record: unexpected: %s\n", error.c_str());
+    Expect("before and remove read", ring4 != nullptr && errors.empty());
+    if (ring4) {
+        Expect("a var put before the base's and one taken out",
+               ring4->vars.size() == 2 && ring4->vars[0].name == "early" && var(*ring4, "early") == 4.0f &&
+                   ring4->vars[1].name == "spin");
+        Expect("a kind put before the base's and one taken out, an [[on]] taken out",
+               ring4->particles.size() == 2 && ring4->particles[0].name == "first" &&
+                   ring4->particles[1].name == "mote" && ring4->reactions.empty());
+    }
 
     modRate = "7";
     errors.clear();

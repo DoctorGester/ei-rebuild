@@ -49,7 +49,9 @@ struct RawNode {
 RawNode Copy(const toml::Value& root, const std::string& file);
 // `above` merged over `below` field by field: a table merges key by key; an array of tables with a `name` (or `event`)
 // merges each element with the first element below of that key not yet merged and appends the others; any other value
-// (an action list such as `do`, whose tables have neither, an array of numbers) replaces the one below.
+// (an action list such as `do`, whose tables have neither, an array of numbers) replaces the one below. A key's or an
+// element's table with `remove = true` takes the one below out; a new one with `before = "<name>"` goes before that
+// one instead of after the last.
 void MergeOver(RawNode& below, const RawNode& above);
 
 // The effect `tree` (the layers of the effect `name` merged) built on the effect its `like` names: that effect's tree

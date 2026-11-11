@@ -5,7 +5,8 @@
 # its frames running back (every fourth tick held) and fading by its life. Once the cast ends (the source stops
 # emitting or loses its carrier) the whole effect fades over 6 ticks.
 # CastingDivination differs in more (its marker, the tables) and is a file of its own.
-# CastingElectricity and CastingAcid are built on it (like = "CastingFire"): what changes here changes them too.
+# CastingElectricity, CastingAcid and CastingDivination are built on it (like = "CastingFire"): what changes here
+# changes them too.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
 texture = "FireSmoke"

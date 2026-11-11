@@ -77,10 +77,12 @@ particle side, the inputs). The guide for modders: docs/modding.md, "Effects".
 - The name is the file's stem (`showcase_aura` for `showcase_aura.effect.toml`), matched without case. Each layer's
   file of that name is read (`FindRecordFile(..., false)`: the TOML files alone) and merged field by field, the
   bottom one first (`MergeOver`): a table merges key by key, an array of tables (`[[stage]]`, `[[anchor]]`,
-  `[[particle]]`, `[[on]]`) by its elements' `name` (`event` for `[[on]]`), matched to the first not yet merged, the
-  others appended; an array of tables none of which has a `name` or `event` (an action list: `do`, `enter`,
-  `on_death`) and any other value replace. `replace = true` ends the search as for every record file. So a mod
-  retunes one particle kind of an effect with `[[particle]] name = "spark" lifetime = 20` alone.
+  `[[particle]]`, `[[on]]`) by its elements' `name` (an `[[on]]` without one by its `event`), matched to the first not
+  yet merged, the others appended; an array of tables none of which has a `name` or `event` (an action list: `do`,
+  `enter`, `on_death`) and any other value replace. A var's or an element's table with `remove = true` takes the one
+  below out; a new one with `before = "<name>"` goes before that one (both keys are dropped as they merge, so `Read`
+  never sees them). `replace = true` ends the search as for every record file. So a mod retunes one particle kind of
+  an effect with `[[particle]] name = "spark" lifetime = 20` alone.
 - **Variants** (`like = "<effect>"`, MF15g5a): after the layers merge, a `like` takes that effect's tree (its own
   layers merged, its own `like` resolved first) and merges the effect's over it by the same `MergeOver`
   (`effectdata::ResolveLike`, particle_record.cpp; the registry's `MergedLayers` answers a base's layers, and the
@@ -89,14 +91,12 @@ particle side, the inputs). The guide for modders: docs/modding.md, "Effects".
   it (`a -> b -> a`) are errors: the effect does not load. A mod's layer over a base reaches every variant of it
   (accepted, user 2026-11-11). The registry caches records, not trees: a base edited in the viewer (`Put`) reaches its
   variants only once its file is saved into an active layer and the registry resets.
-  33 original effects are variants (the ones that differed only in values): CastingDomination / Enchantment /
-  Healing on CastingIllusion, CastingElectricity / Acid on CastingFire, Falling2-4, Shower2-4, Modifier2-5 and 9 on
-  Modifier1, 6-8 on Modifier5, 10-12 on Modifier9, AcidStar on FireStar, RikArrowSmoke on FireArrow, FeetCloud2,
-  VisionStar3 / 4, PoisonCloud on PoisonFog, SphereAcid / Electricity and Antimagic on SphereFire, Cylinder2,
-  GroundDust2. Their resolved trees are the old files' (values replaced in place, so vars keep their order), and
-  effect_check holds unchanged. Left whole: CastingDivination (its marker kind must come before the spark: a new kind
-  is appended), VisionStar2 and CampFire (new vars that must tick before the base's), Transform (it drops one of
-  Mushroom's reactions; a variant cannot remove).
+  37 original effects are variants: CastingDomination / Enchantment / Healing on CastingIllusion, CastingElectricity /
+  Acid / Divination on CastingFire (Divination's marker kind `before` the spark), Falling2-4, Shower2-4, Modifier2-5
+  and 9 on Modifier1, 6-8 on Modifier5, 10-12 on Modifier9, AcidStar on FireStar, RikArrowSmoke on FireArrow,
+  FeetCloud2, VisionStar2-4 on VisionStar1, PoisonCloud on PoisonFog, SphereAcid / Electricity and Antimagic on
+  SphereFire, Cylinder2, GroundDust2, CampFire on Fire (its roll var `before` the rise that reads it), Transform on
+  Mushroom (the named shake reaction removed).
 - The id: `0x40000000 | (FNV-1a 32 of the lower-case name & 0x3FFFFFFF)` (`IdOf`), apart from the original
   `0x2000` range. It is the source's `type`, and the world object's (`EffectParticle::type`): it travels in the delta
   field and saves as the original types do. Two names with one id: the second is left out with a warning.

@@ -689,12 +689,15 @@ frame = { start = "pick(16)", delay = 1 }
     in its place; a new key is added.
   - `[[particle]]`, `[[stage]]` and `[[anchor]]` merge with the base's of the same `name`; a new name is added after
     the base's.
-  - `[[on]]` merges with the base's of the same `event`, in order: your first `[[on]] event = "tick"` with the base's
-    first "tick" reaction, your second with its second; one more than the base has is added.
+  - `[[on]]` merges with the base's of the same `name`, or, without one, of the same `event`, in order: your first
+    `[[on]] event = "tick"` with the base's first "tick" reaction, your second with its second; one more than the base
+    has is added.
   - A list of actions (`do`, `enter`, `on_death`) and a list of numbers (a table, a vector, a colour) replace the
     base's whole.
-  - Nothing can be taken out: an effect that needs less than its base, or a new kind or var before the base's
-    (kinds are tried in order, vars tick in order), is written whole.
+  - `remove = true` takes the base's out: `[[particle]] name = "spark" remove = true`, `[vars] glow = { remove = true }`.
+  - `before = "<name>"` puts a new one before the base's of that name instead of after the last (kinds are tried in
+    order, vars tick in order): `[[particle]] name = "marker" before = "spark"`, `[vars] roll = { start = 1, tick =
+    "...", before = "rise" }`.
 
   Your effect keeps its own name. A mod that changes the base changes your variant too, where your file does not name
   that field. A missing base, or a chain that comes back to itself, is a problem: the effect shows nothing. The game's

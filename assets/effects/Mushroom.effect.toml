@@ -7,6 +7,7 @@
 # ticks. The camera shakes at the cloud's second tick.
 # A puff's end is a `kill` at its own age (the update the original still gives it after its end moves it:
 # docs/notes/effects.md, "Kept"), its velocity and frame timer left alone at that update.
+# Transform is built on it (like = "Mushroom"): what changes here changes it too.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
 texture = "ChangeHero"
@@ -37,6 +38,7 @@ when = "!made"
 do = [{ set = "stem_x", value = "origin.x" }, { set = "stem_y", value = "origin.y" }, { set = "stem_z", value = "origin.z" }, { set = "made", value = 1 }]
 
 [[on]]
+name = "shake"
 event = "tick"
 when = "made && ticks == 1"
 do = [{ shake = "size", time = 5, decay = 0.25 }]
