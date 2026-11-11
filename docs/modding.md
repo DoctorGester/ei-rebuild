@@ -750,7 +750,8 @@ clairvoyance `Clairvoyance.lua`, fireworks `Fireworks.lua`, vision fog `VisionFo
 a zone places on the ground casts one) `Campfire.lua` (built into the game; the
 source's `assets/spells/` has them and the fields the game's records get), which a mod's file of that name replaces.
 The showcase mod's Chain Spark ([The showcase mod](#the-showcase-mod)) is this example: a spark that strikes its
-target, then leaps to the nearest enemy it has not struck, each strike 0.6 of the one before, each slowing its victim.
+target, then leaps to the nearest enemy it has not struck, each strike 0.6 of the one before, each leaving its victim
+shocked (slowed and crackling with sparks: the spell's own active effect, [Active effects](#active-effects)).
 
 ```toml
 [[spell]]
@@ -770,6 +771,7 @@ light_range = 2.0
 ai = "attack"                  # how the AI casts it (none: never, the default)
 damage_type = "lightning"
 offensive = true
+look = "ChainSparkShock"       # its own effect's look on a struck unit (Res\effects; Active effects)
 ```
 
 - **What the game reads of the record** besides its numbers: `ai` (`none`, `attack`, `area_attack`, `lasting_area`,
@@ -830,7 +832,7 @@ end
 function spell.OnHit(cast, victim, payload, point)
     if not victim then return end                      -- the unit is gone: the chain ends here
     cast:Damage(victim, payload.damage, "lightning")
-    cast:Apply(victim, "slow", { ticks = 40, value = 1 })
+    cast:Apply(victim, "own", { ticks = 40, value = 1 })  -- the shock: OnStats below, the record's look
     cast:Effect("ChainSparkHit", { attach = victim, size = cast.power, lifetime = 30 })
     cast:Sound("magic\\lightning\\start.wav", victim)
     cast.data.strikes = cast.data.strikes + 1
@@ -847,6 +849,10 @@ end
 function spell.Leap(cast, leap)                        -- the timer cast:After named
     if not leap.to then return end
     Launch(cast, leap.from, leap.to, leap.damage)
+end
+
+function spell.OnStats(effect, stats)                  -- the shock slows as the game's slow does
+    stats:Subtract("Haste", effect.value)
 end
 
 return spell
@@ -989,8 +995,35 @@ return spell
 | `Stunned` | while above 0 the unit is stunned: no actions (stun; the teleport's arrival) |
 | `NoCasting` | while above 0 the unit casts no spells, unless its natural weapon is spells only (feeblemind) |
 
-- The effect's look and sounds are still the game's own for its kinds (none for a kind of yours), and a unit's own
-  interface does not yet see a `NoCasting` of yours (it greys the spells under feeblemind only).
+**How it shows.** The players' screens show an effect by fields of its kind's record (the spell its `effect` names,
+or the spell itself for `own`), since they have the effects' kinds but not their stats. The game's twenty buffs have
+theirs in the built-in `spells.sdb.toml` (`Res\database\spells.sdb.toml` merges over them: a mod can give
+protection from fire another look); a buff of yours gives its own:
+
+```toml
+# Res\database\spells.sdb.toml: the iron skin's look and sounds.
+[[spell]]
+code = "iron_skin"
+script = "iron_skin.lua"
+look = "IronSkin"                              # Res\effects\IronSkin.effect.toml on the unit while it lasts
+sound_start = "magic\\Fireshield\\start.wav"
+sound_end = "magic\\Fireshield\\end.wav"
+```
+
+| Field | What it shows while an effect of the kind lasts |
+|---|---|
+| `look` | a particle effect on the unit (yours from `Res\effects`, [Effects](#effects), or a game's by its name: `SphereFire`, `VisionStar1`, `FeetCloud1`, ...); one for all the kind's effects on the unit, at the size of the strongest (its cast's power, about 0.8 to 1.8, in steps of 1/16: the effect's `size`) |
+| `look_ring` | a particle effect started once as the kind comes on the unit and once as it goes, the second at the negated size (the game's rings: `ClayRing` for lichdom, `Modifier1` for strength and weak) |
+| `look_ring_scale` | the ring's size times this (1; weak's -1: its ring closes as it comes and opens as it goes) |
+| `figure` | `plain` (the default), `faded` (the figure pulses half-seen and casts no shadow: invisibility) or `tinted` (it pulses red: stun) |
+| `sound_start`, `sound_end` | played at the unit as the kind comes and as it goes |
+| `sound_loop` | one to five sounds that go on while the kind lasts: after the start sound, one looped, several one after another in random order, following the unit (feeblemind's `circle.wav`) |
+| `sound_loop_ticks` | instead, one of `sound_loop` at random every that many ticks + 1 (stench's three every 17) |
+| `quiet_steps` | the unit's steps make no sound (silence) |
+| `greys_spells` | the unit's own interface offers none of its spells (feeblemind); with `NoCasting` in `OnStats` the server refuses them too |
+
+A unit that comes into view (or a load) with the effect already on shows the look and the loop at once, without the
+start sound or the ring; a unit that dies with it makes no end sound or ring.
 
 ## What stays in the original formats
 
@@ -1064,7 +1097,7 @@ Read its files as a recipe for each kind of new content:
 | A weapon, boots | `items.idb.toml`, `Res\figures\initwehm9.glb`, `initarbt20.glb` (inventory models: a loose figure named `initwe<type code><number>` / `initar...`, one part `weapon` / `armor`), `Res\redress\unhumahm_09.gr.0.png`, `unhumabt_20.le.0.png` (their textures; the boots' is a layer over the hero's skin) |
 | A quest | `Maps\zone1.lua` (the quest's variable `q.<zone>.<quest>`, its reward), `quests.qdb.toml` (its experience), `Res\texts\texts.toml` (`quest <name>`: the title, the description, `#subobj` lines) |
 | A spell | `spells.sdb.toml` (Chain Spark's record, `script` naming its file), `Res\spells\chain_spark.lua` (its mechanic: a missile with `OnHit`, the next victim by `FindUnits`, `Damage`, `Apply`, `Effect`, `Bolt`, a timer for the leap; [Spells](#spells)), `Res\textures\spell0101.png`, `prototype0101.png` (its pictures, `icon = 101`), `Maps\zone1.lua` (`GiveItem` of its spell container); `tests/scenarios/mod_showcase_spell.txt` casts it |
-| An effect | `Res\effects\showcase_aura.effect.toml` (orbs trailing light and rising motes, driven by its inputs; `tests/scenarios/mod_effect.txt` starts it from the console); the spell's `ChainSpark.effect.toml` (the missile's spark and its trail) and `ChainSparkHit.effect.toml` (a strike's flash and ring of sparks), both on the mod's own texture `Res\textures\chainspark.png` (16 pictures, 4 x 4) |
+| An effect | `Res\effects\showcase_aura.effect.toml` (orbs trailing light and rising motes, driven by its inputs; `tests/scenarios/mod_effect.txt` starts it from the console); the spell's `ChainSpark.effect.toml` (the missile's spark and its trail) , `ChainSparkHit.effect.toml` (a strike's flash and ring of sparks) and `ChainSparkShock.effect.toml` (the look of the shock a strike leaves: the record's `look`, [Active effects](#active-effects)), all on the mod's own texture `Res\textures\chainspark.png` (16 pictures, 4 x 4) |
 
 What it cannot do yet: add a zone beside the game's (it replaces zone 1: the zone list is one text read whole), show
 a new weapon in the hero's hand or a new helmet or body armour on him (those are parts of the hero's figure), and its

@@ -1,0 +1,23 @@
+# The showcase mod's shock (docs/modding.md, "Active effects"): the look of Chain Spark's own effect on a unit it
+# struck (Res\database\spells.sdb.toml's `look`), while the unit is slowed. Small sparks crackle around the body,
+# flicker and fall away; the game sizes it by the strike's power (about 0.8 to 1.8).
+
+texture = "chainspark"          # Res\textures\chainspark.png: 16 pictures of a spark, 4 x 4
+blend = "additive"
+attach = "attached_only"
+part = "body"
+
+[emit]
+rate = "chance(0.5) ? 1 : 0"    # a spark every other tick on average
+max = 40
+
+[[particle]]
+name = "crackle"
+lifetime = "range(6, 12)"
+spawn = { shape = "ring", radius = "size * 0.35" }
+speed = "range(0.02, 0.05) * size"
+gravity = [0, 0, -0.003]
+size = { start = "range(0.12, 0.22) * size", growth = 0.9 }
+color = "A0D8FF"
+alpha = { tick = "255 * (1 - p.t)" }
+frame = { start = "pick(16)", delay = 1 }

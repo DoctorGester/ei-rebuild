@@ -2,7 +2,8 @@
 -- server (docs/modding.md, "Spells").
 -- A spark flies at the target and strikes it. An arc then reaches from the struck unit to the nearest enemy within the
 -- spell's radius that it has not struck yet, and the spark leaps along it a moment later. Each strike deals FALLOFF of
--- the one before (12, 7.2 and 4.32 at the record's damage) and slows its victim for a while. The chain stops after
+-- the one before (12, 7.2 and 4.32 at the record's damage) and leaves its victim shocked for a while: the spell's own
+-- effect, which slows it (OnStats below) and crackles with sparks (the record's `look`). The chain stops after
 -- cast.targetCount strikes (3; each 't' rune adds one) or when no enemy is left within reach; the cast then ends once
 -- the last strike's sparks have gone.
 -- The last chain's strikes go into the game variables chain_spark.strikes (how many) and chain_spark.strike1, 2, ...
@@ -10,7 +11,7 @@
 
 local FALLOFF = 0.6     -- each strike deals this share of the one before
 local LEAP_TICKS = 10   -- the arc stands this long before the spark leaps along it
-local SLOW_TICKS = 40   -- a strike slows its victim this long, as the game's Slow does
+local SHOCK_TICKS = 40  -- a strike shocks its victim this long
 local SPARKS_TICKS = 30 -- a strike's sparks (ChainSparkHit) last this long
 
 local spell = {}
@@ -30,7 +31,7 @@ end
 function spell.OnHit(cast, victim, payload, point)
     if not victim then return end   -- the unit is gone: the chain ends here
     cast:Damage(victim, payload.damage, "lightning")
-    cast:Apply(victim, "slow", { ticks = SLOW_TICKS, value = 1 })
+    cast:Apply(victim, "own", { ticks = SHOCK_TICKS, value = 1 })
     cast:Effect("ChainSparkHit", { attach = victim, size = cast.power, lifetime = SPARKS_TICKS })
     cast:Sound("magic\\lightning\\start.wav", victim)
     local strikes = cast.data.strikes + 1
@@ -52,6 +53,12 @@ end
 function spell.Leap(cast, leap)
     if not leap.to then return end   -- the next victim is gone
     Launch(cast, leap.from, leap.to, leap.damage)
+end
+
+-- The shock on a struck unit (cast:Apply "own"; docs/modding.md, "Active effects"): its action rate down by the
+-- effect's value, as the game's Slow lowers it.
+function spell.OnStats(effect, stats)
+    stats:Subtract("Haste", effect.value)
 end
 
 return spell
