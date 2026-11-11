@@ -177,12 +177,24 @@ target_link_libraries(ei_game PUBLIC ei_render ei_platform tomlc17 stb_dxt wuffs
 # (src/game/effects/embed_effects.cmake; docs/notes/effects.md, "The original effects on data").
 file(GLOB EI_BUILTIN_EFFECTS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/assets/effects/*.effect.toml)
 add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/effect_files/builtin.h
-    COMMAND ${CMAKE_COMMAND} -DFOLDER=${CMAKE_SOURCE_DIR}/assets/effects -DOUT=${CMAKE_BINARY_DIR}/effect_files/builtin.h
+    COMMAND ${CMAKE_COMMAND} -DFOLDER=${CMAKE_SOURCE_DIR}/assets/effects -DLABEL=assets/effects
+            -DOUT=${CMAKE_BINARY_DIR}/effect_files/builtin.h -DNAMESPACE=builtin_effects -DSUFFIX=.effect.toml
             -P ${CMAKE_SOURCE_DIR}/src/game/effects/embed_effects.cmake
     DEPENDS ${EI_BUILTIN_EFFECTS} ${CMAKE_SOURCE_DIR}/src/game/effects/embed_effects.cmake
     COMMENT "Writing assets/effects as bytes"
     VERBATIM)
 target_sources(ei_game PRIVATE ${CMAKE_BINARY_DIR}/effect_files/builtin.h)
+# The game's spells on scripts (assets/spells: their Lua files and the records' fields, spells.sdb.toml), the same
+# way (docs/notes/items_spells.md, "Scripted spells").
+file(GLOB EI_BUILTIN_SPELLS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/assets/spells/*)
+add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/spell_files/builtin.h
+    COMMAND ${CMAKE_COMMAND} -DFOLDER=${CMAKE_SOURCE_DIR}/assets/spells -DLABEL=assets/spells
+            -DOUT=${CMAKE_BINARY_DIR}/spell_files/builtin.h -DNAMESPACE=builtin_spells
+            -P ${CMAKE_SOURCE_DIR}/src/game/effects/embed_effects.cmake
+    DEPENDS ${EI_BUILTIN_SPELLS} ${CMAKE_SOURCE_DIR}/src/game/effects/embed_effects.cmake
+    COMMENT "Writing assets/spells as bytes"
+    VERBATIM)
+target_sources(ei_game PRIVATE ${CMAKE_BINARY_DIR}/spell_files/builtin.h)
 
 # The new renderer (docs/notes/renderer.md) on SDL3's GPU API (src/render/gpu.h: Direct3D 12 on Windows, Vulkan
 # elsewhere). Not part of ei_platform: the offline checks link the renderer without the game.

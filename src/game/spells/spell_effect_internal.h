@@ -131,7 +131,7 @@ inline const itemdb::SpellRecord* Prototype(const SpellEffect* e) { return e->He
 inline float Power(const SpellEffect* e) { return PowerFactor(e->HeldSpell()->damage, Prototype(e)->damage); }
 
 // The lights' rise speed: lightRange / max(lightRiseDivisor, 1), a NaN divisor kept.
-inline float LightRise(SpellEffect* e) {
+inline float LightRise(const SpellEffect* e) {
     const itemdb::SpellRecord* prototype = Prototype(e);
     return prototype->lightRange / MaxKeepB(1.0f, prototype->lightRiseDivisor);
 }

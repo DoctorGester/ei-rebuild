@@ -53,8 +53,9 @@ void WorldServer::CastSpell(Spell* spell, Unit* caster, const Vector3& from, Map
     if (zoneMode != ZoneMode::Battle && caster) return;
     SpellType spellType = spell->Behaviour();
     if (spellType == SpellType::Possession || spellType == SpellType::Link || spellType == SpellType::Charm) return;
-    // A scripted spell is one cast whatever its target count and filters: its script picks the targets.
-    if (spellType == SpellType::Scripted) {
+    // A scripted spell is one cast whatever its target count and filters (its script picks the targets), unless its
+    // record says per_target.
+    if (spellType == SpellType::Scripted && !spell->GetPrototype()->perTarget) {
         CreateMissile(spell, caster, from, target, to, extra);
         return;
     }

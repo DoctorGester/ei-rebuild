@@ -120,16 +120,6 @@ void RiseLight(SpellEffect* e) {
     if (e->light) e->light->SetVelocity(rise);
 }
 
-// Lightning / CurseMagic: the bolt and sound go when the timer reaches 0, the light rises away.
-void LightningFade(SpellEffect* e) {
-    if (e->timer == 0) {
-        e->ReleaseVisual();
-        e->ReleaseSound();
-        RiseLight(e);
-    }
-    Linger(e);
-}
-
 // InvokeLightning: the light strike's bolt is dropped every tick; at timer 5 a second bolt strikes from 30 above.
 void LightStrikeEcho(SpellEffect* e) {
     e->ReleaseVisual();
@@ -383,7 +373,7 @@ void SpellEffect::UpdateMissile(SpellType type) {
         CountDown(this);
         break;
     case SpellType::Fireball: FireballFlight(this); break;
-    default: break;
+    default: state = kStateEnded; break;   // a save's cast of a spell that runs on its script now
     }
 }
 
@@ -394,8 +384,6 @@ void SpellEffect::UpdateLasting(SpellType type) {
     case SpellType::Fireball:
     case SpellType::Healing:
     case SpellType::RickMagic: CountDown(this); break;
-    case SpellType::Lightning:
-    case SpellType::CurseMagic: LightningFade(this); break;
     case SpellType::InvokeLightning: LightStrikeEcho(this); break;
     case SpellType::AcidColumn: AcidColumn(this); break;
     case SpellType::FireWall: FireWall(this); break;
@@ -408,7 +396,7 @@ void SpellEffect::UpdateLasting(SpellType type) {
     case SpellType::Link: Link(this); break;
     case SpellType::Teleport: Teleport(this); break;
     case SpellType::Campfire: CountingCloud(this); break;
-    default: break;
+    default: state = kStateEnded; break;   // a save's cast of a spell that runs on its script now
     }
 }
 

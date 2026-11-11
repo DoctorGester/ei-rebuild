@@ -1,0 +1,7 @@
+id = "MF17g3"
+title = "Port the fireball and the area strikes (fireball, light strike, acid column) onto scripts"
+group = "mods"
+size = 3
+depends = ["MF17g"]
+note = "Pattern of MF17g (assets/spells/Lightning.lua, docs/notes/items_spells.md 'The game's spells on scripts'): script + record fields in assets/spells/spells.sdb.toml (per_target, ends_with_target, the use fields), the same objects in the same order and the same ticks; delete the Start/Update/DamageKindOf cases and the kGameSpells rows. Goldens: only the missile record form and saves mid-cast may change (golden.py explain), re-record those by name from two agreeing passes. Lua numbers are doubles: pass floats on or one operation, never a chain; float constants need a binding value or an exact literal. fireball, inv_lit, acid_column. Missing: ground heights (RawSurfaceHeightAt, GridHeightAt) as a binding; a flying particle with a target and its unit (SetTarget, unitId) and its flight ticks (FlightTicks, ScaledToSpeed); sound sequences (CreateSoundSequence: start + looping); the area hit in the sector map's order (HitUnitsInRadius: FindUnits sorts by distance, the C++ hits in sector order: a filter or option keeping that order), with GetDamage's 4/n split; the AI noise of the explosion (aiMap.events.Noise); the blast's SetColors and AreaCurve/MaxKeepB sizes (values from C++, not Lua chains); bolts with fixed ends and a negative width (power x -7); Release(handle) for objects dropped every tick."
+order = 1368

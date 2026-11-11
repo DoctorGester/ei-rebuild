@@ -101,7 +101,7 @@ constexpr SpellDamageKind kAcidArea{DamageType::Acid, 1};
 const SpellDamageKind* DamageKindOf(SpellType type) {
     switch (type) {
     case SpellType::FireArrow: case SpellType::Fireball: case SpellType::RickMagic: return &kFireHit;
-    case SpellType::Lightning: case SpellType::InvokeLightning: case SpellType::CurseMagic: return &kLightningHit;
+    case SpellType::InvokeLightning: return &kLightningHit;
     case SpellType::AcidRay: return &kAcidHit;
     case SpellType::AcidColumn: case SpellType::AcidFog: return &kAcidArea;
     case SpellType::FireWall: case SpellType::Campfire: return &kFireArea;
@@ -232,7 +232,7 @@ void SpellEffect::ResumeScripted() {
 // A spell effect's casting state (SpellEffect::Update state 0) and the helpers that create its effect
 // objects. Every spell type starts differently: missiles get a EffectArrow or a particle source and go to
 // state 1, the lasting spells get particles, lights and sound sequences and go to state 2, the instant ones
-// (lightning, the light strike, buffs, charm) deal or apply their effect here. Also the cast spell's
+// (the light strike, buffs, charm) deal or apply their effect here; a scripted spell's cast starts its script. Also the cast spell's
 // lifetime. See docs/notes/items_spells.md.
 
 using namespace spellfx;
@@ -255,19 +255,6 @@ void StartFireArrow(SpellEffect* e, SpellType type, const Vector3& from) {
     e->CreateArrow(from, e->target, trail, power, "magic\\Firearrow\\circle.wav", color, range);
     e->CreateSound("magic\\Firearrow\\start.wav", e->position, kZeroVector, kVolume, kHearing);
     e->state = kStateMissile;
-}
-
-// Lightning and CurseMagic: lightning from the caster to the target, hitting it at once.
-void StartLightning(SpellEffect* e, SpellType type, const Vector3& from) {
-    float power = Power(e);
-    e->CreateLightning(from, e->target, e->caster, power, type == SpellType::CurseMagic ? 1 : 0);
-    e->CreateSound("magic\\lightning\\start.wav", e->position, kZeroVector, kVolume, kHearing);
-    float range = Prototype(e)->lightRange;
-    Vector3 color = Prototype(e)->lightColor;
-    if (e->target) e->CreatePointLight(e->target->EyePoint(), color, range, kZeroVector);
-    e->HitTarget();
-    e->timer = 7;
-    e->state = kStateLasting;
 }
 
 // AcidRay: a missile (power x 0.4).
@@ -584,8 +571,6 @@ void SpellEffect::Start(SpellType type) {
     switch (type) {
     case SpellType::FireArrow:
     case SpellType::RickMagic: StartFireArrow(this, type, from); break;
-    case SpellType::Lightning:
-    case SpellType::CurseMagic: StartLightning(this, type, from); break;
     case SpellType::AcidRay: StartAcidRay(this, from); break;
     case SpellType::Fireball: StartFireball(this, from); break;
     case SpellType::InvokeLightning: StartLightStrike(this); break;
@@ -699,13 +684,6 @@ EffectParticle* SpellEffect::NewParticle(int particleType, const Vector3& at, fl
     return particle;
 }
 
-void SpellEffect::CreateLightning(const Vector3& from, MapObject* boltTarget, EngineObject* source, float power,
-                                   int flag) {
-    if (!boltTarget) return;
-    const Vector3 to = LightningEnd(boltTarget);
-    SetVisual(NewLightning(from, to, source ? source->id : -1, boltTarget->id, power * kBoltWidthScale, flag));
-}
-
 Vector3 SpellEffect::LightningEnd(MapObject* object) {
     Vector3 to = object->localPosition;
     to.z = world->GridHeightAt(to.x, to.y) + object->bounds.boxMax.z * kTargetHeight;
@@ -814,7 +792,7 @@ void SpellEffect::Init(WorldServer* newWorld, Spell* newSpell, Unit* newCaster, 
 
 bool SpellEffect::Forget(EngineObject* object) {
     if (target == object) {
-        if (state != kStateScripted) return false;
+        if (state != kStateScripted || Prototype(this)->endsWithTarget) return false;
         target.Reset();
     }
     if (caster == object && caster) caster.Reset();

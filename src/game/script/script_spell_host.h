@@ -39,13 +39,13 @@ public:
     // no entry of that key.
     bool Adopt(SpellEffect& effect);
 
-    // The `casts` table (by key: data, timers, tick, finished) and the next key into the scheduler's persisted table
-    // at `root`, and back.
+    // The `casts` table (by key: data, timers, tick, finished) and the key after the live casts' into the scheduler's
+    // persisted table at `root`, and back.
     void Save(int root);
     void Restore(int root);
 
     // A module file's text by its name below Res\spells\ (the top layer that has it); false when there is none. Its
-    // default reads the files through the mod layers.
+    // default reads the files through the mod layers, then the game's own (assets/spells, built in).
     std::function<bool(const std::string& file, std::string* text)> readModule;
 
     // The cast value's methods (Lua C functions with the host as their upvalue; docs/modding.md, "Spells").
@@ -64,6 +64,8 @@ public:
     static int Effect(lua_State* L);
     static int Sound(lua_State* L);
     static int Light(lua_State* L);
+    static int SetVelocity(lua_State* L);
+    static int Eye(lua_State* L);
 
 private:
     // The effect of the cast value `self` (argument 1) of a world method; a Lua error when the cast has ended or the

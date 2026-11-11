@@ -145,12 +145,11 @@ closes files from GetFile (reference counts only grow).
 A spell record's place (Spell's `prototypeId >> 16`, `SpellValues::prototypeIndex`, `MapEffect::type`) says which
 record it is; its behaviour (`SpellRecord::behaviour`, `Spell::Behaviour()`, `MapEffect::Behaviour()`) says what it
 does. The load (`SpellDatabase::Read`, `SetBehaviours`) gives the game's 42 records the behaviour of their place, so for
-them the two are one number and every golden stays. A record with a `script` gets `SpellType::Scripted` (any place;
-"Scripted spells"), any other record after them (a mod's: the showcase's "spark", 42) `SpellType::None`, which starts
-nothing.
+them the two are one number. A record with a `script` gets `SpellType::Scripted` (any place; "Scripted spells"), any
+other record after them (a mod's: the showcase's "spark", 42) `SpellType::None`, which starts nothing.
 
 - What reads the behaviour: `SpellEffect::Start`, `UpdateMissile`, `UpdateLasting`, `UpdateFootprint`, `DamageKindOf`
-  (spell_effect*.cpp), the cut spells in `CastSpell`, `FillCastKind`'s Rick / curse magic, the healing item triggers
+  (spell_effect*.cpp), the cut spells in `CastSpell`, the healing item triggers
   (combat_actions, combat_update), the effects' stat reads (`HasEffect`, `EffectValue`, `AddEffect`'s scale and stun,
   unit_vitals' strongest per behaviour) and the client's looks and sounds (`MergesParticles`, `ParticleSourceType`,
   `SoundFolder`, map_object_client_effects.cpp). A behaviour without a look (None) gets no particle source and no
@@ -159,21 +158,66 @@ nothing.
   kind (`ai`), the damage type of the AI's estimate (`GetSpellDamage`), `offensive` (the HUD's use at once aims at the
   nearest enemy), `turnsVictim` (`CreateMissile`: the victim sees the caster, diplomacy counts an attack) and
   `fighting` (`UnitServer::IsFighting`: the battle music), and `effect`, the behaviour the AI's curse, protect and
-  enhance options look for on a unit (`HasEffect`: "has it already"; the record's `aiEffect`). The game's 42 have one
-  row each (`kGameSpells`, with Rebirth's FixSpellSelfCasting and FixPlaingBattleMusicFromAntimagic in it) and look for
-  their own behaviour; a Scripted or None record reads its TOML fields `ai`, `damage_type` and `offensive` (offensive
-  also standing for turnsVictim and fighting) and `ai_effect`: the code of the spell whose effect it gives (a scripted
-  spell applying the game's slow says `ai_effect = "slow"`), resolved by the load (`SetBehaviours`) to that record's
-  behaviour; without it, or naming no spell (a load warning), its own. The fields of a game record are not read: its
-  row is its behaviour's.
+  enhance options look for on a unit (`HasEffect`: "has it already"; the record's `aiEffect`). The game's spells still
+  in code have one row each (`kGameSpells`, with Rebirth's FixSpellSelfCasting and FixPlaingBattleMusicFromAntimagic
+  in it) and look for their own behaviour; those on scripts have an empty row. A Scripted or None record reads its TOML
+  fields `ai`, `damage_type`, `offensive`, `turns_victim` and `fighting` (the last two as `offensive` when not given:
+  -1 in the record) and `ai_effect`: the code of the spell whose effect it gives (a scripted spell applying the game's
+  slow says `ai_effect = "slow"`), resolved by the load (`SetBehaviours`) to that record's behaviour; without it, or
+  naming no spell (a load warning), its own. The fields of a game record still in code are not read: its row is its
+  behaviour's.
+- `cast_school` (`SpellRecord::castSchool`, None: the record's own school): the school whose casting look the caster
+  shows (`FillCastKind` → `OrderPlan::castKind`). The original casts Rick magic (a fire arrow) with lightning's look and
+  curse magic (lightning) with fire's, perhaps a swap; assets/spells/spells.sdb.toml keeps it.
 - Limits: a spell's place is a byte (prototypeIndex, MapEffect::type, saved and sent), a modifier's place + 1 a signed
   byte (`Spell::modifiers`); the load leaves out spells past 256 and modifiers past 127 with a warning.
-- Moving the game's spells onto the scripted path later (their records' rows as fields) needs `turnsVictim` and
-  `fighting` to be fields of their own: the game's rows differ from `offensive` there (Lichdom and Charm are
-  offensive and turn nobody; Rick and curse magic are not fighting).
 - Checked by ei_unit_check's spell behaviour cases (tests/unit/spell_behaviour.cpp: a fake 300-record table cut to
-  256, the game's rows whatever the fields say, a new record's fields, a script making any record Scripted, ai_effect
-  resolved, unknown or empty) and by every golden staying the same.
+  256, the game's rows whatever the fields say, a new record's fields, a script making any record Scripted,
+  turns_victim and fighting of their own, ai_effect resolved, unknown or empty) and by the goldens.
+
+## The game's spells on scripts
+
+The game's own spells move onto the scripted path family by family (MF17g; user 2026-11-11: the original content uses
+what modders get), so the code they ran and the switches and table rows that keyed on them go. On it now: the
+lightning arc and curse magic (assets/spells/Lightning.lua). Still in code: the missiles (fire arrow, Rick magic, acid
+ray), the fireball and the area strikes (light strike, acid column), the walls and the poison cloud, the buffs, and
+the rest (fireworks, clairvoyance, vision fog, healing, teleport, campfire; possession, link and charm are cut).
+
+- **Built in.** `assets/spells/` holds the scripts (CamelCase, by the spell they run) and `spells.sdb.toml`, the
+  fields the game's records get: `script`, the use fields (`ai`, `damage_type`, `offensive`, `turns_victim`,
+  `fighting`), `cast_school`, `per_target`, `ends_with_target`. The build writes the folder into the exe
+  (src/game/effects/embed_effects.cmake, `spell_files/builtin.h`). `SpellDatabase::MergeBuiltin` merges the TOML into
+  the records of its codes right after the binary spells.sdb is read (never adding a record; a database without the
+  code gets nothing), below every TOML layer, so a mod's spells.sdb.toml overrides any field. A whole-file TOML
+  (`replace = true`, ei-convert's dump) stands alone: the dump carries the fields, since ei-convert reads the database
+  the same way. The scripts are the bottom layer of `Res\spells\` (`ScriptSpellHost`'s ReadFromLayers falls back to
+  `itemdb::BuiltinSpellFile`); a mod's `Res\spells\Lightning.lua` replaces the game's for both spells.
+- **What keeps them the same.** `per_target`: CastSpell casts each one as before, once at every target it picks
+  (t runes, f-rune filters, sight). `ends_with_target`: the cast goes at once when its target leaves the world, as the
+  game's spells do (`Forget`). The cap does not cut them: a cast paced by timers alone lives up to 600 ticks or its
+  duration (the game's durations of 1 are target counts). Their scripts do in order what the C++ did: the same
+  objects made in the same order (their ids and the timed objects' order are state), the same hits, sounds at the
+  same points, and the same ticks (the bolt's lifetime, a timer for the light's rise and one for the end, at the
+  update the C++ timer reached them). Lua numbers are doubles: a script passes the cast's floats on as they are or
+  applies one operation (exact once rounded back), never a chain.
+- **What differs.** The `SpellEffect` record of a live cast is the scripted one (state 4, no visual / sound / light,
+  its objects in `owned`; the digest's missile group, a save's projectile record) and its entry is in the Lua state's
+  `casts` until it ends. The world, the units and the timed objects are the same. The saved `nextCast` is the key
+  after the live casts' (1 with none), so a save with no cast going is the same as before the port.
+- **Old saves.** A save's cast of a ported spell in the C++'s states (1, 2) ends at its next update (UpdateMissile's
+  and UpdateLasting's default), its objects going with it: the lightning's hit was dealt at the cast. The save
+  version stays 0x74.
+- **Cost.** A lightning cast is a few Lua calls at the start, a timer call at ticks 8 and 89 and the host's table walk
+  on the other ticks. Measured (2026-11-11, `--quiet`, a scratch scenario of 600 casts at the hero, ten a frame, up
+  to some 180 alive): the world updates took 0.34 ms a frame on the C++ spells and 0.47 ms on the script, about 24 us
+  per cast over its 90 ticks.
+- **Next families**: MF17g2 the missiles (fire arrow, Rick magic, acid ray), MF17g3 the fireball and the area strikes,
+  MF17g4 the walls and the poison cloud, MF17g5 the buffs (they need a record field for what their active effect
+  does: MapEffect::Behaviour keys the stat effects and looks), MF17g6 the rest; each ticket names the bindings and
+  fields it lacks.
+- Checked by `spells`, `combat_skills` and the other lightning scenarios (the digest's missile records differ, all
+  else the same), `spells_old_save` (tests/saves/lightning_old, made by the C++ build: both casts end at the load) and
+  `--lua-check` (handles, SetVelocity, Eye, a demon bolt, the timer-paced cap).
 
 ## Scripted spells
 
@@ -281,7 +325,7 @@ missile, the lasting one through `EnterLasting` or `kStateEnded`; the charm leav
 tick), 1 missile in flight (`UpdateMissile`), 2 lasting (`UpdateLasting`), else it ends (footprint cleared, the three effect objects dropped). The three counted effect objects
 (visual, sound, light) are also in the world's timed objects; replacing one removes and releases the old.
 
-Spell behaviours: 0 / 0x28 fire arrow, 1 / 0x29 lightning, 2 acid ray, 3 fireball, 4 light strike, 5 acid column, 6 fire
+Spell behaviours: 0 / 0x28 fire arrow, 1 / 0x29 lightning (on its script), 2 acid ray, 3 fireball, 4 light strike, 5 acid column, 6 fire
 wall, 7 light wall, 8 poison cloud, 9-0x11, 0x13, 0x19, 0x1A, 0x1D-0x22, 0x25, 0x26 buffs (the target's AddEffect gets a
 record with byte 1 = trunc(power x 16)), 0x12 fireworks, 0x14 clairvoyance, 0x15 possession, 0x17 vision fog, 0x18
 healing, 0x1B link, 0x1C teleport, 0x24 charm, 0x27 campfire. `SpellType` names all 42 after the spell database's
@@ -297,7 +341,7 @@ Hits: HitUnit skips units the spell may not affect (only checked with a caster) 
 HitUnitsInRadius (fireball) and HitUnitsAlong (fire wall, every 4th tick) hit units that area spells hit (size class
 set, or the prototype's height below 0.5); the wall only those within 0.5 of the vertical plane along its direction.
 
-Kept: lightning builds its light at the target's position without checking the target; healing and charm read the
+Kept: healing and charm read the
 target's class without a null check; arrow and acid ray impacts read the target after the hit unchecked; charm with a
 target or caster that is not a unit returns without changing state, so it restarts every tick; the light strike uses -7
 as bolt width factor; the walls compute the normal with a z of 0 * k.

@@ -642,7 +642,10 @@ frame = { start = "pick(16)", delay = 1 }
 ## Spells
 
 A spell of your own is a record and a Lua file: the record (`Res\database\spells.sdb.toml`, [Databases](#databases))
-names the file with `script`, and the file below `Res\spells\` runs every cast of it, on the server.
+names the file with `script`, and the file below `Res\spells\` runs every cast of it, on the server. The game's own
+spells are moving onto the same path: the lightning arc and curse magic are `Res\spells\Lightning.lua` (built into
+the game; the source's `assets/spells/` has it and the fields the game's records get), which a mod's file of that name
+replaces.
 
 ```toml
 [[spell]]
@@ -661,6 +664,18 @@ ai = "attack"                  # how the AI casts it (none: never, the default)
 damage_type = "lightning"
 offensive = true
 ```
+
+- **What the game reads of the record** besides its numbers: `ai` (`none`, `attack`, `area_attack`, `lasting_area`,
+  `curse`, `protect`, `enhance`, `heal`), `damage_type` (the AI's estimate), `offensive` (the HUD's use at once aims at
+  the nearest enemy), `turns_victim` (the unit it is cast at turns on the caster) and `fighting` (casting it starts the
+  battle music; both as `offensive` unless given), `ai_effect` (the code of the spell whose effect the AI looks for
+  before casting a curse or a protection again), `cast_school` (the school whose casting look the caster shows, when not
+  its own).
+- **One cast or one per target.** A scripted spell is one cast whatever its `target_count` and `f` runes: the script
+  picks its targets. `per_target = true` has the game pick them as for its own attack spells (the unit aimed at, then
+  those nearest the aim within range that the runes and the line of sight allow, up to the target count) and cast it
+  once at each. `ends_with_target = true` ends a cast at once, with no hook, when its target leaves the world (as the
+  game's spells do); without it the cast goes on with `cast.target` nil.
 
 ```lua
 -- Res\spells\chain_spark.lua: a spark that jumps from its target to the nearest enemy, targetCount times.
@@ -701,7 +716,9 @@ return spell
 - **The cast value**: `cast.id`, `cast.code`, `cast.caster` and `cast.target` (units or nil), `cast.from` and
   `cast.point` (`{x, y, z}`), `cast.tick` (ticks since the cast), the spell's built numbers (runes included):
   `cast.damage`, `cast.range`, `cast.radius`, `cast.duration`, `cast.targetCount`, `cast.speed`, `cast.mana`,
-  `cast.power` (the game's power curve of its damage, about 0.8 to 1.8) and `cast.school` (its school's name); and
+  `cast.power` (the game's power curve of its damage, about 0.8 to 1.8), `cast.lightRise` (how fast the game's spell
+  lights rise away: the record's `light_range / max(light_rise_divisor, 1)` a tick) and `cast.school` (its school's
+  name); and
   `cast.data`, a table of your own that is kept with the cast (and in saves): numbers, strings, booleans, units,
   tables.
 - **The methods.** Positions are `{x, y, z}` tables or units (where the unit stands). Each does what the game's own
@@ -711,22 +728,27 @@ return spell
 |---|---|
 | `cast:FindUnits(at, radius, filter)` | the units within `radius` of `at`, nearest first. `filter` keys: `enemies` / `friends` (of the caster; with no caster every unit is an enemy), `alive`, `area` (those area spells hit), `sight` (in the line of sight the spell needs from `at`), `affect` (the rune filters let the spell hit them), `exclude` (a set of ids: `{[GetObjectID(unit)] = true}`) |
 | `cast:CanAffect(unit)` | the spell's hits would hit the unit (its rune filters) |
-| `cast:Damage(unit, amount, type, {area, noCredit})` | a spell's hit of `amount` of a damage type (`fire`, `lightning`, `acid`, `piercing`, `slashing`, `crushing`, `general`): armour and protections count, the caster is the attacker unless `noCredit`; `area` hits have no direction, as the walls' and clouds'. Gives the hit points lost |
+| `cast:Damage(unit, amount, type, {area, noCredit})` | a spell's hit of `amount` of a damage type (`fire`, `lightning`, `acid`, `piercing`, `slashing`, `crushing`, `general`) on a unit (other objects are not hit): armour and protections count, the caster is the attacker unless `noCredit`; `area` hits have no direction, as the walls' and clouds'. Gives the hit points lost |
 | `cast:Heal(unit, amount)` | heals as the healing spell does; gives the hit points gained |
 | `cast:Apply(unit, kind, {ticks, power, value, strength})` | an active effect on the unit: `kind` a spell's code (`slow`, `stun`, `weak`, `prot_fire`, ...: that spell's effect and look) or `"own"` (this spell's, with its icon and no effect of its own). The values default to the cast's (duration, power, damage, radius) |
 | `cast:Remove(unit, kind)`, `cast:Has(unit, kind)` | the unit's effects of that kind removed (how many) / whether it has one |
 | `cast:Move(unit, to, {check = true})` | the unit moved to the point (at its own height) unless it cannot stand there; true when it moved. A push is a small move each tick |
-| `cast:Bolt(from, to, {width, lifetime})` | a lightning bolt; an end that is a unit follows it |
+| `cast:Bolt(from, to, {width, lifetime, demon})` | a lightning bolt; an end that is a unit follows it; `demon` the curse magic's look |
 | `cast:Missile{to, from, effect, size, sound, payload}` | a spell missile flying at the unit `to` (at the game's missile speed) from `from` (default the caster), showing `effect` (default `FireArrow`) with the spell's light; `OnHit` runs when it lands |
 | `cast:Effect(name, {at, attach, size, alpha, velocity, lifetime})` | a particle effect: one of yours (`Res\effects`, [Effects](#effects)) or a game's by its script name (`Sparks`, `LightningBlast`, `FireBlast`, `Healing`, ...); at `at` (default the cast's point) or on the unit `attach` |
 | `cast:Sound(name, at, volume, hearing)` | a sound played once (`magic\...\x.wav`) |
 | `cast:Light(at, {color, range, rise, lifetime})` | a point light, by default in the record's `light_color` and `light_range` |
+| `cast:SetVelocity(handle, {x, y, z})` | the cast's bolt, missile, effect or light of that handle moves by so much a tick from now on (a light sent up as it fades); false when it is gone |
+| `cast:Eye(unit)` | the point `{x, y, z}` a unit's spells start from (its eye), where the game's lightning puts its light |
 | `cast:After(ticks, "Name", payload)`, `cast:Finish()` | a timer; the end of the cast after this hook |
 
+- **Handles.** `Bolt`, `Missile`, `Effect` and `Light` give a handle (a number) for `SetVelocity`; keep it in
+  `cast.data` to use it in a later hook.
 - **How long a cast lives.** A bolt, effect or light lasts `lifetime` ticks, and while one does, the cast goes on; one
   given no `lifetime` lasts as long as the cast. The cast ends after a hook calls `cast:Finish()` (its bolts, effects
   and lights go with it), when nothing is left (no timer, no missile in flight, nothing with a lifetime, no `OnTick`:
-  `"idle"`), or at its limit: the record's `duration` in ticks, else 600.
+  `"idle"`), or at its limit: for a file with `OnTick` the record's `duration` in ticks (600 without one), for one paced
+  by its timers alone 600 ticks or the `duration` when longer.
 - **Randomness**: `Random(n)`, the game's generator, as in mission scripts. The game's script functions
   (`GetObjectID`, `IsAlive`, `GetX`, `SetGameVar`, ...) work in the hooks too; the file's top level runs before any
   cast and cannot reach the world.

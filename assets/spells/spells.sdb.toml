@@ -1,0 +1,34 @@
+# The game's own spell records' fields that the build gives them (built into the executable below every TOML layer;
+# a mod's Res\database\spells.sdb.toml merges over them). The spells moved onto scripts name their file below
+# Res\spells\ (these, built in too, unless a mod has its own) and say what the game's tables read of them
+# (docs/modding.md, "Spells"; docs/notes/items_spells.md, "Spell behaviours").
+
+# The lightning arc: a bolt at each target it picks, striking at once.
+[[spell]]
+code = "lightning"
+script = "Lightning.lua"
+per_target = true
+ends_with_target = true
+ai = "attack"
+damage_type = "lightning"
+offensive = true
+turns_victim = false
+fighting = true
+
+# Curse magic, the same bolt in a demon's look. Offensive by Rebirth's FixSpellSelfCasting (the original's was not); not
+# fighting. It casts with the fire school's look and Rick magic with lightning's, as in the original (perhaps a swap).
+[[spell]]
+code = "curse_magic"
+script = "Lightning.lua"
+per_target = true
+ends_with_target = true
+ai = "attack"
+damage_type = "lightning"
+offensive = true
+turns_victim = false
+fighting = false
+cast_school = "fire"
+
+[[spell]]
+code = "rick_magic"
+cast_school = "lightning"

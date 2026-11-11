@@ -154,11 +154,23 @@ struct SpellRecord {
     std::string script;
     // What the spell does, set by the load (SetBehaviours; not in spells.sdb or its TOML).
     SpellType behaviour = SpellType::None;
-    // TOML only (`ai`, `damage_type`, `offensive`): what the game's tables read for a record whose behaviour has no
-    // row of its own (UseOf).
+    // TOML only (`ai`, `damage_type`, `offensive`, `turns_victim`, `fighting`): what the game's tables read for a
+    // record whose behaviour has no row of its own (UseOf); turnsVictim and fighting -1: as `offensive`.
     SpellAi ai = SpellAi::None;
     DamageType damageType = DamageType::Other;
     bool offensive = false;
+    std::int8_t turnsVictim = -1;
+    std::int8_t fighting = -1;
+    // TOML only (`cast_school`): the school whose casting look the caster shows (FillCastKind), when it is not the
+    // record's own; None: its own.
+    SpellSchool castSchool = SpellSchool::None;
+    // TOML only (`per_target`): CastSpell casts it once at each target it picks (the requested one, then the units
+    // the caster may aim at, up to its target count), as the game's attack spells; without it a scripted spell is one
+    // cast whose script picks its targets.
+    bool perTarget = false;
+    // TOML only (`ends_with_target`): a cast ends at once, with no hook, when its target leaves the world (as every
+    // spell of the game's does); without it a scripted cast goes on without its target.
+    bool endsWithTarget = false;
     // TOML only (`ai_effect`): the code of the spell whose effect the AI's curse, protect and enhance options look
     // for on a unit (a scripted spell that applies another's buff names that one); empty: the record's own.
     std::string aiEffectCode;
@@ -176,8 +188,9 @@ struct SpellUse {
     SpellType effect = SpellType::None;  // what the AI's curse / protect / enhance options look for (aiEffect)
 };
 
-// The row of the record's behaviour for the game's 42; for Scripted and None the record's fields, `offensive` also standing for
-// turnsVictim and fighting. `effect` is the record's aiEffect.
+// The row of the record's behaviour for the game's 42 still in code; for the others (Scripted, None) the record's
+// fields, `offensive` also standing for turnsVictim and fighting when they are not given. `effect` is the record's
+// aiEffect.
 SpellUse UseOf(const SpellRecord& record);
 
 // Each record's behaviour: Scripted with a script, else from its place (the first kGameSpellCount their own, the
@@ -231,6 +244,10 @@ struct SpellModifierRecord {
 inline std::string_view IndexKey(const SpellRecord& record) { return record.code; }
 inline std::string_view IndexKey(const SpellModifierRecord& record) { return record.code; }
 
+// A file of the game's spells on scripts (assets/spells, built in: the .lua files below Res\spells\'s layers and
+// spells.sdb.toml) by name, any case; empty when there is none.
+std::string_view BuiltinSpellFile(std::string_view name);
+
 using SpellTable = RecordTable<SpellRecord>;
 using SpellModifierTable = RecordTable<SpellModifierRecord>;
 
@@ -240,8 +257,12 @@ struct SpellDatabase {
     // Read. True; an archive that cannot be opened, or one without the file, ends the game.
     bool Load(const std::string& folder, const std::string& archive);
     // The original's spells (chunk 1) and modifiers (chunk 2), each read through an archive of its own, then the
-    // three lists through a third; the TOML files merged over them; the spells and modifiers filed under their codes.
+    // three lists through a third, then the game's own fields (MergeBuiltin); the TOML files merged over them; the
+    // spells and modifiers filed under their codes.
     void Read(const RecordFile& file);
+    // The fields the build gives the game's spells (assets/spells/spells.sdb.toml: those on scripts) merged into the
+    // records of their codes, below every TOML layer; a code the database lacks adds nothing.
+    void MergeBuiltin();
     // A TOML file's records merged: [[spell]] and [[modifier]] by code, [[scroll_recipe]], [[armor_recipe]] and
     // [[weapon_recipe]] by spell.
     void MergeToml(const toml::Value& root, const std::string& path);

@@ -798,8 +798,14 @@ function spell.OnCast(cast)
     check(cast:Remove(stone, "pulse") == 1 and cast:Remove(stone, "pulse") == 0, "Remove: how many")
     check(not pcall(cast.Apply, cast, stone, "nosuch"), "Apply: an unknown kind")
     check(cast:Move(stone, { x = 2, y = 2, z = 0 }) == false, "Move: only units")
-    cast:Bolt(here, { x = 1, y = 0, z = 0 }, { lifetime = 2 })
-    cast:Light({ x = 0, y = 0, z = 1 }, { color = { 1, 0.5, 0 }, range = 4, lifetime = 3 })
+    local bolt = cast:Bolt(here, { x = 1, y = 0, z = 0 }, { lifetime = 2, demon = true })
+    local light = cast:Light({ x = 0, y = 0, z = 1 }, { color = { 1, 0.5, 0 }, range = 4, lifetime = 3 })
+    check(type(bolt) == "number" and type(light) == "number" and bolt ~= light, "Bolt and Light give their handles")
+    check(cast:SetVelocity(light, { x = 0, y = 0, z = 0.5 }) and not cast:SetVelocity(-5, here),
+          "SetVelocity: the cast's object of the handle, else false")
+    local eye = cast:Eye(stone)
+    check(type(eye.x) == "number" and type(eye.z) == "number" and not pcall(cast.Eye, cast, nil), "Eye: an object's")
+    check(cast.lightRise == 0, "the cast's light rise (a record without a light)")
     cast:Effect("sparks", { at = here, lifetime = 4 })
     check(not pcall(cast.Effect, cast, "NoSuchEffect"), "Effect: an unknown name")
     cast:Sound("magic\\x.wav", here)
@@ -884,6 +890,11 @@ void CheckSpellHost(TestWorld& world) {
         cast(ticker, "ticker.lua", 5);
         Expect(host.Cast(ticker) && run(host, ticker) == 5, "OnTick keeps a cast to its duration");
         Expect(SpellEnd(scheduler) == "limit 5 at 5", "the cast ends at the tick cap");
+
+        SpellEffect paced;
+        cast(paced, "pulse.lua", 5);
+        Expect(host.Cast(paced) && run(host, paced) == 6 && SpellEnd(scheduler) == "finished 3 18 1001 at 6",
+               "a cast paced by timers alone outlives a shorter duration");
 
         SpellEffect idle;
         cast(idle, "idle.lua", 0);
@@ -972,6 +983,9 @@ void CheckSpellHost(TestWorld& world) {
         api.world = &g_serverWorld;
         Expect(host.Cast(api) && reported.size() == 4, "the world methods run in OnCast");
         Expect(api.owned.size() == 5, "a bolt, a light, an effect and two missiles owned (the sound is not)");
+        Expect(static_cast<EffectLightning*>(api.owned[0].object.Get())->flag == 1 &&
+                   api.owned[1].object->velocity.z == 0.5f,
+               "the bolt's demon look, the light's velocity from SetVelocity");
         host.Tick(api);
         host.Tick(api);
         Expect(api.owned.size() == 4, "the bolt goes when its lifetime runs out");

@@ -12,9 +12,14 @@
 #include "game/units/unit_db.h"   // InlineStrings
 
 #include "lib/crt.h"
+#include "lib/text_case.h"
+#include "lib/toml.h"
+
+#include "spell_files/builtin.h"
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <vector>
 
 // The database of the spells: built empty by the C++ runtime, loaded at start.
@@ -127,6 +132,7 @@ void SpellDatabase::Read(const RecordFile& file) {
         RecordChunks(&ar, kArmorRecipesChunk, &armorRecipes, &SpellListRecord::Serialize);
         RecordChunks(&ar, kWeaponRecipesChunk, &weaponRecipes, &SpellListRecord::Serialize);
         ar.Close(&stream);
+        MergeBuiltin();
     }
     MergeTomls(file, [this](const toml::Value& root, const std::string& path) { MergeToml(root, path); });
     if (const std::size_t extra = LeaveOutPast(spells.records, kMaxSpellRecords)) {
@@ -208,8 +214,13 @@ void Fields(SpellRecord& r, Visit& v) {
     v("ai", Enum<SpellAi>{r.ai, kSpellAis});
     v("damage_type", Enum<DamageType>{r.damageType, kDamageTypeNames});
     v("offensive", dbtoml::Bool{r.offensive});
+    v("turns_victim", dbtoml::Bool{r.turnsVictim});
+    v("fighting", dbtoml::Bool{r.fighting});
     v("ai_effect", r.aiEffectCode);
     v("script", r.script);
+    v("cast_school", Enum<SpellSchool>{r.castSchool, kSchools});
+    v("per_target", dbtoml::Bool{r.perTarget});
+    v("ends_with_target", dbtoml::Bool{r.endsWithTarget});
 }
 
 template <class Visit>
@@ -249,6 +260,26 @@ void SpellDatabase::MergeToml(const toml::Value& root, const std::string& path) 
     dbtoml::MergeRecords(root["armor_recipe"], armorRecipes, "spell", kSpellOf, kSpells, path);
     dbtoml::MergeRecords(root["weapon_recipe"], weaponRecipes, "spell", kSpellOf, kSpells, path);
     dbtoml::CheckTables(root, {"spell", "modifier", "scroll_recipe", "armor_recipe", "weapon_recipe"}, kSpells, path);
+}
+
+void SpellDatabase::MergeBuiltin() {
+    constexpr const char* kPath = "assets\\spells\\spells.sdb.toml";
+    toml::Document document;
+    if (!document.Parse(BuiltinSpellFile("spells.sdb.toml"), kPath)) {
+        game::Warning("records: %s", document.Error());
+        return;
+    }
+    // Only into the records the database has: a code it lacks (a mod's own database) adds nothing.
+    const std::size_t count = spells.records.size();
+    dbtoml::MergeRecords(document.Root()["spell"], spells.records, "code", kCodeOf, kSpells, kPath);
+    spells.records.resize(count);
+}
+
+std::string_view BuiltinSpellFile(std::string_view name) {
+    for (const builtin_spells::File& file : builtin_spells::kFiles)
+        if (text::CompareIgnoringCase(file.name, name) == 0)
+            return {reinterpret_cast<const char*>(file.bytes), file.size};
+    return {};
 }
 
 std::string SpellDatabase::ToToml() const {

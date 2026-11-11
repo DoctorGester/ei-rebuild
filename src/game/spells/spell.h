@@ -216,8 +216,6 @@ public:
     // CreateParticle's object (`particleType` an original type or a data effect's id), not yet in the world.
     EffectParticle* NewParticle(int particleType, const Vector3& position, float size, float alpha,
                                 const Vector3& velocity, EngineObject* attachTo);
-    // Nothing without a target; it becomes the visual.
-    void CreateLightning(const Vector3& from, MapObject* target, EngineObject* source, float power, int flag);
     // Where a lightning at `object` ends: above its ground by its height x 1.2.
     Vector3 LightningEnd(MapObject* object);
     // A bolt from `from` to `to` that follows the objects of the ids (-1: none), not yet in the world.
