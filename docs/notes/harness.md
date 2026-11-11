@@ -121,7 +121,9 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   during render_water_looks's views (`weathercheck 0 0` before each view checks the ground dry).
 - `screen <id>` asks the server for interface screen `<id>` as the global map's buttons do (4 the global map, 5 the
   camp); the camp's Esc returns to the game. `screen 5 <n>` opens the camp with constructor / trader class `<n>` as a
-  base dialogue's "constrN" answer does (1, 3, 4, 5 after a new game; `trader_stock.txt`).
+  base dialogue's "constrN" answer does (1, 3, 4, 5 after a new game; `trader_stock.txt`). `campstock <n>
+  scroll|prototype <spell code> <least>` requires that many scrolls (or prototype loot items) of the spell in trader
+  class `<n>`'s magic stock, made when its camp opened, and logs the stock (`mod_spell_hero`).
 - `zone <name> [exit]` leaves the running zone as its exits do for map.txt zone `<name>` (`gz2g`, `bz1g`, ...), the
   party arriving at that zone's exit `<exit>` (from 0: map.txt's `#exit n` minus 1); `waitzone <seconds> <name>` waits
   until it is loaded. Starting a zone from the main menu crashes the game, so scenarios start with `newgame` and change
@@ -179,7 +181,9 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   fire <event>` drive the client's running sources of that effect through the inputs game code uses
   (`effectdata::SetInput` / `Fire`); `effect <name> value <input> <expected>` requires an input's value (an enum's as its
   index), `effect <name> check <least particles> [<stage>]` requires a source with that many particles, in that stage
-  (`harness_objects_image.cpp`'s `DataEffectStep`; `mod_effect`).
+  (`harness_objects_image.cpp`'s `DataEffectStep`; `mod_effect`). `clientbolts <least> [<most>]` requires that many
+  lightning bolts (EffectLightning) in this game's client world, a peer's too, and logs their ends
+  (`net_pair_mod_spell`).
 - `resolution <WxH|desktop>` and `widescreen 0|1` (or `EI_RESOLUTION` / `EI_WIDESCREEN`) set the run's window; without
   them runs play in a window of 960x720 on the vanilla data and 1280x720 on Rebirth's (each takes its goldens' shape;
   FullScreen 0 unless the scenario says `fullscreen 1`).

@@ -1,0 +1,82 @@
+# MF17d: a scripted spell in a network game (docs/notes/items_spells.md, "Scripted spells"). A pair of games playing the
+# showcase mod with MF17d's spell added (each its own copy, tools/make_mod_pair.py spell: the spell's record, its
+# Res\spells\ file and pictures), both into the game zone as in net_pair_mod_effect. This game's server casts the mod's
+# "mf17d_bolt" at its leader from 3 units off ("serverscript" CastSpellUnit, as a script or a trap casts: no caster);
+# only the server runs the spell's Lua (OnCast's line here), whose bolt (CreateLightning, a timed object) and blow
+# (InflictDamage) are the world's: both clients have the bolt (clientbolts) for the cast's 60 ticks, then it goes
+# (OnEnd). Both peers load the same spell records and file (the mod's content hash counts Res\spells\: mods.md, "Mods in
+# multiplayer"), and an original client is refused by a server that plays a mod. The client's view of the blow (the
+# target's hit points) is MF17e's check, with MF17c's cast:Damage.
+# A clickground lands where the clicked pixel's ray meets the ground (the vanilla runs play in a 4:3 window, the
+# Rebirth runs at the desktop's size; net_pair_leave).
+# prepare: make_mod_pair.py spell spell
+rebirth resolution desktop
+timeout 180
+peer net_pair_mod_spell
+mod harness_saves\showcase_mod
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key h
+frames 3
+key o
+frames 3
+key s
+frames 3
+key t
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 mpconnect
+
+clickregion 14
+frames 5
+clickregion 0
+waitwindow 25 briefing
+peersignal hosted
+
+peerwait 90 joined
+frames 20
+
+clickground 63 64 dblclick
+frames 60
+waitunit 10 Nsheriff
+clickunit Nsheriff
+waitdialogue 10 1
+clickregion 1
+talk 30
+
+clickground 61 50 dblclick
+frames 60
+clickground 59 43 dblclick
+waitzone 40 z3q2
+frames 20
+peersignal entered
+peerwait 120 peerin
+frames 20
+
+logmark
+serverscript CastSpellUnit("mf17d_bolt",Add(GetX(GetLeader()),3),GetY(GetLeader()),GetLeader())
+waitline 5 MF17d: OnCast mf17d_bolt by 0 at
+frames 2
+clientbolts 1
+peersignal cast
+peerwait 60 seen
+waitline 10 MF17d: OnEnd finished at tick 60
+frames 2
+clientbolts 0 0
+frames 20
+peersignal done
+peerwait 60 leaving
+frames 20
+report
+quit

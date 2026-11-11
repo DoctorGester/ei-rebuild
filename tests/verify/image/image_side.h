@@ -154,6 +154,9 @@ int ConnectionState(void* connection);          // its state
 // their types (EngineObject::type); false without a source.
 bool CampItems(void* camp, int* page, std::vector<void*>* items, std::vector<unsigned>* types);
 void CampTakeItem(void* camp, void* item, int mode);   // CampPages::TakeItem (slot 42, MoveItem)
+// The magic stock of trader class `type` (its class template's spells party): each item as "scroll <spell code>",
+// "prototype <spell code>" or "other"; false without such a template.
+bool TraderMagic(int type, std::vector<std::string>* items);
 void PickSurface(void* world, float* out, int x, int y);
 void LoadUnitFaces(void* world);
 void BlinkOpen(void* half);
@@ -395,6 +398,8 @@ bool ClientObject(int id, const char* part, ObjectState* out);
 // The client world's point light effect `id` (EffectPointLight), or with `id` 0 the first moving one (a spell's or a
 // missile's light): its light's own place and drawn one (drawn::LightPosition). False when there is none.
 bool ClientLight(int id, ObjectState* out);
+// The client world's lightning bolts (EffectLightning): each one's ends as "x y z - x y z".
+std::vector<std::string> ClientBolts();
 // Animation switches blend (FigureAnimationState::SetBlends; "animblend on|off").
 void SetAnimationBlends(bool on);
 // The blends begun so far in world figures (FigureAnimationState::WorldBlendsBegun; "animblend count").

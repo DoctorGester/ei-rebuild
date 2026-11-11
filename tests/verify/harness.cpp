@@ -570,6 +570,7 @@
 #include <atomic>
 #include <bit>
 #include <cctype>
+#include <climits>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -2197,6 +2198,47 @@ std::string CampPutOn(const std::string& argument) {
     return "";
 }
 
+// --- campstock <class> scroll|prototype <spell code> <least> ------------------------------------------------------
+// The magic stock of trader class <class> (its class template's spells party, made when its camp opened; trader_stock):
+// logs each item, fails when fewer than <least> are scrolls (or prototype loot items) of the spell <code>.
+std::string CampStock(const std::string& argument) {
+    int type = 0, least = 0;
+    char kind[16] = {}, code[64] = {};
+    if (std::sscanf(argument.c_str(), "%d %15s %63s %d", &type, kind, code, &least) != 4 ||
+        (std::strcmp(kind, "scroll") != 0 && std::strcmp(kind, "prototype") != 0))
+        return "campstock needs <class> scroll|prototype <spell code> <least>";
+    std::vector<std::string> items;
+    if (!image::TraderMagic(type, &items)) return "campstock: no trader class " + std::to_string(type);
+    const std::string wanted = std::string(kind) + " " + code;
+    int found = 0;
+    for (std::size_t i = 0; i < items.size(); ++i) {
+        Log("harness: campstock: class %d item %d: %s", type, static_cast<int>(i), items[i].c_str());
+        if (items[i] == wanted) ++found;
+    }
+    Log("harness: campstock: class %d: %d of %s (at least %d)", type, found, wanted.c_str(), least);
+    if (found < least)
+        return "campstock: class " + std::to_string(type) + " has " + std::to_string(found) + " of " + wanted +
+               ", wanted " + std::to_string(least);
+    return "";
+}
+
+// --- clientbolts <least> [<most>] ---------------------------------------------------------------------------------
+// The client world's lightning bolts (the server's EffectLightning objects as this game's client has them, also a
+// network peer's): logs each one's ends, fails when there are fewer than <least> or more than <most>
+// (net_pair_mod_spell).
+std::string ClientBoltsStep(const std::string& argument) {
+    int least = 0, most = INT_MAX;
+    if (std::sscanf(argument.c_str(), "%d %d", &least, &most) < 1) return "clientbolts needs <least> [<most>]";
+    const std::vector<std::string> bolts = image::ClientBolts();
+    const int count = static_cast<int>(bolts.size());
+    for (const std::string& bolt : bolts) Log("harness: clientbolts: %s", bolt.c_str());
+    Log("harness: clientbolts: %d (wanted %d to %d)", count, least, most);
+    if (count < least || count > most)
+        return "clientbolts: " + std::to_string(count) + " bolts, wanted " + std::to_string(least) + " to " +
+               std::to_string(most);
+    return "";
+}
+
 // --- waitwindow <seconds> <window> (ticket T1) ----------------------------------------------
 // The interface windows a scenario waits for, by name (WindowKind, harness_windows.h).
 
@@ -2952,7 +2994,8 @@ void RunSteps() {
                 Log("harness: %s", error.c_str());
                 g_failures.push_back(error);
             }
-        } else if (s.verb == "hudstate" || s.verb == "campputon" || s.verb == "modfile" || s.verb == "modlist" ||
+        } else if (s.verb == "hudstate" || s.verb == "campputon" || s.verb == "campstock" || s.verb == "clientbolts" ||
+                   s.verb == "modfile" || s.verb == "modlist" ||
                    s.verb == "modarchive" || s.verb == "mapfile" || s.verb == "playstream" ||
                    s.verb == "folderprofile" || s.verb == "modtext" || s.verb == "modack" || s.verb == "modweapon" ||
                    s.verb == "modrecord" || s.verb == "ground" || s.verb == "effect") {
@@ -2964,6 +3007,8 @@ void RunSteps() {
                                 : s.verb == "modrecord"     ? starter::ModRecordStep(s.argument)
                                 : s.verb == "ground"        ? starter::GroundStep(s.argument)
                                 : s.verb == "campputon"     ? CampPutOn(s.argument)
+                                : s.verb == "campstock"     ? CampStock(s.argument)
+                                : s.verb == "clientbolts"   ? ClientBoltsStep(s.argument)
                                 : s.verb == "folderprofile" ? folder_profile::Step()
                                 : s.verb == "modlist"       ? starter::ModListStep(s.argument)
                                 : s.verb == "modarchive"    ? starter::ModArchiveStep(s.argument)

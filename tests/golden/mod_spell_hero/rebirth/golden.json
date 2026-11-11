@@ -1,0 +1,13 @@
+{
+  "scenario": "mod_spell_hero",
+  "install": "rebirth",
+  "recorded": "2026-11-11",
+  "commit": "c66101b49",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "MF17d: new scenarios, a scripted spell cast by the AI, by the hero from the HUD after the trader and the camp, and by a network host's server with the bolt on the peer",
+  "source": "image",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+}
