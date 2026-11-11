@@ -38,7 +38,7 @@ bool Is(std::string_view word, std::string_view text) { return str::Compare(word
 
 class Loader {
 public:
-    Loader(MapDatabase* newDb, TextManager* newReader) : db(newDb), reader(newReader), map(static_cast<int>(newDb->maps.size()) - 1) {}
+    Loader(MapLists* newDb, TextManager* newReader) : db(newDb), reader(newReader), map(static_cast<int>(newDb->maps.size()) - 1) {}
 
     void Line();
 
@@ -63,7 +63,7 @@ private:
     void AddExit();
     void ExitLine(const std::string& word);
 
-    MapDatabase* db = nullptr;
+    MapLists* db = nullptr;
     TextManager* reader = nullptr;
     int map = 0;       // the current map (starts at the last one already loaded)
     int exit = -1;     // the current exit of the current map
@@ -232,32 +232,45 @@ void Loader::Line() {
 } // namespace
 } // namespace mapdb
 
-void MapDatabase::Load(std::string_view fileName) {
+void MapDatabase::Read(std::string_view fileName) {
     using namespace mapdb;
     TextManager* reader = g_clientWorld.texts.get();
-    Loader loader(this, reader);
+    Loader loader(&texts, reader);
     if (!reader->Open(fileName)) return;
     while (reader->FindHeader()) loader.Line();
     reader->Close();
 }
 
 // The map database file names ("map.txt", "map-LMP.txt"), then the map.toml files of texts.res's places (the text
-// manager's first archive: Res\texts\ in each layer of the path map; a mod's over the game's).
+// manager's first archive: Res\texts\ in each layer of the path map; a mod's over the game's), parsed once and kept
+// for the quest folders' texts (Load).
 void MapDatabase::LoadAll() {
-    allods.clear();
-    maps.clear();
-    quests.clear();
-    Load("map.txt");
-    Load("map-LMP.txt");
+    texts = {};
+    tomls.clear();
+    Read("map.txt");
+    Read("map-LMP.txt");
     const std::vector<TextSource>& archives = g_clientWorld.texts->sources.archives;
-    if (archives.empty()) return;
-    const RecordFile file = archives.front().source->FindRecord("map");
-    if (file.replaced) {
-        allods.clear();
-        maps.clear();
-        quests.clear();
+    const RecordFile file = archives.empty() ? RecordFile() : archives.front().source->FindRecord("map");
+    if (file.replaced) texts = {};
+    for (auto toml = file.tomls.rbegin(); toml != file.tomls.rend(); ++toml) {
+        auto document = std::make_unique<toml::Document>();
+        if (!document->Parse(toml->text, toml->path)) {
+            game::Warning("records: %s", document->Error());
+            continue;
+        }
+        tomls.push_back({std::move(document), toml->path});
     }
-    MergeTomls(file, [this](const toml::Value& root, const std::string& path) { MergeToml(root, path); });
+    Merge(true);
+}
+
+void MapDatabase::Load(std::string_view fileName) {
+    Read(fileName);
+    Merge(false);
+}
+
+void MapDatabase::Merge(bool report) {
+    static_cast<MapLists&>(*this) = texts;
+    for (const TomlFile& toml : tomls) MergeToml(toml.document->Root(), toml.path, report);
 }
 
 // The map database (a plain global: the C++ runtime builds it empty and destroys it).
@@ -532,20 +545,21 @@ std::string MergeExits(const toml::Value& table, std::vector<ZoneExit>& exits, i
 
 // Each record of a table by name: one the lists have (no case) takes the fields given and keeps the others; a new
 // name is a new record at the end (a zone as map.txt's "#zone" line starts one: rain, its allod's map list). A record
-// with a key it does not have, or a value its field does not take, is logged and left out whole.
-void MapDatabase::MergeToml(const toml::Value& root, const std::string& path) {
+// with a key it does not have, or a value its field does not take, is left out whole (logged when `report`: each
+// merge after the first meets the same records refused).
+void MapDatabase::MergeToml(const toml::Value& root, const std::string& path, bool report) {
     using namespace mapdb;
     // `skip`: a key that `finish(item, record, index, line)` reads after the fields (its message, or empty).
-    auto merge = [&path](const toml::Value& table, auto& records, std::string_view skip, auto finish) {
+    auto merge = [&path, report](const toml::Value& table, auto& records, std::string_view skip, auto finish) {
         if (table.Exists() && !table.IsArray()) {
-            game::Warning("%s: %s line %d: not an array of tables", kWhat, path, table.Line());
+            if (report) game::Warning("%s: %s line %d: not an array of tables", kWhat, path, table.Line());
             return;
         }
         for (int i = 0; i < table.Size(); ++i) {
             const toml::Value item = table.At(i);
             std::string name;
             if (!toml::Read(item["name"], &name)) {
-                game::Warning("%s: %s line %d: a record without its name", kWhat, path, item.Line());
+                if (report) game::Warning("%s: %s line %d: a record without its name", kWhat, path, item.Line());
                 continue;
             }
             const std::size_t index = IndexOf(records, name);
@@ -555,7 +569,7 @@ void MapDatabase::MergeToml(const toml::Value& root, const std::string& path) {
             std::string refused = ReadFields(item, record, skip, &line);
             if (refused.empty()) refused = finish(item, record, index, &line);
             if (!refused.empty()) {
-                game::Warning("%s: %s line %d: %s; the record is left out", kWhat, path, line, refused);
+                if (report) game::Warning("%s: %s line %d: %s; the record is left out", kWhat, path, line, refused);
                 continue;
             }
             if (added) records.push_back(std::move(record));
@@ -575,7 +589,7 @@ void MapDatabase::MergeToml(const toml::Value& root, const std::string& path) {
         return std::string();
     });
     merge(root["quest"], quests, "", none);
-    dbtoml::CheckTables(root, {"allod", "zone", "quest"}, kWhat, path);
+    if (report) dbtoml::CheckTables(root, {"allod", "zone", "quest"}, kWhat, path);
 }
 
 // --- ZoneExit ----------------------------------------------------------------------------------------

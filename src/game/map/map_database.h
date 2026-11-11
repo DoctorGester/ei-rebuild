@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -15,6 +16,7 @@
 
 class ByteStream;
 namespace toml {
+class Document;
 class Value;
 }
 
@@ -78,22 +80,41 @@ struct MapQuestRecord {
     std::vector<Vector2> places;       // the line after that: x y pairs
 };
 
-// The map database loaded from map.txt / map_LMP.txt and the map.toml files (a global).
-struct MapDatabase {
+// The map database's lists.
+struct MapLists {
+    std::vector<AllodRecord> allods;
+    std::vector<MapRecord> maps;
+    std::vector<MapQuestRecord> quests;
+};
+
+// The map database (a global): the records of map.txt, map-LMP.txt and the quest folders' map.txt, the map.toml files
+// merged over them.
+struct MapDatabase : MapLists {
     // Map named `name` (_mbsicmp), or null.
     MapRecord* FindMap(std::string_view name);
     // Allod named `name` (_mbsicmp), or null.
     AllodRecord* FindAllod(std::string_view name);
     // Quest named `name` (no case), or null.
     const MapQuestRecord* FindQuest(std::string_view name) const;
-    // Adds the allods, maps and quests of a map.txt-style text file (none when there is no such file).
-    void Load(std::string_view fileName);
-    // The lists emptied, then "map.txt" and "map-LMP.txt" loaded and the map.toml files merged over them.
+    // The texts read emptied, "map.txt" and "map-LMP.txt" read and the map.toml files merged over them.
     void LoadAll();
-    // A map.toml's allods, zones and quests merged over the lists by name (docs/notes/mods.md, "Zones from a mod").
-    void MergeToml(const toml::Value& root, const std::string& path);
+    // A quest folder's map.txt-style text file read after the others (nothing when there is no such file), the
+    // map.toml files merged over them all again.
+    void Load(std::string_view fileName);
 
-    std::vector<AllodRecord> allods;
-    std::vector<MapRecord> maps;
-    std::vector<MapQuestRecord> quests;
+private:
+    // The records of a map.txt-style text file added to `texts`.
+    void Read(std::string_view fileName);
+    // The lists made again: the texts' records, each map.toml file merged over them by name (docs/notes/mods.md,
+    // "Zones from a mod"); a record that does not merge is logged when `report`.
+    void Merge(bool report);
+    void MergeToml(const toml::Value& root, const std::string& path, bool report);
+
+    MapLists texts;   // the text files' records as read, in their order
+    // The map.toml files parsed, the bottom one first.
+    struct TomlFile {
+        std::unique_ptr<toml::Document> document;
+        std::string path;
+    };
+    std::vector<TomlFile> tomls;
 };

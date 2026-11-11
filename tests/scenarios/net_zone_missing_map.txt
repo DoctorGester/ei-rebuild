@@ -1,6 +1,8 @@
 # A network zone that cannot be entered (src/game/app/game_flow.cpp, GameFlow::NetworkZoneNotEntered; MF13d2a). The
-# mod (tools/make_missing_zone_mod.py) gives the quest zones on zone3Obr (z3q1-z3q3) the objects mf13d2a_missing.mob in
-# its Res\texts\map.toml, which no install has (the map stays zone3Obr: a zone on another map is not offered). A game
+# mod (tools/make_missing_zone_mod.py) gives the quest zones on zone3Obr (z3q1-z3q3) only the objects mf13d2a_missing.mob
+# in its Res\texts\map.toml, which no install has; z3q2 and z3q3 come from their quest folders' map.txt, read after the
+# map.toml, which merges over them by name (MF13d2b), so their map stays zone3Obr (a zone on another map is not
+# offered). A game
 # hosted alone takes the sheriff's second topic (z3q2 by this run's draws) and walks out through the gate, as
 # net_pair_mod_effect's host does: the flow's request 6, StartNetworkZone, whose NewZone refuses the missing objects
 # after the base was torn down. The flow then goes to the main menu with the warning "Zone z3q2 cannot be entered"
