@@ -2,13 +2,15 @@
 // new game's controls and the selected entry's details, painted on the screen's first surface. Rebirth patches it
 // twice and both are reproduced: WideScreen for every window (the line under the titles scaled without the
 // margin) and ExtendedServerName behind its flag (wider columns, the servers' names and the new game's row drawn shortened
-// with an ellipsis, the selected server's name wrapped). See ui_screens.h and docs/notes/ui.md, section 5.
+// with an ellipsis, the selected server's name wrapped). Ours: the host's mod in the details, and the rows of hosts
+// this game cannot join for the mods dimmed. See ui_screens.h and docs/notes/ui.md, section 5.
 #include "game/core/asset_text.h"
 #include "game/ui/ui.h"
 #include "game/ui/ui_scrollbar.h"
 #include "game/ui/ui_mesh.h"
 #include "game/ui/ui_screens.h"
 
+#include "game/mods/mod_identity.h"
 #include "game/net/net_session.h"
 
 #include "lib/crt.h"
@@ -58,6 +60,11 @@ float SortArrowX(int column) {
 
 std::uint32_t RowColour(const MpAddressEntry& entry) {
     return entry.state == kStateAsked ? kColourAsked : entry.state == kState2 ? kColourState2 : kUiTextColour;
+}
+// Ours: a row's texts, dimmed for a host this game cannot join for the mods.
+constexpr std::uint32_t kColourCannotJoin = 0x808080;
+std::uint32_t ShownRowColour(const MpAddressEntry& entry) {
+    return entry.joinable ? RowColour(entry) : kColourCannotJoin;
 }
 
 void DrawLabel(UiSurface& surface, std::string_view text, Rect* rect, render::text::Format format, std::uint32_t colour) {
@@ -194,7 +201,7 @@ void MpConnectScreen::PaintList(UiSurface& surface) const {
     for (int y = kRowsTop; y < kRowsBottom; y += kRowHeight, ++index) {
         if (index >= static_cast<unsigned>(entries.size())) break;
         const MpAddressEntry& entry = entries[index];
-        colour = RowColour(entry);
+        colour = ShownRowColour(entry);
         if (index == 0) {
             // The new game: its name as typed.
             text = std::format("{} {}", label(7), nameEdit->text);
@@ -283,6 +290,15 @@ void MpConnectScreen::PaintList(UiSurface& surface) const {
     Down(&row);
     if (entry.password) {
         DrawLabel(surface, label(21), &row, render::text::Format::Left, colour);
+        Down(&row);
+    }
+    if (!entry.modRead) return;
+    // Ours: the host's mod, and why this game cannot join it.
+    const modidentity::Listing listing = modidentity::Listed(entry.mod);
+    DrawEllipsis(surface, listing.mod, &row, render::text::Format::NoPrefix, colour);
+    Down(&row);
+    if (!listing.cannotJoin.empty()) {
+        DrawEllipsis(surface, listing.cannotJoin, &row, render::text::Format::NoPrefix, kColourCannotJoin);
         Down(&row);
     }
 }

@@ -16,6 +16,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -361,6 +362,11 @@ struct MpAddressEntry {
     bool foreign = false;          // the server answered with another protocol
     int state = 0;                 // net::ServerEntryBase::State (1: asked directly, forgettable)
     bool password = false;         // joining needs a password
+    // Ours: the host's mod from its info answer (net::ServerEntry::mod), shown in the details once an answer was read
+    // (`modRead`); a host this game cannot join for the mods (`joinable` false) is drawn dimmed.
+    bool modRead = false;
+    std::optional<modidentity::Identity> mod;   // none: the original game
+    bool joinable = true;
 };
 
 // The colour the connect list's texts and its line are drawn in: set per row and for the details by the list draw

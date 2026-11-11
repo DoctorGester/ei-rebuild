@@ -44,6 +44,15 @@ Box RefusalBox(const std::optional<Identity>& host);
 // client's), as RefusalBox finds its text (lmp_mod_refused).
 std::string RefusedLine(std::string_view address, const std::optional<Identity>& theirs);
 
+// The connection screen's lines for a listed host of mod `host` (none: the original game), as RefusalBox finds its
+// texts: the host's mod (lmp_mod_listed) and, when this game cannot join it for the mods, why (lmp_mod_cannot_join,
+// lmp_mod_cannot_join_version; else empty).
+struct Listing {
+    std::string mod;
+    std::string cannotJoin;
+};
+Listing Listed(const std::optional<Identity>& host);
+
 // The mod as the log names it: "\"<title>\" <hash>", "no mod" or "no mark (the original game)".
 std::string Described(const std::optional<Identity>& mod);
 

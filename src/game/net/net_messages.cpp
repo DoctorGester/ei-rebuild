@@ -417,7 +417,8 @@ ServerEntry::ServerEntry() {
 }
 ServerEntry::ServerEntry(const ServerEntry& other)
     : ServerEntryBase(other), name(other.name), kind(other.kind), description(other.description),
-      players(other.players), maxPlayers(other.maxPlayers), password(other.password) {}
+      players(other.players), maxPlayers(other.maxPlayers), password(other.password), mod(other.mod),
+      modRead(other.modRead) {}
 
 ServerEntry* ServerEntry::Clone() { return new ServerEntry(*this); }
 void ServerEntry::Write(BufferCursor* cursor) {

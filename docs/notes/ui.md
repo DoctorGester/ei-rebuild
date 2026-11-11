@@ -612,7 +612,11 @@ texts 0, 2 (with maxPlayers), 3, 16 and 17, then the pause mode's row (ours, sur
 region 29 with the new game selected steps to the next mode, passed to StartServer as `net::PauseMode`) and, ours, the
 companions switch on the game type's title row (surface 460; region 30 at (560, 214)-(700, 237): "Companions: off" /
 "two", network.md, "Companions"); for a server its name, players, game type, the map's title wrapped over up to
-three lines, address, ping and, with a password, text 21.
+three lines, address, ping and, with a password, text 21; ours then, once the server's info answer was read
+(`net::ServerEntry::modRead`), its mod ("Mod: <title>" / "no mod" / "the original game") and, for a host this game
+cannot join for the mods (`ServerEntry::ModAgrees`), why ("Cannot join: the mods differ" / "another version of the mod")
+in 0x808080, the colour that host's row is drawn in too (`modidentity::Listed`; network.md, "Mods"). The quirk's colour
+left for the titles stays the state's.
 
 ## Companions window
 

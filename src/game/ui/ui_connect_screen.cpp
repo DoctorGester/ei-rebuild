@@ -397,6 +397,9 @@ void MpConnectScreen::RebuildList() {
         entry.foreign = server->foreign != 0;
         entry.state = static_cast<int>(server->state);
         entry.password = server->password != 0;
+        entry.modRead = server->modRead;
+        entry.mod = server->mod;
+        entry.joinable = server->ModAgrees();
     }
 
     // By the sort key: 1 / 2 the name ascending / descending (_mbscmp), 3 / 4 the players, 5 / 6 the game type,

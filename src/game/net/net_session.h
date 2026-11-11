@@ -60,7 +60,7 @@ enum class PacketKind : std::uint8_t {
     Leave = 1,          // a client leaves: its connection id follows
     GetInfo = 3,        // a ping: the sender's time follows
     Login = 4,          // a join request
-    Info = 5,           // a server's description
+    Info = 5,           // a server's description (then our mod mark)
     Accepted = 6,       // the join id follows (then our mod mark)
     Rejected = 7,       // the join id and a RefusalReason follow (then our mod mark for ModMismatch)
 };
@@ -77,7 +77,7 @@ enum class RefusalReason : std::uint8_t {
 };
 
 // Ours (docs/notes/network.md, "Mods"): our peers' mod mark, written where an original peer reads nothing: after a
-// login's 20-byte password, an acceptance's join id and a ModMismatch refusal's reason. kModMark (with its zero), a
+// login's 20-byte password, an info answer's entry, an acceptance's join id and a ModMismatch refusal's reason. kModMark (with its zero), a
 // format byte (kModMarkFormat), the content hash (its low dword, then its high), the title's length (a byte) and its
 // bytes (UTF-8).
 inline constexpr char kModMark[] = "ei-rebuild mod";
@@ -284,6 +284,15 @@ public:
     std::uint8_t players = 0;
     std::uint8_t maxPlayers = 0;
     std::uint8_t password = 0;    // whether joining needs a password
+    // Ours: the mod mark read after the entry of the server's info answer (net::ReadModMark; none: an original
+    // server's answer). Not part of Write / Read: a saved reply and the master's list carry no mark, so `modRead` is
+    // false until an answer is read.
+    std::optional<modidentity::Identity> mod;
+    bool modRead = false;
+
+    // Whether this game may join the server as far as the mods go (modidentity::Agrees; an entry without an answer
+    // read yet counts as joinable): the connection screen marks the others.
+    bool ModAgrees() const { return !modRead || modidentity::Agrees(mod); }
 };
 
 // A server the client asks directly: its address and the reply last seen.
