@@ -1,0 +1,63 @@
+# StartTrans (0x2051, the ZoneExit texture): a glow on a unit's body as it starts to transform, with sparks drawn in
+# to it. The first particle while the source has none is the glow (frame 12): it flickers at a random 0.8-1.2 of a
+# size that grows by 0.02 of the source's size a tick; once the source has no carrier it fades by the life table over
+# 4 ticks, shrinking by 0.6. The others start in a random direction at the source's size from it and come in over 18
+# ticks, cycling four frames from a random one of 0-11, 0.05 of the source's size, fading in and out by the life table
+# over 15 ticks (at most 4 more once the carrier is gone). One a tick to begin with, 0.4 more each tick (rounded, at
+# most 8); the source stops (and lets go) from its 32nd tick on.
+# The original types on data: docs/notes/effects.md, "The original effects on data".
+
+texture = "ZoneExit"
+attach = "attached_only"
+part = "body"
+
+[server]
+script_lifetime = 200
+
+[emit]
+rate = "min(round(pace), 8)"
+max = 300
+
+[vars]
+glow = { start = "size * 0.02 + 0", tick = "size * 0.02 + glow" }   # the glow's size
+pace = { start = "1 + 0.4", tick = "pace + 0.4" }
+
+[[on]]
+event = "tick"
+when = "age >= 31"
+do = [{ stop = true }]
+
+[[particle]]
+name = "glow"
+when = "count == 0"
+lifetime = 1000000000                           # its own life below
+alpha = { start = 0, tick = "attached ? 255 : fade[p.l]" }
+frame = 12
+size = { start = 0, tick = "attached ? (below(0.4) + 0.8) * glow : p.size * 0.6" }
+kill = "!attached && p.l < 0"
+vars = { l = { start = 4, tick = "attached ? p.l : p.l - 1" } }
+
+[[particle]]
+name = "spark"
+lifetime = 1000000000                           # its own life below
+spawn = { shape = "ball" }
+velocity = ["-p.off_x / 18", "-p.off_y / 18", "-p.off_z / 18"]
+size = { start = 0, tick = "p.spark" }
+alpha = { start = 0, tick = "fade[p.l]" }
+frame = { start = "p.cell", tick = "p.frame - p.frame % 4 + (p.frame + 1) % 4" }
+kill = "p.l < 0"
+
+[particle.vars]
+cell = "pick(12)"
+spark = "size * 0.05"
+l = { start = 15, tick = "attached ? p.l - 1 : min(p.l - 1, 4)" }
+length2 = { start = "p.spawn.x * p.spawn.x + p.spawn.y * p.spawn.y + p.spawn.z * p.spawn.z", after_spawn = true }
+off_x = { start = "p.spawn.x / sqrt(p.length2) * size", after_spawn = true }
+off_y = { start = "p.spawn.y / sqrt(p.length2) * size", after_spawn = true }
+off_z = { start = "p.spawn.z / sqrt(p.length2) * size", after_spawn = true }
+
+[particle.position]
+start = ["p.off_x + origin.x", "p.off_y + origin.y", "p.off_z + origin.z"]
+
+[tables]
+fade = [0, 80, 176, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 128, 64]

@@ -359,6 +359,90 @@ void CheckPlacement() {
                errors[0].find("after_spawn") != std::string::npos);
 }
 
+// MF15g3's features: a var set by an "emit" reaction, let_go, at_create, a numbered anchor, a particle's source writes,
+// drop and the flat ball, the carrier's unit values.
+constexpr const char* kCarrierReader = R"toml(
+texture = "Stun"
+[vars]
+gusts = { start = "pick(5) + 4", at_create = true }
+tries = 1
+[[on]]
+event = "emit"
+when = "carrier_unit"
+do = [{ set = "tries", value = "carrier_running ? 4 : 1" }, { let_go = true }]
+[[anchor]]
+name = "gust"
+count = "gusts"
+vars.reach = 2
+[[particle]]
+name = "leaf"
+at = "gust"
+anchor_index = "p.gust"
+lifetime = 5
+vars = { gust = "pick(anchors.gust)", reach = { start = "a.reach", after_spawn = true } }
+spawn = { shape = "flat_ball" }
+drop = "!carrier_unit"
+source = { size = "size * 0.75", alpha = 0 }
+position = { tick = ["carrier_left_foot.x", "carrier_axis.y", "carrier_bounds_radius + carrier_dead"] }
+)toml";
+
+constexpr const char* kEmitsInEmit = R"toml(
+texture = "Stun"
+[[on]]
+event = "emit"
+do = [{ emit = 1 }]
+[[particle]]
+name = "leaf"
+lifetime = 5
+)toml";
+
+constexpr const char* kEarlyAnchor = R"toml(
+texture = "Stun"
+[[anchor]]
+name = "gust"
+count = 2
+vars.reach = 2
+[[particle]]
+name = "leaf"
+at = "gust"
+anchor_index = 1
+lifetime = 5
+vars = { reach = "a.reach" }
+)toml";
+
+void CheckCarrierReaders() {
+    std::vector<std::string> errors;
+    const std::shared_ptr<const Record> record = Read(Parse(kCarrierReader, "reader.effect.toml"), "Reader", &errors);
+    for (const std::string& error : errors) std::printf("ei_unit_check: particle record: unexpected: %s\n", error.c_str());
+    if (!record) return Expect("the carrier reader reads", false);
+    const ParticleKind& kind = record->particles[0];
+    Expect("the carrier's unit values noted", record->readsUnit && !record->readsCarrier);
+    Expect("a numbered anchor, a drop, the flat ball and two source writes",
+           !kind.anchorIndex.Empty() && !kind.drop.Empty() && kind.shape == SpawnShape::FlatBall &&
+               kind.sourceWrites.size() == 2 && kind.sourceWrites[0].first == static_cast<int>(SourceValue::Size) &&
+               kind.sourceWrites[1].first == static_cast<int>(SourceValue::Alpha));
+    Expect("an at_create var", record->vars.size() == 2 && record->vars[0].atCreate && !record->vars[1].atCreate);
+    State state(record);
+    IsaacRandom random;
+    state.Create(random);
+    const float gusts = state.vars[0];
+    Expect("the at_create var drawn when the source is made", gusts >= 4.0f && gusts <= 8.0f);
+    state.Step(random);
+    Expect("the first tick keeps it and starts the others", state.vars[0] == gusts && state.vars[1] == 1.0f &&
+                                                                state.anchors.size() == static_cast<std::size_t>(gusts));
+    state.source[static_cast<int>(SourceValue::CarrierUnit)] = 1.0f;
+    state.source[static_cast<int>(SourceValue::CarrierRunning)] = 1.0f;
+    state.Emitted(random);
+    Expect("an emit reaction sets a var and lets go", state.vars[1] == 4.0f && state.letGo);
+    errors.clear();
+    Expect("an emit reaction that emits refuses the effect",
+           Read(Parse(kEmitsInEmit, "emits.effect.toml"), "Emits", &errors) == nullptr && errors.size() == 1);
+    errors.clear();
+    Expect("a numbered anchor read before it is chosen refuses the effect",
+           Read(Parse(kEarlyAnchor, "early_anchor.effect.toml"), "EarlyAnchor", &errors) == nullptr &&
+               errors.size() == 1 && errors[0].find("anchor_index") != std::string::npos);
+}
+
 // The ```toml blocks of `file` (relative to the source tree) that are whole effects (a [[particle]]).
 std::vector<std::string> EffectBlocks(const char* file) {
     std::ifstream in(std::string(EI_SOURCE_DIR) + "/" + file, std::ios::binary);
@@ -403,6 +487,7 @@ int RunParticleRecordChecks() {
     CheckState();
     CheckReactions();
     CheckPlacement();
+    CheckCarrierReaders();
     CheckWrittenEffects();
     return failures;
 }

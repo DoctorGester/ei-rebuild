@@ -68,13 +68,6 @@ constexpr ParticleSpec kShower = {.texture = "RainSnow", .flags = kOnPart, .atta
                                   .emitCount = 10, .maxParticles = 300, .lifetime = 6, .frameDelay = 15,
                                   .elementCount = 1, .spreadMin = {-0.2f, -0.2f, -0.2f},
                                   .spreadMax = {0.2f, 0.2f, 0.2f}};
-constexpr ParticleSpec kFalling = {.texture = "RainSnow", .flags = kOnPart, .attachPoint = AttachPoint::Body,
-                                   .emitCount = 45, .maxParticles = 300, .lifetime = 6, .frameDelay = 15,
-                                   .spreadMin = {-0.2f, -0.2f, -0.2f}, .spreadMax = {0.2f, 0.2f, 0.2f}};
-constexpr ParticleSpec kSphere = {.texture = "ProtectionA", .flags = ParticleSourceFlag::AttachedOnly,
-                                  .additiveBlend = true, .emitChance = 90, .emitCount = 1, .lifetime = 15,
-                                  .frameCount = 15, .frameDelay = 1, .spreadMin = {-0.2f, -0.2f, -1.0f},
-                                  .spreadMax = {0.2f, 0.2f, 0.0f}};
 constexpr ParticleSpec kModifier = {.texture = "Stun", .flags = kCarried, .emitCount = 80, .lifetime = 14,
                                     .frameDelay = 2};
 constexpr ParticleSpec kCasting = {.texture = "FireSmoke", .flags = kCarriedOnPart, .emitCount = 20, .lifetime = 5,
@@ -84,10 +77,6 @@ constexpr ParticleSpec kCastSwirl = {.texture = "Casting2", .flags = kCarried, .
                                      .spreadMax = {0.04f, 0.04f, 0.04f}};
 constexpr ParticleSpec kCylinder = {.texture = "Casting2", .flags = kCarried, .emitCount = 30, .maxParticles = 600,
                                     .frameDelay = 1, .elementCount = 2};
-constexpr ParticleSpec kVisionStar = {.texture = "Stun", .flags = kCarriedOnPart, .attachPoint = AttachPoint::AboveHead,
-                                      .additiveBlend = true, .emitCount = 3, .lifetime = 0};
-constexpr ParticleSpec kFeetCloud = {.texture = "VisionFog", .flags = kCarried, .additiveBlend = true, .emitCount = 8,
-                                     .maxParticles = 300, .tint = 0xFF, .elementCount = 2};
 constexpr ParticleSpec kGroundDust = {.texture = "ShapeChange", .flags = kPausedToo, .emitCount = 128,
                                       .maxParticles = 128, .elementCount = 1};
 constexpr ParticleSpec kMark = {.texture = "Stun", .flags = kCarriedOnPart, .attachPoint = AttachPoint::Body,
@@ -127,15 +116,8 @@ constexpr ParticleSpec kSpecs[] = {
     {.type = Link, .texture = "Link", .emitChance = 80, .emitCount = 10, .lifetime = 45, .frameCount = 15,
      .frameDelay = 3, .spreadMin = {-0.2f, -0.2f, -0.2f}, .spreadMax = {0.2f, 0.2f, 0.2f},
      .extent = {-10.0f, 0.0f, 0.0f}},
-    Like(kSphere, SphereAcid),
-    Like(kSphere, SphereElectricity, [](ParticleSpec& spec) { spec.texture = "ProtectionE"; }),
-    Like(kSphere, SphereFire, [](ParticleSpec& spec) { spec.texture = "ProtectionF"; }),
     {.type = ClayRing, .texture = "ClayRing", .additiveBlend = true, .emitCount = 80, .lifetime = 15,
      .frameDelay = 2, .elementCount = 10},
-    Like(kSphere, Antimagic, [](ParticleSpec& spec) {
-        spec.texture = "AntiMagic";
-        spec.lifetime = 4;
-    }),
     Like(kModifier, Modifier1),
     Like(kModifier, Modifier2),
     Like(kModifier, Modifier3),
@@ -177,10 +159,6 @@ constexpr ParticleSpec kSpecs[] = {
     Like(kShower, Shower2),
     Like(kShower, Shower3),
     Like(kShower, Shower4),
-    Like(kFalling, Falling1),
-    Like(kFalling, Falling2),
-    Like(kFalling, Falling3),
-    Like(kFalling, Falling4),
     {.type = ShapeChange, .texture = "ShapeChange", .flags = kPausedToo, .emitCount = 2500, .maxParticles = 2500},
     Like(kGroundDust, GroundDust1),
     Like(kGroundDust, GroundDust2, [](ParticleSpec& spec) {
@@ -191,22 +169,9 @@ constexpr ParticleSpec kSpecs[] = {
      .elementCount = kBagBalls},
     Like(kCylinder, Cylinder1),
     Like(kCylinder, Cylinder2, [](ParticleSpec& spec) { spec.texture = "Casting1"; }),
-    Like(kVisionStar, VisionStar1),
-    Like(kVisionStar, VisionStar2, [](ParticleSpec& spec) { spec.lifetime = 1; }),
-    Like(kVisionStar, VisionStar3, [](ParticleSpec& spec) { spec.lifetime = 2; }),
-    Like(kMark, Regeneration, [](ParticleSpec& spec) {
-        spec.emitCount = 2;
-        spec.maxParticles = 500;
-    }),
     Like(kMark, Silence, [](ParticleSpec& spec) { spec.emitCount = 4; }),
-    Like(kFeetCloud, FeetCloud1),
-    Like(kFeetCloud, FeetCloud2, [](ParticleSpec& spec) { spec.tint = 0xFF0000; }),
-    Like(kVisionStar, VisionStar4, [](ParticleSpec& spec) { spec.lifetime = 3; }),
-    Like(kMark, Stun, [](ParticleSpec& spec) { spec.attachPoint = AttachPoint::EffectPoint; }),
     {.type = CurseHolder, .texture = "Tornado", .flags = kOnPart, .attachPoint = AttachPoint::Body, .emitCount = 4,
      .maxParticles = 800, .height = 0.2f, .tint = 0x19000000, .elementCount = 6},
-    {.type = StartTrans, .texture = "ZoneExit", .flags = kOnPart, .attachPoint = AttachPoint::Body, .emitCount = 1,
-     .maxParticles = 300, .elementCount = 1},
     Like(kMushroom, Transform),
 };
 
@@ -259,12 +224,9 @@ void SetupElements(ParticleSource& s) {
     case Tornado: SetupTornado(s); break;
     case CurseHolder: SetupCurseHolder(s); break;
     case Shower1: case Shower2: case Shower3: case Shower4: SetupShower(s); break;
-    case Falling1: case Falling2: case Falling3: case Falling4: SetupFalling(s); break;
     case ClayRing: SetupClayRing(s); break;
     case GroundDust1: case GroundDust2: SetupGroundDust(s); break;
     case Cylinder1: case Cylinder2: SetupCylinder(s); break;
-    case FeetCloud1: case FeetCloud2: SetupFeetCloud(s); break;
-    case StartTrans: SetupStartTrans(s); break;
     default: break;
     }
 }

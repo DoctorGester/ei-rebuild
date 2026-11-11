@@ -8,6 +8,7 @@
 #include "game/core/random.h"
 #include "game/data/resource.h"
 #include "game/objects/map_object.h"
+#include "game/units/unit.h"
 #include "game/world/world.h"
 
 #include "lib/crt.h"
@@ -20,6 +21,7 @@
 
 #include "effect_files/builtin.h"
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <vector>
@@ -198,6 +200,72 @@ void MeasureCarrier(void* context) {
     Value(state.source, SourceValue::CarrierZ) = carrier.offset.z;
 }
 
+// The carrier's unit values (SourceValue::CarrierUnit...): its feet as ParticleSource::PartPoint finds a part.
+void WriteCarrier(ParticleSource& s, std::vector<float>& v) {
+    MapObject* carrier = s.attachedTo;
+    Unit* unit = UnitOrNull(carrier);
+    Value(v, SourceValue::CarrierUnit) = unit ? 1.0f : 0.0f;
+    Value(v, SourceValue::CarrierRunning) = unit && unit->moveMode == MoveMode::Run ? 1.0f : 0.0f;
+    Value(v, SourceValue::CarrierDead) = unit && unit->IsDead() ? 1.0f : 0.0f;
+    const Vector3 axis = carrier ? carrier->localRotation.AxisX() : Vector3{};
+    Value(v, SourceValue::CarrierAxisX) = axis.x;
+    Value(v, SourceValue::CarrierAxisY) = axis.y;
+    Value(v, SourceValue::CarrierAxisZ) = axis.z;
+    Value(v, SourceValue::CarrierBoundsRadius) = carrier ? carrier->bounds.radius : 0.0f;
+    const Vector3 left = unit ? s.PartPoint(unit, "ll3") : s.origin;
+    const Vector3 right = unit ? s.PartPoint(unit, "rl3") : s.origin;
+    Value(v, SourceValue::CarrierLeftFootX) = left.x;
+    Value(v, SourceValue::CarrierLeftFootY) = left.y;
+    Value(v, SourceValue::CarrierLeftFootZ) = left.z;
+    Value(v, SourceValue::CarrierRightFootX) = right.x;
+    Value(v, SourceValue::CarrierRightFootY) = right.y;
+    Value(v, SourceValue::CarrierRightFootZ) = right.z;
+}
+
+// The values that change when the source lets go of its carrier.
+void WriteAttachment(ParticleSource& s, State& state) {
+    std::vector<float>& v = state.source;
+    Value(v, SourceValue::Attached) = s.attachedTo ? 1.0f : 0.0f;
+    Value(v, SourceValue::OriginX) = s.origin.x;
+    Value(v, SourceValue::OriginY) = s.origin.y;
+    Value(v, SourceValue::OriginZ) = s.origin.z;
+    if (state.record->readsUnit) WriteCarrier(s, v);
+}
+
+// A source value (SourceValue: size, height, growth, alpha, param) written back to the source.
+void WriteBack(ParticleSource& s, int which, float value) {
+    switch (static_cast<SourceValue>(which)) {
+    case SourceValue::Size: s.size = value; break;
+    case SourceValue::Height: s.height = value; break;
+    case SourceValue::Growth: s.growth = value; break;
+    case SourceValue::Alpha: s.alpha = value; break;
+    case SourceValue::Param: s.typeParam = value; break;
+    default: break;
+    }
+}
+
+// What the actions of a step or of an "emit" reaction did to the source: the `set` source values written back, a
+// `stop`'s Stop, a `stop_emitting`, a `let_go`; after a Stop or a let go the attachment's values are written again,
+// so the rest of the tick (the particles' updates, the emission) sees the source free.
+void ApplyActions(ParticleSource& s, State& state) {
+    for (const int written : state.sourceWrites) WriteBack(s, written, state.source[written]);
+    state.sourceWrites.clear();
+    const bool detached = state.stopRequested || state.letGo;
+    if (state.stopRequested) {
+        state.stopRequested = false;
+        s.Stop();
+    }
+    if (state.stopEmitting) {
+        state.stopEmitting = false;
+        s.flags &= ~ParticleSourceFlag::Emitting;
+    }
+    if (state.letGo) {
+        state.letGo = false;
+        s.Attach(nullptr);
+    }
+    if (detached) WriteAttachment(s, state);
+}
+
 // The source's values its expressions read, as the tick starts.
 void WriteSource(ParticleSource& s, State& state) {
     std::vector<float>& v = state.source;
@@ -241,6 +309,7 @@ void WriteSource(ParticleSource& s, State& state) {
     Value(v, SourceValue::UpX) = s.up.x;
     Value(v, SourceValue::UpY) = s.up.y;
     Value(v, SourceValue::UpZ) = s.up.z;
+    if (state.record->readsUnit) WriteCarrier(s, v);
 }
 
 // A particle's own values (`p.*`) as its update or emission reads them.
@@ -328,6 +397,16 @@ Vector3 SpawnOffset(const ParticleSource& s, const ParticleKind& kind, const Env
         const float reach = kind.radius.Run(env, 1.0f);
         return {lib::Cos(angle) * reach, lib::Sin(angle) * reach, 0.0f};
     }
+    case SpawnShape::FlatBall: {
+        float x, y;
+        for (int tries = 10;;) {
+            x = g_particleRandom.Range(-1.0f, 1.0f);
+            y = g_particleRandom.Range(-1.0f, 1.0f);
+            if (LengthSquared2D(y, x) < 1.0f) break;   // random: never NaN
+            if (!(--tries > 0)) break;
+        }
+        return Vector3{x, y, 0.0f} * kind.radius.Run(env, 1.0f);
+    }
     }
     return {};
 }
@@ -340,17 +419,33 @@ std::uint32_t Rgb(const ParticleKind& kind, const Env& env, std::uint32_t curren
     return r << 16 | g << 8 | b;
 }
 
+// The live anchor of `group` numbered `number` (wrapped by the live count; -1: none live).
+int NumberedAnchor(const State& state, int group, float number) {
+    std::vector<int> live;
+    for (std::size_t i = 0; i < state.anchors.size(); ++i)
+        if (state.anchors[i].group == group && state.anchors[i].live) live.push_back(static_cast<int>(i));
+    if (live.empty()) return -1;
+    const int n = static_cast<int>(live.size());
+    const int at = Truncated(number, std::numeric_limits<int>::min() / 2, std::numeric_limits<int>::max() / 2) % n;
+    return live[at < 0 ? at + n : at];
+}
+
+// What EmitKind made.
+enum class Emitted { None, Kept, Dropped };
+
 // A particle of kind `kindIndex` (-1: the regular choice) at anchor `anchor` (-1: chosen by the kind) into `p`; the
-// order of its parts is the order of its draws: lifetime, vars, the spawn shape, the vars after it, position,
-// velocity, size, colour, frame.
-int EmitKind(ParticleSource& s, Particle& p, int kindIndex, int anchor, int index) {
+// order of its parts is the order of its draws: lifetime, vars, the anchor by its number, the spawn shape, the vars
+// after it, position, velocity, size, colour, frame, then `drop`.
+Emitted EmitKind(ParticleSource& s, Particle& p, int kindIndex, int anchor, int index) {
     State& state = *s.data;
     if (kindIndex < 0) kindIndex = ChooseKind(state);
-    if (kindIndex < 0) return 0;
+    if (kindIndex < 0) return Emitted::None;
     const ParticleKind& kind = state.record->particles[kindIndex];
-    if (kind.anchor >= 0 && (anchor < 0 || state.anchors[anchor].group != kind.anchor))
+    const bool numbered = !kind.anchorIndex.Empty();
+    if (numbered) anchor = -1;
+    else if (kind.anchor >= 0 && (anchor < 0 || state.anchors[anchor].group != kind.anchor))
         anchor = ChooseAnchor(state, kind.anchor, kind.pick);
-    if (kind.anchor >= 0 && anchor < 0) return 0;
+    if (kind.anchor >= 0 && anchor < 0 && !numbered) return Emitted::None;
     if (kind.anchor < 0) anchor = -1;
 
     p.kind = kindIndex;
@@ -368,11 +463,18 @@ int EmitKind(ParticleSource& s, Particle& p, int kindIndex, int anchor, int inde
     ParticleValues values;
     values[ParticleValue::Anchor] = static_cast<float>(anchor);
     values[ParticleValue::Index] = static_cast<float>(index);
-    const Env env = ParticleEnv(state, p, values);
+    Env env = ParticleEnv(state, p, values);
     p.life = Truncated(kind.lifetime.Run(env, 1.0f), 1, std::numeric_limits<int>::max());
     values[ParticleValue::Life] = static_cast<float>(p.life);
     for (std::size_t i = 0; i < kind.vars.size(); ++i)
         if (!kind.vars[i].afterSpawn) p.vars[i] = kind.vars[i].start.Run(env);
+    if (numbered) {
+        anchor = NumberedAnchor(state, kind.anchor, kind.anchorIndex.Run(env));
+        if (anchor < 0) return Emitted::None;
+        p.state = anchor;
+        values[ParticleValue::Anchor] = static_cast<float>(anchor);
+        env = ParticleEnv(state, p, values);
+    }
 
     const Vector3 centre = anchor >= 0 ? s.origin + AnchorPosition(state, anchor) : s.origin;
     Vector3 offset = SpawnOffset(s, kind, env);
@@ -415,8 +517,18 @@ int EmitKind(ParticleSource& s, Particle& p, int kindIndex, int anchor, int inde
     p.color = alpha << 24 | Rgb(kind, env, kind.rgb);
     p.frame = Truncated(kind.frameStart.Run(env, 0.0f), 0, s.frameCount - 1);
     p.frameTimer = Truncated(kind.frameDelay.Run(env, 0.0f), 0, std::numeric_limits<int>::max());
+    if (!kind.drop.Empty() && kind.drop.Run(env) != 0.0f) return Emitted::Dropped;
     ++state.total;
-    return 1;
+    return Emitted::Kept;
+}
+
+// After a particle of the emission: the "emit" reactions and what their actions did.
+void AfterEmission(ParticleSource& s, State& state) {
+    state.Emitted(g_particleRandom);
+    ApplyActions(s, state);
+    if (state.ended) s.flags &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
+    state.sawEmitting = lib::Has(s.flags, ParticleSourceFlag::Emitting);
+    Value(state.source, SourceValue::Emitting) = state.sawEmitting ? 1.0f : 0.0f;
 }
 
 } // namespace
@@ -450,6 +562,10 @@ void SetUp(ParticleSource& s, std::shared_ptr<const Record> record) {
     s.data = std::make_unique<State>(std::move(record));
     s.data->measure = MeasureCarrier;
     s.data->measureContext = &s;
+    if (std::any_of(r.vars.begin(), r.vars.end(), [](const Var& var) { return var.atCreate; })) {
+        WriteSource(s, *s.data);
+        s.data->Create(g_particleRandom);
+    }
 }
 
 void TickData(ParticleSource& s) {
@@ -458,23 +574,7 @@ void TickData(ParticleSource& s) {
     if (state.sawEmitting && !emittingNow && !state.ended) state.Stopped();
     WriteSource(s, state);
     state.Step(g_particleRandom);
-
-    for (const int written : state.sourceWrites) {
-        const float value = state.source[written];
-        switch (static_cast<SourceValue>(written)) {
-        case SourceValue::Size: s.size = value; break;
-        case SourceValue::Height: s.height = value; break;
-        case SourceValue::Growth: s.growth = value; break;
-        case SourceValue::Alpha: s.alpha = value; break;
-        case SourceValue::Param: s.typeParam = value; break;
-        default: break;
-        }
-    }
-    if (state.stopRequested) {
-        state.stopRequested = false;
-        s.Stop();
-    }
-    if (state.stopEmitting) s.flags &= ~ParticleSourceFlag::Emitting;
+    ApplyActions(s, state);
     int tries = state.emitting ? Truncated(state.rate, 0, std::numeric_limits<int>::max() / 2) : 0;
     s.emitCount = tries + state.burst;
     s.emitChance = Truncated(state.chance, 0, 100);
@@ -502,12 +602,13 @@ int EmitData(ParticleSource& s, Particle& p, int index) {
     Value(state.source, SourceValue::Index) = static_cast<float>(index);
     Value(state.source, SourceValue::Particles) = static_cast<float>(s.particles.size());
     Value(state.source, SourceValue::Total) = static_cast<float>(state.total);
-    if (!EmitKind(s, p, -1, -1, index)) return 0;
-    if (state.record->once) {
+    const Emitted made = EmitKind(s, p, -1, -1, index);
+    if (made == Emitted::Kept && state.record->once) {
         s.flags &= ~ParticleSourceFlag::Emitting;
         state.sawEmitting = false;
     }
-    return 1;
+    if (made != Emitted::None) AfterEmission(s, state);
+    return made == Emitted::Kept ? 1 : 0;
 }
 
 void EmitQueued(ParticleSource& s) {
@@ -519,14 +620,16 @@ void EmitQueued(ParticleSource& s) {
         Particle* p = pool->AcquireParticle();
         Value(state.source, SourceValue::Particles) = static_cast<float>(s.particles.size());
         Value(state.source, SourceValue::Total) = static_cast<float>(state.total);
-        if (EmitKind(s, *p, queued.kind, queued.anchor, index++)) s.AddParticle(p);
+        const Emitted made = EmitKind(s, *p, queued.kind, queued.anchor, index++);
+        if (made == Emitted::Kept) s.AddParticle(p);
         else pool->ReleaseParticle(p);
+        if (made != Emitted::None) AfterEmission(s, state);
     }
     state.queue.clear();
 }
 
 int UpdateData(ParticleSource& s, Particle& p) {
-    const State& state = *s.data;
+    State& state = *s.data;
     if (p.kind < 0 || p.kind >= std::ssize(state.record->particles)) return 0;
     const ParticleKind& kind = state.record->particles[p.kind];
     --p.life;
@@ -583,6 +686,12 @@ int UpdateData(ParticleSource& s, Particle& p) {
     else if (!kind.growth.Empty()) p.size = p.size * kind.growth.Run(env);
     const std::uint32_t alpha = kind.alphaTick.Empty() ? p.color >> 24 : Channel(kind.alphaTick.Run(env));
     p.color = alpha << 24 | Rgb(kind, env, p.color);
+    // The source's values this particle sets: the next particles' updates and the emission read them.
+    for (const auto& [which, value] : kind.sourceWrites) {
+        const float written = value.Run(env);
+        state.source[which] = written;
+        WriteBack(s, which, written);
+    }
 
     if (!kind.kill.Empty() && kind.kill.Run(env) != 0.0f) return 0;
     return 1;

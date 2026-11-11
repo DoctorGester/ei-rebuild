@@ -447,9 +447,6 @@ int EmitParticle(ParticleSource& s, Particle& p, int index) {
     case ParticleType::Shower1: case ParticleType::Shower2: case ParticleType::Shower3: case ParticleType::Shower4:
         return EmitShower(s, p, index);
     case ParticleType::Link: return EmitLink(s, p, index);
-    case ParticleType::SphereAcid: case ParticleType::SphereElectricity: case ParticleType::SphereFire:
-    case ParticleType::Antimagic:
-        return EmitOrbit(s, p, index);
     case ParticleType::ClayRing: return EmitClayRing(s, p, index);
     case ParticleType::Modifier1: case ParticleType::Modifier2: case ParticleType::Modifier3:
     case ParticleType::Modifier4: case ParticleType::Modifier5: case ParticleType::Modifier6:
@@ -460,21 +457,11 @@ int EmitParticle(ParticleSource& s, Particle& p, int index) {
     case ParticleType::CastingIllusion: case ParticleType::CastingDomination:
     case ParticleType::CastingEnchantment: case ParticleType::CastingHealing:
         return EmitCastSwirl(s, p, index);
-    case ParticleType::Falling1: case ParticleType::Falling2: case ParticleType::Falling3:
-    case ParticleType::Falling4:
-        return EmitFalling(s, p, index);
     case ParticleType::ShapeChange: return EmitGlow(s, p, index);
     case ParticleType::GroundDust1: case ParticleType::GroundDust2: return EmitGroundDust(s, p, index);
     case ParticleType::Bag: return EmitBag(s, p, index);
     case ParticleType::Cylinder1: case ParticleType::Cylinder2: return EmitCylinder(s, p, index);
-    case ParticleType::VisionStar1: case ParticleType::VisionStar2: case ParticleType::VisionStar3:
-    case ParticleType::VisionStar4:
-        return EmitVisionStar(s, p, index);
-    case ParticleType::Regeneration: return EmitRegeneration(s, p, index);
     case ParticleType::Silence: return EmitSilence(s, p, index);
-    case ParticleType::FeetCloud1: case ParticleType::FeetCloud2: return EmitFeetCloud(s, p, index);
-    case ParticleType::Stun: return EmitStun(s, p, index);
-    case ParticleType::StartTrans: return EmitStartTrans(s, p, index);
     }
     return 0;
 }
@@ -496,9 +483,6 @@ int UpdateParticle(ParticleSource& s, Particle& p) {
     case ParticleType::Shower1: case ParticleType::Shower2: case ParticleType::Shower3: case ParticleType::Shower4:
         return UpdateShower(s, p);
     case ParticleType::Link: return UpdateLink(s, p);
-    case ParticleType::SphereAcid: case ParticleType::SphereElectricity: case ParticleType::SphereFire:
-    case ParticleType::Antimagic:
-        return UpdateOrbit(s, p);
     case ParticleType::ClayRing: return UpdateClayRing(s, p);
     case ParticleType::Modifier1: case ParticleType::Modifier2: case ParticleType::Modifier3:
     case ParticleType::Modifier4: case ParticleType::Modifier5: case ParticleType::Modifier6:
@@ -509,21 +493,11 @@ int UpdateParticle(ParticleSource& s, Particle& p) {
     case ParticleType::CastingIllusion: case ParticleType::CastingDomination:
     case ParticleType::CastingEnchantment: case ParticleType::CastingHealing:
         return UpdateCastSwirl(s, p);
-    case ParticleType::Falling1: case ParticleType::Falling2: case ParticleType::Falling3:
-    case ParticleType::Falling4:
-        return UpdateFalling(s, p);
     case ParticleType::ShapeChange: return UpdateGlow(s, p);
     case ParticleType::GroundDust1: case ParticleType::GroundDust2: return UpdateGroundDust(s, p);
     case ParticleType::Bag: return UpdateBag(s, p);
     case ParticleType::Cylinder1: case ParticleType::Cylinder2: return UpdateCylinder(s, p);
-    case ParticleType::VisionStar1: case ParticleType::VisionStar2: case ParticleType::VisionStar3:
-    case ParticleType::VisionStar4:
-        return UpdateVisionStar(s, p);
-    case ParticleType::Regeneration: return UpdateRegeneration(s, p);
     case ParticleType::Silence: return UpdateSilence(s, p);
-    case ParticleType::FeetCloud1: case ParticleType::FeetCloud2: return UpdateFeetCloud(s, p);
-    case ParticleType::Stun: return UpdateStun(s, p);
-    case ParticleType::StartTrans: return UpdateStartTrans(s, p);
     }
     return 0;
 }
@@ -563,16 +537,10 @@ void TickSource(ParticleSource& s) {
     case ParticleType::CastingEnchantment: case ParticleType::CastingHealing:
         EachElement(s, TickCastSwirl);
         break;
-    case ParticleType::Falling1: case ParticleType::Falling2: case ParticleType::Falling3:
-    case ParticleType::Falling4:
-        EachElement(s, TickFalling);
-        break;
     case ParticleType::ShapeChange: TickGlow(s); break;
     case ParticleType::GroundDust1: case ParticleType::GroundDust2: EachElement(s, TickGroundPlane); break;
     case ParticleType::Bag: EachElement(s, TickBag); break;
     case ParticleType::Cylinder1: case ParticleType::Cylinder2: TickCylinder(s); break;
-    case ParticleType::FeetCloud1: case ParticleType::FeetCloud2: EachElement(s, TickFeetCloud); break;
-    case ParticleType::StartTrans: EachElement(s, TickStartTrans); break;
     default: break;
     }
 }

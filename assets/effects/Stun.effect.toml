@@ -1,0 +1,43 @@
+# Stun (0x204D, the Stun texture): stars around a stunned unit's effect point. A star starts at a random point of the
+# ball of 0.8 times the carrier's radius and lives 20 ticks, flickering at a random 0.8-1.2 of the source's size times
+# its own 0.7-1.3; frame 3. A running carrier gets four stars a tick living 5 ticks, a walking one one star. The
+# source stops (and lets go) at the emission when the carrier is dead or no unit (the star is made, then dropped),
+# and once it has lost its carrier.
+# The original types on data: docs/notes/effects.md, "The original effects on data".
+
+texture = "Stun"
+blend = "additive"
+attach = "attached_only"
+part = "effect_point"
+
+[emit]
+rate = "tries"
+max = 300
+
+[vars]
+tries = 1                                       # the count the last star set
+
+[[on]]
+event = "emit"
+when = "carrier_unit"
+do = [{ set = "tries", value = "carrier_running ? 4 : 1" }]
+
+[[on]]
+event = "emit"
+when = "!carrier_unit || carrier_dead"
+do = [{ stop = true }]
+
+[[on]]
+event = "tick"
+when = "!attached && count > 0"
+do = [{ stop = true }]
+
+[[particle]]
+name = "star"
+lifetime = "carrier_running ? 6 : 21"           # 5 or 20 shown, as the original counts down past 0
+spawn = { shape = "ball", radius = "carrier_radius * 0.8" }
+vars = { factor = { start = "below(0.6) + 0.7", after_spawn = true } }
+alpha = { start = 0, tick = 255 }
+frame = 3
+size = { start = 0, tick = "(below(0.4) + 0.8) * size * p.factor" }
+drop = "!carrier_unit"

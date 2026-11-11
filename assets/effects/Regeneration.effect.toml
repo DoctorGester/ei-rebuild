@@ -1,0 +1,35 @@
+# Regeneration (0x2047, the Stun texture): two marks at a unit's body, the first on its left, the second on its
+# right. Each eases (0.7 of the way kept a tick) towards the point beside the carrier along the carrier's own x axis,
+# 0.65 of its bounds' radius out, raised by 0.4 of the source's size; its size a random 0.8-1.2 of a quarter of the
+# source's size; frame 3. Once the source stops emitting or loses its carrier, every mark's update shrinks the
+# source's size by a quarter (the next mark reads the smaller size) and a mark goes once it is below 0.02.
+# The original types on data: docs/notes/effects.md, "The original effects on data".
+
+texture = "Stun"
+blend = "additive"
+attach = "attached_only"
+part = "body"
+
+[emit]
+rate = 2
+
+[[particle]]
+name = "mark"
+when = "count <= 1"
+lifetime = 1000000000                           # it lasts until the source has shrunk
+alpha = { start = 0, tick = 255 }
+frame = 3
+size = { start = 0, tick = "!(emitting && attached) && p.shrunk < 0.02 ? p.size : (below(0.4) + 0.8) * p.shrunk * 0.25" }
+kill = "!(emitting && attached) && p.shrunk < 0.02"
+
+[particle.vars]
+side = "count == 0 ? -1 : 1"
+shrunk = { start = 0, tick = "emitting && attached ? size : size * 0.75" }    # the source's size from this update
+
+[particle.position]
+tick = ["p.x * 0.7 + (attached ? origin.x + carrier_axis.x * (carrier_bounds_radius * p.side * 0.65) : origin.x) * 0.3",
+        "p.y * 0.7 + (attached ? origin.y + carrier_axis.y * (carrier_bounds_radius * p.side * 0.65) : origin.y) * 0.3",
+        "p.z * 0.7 + p.shrunk * 0.4 + (attached ? origin.z + carrier_axis.z * (carrier_bounds_radius * p.side * 0.65) : origin.z) * 0.3"]
+
+[particle.source]
+size = "p.shrunk"

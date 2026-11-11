@@ -77,6 +77,15 @@ enum class SourceValue : std::uint16_t {
     SpreadMaxX, SpreadMaxY, SpreadMaxZ,
     SideX, SideY, SideZ,    // the motion's side and up axes this tick (zero while the source barely moves)
     UpX, UpY, UpZ,
+    // The carrier as a unit, written at the tick's start and after an action lets it go (only for an effect that
+    // reads one of them): 1 when it is a unit, runs, is dead; its own x axis; its bounds' radius as it stands (not
+    // measured again); its feet (the "ll3" / "rl3" parts, else its body, else its position raised by its bounds'
+    // top; the source's origin without a unit carrier).
+    CarrierUnit, CarrierRunning, CarrierDead,
+    CarrierAxisX, CarrierAxisY, CarrierAxisZ,
+    CarrierBoundsRadius,
+    CarrierLeftFootX, CarrierLeftFootY, CarrierLeftFootZ,
+    CarrierRightFootX, CarrierRightFootY, CarrierRightFootZ,
     Values
 };
 inline constexpr int kSourceValues = static_cast<int>(SourceValue::Values);
@@ -118,6 +127,7 @@ struct Var {
     Expr start;
     Expr tick;
     bool afterSpawn = false;    // a particle's: its start runs after the spawn shape draws (it reads p.spawn.*)
+    bool atCreate = false;      // the effect's: its start runs when the source is made, before the first tick
 };
 
 // What a stage's entry or a reaction does.
@@ -125,6 +135,7 @@ struct Action {
     enum class Kind : std::uint8_t {
         Emit,       // `count` particles of `particleKind` (-1: the regular choice), at each live anchor of `anchor` (-1: none)
         Set,        // input `target` to `value`
+        SetVar,     // the effect's var `target` to `value`
         SetSource,  // the source's own value `target` (a SourceValue: size, height, growth, alpha, param) to `value`
         Stage,      // stage `target` (-2: the effect ends)
         Effect,     // starts the effect `effect` at the source (a sub-emitter)
@@ -132,6 +143,7 @@ struct Action {
         Stop,       // the source stops as the game's Stop stops it (no emission, not kept alive, its carrier let go);
                     // the effect goes on, and the game may start it again
         StopEmitting,   // the source's emission flag cleared, nothing else (the game may set it again)
+        LetGo,      // the source lets go of its carrier (stays where it is; its flags unchanged)
     };
     Kind kind = Kind::Emit;
     Expr count;
@@ -160,6 +172,7 @@ struct Reaction {
         Start,
         Stop,
         Tick,   // every tick
+        Emit,   // after each particle the emission makes (kept or dropped); its actions take effect at once
         Event,
     };
     On on = On::Start;
@@ -181,7 +194,9 @@ struct Anchor {
     bool cylindrical = false;
 };
 
-enum class SpawnShape : std::uint8_t { Point, Box, Ball, Shell, Disc, Ring };
+// FlatBall: x and y drawn in the square [-1, 1) until y * y + x * x < 1 (ten tries, the last kept), z 0: the plane's
+// `ball`.
+enum class SpawnShape : std::uint8_t { Point, Box, Ball, Shell, Disc, Ring, FlatBall };
 enum class Space : std::uint8_t {
     World,      // a particle moves on its own once emitted
     Source,     // its offset rides the source's origin
@@ -198,6 +213,7 @@ struct ParticleKind {
     std::vector<Var> vars;  // at most kParticleVars
     int anchor = -1;        // emitted at one of these anchors
     AnchorPick pick = AnchorPick::Cycle;
+    Expr anchorIndex;       // given: the anchor is the group's live one of this number (wrapped), taken after the vars
     Space space = Space::World;
     SpawnShape shape = SpawnShape::Point;
     Expr radius;
@@ -217,6 +233,8 @@ struct ParticleKind {
     Expr frameStart, frameDelay, frameTick;
     FrameMode frameMode = FrameMode::Loop;
     Expr kill;
+    Expr drop;              // holds at the end of the emission: the particle is not kept (its draws were made)
+    std::vector<std::pair<int, Expr>> sourceWrites;   // each update: the source's value (SourceValue) set, in order
 };
 
 // Whether the source emits only while it is attached to an object (particle_data.cpp makes it ParticleSourceFlag).
@@ -236,6 +254,7 @@ struct Record {
     bool ticksWhilePaused = false, idlesOffScreen = false;
     bool keepAlive = false;     // a free source lasts without particles until it ends (else only while it has some)
     bool readsCarrier = false;  // an expression reads carrier_radius or carrier_z
+    bool readsUnit = false;     // an expression reads one of the carrier's unit values (SourceValue::CarrierUnit...)
 
     // [server]: read by the server.
     int oneShot = 0;            // the world object lives this many ticks (0: until removed)
@@ -306,6 +325,11 @@ public:
     // The source stopped emitting by the game's hand: the "stop" reactions run at the next step.
     void Stopped() { stopPending = true; }
 
+    // The vars that start when the source is made (`at_create`), from the source values written first.
+    void Create(IsaacRandom& random);
+    // The "emit" reactions, after a particle of the emission (particle_data.cpp then applies their actions).
+    void Emitted(IsaacRandom& random);
+
     // One tick: the game has written `source` (SourceValue) first. Afterwards rate, chance, emitting, queue, burst,
     // effects and ended say what the source does this tick.
     void Step(IsaacRandom& random);
@@ -335,6 +359,7 @@ public:
     bool ended = false;
     bool stopRequested = false;     // a `stop` action ran this tick (particle_data.cpp stops the source)
     bool stopEmitting = false;      // a `stop_emitting` action ran this tick (particle_data.cpp clears the flag)
+    bool letGo = false;             // a `let_go` action ran this tick (particle_data.cpp detaches the source)
     std::vector<int> sourceWrites;  // the source values `set` this tick (SourceValue; particle_data.cpp writes them)
     bool sawEmitting = true;        // the source's Emitting flag after the last step (particle_data.cpp)
 
