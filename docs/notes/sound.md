@@ -1,15 +1,15 @@
 # Sound, music and movies
 
-The game's sound code is `src/game/sound/sound.h`, `sound_manager.cpp`, `sound_music.cpp`; it plays through our own output
-(`src/audio/audio.h`: a mixer on an SDL3 audio stream, dr_wav and dr_mp3 of third_party/dr_libs) and our own Bink 1
+The game's sound code is `src/game/sound/sound.h`, `sound_manager.cpp`, `sound_music.cpp`; it plays through our own
+output (`src/audio/audio.h`: a mixer on an SDL3 audio stream, dr_wav and dr_mp3 of third_party/dr_libs) and our own Bink 1
 decoder (`src/video`). Neither Miles nor Bink is loaded. Scenario: `sound` in `tests/scenarios/batch_sound_ai.txt`
 (new game, a jingle, a 3D effect, a fight with combat music and the brain's "Delayed sound" lines).
 
 ## What the game reads back
 
 Only these reach game logic; volumes, pans, reverb, positions and the pixels and sound of movies are output only.
-- **A voice's end** (`audio::Ended`, set by `DeliverEnds`): Tick frees the voice; `FindPlaying` reads it for a unit's talking flag
-  (unit_client_effects / unit_client_update, map_object_companion) and the briefing's next phrase; sequences start
+- **A voice's end** (`audio::Ended`, set by `DeliverEnds`): Tick frees the voice; `FindPlaying` reads it for a unit's
+  talking flag (unit_client_effects / unit_client_update, map_object_companion) and the briefing's next phrase; sequences start
   their next sound. The goldens depend on when it comes.
 - **Which voices are free**: `AllocateVoice` takes the first free voice, else steals the lowest priority below the
   request (a looping sound is deferred with its sample position); -1 only when all 15 voices play at the priority or
@@ -47,25 +47,21 @@ Only these reach game logic; volumes, pans, reverb, positions and the pixels and
   period); a one-off music file (`PlayStreamOnce`: PlayJingle, the calm music) is requested and its "silence after
   it" is asked for by the step that switches to it (`endAfterSwitch`; any other request clears it), while
   `UpdateMusic` chooses nothing until then (`StreamSwitchPending`). Music requests change the stream's state at once:
-  no lock and no queue, the steps being on the same thread. The MP3 work is a step's: 0.1 to 0.19 ms a half's decoding,
-  1.2 to 2.6 ms a file's opening (2026-11-04, files on a local disk).
-- **Why the stream has no thread** (C123a, measured 2026-11-05 on WASAPI, 441-frame periods; C123 2026-11-04). The
-  halves are 174 ms (7680 frames) each, so a step may come up to 174 ms after a half frees: a pass longer than about
-  74 ms can starve the music, by at most its length less 74 ms, when a half frees just after a step. The long passes
-  are the loads: a zone change 0.21 to 0.39 s warm and 2.7 s cold, a new game 0.22 to 0.33 s, a load 0.35 s on gz19h;
-  the music is stopped before each (`LoadZone`'s and the main menu's `StopAll(true)`, the load's), and the loading
-  screen's steps feed the stream through them (gaps of 74 to 255 ms, the stream idle). With music playing, one real
-  device run (the menu, a new game, a jingle, a zone change to gz2g, F5, F8; the verify build in real time) had passes
-  of 60 to 139 ms in gz2g and the F5 save inside them (gz19h's save is 0.11 s, harness.md, "Save and load cost"),
-  and the stream starved 0 frames; the only starved frames (2514) came in the new game's load with the stream idle.
-  A deeper queue was the other way and was turned down: a cold load needs 3 s or more, which puts every Now /
-  AtMarker switch that much later and frees the no-device halves on other frames (goldens).
+  no lock and no queue, the steps being on the same thread. The MP3 work is a step's: about 0.1-0.2 ms a half's
+  decoding, 1-3 ms a file's opening.
+- **Why the stream has no thread.** The halves are 174 ms (7680 frames) each, so a step may come up to 174 ms after a
+  half frees: a pass longer than about 74 ms can starve the music, by at most its length less 74 ms, when a half frees
+  just after a step. The long passes are the loads (a zone change 0.2-0.4 s warm, 2.7 s cold); the music is stopped
+  before each (`LoadZone`'s and the main menu's `StopAll(true)`, the load's), and the loading screen's steps feed the
+  stream through them. In play the passes stay under about 140 ms (the F5 save among them: harness.md, "Save and load
+  cost") and the stream does not starve. A deeper queue was turned down: a cold load needs 3 s or more, which puts every
+  Now / AtMarker switch that much later and frees the no-device halves on other frames (goldens).
 
 ## The mixer
 
 - SDL3's default playback device, a 32-bit float stereo stream at 44100 Hz whose callback runs our mixer (the log
-  names the device, its driver, its rate and its period: WASAPI 441 frames, pulseaudio 768). SDL
-  follows a change of the default device; a device that cannot open leaves the game running silently, so logic never
+  names the device, its driver, its rate and its period: WASAPI 441 frames, pulseaudio 768). SDL follows a change of
+  the default device; a device that cannot open leaves the game running silently, so logic never
   depends on the sound hardware. The device's name, the first voice and sound, and at the close the voices started and
   the mix's peak go to the debugger's output.
 - Voices decode the whole wave with dr_wav (PCM 8 / 16 bits, IMA ADPCM) to 16-bit samples, cut to the header's count,
@@ -85,7 +81,8 @@ Only these reach game logic; volumes, pans, reverb, positions and the pixels and
   in a fixed order, `lib::Pow` for the reverb's feedback). Under 1 s. A change to the mix that moves the hash is intended
   or not: the check prints the new hash. Not reached: the trace (`NoteFrame`), the real device, the MP3 decoders.
 - A stream's halves are 16-bit; `QueueHalf` copies one with its format and the mixer plays the copy; more than one
-  stream can play (a movie's sound takes its own). All mixer state is under one lock; the voices' clock fields are the main thread's.
+  stream can play (a movie's sound takes its own). All mixer state is under one lock; the voices' clock fields are the
+  main thread's.
 
 ## How the sound keeps up (EI_AUDIO_TRACE)
 
@@ -96,15 +93,9 @@ of real time (the device's buffer; a falling value is a device that takes less t
 played as silence for want of a queued half. In a play run set it in the environment; in a harness run add
 `EI_HARNESS_SOUND=1` (both reach the game through run_all), with `realtime` in the scenario for real-time spacing.
 
-Measured 2026-11-03 (the game thread's sound time a pass; the device):
-- Windows, WASAPI (441 frames a period), 35 s of a zone with a jingle every 2.5 s: 0.001 to 0.02 ms mean, at most
-  6 ms (a wave's decoding in SetWave); lock waits at most 0.05 ms; 44100 frames a second, 10 to 19 ms ahead, steady.
-- WSLg, pulseaudio's "RDP Sink" (768 frames a period), the menu and a zone: 0.002 to 0.03 ms mean, at most 1.4 ms;
-  lock waits at most 0.08 ms; 12 to 30 ms ahead until the sink stalls (docs/notes/linux.md, "Sound under WSLg").
-- Before PlayStreamOnce, PlayJingle and the calm music spun on the main thread until the stream (then a thread of its
-  own) took the file:
-  127 and 146 ms a request on Windows, 9 to 207 ms on WSLg with a working sink, 874 ms and then for good (the harness's
-  60 s limit) once the sink had stalled.
+Typical values: the game thread's sound time a pass is a few hundredths of a ms on average, at most a few ms (a wave's
+decoding in SetWave); lock waits below 0.1 ms; the device 10-30 ms ahead. Under WSLg pulseaudio's "RDP Sink" can stall
+(docs/notes/linux.md, "Sound under WSLg"), which is why nothing on the main thread waits for the stream.
 
 ## Game side
 
@@ -126,9 +117,8 @@ Measured 2026-11-03 (the game thread's sound time a pass; the device):
   silence, the stream idle and its name empty. Play2D takes its loop / height fade / speech / MP3 flags as a
   `Play2DOptions`.
 - **Floating point**: what reaches game state is whether a voice is taken, which follows from Play3D's level and the
-  emitters' distances and intervals: basic float operations in the original's order (exact against its 24-bit
-  results; checked on 30 M random cases). The pans (acos), the listener axis and the fader only
-  reach the output.
+  emitters' distances and intervals: basic float operations in the original's order. The pans (acos), the listener
+  axis and the fader only reach the output.
 - **AI hearing** ("Delayed sound") is not sound code: the brain's perception memory holds delayed sounds (a position
   or a unit, a countdown of 26 or 30 brain ticks, a text) from `AIBrain::CallAllies` and
   `UnitServer::ClaimHostility`; on expiry they print "Delayed sound: <text>" or "Unit N hear delayed sound: <text>" to
@@ -143,13 +133,6 @@ variant's wave length is when its voice ends. `UpdateMusic` reads the stream's s
 `StreamSwitchPending`): a fight's start draws a combat track only when the playing one is not the last combat track.
 With a device the halves free as the device plays them, so the steps' results follow how far the device got; without
 one (every harness run) they free on the virtual clock and the draws come on the same frames in every run.
-
-## Original bugs kept
-
-Visible behaviour of the original kept until the user decides (rewrite-guide rule 9; C84 triaged the list, with a
-recommendation per entry). Crashes, undefined behaviour and invisible bookkeeping are fixed, not listed.
-
-None left.
 
 ## Movies
 

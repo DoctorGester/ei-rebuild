@@ -224,7 +224,7 @@ of whichever real message came first.
 
 **Behaviour that only looks random**:
 - Any change in frame count reshuffles the ISAAC draws (the server's AI, weather and combat share the generator), so
-  functions driven by them (zone1's storm, wolf pathing, the bored remark) come and go when a wait is cut. Cut waits only
+  functions driven by them (zone1's storm, wolf pathing) come and go when a wait is cut. Cut waits only
   where coverage stays.
 - rebirth_flags' `DistancePointPoint(3,4)` reads four floats past an 8-byte argument block in the original; ours reads 0
   for the two missing floats, and the scenario checks `Or(DistancePointPoint(3,4),1)`, true for every value.

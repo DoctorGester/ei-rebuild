@@ -1,9 +1,10 @@
 # Combat and the server unit controller
 
-Code (layouts and per-function comments are in `combat.h` and `combat/combat_internal.h`): `combat*.cpp` (queries and the hit in
-combat.cpp; actions, orders, order setters, save, sight, steps, step lists, tick, update, motion, planning, taming, stat
-slots, lifetime, spell sight), `unit_motion_tick.cpp`, `world_create.cpp`. Scenarios: `combat.txt`, `combat_more.txt`
-(kill, archer, heal), `combat_skills.txt` (wand, steal, run and paused move orders), `movement.txt`, `unit_ai.txt`; every creature runs the update and animation code each tick.
+Code (layouts and per-function comments are in `combat.h` and `combat/combat_internal.h`): `combat*.cpp` (queries and
+the hit in combat.cpp; actions, orders, order setters, save, sight, steps, step lists, tick, update, motion, planning,
+taming, stat slots, lifetime, spell sight), `unit_motion_tick.cpp`, `world_create.cpp`. Scenarios: `combat.txt`,
+`combat_more.txt` (kill, archer, heal), `combat_skills.txt` (wand, steal, run and paused move orders), `movement.txt`,
+`unit_ai.txt`; every creature runs the update and animation code each tick.
 
 `UnitServer` (class 0x3E) is the server-side unit controller; the AI brain (unit_ai.md) and the path (ai.md) hang off
 it.
@@ -37,15 +38,16 @@ weapon bit (1 << type, natural below 7) | movement bits (0x30000 / 0x20000 / 0x1
 attack with height band 0x1000000 / 0x2000000 / 0x3000000 | 0x800000, 0x40000 skill, 0xC0000 cast, 0x240000 mode
 transition, 0x6000000 death, 0x80580000 idle ...); movement | 0x40000000 once or 0x80000000 looped. An entry's frame
 count and the action's moment come from the figure's animation database.
-An unarmed unit (no weapon in hand, natural weapon none) asks for a body search with the key bits 0x20 (the bow's bit: the
-original does the same: the key builder of 00550100), and a crossbow's holder asks for the ranged search with 0x40. The heroes'
-figures (unhuma's 179 entries, the same in vanilla and Lost in Astral) have the search (0x35, walking 0x30) for 0x5F (the melee
-weapons and the crossbow) and the ranged search (0x16, walking 0x34) for 0x20 only, so in the original both searched with no
-animation steps. Deviation by the user's choice (MOD12, 2026-11-06): a use order whose key fits no entry takes any entry of its
-skill (`FindAnimation(key, 1)`, one draw of the game's rand() as every such pick), as an attack falls back to any attack of its
-weapon: the unarmed play the melee weapons' search (uspecial24, walking uspecial22), the crossbow the bow's (uspecial07 /
-uspecial23). Use, steal and tame entries are for any weapon (0) and unchanged; a figure with no entry of the skill still plays
-none (`mod_lost_in_astral_unarmed_search`).
+
+An unarmed unit (no weapon in hand, natural weapon none) asks for a body search with the key bits 0x20 (the bow's bit,
+as the original's key builder), and a crossbow's holder asks for the ranged search with 0x40. The heroes' figures
+(unhuma's 179 entries, the same in vanilla and Lost in Astral) have the search (0x35, walking 0x30) for 0x5F (the melee
+weapons and the crossbow) and the ranged search (0x16, walking 0x34) for 0x20 only, so in the original both searched
+with no animation steps. Deviation by the user's choice: a use order whose key fits no entry takes any entry of its
+skill (`FindAnimation(key, 1)`, one draw of the game's rand() as every such pick), as an attack falls back to any
+attack of its weapon: the unarmed play the melee weapons' search (uspecial24, walking uspecial22), the crossbow the
+bow's (uspecial07 / uspecial23). Use, steal and tame entries are for any weapon (0) and unchanged; a figure with no
+entry of the skill still plays none (`mod_lost_in_astral_unarmed_search`).
 
 ## The hit
 
@@ -53,12 +55,12 @@ PrepareAttack decides backstab (attacker behind; not ranged, not against "cannot
 BuildAttackHit: damage weights; the attack roll (text-key units with a weapon draw ISAAC: 2 * (draw % 5) + 2 - 6,
 others the stats' attack times the difficulty factor); damage (the weapon's RollDamage, or damage +
 random % (spread * 100 + 1) * 0.01, scaled); the hit location (0 head, 1 body, 2 / 3 hands, 4 / 5 legs, 6 all); the
-backstab multiplier; called shot. The target's TakeHit resolves it unless the roll is already +-FLT_MAX: ResolveHit turns
-it into FLT_MAX (hit) or -FLT_MAX (miss): elemental hits always hit, else AttackRoll = max(0, 2r - (spread + 1) + attack
-- distance penalty + speed ratio (not for a backstab)), r uniform in 0..round(spread), minus 25 for a called shot at the
-head or 10 at a limb; the hit lands unless the defender's defence (0 against a backstab) is greater. TakeHit logs ("Unit
-12 was attacked by 34 skill=... damage=... destHL=Body", plus " backstab with power=" / " called shot"; combat.txt
-`expect`s parts of it, through the console stream, character for character), refuses it for protected players, applies
+backstab multiplier; called shot. The target's TakeHit resolves it unless the roll is already +-FLT_MAX: ResolveHit
+turns it into FLT_MAX (hit) or -FLT_MAX (miss): elemental hits always hit, else AttackRoll = max(0, 2r - (spread + 1) +
+attack - distance penalty + speed ratio (not for a backstab)), r uniform in 0..round(spread), minus 25 for a called
+shot at the head or 10 at a limb; the hit lands unless the defender's defence (0 against a backstab) is greater. TakeHit
+logs ("Unit 12 was attacked by 34 skill=... damage=... destHL=Body", plus " backstab with power=" / " called shot";
+combat.txt `expect`s parts of it, through the console stream, character for character), refuses it for protected players, applies
 it (UnitStats::ApplyHit, units.md), records the source, recomputes stats and calls OnDamaged. A miss makes the victim
 hostile (Diplomacy::OnAttack) and remembered. AttackParams: text-key units use the weapon's stats plus the weapon skill
 bonus, others their stats scaled by difficulty; no defence with a bow or crossbow.
@@ -77,22 +79,22 @@ bonus, others their stats scaled by difficulty; no defence with a bow or crossbo
   When it plans: the attack interval advanced, the hit built and resolved, the action started; else ApproachTarget
   closes in (wait when in reach, else a path to where the target will be in 2..64 ticks).
 - The animation code calls FinishAction(location) at the order's moment: kind 3 DeliverAttack (bows / crossbows: a
-  missile 0x5B carrying the hit, a timed object; otherwise the target's ReceiveHit forwards the hit to its TakeHit at once;
-  then the weapon's spell and a noise when the backstab multiplier is exactly 1.0), 4 / 5 FinishCast (a charged carrier
+  missile 0x5B carrying the hit, a timed object; otherwise the target's ReceiveHit forwards the hit to its TakeHit at
+  once; then the weapon's spell and a noise when the backstab multiplier is exactly 1.0), 4 / 5 FinishCast (a charged carrier
   pays from its charge, a party unit pays mana Period20 x cost), 6 UseSkill, 10 the quick item is applied by the world.
   Item spells fire when the item's charge covers the cost (NaN fires); UseItemCharge copies the charge to the party's
   item copy.
 - Planning a route: a use order goes to the reachable spot its target offers; otherwise the path is searched with the
-  target lifted off the sector map, turned into a motion order, and TimeUntilAction (motion simulated in steps of 5 ticks)
-  goes to the player's path message. Shouts `NoWayToAttack` (attacks) / `NoPath` on failure.
+  target lifted off the sector map, turned into a motion order, and TimeUntilAction (motion simulated in steps of 5
+  ticks) goes to the player's path message. Shouts `NoWayToAttack` (attacks) / `NoPath` on failure.
 - Save: SaveServer / LoadServer; the armour spells and the step lists (AnimationSteps::Save / Load and the extra dword
   after them) in `combat_save.cpp`.
 
 ## Update, movement tick, damage and death
 
 - Update: UnitVitals::Regenerate, AI events every (speed class + 1)-th frame, armour periodic spells, a party unit's
-  perception memory, boredom (past 500 one ISAAC draw in 1001 sends remark 0x29 and sets 400, or 0 when the player's flag
-  is set), alarm, AIBrain::Think, PropagateHostility, then UpdateOrders unless frozen (flags 0x1000000) or reacting to a
+  perception memory, boredom (past 500 a remark 0x29 is due 1 in 1001 and sets 400, or 0 when the player's flag is
+  set; "Facts behind fixed entries" below), alarm, AIBrain::Think, PropagateHostility, then UpdateOrders unless frozen (flags 0x1000000) or reacting to a
   hit, UpdateState and AdvanceAnimation. A dead unit's body sinks (z -= speed, growing each update) and once the queue is
   empty death is reported once.
 - **Movement tick** (`UpdateMotion`, called twice by UpdateState; the AI side in ai.md, "How a unit moves"): samples the
@@ -100,10 +102,10 @@ bonus, others their stats scaled by difficulty; no defence with a bow or crossbo
   (BlockingUnitAt) waits (a party member leading this unit, or the unit already waited for), waits behind a unit
   attacking / casting at the same target, or replans with nearby units lifted (links leading back clear both; a slower
   blocker with reason 2, water, also replans); else SectorMap::Move. Running party units drain "stamina" (the server
-  object's mana by a fraction of its maximum; below 0: message 0x1D, walk). The "blocked" reason starts at 0 when no cell
-  was reached (the original read stack garbage there; no golden reaches it).
-- OnDamaged(attacker, hitKind): types outside 0x32..0x36 only get flags bit 1. Living: armour spells, attacker hostile and
-  remembered, flags 0x80000, PropagateHostility (allied units within the brain's radius exchange claims), the hit
+  object's mana by a fraction of its maximum; below 0: message 0x1D, walk). The "blocked" reason starts at 0 when no
+  cell was reached (the original read stack garbage there).
+- OnDamaged(attacker, hitKind): types outside 0x32..0x36 only get flags bit 1. Living: armour spells, attacker hostile
+  and remembered, flags 0x80000, PropagateHostility (allied units within the brain's radius exchange claims), the hit
   direction. Dead: the killer's party gets message 0x30, WitnessMurder on both nearby lists, effects cleared, SetDead(1),
   "Unit 12 damaged to death", death animation, AI death notice, party memory. HitDirection: |side| < |front| (or NaN)
   gives 0x800000 front / 0x400000 behind, else 0xC00000 / 0x1000000.
@@ -121,22 +123,26 @@ effects, spells, items, resources), takes the command-line paths, then initialis
 
 ## Floating point
 
-The original's branch-free `max(0, v)` picks v when 0 < v or NaN (`MaxZero`; also the melee reach floor in
-ActionDistance); `TEST AH,0x40` skips on equal or unordered (`x < 0 || x > 0`); random draws `random % (n + 1)` with n =
-FISTP, then the zero-extended remainder (`Unsigned`).
+The original's branch-free selects keep their NaN choices (lib/float_select.h, float-maths.md): `max(0, v)` picks v
+when 0 < v or NaN (also the melee reach floor in ActionDistance); a test that skips on equal or unordered is
+`x < 0 || x > 0`; random draws `random % (n + 1)` take n rounded to an int, then the zero-extended remainder.
 
 ## Unreached in the shipped game
 
 Kept because they could be re-enabled, each with a one-line comment: taming (`TryTame`, `UndoTaming`, `UndoIfTamedBy`
 in combat_taming.cpp, `OrderTame`: the taming skill returns before its use case, `WorldServer::CastSpell` refuses
 charm and the interface sends only the use and steal kinds) and the use-item order (`OrderPlan::TakeSteps` and the
-UseItem cases of `FinishAction` and the tick: nothing sets that order). `TooHighToReach` and the two `TellParty(OutOfReach)`
-calls are live code that needs a target too high to reach, which the coverage runs lacked.
+UseItem cases of `FinishAction` and the tick: nothing sets that order). `TooHighToReach` and the two
+`TellParty(OutOfReach)` calls are live code that needs a target too high to reach, which no scenario has.
+`combat_skills` reaches the rest of the order code: a wand on a unit (SpellCarrier, UseItemCharge), the science button
+on a unit outside the party (the steal order: OrderSteal, UseSkill, "Item has been stolen from"; the hero needs more
+science than the wolf's 77) and move orders given while the game is paused (Space: OrderMove plans at once, PlanMove;
+with a run flag too).
 
 ## Original bugs kept
 
-Visible behaviour of the original kept until the user decides (rewrite-guide rule 9; C84 triaged the list, with a
-recommendation per entry). Crashes, undefined behaviour and invisible bookkeeping are fixed, not listed.
+Visible behaviour of the original kept until the user decides (rewrite-guide rule 9). Crashes, undefined behaviour and
+invisible bookkeeping are fixed, not listed.
 
 - Hit: ResolveHit penalises every called-shot location except the body by 10 (including 6 and invalid); CanCast
   compares mana only for units with a player.
@@ -145,25 +151,17 @@ recommendation per entry). Crashes, undefined behaviour and invisible bookkeepin
   (even the current one); StopAction always ends with the queued order of kind 0.
 - Casting glow: FillCastKind gives RickMagic (school fire) cast kind 1 and CurseMagic (school lightning) kind 0, so the
   caster shows CastingElectricity for the fire arrow and CastingFire for the lightning; every other spell takes its
-  prototype's school. The original does the same (PlanAction's 0x28 -> 1, 0x29 -> 0). A fix would swap the two glows.
+  prototype's school, as the original (PlanAction's 0x28 -> 1, 0x29 -> 0). A fix would swap the two glows.
 
 Facts behind fixed entries: a natural attack whose damage weights are all zero has no damage type (kNoDamageType: the
 panels show none). A move point's z is no height (PlayerMode keeps a flag there, -1313 marks "no point"), so StartMove's
-arrival and LiftNearby's "away" tests are in the plane, and PlanMove searches without a range limit. The bored remark is
-due by a hash of the tick and the unit's id (1 in 1001): a voice only, so no game draw, and not the client generator,
+arrival and LiftNearby's "away" tests are in the plane, and PlanMove searches without a range limit. The bored remark
+is due by a hash of the tick and the unit's id (1 in 1001): a voice only, so no game draw, and not the client generator,
 which would make the saved boredTicks follow the frames.
 
-By design (user 2026-11-03): UseSkill returns for skill 2 (tame) before its switch, so the tame order does nothing
-(taming was cut from the original; TryTame is reached nowhere else) and OrderTame compares the target's prototype field
-(not type) with 0x32.
-
-Dead code by design (H43a): TryTame, UndoTaming and UndoIfTamedBy (their callers are UseSkill's tame case, which
-returns early, and the charm spell, which WorldServer::CastSpell refuses), OrderTame (the interface sends only kinds 0
-and 1), the UseItem order (no setter, so OrderPlan::TakeSteps is not reached) and
-TellParty(OutOfReach). `combat_skills` reaches the rest of the order code: a wand on a unit (SpellCarrier,
-UseItemCharge), the science button on a unit outside the party (the steal order: OrderSteal, UseSkill, "Item has been
-stolen from"; the hero needs more science than the wolf's 77) and move orders given while the game is paused (Space:
-OrderMove plans at once, PlanMove; with a run flag too).
+By design (the user's decision): UseSkill returns for skill 2 (tame) before its switch, so the tame order does nothing
+(taming was cut from the original; TryTame is reached nowhere else; "Unreached in the shipped game" above) and
+OrderTame compares the target's prototype field (not type) with 0x32.
 
 ## Risks
 
