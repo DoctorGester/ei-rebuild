@@ -97,6 +97,21 @@ void CheckExpressions() {
     const float drawn = Run("range(2, 4)", names, &e);
     Expect("range is IsaacRandom::Range", drawn == f.Range(2.0f, 4.0f));
 
+    // The fast forms (a program of scalars, scalars joined into a vector) answer as the four-lane run, draws included.
+    for (const char* text : {"x * 2 + (y > 3 ? range(1, 2) : below(5)) - t[x] % 7", "-x && !y || chance(50) + pick(4)",
+                             "max(x, sin(y)) / c(0.5) + atan2(x, 2) + (x != 3)", "vec3(x, range(0, 1), y * 2)"}) {
+        std::string problem;
+        const Expr fast = Compile(text, [&names](std::string_view name) { return names.Resolve(name); }, &problem);
+        Expr lanes = fast;
+        lanes.scalar = false;
+        lanes.scalarParts = 0;
+        IsaacRandom r1, r2;
+        const Lanes x = fast.RunLanes(names.MakeEnv(&r1)), y = lanes.RunLanes(names.MakeEnv(&r2));
+        Expect(std::string("the fast form of ") + text,
+               (fast.scalar || fast.scalarParts == 3) && x.v[0] == y.v[0] && x.v[1] == y.v[1] && x.v[2] == y.v[2] &&
+                   x.v[3] == y.v[3] && r1.Next() == r2.Next());
+    }
+
     std::string error;
     Run("x + nothing", names, nullptr, &error);
     Expect("an unknown name is refused (" + error + ")", error.find("unknown name 'nothing'") != std::string::npos);

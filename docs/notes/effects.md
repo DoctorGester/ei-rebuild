@@ -251,9 +251,12 @@ distance` (normalize as `v * (1 / length)`), `ball()` (`RandomInBall`, ten tries
 to length 1), `disc()` (an angle, then `sqrt(below(1))`), `circle(angle)`, `platform_normal(point)`, `on_ground(point,
 height)`; the maths functions and `range`, `below` work per lane. A var takes the widest width of its start and tick
 (the reader reads the record again while a var widens, since a var may read one declared after it); vars sit one after
-another in their scope's floats (`Var::slot`), a particle's in its eight. Cost: the v4 stack made effect_check's coarse
-run (146 cases, 8 seeds) 1.39 s -> 1.63 s on the old files (+17%; the run stack left unset and a scalar's binary
-operations done once).
+another in their scope's floats (`Var::slot`), a particle's in its eight.
+Fast forms (`Classify`): a program whose every value is a scalar runs on one float a value (`Expr::scalar`), and `[x,
+y, z]` of scalars the same way, its three read off the stack (`Expr::scalarParts`); the scalar functions (`sin` to
+`pick`, `ScalarCall`) take floats. Each gives the four-lane run's lane x and draws (a unit check runs both). The v4
+stack alone had made effect_check's coarse run (146 cases, 8 seeds) 17% slower; release builds on one machine
+(MF15l1): 1.57 s after MF15l, 1.55 s with MF15l1's field forms and no update after death, 1.26 s with the fast forms.
 Numbers, names, `+ - * / %`,
 comparisons, `!`, `&&`, `||` (both short), `a ? b : c`, functions `sin cos atan2 sqrt abs floor ceil round min max clamp
 lerp pow exp log`, `ground(x, y)` (the ground's height there, as `on_ground` reads it; 0 in the unit checks and in

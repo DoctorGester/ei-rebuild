@@ -162,6 +162,10 @@ public:
     std::string text;
     std::vector<Instruction> code;
     int width = 1;              // its value's lanes
+    // The fast forms, run on one float a value: every value a scalar (`scalar`), or that many scalars joined into one
+    // vector by the last instruction (`scalarParts`, `[x, y, z]`). Else the run is on four lanes.
+    bool scalar = false;
+    int scalarParts = 0;
 };
 
 // A random point of the cube [-1, 1)^3, drawn x, y, z.

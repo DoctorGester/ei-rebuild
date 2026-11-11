@@ -17,6 +17,7 @@ namespace effectdata {
 namespace {
 
 constexpr int kMaxDepth = 32;   // the run's stack; a deeper expression does not compile
+constexpr int kMostArguments = 3;   // a function's (clamp, lerp)
 
 // The lanes a function's result fills, from its arguments' (`argument`, joined lane by lane).
 enum class Answer : std::uint8_t {
@@ -525,45 +526,58 @@ float PlatformAt(const Env& env, float x, float y, int which) {
     return which == 3 ? 1.0f : 0.0f;
 }
 
+// A function of the scalar kind (Sin to Below lane by lane, Chance and Pick on lane x) of one lane's arguments `a`.
+float ScalarCall(Function f, const float* a, IsaacRandom* random) {
+    switch (f) {
+    case Function::Sin: return lib::Sin(a[0]);
+    case Function::Cos: return lib::Cos(a[0]);
+    case Function::Atan2: return lib::Atan2(a[0], a[1]);
+    case Function::Sqrt: return std::sqrt(a[0]);
+    case Function::Abs: return std::fabs(a[0]);
+    case Function::Floor: return std::floor(a[0]);
+    case Function::Ceil: return std::ceil(a[0]);
+    case Function::Round: return std::round(a[0]);
+    case Function::Min: return a[1] < a[0] ? a[1] : a[0];
+    case Function::Max: return a[1] > a[0] ? a[1] : a[0];
+    case Function::Clamp: return a[0] < a[1] ? a[1] : (a[0] > a[2] ? a[2] : a[0]);
+    case Function::Lerp: return a[0] + (a[1] - a[0]) * a[2];
+    case Function::Pow: return lib::Pow(a[0], a[1]);
+    case Function::Exp: return lib::Exp(a[0]);
+    case Function::Log: return lib::Log(a[0]);
+    case Function::Range: return random ? random->Range(a[0], a[1]) : a[0];
+    case Function::Below: return random ? random->Below(a[0]) : 0.0f;
+    case Function::Chance: {
+        const std::uint32_t roll = random ? random->Next() % 100u : 0u;
+        return static_cast<float>(roll) < a[0] ? 1.0f : 0.0f;
+    }
+    case Function::Pick: {
+        const std::uint32_t word = random ? random->Next() : 0u;
+        if (!(a[0] >= 1.0f)) return 0.0f;
+        const float n = a[0] < 4294967295.0f ? a[0] : 4294967295.0f;
+        return static_cast<float>(word % static_cast<std::uint32_t>(n));
+    }
+    default: return 0.0f;
+    }
+}
+// Whether `f` is of the scalar kind (ScalarCall).
+bool IsScalarCall(Function f) { return f <= Function::Pick; }
+
 Lanes CallFunction(const Instruction& i, const Lanes* a, const Env& env) {
     IsaacRandom* random = env.random;
     const int width = i.width;
     // A point argument: one vector's x and y, or two scalars.
     const float px = a[0].v[0];
     const float py = i.count >= 2 ? a[1].v[0] : a[0].v[1];
-    switch (static_cast<Function>(i.index)) {
-    case Function::Sin: return PerLane(width, [&](int k) { return lib::Sin(a[0].v[k]); });
-    case Function::Cos: return PerLane(width, [&](int k) { return lib::Cos(a[0].v[k]); });
-    case Function::Atan2: return PerLane(width, [&](int k) { return lib::Atan2(a[0].v[k], a[1].v[k]); });
-    case Function::Sqrt: return PerLane(width, [&](int k) { return std::sqrt(a[0].v[k]); });
-    case Function::Abs: return PerLane(width, [&](int k) { return std::fabs(a[0].v[k]); });
-    case Function::Floor: return PerLane(width, [&](int k) { return std::floor(a[0].v[k]); });
-    case Function::Ceil: return PerLane(width, [&](int k) { return std::ceil(a[0].v[k]); });
-    case Function::Round: return PerLane(width, [&](int k) { return std::round(a[0].v[k]); });
-    case Function::Min: return PerLane(width, [&](int k) { return a[1].v[k] < a[0].v[k] ? a[1].v[k] : a[0].v[k]; });
-    case Function::Max: return PerLane(width, [&](int k) { return a[1].v[k] > a[0].v[k] ? a[1].v[k] : a[0].v[k]; });
-    case Function::Clamp:
+    const Function f = static_cast<Function>(i.index);
+    if (f == Function::Chance || f == Function::Pick) return Splat(ScalarCall(f, &px, random));
+    if (IsScalarCall(f)) {
         return PerLane(width, [&](int k) {
-            return a[0].v[k] < a[1].v[k] ? a[1].v[k] : (a[0].v[k] > a[2].v[k] ? a[2].v[k] : a[0].v[k]);
+            float lane[kMostArguments] = {};
+            for (int n = 0; n < i.count && n < kMostArguments; ++n) lane[n] = a[n].v[k];
+            return ScalarCall(f, lane, random);
         });
-    case Function::Lerp:
-        return PerLane(width, [&](int k) { return a[0].v[k] + (a[1].v[k] - a[0].v[k]) * a[2].v[k]; });
-    case Function::Pow: return PerLane(width, [&](int k) { return lib::Pow(a[0].v[k], a[1].v[k]); });
-    case Function::Exp: return PerLane(width, [&](int k) { return lib::Exp(a[0].v[k]); });
-    case Function::Log: return PerLane(width, [&](int k) { return lib::Log(a[0].v[k]); });
-    case Function::Range:
-        return PerLane(width, [&](int k) { return random ? random->Range(a[0].v[k], a[1].v[k]) : a[0].v[k]; });
-    case Function::Below: return PerLane(width, [&](int k) { return random ? random->Below(a[0].v[k]) : 0.0f; });
-    case Function::Chance: {
-        const std::uint32_t roll = random ? random->Next() % 100u : 0u;
-        return Splat(static_cast<float>(roll) < a[0].v[0] ? 1.0f : 0.0f);
     }
-    case Function::Pick: {
-        const std::uint32_t word = random ? random->Next() : 0u;
-        if (!(a[0].v[0] >= 1.0f)) return Splat(0.0f);
-        const float n = a[0].v[0] < 4294967295.0f ? a[0].v[0] : 4294967295.0f;
-        return Splat(static_cast<float>(word % static_cast<std::uint32_t>(n)));
-    }
+    switch (f) {
     case Function::Ground: return Splat(GroundAt(env, px, py));
     case Function::PlatformHeight: return Splat(PlatformAt(env, px, py, 0));
     case Function::PlatformNormal:
@@ -611,6 +625,7 @@ Lanes CallFunction(const Instruction& i, const Lanes* a, const Env& env) {
     }
     case Function::BallY: return Splat(env.ball ? env.ball->y : 0.0f);
     case Function::BallZ: return Splat(env.ball ? env.ball->z : 0.0f);
+    default: break;   // the scalar kind, above
     }
     return Splat(0.0f);
 }
@@ -645,6 +660,109 @@ void Binary(Lanes* stack, int& top, int width, F f) {
     if (width == 1) a = Splat(f(a.v[0], b.v[0]));
     else
         for (int k = 0; k < 4; ++k) a.v[k] = f(a.v[k], b.v[k]);
+}
+
+// Whether an instruction takes and gives scalars alone (its result one lane, its operands too), so that a program of
+// such runs on one float a value with the same lane x as on four lanes.
+bool ScalarOnly(const Instruction& i) {
+    if (i.width != 1 || i.op == Op::Swizzle || i.op == Op::Construct) return false;
+    return i.op != Op::Call || i.argument == 1;
+}
+
+// Marks the fast forms an expression runs in (Expr::scalar, Expr::scalarParts).
+void Classify(Expr& expr) {
+    expr.scalar = false;
+    expr.scalarParts = 0;
+    if (expr.code.empty()) return;
+    const Instruction& last = expr.code.back();
+    const bool joined = last.op == Op::Construct && last.count == last.width;   // its parts one lane each
+    for (std::size_t k = 0; k + 1 < expr.code.size(); ++k)
+        if (!ScalarOnly(expr.code[k])) return;
+    if (ScalarOnly(last)) expr.scalar = true;
+    else if (joined) expr.scalarParts = last.count;
+}
+
+// The instructions code[0, end) of a program of scalars (Classify) run on one float a value, into `stack`; the top's
+// place. Each step is lane x of the four-lane run's (Expr::RunLanes), in the same order, so the draws are the same.
+int RunScalars(const std::vector<Instruction>& code, std::size_t end, const Env& env, float* stack) {
+    int top = -1;
+    for (std::size_t pc = 0; pc < end;) {
+        const Instruction& i = code[pc++];
+        switch (i.op) {
+        case Op::Constant: stack[++top] = i.value; break;
+        case Op::LoadMeasured:
+            if (env.measure) env.measure(env.measureContext);
+            [[fallthrough]];
+        case Op::Load: {
+            const float* scope = env.scopes[static_cast<int>(i.scope)];
+            stack[++top] = scope ? scope[i.index] : 0.0f;
+            break;
+        }
+        case Op::Negate: stack[top] = -stack[top]; break;
+        case Op::Not: stack[top] = stack[top] == 0.0f ? 1.0f : 0.0f; break;
+        case Op::Truth: stack[top] = True(stack[top]) ? 1.0f : 0.0f; break;
+        case Op::Add: --top; stack[top] = stack[top] + stack[top + 1]; break;
+        case Op::Subtract: --top; stack[top] = stack[top] - stack[top + 1]; break;
+        case Op::Multiply: --top; stack[top] = stack[top] * stack[top + 1]; break;
+        case Op::Divide: --top; stack[top] = stack[top] / stack[top + 1]; break;
+        case Op::Modulo: --top; stack[top] = std::fmod(stack[top], stack[top + 1]); break;
+        case Op::Less: --top; stack[top] = stack[top] < stack[top + 1] ? 1.0f : 0.0f; break;
+        case Op::LessEqual: --top; stack[top] = stack[top] <= stack[top + 1] ? 1.0f : 0.0f; break;
+        case Op::Greater: --top; stack[top] = stack[top] > stack[top + 1] ? 1.0f : 0.0f; break;
+        case Op::GreaterEqual: --top; stack[top] = stack[top] >= stack[top + 1] ? 1.0f : 0.0f; break;
+        case Op::Equal: --top; stack[top] = stack[top] == stack[top + 1] ? 1.0f : 0.0f; break;
+        case Op::NotEqual: --top; stack[top] = stack[top] != stack[top + 1] ? 1.0f : 0.0f; break;
+        case Op::Jump: pc = i.index; break;
+        case Op::JumpIfFalse:
+            if (!True(stack[top--])) pc = i.index;
+            break;
+        case Op::AndJump:
+            if (!True(stack[top])) {
+                stack[top] = 0.0f;
+                pc = i.index;
+            } else {
+                --top;
+            }
+            break;
+        case Op::OrJump:
+            if (True(stack[top])) {
+                stack[top] = 1.0f;
+                pc = i.index;
+            } else {
+                --top;
+            }
+            break;
+        case Op::Call: {
+            top -= i.count - 1;
+            const Function f = static_cast<Function>(i.index);
+            if (IsScalarCall(f)) {
+                stack[top] = ScalarCall(f, &stack[top], env.random);
+                break;
+            }
+            Lanes arguments[kMostArguments];
+            for (int k = 0; k < i.count && k < kMostArguments; ++k) arguments[k] = Splat(stack[top + k]);
+            stack[top] = CallFunction(i, arguments, env).v[0];
+            break;
+        }
+        case Op::Index:
+            stack[top] = env.tables && i.index < env.tables->size() ? TableAt((*env.tables)[i.index], stack[top]) : 0.0f;
+            break;
+        case Op::CurveAt:
+            stack[top] = env.curves && i.index < env.curves->size() ? (*env.curves)[i.index].At(stack[top]) : 0.0f;
+            break;
+        case Op::ListAt:
+            stack[top] = env.lists && i.index < env.lists->size()
+                             ? ListAt((*env.lists)[i.index], stack[top]).v[i.count]
+                             : 0.0f;
+            break;
+        case Op::AnchorAt:
+            stack[top] = env.anchorAt ? env.anchorAt(env.anchorContext, i.count, i.scope, i.index, stack[top]) : 0.0f;
+            break;
+        case Op::Swizzle:
+        case Op::Construct: break;   // never in a program of scalars (Classify)
+        }
+    }
+    return top;
 }
 
 } // namespace
@@ -691,6 +809,14 @@ float Curve::At(float t) const {
 }
 
 Lanes Expr::RunLanes(const Env& env) const {
+    if (scalar || scalarParts) {
+        float values[kMaxDepth];    // left unset, as the four-lane stack below
+        const int top = RunScalars(code, scalar ? code.size() : code.size() - 1, env, values);
+        if (scalar) return Splat(values[top]);
+        Lanes joined;
+        for (int k = 0; k < scalarParts; ++k) joined.v[k] = values[top - scalarParts + 1 + k];
+        return joined;
+    }
     // Left unset (each slot is written before it is read): zeroing it costs more than a short run.
     union Stack {
         Stack() {}
@@ -800,7 +926,12 @@ Lanes Expr::RunLanes(const Env& env) const {
     return top >= 0 ? stack[top] : Splat(0.0f);
 }
 
-float Expr::Run(const Env& env, float fallback) const { return code.empty() ? fallback : RunLanes(env).v[0]; }
+float Expr::Run(const Env& env, float fallback) const {
+    if (code.empty()) return fallback;
+    if (!scalar) return RunLanes(env).v[0];
+    float values[kMaxDepth];
+    return values[RunScalars(code, code.size(), env, values)];
+}
 
 Vector3 Expr::RunVector(const Env& env, const Vector3& fallback) const {
     if (code.empty()) return fallback;
@@ -820,6 +951,7 @@ Expr Compile(std::string_view text, const Resolver& resolve, std::string* error)
         return {};
     }
     expr.text = std::string(text);
+    Classify(expr);
     return expr;
 }
 
@@ -829,6 +961,7 @@ Expr ConstantExpr(float value) {
     char text[32];
     std::snprintf(text, sizeof(text), "%g", static_cast<double>(value));
     expr.text = text;
+    Classify(expr);
     return expr;
 }
 
@@ -860,6 +993,7 @@ Expr Joined(const std::vector<Expr>& parts, std::string* error) {
     joined.code.push_back(construct);
     joined.width = lanes;
     joined.text = "[" + joined.text + "]";
+    Classify(joined);
     return joined;
 }
 
