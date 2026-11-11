@@ -6,14 +6,18 @@ AllHeroes) still play as they are. On top of the original formats the rebuild al
 records and texts, PNG for textures and map layers, glTF 2.0 for models and animations. A mod made only of those needs
 no packing tool and no hex editor.
 
-Everything here is what the code does today. The developers' notes on each part are in `docs/notes/mods.md`.
+The developers' notes on each part are in `docs/notes/mods.md`.
 
-Contents: [Quick start](#quick-start) · [A mod's folder](#a-mods-folder) · [Installing and choosing a mod](#installing-and-choosing-a-mod)
-· [How the game finds a file](#how-the-game-finds-a-file) · [ei-convert: the game's data as editable files](#ei-convert-the-games-data-as-editable-files)
+Contents: [Quick start](#quick-start) · [A mod's folder](#a-mods-folder)
+· [Installing and choosing a mod](#installing-and-choosing-a-mod)
+· [How the game finds a file](#how-the-game-finds-a-file)
+· [ei-convert: the game's data as editable files](#ei-convert-the-games-data-as-editable-files)
 · [Records as TOML](#records-as-toml) · [Texts](#texts) · [Databases](#databases) · [Textures as PNG](#textures-as-png)
 · [Models as glTF](#models-as-gltf) · [Animations as glTF](#animations-as-gltf) · [Maps as folders](#maps-as-folders)
-· [Map objects](#map-objects) · [Scripts](#scripts) · [Effects](#effects) · [What stays in the original formats](#what-stays-in-the-original-formats)
-· [Limits and troubleshooting](#limits-and-troubleshooting) · [The example mod](#the-example-mod) · [The showcase mod](#the-showcase-mod)
+· [Map objects](#map-objects) · [Zones](#zones) · [Scripts](#scripts) · [Effects](#effects) · [Spells](#spells)
+· [What stays in the original formats](#what-stays-in-the-original-formats)
+· [Limits and troubleshooting](#limits-and-troubleshooting) · [The example mod](#the-example-mod)
+· [The showcase mod](#the-showcase-mod)
 
 ## Quick start
 
@@ -102,8 +106,9 @@ a binary `config.reg` there; a mod with only `config.reg.toml` keeps its files a
 ## How the game finds a file
 
 Every archive the game opens (a `.res`, a map's `.mpr`, a quest zone's `.mq`) has a folder of its name without the
-extension standing over it: `Res\textures\` over `Res\textures.res`, `Maps\zone1\` over `Maps\zone1.mpr`. A file in that
-folder is read in place of the archive's entry of the same name. So `textures.res : foo.mmp` is looked for in this order:
+extension standing over it: `Res\textures\` over `Res\textures.res`, `Maps\zone1\` over `Maps\zone1.mpr`. A file in
+that folder is read in place of the archive's entry of the same name. So `textures.res : foo.mmp` is looked for in
+this order:
 
 1. the mod's `Res\textures\` folder;
 2. the mod's `[RES]` archives for textures.res, each one's own folder first, then its entries;
@@ -115,7 +120,8 @@ folder is read in place of the archive's entry of the same name. So `textures.re
 - A file outside archives (`Config\ai.reg`, `Camera\bz10k.cam`, `Movies\*.bik`, `Stream\*.mp3`) is simply the mod's when
   the mod has it.
 - At each of those places a common format is asked before the original:
-  - a record file `<name>` (a `.reg`, a database, a texts entry, ...): `<name>.toml` beside it ([Records as TOML](#records-as-toml));
+  - a record file `<name>` (a `.reg`, a database, a texts entry, ...): `<name>.toml` beside it ([Records as
+    TOML](#records-as-toml));
   - a texture `<name>.mmp`: `<name>.png` ([Textures as PNG](#textures-as-png));
   - a figure's model files: `<figure>.gltf` or `<figure>.glb` ([Models as glTF](#models-as-gltf));
   - a map's file and sectors: the map's folder of PNGs ([Maps as folders](#maps-as-folders));
@@ -146,8 +152,7 @@ ei-convert --example-mod <game folder> [<mods folder>]   make the example mod (b
 - An archive as the source (`ei-convert F:\games\EvilIslands\Res\database.res out`) writes its folder alone:
   `out\database\items.idb.toml`. Handy for a few files.
 - It only reads the source. Never give an install (or a folder inside one) as the target.
-- The whole GOG install takes about a minute and 350 MB: 3,700 textures, 870 figures with their animations, 38 maps,
-  99 zones' objects, every database, text, registry and camera path.
+- The whole GOG install takes about a minute and 350 MB.
 
 Copy into your mod only the files you change, at the same path. A converted record file starts with `replace = true`
 (below): copied whole it stands for the whole original. For small changes write a short file of your own instead.
@@ -288,7 +293,7 @@ damage_types = { slashing = 1.0 }
 
 Codes, masks and fixed lists are written by name. A name the field does not know is an error of its record, logged
 with the valid ones (`warning: items.idb: <file> line 9: type has a value it does not take (one of: sword, axe, ...);
-the record is left out`); the record is not read. The names (docs/notes/mods.md, "Readable values", says which code reads each):
+the record is left out`); the record is not read. The names:
 
 | Field | Names |
 |---|---|
@@ -343,12 +348,11 @@ phrase plays), a walk's or run's `legs` (`wounded`, `badly_wounded`: a hero with
 `[RPG] DamageLevel1Value` / `DamageLevel2Value`, walks or runs with it: "cwalk08", "cwalk06"), an idle's `idle`
 (`special`: every idle the game asks for has it; `unused`: none asks for it, so it never plays), a cross's `to` (the
 movement mode it changes to, `move` the one it leaves: `hero_walk` (a hero's own walk, whose `move` is left out),
-`walk`, `crawl`, `lie`, `stop`), else a `number` (no game file has one). `flags` lists `arrow` (a
-bow shows its arrow from `arrow`'s first frame to its second), `with_under_armour` (a hero wearing a shirt, pants, boots
-or gloves may play it), `with_outer_armour` (a hero wearing a helmet, body armour or leggings may play it), and
-`death_side` is where a dead body lies. `index` is the animation's place unless given. Copy the parts from a game creature's animation of the same name.
-- A new record comes after every record of the game's table, so the game's indexes (in saves, in the network) do not
-  move. Saves made with a mod's new items need the mod to load them.
+`walk`, `crawl`, `lie`, `stop`), else a `number` (no game file has one). `flags` lists `arrow` (a bow shows its arrow
+from `arrow`'s first frame to its second), `with_under_armour` (a hero wearing a shirt, pants, boots or gloves may play
+it), `with_outer_armour` (a hero wearing a helmet, body armour or leggings may play it), and `death_side` is where a
+dead body lies. `index` is the animation's place unless given. Copy the parts from a game creature's animation of the
+same name.
 
 ## Textures as PNG
 
@@ -398,9 +402,7 @@ byte for byte. They are used only when they still agree with the mesh; an edited
 writes extras only with "Custom Properties" checked).
 
 In Blender: File > Import > glTF 2.0 the converted `.glb`, edit, File > Export > glTF 2.0 with "Shape Keys" on and the
-mesh's transforms applied, under the same name into your mod's `Res\figures\`. Blender itself is not part of this
-repository's checks: the loader is checked on ei-convert's files, on files with the extras removed
-(`mod_gltf_animation`), and on hand-written glTF.
+mesh's transforms applied, under the same name into your mod's `Res\figures\`.
 
 ### Worn models
 
@@ -426,7 +428,7 @@ folder.
 - A part has no animation of its own: it follows its bone (the game's clubs hang still from `rh3.axe00`, which the
   animations turn).
 
-The showcase mod's hammer is one (`tests/scenarios/mod_showcase_worn.txt` checks it in the hero's hand).
+The showcase mod's hammer is one ([The showcase mod](#the-showcase-mod)).
 
 ## Animations as glTF
 
@@ -446,7 +448,7 @@ A figure's animations are glTF animations in the same `.glb`: each one named as 
   channels are left out (logged).
 - An animation without a name is left out. A `.glb` with no animations leaves the game's `.anm` in use, so a mod can
   replace a model and keep its animations.
-- Vertex animation (wings' membranes, faces, hair: 222 tracks of 13 figures) is kept only in ei-convert's extras;
+- Vertex animation (wings' membranes, faces, hair) is kept only in ei-convert's extras;
   Blender does not show it, and an export without the extras plays those parts without it.
 
 ## Maps as folders
@@ -481,12 +483,13 @@ A map can be a folder, `Maps\<zone>\`, which stands over `Maps\<zone>.mpr` (ei-c
 
 ## Map objects
 
-A zone's objects (`Maps\<zone>.mob`: units, buildings, trees, levers, lights, sounds, traps, effects; the weather and the
-players' relations) can be `Maps\<zone>.mob.toml`. Unlike the other records it is **not merged**: the top file found is
-all of the zone's objects. So a mod's file is the whole of ei-convert's file with its changes. The zone's AI graph is
-still read from the `.mob` (the mod's, else the game's; built from the ground when the mod's map stands over
-the game's `.mob`: [Maps as folders](#maps-as-folders)), and so is its script unless a `.lua` stands for it
-([Scripts](#scripts)), so a mod's `.mob.toml` can stand alone.
+A zone's objects (`Maps\<zone>.mob`: units, buildings, trees, levers, lights, sounds, traps, effects; the weather
+and the players' relations) can be `Maps\<zone>.mob.toml`. Unlike the other records it is **not merged**: the top
+file found is all of the zone's objects. So a mod's file is the whole of ei-convert's file with its changes. The
+zone's script is still read from the `.mob` unless a `.lua` stands for it ([Scripts](#scripts)), and so is its AI
+graph (the mod's `.mob`, else the game's): moving or adding objects does not change how the AI plans its way across
+the map. A `.mob.toml` can stand alone: a zone with no `.mob` anywhere (a mod's new zone, [Zones](#zones)), or one
+whose ground the mod changes ([Maps as folders](#maps-as-folders)), has its graph built when it loads.
 
 ```toml
 script = "zone1.lua"           # the zone's script, when that file is there (see Scripts)
@@ -537,15 +540,12 @@ call_radius = 5.0
   ei-convert writes them).
 - `position` is `[x, y, z]` in world units (z above the ground); `rotation` a quaternion `[w, x, y, z]`; `scale`
   `[x, y, z]`.
-- A `flame`'s and a `particle`'s `effect` name particle effects ([Records that name effects](#records-that-name-effects)):
-  the torch's fire (`CampFire` unless given), the effect a `particle` record stands for.
+- A `flame`'s and a `particle`'s `effect` name particle effects ([Records that name
+  effects](#records-that-name-effects)): the torch's fire (`CampFire` unless given), the effect a `particle` record
+  stands for.
 - The order of the records is the order the zone creates them: keep the game's order and add new records at the end.
 - An unknown kind or key, or a value of the wrong type, is logged (`warning: map objects: <file> line n: ...`) and left
   out.
-
-Moving or adding objects keeps the zone's AI graph from the `.mob` (a building moved onto a path does not change how
-the AI plans its way across the map). A zone with no graph anywhere (a mod's new zone, [Zones](#zones)), or one
-whose ground the mod also changes ([Maps as folders](#maps-as-folders)), has its graph built when it loads.
 
 ## Zones
 
@@ -1109,7 +1109,9 @@ frame = { start = "pick(16)", delay = 1 }
   (`p.size`, `p.velocity`); a tick alone also starts it. A particle without a `position` starts at the source (or its
   anchor) plus its `spawn` and moves by its velocity; the velocity's tick changes it after each move, so `velocity = {
   start = "normalize(p.spawn) * 0.1", tick = "p.velocity * 0.9 + vec3(0, 0, -0.005)" }` flies out, slows down and
-  falls. It lives `lifetime` ticks; `kill = "<condition>"` ends it sooner.
+  falls. A `position` of your own places it instead (`origin`, the source's `motion`, its `side` and `up` axes; `{ tick
+  = "..." }` moves it by your own sum, not its velocity). It lives `lifetime` ticks; `kill = "<condition>"` ends it
+  sooner.
 - **Spawn**: `spawn = "<point>"` is a random point drawn first, before the vars (`p.spawn`, which they can read):
   `"ball() * 0.2"` in a small ball, `"shell()"` a direction, `"disc() * size"` a point of a flat disc,
   `"circle(range(0, 2 * pi)) * size"` one of a ring, `"lerp(vec3(0), extent, range(0, 1))"` one along the source's
@@ -1156,13 +1158,13 @@ frame = { start = "pick(16)", delay = 1 }
   effect into the world (a spell's blast): the fireball's and the lightning's scorch marks and the lightning's shake.
 - **Particles that change the source**: `source = { size = "..." }` in a particle kind sets the source's value at
   each of its updates (the particles after it read the new value), as a fading mark that shrinks its source; `drop =
-  "..."` throws a particle away once it is made (its random draws stay drawn); `anchor_index = "p.gust"` starts it at
-  the anchor of that number, chosen after its vars (which then cannot read `a.*`), `pick = "random"` at a random live
-  one and `pick = "first"` at the group's first. `source` also writes an effect var by its
-  name and the particle's anchor's vars (`source = { a.size = "p.drawn" }`: the wisps of an orb read how big
-  the orb is). `jump = "<condition>"` makes a particle jump: on an update where it holds, its previous place, size and colour
-  are its new ones (drawn there, not moving there from the old place); `jump = { when = "...", size = "..." }` also
-  gives the previous size (a ball thrown back to its start).
+  "..."` throws a particle away once it is made (its random draws stay drawn); `anchor_index = "p.gust"` starts it
+  at the anchor of that number, chosen after its vars (which then cannot read `a.*`), `pick = "random"` at a random
+  live one and `pick = "first"` at the group's first. `source` also writes an effect var by its name and the
+  particle's anchor's vars (`source = { a.size = "p.drawn" }`: the wisps of an orb read how big the orb is). `jump =
+  "<condition>"` makes a particle jump: on an update where it holds, its previous place, size and colour are its new
+  ones (drawn there, not moving there from the old place); `jump = { when = "...", size = "..." }` also gives the
+  previous size (a ball thrown back to its start).
 - **More than one anchor's values**: `swirl.p[2]` reads the var `p` of the group `swirl`'s anchor number 2 (counted
   from 0 in the order they were made, held to the first and last; `swirl.p[2].z` one of its numbers),
   `swirl.position[0]` its place; a light that takes the first light's orbit, a spark pulled towards a random swirl.
@@ -1199,7 +1201,8 @@ frame = { start = "pick(16)", delay = 1 }
     has is added.
   - A list of actions (`do`, `enter`, `on_death`) and a list of numbers (a table, a vector, a colour) replace the
     base's whole.
-  - `remove = true` takes the base's out: `[[particle]] name = "spark" remove = true`, `[vars] glow = { remove = true }`.
+  - `remove = true` takes the base's out: `[[particle]] name = "spark" remove = true`, `[vars] glow = { remove =
+    true }`.
   - `before = "<name>"` puts a new one before the base's of that name instead of after the last (kinds are tried in
     order, vars tick in order): `[[particle]] name = "marker" before = "spark"`, `[vars] roll = { start = 1, tick =
     "...", before = "rise" }`.
@@ -1208,24 +1211,13 @@ frame = { start = "pick(16)", delay = 1 }
   that field. A missing base, or a chain that comes back to itself, is a problem: the effect shows nothing. The game's
   own families are written this way (CastingDomination, CastingEnchantment and CastingHealing on CastingIllusion,
   Shower2-4 on Shower1, the Modifier rings).
-- **Placing a particle yourself**: `position = "..."` starts it where the expression says (`origin`, the source's
-  `motion`, its `side` and `up` axes), and `position = { tick = "..." }` moves it each tick by your own sum instead of
-  its velocity.
 - **Frames**: `frame = { start, delay, mode, tick }`; past the texture's last frame `mode = "loop"` (the default)
   starts again, `"hold"` stays on the last, `"die"` ends the particle and `"free"` keeps the number (drawn as the first
   frame; a table read by it sees the real count).
-- **The game's own effects** are all written this way (`assets/effects` in the source:
-  FireStar, AcidStar, CurseStars, PortalStar, Sparks, FeebleMind, ZoneExit, the trails FireBall, FireArrow,
-  RikArrowSmoke, AcidRay, the fires and smokes CampFire, Fire, Smoke, Tendril, VulcanSmoke, and Portal, TeleportRing,
-  Teleport, Banshee, BlueGas, Nuke, the marks on units Stun, Regeneration, VisionStar1-4, FeetCloud1 / 2, StartTrans,
-  the leaves Falling1-4, the protection spheres SphereAcid, SphereElectricity, SphereFire and Antimagic, the blood
-  showers Shower1-4, the poison clouds PoisonFog and PoisonCloud, the mushroom and its Transform, the dust GroundDust1
-  / 2, the beam Link, the rings Modifier1-12 and ClayRing, the casting circles Cylinder1 / 2, the casts Casting,
-  Healing, CastingFire, CastingElectricity, CastingAcid, CastingDivination, CastingIllusion, CastingDomination,
-  CastingEnchantment and CastingHealing, the regeneration orbs Silence and the bag's balls Bag, the blasts FireBlast and
-  LightningBlast, the Geyser, the funnels Tornado and CurseHolder and the path markers' glow ShapeChange); a mod's
-  `Res\effects\FireStar.effect.toml` retunes the fire arrow's flash with only
-  the fields it names, and `Res\effects\ZoneExit.effect.toml` the glow over every zone exit.
+- **The game's own effects** are all written this way: each is a file in the source's `assets/effects`, and the
+  effect viewer lists and plays them all ([The effect viewer](#the-effect-viewer)). A mod's file of the same name
+  merges over the game's: `Res\effects\FireStar.effect.toml` retunes the fire arrow's flash with only the fields it
+  names, and `Res\effects\ZoneExit.effect.toml` the glow over every zone exit.
 - **Walls**: `[server] wall = true` makes the effect's world object a wall, which a spell gives a direction
   (`cast:Effect(name, { direction = ... })`): the source's `extent`, set before its "spawn" reaction (the fire wall's
   smoke Tendril, the beam Link). Only a wall takes a direction.
@@ -1429,8 +1421,8 @@ magic and the acid ray `Res\spells\Missile.lua`, the fireball `Res\spells\Fireba
 acid column `Res\spells\Strike.lua`, the twenty buffs (protections to shrink) `Res\spells\Buff.lua`, the fire wall,
 the light wall and the poison cloud `Res\spells\LastingArea.lua`, healing `Healing.lua`, teleport `Teleport.lua`,
 clairvoyance `Clairvoyance.lua`, fireworks `Fireworks.lua`, vision fog `VisionFog.lua` and the campfire (each flame
-a zone places on the ground casts one) `Campfire.lua` (built into the game; the
-source's `assets/spells/` has them and the fields the game's records get), which a mod's file of that name replaces.
+a zone places on the ground casts one) `Campfire.lua` (built into the game; the source's `assets/spells/` has them
+and the fields the game's records get), which a mod's file of that name replaces.
 The showcase mod's Chain Spark ([The showcase mod](#the-showcase-mod)) is this example: a spark that strikes its
 target, then leaps to the nearest enemy it has not struck, each strike 0.6 of the one before, each leaving its victim
 shocked (slowed and crackling with sparks: the spell's own active effect, [Active effects](#active-effects)).
@@ -1458,14 +1450,15 @@ cast_look = "ChainSparkCast"   # the caster's look while it casts (without it: i
 ```
 
 - **What the game reads of the record** besides its numbers: `ai` (`none`, `attack`, `area_attack`, `lasting_area`,
-  `curse`, `protect`, `enhance`, `heal`), `damage_type` (the AI's estimate), `offensive` (the HUD's use at once aims at
-  the nearest enemy), `turns_victim` (the unit it is cast at turns on the caster) and `fighting` (casting it starts the
-  battle music; both as `offensive` unless given), `ai_effect` (the code of the spell whose effect the AI looks for
-  before casting a curse or a protection again; without it the spell's own `effect`), `cast_look` (the particle effect
-  on the caster while it casts, by name; without it the look of its school, or of `cast_school` when given, from the
-  database's `[cast_looks]`: [Records that name effects](#records-that-name-effects)), `item_heals` (on an item the spell heals: armour casts it when
-  its wearer is not hit, where other armour spells go off when it is, and an item's periodic cast of it waits until
-  the wearer is hurt, one such cast a tick; the game's healing has it).
+  `curse`, `protect`, `enhance`, `heal`), `damage_type` (the AI's estimate), `offensive` (the HUD's use at once aims
+  at the nearest enemy), `turns_victim` (the unit it is cast at turns on the caster) and `fighting` (casting it
+  starts the battle music; both as `offensive` unless given), `ai_effect` (the code of the spell whose effect the AI
+  looks for before casting a curse or a protection again; without it the spell's own `effect`), `cast_look` (the
+  particle effect on the caster while it casts, by name; without it the look of its school, or of `cast_school` when
+  given, from the database's `[cast_looks]`: [Records that name effects](#records-that-name-effects)), `item_heals`
+  (on an item the spell heals: armour casts it when its wearer is not hit, where other armour spells go off when it
+  is, and an item's periodic cast of it waits until the wearer is hurt, one such cast a tick; the game's healing has
+  it).
 - **What its effect on a unit does**: `effect` names it, for every active effect of the spell (`cast:Apply(unit,
   "own")`, and `cast:Apply(unit, "<this spell's code>")` from any spell): its stat effect, its look and sounds on the
   unit, and what the AI looks for. The kinds are the game's buffs by their codes; `own` (the default) is the spell's own
@@ -1709,8 +1702,8 @@ return spell
 
 <!-- /lua-api -->
 
-- **Handles.** `Bolt`, `Missile`, `Effect`, `Light`, `SoundLoop` and `Vision` give a handle (a number) for `SetVelocity` and
-  `Release`; keep it in `cast.data` to use it in a later hook.
+- **Handles.** `Bolt`, `Missile`, `Effect`, `Light`, `SoundLoop` and `Vision` give a handle (a number) for
+  `SetVelocity` and `Release`; keep it in `cast.data` to use it in a later hook.
 - **Exact numbers.** Lua numbers are doubles and the game's are floats: a cast's number passed on, or put through one
   operation, rounds back to what the game would compute; a chain of operations may not. A constant the game wrote as a
   float needs its exact value (`0.699999988079071` for 0.7, `0.4000000059604645` for 0.4; Missile.lua has both). A
@@ -1730,7 +1723,6 @@ return spell
 - **Saves and network games.** A save keeps every cast with its data, timers and missiles; the file is read again at
   the load, so a fixed file reaches saved casts. Only the server runs the spell; the players see its bolts, missiles,
   effects, sounds and lights. `Res\spells\` counts in the mod's content hash: every player needs the same files.
-- `tools/make_lua_mod.py spellapi` writes a test mod whose spell uses every method (`tests/scenarios/mod_spell_api.txt`).
 
 ### Active effects
 
@@ -1841,8 +1833,8 @@ return spell
 <!-- /lua-api -->
 
 **The order they apply in.** The totals change a unit's stats where the game works them out, every total added even
-at 0 (the game's own buffs' numbers stay the same). `UnitStats::Recompute`, after a hit, a heal, a regeneration, an
-item change or an effect that comes or goes, rebuilds them from the unit's bases in this order:
+at 0 (the game's own buffs' numbers stay the same). After a hit, a heal, a regeneration, an item change or an effect
+that comes or goes, the game rebuilds them from the unit's bases in this order:
 1. the bases, then the skill levels' bonuses (strength, dexterity, intelligence, the day sight's percentage);
 2. `Strength`, `Dexterity`, `Intelligence`: everything below that is worked out from them has them;
 3. the seven protections (`PiercingProtection` ... `GeneralProtection`, the protections from fire, lightning and acid);
@@ -1893,15 +1885,15 @@ A unit that comes into view (or a load) with the effect already on shows the loo
 start sound or the ring; a unit that dies with it makes no end sound or ring.
 
 **One-shot hooks.** What an effect does as it comes, as it goes and while it lasts is the kind's module's too:
-`OnEffectApplied(effect, unit)`, `OnEffectEnded(effect, unit, reason)` and `OnEffectTick(effect, unit)` ([Spells](#spells),
-the hooks' table). They run on the server at the end of the tick in which it happened, in order, with the world's
-functions (and `Random`), each for one effect on one unit; a kind whose module has none of them costs nothing more.
-`OnEffectTick` runs every tick the effect lasts after its count down (`effect.ticks` left, above 0; also while the unit
-sleeps out of the player's sight), `OnEffectEnded` once as it goes. A unit that left the world (removed) gets no more
-of its hooks; a dead one gets `"died"`. Keep your numbers in `OnStats`: a stat that `OnEffectApplied` added and
-`OnEffectEnded` took away would come apart when two effects of a kind overlap (the strongest counts), when a renewed
-one replaces another, or in a save; the hooks are for what happens once or now and then: a burn every few ticks, a
-heal as it runs out. Nothing of a hook is saved: count ticks with `effect.ticks`.
+`OnEffectApplied(effect, unit)`, `OnEffectEnded(effect, unit, reason)` and `OnEffectTick(effect, unit)`
+([Spells](#spells), the hooks' table). They run on the server at the end of the tick in which it happened, in order,
+with the world's functions (and `Random`), each for one effect on one unit; a kind whose module has none of them
+costs nothing more. `OnEffectTick` runs every tick the effect lasts after its count down (`effect.ticks` left, above
+0; also while the unit sleeps out of the player's sight), `OnEffectEnded` once as it goes. A unit that left the
+world (removed) gets no more of its hooks; a dead one gets `"died"`. Keep your numbers in `OnStats`: a stat that
+`OnEffectApplied` added and `OnEffectEnded` took away would come apart when two effects of a kind overlap (the
+strongest counts), when a renewed one replaces another, or in a save; the hooks are for what happens once or now and
+then: a burn every few ticks, a heal as it runs out. Nothing of a hook is saved: count ticks with `effect.ticks`.
 
 ```lua
 -- Res\spells\ember_brand.lua: a curse that burns its victim every 10 ticks and saps its strength while it lasts.
@@ -2006,11 +1998,6 @@ writes `<mods folder>\example_mod`, by default `<game folder>\starter\Mods\examp
 `examples` folder beside the exe, so keep the package's folder together; files already in `example_mod` are written
 over. Then pick "Example mod" in the main menu's list ([Installing and choosing a mod](#installing-and-choosing-a-mod)).
 
-The test scenario `tests/scenarios/mod_example.txt` makes it the same way (its prepare step,
-`tools/make_example_mod.py`, runs the build's `ei-convert --example-mod`) and plays it on the GOG and the Rebirth data: the changed text, the two
-weapons' damage after `GiveItem`, the pig by the party's start and its greeting, the red ground in a capture, and the
-game reading each of the mod's files.
-
 ## The showcase mod
 
 `examples/showcase_mod/` is a whole small mod made only of new files (no game data, so release packages carry it):
@@ -2024,10 +2011,9 @@ boots are yours. Read its files as a recipe for each kind of new content:
 | A creature | `Res\figures\scgolem.glb` (parts and animations), `Res\database\scgolem.adb.toml` (its animation list), `units.udb.toml` (a `[[model]]` and a `[[unit]]`), `Res\textures\scgolem00.png` (the skin its placement names); the shards: a second `[[unit]]` on the golem's model at a smaller scale, `Res\textures\scshard00.png` |
 | A weapon, boots | `items.idb.toml`, `Res\figures\initwehm9.glb`, `initarbt20.glb` (inventory models: a loose figure named `initwe<type code><number>` / `initar...`, one part `weapon` / `armor`), `Res\figures\hm_09.glb` (the hammer's worn model, in the hand: [Worn models](#worn-models)), `Res\redress\unhumahm_09.gr.0.png`, `unhumabt_20.le.0.png` (their textures: the hammer's in the weapons' strip, the boots' a layer over the hero's skin) |
 | A quest | `Maps\showcase.lua` (the quest's variable `q.<zone>.<quest>`, its reward), `quests.qdb.toml` (its experience), `Res\texts\texts.toml` (`quest <name>`: the title, the description, `#subobj` lines) |
-| A spell | `spells.sdb.toml` (Chain Spark's record, `script` naming its file), `Res\spells\chain_spark.lua` (its mechanic: a missile with `OnHit`, the next victim by `FindUnits`, `Damage`, `Apply`, `Effect`, `Bolt`, a timer for the leap; [Spells](#spells)), `Res\textures\spell0101.png`, `prototype0101.png` (its pictures, `icon = 101`), `Maps\showcase.lua` (`GiveItem` of its spell container); `tests/scenarios/mod_showcase_spell.txt` casts it |
-| A buff | `spells.sdb.toml` (Ember Brand's record, `code = "ember"`), `Res\spells\ember_brand.lua` (a curse: `OnStats` lowers the victim's `Strength`, `OnEffectTick` burns it every 20 ticks with `effect:Damage`, `OnEffectEnded` says how it went; [Active effects](#active-effects)); `tests/scenarios/mod_showcase_buff.txt` casts it with `CastSpellUnit` |
-| An effect | `Res\effects\showcase_aura.effect.toml` (orbs trailing light and rising motes, driven by its inputs; `tests/scenarios/mod_effect.txt` starts it from the console); the spell's `ChainSpark.effect.toml` (the missile's spark and its trail) , `ChainSparkHit.effect.toml` (a strike's flash and ring of sparks), `ChainSparkShock.effect.toml` (the look of the shock a strike leaves: the record's `look`, [Active effects](#active-effects)) and `ChainSparkCast.effect.toml` (the caster's look while it casts: the record's `cast_look`, a variant of the game's CastingElectricity; [Records that name effects](#records-that-name-effects)), all on the mod's own texture `Res\textures\chainspark.png` (16 pictures, 4 x 4) |
-| An effect with Lua hooks | `Res\effects\showcase_hooks.effect.toml` and its script `showcase_hooks.lua` (a turning spiral of flames the script places, its charge swelling, embers the script turns, a flare the script starts at the event `pulse`; [Effect hooks](#effect-hooks)); `tests/scenarios/mod_effect_lua.txt` starts it from the console |
+| A spell | `spells.sdb.toml` (Chain Spark's record, `script` naming its file), `Res\spells\chain_spark.lua` (its mechanic: a missile with `OnHit`, the next victim by `FindUnits`, `Damage`, `Apply`, `Effect`, `Bolt`, a timer for the leap; [Spells](#spells)), `Res\textures\spell0101.png`, `prototype0101.png` (its pictures, `icon = 101`), `Maps\showcase.lua` (`GiveItem` of its spell container) |
+| A buff | `spells.sdb.toml` (Ember Brand's record, `code = "ember"`), `Res\spells\ember_brand.lua` (a curse: `OnStats` lowers the victim's `Strength`, `OnEffectTick` burns it every 20 ticks with `effect:Damage`, `OnEffectEnded` says how it went; [Active effects](#active-effects)); no item carries it: cast it with `CastSpellUnit("ember", ...)` |
+| An effect | `Res\effects\showcase_aura.effect.toml` (orbs trailing light and rising motes, driven by its inputs; start it from the console with `CreateParticleSource`); the spell's `ChainSpark.effect.toml` (the missile's spark and its trail), `ChainSparkHit.effect.toml` (a strike's flash and ring of sparks), `ChainSparkShock.effect.toml` (the look of the shock a strike leaves: the record's `look`, [Active effects](#active-effects)) and `ChainSparkCast.effect.toml` (the caster's look while it casts: the record's `cast_look`, a variant of the game's CastingElectricity; [Records that name effects](#records-that-name-effects)), all on the mod's own texture `Res\textures\chainspark.png` (16 pictures, 4 x 4) |
+| An effect with Lua hooks | `Res\effects\showcase_hooks.effect.toml` and its script `showcase_hooks.lua` (a turning spiral of flames the script places, its charge swelling, embers the script turns, a flare the script starts at the event `pulse`; [Effect hooks](#effect-hooks)) |
 
-The pictures and models are made by `tools/make_showcase_mod.py` in this
-repository.
+The pictures and models are made by `tools/make_showcase_mod.py` in this repository.
