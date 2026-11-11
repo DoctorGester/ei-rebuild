@@ -178,8 +178,6 @@ public:
     // A spell's hit: no defence roll (attackRoll FLT_MAX), every body part (location 6), `amount` of `type` (its
     // weight 1); a non-zero `hitKind` has no direction (the walls and clouds burn so).
     static DamageInfo TypedHit(DamageType type, float amount, int hitKind);
-    // The spell's damage to the target when it is a unit.
-    void HitTarget();
 
     // When the spell may affect `unit` (no caster, or Spell::CanAffect). The attacker is the caster unless
     // flags bit 0 is set.
@@ -201,9 +199,6 @@ public:
     // The walls (FireWall, LightningWall) and the areas (AcidFog, Campfire) block the AI map while they last.
     // Nothing without a visual or for other behaviours.
     void UpdateFootprint(SpellType type, int stamp);
-    // It becomes the visual.
-    void CreateArrow(const Vector3& from, EngineObject* target, ParticleType particleType, float power, const char* sound,
-                     const Vector3& color, float range);
     // A spell missile homing on `target` (its particle `particleType`, an original type or a data effect's id), not yet
     // in the world; with a `launcher` the client starts it at the launcher's effect point. Null when the manager makes
     // none.
@@ -248,8 +243,7 @@ public:
 
     // One tick. Returns 0 when the effect has ended (the world then removes it) or without a world.
     int Update();
-    // State 1: the fire arrow (FireArrow, RickMagic) and the acid ray hit their target when the missile reports a
-    // hit; the fireball explodes when its timer runs out.
+    // State 1: the fireball explodes when its timer runs out.
     void UpdateMissile(SpellType type);
     // State 2: walls and clouds hit every 4th tick; every case counts the timer down and ends the effect.
     void UpdateLasting(SpellType type);
@@ -269,7 +263,9 @@ public:
     void Load(ByteStream* stream);
     void Save(ByteStream* stream);
     // After the world's script state loaded: a scripted cast goes on in the restored state's entry of its key, else
-    // it ends (said on the console).
+    // it ends (said on the console); a scripted spell's cast in the missile or lasting state (a save from before the
+    // spell moved onto its script) goes to its script's OnResume (ScriptSpellHost::Resume), else it ends at its next
+    // update.
     void ResumeScripted();
 
     WorldServer* world = nullptr;

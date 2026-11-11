@@ -29,6 +29,40 @@ turns_victim = false
 fighting = false
 cast_school = "fire"
 
+# The fire arrow: a missile at each target it picks, striking where it lands.
+[[spell]]
+code = "arrow"
+script = "Missile.lua"
+per_target = true
+ends_with_target = true
+ai = "attack"
+damage_type = "fire"
+offensive = true
+turns_victim = false
+fighting = true
+
+# The acid ray, the same missile in acid.
+[[spell]]
+code = "acid_ray"
+script = "Missile.lua"
+per_target = true
+ends_with_target = true
+ai = "attack"
+damage_type = "acid"
+offensive = true
+turns_victim = false
+fighting = true
+
+# Rick magic, the fire arrow with a smoke trail. Offensive by Rebirth's FixSpellSelfCasting (the original's was not);
+# not fighting; it casts with the lightning school's look (curse magic's above).
 [[spell]]
 code = "rick_magic"
+script = "Missile.lua"
+per_target = true
+ends_with_target = true
+ai = "attack"
+damage_type = "fire"
+offensive = true
+turns_victim = false
+fighting = false
 cast_school = "lightning"

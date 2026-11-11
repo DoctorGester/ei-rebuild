@@ -38,6 +38,12 @@ public:
     // A loaded effect's cast (SpellEffect::castKey) after the scheduler's Restore; false when the restored state has
     // no entry of that key.
     bool Adopt(SpellEffect& effect);
+    // A loaded effect of a scripted spell in the C++'s missile or lasting state (a save from before its spell moved
+    // onto a script), after the scheduler's Restore. When the module has OnResume the cast goes on as a scripted one:
+    // an entry under a new key, the effect's visual, sound and light moved into its owned objects (a missile with a
+    // payload key, so OnHit runs when it lands), OnResume(cast, old) with the world's bindings off, then the end
+    // test; the effect's state says how it went. False, the effect left as it was, without the hook.
+    bool Resume(SpellEffect& effect);
 
     // The `casts` table (by key: data, timers, tick, finished) and the key after the live casts' into the scheduler's
     // persisted table at `root`, and back.
@@ -66,12 +72,17 @@ public:
     static int Light(lua_State* L);
     static int SetVelocity(lua_State* L);
     static int Eye(lua_State* L);
+    static int HitPoint(lua_State* L);
+    static int IsUnit(lua_State* L);
 
 private:
     // The effect of the cast value `self` (argument 1) of a world method; a Lua error when the cast has ended or the
     // bindings are off.
     static SpellEffect& Self(lua_State* L, const char* method);
     enum class Hook { Ran, Absent, Failed };
+
+    // A new cast's entry under `key` (its data, timers, tick and seq), the effect live under it.
+    void NewEntry(SpellEffect& effect, int key);
 
     // The module of the effect's spell pushed (nil when its file did not load: said once on the console).
     void PushModule(const SpellEffect& effect);

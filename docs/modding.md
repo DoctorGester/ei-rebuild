@@ -649,9 +649,9 @@ frame = { start = "pick(16)", delay = 1 }
 
 A spell of your own is a record and a Lua file: the record (`Res\database\spells.sdb.toml`, [Databases](#databases))
 names the file with `script`, and the file below `Res\spells\` runs every cast of it, on the server. The game's own
-spells are moving onto the same path: the lightning arc and curse magic are `Res\spells\Lightning.lua` (built into
-the game; the source's `assets/spells/` has it and the fields the game's records get), which a mod's file of that name
-replaces.
+spells are moving onto the same path: the lightning arc and curse magic are `Res\spells\Lightning.lua`, the fire
+arrow, Rick magic and the acid ray `Res\spells\Missile.lua` (built into the game; the source's `assets/spells/` has
+them and the fields the game's records get), which a mod's file of that name replaces.
 
 ```toml
 [[spell]]
@@ -717,14 +717,18 @@ return spell
   - `OnHit(cast, target, payload, point)` when a missile of the cast lands (`target` nil when the unit is gone,
     `payload` what `cast:Missile` was given, `point` where it ended);
   - `OnEnd(cast, reason)` once, at the end: `"finished"`, `"idle"`, `"limit"` or `"error"`;
+  - `OnResume(cast, old)` for a save made before a game's spell moved onto this file, when it held a cast of it in
+    flight (`old.state` `"missile"`) or lingering (`"lasting"`), `old.ticks` left on the game's own count: the cast's
+    objects are already its own (a missile still lands in `OnHit`, with a nil payload); set its timers and data here
+    (the world methods are off in this hook). Without it such a cast ends at once;
   - a function you name in `cast:After(ticks, "Name", payload)`: `spell.Name(cast, payload)` that many ticks later.
 - **No waits.** `Sleep` and the other waits are errors in a hook; pace the spell with `cast:After` and `OnTick`.
 - **The cast value**: `cast.id`, `cast.code`, `cast.caster` and `cast.target` (units or nil), `cast.from` and
   `cast.point` (`{x, y, z}`), `cast.tick` (ticks since the cast), the spell's built numbers (runes included):
   `cast.damage`, `cast.range`, `cast.radius`, `cast.duration`, `cast.targetCount`, `cast.speed`, `cast.mana`,
   `cast.power` (the game's power curve of its damage, about 0.8 to 1.8), `cast.lightRise` (how fast the game's spell
-  lights rise away: the record's `light_range / max(light_rise_divisor, 1)` a tick) and `cast.school` (its school's
-  name); and
+  lights rise away: the record's `light_range / max(light_rise_divisor, 1)` a tick), `cast.lightRange` (the record's
+  `light_range`) and `cast.school` (its school's name); and
   `cast.data`, a table of your own that is kept with the cast (and in saves): numbers, strings, booleans, units,
   tables.
 - **The methods.** Positions are `{x, y, z}` tables or units (where the unit stands). Each does what the game's own
@@ -741,15 +745,20 @@ return spell
 | `cast:Move(unit, to, {check = true})` | the unit moved to the point (at its own height) unless it cannot stand there; true when it moved. A push is a small move each tick |
 | `cast:Bolt(from, to, {width, lifetime, demon})` | a lightning bolt; an end that is a unit follows it; `demon` the curse magic's look |
 | `cast:Missile{to, from, effect, size, sound, payload}` | a spell missile flying at the unit `to` (at the game's missile speed) from `from` (default the caster), showing `effect` (default `FireArrow`) with the spell's light; `OnHit` runs when it lands |
-| `cast:Effect(name, {at, attach, size, alpha, velocity, lifetime})` | a particle effect: one of yours (`Res\effects`, [Effects](#effects)) or a game's by its script name (`Sparks`, `LightningBlast`, `FireBlast`, `Healing`, ...); at `at` (default the cast's point) or on the unit `attach` |
+| `cast:Effect(name, {at, attach, size, alpha, velocity, lifetime, free})` | a particle effect: one of yours (`Res\effects`, [Effects](#effects)) or a game's by its script name (`Sparks`, `LightningBlast`, `FireBlast`, `Healing`, ...); at `at` (default the cast's point) or on the unit `attach`. A `free` one (a flash that plays once) is not the cast's: it lives its own life, also after the cast ends |
 | `cast:Sound(name, at, volume, hearing)` | a sound played once (`magic\...\x.wav`) |
 | `cast:Light(at, {color, range, rise, lifetime})` | a point light, by default in the record's `light_color` and `light_range` |
 | `cast:SetVelocity(handle, {x, y, z})` | the cast's bolt, missile, effect or light of that handle moves by so much a tick from now on (a light sent up as it fades); false when it is gone |
 | `cast:Eye(unit)` | the point `{x, y, z}` a unit's spells start from (its eye), where the game's lightning puts its light |
+| `cast:HitPoint(unit)` | the point `{x, y, z}` where a hit on the unit shows, as the game's missiles splash: the ground below it plus its height as it stands (lower crawling, lying or dead, so ask after the damage); another object's position |
+| `cast:IsUnit(object)` | whether it is a unit (false for nil, a unit that is gone, or another object) |
 | `cast:After(ticks, "Name", payload)`, `cast:Finish()` | a timer; the end of the cast after this hook |
 
 - **Handles.** `Bolt`, `Missile`, `Effect` and `Light` give a handle (a number) for `SetVelocity`; keep it in
   `cast.data` to use it in a later hook.
+- **Exact numbers.** Lua numbers are doubles and the game's are floats: a cast's number passed on, or put through one
+  operation, rounds back to what the game would compute; a chain of operations may not. A constant the game wrote as a
+  float needs its exact value (`0.699999988079071` for 0.7, `0.4000000059604645` for 0.4; Missile.lua has both).
 - **How long a cast lives.** A bolt, effect or light lasts `lifetime` ticks, and while one does, the cast goes on; one
   given no `lifetime` lasts as long as the cast. The cast ends after a hook calls `cast:Finish()` (its bolts, effects
   and lights go with it), when nothing is left (no timer, no missile in flight, nothing with a lifetime, no `OnTick`:

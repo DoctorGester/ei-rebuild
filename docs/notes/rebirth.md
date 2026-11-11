@@ -23,7 +23,8 @@ everything here: static analysis of addon.dll, EI_Plugin.asi, the starter's dinp
   map. Ours has no cap of 20 effects (addon dropped a 21st; the network's limit is 255) and no skip of the record after
   each removal.
 - **FixProgressNames**: the loading movie picks progres2.bik for "gipat2", progres5.bik for "jigran".
-- **FixSpellSelfCasting**: the spell table (`kGameSpells`, spell_behaviour.cpp) also marks types 0x28 / 0x29 offensive; `BattleScreen::SelectUnit`
+- **FixSpellSelfCasting**: Rick magic and curse magic (types 0x28 / 0x29) are offensive (their records' `offensive`,
+  assets/spells/spells.sdb.toml); `BattleScreen::SelectUnit`
   always passes 0 as the flag when casting on a clicked unit.
 - **FixMoveObject**: `SectorMap::Move` refuses x < 0, y < 0 or NaN.
 - **FixAddMapObject**: a unit with no prototype record is logged and uses index 0.
