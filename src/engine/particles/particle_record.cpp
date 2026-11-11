@@ -516,9 +516,10 @@ private:
     }
     void ReadServer() {
         const RawNode& server = root["server"];
-        Known(server, {"one_shot", "script_lifetime"});
+        Known(server, {"one_shot", "script_lifetime", "wall"});
         Integer(server["one_shot"], &record->oneShot);
         Integer(server["script_lifetime"], &record->scriptLifetime);
+        Flag(server["wall"], &record->wall);
     }
     void ReadSource() {
         const RawNode& source = root["source"];
@@ -927,7 +928,8 @@ private:
         }
         for (const RawNode& node : list.items) {
             Known(node, {"emit", "kind", "at", "set", "value", "stage", "effect", "end", "stop", "stop_emitting",
-                         "let_go", "add_anchor", "count", "shake", "time", "decay", "scorch", "alpha"});
+                         "let_go", "add_anchor", "count", "shake", "time", "decay", "scorch", "alpha", "length",
+                         "angle"});
             Action action;
             std::string name;
             if (node["emit"].Exists()) {
@@ -986,6 +988,8 @@ private:
                 action.value = Field(node["scorch"], context);
                 action.alpha = Field(node["alpha"], context);
                 if (action.alpha.Empty()) action.alpha = ConstantExpr(1.0f);
+                action.length = Field(node["length"], context);
+                action.angle = Field(node["angle"], context);
             } else {
                 Error(node, "an action is emit, set, stage, effect, end, stop, stop_emitting, let_go, add_anchor, "
                             "shake or scorch");
@@ -1512,8 +1516,12 @@ void State::Run(const std::vector<Action>& actions, IsaacRandom& random, int dep
         }
         case Action::Kind::Scorch: {
             const Env env = SourceEnv(&random);
-            const float radius = action.value.Run(env);
-            scorches.push_back({radius, action.alpha.Run(env)});
+            ScorchRequest scorch;
+            scorch.radius = action.value.Run(env);
+            scorch.length = action.length.Empty() ? scorch.radius : action.length.Run(env);
+            scorch.alpha = action.alpha.Run(env);
+            if (!action.angle.Empty()) scorch.angle = action.angle.Run(env);
+            scorches.push_back(scorch);
             break;
         }
         }

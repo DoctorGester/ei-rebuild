@@ -112,7 +112,7 @@
 ---@field velocity? ei.Point # it flies by so much a tick
 ---@field target? ei.Position # a flying one heads for this point
 ---@field unit? ei.Object # a flying one starts on the players' screens at this unit's hand (the fireball)
----@field direction? ei.Point # a wall's (Tendril, Link) extent from its middle to an end (the fire wall's)
+---@field direction? ei.Point # a wall effect's ([server] wall: Tendril, Link) extent from its middle to an end (the fire wall's)
 ---@field lifetime? integer # ticks it lasts (else as long as the cast)
 ---@field free? boolean # not the cast's: it lives its own life
 

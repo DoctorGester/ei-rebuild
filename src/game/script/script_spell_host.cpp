@@ -1220,7 +1220,7 @@ int ScriptSpellHost::Missile(lua_State* L) {
 // effect (a data effect of Res\effects, or a game's type by the scripts' name: Sparks, LightningBlast, ...) at `at`
 // (default the cast's point; attached to the object `attach`, at its own place), size, alpha and param (its source's
 // parameter: the fire blast's spread) 1, moving by `velocity` ({x, y, z} a tick) towards `target` (a point: where a
-// flying one, the fire ball, ends), started on the clients at the unit `unit`'s hand, a wall's (Tendril, Link) extent
+// flying one, the fire ball, ends), started on the clients at the unit `unit`'s hand, a wall effect's ([server] wall) extent
 // `direction` ({x, y, z}: from its middle to an end); it lasts `lifetime` ticks, else as long as the cast (or as its
 // type's own life, when shorter). A `free` one is not the cast's: it lives its type's own life (a one-shot's) past the
 // cast's end. Its handle.
@@ -1249,7 +1249,7 @@ int ScriptSpellHost::Effect(lua_State* L) {
     Vector3 direction;
     MapObject* directionObject = nullptr;
     const bool walls = OptPosition(L, 9, &direction, &directionObject);
-    if (walls && !SpellEffect::WallParticle(particleType)) luaL_error(L, "Effect: a direction only for a wall effect");
+    if (walls && !WallEffect(particleType)) luaL_error(L, "Effect: a direction only for a wall effect");
     const float size = FloatField(L, 3, "size", 1.0f);
     const float alpha = FloatField(L, 3, "alpha", 1.0f);
     const float param = FloatField(L, 3, "param", 1.0f);

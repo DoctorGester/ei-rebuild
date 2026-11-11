@@ -26,17 +26,9 @@
 #include <set>
 #include <string>
 
-namespace {
-
-constexpr float kScorchAlpha = 0.6f;
-
-} // namespace
-
 using namespace effect;
 
 namespace {
-
-
 
 // The light's range fields: range, range^2 and 1 / range^2.
 void SetLightRange(Light* light, float range) {
@@ -67,14 +59,6 @@ int StepFraction(const Vector3& velocity, const Vector3& dxdy, float* t) {
 int OneShotTicks(int type) {
     const std::shared_ptr<const effectdata::Record> record = effectdata::g_effects.FindById(type);
     return record ? record->oneShot : 0;
-}
-
-// The fire wall's scorch mark: angle = atan2(direction.y, direction.x) and outer =
-// sqrt(x*x + y*y) + half + 0.3.
-void WallScorchShape(const Vector3& direction, const float* half, float* angleAndOuter) {
-    angleAndOuter[0] = lib::Atan2(direction.y, direction.x);
-    const float outer = Length2D(XY(direction));
-    angleAndOuter[1] = (outer + *half) + 0.3f;
 }
 
 } // namespace
@@ -214,9 +198,13 @@ std::optional<int> EffectTypeNamed(std::string_view name) {
     return std::nullopt;
 }
 
-int EffectParticle::Unpack(int update, DeltaReader& field) {
-    Vector3 position;
-    position = field.ReadPosition();
+bool WallEffect(int type) {
+    const std::shared_ptr<const effectdata::Record> record = effectdata::g_effects.FindById(type);
+    return record && record->wall;
+}
+
+Vector3 EffectParticle::UnpackFields(DeltaReader& field) {
+    const Vector3 position = field.ReadPosition();
     field.ReadDelta(&startTick, 4);
     field.ReadDelta(&type, 4);
     size = field.ReadFloat16();
@@ -227,16 +215,22 @@ int EffectParticle::Unpack(int update, DeltaReader& field) {
     alpha = field.ReadFloat16();
     typeParam = field.ReadFloat16();
     moving = IsMoving(velocity);
-    // Only a plain particle effect checks the snapshot here (the wall checks after its own field).
-    if (GetClassId() == ClassId::EffectParticle && !field.SnapshotConsumed()) return 0;
+    return position;
+}
+
+void EffectParticle::Place(int update, Vector3 position) {
     if (unitId != -1) {
         Unit* unit = OwningWorld()->FindUnit(unitId);
-        if (unit != nullptr) {
-            position = unit->EffectPoint();
-        }
+        if (unit != nullptr) position = unit->EffectPoint();
     }
     localPosition = position;
     Start(update);
+}
+
+int EffectParticle::Unpack(int update, DeltaReader& field) {
+    const Vector3 position = UnpackFields(field);
+    if (!field.SnapshotConsumed()) return 0;
+    Place(update, position);
     return 1;
 }
 
@@ -250,6 +244,7 @@ void EffectParticle::Spawn() {
         source->alpha = alpha;
         source->typeParam = typeParam;
         Attach();
+        Shape(*source);
         return;
     }
 
@@ -271,7 +266,8 @@ void EffectParticle::Spawn() {
         for (int left = age - 1; left != 0; --left) source->RunTick();
     }
 
-    effectdata::Spawned(*source);   // its "spawn" reactions (FireBlast's and LightningBlast's scorch marks)
+    Shape(*source);
+    effectdata::Spawned(*source);   // its "spawn" reactions (the scorch marks of FireBlast, LightningBlast, a fire wall)
 }
 
 void EffectParticle::Pack(DeltaWriter& field) {
@@ -407,37 +403,17 @@ void EffectWall::SetDirection(const Vector3& newDirection) {
 }
 
 int EffectWall::Unpack(int update, DeltaReader& field) {
-    if (EffectParticle::Unpack(update, field) == 0) return 0;
+    const Vector3 position = UnpackFields(field);
     direction = field.ReadFloat16x3();
     if (!field.SnapshotConsumed()) return 0;
-    if (source != nullptr) source->extent = direction;
-    if (update == 0 && ParticleTypeOf(type) == ParticleType::Tendril) {
-        // A scorch mark under the new wall: as long as the wall, as wide as half its size.
-        float fadeAlpha = BelowOneOrOne(alpha * kScorchAlpha);
-        float half = size * 0.5f;
-        float shape[2];   // angle, outer
-        WallScorchShape(direction, &half, shape);
-        float inner = half + 0.3f;
-        g_clientWorld.AddScorchMark(localPosition.x, localPosition.y, shape[1], inner, shape[0], fadeAlpha);
-    }
+    Place(update, position);
     return 1;
 }
 
+void EffectWall::Shape(ParticleSource& made) { made.extent = direction; }
+
 void EffectWall::Pack(DeltaWriter& field) {
-    Vector3 position = localPosition;
-    field.WritePosition(position);
-    int value = startTick;
-    field.WriteDelta(&value, 4);
-    field.WriteDelta(&type, 4);
-    field.WriteFloat16(size);
-    value = attachedTo;
-    field.WriteDelta(&value, 4);
-    field.WriteFloat16x3(velocity);
-    field.WritePosition(target);
-    value = unitId;
-    field.WriteDelta(&value, 4);
-    field.WriteFloat16(alpha);
-    field.WriteFloat16(typeParam);
+    EffectParticle::Pack(field);
     field.WriteFloat16x3(direction);
 }
 

@@ -1144,7 +1144,8 @@ frame = { start = "pick(16)", delay = 1 }
   true }` ends the emission (the particles live on), `{ stop = true }` stops the source, `{ let_go = true }` lets go
   of the carrier (the source stays where it is), `{ shake = "size", time = 5, decay = 0.25 }` shakes the camera by
   that strength around the source (as the mushroom's burst), `{ scorch = "size", alpha = 0.6 }` leaves a scorch mark
-  of that radius on the ground under it. `set` also takes the spread box and the extent
+  of that radius on the ground under it, turned at random (`length = "..."` gives its radius along its turn and `angle
+  = "..."` the turn: the fire wall's long mark). `set` also takes the spread box and the extent
   (`spread_min.x`, `extent.y`...). `[[on]] event = "emit"` runs after each particle the emission makes,
   at once (the next particle of the tick sees it): a count for the next tick by the carrier's state, a stop when the
   carrier is dead, or `{ emit = 25, kind = "puff" }` (a burst of another kind made right after it, as the poison fog's
@@ -1222,6 +1223,9 @@ frame = { start = "pick(16)", delay = 1 }
   LightningBlast, the Geyser, the funnels Tornado and CurseHolder and the path markers' glow ShapeChange); a mod's
   `Res\effects\FireStar.effect.toml` retunes the fire arrow's flash with only
   the fields it names, and `Res\effects\ZoneExit.effect.toml` the glow over every zone exit.
+- **Walls**: `[server] wall = true` makes the effect's world object a wall, which a spell gives a direction
+  (`cast:Effect(name, { direction = ... })`): the source's `extent`, set before its "spawn" reaction (the fire wall's
+  smoke Tendril, the beam Link). Only a wall takes a direction.
 - **Problems** are `warning: effects: <file>:<line>: ...` lines in `ei-rebuild.log`; an effect with an error shows
   nothing. An unknown key is only noted.
 - In a network game every player needs the same effect files: they count in the mod's content hash.
@@ -1561,7 +1565,7 @@ return spell
 |  | `velocity` | `point` | it flies by so much a tick |
 |  | `target` | `position` | a flying one heads for this point |
 |  | `unit` | `object` | a flying one starts on the players' screens at this unit's hand (the fireball) |
-|  | `direction` | `point` | a wall's (Tendril, Link) extent from its middle to an end (the fire wall's) |
+|  | `direction` | `point` | a wall effect's ([server] wall: Tendril, Link) extent from its middle to an end (the fire wall's) |
 |  | `lifetime` | `integer` | ticks it lasts (else as long as the cast) |
 |  | `free` | `boolean` | not the cast's: it lives its own life |
 | `SoundOptions` | `volume` | `number` | its volume |

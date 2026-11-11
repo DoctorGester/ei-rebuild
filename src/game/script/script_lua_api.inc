@@ -743,7 +743,7 @@ EI_LUA_FIELD(EffectOptions, target, "position", "a flying one heads for this poi
 EI_LUA_FIELD(EffectOptions, unit, "object",
              "a flying one starts on the players' screens at this unit's hand (the fireball)")
 EI_LUA_FIELD(EffectOptions, direction, "point",
-             "a wall's (Tendril, Link) extent from its middle to an end (the fire wall's)")
+             "a wall effect's ([server] wall: Tendril, Link) extent from its middle to an end (the fire wall's)")
 EI_LUA_FIELD(EffectOptions, lifetime, "integer", "ticks it lasts (else as long as the cast)")
 EI_LUA_FIELD(EffectOptions, free, "boolean", "not the cast's: it lives its own life")
 EI_LUA_FIELD(SoundOptions, volume, "number", "its volume")

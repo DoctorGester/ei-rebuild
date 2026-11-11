@@ -267,11 +267,6 @@ void SpellEffect::Unblock() {
     footprintStamped = 0;
 }
 
-bool SpellEffect::WallParticle(int particleType) {
-    return particleType == static_cast<int>(ParticleType::Tendril) ||
-           particleType == static_cast<int>(ParticleType::Link);
-}
-
 EffectArrow* SpellEffect::NewArrow(const Vector3& from, EngineObject* missileTarget, int particleType, float size,
                                    const char* soundName, const Vector3& color, float range, Unit* launcher) {
     auto* arrow = CreateObject<EffectArrow>(this, ClassId::EffectArrow);
@@ -303,8 +298,8 @@ EffectParticle* SpellEffect::CreateParticle(int keep, ParticleType particleType,
 
 EffectParticle* SpellEffect::NewParticle(int particleType, const Vector3& at, float size, float alpha,
                                          const Vector3& velocity, EngineObject* attachTo) {
-    ClassId classId = WallParticle(particleType) ? ClassId::EffectWall : ClassId::EffectParticle;
-    auto* particle = CreateObject<EffectParticle>(this, classId);   // a EffectWall for the walls
+    ClassId classId = WallEffect(particleType) ? ClassId::EffectWall : ClassId::EffectParticle;
+    auto* particle = CreateObject<EffectParticle>(this, classId);
     particle->type = particleType;
     SetPosition(particle, at);
     particle->size = size;

@@ -160,6 +160,9 @@ public:
 // and a particle object's effect; docs/modding.md, "Records that name effects").
 std::optional<int> EffectTypeNamed(std::string_view name);
 
+// The effect of this particle type is a wall (its [server] wall: an EffectWall, with a direction; Tendril, Link).
+bool WallEffect(int type);
+
 // A particle source (class id 0x4A; CreateParticleSource).
 class EffectParticle : public Effect {
 public:
@@ -191,9 +194,18 @@ public:
     Vector3 target;            // moves towards it
     Ref<ParticleSource> source;    // reference counted
     int unitId = -1;           // a unit whose position is used when unpacking, -1: none
+
+protected:
+    // The fields every particle effect sends; answers the position they carry.
+    Vector3 UnpackFields(DeltaReader& field);
+    // A whole update read: placed at `position` (the unit's effect point when one is named), then started.
+    void Place(int update, Vector3 position);
+    // What this object gives its source beyond the particle effect's fields, before the source's "spawn" reactions:
+    // a wall's direction.
+    virtual void Shape(ParticleSource&) {}
 };
 
-// A particle wall (class id 0x5A; fire wall).
+// A particle wall (class id 0x5A; an effect whose [server] wall is set: the fire wall's Tendril, Link).
 class EffectWall final : public EffectParticle {
 public:
     const char* ClassName() override;
@@ -207,7 +219,10 @@ public:
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
 
-    Vector3 direction;         // copied to the source
+    Vector3 direction;         // the source's extent
+
+protected:
+    void Shape(ParticleSource& made) override;
 };
 
 // A lightning bolt between two points or objects (class id 0x4D).

@@ -130,7 +130,13 @@ particle side, the inputs). The guide for modders: docs/modding.md, "Effects".
   unknown key is logged and the effect loads; an expression that does not compile, an unknown name or a record
   without a particle kind makes it unusable: it shows nothing, as an unknown type does (`ShownParticleType`).
 - The server reads `[server]`: `one_shot` (the world object lives that many ticks; `OneShotTicks` beside the
-  original's 60 / 120) and `script_lifetime` (CreateParticleSource's, as the script table's 200 or -1). Script
+  original's 60 / 120), `script_lifetime` (CreateParticleSource's, as the script table's 200 or -1) and `wall` (the
+  world object is an `EffectWall`, which carries a direction: `WallEffect`, world_effect.h; a spell's and a scripted
+  cast's `direction` only for such an effect; Tendril and Link).
+- **Walls** (`EffectWall`): its direction travels after the particle effect's fields and becomes the source's
+  `extent` (`EffectWall::Shape`) after the catch-up ticks and before the "spawn" reactions, which is where the fire
+  wall's scorch is (Tendril's file: a scorch with a `length` and an `angle` from the extent, as long as the wall and
+  as wide as half its size). Script
   `CreateParticleSource` takes a name its table lacks from the registry; sub-effects (`effect = ...`) name a data
   effect or an original type by its ParticleType name (`ParticleTypeByName`).
 - Res\effects counts in the mod's content hash (`modhash::Counted`, mods.md "Mods in multiplayer"): peers with other
@@ -141,8 +147,7 @@ particle side, the inputs). The guide for modders: docs/modding.md, "Effects".
   The game's choices are built-in data (assets/spells/spells.sdb.toml, assets/units/units.udb.toml, the flame's
   default). Game code turns a name into the type through `EffectTypeNamed` (world_effect.h; a missing name warns once).
   Still chosen in code by type: the world's own visuals with no record behind them (the bird's Bag, the weather's
-  Tornado), the interface's markers (path ShapeChange, flag GroundDust1 / 2, wisp Stun, the zone exits' ZoneExit), the
-  wall class and the fire wall's scorch (`SpellEffect::WallParticle`, `EffectWall::Unpack`: Tendril and Link, MF15h1),
+  Tornado), the interface's markers (path ShapeChange, flag GroundDust1 / 2, wisp Stun, the zone exits' ZoneExit),
   the unreached link spell's Link and the unreached placed trap's Mushroom.
 
 ### In multiplayer and saves
@@ -217,8 +222,9 @@ numbers), `[curves]` (name = `[[t, value], ...]`, linear, held at the ends).
   unchanged), `{ add_anchor = "<group>", count = n }` (n anchors of the group made now, 1 without a count; each as one
   made at the start: "Anchors" below), `{ shake = <strength>, time = <ticks>, decay = <factor> }` (the camera shaken
   about the source's origin, `Camera::Shake`, when the tick's actions are applied; Mushroom's burst), `{ scorch =
-  <radius>, alpha = <0..1, default 1> }` (a scorch mark on the ground at the source's origin, `World::AddScorchMark`,
-  turned by a draw of the client's own generator, `g_clientRandom`, and its alpha held to 1). After a stop or a
+  <radius>, alpha = <0..1, default 1>, length = <radius along its turn>, angle = <its turn> }` (a scorch mark on the
+  ground at the source's origin, `World::AddScorchMark`, its alpha held to 1; round without a `length`, turned by a
+  draw of the client's own generator, `g_clientRandom`, without an `angle`). After a stop or a
   let go the source's `attached`, `origin` and carrier values are written again, so the tick's particle updates and
   emission see the source free. `set` names an input, a var or one of the source's values `size`, `height`, `growth`,
   `alpha`, `param`, `spread_min`, `spread_max`, `extent` or one lane of them (`extent.z`) (written back to the source after the step,
@@ -447,7 +453,7 @@ build/captures/mf15l2/), then the exact reference recorded again.
   `on_death` and "before_emit", MF15g4's "emit" reactions queueing a kind (and refused a kindless emit), the `shake`
   action and its form refused without a time, the `platform_*` functions, MF15g5's `ball()`,
   `<group>.<var>[i]`, the particle writes to vars and anchor vars and `jump`, MF15g6's "spawn" reaction with its
-  scorches and shake (and a refused emit), `at_create` anchors and their spawns, `surface` of a point, `sun` and the
+  scorches and shake (and a refused emit), MF15h1's scorch with a length and an angle (no draw) and `[server] wall`, `at_create` anchors and their spawns, `surface` of a point, `sun` and the
   frame mode `free`, and every whole effect written out in
   docs/modding.md (and in this file, which has none now) read without a problem (EI_SOURCE_DIR); MF15g5a's `like`:
   a variant over its base (a var and the texture replaced, a kind merged by name and one appended, a number array and
