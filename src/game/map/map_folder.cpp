@@ -2,6 +2,7 @@
 #include "game/map/map_folder.h"
 
 #include "game/core/asset_text.h"
+#include "game/data/record_names.h"
 
 #include "lib/bytes.h"
 #include "lib/enum_array.h"
@@ -163,6 +164,28 @@ std::string IntArray(std::initializer_list<int> values) {
     return toml::Array(items);
 }
 
+// A tile texture's class by name: the ground's surface (record_names.h), 16 a line; another as its number.
+constexpr int kLineClass = 16;
+std::string ClassText(std::int32_t value) {
+    if (value == kLineClass) return toml::String("line");
+    if (value >= 0 && value < std::ssize(recordnames::kSurfaces))
+        return toml::String(recordnames::kSurfaces[static_cast<std::size_t>(value)]);
+    return toml::Int(value);
+}
+bool ReadClass(const toml::Value& value, std::int32_t* out) {
+    if (!value.IsString()) return toml::Read(value, out);
+    if (value.String() == "line") {
+        *out = kLineClass;
+        return true;
+    }
+    for (std::size_t i = 0; i < std::size(recordnames::kSurfaces); ++i)
+        if (recordnames::kSurfaces[i] == value.String()) {
+            *out = static_cast<std::int32_t>(i);
+            return true;
+        }
+    return false;
+}
+
 std::string HeaderToml(const MapData& map) {
     const MapHeader& h = map.header;
     toml::Writer w;
@@ -182,11 +205,11 @@ std::string HeaderToml(const MapData& map) {
         rows.push_back(toml::String(row));
     }
     w.Pair("water_sectors", toml::Array(rows, true));
-    w.Comment("Per tile texture, its class 0 .. 15 (the ground's sounds and prints); 16 a line.");
+    w.Comment("Per tile texture, its class: the ground's surface (its sounds and prints), or line.");
     std::string classes = "[";
     for (std::size_t i = 0; i < map.classes.size(); ++i) {
-        classes += i % 16 == 0 ? "\n    " : " ";
-        classes += toml::Int(map.classes[i]) + ",";
+        classes += i % 8 == 0 ? "\n    " : " ";
+        classes += ClassText(map.classes[i]) + ",";
     }
     w.Pair("classes", classes + (map.classes.empty() ? "]" : "\n]"));
     std::vector<std::string> animated;
@@ -258,7 +281,7 @@ bool ReadHeader(std::string_view text, std::string_view path, MapData& map, std:
             if (!value.IsArray()) return bad(key);
             read.classes.assign(static_cast<std::size_t>(value.Size()), 0);
             for (int t = 0; t < value.Size(); ++t)
-                if (!toml::Read(value.At(t), &read.classes[static_cast<std::size_t>(t)])) return bad(key);
+                if (!ReadClass(value.At(t), &read.classes[static_cast<std::size_t>(t)])) return bad(key);
         } else if (key == "animated") {
             if (!value.IsArray()) return bad(key);
             read.animated.clear();

@@ -265,7 +265,7 @@ commit), the writer our own (src/lib/toml.h: floats as the shortest text that re
 |---|---|---|---|
 | a registry `.reg`: `Config\ai.reg`, `Res\music.reg`, `Res\smessbase.reg`, `Res\streamsn.reg`, aiinfo.res's `tileDesc.reg`, menus.res's `menus.reg`, a mod's `config.reg` | `Config\ai.reg.toml`, `Res\aiinfo\tileDesc.reg.toml`, `<mod>\config.reg.toml`, ... | a table per section, a key per value: integer, float, string, or an array of one (an empty array answers any array type) | merged by section and key (no case) |
 | materials.res's `.mat` | `Res\materials\<name>.mat.toml` | name, diffuse / ambient / specular / emissive `[r, g, b, a]`, power | the keys given over the colours |
-| database.res's `.adb` | `Res\database\<name>.adb.toml` | name, start, length, end, `[[animation]]` (name, index, key, flags, chance, frames, stride, arrow, steps, moment, sound_frame, sounds) | the header's keys given; an animation's fields given over the first of its name that the file has not merged yet, or it is appended ("Merging by field") |
+| database.res's `.adb` | `Res\database\<name>.adb.toml` | name, start, length, end, `[[animation]]` (name, index, the key's and flags' parts ("Readable values"), chance, frames, stride, arrow, steps, moment, sound_frame, sounds) | the header's keys given; an animation's fields given over the first of its name that the file has not merged yet, or it is appended ("Merging by field") |
 | `acks.db` (database.res) | `Res\database\acks.db.toml` | `[[unit]]`, `[[model]]`, `[[extra]]`: name and the speech lists by ack kind (AckKind in snake case: `selected`, `move`, ..., `bored` with `environment`, `scenario` the named ones), each speech `{ sound, chance, text, name }` | per field ("Merging by field"): a speech list given replaces that list whole; a record of a new name is appended |
 | `prints.db` (database.res, databaselmp.res) | `Res\database\prints.db.toml` | `[[blood]]`, `[[footprint]]`, `[[scorch]]`: name, `dry` / `wet` = `{ alpha, life, lifetime }` (a footprint's `unread`: chunk 10) | per field: `dry` and `wet` merge by their own keys (`wet = { alpha = 0.25 }`); a new name is appended (a table's index is the ground's surface class) |
 | texts.res's, textslmp.res's entries | `Res\texts\texts.toml`, `Res\textslmp\texts.toml`: one per archive | `"<entry name>" = "<text>"` (quoted keys, multi-line text as `"""`, CR kept as `\r`) | per entry: a folder's own file of the name, then its texts.toml, in the archive's order of places; so a mod's texts.toml holds only the strings it changes |
@@ -374,8 +374,9 @@ lists are TOML's own, a model's body slots and a prototype's gold rolls inline t
   file reads back exactly. A lever's `spots` lists only its spot_count spots (Lever::UseSpots reads no more; the count
   is the list's length read back): the bytes of the unused ones (the original data holds garbage there, NaNs among it)
   are not kept, and ei-convert's comparison clears them on both sides.
-- Unsigned flags and masks are written in hexadecimal (`class_mask = 0x1`); a perk's required stats are floats
-  (`required_strength`, held as their bits), its worth exponent signed.
+- Codes, masks and fixed-meaning arrays are written by name, and a field equal to a new record's is left out
+  ("Readable values"); a perk's required stats are floats (`required_strength`, held as their bits), its worth
+  exponent signed.
 
 Counts (2026-11-10, ei-convert, every round trip holding): vanilla 2 each of units.udb, perks.pdb, spells.sdb, items.idb,
 Levers.ldb and 1 quests.qdb (database.res: 389 units, 51 models, 14 NPCs, 5 levels; 78 perks, 7 skills; 42 spells, 38
@@ -394,6 +395,64 @@ armours, 63 weapons, 126 quests).
 - `net_pair_database` on a converted install: tools/make_extra_item_db.py adds its quest item as an overlay
   `items.idb.toml` merged over the game's TOML (the same index as its binary file's).
 - `work.py test <ID> --converted --golden --rebirth`: every golden the same with every database as TOML.
+
+## Readable values
+
+The record TOML says what a value means rather than its bits (MF14, user 2026-11-11: the showcase mod's `class_mask =
+0x1`, `key = 0x2890000`, `blood_kind = 8`, unnamed arrays and a 32 x 32 relations matrix could not be written by
+hand). One path: ei-convert writes this form, the game reads only this form. The field helpers are database_toml.h's
+(`dbtoml::Enum`, `Bits`, `Code`, `OtherBits`, `Table`), which mob_toml.cpp uses too:
+- An enum is its name (`natural_weapon = "club"`); a value no name has stays a number (the data's garbage, a code no
+  code tests), which the reader also takes.
+- A bit mask is a list of names (`sold_by = ["gipat_smith"]`; a name may stand for several bits: `weapons = ["any"]`
+  is 0x7F). Bits no name covers go to `<key>_other = 0x..`, written only when not zero.
+- A fixed-meaning array is an inline table by name (`perception = { sight = 8.5, near = 2.8 }`); elements left out
+  keep the record's value (0 in a new record).
+- Defaults are left out: `dbtoml::WriteRecords` writes a field only when its text differs from a new record's (the
+  key always), the merge fills the rest from the record below or the type's defaults; mob.toml did this already.
+- An unknown name is a load warning with the file, the line and the valid names ("items.idb: <file> line 7: type has
+  a value it does not take (one of: sword, axe, ...)"), as the other TOML errors; the field keeps its value.
+
+Field by field (the names, the code that reads each):
+
+| File | Field | Was | Now |
+|---|---|---|---|
+| items.idb | weapon `type`, `natural_weapon` (udb) | 0..6, 8, 16 | WeaponType: `sword`, `axe`, `dagger`, `spear`, `club`, `bow`, `crossbow`, `none` (8), `spells_only` (16) |
+| items.idb | armor `type` | 0..6 | ArmorType: `helmet`, `body_armor`, `leggings`, `shirt`, `pants`, `boots`, `gloves` |
+| items.idb | quick item / quest item / loot `type` | garbage (stack addresses) | a number, as it was (nothing reads it) |
+| items.idb, spells.sdb | `class_mask` | hex | `sold_by`: the trader class templates (bit class - 1, ClassTemplate::type; the classes by the scripts that open them: `gipat_smith` 1 (basecam "b.smith.constr_1"), `gipat_witch` 2 (bz2g), `ingos_trader` 3 (bz8k Shopper), `suslanger_smith` 4 (bz14h Kuzn), `rick` 5 (bz7g)) |
+| items.idb | `damage_types`, `absorb_first`, `absorb_others`, material `absorb_factors`; udb `damage_weights`, `protection` | 7-element arrays | tables by damage type (texts "string dmg_0".."dmg_6"): `piercing` (dagger, spear, bows), `slashing` (sword, axe), `crushing` (club), `fire`, `acid`, `lightning`, `general` |
+| items.idb | `buildable`, armor `shows_wounds` | 0 / 1 | true / false |
+| items.idb | quick item `category` | 0, 5, 8 | QuickItemCategory: `danger_sensor`, `consumable`, `wand`, `potion` |
+| items.idb | loot `kind`, `record_type` | numbers | LootKind `self`, `material`, `record`; LootRecordType `weapon`, `armor`, `quick_item`, `spell`, `modifier`; 0x7FFFFFFF `none` |
+| units.udb | model `object_class` | 50..52 | `class`: MapObjectType `hero`, `creature`, `animal` (52: Bat, Boar, Cow, ... the code's UnitSpare) |
+| units.udb | `movement_kind` | 1..3 | `movement`: `walks` (1: the load factor from the legs), `flies` (2), `rooted` (3: Fungus) |
+| units.udb | `mode_speeds` | [4] | `{ run, walk, crawl, lie }` (ModeSpeedOf) |
+| units.udb | `action_speeds` | [6] | `{ attack, cast, hit, death, cross, special }` (Unit::ActionSpeed) |
+| units.udb | `blood_kind` | 0..9 | `blood`: `none`, `red`, `green`, `blue`, `brown` (1..4: a shower and a bloodprints.png decal of that colour), `red_spray`, `green_spray`, `blue_spray`, `brown_spray` (5..8: the shower alone) |
+| units.udb | `footprint_kind` | -1..25 | `footprint`: the footprints texture's tile, named by the game's model that uses it (`none` -1, `human`, `driad`, `cyclope`, `skeleton`, `troll`, `golem`, `elemental`, `goblin`, `toad`, `ogre`, `lizardman`, `zombie`, `unicorn`, `horse`, `scrab`, `orc`, `pig`, `hyena`, `boar`, `cow`, `wolf`, `tiger`, `hare`, `rat`, `deer`, `dog`) |
+| units.udb | `cast_effect`, `swap_feet` | 0 / 1 | true / false |
+| units.udb | model `sounds` | 16 names | `step_sounds`: a table by the ground's surface class (FootstepSound; prints.db's names): `grass`, `ground`, `stone`, `sand`, `rock`, `field`, `water`, `road`, `surface_8`, `snow`, `ice`, `dry_grass`, `snowballs`, `lava`, `swamp`, `high_rock` |
+| units.udb | unit `combat` | [5] | `{ reach, attack, attack_spread, defence, speed }` (CombatIndex) |
+| units.udb | unit `perception`, `conspicuity` | [6] | `{ sight, day_sight, near, hearing, smell, unread }` (Sense; smell: Slot4, raised by the Stench spell) |
+| units.udb | unit `hit_sound_kind` | 8..16 | `hit_sound`: the weapon types (0..6), `none` (8), the sound folders `hands1` 9, `pierce` 10, `crash` 11, `hands4` 12, `slash` 13, `hands6` 14, `hands7` 15, `spells_only` 16 (HitSoundFormat) |
+| units.udb | npc `stats` | [3] | `{ strength, dexterity, intelligence }` |
+| .adb | `key` | hex | its parts (object3d.h): `kind` (AnimationKind: `special`, `attack`, `cast`, `run`, `walk`, `idle`, `death`, `hit`, `cross`), `weapons` (bits 0..7 by weapon type, `any` 0x7F), `move` (`stop`, `walk`, `crawl`, `lie`), `play` (`once`, `looped`); the number (bits 22..29) by the kind: an attack's or cast's `height` (`high`, `middle`, `low`) and `blow` (true), a death's or hit's `side` (BlowSide: `back`, `front`, `minus_x`, `plus_x`) and `fall` (`walking`, `standing`, `none`: 0x08, 0x10, 0x18), a special's `skill` (SkillAnimation), else `number`; the other variant bits (8..14) `key_other` |
+| .adb | `flags` | hex | `flags = ["arrow", "fits_under_armour", "fits_upper_armour"]` (bit 0: UpdateArrow; 0x10, 0x20: Unit::AcceptsAnimation), `death_side` (0x1C00000, ActionPoint); the bits nothing reads (1..3, 15..21, 25, 26: they mirror the key in most entries) `flags_other` |
+| .adb | `index` | its place | left out when it is its place (a new animation's default) |
+| mob.toml | `parent_id` | 50..60 | `class`: MapObjectType `hero`, `creature`, `animal`, `tree`, `building`, `stone`, `stuff`, `torch`, `magic_trap`, `lever` |
+| mob.toml | `[players]` | 32 names, 32 x 32 matrix | `names = { 3 = "Golems" }` only names other than "Player-n"; `allied`, `neutral`, `hostile`: lists of `[player, other]` pairs whose relation differs from the default (neutral, allied with itself); the data's relations are all 0..2 |
+
+Kept as numbers (quantities, indexes, a player number): `number`, `variant`, `magic_level`, `material_units`, a
+unit's `level`, `size_class` (the AI map's size class), `foot_part` (the "ll<n>" part), `side` (the owner's player
+number), `player`, an item's `attack_interval`, a quest item's `id`, a loot record's `index`, the eyes, the chances.
+
+Also by name: spells.sdb's `school`, `target_kind` (`unit`, `point`), `allowed_modifiers` (`{ range, targets, area,
+effect, duration }`), a modifier's `kind`, `needs_sight`; map.toml's `classes` (the surfaces, `line` 16).
+
+Left for MF14a: a spell's `cast_type`, quests.qdb, perks.pdb, Levers.ldb, a lever's `lock.mask`, map.toml's
+`[[material]] kind`, config.reg.toml (`Single`, `Multi` as booleans: the registry writer knows no key's meaning), an
+NPC's `attributes` and `skills`, the unit level records, acks.db and prints.db (already names and numbers).
 
 ## Textures as PNG
 
@@ -528,7 +587,7 @@ objects as TOML"; the quest zones stay as they are.
 
 | File | What | Pixels |
 |---|---|---|
-| `map.toml` | the header: `name` (the files' name inside the archive), `height_range`, `sectors = [x, y]`, `pages`, `page_size`, `tile_size`, `water_sectors` (a text per row of sectors: `W` with water, `.` without), `classes` (per tile texture its class 0 .. 15: sounds and prints), `animated` (`{texture, frames}`), `[[material]]` (`kind`, `colour`, `opacity`, `light`, `priority`) | |
+| `map.toml` | the header: `name` (the files' name inside the archive), `height_range`, `sectors = [x, y]`, `pages`, `page_size`, `tile_size`, `water_sectors` (a text per row of sectors: `W` with water, `.` without), `classes` (per tile texture its class by name: the surfaces of "Readable values", `line` 16; another as a number), `animated` (`{texture, frames}`), `[[material]]` (`kind`, `colour`, `opacity`, `light`, `priority`) | |
 | `heights.png` | the ground's heights, a vertex a pixel | 16-bit grey |
 | `normals.png` | the ground's normals | 16-bit RGB: the sector file's codes widened by repeating their bits: x and y 1000 + 1000 x (11 bits), z 1000 z (10 bits); a normal map's look, up is (0.49, 0.49, 0.98) |
 | `offsets.png` | the ground vertices' sideways displacements | 8-bit RGB: R = 128 + x, G = 128 + y (1/252 of a cell a step), B 128 |
@@ -622,11 +681,7 @@ applies_relations = true
 wind = [0.0, 1.0, 0.0]
 ...
 [players]
-names = ["Player-0", ...]
-relations = [
-    [0, 1, 2, ...],
-    ...
-]
+hostile = [[0, 3], [3, 0]]
 
 [[object]]
 kind = "unit"
@@ -641,7 +696,7 @@ id = 12
   Each kind's fields are those its chunks set, listed once in mob_toml.cpp (`Fields(record, visit)`), which the
   writer, the reader and ei-convert's comparison walk:
   - every object kind: `id`, `name`, `model`, `texture`, `primary_texture`, `skin_texture`, `parent_iname`,
-    `parent_id`, `position`, `rotation` (`[w, x, y, z]`), `scale` (`[x, y, z]`), `side`, `player`, `shadow`,
+    `class`, `position`, `rotation` (`[w, x, y, z]`), `scale` (`[x, y, z]`), `side`, `player`, `shadow`,
     `visible` (true / false), `parts`, `comment`;
   - flame: `volume`, `offset`, `sound`; trap: `spell`, `sides` (hex; the loader sets it from the player table),
     `period`, `single_target`, `area` (`{ x, y, radius }` circles), `points` (`[x, y]`); lever: `lock`
@@ -656,18 +711,21 @@ id = 12
     `sounds`, `volume`, `radius`, `min_interval`, `max_interval`, `ambient`, `unread` (chunk CC0E), `comment`;
     particle: `id`, `name`, `position`, `type`, `scale`, `comment`.
 - `[[weather]]` (chunk ABD0, each applied in order): `wind`, `wind_strength`, `time`; its two unused values are
-  not kept. `[players]` (chunk DDDDDDD1): `names` and `relations` (32 rows of 32: 0 itself, 1, 2 hostile).
+  not kept. `[players]` (chunk DDDDDDD1) only what differs from `ZoneDiplomacy`'s defaults ("Player-n"; neutral,
+  allied with itself): `names = { 3 = "Golems" }` by player number, `allied`, `neutral`, `hostile` as lists of
+  `[player, other]` pairs (DiplomacyRelation 0..2; the shipped data has no other relation). Left out when nothing
+  differs (no map of vanilla or Lost in Astral names its players).
   `applies_relations`: the last of the flag chunks C000 / D000 (false: the table only tells traps their targets).
 - Strings are UTF-8 both ways (the chunk reader converts the .mob's 1251); floats the shortest text that reads back.
   A record of an unknown kind, an unknown key or a value its field does not take is logged ("warning: map objects:
   <file> line n: ...") and left out.
-- `parent_id` is the object's class (`MapObjectType`: 50-52 units, 53 trees, 54 buildings, 55 stones, 56 other objects,
-  58 torches, 59 traps, 60 levers), the factory's type in `WorldServer::CreateObject`. `mapspec::LoadMob`
+- `class` (the chunk's parent id) is the object's class (`MapObjectType` by name, record_names.h: `hero`, `creature`,
+  `animal` units, `tree`, `building`, `stone`, `stuff`, `torch`, `magic_trap`, `lever`), the factory's type in `WorldServer::CreateObject`. `mapspec::LoadMob`
   (mob_reader.cpp, `ClassFits`) checks each record's class against its kind (units 50-52; flames 58; traps 59; levers
   60; objects 53-56 or a unit's class: the main menu's unmoco2 is an object record of class 51) before it makes the
-  object, and a record that does not fit is logged ("warning: map objects: <zone> record <id>: parent_id <n> is not a
-  class that fits its kind; the record is left out") and skipped (MF10a; without the check the null object was used and
-  the zone load crashed: MF10's hand-written pig without parent_id, 2026-11-10). It is there, not in the readers
+  object, and a record that does not fit is logged ("warning: map objects: <zone> record <id>: class <n> does not fit its
+  kind; the record is left out") and skipped (MF10a; without the check the null object was used and
+  the zone load crashed: MF10's hand-written pig without a class, 2026-11-10). It is there, not in the readers
   (mob_toml.cpp is also ei-convert's and knows no factory) nor in `WorldServer::CreateObject` (which has four make
   sites and no zone name), and covers the .mob reader too; every shipped record of both installs fits.
 - A record id the file repeats: the later record takes the earlier's place in `byId` (the original leaked the earlier
@@ -705,7 +763,7 @@ Zone 1's TOML (777 records, 12,824 lines, 0.3 MB) reads in about 10 ms.
   (50, 138) and a pig `MF9aPig` (id 2009) added at (50, 142), beside the party's start. The mod has no `.mob`, so the
   scripts come from the game's: in a new game both pigs stand near their places (`GetObject(id)`, `GetX`, `GetY`; the
   capture shows them by the hero), another pig and the script's units keep theirs, and the trace has the mod's TOML
-  and the game's `.mob` read; two more records at the file's end (a unit without parent_id, one of a tree's class, ids
+  and the game's `.mob` read; two more records at the file's end (a unit without a class, one of a tree's class, ids
   2010 and 2011) are left out with their warnings (`expectlog`). A map unit is found by its id (`GetObject`): `GetObjectByName` found none of the
   pigs by the names the TOML gives.
 - Still binary in a mod: the `.mob`'s AI graph chunk (0x31415926, `ReadAIGraph`) comes from the game's `.mob` (or none

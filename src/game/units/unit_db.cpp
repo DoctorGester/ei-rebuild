@@ -5,6 +5,7 @@
 #include "game/combat/combat.h"
 #include "game/data/database_file.h"       // the archive file and the stream on the stack (shared with the other loads)
 #include "game/data/database_toml.h"
+#include "game/data/record_names.h"
 #include "game/data/resource.h"
 #include "game/app/logic_settings.h"
 #include "game/net/net_delta.h"
@@ -386,9 +387,55 @@ void SkillDatabase::Read(const RecordFile& file) {
 
 // --- As TOML ---------------------------------------------------------------------------------------
 
+using dbtoml::Bool;
+using dbtoml::Enum;
 using dbtoml::FloatBits;
 using dbtoml::Hex;
+using dbtoml::Name;
 using dbtoml::Signed;
+using dbtoml::Table;
+
+namespace {
+
+// UnitModelRecord::movementKind (1: the load factor comes from the legs, UnitStats::Recompute; 2: flies, Unit's
+// GroundHeight; 3: the Fungus, neither).
+constexpr Name kMovements[] = {{1, "walks"}, {2, "flies"}, {3, "rooted"}};
+// UnitModelRecord::bloodKind: 1..4 a blood shower (kBloodParticles) and a decal of bloodprints.png's colour
+// (StatChanged, Died), 5..8 the same showers alone.
+constexpr Name kBlood[] = {
+    {0, "none"},      {1, "red"},         {2, "green"},      {3, "blue"},        {4, "brown"},
+    {5, "red_spray"}, {6, "green_spray"}, {7, "blue_spray"}, {8, "brown_spray"},
+};
+// UnitModelRecord::footprintKind: the footprints texture's tile, named by the vanilla model that uses it.
+constexpr Name kFootprints[] = {
+    {-1, "none"},     {0, "human"},  {1, "driad"},     {2, "cyclope"}, {3, "skeleton"}, {4, "troll"},
+    {5, "golem"},     {6, "elemental"}, {7, "goblin"}, {8, "toad"},    {9, "ogre"},     {10, "lizardman"},
+    {11, "zombie"},   {12, "unicorn"}, {13, "horse"},  {14, "scrab"},  {15, "orc"},     {16, "pig"},
+    {17, "hyena"},    {18, "boar"},    {19, "cow"},    {20, "wolf"},   {21, "tiger"},   {22, "hare"},
+    {23, "rat"},      {24, "deer"},    {25, "dog"},
+};
+// UnitPrototypeRecord::hitSoundKind: the weapon class of its hits (HitSoundFormat): the weapon types, then the
+// sound folders the natural attacks use ("weapons\<folder>\<material>\1.wav").
+constexpr Name kHitSounds[] = {
+    {0, "sword"},   {1, "axe"},    {2, "dagger"},  {3, "spear"},  {4, "club"},   {5, "bow"},
+    {6, "crossbow"}, {8, "none"},  {9, "hands1"},  {10, "pierce"}, {11, "crash"}, {12, "hands4"},
+    {13, "slash"},  {14, "hands6"}, {15, "hands7"}, {16, "spells_only"},
+};
+// UnitStats::modeSpeeds by movement mode (ModeSpeedOf), the action speeds by animation kind (Unit::ActionSpeed).
+constexpr std::string_view kModeSpeeds[] = {"run", "walk", "crawl", "lie"};
+constexpr std::string_view kActionSpeeds[] = {"attack", "cast", "hit", "death", "cross", "special"};
+// UnitStats::CombatIndex.
+constexpr std::string_view kCombat[] = {"reach", "attack", "attack_spread", "defence", "speed"};
+// Sense (the perception and conspicuity rows); Sense has no sixth.
+constexpr std::string_view kSenses[] = {"sight", "day_sight", "near", "hearing", "smell", "unread"};
+constexpr std::string_view kStats[] = {"strength", "dexterity", "intelligence"};
+
+template <class T>
+Table<T> DamageTable(T* values) {
+    return {values, recordnames::kDamageTypes};
+}
+
+} // namespace
 
 template <class Visit>
 void Fields(UnitLevelRecord& r, Visit& v) {
@@ -409,33 +456,33 @@ void Fields(UnitModelSlot& r, Visit& v) {
 template <class Visit>
 void Fields(UnitModelRecord& r, Visit& v) {
     v("name", r.name);
-    v("object_class", r.objectClass);
+    v("class", Enum<int>{r.objectClass, recordnames::kObjectClasses});
     v("hit_point_regen", r.hitPointRegen);
     v("mana_regen", r.manaRegen);
     v.Unread("unread", r.unreadField);
-    v("movement_kind", r.movementKind);
+    v("movement", Enum<std::uint32_t>{r.movementKind, kMovements});
     v("angle", r.angle);
-    v("mode_speeds", r.modeSpeeds);
-    v("action_speeds", r.actionSpeeds);
+    v("mode_speeds", Table<float>{r.modeSpeeds, kModeSpeeds});
+    v("action_speeds", Table<float>{r.actionSpeeds, kActionSpeeds});
     v("reach_height_scale", r.reachHeightScale);
     v("size_class", r.sizeClass);
     v("size_class_small", r.sizeClassSmall);
     v("size_scale", r.sizeScale);
-    v("damage_weights", r.damageWeights);
-    v("protection", r.protection);
+    v("damage_weights", DamageTable(r.damageWeights));
+    v("protection", DamageTable(r.protection));
     v("slots", r.slots);
     v("figure", r.figureName);
     v.Unread("unread_list_a", r.unreadLists[0]);
     v.Unread("unread_list_b", r.unreadLists[1]);
     v("height", r.height);
-    v("blood_kind", r.bloodKind);
-    v("footprint_kind", r.footprintKind);
+    v("blood", Enum<std::uint32_t>{r.bloodKind, kBlood});
+    v("footprint", Enum<int>{r.footprintKind, kFootprints});
     v("foot_part", r.footPart);
-    v("swap_feet", r.swapFeet);
-    v("cast_effect", r.castEffect);
+    v("swap_feet", Bool{r.swapFeet});
+    v("cast_effect", Bool{r.castEffect});
     v("hit_material", r.hitMaterial);
     v("sound_folder", r.soundFolder);
-    v("sounds", r.soundNames);
+    v("step_sounds", dbtoml::VectorTable<std::string>{r.soundNames, recordnames::kSurfaces});
     v("idle_sound_chance", r.idleSoundChance);
     v("attack_sound_chance", r.attackSoundChance);
     v("eye_left", r.eyeLeft);
@@ -472,9 +519,9 @@ void Fields(UnitPrototypeRecord& r, Visit& v) {
     v("protection_scale", r.protectionScale);
     v("attack_category", r.attackCategory);
     v("speed", r.speed);
-    v("combat", r.combat);
-    v("natural_weapon", r.naturalWeapon);
-    v("hit_sound_kind", r.hitSoundKind);
+    v("combat", Table<float>{r.combat, kCombat});
+    v("natural_weapon", Enum<std::uint32_t>{r.naturalWeapon, recordnames::kWeaponTypes});
+    v("hit_sound", Enum<std::uint32_t>{r.hitSoundKind, kHitSounds});
     v("damage", r.damage);
     v("damage_spread", r.damageSpread);
     v("skill_level", r.skillLevel);
@@ -482,8 +529,8 @@ void Fields(UnitPrototypeRecord& r, Visit& v) {
     v("attribute_2", r.attribute2);
     v("skills_3_to_5", r.skills3to5);
     v("peripheral_range", r.peripheralRange);
-    v("perception", r.perception);
-    v("conspicuity", r.conspicuity);
+    v("perception", Table<float>{r.perception, kSenses});
+    v("conspicuity", Table<float>{r.conspicuity, kSenses});
     v("gold", r.gold);
     v("second_gold", r.secondGold);
     v("loot_items", r.lootItems);
@@ -498,7 +545,7 @@ void Fields(UnitNpcRecord& r, Visit& v) {
     v("name", r.name);
     v.Unread("unread", r.unreadField);
     v("experience", r.experience);
-    v("stats", r.stats);
+    v("stats", Table<float>{r.stats, kStats});
     v("attributes", r.attributes);
     v("skills", r.skills);
     v("perks", r.skillNames);
@@ -507,7 +554,7 @@ void Fields(UnitNpcRecord& r, Visit& v) {
     v("start_spells", r.startSpells);
     v("experience_floor", r.experienceFloor);
     v("start_money", r.startMoney);
-    v("voiced", r.voiced);
+    v("voiced", Bool{r.voiced});
 }
 
 template <class Visit>
@@ -557,10 +604,10 @@ void UnitDatabase::MergeToml(const toml::Value& root, const std::string& path) {
 
 std::string UnitDatabase::ToToml() const {
     toml::Writer writer;
-    dbtoml::WriteRecords(writer, "level", levels.records);
-    dbtoml::WriteRecords(writer, "model", models.records);
-    dbtoml::WriteRecords(writer, "unit", prototypes.records);
-    dbtoml::WriteRecords(writer, "npc", npcs.records);
+    dbtoml::WriteRecords(writer, "level", levels.records, "name");
+    dbtoml::WriteRecords(writer, "model", models.records, "name");
+    dbtoml::WriteRecords(writer, "unit", prototypes.records, "name");
+    dbtoml::WriteRecords(writer, "npc", npcs.records, "name");
     return writer.text;
 }
 
@@ -572,8 +619,8 @@ void SkillDatabase::MergeToml(const toml::Value& root, const std::string& path) 
 
 std::string SkillDatabase::ToToml() const {
     toml::Writer writer;
-    dbtoml::WriteRecords(writer, "skill", skills);
-    dbtoml::WriteRecords(writer, "perk", levels);
+    dbtoml::WriteRecords(writer, "skill", skills, "name");
+    dbtoml::WriteRecords(writer, "perk", levels, "name");
     return writer.text;
 }
 

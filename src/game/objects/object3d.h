@@ -244,8 +244,8 @@ struct AnimationDatabase {
     }
 
     // TOML (docs/notes/mods.md, "Records as TOML"): name, start, length, end and [[animation]] tables (name, index,
-    // key, flags, chance, frames, stride, arrow = [from, to], steps, moment, sound_frame, sounds; a missing number
-    // is 0, a missing index the record's place). Merge: the fields given over the header's; an animation replaces
+    // the key's and the flags' parts by name ("Readable values"), chance, frames, stride, arrow = [from, to], steps,
+    // moment, sound_frame, sounds; a missing number is 0, a missing index the record's place). Merge: the fields given over the header's; an animation replaces
     // the first of its name (not one this file replaced already), or is appended; an unknown key is logged (with
     // `path`).
     void MergeToml(const toml::Value& root, const std::string& path);

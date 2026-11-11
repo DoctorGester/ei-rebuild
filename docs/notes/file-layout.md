@@ -335,27 +335,27 @@ Risks:
 | `combat/` | 13 | 6395 | C168f |
 | `console/` | 5 | 2038 | C168e |
 | `core/` | 27 | 3875 | C168d |
-| `data/` | 15 | 5380 | C168d |
+| `data/` | 16 | 5692 | C168d |
 | `effects/` | 23 | 10833 | C168g |
-| `items/` | 10 | 2855 | C168g |
-| `map/` | 15 | 4034 | C168e |
+| `items/` | 10 | 2889 | C168g |
+| `map/` | 15 | 4157 | C168e |
 | `models/` | 25 | 8219 | C168g |
 | `mods/` | 6 | 603 | C168d |
 | `net/` | 21 | 7991 | C168h |
-| `objects/` | 23 | 8021 | C168f |
+| `objects/` | 23 | 8125 | C168f |
 | `players/` | 24 | 5473 | C168e |
 | `saves/` | 7 | 828 | C168d |
 | `scene/` | 30 | 4414 | C168g |
-| `script/` | 31 | 10260 | C168h |
+| `script/` | 31 | 10233 | C168h |
 | `sound/` | 3 | 1679 | C168e |
-| `spells/` | 8 | 2560 | C168g |
+| `spells/` | 8 | 2585 | C168g |
 | `terrain/` | 12 | 3559 | C168g |
 | `ui/` | 97 | 33107 | C168h |
-| `units/` | 27 | 9739 | C168f |
+| `units/` | 27 | 9786 | C168f |
 | `world/` | 35 | 10247 | C168e |
-| all | 508 | 161602 | |
+| all | 509 | 162220 | |
 
-555 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
+556 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
 
 ### Every file
 
@@ -516,6 +516,7 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | database_toml.h | data/database_toml.h |  |  |
 | ini_file.cpp | data/ini_file.cpp |  |  |
 | ini_file.h | data/ini_file.h |  |  |
+| record_names.h | data/record_names.h |  |  |
 | registry.cpp | data/registry.cpp |  |  |
 | registry.h | data/registry.h |  |  |
 | resource.cpp | data/resource.cpp |  |  |

@@ -260,24 +260,71 @@ The six game databases are TOML records like the others, merged by their key:
 name = "stone axe"
 damage = 3.0
 
-[[weapon]]                 # a new weapon: the fields left out are 0
+[[weapon]]                 # a new weapon: the fields left out keep their defaults
 name = "example axe"
 family = "axe"
-type = 1
+type = "axe"
 material_class = "Stone"
 number = 1
 price = 600.0
 weight = 3.0
+sold_by = ["gipat_smith"]
 damage = 5.0
 damage_spread = 1.0
-damage_types = [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+damage_types = { slashing = 1.0 }
 ```
 
-- Take a record's field names from ei-convert's file of that database; each field is written there.
+- Take a record's field names from ei-convert's file of that database. ei-convert writes a field only when it differs
+  from a new record's default (0, false, an empty list or name; an item's `buildable` true), so a field missing there
+  is its default.
 - An item in the game is a prototype and a material: `GiveItem(0, "example axe.malachite")`; its damage is the
   weapon's times the material's factor.
-- Unsigned flags and masks are hexadecimal (`class_mask = 0x1`). Fields named `unread...` are bytes no code reads;
-  leave them out.
+- Fields named `unread...` are bytes no code reads; leave them out.
+- A new record comes after every record of the game's table, so the game's indexes (in saves, in the network) do not
+  move. Saves made with a mod's new items need the mod to load them.
+
+### Values by name
+
+Codes, masks and fixed lists are written by name. A name the field does not know is logged with the valid ones
+(`warning: items.idb: <file> line 9: type has a value it does not take (one of: sword, axe, ...)`) and the field keeps
+its value. The names (docs/notes/mods.md, "Readable values", says which code reads each):
+
+| Field | Names |
+|---|---|
+| weapon `type`, a unit's `natural_weapon` | `sword`, `axe`, `dagger`, `spear`, `club`, `bow`, `crossbow`; `none`, `spells_only` (natural weapons) |
+| armor `type` | `helmet`, `body_armor`, `leggings`, `shirt`, `pants`, `boots`, `gloves` |
+| `sold_by` (items, materials, spells, modifiers, recipes) | the traders that sell it: `gipat_smith`, `gipat_witch`, `ingos_trader`, `suslanger_smith`, `rick` |
+| `damage_types`, `absorb_first`, `absorb_others`, `absorb_factors`, a model's `damage_weights` and `protection` | a table by damage type: `piercing`, `slashing`, `crushing`, `fire`, `acid`, `lightning`, `general` |
+| quick item `category` | `danger_sensor`, `consumable`, `wand`, `potion` |
+| loot `kind`, `record_type` | `self`, `material`, `record`; `weapon`, `armor`, `quick_item`, `spell`, `modifier`; `none` |
+| model `class` | `hero`, `creature`, `animal` |
+| model `movement` | `walks`, `flies`, `rooted` |
+| model `blood` | `none`, `red`, `green`, `blue`, `brown` (a shower and a stain on the ground), `red_spray`, `green_spray`, `blue_spray`, `brown_spray` (the shower alone) |
+| model `footprint` | the footprint picture of a game creature: `none`, `human`, `driad`, `cyclope`, `skeleton`, `troll`, `golem`, `elemental`, `goblin`, `toad`, `ogre`, `lizardman`, `zombie`, `unicorn`, `horse`, `scrab`, `orc`, `pig`, `hyena`, `boar`, `cow`, `wolf`, `tiger`, `hare`, `rat`, `deer`, `dog` |
+| model `step_sounds` | a table by the ground's surface: `grass`, `ground`, `stone`, `sand`, `rock`, `field`, `water`, `road`, `surface_8`, `snow`, `ice`, `dry_grass`, `snowballs`, `lava`, `swamp`, `high_rock` |
+| model `mode_speeds`, `action_speeds` | `{ run, walk, crawl, lie }`; `{ attack, cast, hit, death, cross, special }` |
+| unit `combat` | `{ reach, attack, attack_spread, defence, speed }` |
+| unit `perception`, `conspicuity` | `{ sight, day_sight, near, hearing, smell, unread }` |
+| unit `hit_sound` | the weapon types, `none`, or a sound folder of `weapons\`: `hands1`, `pierce`, `crash`, `hands4`, `slash`, `hands6`, `hands7`; `spells_only` |
+| npc `stats` | `{ strength, dexterity, intelligence }` |
+| spell `school` | `fire`, `lightning`, `acid`, `illusion`, `divination`, `enchantment`, `healing`, `domination`, `none` |
+| spell `target_kind`, `allowed_modifiers`; modifier `kind` | `unit`, `point`; `{ range, targets, area, effect, duration }`; `range`, `targets`, `area`, `effect`, `duration`, `mana`, `filter`, `item` |
+| true / false | `buildable`, `shows_wounds`, `cast_effect`, `swap_feet`, `voiced`, `needs_sight` |
+
+A table gives only the elements it changes (`perception = { sight = 9.0 }`); a long one can be a sub-table of the
+record (`[model.step_sounds]` after the model's other fields). A value without a name (the game data has a few, such
+as the quick items' `type`) is a number. Bits no name covers are kept in `<field>_other = 0x..`.
+
+### Animation lists
+
+An `.adb.toml`'s `[[animation]]` says when the game plays it by parts: `kind` (`special`, `attack`, `cast`, `run`,
+`walk`, `idle`, `death`, `hit`, `cross`), `weapons` (the weapon types it is for, `any` for all seven), `move` (`stop`,
+`walk`, `crawl`, `lie`), `play` (`once`, `looped`), and what the kind adds: an attack's or cast's `height` (`high`,
+`middle`, `low`) and `blow = true`, a death's or hit's `side` (`back`, `front`, `minus_x`, `plus_x`) and `fall`
+(`walking`, `standing`, `none`), a special's `skill` (`tame`, `steal`, `use`, `search_body`, `briefing01`, ...), else a
+`number`. `flags` lists `arrow` (a bow shows its arrow from `arrow`'s first frame to its second), `fits_under_armour`,
+`fits_upper_armour` (a hero in those pieces may play it), `death_side` where a dead body lies. `index` is the
+animation's place unless given. Copy the parts from a game creature's animation of the same name.
 - A new record comes after every record of the game's table, so the game's indexes (in saves, in the network) do not
   move. Saves made with a mod's new items need the mod to load them.
 
@@ -360,7 +407,7 @@ A map can be a folder, `Maps\<zone>\`, which stands over `Maps\<zone>.mpr` (ei-c
 
 | File | Holds |
 |---|---|
-| `map.toml` | the header: `name`, `height_range`, `sectors = [x, y]`, `water_sectors`, the tile classes (sounds, prints), animated tiles, water `[[material]]` |
+| `map.toml` | the header: `name`, `height_range`, `sectors = [x, y]`, `water_sectors`, the tile classes (`classes`: per tile texture its surface by name, as `step_sounds`, or `line`), animated tiles, water `[[material]]` |
 | `heights.png` | the ground's height, a pixel a vertex, 16-bit grey: value x height_range / 65534 |
 | `normals.png` | the ground's normals (16-bit RGB) |
 | `offsets.png` | the vertices' sideways shifts (8-bit RGB: 128 is none) |
@@ -397,9 +444,9 @@ wind = [-0.7282, -0.6854, 0.0]
 wind_strength = 0.2
 time = 13.43
 
-[players]
-names = ["Player-0", ...]      # 32 names
-relations = [[0, 1, 1, 2, ...], ...]   # 32 rows of 32: 0 the player itself, 2 hostile
+[players]                      # only what differs from the defaults
+names = { 3 = "Golems" }       # by player number; the others "Player-<n>"
+hostile = [[0, 3], [3, 0]]     # [player, other] pairs; also allied, neutral (the default; allied with itself)
 
 [[object]]                     # one per object, in the file's order
 kind = "unit"
@@ -409,7 +456,7 @@ texture = "unanhopi"
 primary_texture = "PigF0"
 skin_texture = "default0"
 parent_iname = "Pig00"
-parent_id = 52
+class = "animal"
 position = [51.0, 142.0, 0.0]
 side = 5
 prototype = "PigF0"
@@ -425,10 +472,11 @@ call_radius = 5.0
 - `kind`: `object`, `unit`, `flame`, `trap`, `lever`, `light`, `sound`, `particle`. A key left out takes the kind's
   default; ei-convert writes only the keys that differ from it.
 - `id`: unique in the file; scripts find map units by it (`GetObject(3001)`). Pick one no record has.
-- `parent_id` is the object's class and must fit its kind: 50, 51 or 52 for units (copy it from a unit like yours),
-  53 trees, 54 buildings, 55 stones, 56 other objects, 58 torches (`flame`), 59 traps, 60 levers (an `object` record
-  may also hold a unit's class). A missing or wrong one is logged at the zone's load (`warning: map objects: <zone>
-  record <id>: parent_id <n> is not a class that fits its kind; the record is left out`) and the record is skipped.
+- `class` is the object's class and must fit its kind: `hero`, `creature` or `animal` for units (copy it from a unit
+  like yours), `tree`, `building`, `stone`, `stuff` (other objects), `torch` (`flame`), `magic_trap` (`trap`), `lever`
+  (an `object` record may also hold a unit's class). A missing or wrong one is logged at the zone's load (`warning: map
+  objects: <zone> record <id>: class <n> does not fit its kind; the record is left out`) and the record is skipped.
+  `side` is the player number (0..31) the object belongs to, as `[players]` numbers them.
   `parent_iname` is the editor's class name.
 - With `apply_stats` left out (0), a unit's `[object.stats]` are not applied: it has its prototype's statistics from
   units.udb. Its items: `carried`, `quick_items`, `spells`, `weapons` and `armour` (`"<name>.<material>"`, as

@@ -65,6 +65,7 @@ chunk_archive.cpp           data/chunk_archive.cpp
 database_file.h             data/database_file.h
 database_toml.h             data/database_toml.h
 database_toml.cpp           data/database_toml.cpp
+record_names.h              data/record_names.h
 database_globals.cpp        data/database_file.h        split # each database's global to its database's file: spells/spell_db.cpp, items/item_db.cpp, world/quest_database.cpp, terrain/ground_print.cpp, units/acks_db.cpp (C168b; the file goes)
 text_manager.h              data/text_manager.h
 text_manager.cpp            data/text_manager.cpp

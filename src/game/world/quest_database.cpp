@@ -201,8 +201,8 @@ void QuestDatabase::MergeToml(const toml::Value& root, const std::string& path) 
 
 std::string QuestDatabase::ToToml() const {
     toml::Writer writer;
-    dbtoml::WriteRecords(writer, "quest", quests);
-    dbtoml::WriteRecords(writer, "briefing", briefings.records);
+    dbtoml::WriteRecords(writer, "quest", quests, "name");
+    dbtoml::WriteRecords(writer, "briefing", briefings.records, "name");
     return writer.text;
 }
 

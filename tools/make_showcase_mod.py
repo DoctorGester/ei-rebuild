@@ -122,6 +122,7 @@ EXIT = (187.0, 114.0)                              # map.txt's gz1g exit 2 to th
 PAGE, TILE, INNER, MARGIN = 512, 64, 48, 8
 KINDS = ['grass', 'earth', 'rock', 'sand']         # two rows of tiles each, 16 tiles a kind, from the bottom up
 CLASSES = {'grass': 0, 'earth': 1, 'rock': 2, 'sand': 3}   # the tile classes: footstep sounds and prints
+SURFACES = ['grass', 'ground', 'stone', 'sand']         # the names of classes 0..3 (docs/modding.md, "Values by name")
 COLOURS = {
     'grass': ((52, 92, 34), (96, 140, 52)),
     'earth': ((92, 70, 46), (140, 112, 76)),
@@ -216,8 +217,8 @@ def map_toml():
         'water_sectors = [',
     ]
     lines += ['    "%s",' % ('.' * SECTORS[0]) for _ in range(SECTORS[1])]
-    lines += [']', '# Per tile texture its class: 0 grass, 1 earth, 2 rock, 3 sand (footsteps and prints).', 'classes = [']
-    lines += ['    ' + ', '.join(str(c) for c in classes[i:i + 16]) + ',' for i in range(0, len(classes), 16)]
+    lines += [']', '# Per tile texture its class: the ground\'s surface (footsteps and prints).', 'classes = [']
+    lines += ['    ' + ', '.join('"%s"' % SURFACES[c] for c in classes[i:i + 8]) + ',' for i in range(0, len(classes), 8)]
     lines += [']', 'animated = []', '']
     return '\n'.join(lines)
 
