@@ -9,9 +9,7 @@ like = "Modifier1"
 name = "point"
 
 [anchor.vars]
-vx = "a.spawn.x - carrier_axis_y.x * (carrier_axis_y.x * a.spawn.x + carrier_axis_y.y * a.spawn.y + carrier_axis_y.z * a.spawn.z)"
-vy = "a.spawn.y - carrier_axis_y.y * (carrier_axis_y.x * a.spawn.x + carrier_axis_y.y * a.spawn.y + carrier_axis_y.z * a.spawn.z)"
-vz = "a.spawn.z - carrier_axis_y.z * (carrier_axis_y.x * a.spawn.x + carrier_axis_y.y * a.spawn.y + carrier_axis_y.z * a.spawn.z)"
+axis = "carrier_axis_y"
 
 [[particle]]
 name = "marker"

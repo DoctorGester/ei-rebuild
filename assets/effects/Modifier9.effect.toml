@@ -9,9 +9,7 @@ like = "Modifier1"
 name = "point"
 
 [anchor.vars]
-vx = "a.spawn.x - 0 * (0 * a.spawn.x + 0 * a.spawn.y + 0 * a.spawn.z)"
-vy = "a.spawn.y - 0 * (0 * a.spawn.x + 0 * a.spawn.y + 0 * a.spawn.z)"
-vz = "a.spawn.z - 0 * (0 * a.spawn.x + 0 * a.spawn.y + 0 * a.spawn.z)"
+axis = "vec3(0)"
 
 [[particle]]
 name = "marker"

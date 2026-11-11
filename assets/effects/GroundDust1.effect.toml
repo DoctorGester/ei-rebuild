@@ -14,10 +14,8 @@ rate = 128
 max = 128
 
 [vars]
-plane_h = "platform_height(origin.x, origin.y)"
-nx = "platform_normal_x(origin.x, origin.y)"
-ny = "platform_normal_y(origin.x, origin.y)"
-nz = "platform_normal_z(origin.x, origin.y) != 0 ? 1 / platform_normal_z(origin.x, origin.y) : platform_normal_z(origin.x, origin.y)"   # its reciprocal
+plane_h = "platform_height(origin)"
+normal = "platform_normal(origin)"
 
 [tables]
 axis_x = [0.707, -0.707, -0.707, 0.707]
@@ -32,8 +30,7 @@ do = [{ stop_emitting = true }]
 [[particle]]
 name = "grain"
 lifetime = 7
-velocity = ["p.index >= 128 ? ((p.index - 128) % 32) * 0.0032258064 * axis_x[floor((p.index - 128) / 32)] : sin(p.index * 0.049140625) * 0.1", "p.index >= 128 ? ((p.index - 128) % 32) * 0.0032258064 * axis_y[floor((p.index - 128) / 32)] : cos(p.index * 0.049140625) * 0.1", 0]
-drag = 1.05
+velocity = { start = "p.index >= 128 ? vec3(axis_x[floor((p.index - 128) / 32)], axis_y[floor((p.index - 128) / 32)], 0) * ((p.index - 128) % 32 * 0.0032258064) : vec3(sin(p.index * 0.049140625), cos(p.index * 0.049140625), 0) * 0.1", tick = "p.velocity * 1.05" }
 size = { start = 0, tick = 0.07 }
 color = "40FF40"
 alpha = { start = 0, tick = "fade[p.life - 1]" }
@@ -41,4 +38,4 @@ frame = 15
 
 [particle.position]
 start = "p.position"                            # at the source; the grains run from the first tick
-tick = ["p.x + p.vx", "p.y + p.vy", "ground(p.x + p.vx, p.y + p.vy) + 0.1 >= plane_h - ((p.x + p.vx - origin.x) * nx + (p.y + p.vy - origin.y) * ny) * nz + 0.1 ? ground(p.x + p.vx, p.y + p.vy) + 0.1 : plane_h - ((p.x + p.vx - origin.x) * nx + (p.y + p.vy - origin.y) * ny) * nz + 0.1"]
+tick = "vec3((p.position + p.velocity).xy, max(ground(p.position + p.velocity) + 0.1, plane_h - dot((p.position + p.velocity - origin).xy, normal.xy) / normal.z + 0.1))"

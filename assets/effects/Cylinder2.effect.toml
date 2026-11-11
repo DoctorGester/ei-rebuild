@@ -9,5 +9,4 @@ texture = "Casting1"
 name = "star"
 
 [anchor.vars]
-r0 = { start = "cos(-(0.3 * pi * 0.13333334))", tick = "st0 >= 0 ? sin(pi * 0.013333334) * a.r1 + cos(pi * 0.013333334) * a.r0 : a.r0" }
-r1 = { start = "sin(-(0.3 * pi * 0.13333334))", tick = "st0 >= 0 ? cos(pi * 0.013333334) * a.r1 - sin(pi * 0.013333334) * a.or0 : a.r1" }
+r = { start = "vec2(cos(-(0.3 * pi * 0.13333334)), sin(-(0.3 * pi * 0.13333334)))", tick = "st0 >= 0 ? vec2(sin(pi * 0.013333334) * a.r.y + cos(pi * 0.013333334) * a.r.x, cos(pi * 0.013333334) * a.r.y - sin(pi * 0.013333334) * a.r.x) : a.r" }

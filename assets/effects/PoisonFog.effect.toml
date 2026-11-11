@@ -16,8 +16,8 @@ chance = 50
 max = 2147483647
 
 [vars]
-half = { start = "floor(size + 1)", tick = "floor(size + 1)" }   # cells each way from the middle
-width = { start = "2 * half + 1", tick = "2 * half + 1" }
+half = { tick = "floor(size + 1)" }             # cells each way from the middle
+width = { tick = "2 * half + 1" }
 
 # The try's particle is only the trigger: the reaction lays the grid at once.
 [[on]]
@@ -33,18 +33,14 @@ drop = true
 [[particle]]
 name = "puff"
 when = false
-lifetime = 2147483647
-position = ["p.cx + origin.x", "p.cy + origin.y", 0]
-spawn = { on_ground = "p.sz" }
-size = "p.sz"
+lifetime = 2147483647                           # until it has faded (kill)
+position = "on_ground(origin + p.cell, p.lift)"
+size = "p.lift"
 alpha = { start = "min(round(alpha * 160), 255)", tick = "emitting ? p.alpha : (p.alpha + 256 - max(round(alpha * 4.5), 1) % 256) % 256" }
-frame = { start = "p.cell", delay = 1 }
+frame = { start = "pick(15)", delay = 1 }
 kill = "!emitting && p.alpha <= 9"
-drop = "!p.inside"
+drop = "length(p.cell) >= size"
 
 [particle.vars]
-cx = "range(-0.25, 0.25) + (p.index % width - half)"
-cy = "range(-0.25, 0.25) + (floor(p.index / width) - half)"
-inside = "!(p.cy * p.cy + p.cx * p.cx >= size * size)"
-sz = "p.inside ? range(1, 1.5) - 0.25 : 0"
-cell = "p.inside ? pick(15) : 0"
+cell = "vec3(range(-0.25, 0.25) + p.index % width - half, range(-0.25, 0.25) + floor(p.index / width) - half, 0)"
+lift = "range(0.75, 1.25)"

@@ -23,44 +23,18 @@ chance = 80
 made = 0                                        # 1 once the beam's frame is taken
 cap = { start = 255, tick = "made ? max(cap - (emitting ? 0 : 16), 0) : cap" }   # the sparks' alpha cap
 len = 0
-inv = 0
-alt = 0                                         # the beam is (nearly) vertical
-sl = 0
-ci = 0
-dir_x = 0
-dir_y = 0
-dir_z = 0
-side_x = 0
-side_y = 0
-side_z = 0
-cross_x = 0
-cross_y = 0
-cross_z = 0
+dir = "vec3(0)"
+side = "vec3(0)"                                # across it (another for a nearly vertical beam)
+across = "vec3(0)"                              # the cross product of the beam and the side
 
 [[on]]
 event = "before_emit"
 when = "made == 0"
 do = [
-    { set = "len", value = "sqrt(extent.x * extent.x + extent.y * extent.y + extent.z * extent.z)" },
-    { set = "inv", value = "1 / len" },
-    { set = "alt", value = "sqrt(extent.y * extent.y + (0 - extent.x) * (0 - extent.x) + 0 * 0) < 0.0000000001" },
-    { set = "side_x", value = "alt ? extent.y - extent.z : extent.y" },
-    { set = "side_y", value = "alt ? -extent.x : 0 - extent.x" },
-    { set = "side_z", value = "alt ? extent.x : 0" },
-    { set = "sl", value = "sqrt(side_x * side_x + side_y * side_y + side_z * side_z)" },
-    { set = "side_x", value = "side_x * (1 / sl)" },
-    { set = "side_y", value = "side_y * (1 / sl)" },
-    { set = "side_z", value = "side_z * (1 / sl)" },
-    { set = "cross_x", value = "extent.y * side_z - extent.z * side_y" },
-    { set = "cross_y", value = "extent.z * side_x - extent.x * side_z" },
-    { set = "cross_z", value = "extent.x * side_y - extent.y * side_x" },
-    { set = "ci", value = "1 / sqrt(cross_x * cross_x + cross_y * cross_y + cross_z * cross_z)" },
-    { set = "cross_x", value = "cross_x * ci" },
-    { set = "cross_y", value = "cross_y * ci" },
-    { set = "cross_z", value = "cross_z * ci" },
-    { set = "dir_x", value = "extent.x / len" },
-    { set = "dir_y", value = "extent.y / len" },
-    { set = "dir_z", value = "extent.z / len" },
+    { set = "len", value = "length(extent)" },
+    { set = "side", value = "normalize(length(extent.xy) < 0.0000000001 ? vec3(extent.y - extent.z, -extent.x, extent.x) : vec3(extent.y, -extent.x, 0))" },
+    { set = "across", value = "normalize(cross(extent, side))" },
+    { set = "dir", value = "extent / len" },
     { set = "made", value = 1 },
 ]
 
@@ -68,20 +42,17 @@ do = [
 name = "spark"
 lifetime = 1000000000                           # it ends past the beam
 size = "(p.speed < 0.15 ? range(0.13, 0.16) : range(0.03, 0.05)) * size"
-alpha = { start = 0, tick = "min(floor((0.5 - abs(p.covered * inv - 0.5)) * 1000), cap)" }
+alpha = { start = 0, tick = "min(floor((0.5 - abs(p.covered / len - 0.5)) * 1000), cap)" }
 frame = { start = "pick(16)", tick = "(p.frame + 1) % 15" }
 kill = "p.covered > len"
 
 [particle.position]
-start = ["p.ox + origin.x", "p.oy + origin.y", "p.c + origin.z"]
-tick = ["p.ox * side_x + origin.x + p.oy * cross_x + p.c * dir_x + p.covered * inv * extent.x", "p.ox * side_y + origin.y + p.oy * cross_y + p.c * dir_y + p.covered * inv * extent.y", "(0.25 - (p.covered * inv - 0.5) * (p.covered * inv - 0.5)) * len * 0.9 + (p.ox * side_z + origin.z + p.oy * cross_z + p.c * dir_z + p.covered * inv * extent.z)"]
+start = "origin + vec3(p.off, p.along)"
+tick = "origin + p.off.x * side + p.off.y * across + p.along * dir + extent * (p.covered / len) + vec3(0, 0, (0.25 - (p.covered / len - 0.5) * (p.covered / len - 0.5)) * len * 0.9)"
 
 [particle.vars]
-a = "range(-1, 1)"
-b = "range(-1, 1)"
-c = "range(spread_min.z, spread_max.z)"         # along the beam
-speed = "pick(4) == 0 && sqrt(p.b * p.b + p.a * p.a) < 0.5 ? range(0.1, 0.12) : range(0.17, 0.25)"
-covered = { start = 0, tick = "p.speed + p.covered" }
-old_ox = { start = 0, tick = "p.ox" }           # the offset's x before this tick's turn
-ox = { start = "p.a * spread_min.x", tick = "cos(sqrt(p.b * p.b + p.a * p.a) * 0.2) * p.ox - p.oy * sin(sqrt(p.b * p.b + p.a * p.a) * 0.2)" }
-oy = { start = "p.b * spread_min.y", tick = "p.oy * cos(sqrt(p.b * p.b + p.a * p.a) * 0.2) + p.old_ox * sin(sqrt(p.b * p.b + p.a * p.a) * 0.2)" }
+ab = "vec2(range(-1, 1), range(-1, 1))"         # its place across the beam, a part of the spread box
+along = "range(spread_min.z, spread_max.z)"     # along the beam
+speed = "pick(4) == 0 && length(p.ab) < 0.5 ? range(0.1, 0.12) : range(0.17, 0.25)"
+covered = { start = 0, tick = "p.covered + p.speed" }
+off = { start = "p.ab * spread_min.xy", tick = "vec2(p.off.x * cos(length(p.ab) * 0.2) - p.off.y * sin(length(p.ab) * 0.2), p.off.y * cos(length(p.ab) * 0.2) + p.off.x * sin(length(p.ab) * 0.2))" }
