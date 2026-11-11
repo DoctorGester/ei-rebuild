@@ -6,3 +6,5 @@ model = "opus"
 files = ["tools/make_showcase_mod.py examples/showcase_mod"]
 note = "User 2026-11-12: the showcase boots and hammer look decent when equipped but not on the preview in the party screen. Probe (camp page 0 after GiveUnitWeapon 'showcase hammer.granite' + GiveUnitArmor 'showcase boots.thin'): the worn models and the 3D hero doll are fine; the item pictures are not. initarbt20.glb (boots_icon) draws as two flat brown planks with stitch bands filling the slot; initwehm9.glb (hammer_icon) as a thin stick with a barely visible head (the head's faces in HEAD_UV may sample the wrong texture in the inventory). Both are a few boxes (tools/make_showcase_mod.py hammer_icon / boots_icon). Make them read as a hammer and a pair of boots at the slot's size, the way the game's own inventory models do (look at how a game item's init*.glb is shaped, lit and textured: ei-convert models writes them). Check with mod_showcase's camp capture and a page-0 capture of the hero with both worn; re-record mod_showcase's golden if its frames are in it. Regenerate examples/showcase_mod with the tool."
 order = 1416
+status = "running"
+started = "2026-11-12"
