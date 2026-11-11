@@ -76,6 +76,7 @@ jobs:
           echo "build release: $(( $(date +%s) - start )) s" | tee -a $GITHUB_STEP_SUMMARY
           tail -40 build_release.log
           grep -h "warning" build_release.log | head -20 || true
+          grep -h "failed\|error\|out of date\|differ\|problem" build_release.log | grep -v "0 failed\|0 problems\|0 differ" | head -40 || true
           [ $ok = 1 ] || { echo "::error::build release failed"; exit 1; }
           ! grep -q "warning C\|warning LNK" build_release.log
 
@@ -106,6 +107,7 @@ jobs:
           echo "build verify: $(( $(date +%s) - start )) s" | tee -a $GITHUB_STEP_SUMMARY
           tail -60 build_verify.log
           grep -h "warning" build_verify.log | head -20 || true
+          grep -h "failed\|error\|out of date\|differ\|problem" build_verify.log | grep -v "0 failed\|0 problems\|0 differ" | head -40 || true
           if [ $ok = 0 ]; then
             # the build checks (they draw on WARP) can fail with the exe built: say so and let the suites run
             [ -f build/verify/ei-rebuild.exe ] || { echo "::error::build verify failed"; exit 1; }
