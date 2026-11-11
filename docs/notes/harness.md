@@ -228,8 +228,8 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
 ### ei-effects' scenarios
 
 A scenario with the line `# exe: ei-effects` (run_all.scenario_program) is played by the effect viewer's exe, not the
-game's: `effect_viewer` and `effect_viewer_standalone` (effects.md, "The effect viewer"). Its harness is
-tests/verify/effects/effects_harness.cpp, in the verify build only, joined to the program's loop by
+game's: `effect_viewer`, `effect_viewer_standalone` and `effect_viewer_points` (effects.md, "The effect viewer"). Its
+harness is tests/verify/effects/effects_harness.cpp, in the verify build only, joined to the program's loop by
 tools/effects_app.h's hooks. It reads the scenario at the start and writes harness_report.txt (RESULT: RUNNING first)
 and harness_quit as the game's harness does, so run_all's watch, limits and quit checks are the same; the log is
 ei-effects.log (run_all.program_log). Its steps: `mod <folder>` (before the start; relative to the run folder, so

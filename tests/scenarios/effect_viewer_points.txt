@@ -1,0 +1,53 @@
+# The effect viewer's points of the figure (ei-effects CastingFire; docs/modding.md, "The effect viewer"; MF15k5): the
+# Place window's list (ViewerScene::Points) and the effect put on the game's points and on a bone by name. Checked:
+# - CastingFire's own `part = "effect_point"` (the game's way: OnPart, the host's point) sits at the casting hand, rh3;
+# - the game's points picked by their file names (head, above_head 1 higher) and the feet the effects read (ll3);
+# - a bone by name (lh3) followed through the idle, the walk round the circle and the run: the source's carrier point
+#   is the bone's point at every check, and it moves with it;
+# - captures: the casting hand standing, the left hand walking.
+# exe: ei-effects
+# arguments: CastingFire
+wait 1200
+effectviewer camera 6
+effectviewer points
+effectviewer expect particles 5
+effectviewer expect at rh3
+capture viewer_points_hand
+frames 3
+
+effectviewer place point head
+effectviewer expect at hd
+effectviewer place point above_head
+frames 2
+effectviewer expect at hd 1
+effectviewer place point left_foot
+frames 2
+effectviewer expect at ll3
+
+effectviewer place point lh3
+wait 400
+effectviewer expect at lh3
+effectviewer mark
+wait 600
+effectviewer expect at lh3
+effectviewer expect moved 0.005
+effectviewer figure walk on
+effectviewer camera 10
+wait 900
+effectviewer expect at lh3
+effectviewer mark
+wait 600
+effectviewer expect at lh3
+effectviewer expect moved 0.3
+capture viewer_points_walk
+frames 3
+effectviewer figure run on
+wait 900
+effectviewer expect at lh3
+effectviewer figure walk off
+effectviewer figure run off
+effectviewer place point file
+frames 2
+effectviewer expect at rh3
+report
+quit

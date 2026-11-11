@@ -4,6 +4,7 @@
 // (effect_viewer_panel.cpp). docs/notes/effects.md, "The effect viewer".
 
 #include "tools/effect_document.h"
+#include "tools/effect_viewer_scene.h"
 
 #include "engine/core/random.h"
 #include "lib/vecmath.h"
@@ -75,6 +76,8 @@ public:
 
     // On the scene's figure, or free at `at`; the source made again at its tick.
     void PlaceOnFigure();
+    // On the scene's figure at `at` (one of ViewerScene::Points); the source made again at its tick.
+    void PlaceAt(const FigurePoint& at);
     void PlaceFree(const Vector3& at);
     // The figure the source is put on (null when free, or when there is none).
     FigureInstance* Carrier() const;
@@ -104,6 +107,8 @@ public:
     float size = 1.0f;                     // the effect object's size (ScaleSize(size / baseSize), as a spawn's)
     bool onFigure = true;                  // on the scene's figure, else free at freeAt
     Vector3 freeAt;
+    FigurePoint point;                     // where on the figure (the file's way until one is picked)
+    Vector3 marked;                        // the harness's "mark": the source's origin then ("expect moved")
     std::vector<Change> timeline;
     IsaacRandom start;                     // the particles' generator at the start: every replay draws the same
     IsaacRandom random;                    // the source's own, swapped in around its ticks

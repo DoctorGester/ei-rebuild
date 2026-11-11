@@ -6,6 +6,9 @@
 #include "engine/core/ref.h"
 #include "engine/particles/particle_host.h"
 
+#include <optional>
+#include <string>
+#include <string_view>
 #include <vector>
 
 namespace particlehost {
@@ -31,7 +34,8 @@ public:
     bool Removed(const FigureInstance& carrier) override;
     bool Hidden(FigureInstance& carrier) override;
     // A part by its name (AttachPointPart; "bd" when the figure lacks it, else the figure's position raised by its
-    // parts' height); EffectPoint the right hand ("rh3", else as a missing part); AboveHead 1 higher.
+    // parts' height); EffectPoint the right hand ("rh3", else as a missing part); AboveHead 1 higher. With a
+    // `namedPoint` the carrier's point of that name instead, whatever `part` (as a missing part when it has none).
     Vector3 PartPoint(FigureInstance& carrier, AttachPoint part) override;
     Measure MeasureCarrier(FigureInstance& carrier) override;
     CarrierState DescribeCarrier(FigureInstance& carrier) override;
@@ -44,6 +48,9 @@ public:
     void LetGoAll(FigureInstance& figure);
     // The sources `figure` carries (none for a figure not in the list).
     std::vector<ParticleSource*> SourcesOn(const FigureInstance& figure) const;
+    // Where `figure`'s bone `name` is now (its figure-space position turned and moved as a part's point, unscaled),
+    // else its part named exactly so; nothing when it has neither.
+    static std::optional<Vector3> NamedPointOf(FigureInstance& figure, std::string_view name);
 
     float groundHeight = 0.0f;
     Wind wind;
@@ -53,6 +60,9 @@ public:
     bool running = false;
     bool dead = false;
     float unitRadius = 0.5f;
+    // A bone or part every source on a part (ParticleSourceFlag::OnPart) sits at instead of its AttachPoint's
+    // (NamedPointOf; the effect viewer's pick of a point the game has no AttachPoint for); empty: none.
+    std::string namedPoint;
 
 private:
     struct Carried {

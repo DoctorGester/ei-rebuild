@@ -1167,6 +1167,10 @@ private:
 
 } // namespace
 
+std::string_view PartName(int part) {
+    return part >= 0 && part < static_cast<int>(std::size(kParts)) ? kParts[part] : std::string_view();
+}
+
 bool FindSourceValue(std::string_view name, int* index, int* width) {
     for (const Named& named : kSourceNames)
         if (named.name == name) {

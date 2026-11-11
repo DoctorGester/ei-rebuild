@@ -350,6 +350,8 @@ struct Record {
 // The source value named `name` as an expression reads it (`size`, `origin`, `carrier_radius`...): its first SourceValue
 // and its lanes; false for a name that is none.
 bool FindSourceValue(std::string_view name, int* index, int* width);
+// The `part` an effect file names AttachPoint `part` by ("effect_point", "head" ...); empty for none (out of range).
+std::string_view PartName(int part);
 
 // The id a data effect travels and is saved under: 0x40000000 | the FNV-1a 32 of its lower-case name in the low 30
 // bits, apart from the original types' 0x2000 range.
