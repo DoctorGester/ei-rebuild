@@ -3,3 +3,5 @@ title = "Crash taking the harness's zone gz21g from gz20g (UiSurface::~UiSurface
 group = "mods"
 note = "Seen by MF13d (2026-11-11) on both the vanilla and the converted install: newgame, 'zone gz20g 0', waitzone, 'zone gz21g 0' crashes right after the leave's save ('Saved savea'): C0000005 reading 0x2F8 in BattleScreen::Update -> UiContainer::Update -> UiSurface::~UiSurface -> render::ui::DropPicture -> _free_base. The AI graph code is not on that path (gz20g is a binary map; the crash comes before gz21g's load). Not checked on main. Wanted: reproduce on main, find whether it is the harness's zone jump from the last zone or a game bug (gz20g's exit to zonemichel), fix, and a scenario."
 order = 1406
+status = "running"
+started = "2026-11-11"
