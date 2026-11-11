@@ -215,6 +215,17 @@ add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/spell_files/builtin.h
     COMMENT "Writing assets/spells as bytes"
     VERBATIM)
 target_sources(ei_game PRIVATE ${CMAKE_BINARY_DIR}/spell_files/builtin.h)
+# The game's own units.udb fields (assets/units/units.udb.toml: the models' blood and shock looks), the same way
+# (docs/modding.md, "Databases").
+file(GLOB EI_BUILTIN_UNITS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/assets/units/*)
+add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/unit_files/builtin.h
+    COMMAND ${CMAKE_COMMAND} -DFOLDER=${CMAKE_SOURCE_DIR}/assets/units -DLABEL=assets/units
+            -DOUT=${CMAKE_BINARY_DIR}/unit_files/builtin.h -DNAMESPACE=builtin_units
+            -P ${CMAKE_SOURCE_DIR}/src/engine/particles/embed_effects.cmake
+    DEPENDS ${EI_BUILTIN_UNITS} ${CMAKE_SOURCE_DIR}/src/engine/particles/embed_effects.cmake
+    COMMENT "Writing assets/units as bytes"
+    VERBATIM)
+target_sources(ei_game PRIVATE ${CMAKE_BINARY_DIR}/unit_files/builtin.h)
 
 # The new renderer (docs/notes/renderer.md) on SDL3's GPU API (src/render/gpu.h: Direct3D 12 on Windows, Vulkan
 # elsewhere). Not part of ei_platform: the offline checks link the renderer without the game.

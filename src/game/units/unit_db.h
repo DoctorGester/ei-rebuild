@@ -117,6 +117,9 @@ struct UnitModelSlot {
     float factor = 0.0f;
 };
 
+// The blood kinds UnitModelRecord::bloodKind names (none, then 1..8).
+inline constexpr int kBloodKinds = 9;
+
 struct UnitModelRecord {
     void Serialize(ChunkArchive* ar);
 
@@ -138,7 +141,7 @@ struct UnitModelRecord {
     std::string figureName;            // 0x1E the figure and skin file prefix ("%sskin_%.2d.mmp")
     std::vector<std::string> unreadLists[2];       // 0x1F and 0x20 (string lists); nothing reads them
     float height = 0.0f;            // 0x21 (the object stands this much lower)
-    std::uint32_t bloodKind = 0;    // 0x28 1..4 blood (particles 0x200F / 0x2031..0x2033 and a decal), 5..8 particles only
+    std::uint32_t bloodKind = 0;    // 0x28 1..4 a blood shower and a decal, 5..8 the shower only (BloodLook)
     int footprintKind = 0;          // 0x2A the footprint texture (-1: none)
     std::uint32_t footPart = 0;     // 0x2B the foot parts "ll<n>" / "rl<n>" (1..8)
     std::uint32_t castEffect = 0;       // 0x29 nonzero: its casts show an effect
@@ -159,6 +162,10 @@ struct UnitModelRecord {
     std::uint32_t eyeBottom = 0;    // 0x30
     std::uint32_t eyeWidth = 0;     // 0x31
     std::uint32_t eyeHeight = 0;    // 0x32
+    // TOML only (`blood_look`, `shock_look`): the particle effects (effects' names) a hit shows on the unit (BloodLook;
+    // empty: its blood kind's) and a lightning hit (ShockLook; empty: the database's).
+    std::string bloodLook;
+    std::string shockLook;
 };
 
 // A unit database level record (the fourth table).
@@ -206,7 +213,13 @@ struct UnitDatabase {
     // TOML files merged over them; every record entered into its table's name index; then every prototype's
     // modelIndex and every model slot's levelIndex resolved by name (-1 when there is none).
     void Read(const RecordFile& file);
-    // A TOML file's [[level]], [[model]], [[unit]] (the prototypes) and [[npc]] records merged by name.
+    // The game's own fields (assets/units/units.udb.toml, built in): its [blood_looks] and shock_look, below every
+    // TOML layer, whatever the database.
+    void MergeBuiltin();
+    // A file's [blood_looks] and shock_look merged.
+    void MergeLooks(const toml::Value& root, const std::string& path);
+    // A TOML file's [[level]], [[model]], [[unit]] (the prototypes) and [[npc]] records merged by name; its
+    // [blood_looks] by kind and its shock_look.
     void MergeToml(const toml::Value& root, const std::string& path);
     std::string ToToml() const;
 
@@ -214,10 +227,20 @@ struct UnitDatabase {
     NpcPrototypeTable npcs;
     UnitModelTable models;
     UnitLevelTable levels;
+    // `[blood_looks]` (by the blood kinds' names, `none` too): the effect a hit shows on a model of the kind that has
+    // no blood_look of its own; `shock_look`: the effect a lightning hit shows on a model without its own.
+    std::string bloodLooks[kBloodKinds];
+    std::string shockLook;
 };
 
 extern UnitDatabase g_unitDatabase;
 namespace unitdb {
+// The effect a hit shows on a unit of `model` (UnitClientSpecific::StatChanged): its blood_look, else its blood kind's
+// (a kind past the names: none's).
+const std::string& BloodLook(const UnitModelRecord& model);
+// The effect a lightning hit shows on a unit of `model` (UnitClientSpecific::Wound): its shock_look, else the
+// database's.
+const std::string& ShockLook(const UnitModelRecord& model);
 // The byte distance of `record` from the first prototype record: what the originals divide by
 // 0x120 themselves (a null record included, which gives a negative distance).
 inline int PrototypeByteOffset(const UnitPrototypeRecord* record) {

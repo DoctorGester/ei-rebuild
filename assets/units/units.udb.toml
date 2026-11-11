@@ -1,0 +1,17 @@
+# The game's own units.udb fields that the build gives it (built into the executable below every TOML layer, whatever
+# the database; a mod's Res\database\units.udb.toml merges over them; docs/modding.md, "Databases").
+
+# The effect a lightning hit shows on a unit whose model has no shock_look of its own.
+shock_look = "Sparks"
+
+# The effect a hit shows on a unit by its model's blood kind, when the model has no blood_look of its own: the game's
+# showers (the kinds 1..4 also leave a stain on the ground).
+[blood_looks]
+red = "Shower1"
+green = "Shower2"
+blue = "Shower3"
+brown = "Shower4"
+red_spray = "Shower1"
+green_spray = "Shower2"
+blue_spray = "Shower3"
+brown_spray = "Shower4"
