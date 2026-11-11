@@ -22,8 +22,8 @@ How to write and change the game's code (fixes, cleanup, new features). Every ru
 Includes: a header that only passes a rectangle, point or size includes `lib/rect.h`; only a file that calls the
 system includes its headers. A widely included header names no `<algorithm>`, `<chrono>`, `<format>` or
 `<filesystem>` without a need of its own (each costs 0.3-2 MB per object; docs/notes/standalone.md, "The compiler
-cache"). An include change can change how MSVC inlines `std::basic_string` members; a precompiled
-header was measured (-18% clean build) and not adopted for that reason. The exe links with `/OPT:ICF`, so never
+cache"). An include change can change how MSVC inlines `std::basic_string` members, so there is no precompiled
+header. The exe links with `/OPT:ICF`, so never
 compare function pointers for identity.
 
 ## The rules
@@ -36,11 +36,11 @@ compare function pointers for identity.
    seam (`IsaacRandom::SetSeedHook`, `IsaacRandom::SetDrawObserver`, `libcrt::SetRandObserver`), never an address.
 3. **Memory.** `new T(...)` / `delete p`; an owned array is a `std::vector<T>` (`std::unique_ptr<T[]>` where its
    address is handed out and must not move); a block of a byte count other than its type's is
-   `::operator new(bytes)`. Every field starts initialised (Lifetimes below), so no object is allocated zeroed. A local with a destructor that replaced a hand-freed helper runs at the
-   end of its scope: scope it so it ends before anything it holds is deleted (WorldServer::Destroy's iterator once
-   outlived the list it walked: a flaky crash at quit). A `std::vector` is read and written within its size (code
-   that read the popped element through `end()` or wrote into spare capacity is undefined): `build.cmd asan`
-   finds these (`docs/notes/harness.md`, "AddressSanitizer").
+   `::operator new(bytes)`. Every field starts initialised (Lifetimes below), so no object is allocated zeroed. A
+   local with a destructor runs at the end of its scope: scope it so it ends before anything it holds is deleted (an
+   iterator that outlived the list it walked was a flaky crash at quit). A `std::vector` is read and written within
+   its size (code that read the popped element through `end()` or wrote into spare capacity is undefined):
+   `build.cmd asan` finds these (`docs/notes/harness.md`, "AddressSanitizer").
 4. **Floating point** is plain C++ (`docs/notes/float-maths.md`): the grouping written is the grouping compiled
    (`/fp:precise`, never `/fp:fast`); no `__asm`, no `#pragma float_control`. FISTP's rounding is `lib::RoundEven`,
    `_ftol` is `static_cast<int>(static_cast<std::int64_t>(x))` where a NaN or a value beyond int can arrive; not
@@ -84,14 +84,16 @@ compare function pointers for identity.
   (`BaseManager::CreateObjectAs<T>` / `FindObjectAs<T>`, `itemdb::RecordAs<T>`). A counted pointer field is a
   `Ref<T>` (src/engine/core/ref.h), a container element holding a reference a `HeldRef<T>`; a counted object is tested
   with `IsLive(object)`. A record that starts with another's fields derives from it.
-- Lifetimes: every field has a default initialiser (counted: a scalar, pointer or enum field without one). An embedded object is a plain member: the compiler builds and
-  destroys it, and the member order gives the teardown order (no constructor or destructor called by hand). A
-  reset assigns the fields (`Reset()`), never destroys and builds the object again in place.
+- Lifetimes: every field has a default initialiser (counted: "field without a default initialiser", a scalar, pointer
+  or enum field without one). An embedded object is a plain member: the compiler builds and destroys it, and the member
+  order gives the teardown order (no constructor or destructor called by hand). A reset assigns the fields
+  (`Reset()`), never destroys members by hand and builds the object again with `new (this)`. A counted object's count
+  starts in its constructor.
 
 ## Style rules
 
-From the style review rounds (2026-11-04). Checks are named where a pattern can be counted; the others are for the
-writer and the reviewer.
+From the style review's rounds; the tools cite them by round. Checks are named where a pattern can be counted; the
+others are for the writer and the reviewer.
 - **Numbers have meaning names.** No `#define` for a number or a string (`#define EI_ASSET_CODEPAGE 1251`): a
   `constexpr` in the owning header. A constant is named by what it is for (`kStandingHeight`, `kRateBase`), never by
   its value (`kOne`, `kHalf`, `kTwo`, `kZero`). Checked: `check_cleanup.py` counts "#define EI_ number" and
@@ -111,7 +113,8 @@ writer and the reviewer.
   `comments.py check` counts "addon addresses" (8 hex digits from 10 to 1F with a letter) in comments, shaders
   included.
 - **Rebirth's patch is named.** A comment that says "Rebirth-patched" names the patch (CameraPatch) or says
-  "always on" (rule 8). Checked: "unnamed Rebirth patches" per comment line.
+  "always on" (rule 8), and never claims a flag that does not exist. Checked: "unnamed Rebirth patches" per comment
+  line.
 - **In-memory structs are typed.** Members have their real types (an enum, a `Ref<T>`, a `Vector3`), not the bytes they
   were read from. A byte layout (fixed-width members, padding, `static_assert` on the size) belongs to the structs
   that cross the process: a file, a save, a packet, a GPU buffer; and says so.
@@ -123,14 +126,16 @@ writer and the reviewer.
 - **State is taken or read, never both.** A function that receives the state it works on (a reference to the world,
   the player) does not also read the global that names the same object; one path chooses. No function-local `static`
   state: a counter or a cache that outlives the call is a member of its owner (Reset() clears it).
-- **Inputs are `const T&`, results are returned.** An input too big to copy is `const T&` (`std::string_view` for
-  text); a result is the return value (a struct or `std::optional` for several or none), not an out-parameter, unless
-  the caller supplies the storage (a buffer it reuses).
+- **Inputs are `const T&` or views, results are returned.** An input too big to copy is `const T&`
+  (`std::string_view` for text); a pointer that is never null is a reference, and a helper that builds a string only
+  to pass its address takes the text. A result is the return value (a struct or `std::optional` for several or none),
+  not an out-parameter, unless the caller supplies the storage (a buffer it reuses). Checked: "const string or vector
+  pointer parameter" (a non-const `std::vector<T>*` may be the caller's buffer and is not counted).
 - **One integer type per quantity.** A count, an index, an id or a size has one type through the code that passes it
   around (`std::int32_t` for a saved id, `std::size_t` for a container index); no converting back and forth at each
   call, no `int` that is compared with an unsigned size.
 
-From round 3 (networking, scripts, saves, sound; 2026-11-04):
+From round 3 (networking, scripts, saves, sound):
 - **Documented undefined behaviour is not a fix** (rule 9). A comment that says a read is uninitialised, a pointer may
   be null or a copy is unbounded, and keeps it, is a bug listed: fix it, or, if only a player can see it, list it under
   "Original bugs kept" in the area's notes. `volatile` is not a thread flag (`std::atomic`).
@@ -142,9 +147,6 @@ From round 3 (networking, scripts, saves, sound; 2026-11-04):
   states, packet and award kinds, music modes, image formats and the like are enumerators, and a method is named by
   what it means (`SendWeather`), never by its id (`SendState71`). A version test follows `save_versions.h`'s
   convention. Checked: "enum never used as a type", "hex-named message method".
-- **Every field is initialised, a reset assigns.** All fields have default initialisers ("field without a default
-  initialiser"); a reset is `Reset()` that assigns the fields, never `OnShutdown` destroying members by hand and
-  `new (this)`. A counted object's count starts in its constructor.
 - **A saved type pairs `Load` and `Save`**, members declared side by side, reading and writing the same fields in the
   same order (`UnitServer::Load` / `Save` are the model); one name pair (`Load` / `Save`, not `ReadFrom` / `WriteTo`).
   Positional records (script arguments) are read through one cursor in declaration order.
@@ -153,8 +155,6 @@ From round 3 (networking, scripts, saves, sound; 2026-11-04):
   needed (sound's `OpenOutput` ignoring three of its four parameters is the example).
 - **No current-object globals.** Pass the object or make it a member. Where a global cannot be avoided (a load in
   progress), a scope guard sets it and restores it on every exit; nothing resets it by hand before each `return`.
-- **Rebirth's behaviour is named by its flag or "always on"** in comments (see the comment guide); a comment never
-  claims a flag that does not exist.
 - **One helper per owner; names are unique within a subsystem; declare where initialised.** `IsZero`, the 1/255 colour
   scale and "does the game server run" live once, in their owner's header. Two functions or types of one subsystem
   never share a name with different meanings (`Arg`, `Drop`). No scope block that exists only to copy a temporary
@@ -165,10 +165,10 @@ From round 3 (networking, scripts, saves, sound; 2026-11-04):
   virtual, not a table of member-function pointers (the exe links with `/OPT:ICF`: two functions can share an
   address). Checked: "pointer to member function" (also the round-2 rule on callbacks).
 
-From round 4 (world, objects, combat, app and platform; 2026-11-04):
+From round 4 (world, objects, combat, app and platform):
 - **A member body lives once.** When a class is split across files, three lines in a row that match a member's body
-  are the member's call, not a second copy: the body stays in the virtual or method itself, and a sibling file calls it
-  (`UnitAction::Reset` and `PlaySteps` were copied eight times). Checked: "member body copied in a family file" (three
+  are the member's call, not a second copy: the body stays in the virtual or method itself, and a sibling file calls
+  it. Checked: "member body copied in a family file" (three
   significant lines of at least 90 characters that an earlier `.cpp` of the same family also has; a family is the
   directory and the first two words of the file name; headers and repeats inside one file are not counted).
 - **One name per code, one code per name.** A sentinel or code constant (`kNone`, `kNoRange`, `kFar`, `kKind*`,
@@ -201,17 +201,13 @@ From round 4 (world, objects, combat, app and platform; 2026-11-04):
   that a value is "stored as a float". Every SSE float operation already rounds to float, so deleting the residue is
   exact. Checked: "x87 store residue (volatile float, store and reload)" and the `comments.py` ban on "stored as/to/in
   a float".
-- **A data header holds data.** A function whose body is `return 12.5f;` or `return "text";` is a constant in its owner's
-  header (`world_data.h` held 33). A header shaped like the exe's `.rdata` (the same constants for AI, interface and
-  world in one file included by 42) is split by user. Checked: "function returning only a number (header)" (virtuals
+- **A data header holds data.** A function whose body is `return 12.5f;` or `return "text";` is a constant in its
+  owner's header. A header shaped like the exe's `.rdata` (constants for AI, interface and world in one file) is split
+  by the code that uses them. Checked: "function returning only a number (header)" (virtuals
   and overrides are not counted) beside the string-literal column of round 3.
 - **A member uses `this`.** Inside a member the object is `this`, never its own global (`WorldServer` members calling
   `g_serverWorld.Loot`); a free function that needs a world takes it. Checked: "member through its own global" (a
   `Class::Member` body that names a global declared `extern Class g_...;`).
-- **Inputs are references or views.** `const std::string&` or `std::string_view`, `const std::vector<T>&`; a pointer
-  that is never null is a reference, and a helper that builds a string only to pass its address takes the text.
-  Checked: "const string or vector pointer parameter" (a non-const `std::vector<T>*` may be the caller's buffer and is
-  not counted).
 - **The platform contract names concepts.** `platform.h` and the game speak in UTF-8, fixed-width integers, our enums
   and structs; Windows encodings (`WM_KEYUP`'s `lParam`, wheel steps of 120, `HWND`, `GetTickCount`) stay at the reader
   of a format that stores them and in `src/platform/win32`. Every printf-like function carries
@@ -224,11 +220,11 @@ From round 4 (world, objects, combat, app and platform; 2026-11-04):
   (a name is final or it is renamed), a layout in bytes ("the first 0x20 bytes of PathOrder"), "Direct3D" and
   "DirectDraw" (the old device), "old path", "game.exe" and "through its address".
 
-From round 1b (unit AI, items, terrain; re-checked 2026-11-05):
+From round 1b (unit AI, items, terrain):
 - **A re-spelled copy of an existing helper is a defect.** A random word scaled by hand (`Next() * 0x1p-32f + low`, a
-  `2.3283064e-10f` scale, `kTwoToMinus32`) is `IsaacRandom::Range` or a member beside it; the copies drift (seven in
-  the unit AI, nineteen in the particles). Checked: "random word scaled by hand (Range copy)" (`src/lib` and
-  `random.cpp` are exempt; the scale as `0x1p-30`..`0x1p-32` or a `[1-9].dddddde-10` decimal).
+  `2.3283064e-10f` scale, `kTwoToMinus32`) is `IsaacRandom::Range` or a member beside it; the copies drift. Checked:
+  "random word scaled by hand (Range copy)" (`src/lib` and `random.cpp` are exempt; the scale as `0x1p-30`..`0x1p-32`
+  or a `[1-9].dddddde-10` decimal).
 - **A field has one start state.** A field with a default initialiser is not given another value in a constructor's
   body or initialiser list, and not given a different one in `Reset()`; the initialiser carries the real start value
   and the constructor needs no body. A value that comes from a constructor parameter is not a start state. Checked:
@@ -239,8 +235,7 @@ From round 1b (unit AI, items, terrain; re-checked 2026-11-05):
   and displays round values that only the picture, the sound or the window see, and a half differs there by one
   colour step at most. A rounded value that gates an order or reaches game state is `lib::RoundEven` or
   `lib::Truncate`, as the original's FISTP or `_ftol` did. Checked: "std::lround in game-affecting code" (every
-  `std::lround` outside the client-only files listed in `tools/check_cleanup.py`; its two sites, `CanEquip` and
-  `HeroSchoolSkill`, are C155a).
+  `std::lround` outside the client-only files listed in `tools/check_cleanup.py`).
 
 The ratchet columns are listed by `python tools/check_cleanup.py` (counts) and `python tools/comments.py check`. A
 column's pattern is narrow on purpose: it finds the plain cases; the rule is wider than the count. The columns that
