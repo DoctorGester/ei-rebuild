@@ -28,6 +28,7 @@ class EffectArrow;
 class EffectLightning;
 class EffectParticle;
 class EffectPointLight;
+class EffectSoundSeq;
 class ScriptSpellHost;
 enum class ParticleType : int;
 
@@ -175,6 +176,8 @@ public:
 
     // Split between the targets when there are several.
     void GetDamage(DamageInfo* out);
+    // A hit shared by `targets` (more than 1): its amount and multiplier x 4 / targets, as the area spells' split.
+    static void SplitHit(DamageInfo* hit, int targets);
     // A spell's hit: no defence roll (attackRoll FLT_MAX), every body part (location 6), `amount` of `type` (its
     // weight 1); a non-zero `hitKind` has no direction (the walls and clouds burn so).
     static DamageInfo TypedHit(DamageType type, float amount, int hitKind);
@@ -192,7 +195,7 @@ public:
     void HitUnitsAlong(const Vector3& direction);
 
     // The casting state of the behaviour `type` (Spell::Behaviour()): its effect objects, the instant hits, the
-    // next state (1 missile, 2 lasting, 3 done; some failed casts leave it at 0) and the timer.
+    // next state (2 lasting, 3 done, 4 scripted; some failed casts leave it at 0) and the timer.
     void Start(SpellType type);
     // The old visual leaves the world's timed objects and is released.
     void SetVisual(Effect* visual);
@@ -221,6 +224,9 @@ public:
     // `first`, then `pattern` itself (count < 1) or `pattern` formatted with 1..count. It becomes the sound.
     void CreateSoundSequence(const Vector3& position, const Vector3& velocity, const char* first,
                              const char* pattern, int count);
+    // CreateSoundSequence's object (`first`, then `names` at random), not yet in the world.
+    EffectSoundSeq* NewSoundSequence(const Vector3& position, const Vector3& velocity, const char* first,
+                                     std::vector<std::string> names);
     // Light flags Specular | Strong; it becomes the light.
     void CreatePointLight(const Vector3& position, const Vector3& color, float range, const Vector3& velocity);
     // CreatePointLight's object, not yet in the world.
@@ -243,8 +249,6 @@ public:
 
     // One tick. Returns 0 when the effect has ended (the world then removes it) or without a world.
     int Update();
-    // State 1: the fireball explodes when its timer runs out.
-    void UpdateMissile(SpellType type);
     // State 2: walls and clouds hit every 4th tick; every case counts the timer down and ends the effect.
     void UpdateLasting(SpellType type);
     void ReleaseVisual();
@@ -274,7 +278,7 @@ public:
     Ref<MapObject> target; // a unit or another map object
     Ref<Unit> caster;      // null for traps and scripts
     Vector3 targetPoint;
-    int state = 0;              // 0 casting, 1 missile, 2 lasting, 4 scripted, else ends
+    int state = 0;              // 0 casting, 1 missile (only a save's), 2 lasting, 4 scripted, else ends
     Spell spell;
     Ref<Effect> visual;              // particle source, wall, lightning or missile
     Ref<Effect> sound;               // a sound or a sound sequence

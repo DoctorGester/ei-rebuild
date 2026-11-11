@@ -84,8 +84,6 @@ struct SpellDamageKind {
     int hitKind = 0;
 };
 
-constexpr SpellDamageKind kFireHit{DamageType::Fire, 0};
-constexpr SpellDamageKind kLightningHit{DamageType::Lightning, 0};
 constexpr SpellDamageKind kFireArea{DamageType::Fire, 1};
 constexpr SpellDamageKind kLightningArea{DamageType::Lightning, 1};
 constexpr SpellDamageKind kAcidArea{DamageType::Acid, 1};
@@ -93,9 +91,7 @@ constexpr SpellDamageKind kAcidArea{DamageType::Acid, 1};
 // The damage kind of the behaviour `type`; null for the spells that deal no damage.
 const SpellDamageKind* DamageKindOf(SpellType type) {
     switch (type) {
-    case SpellType::Fireball: return &kFireHit;
-    case SpellType::InvokeLightning: return &kLightningHit;
-    case SpellType::AcidColumn: case SpellType::AcidFog: return &kAcidArea;
+    case SpellType::AcidFog: return &kAcidArea;
     case SpellType::FireWall: case SpellType::Campfire: return &kFireArea;
     case SpellType::LightningWall: return &kLightningArea;
     default: return nullptr;
@@ -126,11 +122,13 @@ void SpellEffect::GetDamage(DamageInfo* out) {
     }
 
     // The duration is the number of targets the damage is split between.
-    int targets = static_cast<int>(record->duration);
-    if (targets > 1) {
-        out->multiplier = kSplitDamage / static_cast<float>(targets);
-        out->amount = out->multiplier * out->amount;
-    }
+    SplitHit(out, static_cast<int>(record->duration));
+}
+
+void SpellEffect::SplitHit(DamageInfo* hit, int targets) {
+    if (targets <= 1) return;
+    hit->multiplier = kSplitDamage / static_cast<float>(targets);
+    hit->amount = hit->multiplier * hit->amount;
 }
 
 // --- Saving and loading ------------------------------------------------------------------------------
@@ -227,78 +225,15 @@ void SpellEffect::ResumeScripted() {
 // --- The casting state -------------------------------------------------------------------------------
 
 // A spell effect's casting state (SpellEffect::Update state 0) and the helpers that create its effect
-// objects. Every spell type starts differently: the fireball gets a particle source and goes to state 1, the
-// lasting spells get particles, lights and sound sequences and go to state 2, the instant ones (the light strike,
-// buffs, charm) deal or apply their effect here; a scripted spell's cast starts its script. Also the cast spell's
-// lifetime. See docs/notes/items_spells.md.
+// objects. Every spell type starts differently: the lasting spells get particles, lights and sound sequences and go
+// to state 2, the instant ones (buffs, charm) deal or apply their effect here; a scripted spell's cast starts its
+// script. Also the cast spell's lifetime. See docs/notes/items_spells.md.
 
 using namespace spellfx;
 
 namespace {
 
 // --- The spell types ----------------------------------------------------------------------------
-
-// Fireball: a particle source flying at the target point; it explodes in state 1.
-void StartFireball(SpellEffect* e, const Vector3& from) {
-    float speed = e->HeldSpell()->speed;
-    Vector3 velocity = e->targetPoint - e->position;
-    velocity.z = 0.0f;
-    float distance = Length2D(XY(velocity));
-    speed = speed > 0.0f ? speed : kDefaultSpeed;
-    e->timer = FlightTicks(distance, speed) - 2;
-    velocity = ScaledToSpeed(velocity, speed);
-
-    float size = Power(e) * kFireballScale;
-    // The visual.
-    EffectParticle* particle = e->CreateParticle(1, ParticleType::FireBall, from, size, 1.0f, velocity, nullptr);
-    if (e->caster) particle->unitId = e->caster->id;     // the particle's unit
-    e->targetPoint.z = e->world->RawSurfaceHeightAt(e->targetPoint.x, e->targetPoint.y) + 1.0f;
-    particle->SetTarget(e->targetPoint);
-    if (speed * kFireballNear > distance) {
-        e->CreateSound("magic\\FireBall\\start.wav", e->position, velocity, kVolume, kHearing);
-    } else {
-        e->CreateSoundSequence(e->position, velocity, "magic\\Fireball\\start.wav", "magic\\Fireball\\circle.wav", -1);
-    }
-    float range = Prototype(e)->lightRange;
-    Vector3 color = Prototype(e)->lightColor;
-    e->CreatePointLight(from, color, range, velocity);
-    e->state = kStateMissile;
-}
-
-// InvokeLightning: a lightning strike from 30 above the target point, hitting every unit in the radius.
-void StartLightStrike(SpellEffect* e) {
-    e->targetPoint.z = e->world->RawSurfaceHeightAt(e->targetPoint.x, e->targetPoint.y) - kStrikeDepth;
-    e->position = e->targetPoint;
-    Vector3 top = e->targetPoint;
-    top.z += kStrikeHeight;
-    float power = Power(e);
-    auto* bolt = CreateObject<EffectLightning>(e, ClassId::EffectLightning);
-    bolt->SetEnds(top, e->position, power * kStrikeWidth);
-    e->SetVisual(bolt);
-
-    float alpha = Power(e);
-    e->CreateParticle(0, ParticleType::LightningBlast, e->targetPoint, e->HeldSpell()->radius, alpha, kZeroVector,
-                      nullptr);
-    e->CreateSound("magic\\InvokeLight\\start.wav", e->position, kZeroVector, kLoud, kLoud);
-    e->targetPoint.z += kLightAbove;
-    Vector3 rise{0.0f, 0.0f, LightRise(e)};
-    PrototypeLight(e, e->targetPoint, Prototype(e)->lightRange, rise);
-
-    e->HitUnitsInRadius();
-    e->timer = 7;
-    e->state = kStateLasting;
-}
-
-// AcidColumn: the column at the target point.
-void StartAcidColumn(SpellEffect* e) {
-    e->position = e->targetPoint;
-    e->CreateParticle(0, ParticleType::Nuke, e->targetPoint, 1.0f, 1.0f, kZeroVector, nullptr);
-    e->CreateSound("magic\\Acidcolumn\\start.wav", e->targetPoint, kZeroVector, kVolume, kHearing);
-    Vector3 rise{0.0f, 0.0f, LightRise(e)};
-    PrototypeLight(e, e->targetPoint, Prototype(e)->lightRange, rise);
-    e->timer = 30;
-    e->state = kStateLasting;
-}
 
 // The direction from the caster to the wall's centre; straight along x when it has no ground part
 // (both 0).
@@ -532,11 +467,8 @@ void SpellEffect::Start(SpellType type) {
         from = position;
     }
 
-    // Every case sets the state itself: the missile, the lasting one or the end.
+    // Every case sets the state itself: the lasting one or the end.
     switch (type) {
-    case SpellType::Fireball: StartFireball(this, from); break;
-    case SpellType::InvokeLightning: StartLightStrike(this); break;
-    case SpellType::AcidColumn: StartAcidColumn(this); break;
     case SpellType::FireWall: StartFireWall(this, from); break;
     case SpellType::LightningWall: StartLightWall(this, from); break;
     case SpellType::AcidFog: StartPoisonCloud(this); break;
@@ -669,7 +601,19 @@ void SpellEffect::CreateSound(const char* name, const Vector3& at, const Vector3
 
 void SpellEffect::CreateSoundSequence(const Vector3& at, const Vector3& velocity, const char* first,
                                        const char* pattern, int count) {
-    std::string name;
+    std::vector<std::string> names;
+    if (count < 1) {
+        names.push_back(pattern);
+    } else {
+        for (int i = 1; i <= count; ++i) names.push_back(str::Format(pattern, i));
+    }
+    EffectSoundSeq* effect = NewSoundSequence(at, velocity, first, std::move(names));
+    Hold(this, sound, effect);
+    world->AddTimedObject(effect);
+}
+
+EffectSoundSeq* SpellEffect::NewSoundSequence(const Vector3& at, const Vector3& velocity, const char* first,
+                                              std::vector<std::string> names) {
     auto* effect = CreateObject<EffectSoundSeq>(this, ClassId::EffectSoundSeq);
     SetPosition(effect, at);
     effect->SetVelocity(velocity);
@@ -677,17 +621,8 @@ void SpellEffect::CreateSoundSequence(const Vector3& at, const Vector3& velocity
     effect->volume = kVolume;
     effect->noFade = 1;
     effect->name = first;
-    auto& names = effect->names;
-    if (count < 1) {
-        names.push_back(pattern);
-    } else {
-        for (int i = 1; i <= count; ++i) {
-            name = str::Format(pattern, i);
-            names.push_back(name);
-        }
-    }
-    Hold(this, sound, effect);
-    world->AddTimedObject(effect);
+    effect->names = std::move(names);
+    return effect;
 }
 
 void SpellEffect::CreatePointLight(const Vector3& at, const Vector3& color, float range, const Vector3& velocity) {

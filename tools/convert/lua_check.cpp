@@ -781,7 +781,7 @@ return {
 -- A cast of a save from before its spell's script: its missile flies on, OnHit when it lands, its old count's end.
 return {
     OnResume = function(cast, old)
-        cast.data.old = old.state .. " " .. old.ticks
+        cast.data.old = old.state .. " " .. old.ticks .. (old.visual and " visual" or "") .. (old.light and " light" or "")
         cast.data.off = not pcall(cast.Eye, cast, cast.target)
         cast:After(old.ticks + 2, "Expire")
     end,
@@ -831,6 +831,28 @@ function spell.OnCast(cast)
     cast:Effect("sparks", { at = here, free = true })
     check(not pcall(cast.Effect, cast, "NoSuchEffect"), "Effect: an unknown name")
     cast:Sound("magic\\x.wav", here)
+    cast:Sound("magic\\x.wav", here, { volume = 5, velocity = { x = 1, y = 0, z = 0 } })
+    local loop = cast:SoundLoop(here, { "a.wav", "b.wav" }, { first = "s.wav", velocity = { x = 1, y = 0, z = 0 } })
+    check(type(loop) == "number" and cast:Release(loop) and not cast:Release(loop) and not cast:Release(nil),
+          "SoundLoop gives a handle; Release drops it once")
+    check(not pcall(cast.SoundLoop, cast, here, { {} }), "SoundLoop: names expected")
+    local ball = cast:Effect("sparks", { at = here, target = { x = 1, y = 2, z = 3 }, param = 2, unit = stone,
+                                         velocity = { x = 0.5, y = 0, z = 0 } })
+    local moving = cast:Light(here, { velocity = { x = 1, y = 0, z = 0 } })
+    check(cast:Release(ball) and cast:Release(moving), "Effect with a target and a param, Light with a velocity")
+    local flight = cast:Flight(here, { x = 3, y = 4, z = 9 }, 10)
+    check(flight.distance == 5 and flight.speed == 10 and flight.ticks == 8 and flight.velocity.z == 0 and
+              math.abs(flight.velocity.x - 0.4) < 1e-6 and math.abs(flight.velocity.y - 0.8 / 1.5) < 1e-6,
+          "Flight: the ground distance, the speed, the ticks (rounded to even) and the velocity a tick")
+    check(cast:Flight(here, { x = 3, y = 4, z = 0 }).speed == 5 and cast:Flight(here, stone).ticks >= 0,
+          "Flight: the speed 5 when the spell has none; an object's position")
+    local ground = cast:Ground({ x = 1, y = 2, z = 7 }, { above = 1 })
+    check(ground.x == 1 and ground.y == 2 and ground.z == 1, "Ground: the grid's height (0 without a map) and above")
+    check(#cast:FindUnits(here, 5, { unsorted = true }) == 0 and cast:Damage(stone, 3, "fire", { split = 3 }) == 0,
+          "FindUnits unsorted, Damage split")
+    cast:Noise(here, 5, 4)
+    check(not pcall(cast.Noise, cast, here), "Noise: a loudness expected (nothing without a unit caster)")
+    check(type(cast.areaPower) == "number", "the cast's area power")
     cast:Missile { to = stone, from = { x = 5, y = 0, z = 0 }, payload = { n = 7 } }
     cast:Missile { to = stone, from = { x = 6, y = 0, z = 0 }, effect = "AcidRay" }
     check(not pcall(cast.Missile, cast, { from = here }), "Missile: an object to fly at")
@@ -1048,8 +1070,8 @@ void CheckSpellHost(TestWorld& world) {
         arrow->arrived = 1;
         Expect(host.Tick(resumed) && resumed.owned.empty(), "the resumed missile lands at tick 3");
         lua_getglobal(L, "resumed");
-        Expect(lua_isstring(L, -1) && std::string(lua_tostring(L, -1)) == "missile 3 hit at 3 nil off",
-               "OnHit for the resumed missile; OnResume ran with the bindings off");
+        Expect(lua_isstring(L, -1) && std::string(lua_tostring(L, -1)) == "missile 3 visual hit at 3 nil off",
+               "OnHit for the resumed missile; OnResume ran with the bindings off, the old visual's handle");
         lua_pop(L, 1);
         Expect(host.Tick(resumed) && !host.Tick(resumed) && SpellEnd(scheduler) == "finished at 5",
                "the resumed cast ends at its old count's end");

@@ -7577,7 +7577,7 @@ client ticksRun 72
 cunit1804 #place EEE7DE9B
 cunit1804 #unit 91519ABB
 cunit1804 #vitals 1D51E164
-@ 5 update 120 frame 23 tick 120 zone gz1g hash 18C30ADA n 835
+@ 5 update 120 frame 23 tick 120 zone gz1g hash A26494C1 n 835
 world tick 120
 world updates 120
 world timedObjects 6
@@ -7609,13 +7609,13 @@ timed5147054 # F529B1BE
 missile0 # BEA945FF
 missile1 # 4C94D2FF
 + missile2 spell 3
-missile2 # 0D237D16
+missile2 # AE24C7FF
 aievents tick 120
 client tick 120
 client ticksRun 92
 cunit1804 #place 6961E790
 cunit1804 #unit D81E8D84
-@ 6 update 140 frame 27 tick 140 zone gz1g hash 961F3C35 n 835
+@ 6 update 140 frame 27 tick 140 zone gz1g hash 2396E907 n 835
 world tick 140
 world updates 140
 random isaac.count 148
@@ -7656,7 +7656,6 @@ timed5147055 # 2A32299B
 timed5147057 # 299D0DF9
 missile0 # 5292DB60
 missile1 # A0AF4C60
-missile2 # 9848883C
 aievents tick 140
 client tick 140
 client ticksRun 112

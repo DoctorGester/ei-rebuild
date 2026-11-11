@@ -7526,7 +7526,7 @@ cunit1000011214 #place FF01FC81
 cunit1000066549 #place 09477330
 cunit1000066549 #unit CE4826C5
 cunit1000066549 #vitals F4C997B8
-@ 3 update 80 frame 15 tick 80 zone gz1g hash 171E3D42 n 842
+@ 3 update 80 frame 15 tick 80 zone gz1g hash BC173348 n 842
 world tick 80
 world updates 80
 world occluderReplanTime 60
@@ -7576,7 +7576,7 @@ timed5147061 # 50211367
 missile0 # BDAF7E80
 missile1 # 4F92E980
 + missile2 spell 5
-missile2 # E1E4C6E9
+missile2 # 74A92FF2
 + missile3 spell 7
 missile3 # 9B32154A
 aievents tick 80

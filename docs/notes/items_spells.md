@@ -181,9 +181,9 @@ other record after them (a mod's: the showcase's "spark", 42) `SpellType::None`,
 The game's own spells move onto the scripted path family by family (MF17g; user 2026-11-11: the original content uses
 what modders get), so the code they ran and the switches and table rows that keyed on them go. On it now: the
 lightning arc and curse magic (assets/spells/Lightning.lua), the missiles: fire arrow, Rick magic and acid ray
-(Missile.lua). Still in code: the fireball and the area strikes (light strike, acid column), the walls and the poison
-cloud, the buffs, and the rest (fireworks, clairvoyance, vision fog, healing, teleport, campfire; possession, link
-and charm are cut).
+(Missile.lua), the fireball (Fireball.lua) and the area strikes: light strike and acid column (Strike.lua). Still in
+code: the walls and the poison cloud, the buffs, and the rest (fireworks, clairvoyance, vision fog, healing, teleport,
+campfire; possession, link and charm are cut).
 
 - **Built in.** `assets/spells/` holds the scripts (CamelCase, by the spell they run) and `spells.sdb.toml`, the
   fields the game's records get: `script`, the use fields (`ai`, `damage_type`, `offensive`, `turns_victim`,
@@ -203,7 +203,9 @@ and charm are cut).
   update the C++ timer reached them). Lua numbers are doubles: a script passes the cast's floats on as they are or
   applies one operation (exact once rounded back), never a chain; a float constant is written as the float's exact
   value (Missile.lua's 0.4 and 0.7 as `0.4000000059604645`, `0.699999988079071`: the product of two floats is exact
-  in a double, so it rounds back to the float product).
+  in a double, so it rounds back to the float product). A product compared with a float is rounded first
+  (Fireball.lua's `Float`, `string.unpack("f", string.pack("f", x))`): the exact double could pass where the
+  float did not.
 - **The missiles** (Missile.lua): OnCast ends at once unless the target is a unit (`cast:IsUnit`), else the missile
   (its trail, `size` the power x 0.4 for the acid ray, the looping `circle.wav`), the start sound at the cast's start
   and an `Expire` timer at tick 152 (the C++'s count of 150 ran out at the 152nd update). OnHit: the damage, then
@@ -211,6 +213,21 @@ and charm are cut).
   the splash attached to the target (power x 0.7, `free`: a one-shot of 60 ticks that outlives the cast, as the C++
   never held it), the end sound and a light of `lightRange` x 1.5 rising at `lightRise` x 1.5, and `Done` 36 ticks
   later. A missile that lands with its target gone finishes the cast.
+- **The fireball** (Fireball.lua): OnCast the flight (`cast:Flight` from the cast's start to its point: the C++'s
+  FlightTicks and ScaledToSpeed, speed 5 when the spell has none), the landing point (`cast:Ground`, the water's
+  surface + 1), the ball (`FireBall` at the caster's eye, size power x 0.3, flying by the velocity to the landing
+  point, `unit` the caster), the start sound (one, moving, when the speed x 1.25 rounded to a float passes the
+  distance; else `SoundLoop`: start then circle) and a light moving with it. The C++ counted the flight's ticks less 2
+  down: the ball goes at tick count + 1 (`Out`, a `Release`) and the blast at count + 2 (at least 1): the hit
+  (`FindUnits` area, `unsorted`: the sector map's order; `Damage` fire, `split` the duration), the ball, its sound and
+  light released (in that order, after the hit), the blast (`FireBlast`, size the larger of `areaPower` and the
+  power, alpha the power, `param` the radius, free), the end sound, a light of `lightRange` x 1.5 rising at
+  `lightRise` x 1.5, the caster's `Noise` (5, call delay 4), and `Done` 37 ticks later.
+- **The area strikes** (Strike.lua): the light strike at the water's surface - 3 (`Ground`): a bolt from 30 above,
+  width power x -7 for one tick, the free `LightningBlast` (size the radius, alpha the power), the start sound (volume
+  and hearing 1000), a light 5 above rising at `lightRise`, the hit (lightning, `unsorted`, `split`); a second bolt of
+  width -7 at tick 3 for one tick, `Done` at 9. The acid column at the cast's point: the free `Nuke`, the start sound,
+  a rising light, the hit (acid, `area`) at tick 15, `Done` at 32.
 - **What differs.** The `SpellEffect` record of a live cast is the scripted one (state 4, no visual / sound / light,
   its objects in `owned`; the digest's missile group, a save's projectile record) and its entry is in the Lua state's
   `casts` until it ends. The world, the units and the timed objects are the same. The saved `nextCast` is the key
@@ -220,23 +237,30 @@ and charm are cut).
   C++'s visual, sound and light become its owned objects (an EffectArrow a missile with a nil payload, so OnHit runs
   when it lands), and the hook, with the world's bindings off, sets timers from `old.state` ("missile" / "lasting")
   and `old.ticks` (the C++'s timer). Missile.lua's resumes a flying arrow (its hit lands) and a rising light at the
-  update the C++ would have ended them. A script without OnResume (Lightning.lua: its hit was dealt at the cast)
-  leaves the cast as it was, and it ends at its next update (UpdateMissile's and UpdateLasting's default) with its
-  objects. The save version stays 0x74.
+  update the C++ would have ended them. `old.visual`, `old.sound` and `old.light` are the handles of the objects the
+  C++ held: Fireball.lua's resume of a ball in flight releases them at its blast (at the count + 2, the ball at + 1),
+  Strike.lua's drops the light strike's bolt at tick 1, strikes its second bolt at its count's 5 and the column's hit
+  at its 15. A script without OnResume (Lightning.lua: its hit was dealt at the cast) leaves the cast as it was, and
+  it ends at its next update (Update's state 1 and UpdateLasting's default) with its objects. The save version stays
+  0x74.
 - **Cost.** A lightning cast is a few Lua calls at the start, a timer call at ticks 8 and 89 and the host's table walk
   on the other ticks. Measured (2026-11-11, `--quiet`, a scratch scenario of 600 casts at the hero, ten a frame, up
   to some 180 alive): the world updates took 0.34 ms a frame on the C++ spells and 0.47 ms on the script, about 24 us
   per cast over its 90 ticks.
-- **Next families**: MF17g3 the fireball and the area strikes,
-  MF17g4 the walls and the poison cloud, MF17g5 the buffs (they need a record field for what their active effect
-  does: MapEffect::Behaviour keys the stat effects and looks), MF17g6 the rest; each ticket names the bindings and
-  fields it lacks.
+- **Next families**: MF17g4 the walls and the poison cloud, MF17g5 the buffs (they need a record field for what their
+  active effect does: MapEffect::Behaviour keys the stat effects and looks), MF17g6 the rest; each ticket names the
+  bindings and fields it lacks.
 - Checked by `spells`, `combat_skills` and the other lightning and missile scenarios (the digest's missile records
   differ, all else the same), `spells_old_save` (tests/saves/lightning_old, made by the C++ build: both casts end at
   the load), `spells_old_missile` (tests/saves/missile_old, made by the C++ build: an acid ray lasting, a fire arrow in
   flight; both resume and the arrow kills its wolf; against the C++ build's run of it only the missile records
-  differ) and `--lua-check` (handles, SetVelocity, Eye, a demon bolt, the timer-paced cap, IsUnit, HitPoint, a free
-  effect, OnResume of a C++ missile with bindings off and its hit).
+  differ), `spells_old_area` (tests/saves/area_old, made by the C++ build: two fireballs in flight, one with its sound
+  sequence, an acid column before its hit and a light strike with its first bolt; all resume, the column and the far
+  fireball kill their wolves; against the C++ build's run only the missile records differ), the fireball and strike
+  scenarios (`spells`, `spells_cast`, `unit_ai_cast` and `unit_cast_at`: the AI's fireball, `unit_ai_corpse`: its
+  noise) and `--lua-check` (handles, SetVelocity, Eye, a demon bolt, the timer-paced cap, IsUnit, HitPoint, a free
+  effect, OnResume of a C++ missile with bindings off and its hit and handles; Ground, Flight, SoundLoop, Release,
+  Noise, the Sound / Light / Effect options, FindUnits unsorted, Damage split, areaPower).
 
 ## Scripted spells
 
@@ -260,7 +284,8 @@ zone's server state that Eris saves. Only the server runs it; clients see what i
   once per state; its casts end at once with no hook.
 - **The cast value**, a new table for each hook: `id` (the key), `code`, `caster`, `target` (objects or nil), `from`,
   `point` (`{x, y, z}`), `tick` (ticks since the cast; 0 in OnCast), the built `damage`, `range`, `radius`,
-  `duration`, `targetCount`, `speed`, `mana`, `power` (`spellfx::Power`), `lightRise` (`spellfx::LightRise`),
+  `duration`, `targetCount`, `speed`, `mana`, `power` (`spellfx::Power`), `areaPower` (`spellfx::AreaCurve` of the
+  radius over the record's area), `lightRise` (`spellfx::LightRise`),
   `lightRange` (the record's), `school` (recordnames::kSpellSchools), and
   `data`, the script's own table (a new one assigned to `cast.data` is kept). Values are lower camelCase, methods
   CamelCase: `cast:After(ticks, "Name" [, payload])` (at least 1 tick, whole ticks), `cast:Finish()` (the cast ends
@@ -277,7 +302,12 @@ zone's server state that Eris saves. Only the server runs it; clients see what i
   one, so the design's `speed` is not taken), `Effect` (`NewParticle`; names through `ScriptParticleTypeByName`, the
   CreateParticleSource table then the data effects; `free`: only into the timed objects, as CreateParticle without
   keep), `Sound` (`CreateSound`), `Light` (`NewPointLight`), `Eye` (`EyePoint`), `HitPoint` (`GridHeightAt` +
-  `ModeSpeed`), `IsUnit`. Arguments are
+  `ModeSpeed`), `IsUnit`, `Ground` (`GridHeightAt`, or `RawSurfaceHeightAt` with `water`), `Flight` (`FlightTicks`,
+  `ScaledToSpeed`), `SoundLoop` (`NewSoundSequence`, CreateSoundSequence's object), `Release` (the slot's release:
+  `RemoveTimedObject`), `Noise` (`aiMap.events.Noise` from the caster's controller); FindUnits' `unsorted` keeps the
+  sector map's order (HitUnitsInRadius'), Damage's `split` is `SpellEffect::SplitHit` (GetDamage's 4/n), Effect's
+  `param`, `target`, `unit` set the particle's typeParam, target and unitId before it goes into the world (what the
+  C++'s SetColors / SetTarget / unitId after it did; AddTimedObject marks it changed either way). Arguments are
   all read (and a Lua error raised) before any C++ object is made: Lua is C, its errors are longjmps.
 - **Owned objects** (`SpellEffect::owned`, `SpellOwned`): every bolt, missile, effect and light a cast makes is in the
   world's timed objects and held by the effect with its ticks left (0: as long as the cast) and, for a missile, the key
@@ -348,30 +378,32 @@ zone's server state that Eris saves. Only the server runs it; clients see what i
 
 `SpellEffect` (world.h calls it `Projectile`) is one cast spell and embeds its Spell. The world server ticks `Update`;
 the state: 0 casting (`Start`, a switch on the prototype whose `Start*` functions set the state themselves: the
-missile, the lasting one through `EnterLasting` or `kStateEnded`; the charm leaves it at 0 and so starts again every
-tick), 1 the fireball in flight (`UpdateMissile`), 2 lasting (`UpdateLasting`), else it ends (footprint cleared, the three effect objects dropped). The three counted effect objects
+lasting one through `EnterLasting` or `kStateEnded`; the charm leaves it at 0 and so starts again every
+tick), 1 a missile in flight (only a save's from before its spell moved onto a script: it ends at its next update),
+2 lasting (`UpdateLasting`), 4 scripted, else it ends (footprint cleared, the three effect objects dropped). The three counted effect objects
 (visual, sound, light) are also in the world's timed objects; replacing one removes and releases the old.
 
-Spell behaviours: 0 / 0x28 fire arrow, 1 / 0x29 lightning, 2 acid ray (all five on scripts), 3 fireball, 4 light strike, 5 acid column, 6 fire
+Spell behaviours: 0 / 0x28 fire arrow, 1 / 0x29 lightning, 2 acid ray, 3 fireball, 4 light strike, 5 acid column (all eight on scripts), 6 fire
 wall, 7 light wall, 8 poison cloud, 9-0x11, 0x13, 0x19, 0x1A, 0x1D-0x22, 0x25, 0x26 buffs (the target's AddEffect gets a
 record with byte 1 = trunc(power x 16)), 0x12 fireworks, 0x14 clairvoyance, 0x15 possession, 0x17 vision fog, 0x18
 healing, 0x1B link, 0x1C teleport, 0x24 charm, 0x27 campfire. `SpellType` names all 42 after the spell database's
 prototypes (0x16 shapechange and 0x23 comprehend start nothing).
 
 "Power": `pow(clamp(damage / prototype effect, 1, 8), 0.33) - 0.2`, or 1 when the prototype's effect compares equal to 0
-(NaN included); the clamps let NaN through. The fireball blast uses the same curve on `(r*r*pi) / prototype area`.
+(NaN included); the clamps let NaN through. The area power (the fireball blast's size, the cast's `areaPower`) uses
+the same curve on `(r*r*pi) / prototype area`.
 
 Lights: the prototype's fields 23-27 are its light (`lightColor`, `lightRange`, `lightRiseDivisor`); the lights rise at
 `lightRange / max(lightRiseDivisor, 1)` a tick, the impact lights 1.5 times faster and further.
 
 Hits: HitUnit skips units the spell may not affect (only checked with a caster) and calls the controller's TakeHit;
-HitUnitsInRadius (fireball) and HitUnitsAlong (fire wall, every 4th tick) hit units that area spells hit (size class
+HitUnitsInRadius (the poison cloud, the campfire) and HitUnitsAlong (fire wall, every 4th tick) hit units that area spells hit (size class
 set, or the prototype's height below 0.5); the wall only those within 0.5 of the vertical plane along its direction.
 
 Kept: healing and charm read the
 target's class without a null check; charm with a
 target or caster that is not a unit returns without changing state, so it restarts every tick; the light strike uses -7
-as bolt width factor; the walls compute the normal with a z of 0 * k.
+as bolt width factor (Strike.lua); the walls compute the normal with a z of 0 * k.
 
 Cut spells (H43b): WorldServer::CastSpell returns for possession, link and charm, so StartPossession, StartLink,
 StartCharm and their updates (Possession, Link) run for no cast; `spells_more` casts charm and link from the hero and
