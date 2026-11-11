@@ -1,0 +1,7 @@
+id = "MF17g"
+title = "Port the original spells onto the mod spell path (scripts and bindings), by family, goldens the same; delete the per-type C++ switches"
+group = "mods"
+size = 3
+depends = ["MF17c", "MF17d"]
+note = "User 2026-11-11: the game's original content should use the functionality we expose to modders: more reuse, less duplication. After MF17b-d, move vanilla spells family by family onto the scripted runtime and bindings (shipped as readable Res\\spells\\ scripts or record fields), behaviour-exact (vanilla and Rebirth goldens the same, short eq checks), and delete the Spell::Type() switches and tables they replace. Split into batches if large."
+order = 1361

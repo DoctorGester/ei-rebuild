@@ -4,5 +4,5 @@ group = "mods"
 size = 3
 model = "opus"
 depends = ["MF15d"]
-note = "User 2026-11-11 approved MF15's plan (build/mf15_particles.md). Trails, Sparks, Stun, ZoneExit, Shower, smoke, TeleportRing, Portal first; then the state-machine types through MF15c's typed inputs, code driving inputs only."
+note = "User 2026-11-11 approved MF15's plan (build/mf15_particles.md). Trails, Sparks, Stun, ZoneExit, Shower, smoke, TeleportRing, Portal first; then the state-machine types through MF15c's typed inputs, code driving inputs only. User 2026-11-11: original content must use the same functionality modders get; the end state is every original effect on the data path (with typed-input extensions) and the per-type C++ emitters deleted, no second implementation kept."
 order = 1347
