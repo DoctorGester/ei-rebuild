@@ -559,7 +559,8 @@ void AfterEmission(ParticleSource& s, State& state) {
     EmitReactionParticles(s, state);
 }
 
-// The effects the actions started: free sources of their own, at the source's origin or at their place.
+// The effects the actions started: free sources of their own, at the source's origin or at their place (those of a
+// source on its own clock made by its clock's owner, g_startOwnClock).
 void StartEffects(ParticleSource& s, State& state) {
     for (const Started& started : state.effects) {
         int type = kNoParticleType;
@@ -569,7 +570,9 @@ void StartEffects(ParticleSource& s, State& state) {
             game::Warning("effects: %s: no effect %s to start", state.record->name, started.name);
             continue;
         }
-        ParticleSource* child = s.Manager()->CreateSource(type);
+        ParticleSource* child = lib::Has(s.flags, ParticleSourceFlag::OwnClock) && g_startOwnClock
+                                    ? g_startOwnClock(*s.Manager(), type)
+                                    : s.Manager()->CreateSource(type);
         if (!child) continue;
         child->localPosition = started.placed ? started.place : s.origin;
         child->Attach(nullptr);

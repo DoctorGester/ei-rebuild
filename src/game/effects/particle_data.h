@@ -14,6 +14,7 @@
 #include <string_view>
 #include <vector>
 
+class ParticleManager;
 class ParticleSource;
 struct Particle;
 struct Vector3;
@@ -67,6 +68,11 @@ int EmitData(ParticleSource& s, Particle& p, int index);
 int UpdateData(ParticleSource& s, Particle& p);
 // The particles the tick's actions asked for, before the regular emission (and while it is off).
 void EmitQueued(ParticleSource& s);
+
+// Makes the effects a source with ParticleSourceFlag::OwnClock starts (StartEffects: its `effect` actions) for what
+// ticks that source (the effect viewer, src/tools): each with OwnClock too, so it pauses and scrubs with its parent.
+// Null when no tool runs; the manager makes and holds the others (CreateSource).
+inline ParticleSource* (*g_startOwnClock)(ParticleManager& manager, int type) = nullptr;
 
 // ---- The inputs: how game code (and later Lua) drives an effect ------------------------------------------------------
 

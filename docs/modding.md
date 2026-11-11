@@ -708,10 +708,15 @@ Pick one and it plays. Its textures and figures are your install's, as the game 
     folder (`%LOCALAPPDATA%` on Windows). You can type another.
   - An edited built-in effect is saved whole with `replace = true` at the top, so your file is exactly what you saw.
   - The viewer writes nothing else, and nothing into the game folder unless you type that folder in.
-- **Code types** show the values their set-up gives the source (texture, frames, emission, sizes, spread), a start
-  for writing them as data.
-- **Limits**: effects that a data effect starts itself (its `effects` actions) run on the game's clock, so they do
-  not pause or scrub with it. The viewer is part of the game and is not in saves or network games.
+- **New effect**: type a name under the list and press New effect. It starts from the example above, plays at once
+  and is saved like any other.
+- **Code types** show the values their set-up gives the source (texture, frames, emission, sizes, spread). Convert
+  to data writes them as a starting file with one particle kind, which plays in their place in the viewer. The line
+  below says whether it sets the source up as the code does. The particles' motion is still yours to write. The game
+  reads such a file only once the type itself is on data. Back to code drops the conversion.
+- **Sub-effects**: effects that a data effect starts itself (its `effect` actions) play on the viewer's clock, so
+  they pause, step and scrub with it.
+- **Limits**: the viewer is part of the game and is not in saves or network games.
 
 ## Spells
 
