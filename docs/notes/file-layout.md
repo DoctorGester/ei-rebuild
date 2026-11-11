@@ -352,20 +352,20 @@ Risks:
 
 | Folder | Files | Lines today | Move batch |
 |---|---|---|---|
-| `ai/` | 28 | 12552 | C168f |
+| `ai/` | 28 | 12564 | C168f |
 | `app/` | 18 | 5308 | C168e |
 | `combat/` | 13 | 6383 | C168f |
 | `console/` | 5 | 2038 | C168e |
-| `core/` | 28 | 3902 | C168d |
-| `data/` | 25 | 8608 | C168d |
+| `core/` | 27 | 3783 | C168d |
+| `data/` | 25 | 8597 | C168d |
 | `effects/` | 28 | 9530 | C168g |
 | `items/` | 10 | 2958 | C168g |
 | `map/` | 11 | 3139 | C168e |
 | `models/` | 25 | 8220 | C168g |
 | `mods/` | 9 | 802 | C168d |
 | `net/` | 23 | 8423 | C168h |
-| `objects/` | 23 | 8216 | C168f |
-| `players/` | 24 | 5478 | C168e |
+| `objects/` | 23 | 8233 | C168f |
+| `players/` | 24 | 5486 | C168e |
 | `saves/` | 7 | 848 | C168d |
 | `scene/` | 30 | 4393 | C168g |
 | `script/` | 33 | 11590 | C168h |
@@ -374,8 +374,8 @@ Risks:
 | `terrain/` | 12 | 3560 | C168g |
 | `ui/` | 97 | 33145 | C168h |
 | `units/` | 27 | 9843 | C168f |
-| `world/` | 35 | 10253 | C168e |
-| all | 523 | 163082 | |
+| `world/` | 36 | 10306 | C168e |
+| all | 523 | 163042 | |
 
 570 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
 
@@ -507,13 +507,12 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | engine_object.cpp | core/engine_object.cpp |  |  |
 | engine_object.h | core/engine_object.h |  |  |
 | hash_tables_400.h | core/id_tables.h |  | address-named: the id tables' map members (namespace idtable since C168b) |
-| manager_context.cpp | core/manager_context.cpp |  |  |
 | manager_context.h | core/manager_context.h |  |  |
 | named_floats.cpp | core/named_floats.cpp | new | NamedFloatTable's members, out of object_tables.cpp |
 | named_floats.h | core/named_floats.h | new | NamedFloatTable, out of object_tables.h |
 | random.cpp | core/random.cpp |  |  |
 | random.h | core/random.h |  |  |
-| counted_ref.cpp | core/ref.cpp |  | the counted references' out-of-line code (Ref<T> by id, the unit lists): named for ref.h |
+| counted_ref.cpp | core/ref.cpp |  | named for ref.h; Ref<T> by id and the unit lists are the game's (objects/map_object_manager.cpp, ai/unit_ai.cpp) |
 | core_refcount.cpp | core/ref.cpp | fold | RefObject's two members (13 lines) beside the references' save and load |
 | ref.h | core/ref.h |  |  |
 | text_split.cpp | core/text_split.cpp |  |  |
@@ -1046,6 +1045,7 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | frame_lists.h | world/frame_lists.h |  |  |
 | object.h | world/hoover.h |  | grab-bag name: holds only Hoover |
 | world_rules.cpp | world/local_player.cpp | split | "rules" holds the local player's queries (GameTime, LocalPlayerData ...); DepthLess -> world/world_client_maps.cpp, its only user (C168b) |
+| manager_context.cpp | world/manager_context.cpp |  | ManagerContext's members answer from the world (the header stays in core/: the engine's managers hold a context) |
 | address_order.cpp | world/object_order.cpp |  | with world/object_order.h |
 | address_order.h | world/object_order.h |  | orders without addresses (namespace object_order since C168b) |
 | quest_database.cpp | world/quest_database.cpp |  |  |

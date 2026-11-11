@@ -22,12 +22,12 @@ engine_object.cpp           core/engine_object.cpp
 base_manager.h              core/base_manager.h
 base_manager.cpp            core/base_manager.cpp
 manager_context.h           core/manager_context.h
-manager_context.cpp         core/manager_context.cpp
+manager_context.cpp         world/manager_context.cpp         # ManagerContext's members answer from the world (the header stays in core/: the engine's managers hold a context)
 engine_globals.h            core/engine_globals.h
 ref.h                       core/ref.h
 core_refcount.h             core/core_refcount.h
 core_refcount.cpp           core/ref.cpp                fold  # RefObject's two members (13 lines) beside the references' save and load
-counted_ref.cpp             core/ref.cpp                      # the counted references' out-of-line code (Ref<T> by id, the unit lists): named for ref.h
+counted_ref.cpp             core/ref.cpp                      # named for ref.h; Ref<T> by id and the unit lists are the game's (objects/map_object_manager.cpp, ai/unit_ai.cpp)
 hash_tables_400.h           core/id_tables.h                  # address-named: the id tables' map members (namespace idtable since C168b)
 core_streams.h              core/core_streams.h
 core_streams.cpp            core/core_streams.cpp

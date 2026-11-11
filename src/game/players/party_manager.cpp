@@ -143,6 +143,14 @@ void NamedPartyRecords::Serialize(ChunkArchive* ar) {
 
 // ---- The archived objects (Serialize) ---------------------------------------------------
 
+RefCounted* CreateArchived(ArchiveClass type) {
+    switch (type) {
+    case ArchiveClass::ClassTemplate: return new ClassTemplate();
+    case ArchiveClass::PartyRecord: return new PartyRecord();
+    default: return nullptr;
+    }
+}
+
 void PartyRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(1, &name);
     party.ArchiveParty(ar, 2);

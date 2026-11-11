@@ -2,10 +2,8 @@
 // fields, whole archives over a stream. See docs/notes/core.md.
 #include "game/data/chunk_archive.h"
 
-#include "game/players/class_templates.h"
 #include "game/core/core_refcount.h"
 #include "game/core/id_tables.h"
-#include "game/players/party_records.h"
 
 #include "lib/bytes.h"
 
@@ -26,15 +24,6 @@ T ValueAt(const std::uint8_t* p) {
     return lib::Load<T>(p);
 }
 const char* TextAt(const std::uint8_t* p) { return reinterpret_cast<const char*>(p); }
-
-// The object an index entry's class id stands for, new with no references; null for any other id.
-RefCounted* CreateArchived(ArchiveClass type) {
-    switch (type) {
-    case ArchiveClass::ClassTemplate: return new ClassTemplate();
-    case ArchiveClass::PartyRecord: return new PartyRecord();
-    default: return nullptr;
-    }
-}
 
 // The record chunk the Open / Close loops push on the stack: child 1 of the current chunk.
 ChunkArchive::Ref* PushRecordChunk(ChunkArchive* archive) {

@@ -42,6 +42,11 @@ constexpr bool IsUnitType(MapObjectType type) {
     return type >= MapObjectType::Hero && type <= MapObjectType::UnitSpare;
 }
 
+// A counted engine object's id saved (-1: none) or read back: -1 resets `ref`, any other id is looked up in
+// `world`'s map object manager.
+template <typename T>
+void LoadRef(Ref<T>& ref, ByteStream* stream, World* world);
+
 // The map object manager ("map objects", class id 0x2D).
 struct MapObjectManager : ResourceManager {
     MapObjectManager();

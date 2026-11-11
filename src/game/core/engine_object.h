@@ -145,11 +145,6 @@ public:
     std::uint32_t prototypeId = 0;
 };
 
-// A counted engine object's id saved (-1: none) or read back: -1 resets `ref`, any other id is looked up in
-// `world`'s map object manager.
-template <typename T>
-void LoadRef(Ref<T>& ref, ByteStream* stream, World* world);
-
 // A list or vector of counted object pointers emptied: each released (head first), then cleared.
 template <typename Container>
 void ReleaseAndClear(Container& objects) {

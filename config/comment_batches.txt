@@ -787,7 +787,7 @@ src/game/app/logic_settings.cpp
 src/game/app/logic_settings.h
 src/game/objects/traps.cpp
 src/game/objects/traps.h
-src/game/core/manager_context.cpp
+src/game/world/manager_context.cpp
 src/game/core/manager_context.h
 src/game/models/material.cpp
 src/game/models/material.h
@@ -1118,7 +1118,7 @@ src/game/app/logic_settings.cpp
 src/game/app/logic_settings.h
 src/game/objects/traps.cpp
 src/game/objects/traps.h
-src/game/core/manager_context.cpp
+src/game/world/manager_context.cpp
 src/game/core/manager_context.h
 src/game/map/map_database.cpp
 src/game/objects/map_object.cpp
