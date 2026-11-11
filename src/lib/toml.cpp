@@ -1,6 +1,8 @@
 // TOML documents: the reader over tomlc17 and our writer (toml.h).
 #include "lib/toml.h"
 
+#include "lib/str.h"
+
 #include <bit>
 #include <charconv>
 #include <cmath>
@@ -117,7 +119,7 @@ std::string ShortestFloat(float value) {
     char buffer[64];
     auto written = std::to_chars(buffer, buffer + sizeof(buffer), value);
     double back = 0.0;
-    std::from_chars(buffer, written.ptr, back);
+    str::FloatFromChars(std::string_view(buffer, written.ptr), back);
     if (std::bit_cast<std::uint32_t>(static_cast<float>(back)) != std::bit_cast<std::uint32_t>(value))
         written = std::to_chars(buffer, buffer + sizeof(buffer), static_cast<double>(value));
     return std::string(buffer, written.ptr);

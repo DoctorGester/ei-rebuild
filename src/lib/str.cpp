@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <cstdint>
 #include <limits>
+#include <type_traits>
 
 namespace str {
 
@@ -102,7 +103,10 @@ std::optional<int> ParseInt(std::string_view text) {
     return magnitude > kMost ? INT32_MAX : static_cast<int>(magnitude);
 }
 
-std::from_chars_result FloatFromChars(std::string_view text, float& value, std::chars_format format) {
+namespace {
+
+template <typename Number>
+std::from_chars_result FromChars(std::string_view text, Number& value, std::chars_format format) {
     const char* first = text.data();
 #if defined(__cpp_lib_to_chars)
     return std::from_chars(first, first + text.size(), value, format);
@@ -113,21 +117,32 @@ std::from_chars_result FloatFromChars(std::string_view text, float& value, std::
     const bool hex = format == std::chars_format::hex;
     // strtof takes a "0x" as hexadecimal: the hex format's digits get one, the general format stops at its "x".
     if (!hex && text.size() > sign + 1 && text[sign] == '0' && (text[sign + 1] == 'x' || text[sign + 1] == 'X')) {
-        value = sign ? -0.0f : 0.0f;
+        value = sign ? -Number(0) : Number(0);
         return {first + sign + 1, std::errc()};
     }
     const std::string prefix = hex ? "0x" : "";
     const std::string terminated = std::string(text.substr(0, sign)) + prefix + std::string(text.substr(sign));
     char* end = nullptr;
     errno = 0;
-    const float number = std::strtof(terminated.c_str(), &end);
+    const Number number = std::is_same_v<Number, float> ? std::strtof(terminated.c_str(), &end)
+                                                       : std::strtod(terminated.c_str(), &end);
     if (end == terminated.c_str() || (hex && end <= terminated.c_str() + sign + prefix.size())) return none;
     const char* ptr = first + (end - terminated.c_str()) - prefix.size();
     // Out of range is infinite or zero (value untouched, as from_chars leaves it); subnormals are in range.
-    if (errno == ERANGE && (number == 0.0f || std::isinf(number))) return {ptr, std::errc::result_out_of_range};
+    if (errno == ERANGE && (number == Number(0) || std::isinf(number))) return {ptr, std::errc::result_out_of_range};
     value = number;
     return {ptr, std::errc()};
 #endif
+}
+
+}   // namespace
+
+std::from_chars_result FloatFromChars(std::string_view text, float& value, std::chars_format format) {
+    return FromChars(text, value, format);
+}
+
+std::from_chars_result FloatFromChars(std::string_view text, double& value, std::chars_format format) {
+    return FromChars(text, value, format);
 }
 
 float ToFloat(std::string_view text) {

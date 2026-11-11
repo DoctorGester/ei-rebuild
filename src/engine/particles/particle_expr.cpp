@@ -6,6 +6,7 @@
 #include "engine/core/random.h"
 
 #include "lib/maths.h"
+#include "lib/str.h"
 #include "lib/vecmath.h"
 
 #include <charconv>
@@ -315,7 +316,7 @@ private:
     int Number() {
         float value = 0.0f;
         const char* first = text.data() + at;
-        const auto [end, failed] = std::from_chars(first, text.data() + text.size(), value);
+        const auto [end, failed] = str::FloatFromChars(text.substr(at), value);
         if (failed != std::errc()) {
             Fail("not a number");
             return 1;
@@ -745,7 +746,8 @@ int RunScalars(const std::vector<Instruction>& code, std::size_t end, const Env&
             stack[top] = env.anchorAt ? env.anchorAt(env.anchorContext, i.count, i.scope, i.index, stack[top]) : 0.0f;
             break;
         case Op::Swizzle:
-        case Op::Construct: break;   // never in a program of scalars (Classify)
+        case Op::Construct:
+        case Op::ListAt: break;   // never in a program of scalars (Classify)
         }
     }
     return top;

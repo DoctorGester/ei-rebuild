@@ -1,6 +1,7 @@
 // JSON read and written: see json.h.
 #include "lib/json.h"
 
+#include "lib/str.h"
 #include "lib/toml.h"   // toml::Float: the shortest text of a float
 
 #include <charconv>
@@ -94,7 +95,7 @@ private:
                                     text[at] == 'E' || text[at] == '+' || text[at] == '-'))
             ++at;
         // from_chars takes no plus sign at the start, which JSON has none of either.
-        const auto read = std::from_chars(text.data() + start, text.data() + at, out->number);
+        const auto read = str::FloatFromChars(text.substr(start, at - start), out->number);
         if (read.ec != std::errc() || read.ptr != text.data() + at || at == start) return Fail("not a number");
         out->type = Value::Type::Number;
         return true;

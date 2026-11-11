@@ -23,6 +23,7 @@
 
 #include "lib/bit_flags.h"
 #include "lib/maths.h"
+#include "lib/str.h"
 
 #include <algorithm>
 #include <bit>
@@ -584,7 +585,7 @@ Measures Parse(std::string_view line) {
         at = end + 1;
         if (word.empty()) continue;
         double value = 0.0;
-        if (!measures.labels.empty() && std::from_chars(word.data(), word.data() + word.size(), value).ec == std::errc())
+        if (!measures.labels.empty() && str::FloatFromChars(word, value).ec == std::errc())
             measures.labels.back().second.push_back(value);
         else
             measures.labels.push_back({word, {}});

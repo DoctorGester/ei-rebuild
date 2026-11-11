@@ -13,6 +13,7 @@
 
 #include "lib/maths.h"
 #include "lib/bit_flags.h"
+#include "lib/str.h"
 #include "lib/text_case.h"
 #include "platform/log.h"
 #include "platform/platform.h"
@@ -81,7 +82,7 @@ std::vector<std::string> Words(std::string_view line) {
 
 bool Number(std::string_view text, float* value) {
     const char* end = text.data() + text.size();
-    const auto [stop, error] = std::from_chars(text.data(), end, *value);
+    const auto [stop, error] = str::FloatFromChars(text, *value);
     return error == std::errc() && stop == end;
 }
 

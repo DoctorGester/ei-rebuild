@@ -3,6 +3,7 @@
 
 #include "engine/core/asset_text.h"
 #include "game/script/script_lua.h"
+#include "lib/str.h"
 
 #include <algorithm>
 #include <bit>
@@ -69,7 +70,7 @@ std::string LuaNumber(float value) {
     if (value == 0.0f) return std::signbit(value) ? "-0.0" : "0";
     const auto readsBack = [&](const std::string& text) {
         double read = 0.0;
-        std::from_chars(text.data(), text.data() + text.size(), read);
+        str::FloatFromChars(text, read);
         return std::bit_cast<std::uint32_t>(static_cast<float>(read)) == std::bit_cast<std::uint32_t>(value);
     };
     std::string text = std::format("{}", value);
