@@ -215,6 +215,18 @@ script's. Checked by `ei-convert --lua-check` (build checks; ctest `port_lua`) a
   the variables (the scheduler's tick and `Script::PurgeDeletedObjects` call it on the script's runtime). `NewGroup()`
   and `CopyGroup(g)` are the two
   helpers: a group value is shared by reference, the game's assignment copied.
+- **The collector's pause is 100%** (`ScriptLua::ScriptLua`). A value leaves the list only in its finalizer, so the
+  walk also visits every dead value not yet finalized, and nearly all of them are dead: zone1's script holds 16 object
+  and 7 group values, and makes about 6,000 and 3,000 more each cycle (every binding result, every `g[i]`, the actions'
+  copies). Lua 5.3 frees a value with a finalizer a cycle after it died and counts it live when it sets the next pause,
+  so at the default 200% the dead values grow every cycle. In `effect_hooks_cost` (zone1, about 9,700 world ticks,
+  two walks a tick) the peaks grew from 6,000 to 26,000 object and 13,000 group values, the Lua heap from 1.5 to 5.8 MB
+  (356 KB live), and the world updates from 0.3 to 0.9 ms a frame. The nodes are scattered, so the cost per node
+  depends on what else is using the cache. MF15f1 saw up to 7 ms a frame, the walk at 45% of the samples. At 100% a
+  cycle starts as soon as the last one ends: the walks visit about 870 values (at most 3,100), the heap stays under
+  1 MB, the world updates take 0.21-0.29 ms a frame in every segment, and the main thread uses less CPU. At 150% the
+  peak is about 8,400. When values are collected changes no game state. Removed objects are released by the walks,
+  not by the finalizers.
 - **Persistence.** `ScriptLua::Persist` / `Unpersist` (Eris) with permanents built at start: the globals table itself
   and every function in it and in the libraries' tables by name (`_G.GetObject`, `coroutine.yield`), and the hidden
   helpers. So the globals are not in the data (the scheduler's Save adds the scripts' own: "Saves"), and a coroutine
