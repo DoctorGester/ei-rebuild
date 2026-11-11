@@ -447,6 +447,48 @@ The runtime has what they need from MF15j: `ground(x, y)` (anchors on the ground
 Still to add: inputs the server sets and every client replicates (today only the client's sources take SetInput /
 Fire; MF15j2). No original type needs them.
 
+### The format review (MF15l)
+
+Found in the 83 files (user 2026-11-11: exactness dropped, an effect may drift if it looks the same overall):
+- **Vectors written as three floats**: `origin.x` 100 times in 45 files, 29 `position` start / tick pairs of three
+  strings, var triples (`px py pz`, `vx vy vz`, `dx dy dz`), 22 normalisations spelt `1 / sqrt(x * x + y * y + z * z)`,
+  `ball_x() / ball_y() / ball_z()`, `platform_normal_x / _y / _z`, `path.x[i]`, three `at_create` vars for the sun.
+- **Start equal to tick**: 36 vars and 8 positions repeat one expression as both.
+- **The kept update after death** ("Kept" above): 72 guards `p.age == <end> ? old : new` in 24 files, and 35 kinds with
+  `lifetime = 1000000000` or `2147483647` plus a `kill` on their age, only so the update a dead particle still got
+  matched the original's.
+- **Spawn shapes as a special table** (`shape`, `radius`, `min`, `max`, `from`, `to`, `tries`, `shift`, `offset`,
+  `on_ground`) and the motion fields `speed`, `drag`, `gravity`, `wind`, `growth`: each a fixed formula the
+  expression language can say; `after_spawn` only orders vars around the shape's draw.
+- **Anchors placed two ways** (`x / y / z` or `radius / angle`).
+- **Whole files that are variants but for order**: CastingDivination (a kind before the base's), VisionStar2 and
+  CampFire (vars before the base's), Transform (a reaction less).
+
+Proposals (implemented in this order; each step re-records effect_check's reference where effects move, checked by
+the coarse compare and the viewer's captures):
+1. effect_check's coarse mode: per case and quarter of its ticks, particle counts, lifetimes, bounds, average size and
+   colour, within a tolerance (tests/effects/coarse.txt, recorded before any change).
+2. Vector values: every value is four floats (a v4 stack, scalars broadcast to all lanes; the compiler knows each
+   value's width, so a random draw draws once per lane it fills and a scalar context reads `.x`). Swizzles (`.x`,
+   `.xy`, `.rgb`) on any name or `(...)` / `[...]`; `vec2() vec3() vec4()`; `dot length normalize cross distance`;
+   math functions per lane; `range(lo, hi)` on vectors draws each lane; `ball() shell() disc()` and `circle(angle)`
+   return points; `ground surface platform_height platform_normal on_ground` take a point. Names: `origin`, `motion`,
+   `wind`, `extent`, `spread_min / max`, `side`, `up`, `sun`, the carrier's axes and feet, `p.position`, `p.velocity`,
+   `p.color`, `p.spawn`, `a.position`, `a.spawn`, a vector input, `path[i]`, `group.var[i]`; vars take the width of
+   their expressions (a particle's eight floats hold its vars, a vector three).
+3. One field form: a field is a value (its start) or `{ start, tick }`; `tick` alone starts with the same expression.
+   `spawn` is one point expression (the default `0`), drawn before the vars; `position` defaults to the centre plus
+   `p.spawn` and to moving by the velocity; `velocity = { start, tick }` replaces `speed`, `drag`, `gravity`, `wind`;
+   `size`'s `growth` is a tick; an anchor's `position` replaces `x / y / z / radius / angle`; `color` is `"RRGGBB"` or a
+   vector expression. `after_spawn`, `tries`, `shift`, `offset`, `on_ground`, `ball_x/y/z`, `platform_normal_x/y/z`
+   and the scalar `p.x / p.vx / a.x` names go.
+4. The update after death goes: a dead particle is drawn once more where it was and then pooled without an update, so
+   the age guards go and those kinds take a plain `lifetime`.
+5. Variants: a new keyed element (`[[particle]]`, `[[anchor]]`, `[[stage]]`, `[[on]]` with a `name`) or var takes
+   `before = "<name>"`, and `remove = true` takes the base's out: the four whole files become variants.
+6. The files rewritten in the new form (shorter, saying what they mean); the showcase mod and docs/modding.md
+   "Effects" to match, with a migration note for older mod files.
+
 ### Checks
 
 - `ei-convert --effect-check` (build checks; ctest `port_effects`; tools/convert/effect_check.cpp): every original type
