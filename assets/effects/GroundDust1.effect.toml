@@ -3,6 +3,7 @@
 # grain from 128 on would take one of the four diagonals, 32 each), speeding up by 1.05 a tick, never below the
 # ground nor the plane of the platform under the source (as measured at the first tick), 0.1 above them. Each lives
 # 6 ticks, fading in and out by the table. It ticks while the game is paused.
+# GroundDust2 is built on it (like = "GroundDust1"): what changes here changes it too.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
 texture = "ShapeChange"

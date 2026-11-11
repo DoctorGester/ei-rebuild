@@ -4,6 +4,7 @@
 # size (0.75 to 1.25), its alpha 160 times the source's alpha (at most 255), its frames cycling from a random one.
 # The puffs stay while the source emits; once it stops, each tick their alpha falls by 4.5 times the source's alpha
 # (at least 1) as a byte that wraps below 0, and a puff goes once its alpha is 9 or less.
+# PoisonCloud is built on it (like = "PoisonFog"): what changes here changes it too.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
 texture = "PoisonCloud"

@@ -672,8 +672,34 @@ frame = { start = "pick(16)", delay = 1 }
   game gives (`path.count`, `path.x[i]`, `path.y[i]`, `path.z[i]`), with a `default = [[x, y, z], ...]`.
 - **When a particle dies**: `on_death = [{ emit = 4, kind = "ember" }, { effect = "Sparks" }]` emits particles of
   another kind where it died, at once, or starts an effect there.
-- **Layers**: a mod's file of the name merges over a lower one field by field, a particle kind or stage by its `name`;
+- **Layers**: a mod's file of the name merges over a lower one field by field, by the rule of variants below;
   `replace = true` replaces it whole.
+- **Variants**: `like = "<effect>"` starts your effect from that effect as the game has it (with every mod's files
+  over it, and its own `like` if it has one); your file names only what differs:
+  ```
+  like = "CastingIllusion"   # the illusionist's cast, with one light turning faster, on the healer's texture
+  texture = "Casting1"
+
+  [vars]
+  orbiters = 1
+  turn = 0.5
+  ```
+  Your fields merge over the base's:
+  - A table (`[vars]`, `[emit]`, a kind's `size = { ... }`) merges key by key. A value you give replaces the base's,
+    in its place; a new key is added.
+  - `[[particle]]`, `[[stage]]` and `[[anchor]]` merge with the base's of the same `name`; a new name is added after
+    the base's.
+  - `[[on]]` merges with the base's of the same `event`, in order: your first `[[on]] event = "tick"` with the base's
+    first "tick" reaction, your second with its second; one more than the base has is added.
+  - A list of actions (`do`, `enter`, `on_death`) and a list of numbers (a table, a vector, a colour) replace the
+    base's whole.
+  - Nothing can be taken out: an effect that needs less than its base, or a new kind or var before the base's
+    (kinds are tried in order, vars tick in order), is written whole.
+
+  Your effect keeps its own name. A mod that changes the base changes your variant too, where your file does not name
+  that field. A missing base, or a chain that comes back to itself, is a problem: the effect shows nothing. The game's
+  own families are written this way (CastingDomination, CastingEnchantment and CastingHealing on CastingIllusion,
+  Shower2-4 on Shower1, the Modifier rings).
 - **Placing a particle yourself**: `position = [x, y, z]` starts it where the expressions say (`origin.x`, the
   source's motion, its `side` and `up` axes), and `position = { tick = [...] }` moves it each tick by your own sum
   instead of its velocity.
@@ -727,6 +753,7 @@ Pick one and it plays. Its textures and figures are your install's, as the game 
   - The Fields tab edits it value by value. The Text tab edits it as text.
   - Every change plays at once, from the start up to the tick you were at. Problems are listed under it.
   - Fields drops the text's comments; Text keeps them.
+  - A variant (`like`) plays as it resolves over its base; Fields and Text show its own file, the fields it names.
 - **Save** writes `<folder>\Res\effects\<name>.effect.toml`.
   - The folder is your active mod's when it lies outside the game folder, else `ei-rebuild-effects` in your user data
     folder (`%LOCALAPPDATA%` on Windows). You can type another.

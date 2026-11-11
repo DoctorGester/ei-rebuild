@@ -10,6 +10,8 @@
 # The ring's lift is the source's spread_min.x (as the original kept it: ScaleSize scales it). A marker's and a spark's
 # end is a `kill` at its own age: the update the original still gives them after their end moves them
 # (docs/notes/effects.md, "Kept"), so a spark's velocity is left alone at that update.
+# Modifier2, Modifier3, Modifier4, Modifier5 and Modifier9 are built on it (like = "Modifier1"): what changes here
+# changes them too.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
 texture = "Stun"

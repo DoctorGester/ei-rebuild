@@ -142,6 +142,11 @@ bool EffectDocument::Apply() {
     }
     if (!merged.Exists()) merged = std::move(edited);
     else effectdata::MergeOver(merged, edited);
+    if (!effectdata::ResolveLike(merged, name, &said)) {
+        problems = std::move(said);
+        problems.push_back(name + " does not load: it shows nothing");
+        return false;
+    }
     std::shared_ptr<const effectdata::Record> read = effectdata::Read(merged, name, &said, id);
     problems = std::move(said);
     if (!read) {

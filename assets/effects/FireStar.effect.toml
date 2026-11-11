@@ -1,5 +1,6 @@
 # FireStar (0x2041): the fire arrow's flash where it hits a unit. One particle at the source, hidden in the tick it is
 # made, then shown two ticks at the source's size and 0.9 of it; the source stops emitting at once.
+# AcidStar is built on it (like = "FireStar"): what changes here changes it too.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
 texture = "FireArrowSmoke"

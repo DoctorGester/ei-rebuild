@@ -1,67 +1,21 @@
-# Antimagic (0x201A, the AntiMagic texture): the antimagic sphere around a unit. Once a tick that emits, the
-# sphere follows its carrier: its height eases (0.1 a tick) towards the carrier's centre and its radius towards 1.2
-# times the carrier's radius, the carrier's motion is smoothed (0.7 of the last kept) and the next tick's tries are 24
-# times the source's size (rounded; 1 to begin with), 90% each. A spark starts on the shell of 0.65 of the radius,
-# turns 0.01 radians a tick about the vertical and, while the carrier moves, is squashed against its motion (the part
-# of its offset against the motion taken off, up to all of the motion); its size by the life table over 4 ticks, a
-# random 0.7-1.3 (one in eleven 2.5-3.5) of the radius; 15 frames from a random one of 0-10.
-# A spark's update reads the sphere as the last tick's follow left it (the original follows at this tick's emission).
+# Antimagic (0x201A, the AntiMagic texture): the antimagic sphere around a unit, SphereFire's (its file says how the
+# sphere follows and the sparks move) with 24 tries a tick per size, the sparks at the radius's part (one in eleven
+# 2.5-3.5 of it), living 4 ticks by their own life table.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
+like = "SphereFire"
 texture = "AntiMagic"
-frames = 15
-blend = "additive"
-attach = "attached_only"
-
-[source]
-spread_min = [-0.2, -0.2, -1]
-spread_max = [0.2, 0.2, 0]
-
-[emit]
-rate = "tries"
-chance = 90
 
 [vars]
-tries = { start = 1, tick = "next_tries" }      # this tick's
-last_height = { start = 0, tick = "sphere_height" }     # the sphere before this tick's follow
-last_radius = { start = 0, tick = "sphere_radius" }
-last_speed = { start = 0, tick = "speed" }
-last_x = { start = 0, tick = "moved_x" }
-last_y = { start = 0, tick = "moved_y" }
-last_z = { start = 0, tick = "moved_z" }
-was_set_up = { start = 0, tick = "set_up" }
-follow = { start = "emitting && attached && tries > 0", tick = "emitting && attached && tries > 0" }
-sphere_height = { start = "follow ? carrier_z * 0.9 + carrier_z * 0.1 : 0", tick = "follow ? (was_set_up ? sphere_height : carrier_z) * 0.9 + carrier_z * 0.1 : sphere_height" }
-sphere_radius = { start = "follow ? carrier_radius * 1.2 * 0.1 + carrier_radius * 1.2 * 0.9 : 0", tick = "follow ? carrier_radius * 1.2 * 0.1 + (was_set_up ? sphere_radius : carrier_radius * 1.2) * 0.9 : sphere_radius" }
-moved_x = { start = "follow ? 0 * 0.7 + motion.x : 0", tick = "follow ? (was_set_up ? moved_x : 0) * 0.7 + motion.x : moved_x" }   # the smoothed motion
-moved_y = { start = "follow ? 0 * 0.7 + motion.y : 0", tick = "follow ? (was_set_up ? moved_y : 0) * 0.7 + motion.y : moved_y" }
-moved_z = { start = "follow ? 0 * 0.7 + motion.z : 0", tick = "follow ? (was_set_up ? moved_z : 0) * 0.7 + motion.z : moved_z" }
-speed = { start = "follow ? (sqrt(moved_x * moved_x + moved_y * moved_y + moved_z * moved_z) < 0.01 ? 0 : sqrt(moved_x * moved_x + moved_y * moved_y + moved_z * moved_z)) : 0", tick = "follow ? (sqrt(moved_x * moved_x + moved_y * moved_y + moved_z * moved_z) < 0.01 ? 0 : sqrt(moved_x * moved_x + moved_y * moved_y + moved_z * moved_z)) : speed" }
 next_tries = { start = "follow ? round(size * 24) : 1", tick = "follow ? round(size * 24) : next_tries" }
-set_up = { start = "follow", tick = "set_up || follow" }
 
 [[particle]]
 name = "spark"
-lifetime = 1000000000                           # its own life below: its update after its end still moves it
-spawn = { shape = "ball" }
 size = { start = "by_life[4] * p.big * sphere_radius", tick = "(p.l < 0 ? 0.01 : by_life[p.l]) * p.big * last_radius" }
-frame = { start = "p.cell", tick = "(p.frame + 1) % 15" }
-kill = "p.l == 0"
 
 [particle.vars]
 big = "pick(11) == 0 ? range(0, 1) + 2.5 : below(0.6) + 0.7"
 l = { start = 4, tick = "p.l - 1" }
-was_x = { start = 0, tick = "p.l == 0 ? p.was_x : p.shell_x" }      # before this tick's turn
-shell_x = { start = "p.spawn.x * (sphere_radius * 0.65 / sqrt(p.spawn.x * p.spawn.x + p.spawn.y * p.spawn.y + p.spawn.z * p.spawn.z))", tick = "p.l == 0 ? p.shell_x : cos(0.01) * p.shell_x - sin(0.01) * p.shell_y", after_spawn = true }
-shell_y = { start = "p.spawn.y * (sphere_radius * 0.65 / sqrt(p.spawn.x * p.spawn.x + p.spawn.y * p.spawn.y + p.spawn.z * p.spawn.z))", tick = "p.l == 0 ? p.shell_y : cos(0.01) * p.shell_y + p.was_x * sin(0.01)", after_spawn = true }
-shell_z = { start = "p.spawn.z * (sphere_radius * 0.65 / sqrt(p.spawn.x * p.spawn.x + p.spawn.y * p.spawn.y + p.spawn.z * p.spawn.z))", after_spawn = true }
-cell = { start = "pick(11)", after_spawn = true }
-
-# The offset: the shell point less the smoothed motion times t = -(motion . shell / speed), held to [0, 1], while the
-# carrier moves.
-[particle.position]
-start = ["origin.x + 0 + (speed > 0.01 ? p.shell_x - moved_x * max(min(-((moved_x * p.shell_x + moved_y * p.shell_y + moved_z * p.shell_z) / speed), 1), 0) : p.shell_x)", "origin.y + 0 + (speed > 0.01 ? p.shell_y - moved_y * max(min(-((moved_x * p.shell_x + moved_y * p.shell_y + moved_z * p.shell_z) / speed), 1), 0) : p.shell_y)", "origin.z + sphere_height + (speed > 0.01 ? p.shell_z - moved_z * max(min(-((moved_x * p.shell_x + moved_y * p.shell_y + moved_z * p.shell_z) / speed), 1), 0) : p.shell_z)"]
-tick = ["(last_speed > 0.01 ? p.shell_x - max(min(-((p.shell_x * last_x + p.shell_y * last_y + p.shell_z * last_z) / last_speed), 1), 0) * last_x : p.shell_x) + (origin.x + 0)", "(last_speed > 0.01 ? p.shell_y - max(min(-((p.shell_x * last_x + p.shell_y * last_y + p.shell_z * last_z) / last_speed), 1), 0) * last_y : p.shell_y) + (origin.y + 0)", "(last_speed > 0.01 ? p.shell_z - max(min(-((p.shell_x * last_x + p.shell_y * last_y + p.shell_z * last_z) / last_speed), 1), 0) * last_z : p.shell_z) + (origin.z + last_height)"]
 
 [tables]
 by_life = [0.01, 0.015, 0.02, 0.03, 0.015, 0.01]   # before it (its update after its end): 0.01

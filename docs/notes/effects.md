@@ -78,8 +78,25 @@ particle side, the inputs). The guide for modders: docs/modding.md, "Effects".
   file of that name is read (`FindRecordFile(..., false)`: the TOML files alone) and merged field by field, the
   bottom one first (`MergeOver`): a table merges key by key, an array of tables (`[[stage]]`, `[[anchor]]`,
   `[[particle]]`, `[[on]]`) by its elements' `name` (`event` for `[[on]]`), matched to the first not yet merged, the
-  others appended; any other value replaces. `replace = true` ends the search as for every record file. So a mod
+  others appended; an array of tables none of which has a `name` or `event` (an action list: `do`, `enter`,
+  `on_death`) and any other value replace. `replace = true` ends the search as for every record file. So a mod
   retunes one particle kind of an effect with `[[particle]] name = "spark" lifetime = 20` alone.
+- **Variants** (`like = "<effect>"`, MF15g5a): after the layers merge, a `like` takes that effect's tree (its own
+  layers merged, its own `like` resolved first) and merges the effect's over it by the same `MergeOver`
+  (`effectdata::ResolveLike`, particle_record.cpp; the registry's `MergedLayers` answers a base's layers, and the
+  viewer's document resolves through the same function). The variant keeps its name, id and file; `like` is taken
+  out before `Read`. A missing base, a `like` that is not a name and a chain that comes back to an effect already in
+  it (`a -> b -> a`) are errors: the effect does not load. A mod's layer over a base reaches every variant of it
+  (accepted, user 2026-11-11). The registry caches records, not trees: a base edited in the viewer (`Put`) reaches its
+  variants only once its file is saved into an active layer and the registry resets.
+  33 original effects are variants (the ones that differed only in values): CastingDomination / Enchantment /
+  Healing on CastingIllusion, CastingElectricity / Acid on CastingFire, Falling2-4, Shower2-4, Modifier2-5 and 9 on
+  Modifier1, 6-8 on Modifier5, 10-12 on Modifier9, AcidStar on FireStar, RikArrowSmoke on FireArrow, FeetCloud2,
+  VisionStar3 / 4, PoisonCloud on PoisonFog, SphereAcid / Electricity and Antimagic on SphereFire, Cylinder2,
+  GroundDust2. Their resolved trees are the old files' (values replaced in place, so vars keep their order), and
+  effect_check holds unchanged. Left whole: CastingDivination (its marker kind must come before the spark: a new kind
+  is appended), VisionStar2 and CampFire (new vars that must tick before the base's), Transform (it drops one of
+  Mushroom's reactions; a variant cannot remove).
 - The id: `0x40000000 | (FNV-1a 32 of the lower-case name & 0x3FFFFFFF)` (`IdOf`), apart from the original
   `0x2000` range. It is the source's `type`, and the world object's (`EffectParticle::type`): it travels in the delta
   field and saves as the original types do. Two names with one id: the second is left out with a warning.
@@ -453,8 +470,11 @@ Fire; MF15j2). No original type needs them.
   `<group>.<var>[i]`, the particle writes to vars and anchor vars and `jump`, MF15g6's "spawn" reaction with its
   scorches and shake (and a refused emit), `at_create` anchors, a ball's `shift`, `surface(x, y)`, `sun.r/g/b` and the
   frame mode `free`, and every whole effect written out in
-  docs/modding.md (and in this file, which has none now) read without a problem (EI_SOURCE_DIR). The POSIX port check (`port_platform`) runs the
-  same checks.
+  docs/modding.md (and in this file, which has none now) read without a problem (EI_SOURCE_DIR); MF15g5a's `like`:
+  a variant over its base (a var and the texture replaced, a kind merged by name and one appended, a number array and
+  an `[[on]]`'s action list replaced whole), a chain of two, a mod's layer over the base reaching the variant, and a
+  missing base, a `like` to itself, a circle of two and a `like` that is no name refused with file and line. The
+  POSIX port check (`port_platform`) runs the same checks.
 - `mod_effect` (both installs; the showcase mod's `Res\effects\showcase_aura.effect.toml`): CreateParticleSource by
   name, the client's source and its stages (`effect ... check`), inputs set by value and by enum name, the burst's
   `set` seen (`effect ... value`), an event fired; captures `calm`, `storm`; an unknown name makes nothing.
@@ -508,7 +528,8 @@ camera, all without a second start-up. It also lets the harness drive the viewer
     still. The next tick's SavePrevious overwrites them first.
 - **Editing**:
   - The document is the effect's top layer: a mod's file, else the built-in file. The layers below it are merged under
-    it as `Registry::Load` merges them (tools/effect_document.cpp).
+    it as `Registry::Load` merges them (tools/effect_document.cpp), and a `like` resolves over its base's layers
+    (`effectdata::ResolveLike`): a variant plays resolved, while its Fields show its own file.
   - Each edit that reads gives a new record, which goes into the registry (`Registry::Put`), so any source of the name
     made afterwards plays it too.
   - The Fields tab edits the parsed tree and writes it back as TOML (`WriteToml`), which drops the text's comments.

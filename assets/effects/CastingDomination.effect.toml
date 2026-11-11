@@ -1,110 +1,12 @@
-# CastingDomination (0x202C, the Casting3 texture): a dominator's cast, one light orbiting the caster at half its
-# radius, 1.6 of it up, turning 0.5 radians a tick, shown by a flickering marker; sparks start between the light's
-# last place and its place now, a little off (the source's spread), and fall ever faster, shrinking, cycling their
-# last frames and fading over their last 7 of 28 ticks. Once the cast ends (the source stops emitting or loses its
-# carrier) the marker fades over 6 ticks.
-# CastingIllusion, CastingDomination, CastingEnchantment and CastingHealing differ only in [vars] and the texture.
+# CastingDomination (0x202C, the Casting3 texture): a dominator's cast, CastingIllusion's (its file says how the lights
+# and sparks move) with one light, 1.6 of the caster's radius up, turning 0.5 radians a tick, its sparks falling.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
+like = "CastingIllusion"
 texture = "Casting3"
-attach = "attached_only"
 
-[source]
-spread_min = [-0.04, -0.04, -0.04]
-spread_max = [0.04, 0.04, 0.04]
-
-[emit]
-rate = 10
-max = 600
-
-# The lights (orbiters), their turn a tick, their height and the sign of their sparks' rise.
 [vars]
 orbiters = 1
 turn = 0.5
 lift = 1.6
 sign = -1
-seen = 0
-
-[tables]
-fade = [0, 0, 32, 64, 112, 160, 208, 255, 255, 255, 255, 255, 255, 255, 207, 159, 111, 63, 15]
-
-# Each emission adds a light until there are `orbiters` of them, its marker the particle.
-[[on]]
-event = "before_emit"
-do = [{ set = "seen", value = "anchors.orb" }]
-
-[[on]]
-event = "before_emit"
-when = "anchors.orb < orbiters"
-do = [{ add_anchor = "orb" }]
-
-# A light: its place relative to the source (r*), in the world (w*) and last tick (o*). A later light takes the
-# first's orbit and carrier radius from its values (the original's reads; equal while the first has not turned).
-[[anchor]]
-name = "orb"
-count = 0
-
-[anchor.vars]
-carrier = "a.index == 0 ? carrier_radius : orb.scale[0]"
-orbit = "a.index == 0 ? carrier_radius * 0.5 : orb.rx[0]"
-angle = "(a.index * pi + a.index * pi) / orbiters"
-tc = "cos(turn)"
-ts = "sin(turn)"
-scale = "sign * a.carrier"
-rz = "a.carrier * lift"
-ox = { start = "origin.x + cos(a.angle) * a.orbit", tick = "a.wx" }
-oy = { start = "origin.y + sin(a.angle) * a.orbit", tick = "a.wy" }
-oz = { start = "origin.z + a.rz", tick = "a.wz" }
-orx = { start = 0, tick = "a.rx" }
-rx = { start = "cos(a.angle) * a.orbit", tick = "a.rx * a.tc + a.ry * a.ts" }
-ry = { start = "sin(a.angle) * a.orbit", tick = "a.tc * a.ry - a.orx * a.ts" }
-wx = { start = "origin.x + a.rx", tick = "origin.x + a.rx" }
-wy = { start = "origin.y + a.ry", tick = "origin.y + a.ry" }
-wz = { start = "origin.z + a.rz", tick = "origin.z + a.rz" }
-
-# A light's marker: on it, flickering; once the cast ends it fades by the table (l: its countdown).
-[[particle]]
-name = "marker"
-when = "anchors.orb > seen"
-at = "orb"
-anchor_index = "anchors.orb - 1"
-lifetime = 1000000000
-size = { start = 0, tick = "(below(0.4) + 0.8) * size * 0.4" }
-alpha = { start = 255, tick = "emitting && attached ? p.alpha : fade[p.l0 + 1]" }
-kill = "!(emitting && attached) && p.l0 < 0"
-
-[particle.position]
-start = ["a.wx", "a.wy", "a.wz"]
-tick = ["a.wx", "a.wy", "a.wz"]
-
-[particle.vars]
-l0 = { start = 6, tick = "p.l" }
-l = { start = 6, tick = "emitting && attached || p.l < 0 ? p.l : p.l - 1" }
-
-# A spark: from the light's last place plus the spread to a point between its last place and its place now (a*);
-# then up by its rise, which grows by 1.03 a tick. It dies at its 28th update; the update after still moves it, so
-# its state does not change at the 28th.
-[[particle]]
-name = "spark"
-at = "orb"
-anchor_index = "p.j"
-lifetime = 30
-spawn = { shape = "box" }
-size = { start = "(below(0.8) + 0.6) * size * 0.2", growth = 0.97 }
-alpha = { start = 255, tick = "28 - p.age < 7 ? fade[28 - p.age] : p.alpha" }
-frame = { start = 1, tick = "p.frame + 1 == 16 ? 12 : p.frame + 1" }
-kill = "p.age == 28"
-
-[particle.position]
-start = ["a.ox + p.spawn.x", "a.oy + p.spawn.y", "a.oz + p.spawn.z"]
-tick = ["p.ax", "p.ay", "p.oz"]
-
-[particle.vars]
-j = "pick(orbiters)"
-along = "range(0, 1)"
-rb = "below(0.35)"
-oz = { start = 0, tick = "p.az" }
-ax = { start = "p.spawn.x + (p.along * a.ox + (1 - p.along) * a.wx)", after_spawn = true }
-ay = { start = "p.spawn.y + (p.along * a.oy + (1 - p.along) * a.wy)", after_spawn = true }
-az = { start = "p.spawn.z + (p.along * a.oz + (1 - p.along) * a.wz)", tick = "p.age == 28 ? p.az : p.az + p.rise", after_spawn = true }
-rise = { start = "(p.rb + 0.85) * a.scale * 0.03", tick = "p.age == 28 ? p.rise : 1.03 * p.rise", after_spawn = true }

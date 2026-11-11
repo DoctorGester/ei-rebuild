@@ -6,6 +6,7 @@
 # of its offset against the motion taken off, up to all of the motion); its size by the life table over 15 ticks, a
 # random 0.7-1.3 (one in eleven 1.5-2.5) of the radius, doubled; 15 frames from a random one of 0-10.
 # A spark's update reads the sphere as the last tick's follow left it (the original follows at this tick's emission).
+# SphereAcid, SphereElectricity and Antimagic are built on it (like = "SphereFire"): what changes here changes them too.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
 texture = "ProtectionF"

@@ -1,22 +1,5 @@
 # AcidStar (0x2042): the acid ray's splash where it hits a unit; FireStar's flash on the AcidRay texture.
 # The original types on data: docs/notes/effects.md, "The original effects on data".
 
+like = "FireStar"
 texture = "AcidRay"
-attach = "attached_only"
-part = "body"
-
-[server]
-one_shot = 60
-script_lifetime = 20
-
-[emit]
-rate = 1
-once = true
-
-[[particle]]
-name = "flash"
-lifetime = 3
-vars = { flash = "size" }
-size = { start = 0, tick = "p.size == 0 ? p.flash : p.size * 0.9" }
-alpha = { start = 0, tick = 255 }
-frame = 15
