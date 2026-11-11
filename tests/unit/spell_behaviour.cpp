@@ -1,6 +1,6 @@
 // The spells' behaviours over a fake record table (src/game/spells/spell_behaviour.cpp): the game's places keep their
-// own behaviour and row whatever their fields say, a record past them reads its ai / damage_type / offensive /
-// ai_effect, and a table past 256 spells is cut to 256. ei_unit_check (unit_check.cpp) and the POSIX port check run it.
+// own behaviour and row whatever their fields say, a record past them or on a script reads its ai / damage_type /
+// offensive / turns_victim / fighting / ai_effect, and a table past 256 spells is cut to 256. ei_unit_check (unit_check.cpp) and the POSIX port check run it.
 #include "../../src/game/spells/spell_db.h"
 
 #include <cstdio>
@@ -50,10 +50,10 @@ int RunSpellBehaviourChecks() {
     Expect("stun: a curse that turns the victim, no damage, not fighting",
            stun.ai == SpellAi::Curse && stun.damageType == DamageType::Other && stun.offensive && stun.turnsVictim &&
                !stun.fighting);
-    const itemdb::SpellUse curse = UseOf(records[static_cast<int>(SpellType::CurseMagic)]);
-    Expect("curse magic: offensive lightning, not fighting", curse.ai == SpellAi::Attack &&
-                                                                 curse.damageType == DamageType::Lightning &&
-                                                                 curse.offensive && !curse.fighting);
+    const itemdb::SpellUse rick = UseOf(records[static_cast<int>(SpellType::RickMagic)]);
+    Expect("rick magic: offensive fire, not fighting", rick.ai == SpellAi::Attack &&
+                                                           rick.damageType == DamageType::Fire && rick.offensive &&
+                                                           !rick.fighting);
     const itemdb::SpellUse fireworks = UseOf(records[static_cast<int>(SpellType::Fireworks)]);
     Expect("fireworks: nothing", fireworks.ai == SpellAi::None && !fireworks.offensive && !fireworks.fighting);
 
@@ -78,7 +78,17 @@ int RunSpellBehaviourChecks() {
                                                         SpellType::Scripted &&
                                                     records[45].behaviour == SpellType::None);
     const itemdb::SpellUse scripted = UseOf(records[static_cast<int>(SpellType::Fireball)]);
-    Expect("a scripted record reads its fields", scripted.ai == SpellAi::Heal && scripted.offensive);
+    Expect("a scripted record reads its fields", scripted.ai == SpellAi::Heal && scripted.offensive &&
+                                                     scripted.turnsVictim && scripted.fighting);
+    // turns_victim and fighting given: their own, not offensive's (the curse magic's record: offensive, neither).
+    SpellRecord& curseMagic = records[static_cast<int>(SpellType::CurseMagic)];
+    curseMagic.script = "Lightning.lua";
+    curseMagic.turnsVictim = 0;
+    curseMagic.fighting = 0;
+    itemdb::SetBehaviours(records);
+    const itemdb::SpellUse curse = UseOf(curseMagic);
+    Expect("turns_victim and fighting of their own", curseMagic.behaviour == SpellType::Scripted && curse.offensive &&
+                                                         !curse.turnsVictim && !curse.fighting);
 
     // ai_effect: the AI's curse / protect / enhance test looks for the behaviour of the record it names, else for the
     // record's own; a game row's is its own whatever the field says.

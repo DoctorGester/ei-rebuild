@@ -1,0 +1,7 @@
+id = "MF17g4"
+title = "Port the walls and the poison cloud (fire wall, light wall, acid fog, campfire) onto scripts"
+group = "mods"
+size = 3
+depends = ["MF17g"]
+note = "Pattern of MF17g (assets/spells/Lightning.lua, docs/notes/items_spells.md 'The game's spells on scripts'): script + record fields in assets/spells/spells.sdb.toml (per_target, ends_with_target, the use fields), the same objects in the same order and the same ticks; delete the Start/Update/DamageKindOf cases and the kGameSpells rows. Goldens: only the missile record form and saves mid-cast may change (golden.py explain), re-record those by name from two agreeing passes. Lua numbers are doubles: pass floats on or one operation, never a chain; float constants need a binding value or an exact literal. firewall, litnwall, acid_fog, campfire. Missing: the AI map footprint (UpdateFootprint stamp / clear: a binding or a record field), the hit along a wall's plane (HitUnitsAlong) as a binding, GetDamage's split 4/duration (150: Damage needs it as an option, computed in float), EffectWall's SetDirection (WallSpan), sound sequences, the walls' lingering 80 ticks, flags bit 0 (noCredit) across pulses; campfire counts up forever."
+order = 1369

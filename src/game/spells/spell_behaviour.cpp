@@ -14,12 +14,13 @@ namespace {
 
 constexpr DamageType kNoDamage = DamageType::Other;
 
-// The game's spells by behaviour: the AI's use, the damage type, and offensive / turns the victim / fighting.
-// Rick magic and curse magic are offensive by Rebirth's FixSpellSelfCasting (the original's were not). Antimagic is
-// not fighting (Rebirth's FixPlaingBattleMusicFromAntimagic; the original counted it).
+// The game's spells still in code by behaviour: the AI's use, the damage type, and offensive / turns the victim /
+// fighting. Those on scripts (assets/spells) have an empty row: their records' fields (assets/spells/spells.sdb.toml)
+// say it. Rick magic and curse magic are offensive by Rebirth's FixSpellSelfCasting (the original's were not).
+// Antimagic is not fighting (Rebirth's FixPlaingBattleMusicFromAntimagic; the original counted it).
 constexpr SpellUse kGameSpells[kGameSpellCount] = {
     {SpellAi::Attack, DamageType::Fire, true, false, true},               // FireArrow
-    {SpellAi::Attack, DamageType::Lightning, true, false, true},          // Lightning
+    {},                                                                   // Lightning: Lightning.lua
     {SpellAi::Attack, DamageType::Acid, true, false, true},               // AcidRay
     {SpellAi::AreaAttack, DamageType::Fire, true, false, true},           // Fireball
     {SpellAi::AreaAttack, DamageType::Lightning, true, false, true},      // InvokeLightning
@@ -59,16 +60,18 @@ constexpr SpellUse kGameSpells[kGameSpellCount] = {
     {SpellAi::None, kNoDamage, true, true, false},                        // Shrink
     {SpellAi::None, kNoDamage, false, false, false},                      // Campfire
     {SpellAi::Attack, DamageType::Fire, true, false, false},              // RickMagic
-    {SpellAi::Attack, DamageType::Lightning, true, false, false},         // CurseMagic
+    {},                                                                   // CurseMagic: Lightning.lua
 };
 
 } // namespace
 
 SpellUse UseOf(const SpellRecord& record) {
     const auto behaviour = static_cast<std::uint32_t>(record.behaviour);
+    const auto either = [&record](std::int8_t field) { return field < 0 ? record.offensive : field != 0; };
     SpellUse use = behaviour < kGameSpellCount
                        ? kGameSpells[behaviour]
-                       : SpellUse{record.ai, record.damageType, record.offensive, record.offensive, record.offensive};
+                       : SpellUse{record.ai, record.damageType, record.offensive, either(record.turnsVictim),
+                                  either(record.fighting)};
     use.effect = record.aiEffect;
     return use;
 }

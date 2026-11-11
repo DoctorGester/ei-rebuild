@@ -116,8 +116,7 @@ struct OrderPlan {
     std::uint8_t isCast = 0;
     int hitLocation = 1;        // the body location the attack aims at
     std::uint8_t calledShot = 0;   // the attack aims at one body part (the order's source is not kAttackAllParts)
-    SpellSchool castKind = SpellSchool::None;   // for a cast: Lightning for SpellType::RickMagic, Fire for
-                                                // CurseMagic, else the spell prototype's school
+    SpellSchool castKind = SpellSchool::None;   // for a cast: its record's cast_school, else its school
     Vector3 direction{};        // from the unit to the target
 
     // The plan of nothing: every field to its start value but the direction, which stays (it is saved).

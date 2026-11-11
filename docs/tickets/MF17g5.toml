@@ -1,0 +1,7 @@
+id = "MF17g5"
+title = "Port the buff spells (the 20 ApplyBuff ones) onto a script and an effect field"
+group = "mods"
+size = 2
+depends = ["MF17g"]
+note = "Pattern of MF17g (assets/spells/Lightning.lua, docs/notes/items_spells.md 'The game's spells on scripts'): script + record fields in assets/spells/spells.sdb.toml (per_target, ends_with_target, the use fields), the same objects in the same order and the same ticks; delete the Start/Update/DamageKindOf cases and the kGameSpells rows. Goldens: only the missile record form and saves mid-cast may change (golden.py explain), re-record those by name from two agreeing passes. Lua numbers are doubles: pass floats on or one operation, never a chain; float constants need a binding value or an exact literal. prot_fire .. shrink (ApplyBuff: BuffRecord on the target, ends at once; Apply(target, 'own') does it). Missing: what the buff's MapEffect does is keyed by the record's behaviour (MapEffect::Behaviour: unit_vitals' strongestOf, AddEffect's scale and stun, HasEffect, the client's looks and sounds, map_object_companion): a Scripted record would lose its stat effect, so a record field naming the effect behaviour (e.g. effect = \"slow\") read by MapEffect::Behaviour first; ai_effect then defaults to it; the AI's Curse/Protect/Enhance rows as fields."
+order = 1370

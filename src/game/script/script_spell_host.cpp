@@ -24,16 +24,20 @@
 namespace {
 
 constexpr const char* kFolder = "Res\\spells";
-// The ticks a cast lives at most when its spell has no duration.
-constexpr int kDefaultTickCap = 600;
+// The ticks a cast lives at most when its spell's duration does not say (Settle).
+constexpr lua_Integer kDefaultTickCap = 600;
 // The longest delay a timer takes, in ticks.
 constexpr double kMaxDelay = 1e9;
 
+// The file through the mod layers, else the game's own (assets/spells, built in below them).
 bool ReadFromLayers(const std::string& file, std::string* text) {
     for (const platform::FolderLayer& layer : platform::FilesByLayer(kFolder, {file}))
         for (const platform::LayerFile& found : layer.files)
             if (platform::ReadLayerFile(found.path, text)) return true;
-    return false;
+    const std::string_view builtin = itemdb::BuiltinSpellFile(file);
+    if (builtin.empty()) return false;
+    text->assign(builtin);
+    return true;
 }
 
 const std::string& ScriptOf(const SpellEffect& effect) {
@@ -163,6 +167,12 @@ int CheckParticleType(lua_State* L, int index, const char* method) {
 // Where a spell's effects start from an object: a unit's eye, another object's position.
 Vector3 StartPoint(MapObject* object) { return object->EyePoint(); }
 
+// An owned object made by a method, its id (the handle a script keeps) pushed.
+int PushHandle(lua_State* L, const Effect* object) {
+    lua_pushinteger(L, object->id);
+    return 1;
+}
+
 // The cast's hits would affect `object` (SpellEffect::HitUnit's test).
 bool Affects(const SpellEffect& effect, MapObject* object) {
     return !effect.caster || effect.HeldSpell()->CanAffect(effect.caster, object);
@@ -221,6 +231,8 @@ ScriptSpellHost::ScriptSpellHost(ScriptLuaScheduler& owner)
     method("Effect", Effect);
     method("Sound", Sound);
     method("Light", Light);
+    method("SetVelocity", SetVelocity);
+    method("Eye", Eye);
     lua_pushvalue(L, methods);
     scheduler.lua.AddPermanent("ei.cast.methods");
     lua_setfield(L, -2, "__index");
@@ -381,7 +393,9 @@ bool ScriptSpellHost::Adopt(SpellEffect& effect) {
 void ScriptSpellHost::Save(int root) {
     lua_rawgeti(L, LUA_REGISTRYINDEX, casts);
     lua_setfield(L, root, "casts");
-    SetInteger(L, root, "nextCast", nextCast);
+    // The key after the live casts' (1 with none), not the count of casts made: a save then holds only what lives,
+    // and one with no cast going is the same however many came before.
+    SetInteger(L, root, "nextCast", live.empty() ? 1 : live.rbegin()->first + 1);
 }
 
 void ScriptSpellHost::Restore(int root) {
@@ -503,25 +517,25 @@ int ScriptSpellHost::CanAffect(lua_State* L) {
     return 1;
 }
 
-// cast:Damage(unit, amount, type [, {area, noCredit}]): a spell's hit (SpellEffect::HitUnit: only what the spell may
-// affect; the caster has the credit unless noCredit), `type` a damage type's name, `area` a hit without a direction
-// (the walls' and clouds'). The hit points the unit lost.
+// cast:Damage(unit, amount, type [, {area, noCredit}]): a spell's hit on a unit (SpellEffect::HitUnit: only what the
+// spell may affect; the caster has the credit unless noCredit), `type` a damage type's name, `area` a hit without a
+// direction (the walls' and clouds'). The hit points the unit lost; another object is not hit, as by the game's
+// spells.
 int ScriptSpellHost::Damage(lua_State* L) {
     SpellEffect& effect = Self(L, "Damage");
-    MapObject* object = OptObject(L, 2);
+    Unit* unit = UnitOrNull(OptObject(L, 2));
     const float amount = scriptlua::FromLuaNumber(luaL_checknumber(L, 3));
     const DamageType type = CheckDamageType(L, 4, "Damage");
     CheckOptions(L, 5);
     const int hitKind = BoolField(L, 5, "area", false) ? 1 : 0;
     const bool noCredit = BoolField(L, 5, "noCredit", false);
     float lost = 0.0f;
-    if (object) {
+    if (unit) {
         DamageInfo hit = SpellEffect::TypedHit(type, amount, hitKind);
         effect.flags = noCredit ? effect.flags | 1u : effect.flags & ~1u;
-        Unit* unit = UnitOrNull(object);
-        const float before = unit ? unit->Vitals().hitPoints : 0.0f;
-        effect.HitUnit(&hit, object);
-        if (unit) lost = before - unit->Vitals().hitPoints;
+        const float before = unit->Vitals().hitPoints;
+        effect.HitUnit(&hit, unit);
+        lost = before - unit->Vitals().hitPoints;
     }
     lua_pushnumber(L, scriptlua::ToLuaNumber(lost));
     return 1;
@@ -601,9 +615,9 @@ int ScriptSpellHost::Move(lua_State* L) {
     return 1;
 }
 
-// cast:Bolt(from, to [, {width, lifetime}]): a lightning bolt between two positions; an end that is an object follows
-// it (a unit's from its eye, to its top as the lightning spell's). Its width is the lightning's (power x 5) unless
-// given; it lasts `lifetime` ticks, else as long as the cast.
+// cast:Bolt(from, to [, {width, lifetime, demon}]): a lightning bolt between two positions; an end that is an object
+// follows it (a unit's from its eye, to its top as the lightning spell's). Its width is the lightning's (power x 5)
+// unless given, `demon` the curse magic's look; it lasts `lifetime` ticks, else as long as the cast. Its handle.
 int ScriptSpellHost::Bolt(lua_State* L) {
     SpellEffect& effect = Self(L, "Bolt");
     Vector3 from, to;
@@ -614,18 +628,20 @@ int ScriptSpellHost::Bolt(lua_State* L) {
     CheckOptions(L, 4);
     const float width = FloatField(L, 4, "width", spellfx::Power(&effect) * spellfx::kBoltWidthScale);
     const int lifetime = std::max(IntField(L, 4, "lifetime", 0), 0);
+    const int flag = BoolField(L, 4, "demon", false) ? 1 : 0;
     if (fromObject) from = StartPoint(fromObject);
     if (toObject) to = effect.LightningEnd(toObject);
     EffectLightning* bolt =
-        effect.NewLightning(from, to, fromObject ? fromObject->id : -1, toObject ? toObject->id : -1, width, 0);
+        effect.NewLightning(from, to, fromObject ? fromObject->id : -1, toObject ? toObject->id : -1, width, flag);
     effect.Own(bolt, lifetime, 0);
-    return 0;
+    return PushHandle(L, bolt);
 }
 
 // cast:Missile{to, from, effect, size, sound, payload}: a spell missile flying at the object `to` (the fire arrow's
 // EffectArrow, at its speed) from `from` (default: the caster's eye, else the cast's start), carrying the effect
 // named (default FireArrow; size default the power) and the looping sound; the light is the spell record's. When it
-// arrives, OnHit(cast, target, payload, point) runs (`target` nil when the object is gone).
+// arrives, OnHit(cast, target, payload, point) runs (`target` nil when the object is gone). Its handle (nil when the
+// world made none).
 int ScriptSpellHost::Missile(lua_State* L) {
     SpellEffect& effect = Self(L, "Missile");
     luaL_checktype(L, 2, LUA_TTABLE);
@@ -678,14 +694,15 @@ int ScriptSpellHost::Missile(lua_State* L) {
     const itemdb::SpellRecord* record = spellfx::Prototype(&effect);
     EffectArrow* arrow =
         effect.NewArrow(from, target, particleType, size, sound, record->lightColor, record->lightRange, launcher);
-    if (arrow) effect.Own(arrow, 0, static_cast<int>(key));
-    return 0;
+    if (!arrow) return 0;
+    effect.Own(arrow, 0, static_cast<int>(key));
+    return PushHandle(L, arrow);
 }
 
 // cast:Effect(name [, {at, attach, size, alpha, velocity, lifetime}]): a particle effect (a data effect of
 // Res\effects, or a game's type by the scripts' name: Sparks, LightningBlast, ...) at `at` (default the cast's point;
 // attached to the object `attach`, at its own place), size and alpha 1, moving by `velocity` ({x, y, z} a tick); it
-// lasts `lifetime` ticks, else as long as the cast (or as its type's own life, when shorter).
+// lasts `lifetime` ticks, else as long as the cast (or as its type's own life, when shorter). Its handle.
 int ScriptSpellHost::Effect(lua_State* L) {
     SpellEffect& effect = Self(L, "Effect");
     const int particleType = CheckParticleType(L, 2, "Effect");
@@ -706,7 +723,7 @@ int ScriptSpellHost::Effect(lua_State* L) {
     const int lifetime = std::max(IntField(L, 3, "lifetime", 0), 0);
     EffectParticle* particle = effect.NewParticle(particleType, at, size, alpha, velocity, attach);
     effect.Own(particle, lifetime, 0);
-    return 0;
+    return PushHandle(L, particle);
 }
 
 // cast:Sound(name, at [, volume, hearing]): a sound played once at the position (volume 10, heard within 50 unless
@@ -725,6 +742,7 @@ int ScriptSpellHost::Sound(lua_State* L) {
 
 // cast:Light(at [, {color, range, rise, lifetime}]): a point light at the position, in the spell record's colour
 // ({r, g, b}) and range unless given, rising by `rise` a tick; it lasts `lifetime` ticks, else as long as the cast.
+// Its handle.
 int ScriptSpellHost::Light(lua_State* L) {
     SpellEffect& effect = Self(L, "Light");
     Vector3 at;
@@ -742,8 +760,38 @@ int ScriptSpellHost::Light(lua_State* L) {
     const float range = FloatField(L, 3, "range", record->lightRange);
     const Vector3 rise{0.0f, 0.0f, FloatField(L, 3, "rise", 0.0f)};
     const int lifetime = std::max(IntField(L, 3, "lifetime", 0), 0);
-    effect.Own(effect.NewPointLight(at, color, range, rise), lifetime, 0);
-    return 0;
+    EffectPointLight* light = effect.NewPointLight(at, color, range, rise);
+    effect.Own(light, lifetime, 0);
+    return PushHandle(L, light);
+}
+
+// cast:SetVelocity(handle, velocity): the cast's object of that handle (Bolt, Missile, Effect, Light) moves by
+// `velocity` ({x, y, z} a tick) from now on, as the game's spells send their lights up when they fade. False when the
+// cast holds no such object (it went).
+int ScriptSpellHost::SetVelocity(lua_State* L) {
+    SpellEffect& effect = Self(L, "SetVelocity");
+    const lua_Integer handle = luaL_checkinteger(L, 2);
+    Vector3 velocity;
+    MapObject* velocityObject = nullptr;
+    CheckPosition(L, 3, &velocity, &velocityObject, "SetVelocity");
+    for (const SpellOwned& entry : effect.owned) {
+        if (entry.object->id != handle) continue;
+        entry.object->SetVelocity(velocity);
+        lua_pushboolean(L, true);
+        return 1;
+    }
+    lua_pushboolean(L, false);
+    return 1;
+}
+
+// cast:Eye(object): the point {x, y, z} the object's spells start from, where the game's lightning puts its light
+// (MapObject::EyePoint).
+int ScriptSpellHost::Eye(lua_State* L) {
+    Self(L, "Eye");
+    MapObject* object = OptObject(L, 2);
+    if (!object) return luaL_error(L, "Eye: an object expected, got nil or one that is gone");
+    PushPoint(L, object->EyePoint());
+    return 1;
 }
 
 void ScriptSpellHost::PushModule(const SpellEffect& effect) {
@@ -832,6 +880,7 @@ void ScriptSpellHost::PushCast(const SpellEffect& effect, int entry) {
     SetNumber(L, cast, "speed", spell.speed);
     SetNumber(L, cast, "mana", spell.manaCost);
     SetNumber(L, cast, "power", spellfx::Power(&effect));
+    SetNumber(L, cast, "lightRise", record ? spellfx::LightRise(&effect) : 0.0f);
     const auto school = static_cast<std::size_t>(record ? record->school : SpellSchool::None);
     lua_pushstring(L, school < std::size(recordnames::kSpellSchools) ? recordnames::kSpellSchools[school].data() : "");
     lua_setfield(L, cast, "school");
@@ -896,19 +945,22 @@ bool ScriptSpellHost::Settle(SpellEffect& effect, Hook result) {
     const bool timers = lua_istable(L, -1) && lua_rawlen(L, -1) > 0;
     lua_pop(L, 2);
     const bool pending = timers || effect.OwnsPending();
-    const std::uint32_t duration = effect.HeldSpell()->duration;
-    const lua_Integer cap = duration > 0 ? static_cast<lua_Integer>(duration) : kDefaultTickCap;
+    PushModule(effect);
+    const bool ticks = lua_istable(L, -1) && lua_getfield(L, -1, "OnTick") == LUA_TFUNCTION;
+    lua_settop(L, entry - 1);
+    // A cast with OnTick lives at most its spell's duration; one paced by its timers alone at most kDefaultTickCap
+    // ticks, or its duration when that is longer (the game's spells' durations are target counts or the ticks of
+    // what they leave behind, which their timers outlast).
+    const auto duration = static_cast<lua_Integer>(effect.HeldSpell()->duration);
+    const lua_Integer cap = ticks ? (duration > 0 ? duration : kDefaultTickCap) : std::max(duration, kDefaultTickCap);
 
     const char* reason = nullptr;
     if (finished) {
         reason = "finished";
     } else if (tick >= cap) {
         reason = "limit";
-    } else if (!pending) {
-        PushModule(effect);
-        const bool ticks = lua_istable(L, -1) && lua_getfield(L, -1, "OnTick") == LUA_TFUNCTION;
-        lua_settop(L, entry - 1);
-        if (!ticks) reason = "idle";
+    } else if (!pending && !ticks) {
+        reason = "idle";
     }
     if (!reason) return true;
     End(effect, reason);

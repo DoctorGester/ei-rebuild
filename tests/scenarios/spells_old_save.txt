@@ -1,0 +1,19 @@
+# A save from before the game's lightning moved onto its script (MF17g; docs/notes/items_spells.md, "The game's spells
+# on scripts"). tests/saves/lightning_old was made on vanilla data by a build from before the port: a new game, two
+# WolfTutor wolves added beside the god-mode hero, CastSpellUnit "lightning{e2}" at one and "curse_magic" at the other,
+# two frames, then F5: both casts in the C++'s lasting state (2, their bolts gone, their lights up). Loaded now, both
+# casts end at their next update with their objects (the hits were dealt at the cast), and a lightning cast after the
+# load runs on Lightning.lua.
+# prepare: copy_save.py tests/saves/lightning_old save2
+reject Script error
+waitmenu
+console thingamabob
+load save2
+waitwindow 30 battle
+waitfor 20 IsGreater(HP(GetLeader()),0)
+dump loaded
+console @CastSpellUnit("lightning",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+wait 1500
+check IsAlive(GetLeader())
+report
+quit
