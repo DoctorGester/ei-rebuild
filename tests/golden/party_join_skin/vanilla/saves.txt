@@ -5,8 +5,8 @@ savea/gz1g.visuals.sav 5781c6165cb5fc65
 savea/info.sav 81ae163d8120d233
 savea/mission.sav ac2a00a1b481fe39
 savea/scenario.sav dfd4a67532ea6065
-savea/visuals.sav 5250f7e61ed0732e
+savea/visuals.sav 77834bd99b266876
 saveq/info.sav e574bc9763c29964
 saveq/mission.sav 7ac4a840d356f621
 saveq/scenario.sav eecfdcce809f51b2
-saveq/visuals.sav d8a8b393538698c8
+saveq/visuals.sav 9eeba95b338c89f2

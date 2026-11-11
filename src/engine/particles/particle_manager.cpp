@@ -387,8 +387,8 @@ void BuildBasis(ParticleSource& s) {
     Normalize(s.up, Length(s.up));
 }
 
-// Updates every particle. A particle the previous tick rejected is erased and returned to the
-// pool first, but (as in the original) is still updated and counted in the bounds.
+// Updates every particle. A particle that died at the previous tick (drawn once more where it was) is returned to the
+// pool without an update.
 void UpdateParticles(ParticleSource& s) {
     ParticleManager* pool = s.Manager();
     auto node = s.particles.begin();
@@ -397,9 +397,9 @@ void UpdateParticles(ParticleSource& s) {
         if (p->dead) {
             node = s.particles.erase(node);
             pool->ReleaseParticle(p);
-        } else {
-            ++node;
+            continue;
         }
+        ++node;
         SavePrevious(p);
         if (!effectdata::UpdateData(s, *p)) {
             p->dead = 1;

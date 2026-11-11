@@ -3,10 +3,10 @@ current/gz1g.visuals.sav 0faeb8816eae349d
 savea/info.sav 1a6467a48a11b9cd
 savea/mission.sav c38c7e714b1a06b6
 savea/scenario.sav 1365ba0de9c0c78f
-savea/visuals.sav e82dc98b1418d1f0
+savea/visuals.sav b074142fba1f5283
 saveb/gz1g.sav 3dd2770ab1b8a589
 saveb/gz1g.visuals.sav 0faeb8816eae349d
 saveb/info.sav e2b379389396f758
 saveb/mission.sav 16750fab262a5986
 saveb/scenario.sav 9c38bc09ba7c1e8c
-saveb/visuals.sav 72ae06685f7315bd
+saveb/visuals.sav aec03fac379628f0

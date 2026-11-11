@@ -1,4 +1,4 @@
 showcase_mod/savea/info.sav 1a6467a48a11b9cd
 showcase_mod/savea/mission.sav 37edbb4b43f17dfc
 showcase_mod/savea/scenario.sav 1007fa6eeb1849d7
-showcase_mod/savea/visuals.sav 0537f256cb25c742
+showcase_mod/savea/visuals.sav 0050b57d60563964

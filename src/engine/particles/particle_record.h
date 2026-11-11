@@ -149,7 +149,8 @@ struct Input {
     int list = -1;                      // a list's place in State::lists
 };
 
-// A named value with its start and its change per tick (an empty `tick` keeps it); a vector takes its lanes.
+// A named value with its start and its change per tick (an empty `tick` keeps it; a tick alone also starts it); a vector
+// takes its lanes.
 struct Var {
     std::string name;
     int slot = 0;               // its first float in its vars' array
@@ -226,8 +227,9 @@ struct Reaction {
 // `ball`. Segment: one draw t in [0, 1), then from + t * (to - from).
 enum class SpawnShape : std::uint8_t { Point, Box, Ball, Shell, Disc, Ring, FlatBall, Segment };
 
-// A random point relative to a centre (a particle's or an anchor's), by shape.
+// A random point relative to a centre (a particle's or an anchor's): one point expression, or by shape.
 struct Spawn {
+    Expr point;                 // given: the point (`spawn = "ball() * size"`), a particle's drawn before its vars
     SpawnShape shape = SpawnShape::Point;
     Expr radius;
     Expr boxMin, boxMax;        // the box's corners (empty: the source's spread)
@@ -236,8 +238,8 @@ struct Spawn {
     Expr shift;                 // a ball's and a shell's: added to each draw of the cube before it is tested
 };
 
-// The point of `spawn` in `env`: the shape's expressions and draws in the order x, y, z (the defaults read the
-// source's spread and extent there).
+// The point of `spawn` in `env`: its point expression, or the shape's expressions and draws in the order x, y, z (the
+// defaults read the source's spread and extent there).
 Vector3 SpawnPoint(const Spawn& spawn, const Env& env, IsaacRandom& random);
 
 // A group of moving points the source owns (rings, orbs, bolt points): made at the effect's start (`count`) or by an
@@ -249,8 +251,9 @@ struct Anchor {
     Expr ticks;         // each one's life (empty: lasts)
     std::vector<Var> vars;
     int varFloats = 0;  // the floats its vars hold
-    Expr position;      // or, cylindrical: x = cos(angle) * radius, y = sin(angle) * radius, then z
-    Expr radius, angle, z;
+    Expr position;      // its start, relative to the source's origin (empty: a.spawn)
+    Expr positionTick;  // its place each tick (empty: it stays)
+    Expr radius, angle, z;  // cylindrical, each tick: x = cos(angle) * radius, y = sin(angle) * radius, then z
     bool cylindrical = false;
     bool atCreate = false;  // its `count` anchors are made when the source is made (State::Create), ticked from the
                             // first tick on
@@ -275,13 +278,15 @@ struct ParticleKind {
     Space space = Space::World;
     Spawn spawn;
     Expr offset;
-    Expr position;          // given: the start's position, instead of the spawn's point plus offset and centre
-    Expr positionTick;      // given: the position each tick (world space; the offset in source and anchor space)
+    // The place in its space (world space: the world's; source and anchor space: the offset from the source's origin
+    // or from its anchor's place): the start (empty: the centre plus p.spawn) and each tick (empty: moved by the
+    // velocity), from this tick's values before any changes.
+    Expr position, positionTick;
     Expr onGround;          // given: the spawn's z is the ground's height plus it
-    Expr velocity;
+    Expr velocity;          // its start (empty: 0)
+    Expr velocityTick;      // given: the velocity each tick, after the move (drag, gravity and wind written in it)
     Expr speed;             // outward from the spawn's centre
     Expr drag, gravity, wind;
-    bool moves = false;     // a velocity, speed, gravity or wind given (else a world-space particle stays put)
     Expr sizeStart, sizeTick, growth;
     std::uint32_t rgb = 0xFFFFFF;
     Expr color;             // given: the colour each tick (0..255 a lane)

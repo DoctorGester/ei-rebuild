@@ -9,7 +9,6 @@
   "repeated_in": 2,
   "reason": "MF17h2: Chain Spark's strike leaves the spell's own effect (the showcase's example of a buff with its own look, ChainSparkShock) in place of the game's slow: the same slowing by its OnStats, the effect's record place 42 not 34, and the client's look draws its own particles.",
   "source": "image",
-  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
     "digest: 9 of 48 records differ, first at record 36 (world update 740, tick 702, frame 147, zone gz1g); outcomes the same (deaths unknown: hash only); no unit position differs",
     "  first difference at record 36 (world update 740, tick 702, frame 147, zone gz1g): 1 fields",
@@ -24,5 +23,6 @@
     "save showcase_mod/save1/mission.sav: 1 fields in 1 records differ: obj 1",
     "  obj: 1 fields in 1 records; first obj4001 effect0.type: 34 in the old golden, 42 in the new run (d 8)",
     "... 2 more lines"
-  ]
+  ],
+  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs"
 }

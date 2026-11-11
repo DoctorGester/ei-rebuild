@@ -1,4 +1,4 @@
 spell_mod/savea/info.sav 1a6467a48a11b9cd
 spell_mod/savea/mission.sav 98a3b69133992cce
 spell_mod/savea/scenario.sav 2cd8dbe3568dcb09
-spell_mod/savea/visuals.sav c0983602f27de0e3
+spell_mod/savea/visuals.sav b30527aee23aefec

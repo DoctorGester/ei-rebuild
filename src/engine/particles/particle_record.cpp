@@ -815,6 +815,18 @@ private:
             Error(node, "a point expected (three lanes), not " + std::to_string(expr.width));
         return expr;
     }
+    // A field: a value (its start) or a table's `start` and `tick` (its other keys the caller's), a tick alone starting
+    // it too; `point`: points (VectorField).
+    void StartTick(const RawNode& node, Context context, Expr* start, Expr* tick, bool point = false) {
+        auto read = [&](const RawNode& n) { return point ? VectorField(n, context) : Field(n, context); };
+        if (node.kind != RawNode::Kind::Table) {
+            *start = read(node);
+            return;
+        }
+        *start = read(node["start"]);
+        *tick = read(node["tick"]);
+        if (start->Empty()) *start = *tick;
+    }
 
     void ReadVars(const RawNode& table, Context context, std::vector<Var>* vars, const std::string& scope) {
         for (std::size_t i = 0; i < table.keys.size() && i < vars->size(); ++i) {
@@ -830,17 +842,12 @@ private:
                     Known(spec, {"start", "tick", "at_create"});
                     Flag(spec["at_create"], &var.atCreate);
                 }
-                var.start = Field(spec["start"], context);
-                var.tick = Field(spec["tick"], context);
-            } else {
-                var.start = Field(spec, context);
             }
+            StartTick(spec, context, &var.start, &var.tick);
             int width = 1;
             for (const Expr* expr : {&var.start, &var.tick})
                 if (!expr->Empty()) width = std::max(width, expr->width);
             found[scope + ":" + var.name] = width;
-            if (context.particle >= 0 && !var.afterSpawn && ReadsSpawn(var.start))
-                Error(spec, "var '" + var.name + "' reads p.spawn before the spawn draws: give it after_spawn = true");
         }
     }
     static bool ReadsSpawn(const Expr& expr) {
@@ -1027,8 +1034,13 @@ private:
 
     // ---- anchors and particles ----
 
-    // A spawn shape (`spawn = { shape, radius, min, max, from, to }`); `known`: the table's keys where it is read.
+    // A spawn: one point expression, or a shape (`spawn = { shape, radius, min, max, from, to }`; `known`: the table's
+    // keys where it is read).
     void ReadSpawn(const RawNode& spawn, Context context, Spawn* out, std::initializer_list<std::string_view> known) {
+        if (spawn.Exists() && spawn.kind != RawNode::Kind::Table) {
+            out->point = VectorField(spawn, context);
+            return;
+        }
         Known(spawn, known);
         Integer(spawn["tries"], &out->tries);
         out->shift = VectorField(spawn["shift"], context);
@@ -1070,9 +1082,11 @@ private:
                 parts.push_back(part.Empty() ? ConstantExpr(0.0f) : std::move(part));
             }
             std::string error;
-            anchor.position = effectdata::Joined(parts, &error);
+            anchor.positionTick = effectdata::Joined(parts, &error);
+            anchor.position = anchor.positionTick;
         } else {
-            anchor.position = VectorField(node["position"], context);
+            if (node["position"].kind == RawNode::Kind::Table) Known(node["position"], {"start", "tick"});
+            StartTick(node["position"], context, &anchor.position, &anchor.positionTick, true);
         }
     }
 
@@ -1087,55 +1101,55 @@ private:
         kind.when = Field(node["when"], {});   // before the particle and its anchor are chosen
         kind.lifetime = Field(node["lifetime"], context);
         if (kind.lifetime.Empty()) Error(node, "particle '" + kind.name + "': no lifetime");
+        const RawNode& spawn = node["spawn"];
+        ReadSpawn(spawn, context, &kind.spawn,
+                  {"shape", "radius", "min", "max", "from", "to", "tries", "shift", "offset", "on_ground"});
         ReadVars(node["vars"], context, &kind.vars, "p" + std::to_string(index));
         static constexpr std::string_view kPicks[] = {"cycle", "random", "first"};
         kind.pick = static_cast<AnchorPick>(Choice(node["pick"], kPicks, 0));
         kind.anchorIndex = Field(node["anchor_index"], context);
         if (!kind.anchorIndex.Empty()) {
             if (kind.anchor < 0) Error(node, "particle '" + kind.name + "': anchor_index needs at");
-            // The anchor is chosen after the lifetime and the vars, so those cannot use it.
-            bool early = ReadsAnchor(kind.lifetime);
+            // The anchor is chosen after the lifetime, the spawn's point and the vars, so those cannot use it.
+            bool early = ReadsAnchor(kind.lifetime) || ReadsAnchor(kind.spawn.point);
             for (const Var& var : kind.vars) early = early || (!var.afterSpawn && ReadsAnchor(var.start));
             if (early)
-                Error(node, "particle '" + kind.name + "': with anchor_index, the lifetime and the vars before the "
-                            "spawn read no a.*");
+                Error(node, "particle '" + kind.name + "': with anchor_index, the lifetime, the spawn and the vars "
+                            "read no a.*");
         }
         static constexpr std::string_view kSpaces[] = {"world", "source", "anchor"};
         kind.space = static_cast<Space>(Choice(node["space"], kSpaces, 0));
         if (kind.space == Space::Anchor && kind.anchor < 0) Error(node, "particle '" + kind.name + "': space anchor needs at");
 
-        const RawNode& spawn = node["spawn"];
-        ReadSpawn(spawn, context, &kind.spawn,
-                  {"shape", "radius", "min", "max", "from", "to", "tries", "shift", "offset", "on_ground"});
-        kind.offset = VectorField(spawn["offset"], context);
-        kind.onGround = Field(spawn["on_ground"], context);
-        const RawNode& position = node["position"];
-        if (position.kind == RawNode::Kind::Table) {
-            Known(position, {"start", "tick"});
-            kind.position = VectorField(position["start"], context);
-            kind.positionTick = VectorField(position["tick"], context);
-        } else {
-            kind.position = VectorField(position, context);
+        if (spawn.kind == RawNode::Kind::Table) {
+            kind.offset = VectorField(spawn["offset"], context);
+            kind.onGround = Field(spawn["on_ground"], context);
+            // The shape draws after the vars: those before it cannot read its point.
+            for (const Var& var : kind.vars)
+                if (!var.afterSpawn && ReadsSpawn(var.start))
+                    Error(node, "particle '" + kind.name + "': var '" + var.name +
+                                    "' reads p.spawn before the spawn shape draws: give it after_spawn = true");
         }
+        const RawNode& position = node["position"];
+        if (position.kind == RawNode::Kind::Table) Known(position, {"start", "tick"});
+        StartTick(position, context, &kind.position, &kind.positionTick, true);
 
-        kind.velocity = VectorField(node["velocity"], context);
+        const RawNode& velocity = node["velocity"];
+        if (velocity.kind == RawNode::Kind::Table) Known(velocity, {"start", "tick"});
+        StartTick(velocity, context, &kind.velocity, &kind.velocityTick, true);
         kind.speed = Field(node["speed"], context);
         kind.drag = Field(node["drag"], context);
         kind.gravity = VectorField(node["gravity"], context);
         kind.wind = Field(node["wind"], context);
-        kind.moves = !kind.speed.Empty() || !kind.wind.Empty() || !kind.velocity.Empty() || !kind.gravity.Empty();
+        if (!kind.velocityTick.Empty() && (!kind.drag.Empty() || !kind.gravity.Empty() || !kind.wind.Empty()))
+            Error(node, "particle '" + kind.name + "': a velocity tick or drag, gravity and wind, not both");
 
         const RawNode& size = node["size"];
-        if (size.kind == RawNode::Kind::Table) {
-            Known(size, {"start", "tick", "growth"});
-            kind.sizeStart = Field(size["start"], context);
-            kind.sizeTick = Field(size["tick"], context);
-            kind.growth = Field(size["growth"], context);
-            if (!kind.sizeTick.Empty() && !kind.growth.Empty())
-                Error(size, "particle '" + kind.name + "': size tick or growth, not both");
-        } else {
-            kind.sizeStart = Field(size, context);
-        }
+        if (size.kind == RawNode::Kind::Table) Known(size, {"start", "tick", "growth"});
+        StartTick(size, context, &kind.sizeStart, &kind.sizeTick);
+        kind.growth = Field(size["growth"], context);
+        if (!kind.sizeTick.Empty() && !kind.growth.Empty())
+            Error(size, "particle '" + kind.name + "': size tick or growth, not both");
 
         const RawNode& color = node["color"];
         if (color.kind == RawNode::Kind::String && IsHexColour(color.text)) {
@@ -1146,24 +1160,16 @@ private:
             kind.color = VectorField(color, context);
         }
         const RawNode& alpha = node["alpha"];
-        if (alpha.kind == RawNode::Kind::Table) {
-            Known(alpha, {"start", "tick"});
-            kind.alphaStart = Field(alpha["start"], context);
-            kind.alphaTick = Field(alpha["tick"], context);
-        } else {
-            kind.alphaStart = Field(alpha, context);
-        }
+        if (alpha.kind == RawNode::Kind::Table) Known(alpha, {"start", "tick"});
+        StartTick(alpha, context, &kind.alphaStart, &kind.alphaTick);
         const RawNode& frame = node["frame"];
         if (frame.kind == RawNode::Kind::Table) {
             Known(frame, {"start", "delay", "mode", "tick"});
-            kind.frameStart = Field(frame["start"], context);
             kind.frameDelay = Field(frame["delay"], context);
-            kind.frameTick = Field(frame["tick"], context);
             static constexpr std::string_view kModes[] = {"loop", "hold", "die", "free"};
             kind.frameMode = static_cast<FrameMode>(Choice(frame["mode"], kModes, 0));
-        } else {
-            kind.frameStart = Field(frame, context);
         }
+        StartTick(frame, context, &kind.frameStart, &kind.frameTick);
         kind.kill = Field(node["kill"], context);
         kind.drop = Field(node["drop"], context);
         ReadWrites(node["source"], kind, context);
@@ -1305,6 +1311,7 @@ bool All(const Var&) { return true; }
 
 Vector3 SpawnPoint(const Spawn& spawn, const Env& env, IsaacRandom& random) {
     constexpr float kTwoPi = kPi + kPi;
+    if (!spawn.point.Empty()) return spawn.point.RunVector(env, {});
     const Vector3 shifted = spawn.shift.RunVector(env, {});
     const Vector3* shift = spawn.shift.Empty() ? nullptr : &shifted;
     switch (spawn.shape) {
@@ -1650,14 +1657,19 @@ void State::Run(const std::vector<Action>& actions, IsaacRandom& random, int dep
 
 namespace {
 
-void Place(const Anchor& group, const Env& env, AnchorState& anchor) {
+// An anchor placed: at its start (`tick` false: its position, else its spawn's point) or by its tick (none: it stays).
+void Place(const Anchor& group, const Env& env, AnchorState& anchor, bool tick) {
     Vector3 at;
     if (group.cylindrical) {
         const float radius = group.radius.Run(env);
         const float angle = group.angle.Run(env);
         at = {lib::Cos(angle) * radius, lib::Sin(angle) * radius, group.z.Run(env)};
+    } else if (tick) {
+        if (group.positionTick.Empty()) return;
+        at = group.positionTick.RunVector(env, {});
     } else {
-        at = group.position.RunVector(env, {});
+        const float* spawn = anchor.values + static_cast<int>(AnchorValue::SpawnX);
+        at = group.position.RunVector(env, {spawn[0], spawn[1], spawn[2]});
     }
     float* values = anchor.values + static_cast<int>(AnchorValue::PositionX);
     values[0] = at.x;
@@ -1696,7 +1708,7 @@ void State::AddAnchors(int group, int count, IsaacRandom& random) {
         anchor.values[static_cast<int>(AnchorValue::Ticks)] =
             spec.ticks.Empty() ? -1.0f : static_cast<float>(Count(spec.ticks.Run(env)));
         Update(spec.vars, anchor.vars.data(), env, false, All);
-        Place(spec, env, anchor);
+        Place(spec, env, anchor, false);
     }
     source[kSourceValues + group] += static_cast<float>(count);
 }
@@ -1713,7 +1725,7 @@ void State::StepAnchors(IsaacRandom& random) {
         if (ticks > 0.0f) ticks -= 1.0f;
         const Env env = AnchorEnv(static_cast<int>(i), &random);
         Update(group.vars, anchor.vars.data(), env, true, All);
-        Place(group, env, anchor);
+        Place(group, env, anchor, true);
         if (ticks == 0.0f) anchor.live = false;
         else ++live[anchor.group];
     }

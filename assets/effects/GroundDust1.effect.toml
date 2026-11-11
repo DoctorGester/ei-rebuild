@@ -40,4 +40,5 @@ alpha = { start = 0, tick = "fade[p.life - 1]" }
 frame = 15
 
 [particle.position]
+start = "p.position"                            # at the source; the grains run from the first tick
 tick = ["p.x + p.vx", "p.y + p.vy", "ground(p.x + p.vx, p.y + p.vy) + 0.1 >= plane_h - ((p.x + p.vx - origin.x) * nx + (p.y + p.vy - origin.y) * ny) * nz + 0.1 ? ground(p.x + p.vx, p.y + p.vy) + 0.1 : plane_h - ((p.x + p.vx - origin.x) * nx + (p.y + p.vy - origin.y) * ny) * nz + 0.1"]
