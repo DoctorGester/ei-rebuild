@@ -7,5 +7,6 @@ depends = ["MF15g"]
 files = ["assets/effects", "src/game/effects/particle_world.cpp", "src/game/effects/particle_blasts.cpp", "src/game/effects/particle_casting.cpp", "tools/convert/effect_check.cpp"]
 note = "MF15g's workflow (effects.md, 'The original effects on data'): cases in effect_check, --record (only new lines), the file, --dump diff, the C++ and its spec / script / one-shot entries deleted. CampFire, Fire, Smoke, Tendril (phases by frame, wind, a chance of death; Tendril's extent-long spawn; the manager's quiet start stops CampFire / Fire / Smoke by type), VulcanSmoke (two kinds by chance), Portal (glow role, spiral, rate from the size), TeleportRing (the carrier's ring and height), Teleport (the unsigned alpha sum capped at 255), Banshee (a ring easing out), BlueGas (spin by the distance to the axis), Nuke (rate halving, debris landing on the ground). Any engine feature added generally (user rule 2026-11-11); ids stay the 0x2000 numbers."
 order = 1363
-status = "review"
+status = "done"
 started = "2026-11-11"
+done = "2026-11-11"
