@@ -472,10 +472,11 @@ camera, all without a second start-up. It also lets the harness drive the viewer
   menu. StartNewGame puts the party into `--zone` when one is given (the party's zone set before the redeploy), else
   the campaign's first zone. The hero is the unit the first pick goes on. The zone entry's autosave is off in this
   mode (ui_battle.cpp, AutoSaveEnabled), so the player's `savea` survives the viewer.
-  - Not a separate exe: an `ei-effects` entry point would still need GameMain's whole start (the worlds, the
-    databases, the window, the renderer, the interface) and a zone with a unit, which is what the new game gives.
-    The flag costs a few lines of app code, while a second exe would add a CMake target, its packaging and a second
-    copy of main.cpp's set-up.
+  - Not a separate exe yet: an `ei-effects` entry point needs GameMain's whole start (the worlds, the databases,
+    the window, the renderer, the interface) and a zone with a unit, which is what the new game gives. The user
+    (2026-11-11) wants it as its own exe all the same: on the engine library (file-layout.md, "The engine library";
+    ei_engine with the particle core, MF15k1), once the particle core's world calls (`particle_host.h`) are an
+    interface (MF15k2) and a figure plays without a unit (MF15k3), the viewer is MF15k4's exe.
   - The in-game panel (the harness's `effectviewer open`, over a game started as usual) is the same viewer.
   - A base zone (map list kind 2) has no 3D scene, so `--zone` wants a battle zone.
   - tests/scenarios/effect_viewer_standalone.txt starts the exe with `--effects Portal` (run_all's `# arguments:` line).
