@@ -389,32 +389,32 @@ Risks:
 | Folder | Files | Lines today | Move batch |
 |---|---|---|---|
 | `ai/` | 28 | 12564 | C168f |
-| `app/` | 24 | 6918 | C168e |
-| `combat/` | 13 | 6384 | C168f |
+| `app/` | 24 | 6917 | C168e |
+| `combat/` | 13 | 6386 | C168f |
 | `console/` | 5 | 2038 | C168e |
-| `core/` | 29 | 3803 | C168d |
+| `core/` | 29 | 3806 | C168d |
 | `data/` | 19 | 6649 | C168d |
-| `effects/` | 17 | 4940 | C168g |
+| `effects/` | 18 | 4929 | C168g |
 | `items/` | 12 | 2958 | C168g |
 | `map/` | 11 | 3139 | C168e |
-| `models/` | 25 | 8230 | C168g |
+| `models/` | 29 | 8354 | C168g |
 | `mods/` | 9 | 801 | C168d |
 | `net/` | 23 | 8423 | C168h |
-| `objects/` | 23 | 8176 | C168f |
-| `particles/` | 11 | 4533 | C168g |
+| `objects/` | 23 | 7385 | C168f |
+| `particles/` | 13 | 5312 | C168g |
 | `players/` | 24 | 5486 | C168e |
 | `saves/` | 7 | 848 | C168d |
-| `scene/` | 27 | 3086 | C168g |
-| `script/` | 33 | 11958 | C168h |
+| `scene/` | 27 | 3085 | C168g |
+| `script/` | 35 | 12081 | C168h |
 | `sound/` | 3 | 1715 | C168e |
-| `spells/` | 11 | 2174 | C168g |
+| `spells/` | 11 | 2180 | C168g |
 | `terrain/` | 12 | 3580 | C168g |
-| `ui/` | 97 | 33146 | C168h |
-| `units/` | 27 | 9830 | C168f |
-| `world/` | 39 | 11582 | C168e |
-| all | 529 | 162961 | |
+| `ui/` | 97 | 33193 | C168h |
+| `units/` | 27 | 9860 | C168f |
+| `world/` | 39 | 11597 | C168e |
+| all | 538 | 163286 | |
 
-570 files today; 55 fold into an owner, 10 split by meaning, 18 new files come out of the splits, 36 moves rename for meaning.
+570 files today; 55 fold into an owner, 10 split by meaning, 27 new files come out of the splits, 36 moves rename for meaning.
 
 ### Every file
 
@@ -600,6 +600,7 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 |---|---|---|---|
 | effects.h | effects/effects.h |  |  |
 | effects_particles.cpp | effects/effects_particles.cpp |  |  |
+| effects_particles.h | effects/effects_particles.h | new | the client world's particle host (MF15k2) |
 | effects_weather.cpp | effects/effects_weather.cpp |  |  |
 | lightning.cpp | effects/lightning.cpp |  |  |
 | lightning.h | effects/lightning.h |  |  |
@@ -660,12 +661,16 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | map_object_animation.h | models/animation.h |  | figure animation tracks (AnimationTrack), not map objects |
 | map_object_animation_bones.cpp | models/animation_bones.cpp |  | FigureAnimationState's skeleton and FigureBone |
 | figure_bones.cpp | models/animation_bones.cpp | fold | FigureBone::Place (57 lines): FigureBone's other members are there |
+| animation_db.cpp | models/animation_db.cpp | new |  |
+| animation_db.h | models/animation_db.h | new | the .adb database and the animation keys, out of object3d.h and map_object_manager.cpp (MF15k3) |
 | dib.cpp | models/dib.cpp |  |  |
 | dib.h | models/dib.h |  |  |
 | figure_gltf.cpp | models/figure_gltf.cpp |  |  |
 | figure_gltf.h | models/figure_gltf.h |  |  |
 | figure_gltf_animation.cpp | models/figure_gltf_animation.cpp |  |  |
 | figure_gltf_glb.h | models/figure_gltf_glb.h |  |  |
+| figure_instance.cpp | models/figure_instance.cpp | new |  |
+| figure_instance.h | models/figure_instance.h | new | FigureInstance: a figure in the scene, Object3D's base, drawn alone too (MF15k3) |
 | figure_manager.cpp | models/figure_manager.cpp |  |  |
 | menu_rects.cpp | models/figure_manager.cpp | fold | FigureManager::LoadMenuRects (57 lines): a member of the manager |
 | figure_manager.h | models/figure_manager.h |  |  |
@@ -775,6 +780,8 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | particle_data.h | particles/particle_data.h |  |  |
 | particle_expr.cpp | particles/particle_expr.cpp |  |  |
 | particle_expr.h | particles/particle_expr.h |  |  |
+| particle_figure_host.cpp | particles/particle_figure_host.cpp | new |  |
+| particle_figure_host.h | particles/particle_figure_host.h | new | the particle host without the game's world: a figure alone carries the sources (MF15k2) |
 | particle_host.h | particles/particle_host.h |  |  |
 | particle_manager.cpp | particles/particle_manager.cpp |  |  |
 | particle_record.cpp | particles/particle_record.cpp |  |  |
@@ -881,6 +888,8 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | script_load.cpp | script/script_load.cpp |  |  |
 | script_lua.cpp | script/script_lua.cpp |  |  |
 | script_lua.h | script/script_lua.h |  |  |
+| script_lua_api.h | script/script_lua_api.h | new | the Lua API's declarations as data (MF17i) |
+| script_lua_api.inc | script/script_lua_api.inc | new |  |
 | script_lua_mission.cpp | script/script_lua_mission.cpp |  |  |
 | script_lua_number.h | script/script_lua_number.h |  |  |
 | script_lua_resume.cpp | script/script_lua_resume.cpp |  |  |
