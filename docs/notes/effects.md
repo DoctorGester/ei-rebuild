@@ -418,7 +418,8 @@ game/script/script_lua_api.h takes its rows for ei-convert's LuaLS file and docs
   hooks 0.69-0.70 ms (0.54 ms more for 2,000 calls: about 270 ns a call, the study's "accessor" row of 155-250 ns a
   particle; the whole source about 6x its data). The budget's 2,000 calls are then about 0.55 ms a tick, at the low
   end of the 0.4-2 ms the study gives. A frame of the run: 2.1 ms with the data, 4.8-5.2 ms with the hooks. The
-  world updates' share (the server, its mission script) varies from run to run and is no part of it.
+  world updates' share (the server, its mission script) is no part of it: 0.21-0.29 ms a frame in every segment
+  (lua-scripting.md, "The collector's pause").
 
 ### The original effects on data
 

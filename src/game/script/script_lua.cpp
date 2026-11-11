@@ -707,6 +707,10 @@ ScriptLua::ScriptLua(Script* script) : script(script), state(luaL_newstate()) {
     lua_State* L = state;
     *static_cast<ScriptLua**>(lua_getextraspace(L)) = this;
     luasandbox::OpenLibraries(L);
+    // Every object and group value has a finalizer, so a dead one is freed a cycle late and the collector counts it
+    // live when it sets its pause; at the default 200% the dead values RemoveDeletedObjects walks grow every cycle.
+    // A new cycle at once keeps them to about the live data (docs/notes/lua-scripting.md, "Bindings").
+    lua_gc(L, LUA_GCSETPAUSE, 100);
     lua_register(L, "print", PrintToConsole);
 
     luaL_newmetatable(L, kObjectMeta);
