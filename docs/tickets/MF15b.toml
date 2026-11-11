@@ -5,5 +5,6 @@ size = 1
 model = "opus"
 note = "User 2026-11-11 approved MF15's plan (build/mf15_particles.md). Today FatalExit on our client. Log once and show nothing (or the declared fallback once MF15e lands)."
 order = 1342
-status = "running"
+status = "done"
 started = "2026-11-11"
+done = "2026-11-11"
