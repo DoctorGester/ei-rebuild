@@ -626,11 +626,22 @@ frame = { start = "pick(16)", delay = 1 }
 - **Inputs**: `float`, `vector`, `bool`, `enum` (named values) and `event` (fired; `[[on]] event = "..."` reacts).
 - **Expressions**: arithmetic, comparisons, `? :`, `sin`, `cos`, `min`, `max`, `clamp`, `lerp`, `pow`, `exp`, `log`,
   random `range`, `chance`, `pick`; tables (`fade[p.age]`) and curves (`glow(p.t)`) from `[tables]` and `[curves]`;
-  the world's wind (`wind.x/y/z`, `wind_strength`) and the carrier unit's `carrier_radius` and `carrier_z`. A
-  particle's own vars may not reuse the built-in names (`p.age`, `p.life`, `p.x`...).
+  the world's wind (`wind.x/y/z`, `wind_strength`) and the carrier's `carrier_radius` and `carrier_z`; when it is a
+  unit, `carrier_unit` (1), `carrier_running`, `carrier_dead`, its own x axis `carrier_axis.x/y/z`, its feet
+  `carrier_left_foot.x/y/z` and `carrier_right_foot.x/y/z`. A particle's own vars may not reuse the built-in names
+  (`p.age`, `p.life`, `p.x`...). A var with `at_create = true` starts when the source is made (a random count drawn
+  once, before the first tick).
 - **Reactions** (`[[on]] event = "tick"`, with a `when` condition) run actions each tick: `{ set = "height", value =
-  ... }` changes an input or the source's own `size`, `height`, `growth`, `alpha` or `param`, `{ stop_emitting =
-  true }` ends the emission (the particles live on), `{ stop = true }` stops the source.
+  ... }` changes an input, a var or the source's own `size`, `height`, `growth`, `alpha` or `param`, `{ stop_emitting =
+  true }` ends the emission (the particles live on), `{ stop = true }` stops the source, `{ let_go = true }` lets go
+  of the carrier (the source stays where it is). `[[on]] event = "emit"` runs after each particle the emission makes,
+  at once (the next particle of the tick sees it): a count for the next tick by the carrier's state, a stop when the
+  carrier is dead.
+- **Particles that change the source**: `source = { size = "..." }` in a particle kind sets the source's value at
+  each of its updates (the particles after it read the new value), as a fading mark that shrinks its source; `drop =
+  "..."` throws a particle away once it is made (its random draws stay drawn); `anchor_index = "p.gust"` starts it at
+  the anchor of that number, chosen after its vars; the spawn shape `flat_ball` draws a point of the flat disc as
+  `ball` draws one of the ball.
 - **Layers**: a mod's file of the name merges over a lower one field by field, a particle kind or stage by its `name`;
   `replace = true` replaces it whole.
 - **Placing a particle yourself**: `position = [x, y, z]` starts it where the expressions say (`origin.x`, the
@@ -639,7 +650,9 @@ frame = { start = "pick(16)", delay = 1 }
 - **The game's own effects** are written the same way as they move to data (`assets/effects` in the source:
   FireStar, AcidStar, CurseStars, PortalStar, Sparks, FeebleMind, ZoneExit, the trails FireBall, FireArrow,
   RikArrowSmoke, AcidRay, the fires and smokes CampFire, Fire, Smoke, Tendril, VulcanSmoke, and Portal, TeleportRing,
-  Teleport, Banshee, BlueGas, Nuke so far); a mod's `Res\effects\FireStar.effect.toml` retunes the fire arrow's flash with only
+  Teleport, Banshee, BlueGas, Nuke, the marks on units Stun, Regeneration, VisionStar1-4, FeetCloud1 / 2, StartTrans,
+  the leaves Falling1-4, the protection spheres SphereAcid, SphereElectricity, SphereFire and Antimagic so far); a mod's
+  `Res\effects\FireStar.effect.toml` retunes the fire arrow's flash with only
   the fields it names, and `Res\effects\ZoneExit.effect.toml` the glow over every zone exit.
 - **Problems** are `warning: effects: <file>:<line>: ...` lines in `ei-rebuild.log`; an effect with an error shows
   nothing. An unknown key is only noted.

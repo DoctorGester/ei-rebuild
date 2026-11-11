@@ -203,11 +203,6 @@ struct ParticleElement {
             Vector3 normal;     // its z replaced by its reciprocal when not 0
             std::uint32_t color;    // the dust's colour
         } plane;
-        // FeetCloud1 / 2 (TickFeetCloud): a foot; ticks says which (nonzero: the left).
-        struct {
-            float radius;       // the carrier's radius (AttachmentOffset)
-            std::int32_t countdown;   // reset every tick; the cloud starts at the foot while >= 0
-        } foot;
         // CastingFire ... CastingDivination: element 0 the effect's state (pos.x 1 once set up, ticks the countdown
         // the alpha follows), elements 1.. the swirls.
         struct {
@@ -220,16 +215,6 @@ struct ParticleElement {
             Vector3 position;   // drifting by velocity
             Vector3 velocity;
         } swirl;
-        // Protection spheres and Antimagic: element 0 (pos.z the height above the carrier); element 1's pos is the
-        // carrier's smoothed motion.
-        struct {
-            float radius;       // the sphere's
-            float speed;        // the carrier's (0 below 0.01)
-        } sphere;
-        struct {
-            float tiltCos;      // element 1: the tilt's cosine and sine (0.01 radians)
-            float tiltSin;
-        } sphereTilt;
         // Casting and Healing: a ring of flames (pos its centre, relative to the source; ticks its countdown).
         struct {
             float radius;
@@ -289,17 +274,6 @@ struct ParticleElement {
             Vector3 previous;   // its previous position
             Vector3 direction;  // turning a little each tick
         } clay;
-        // Falling1-4: a gust.
-        struct {
-            float reach;
-            float direction;    // radians, truncated
-            std::int32_t age;
-        } wind;
-        // StartTrans: element 0 (ticks the countdown).
-        struct {
-            float scale;        // the glow's size, growing with the source's
-            float count;        // the emitted count, rising by 0.4 per tick
-        } trans;
         // ShapeChange: element 0.
         struct {
             Vector3 mark;       // the last point glowed at
@@ -493,7 +467,7 @@ public:
     Vector3 windDirection;          // copied from the world every tick
     float windStrength = 0.0f;
     bool additiveBlend = false;     // drawn with additive blending
-    std::uint32_t tint = 0;         // the particles' colour: Tornado and CurseHolder ARGB, FeetCloud RGB
+    std::uint32_t tint = 0;         // the particles' colour: Tornado and CurseHolder ARGB
     int rayCount = 0;               // Shower1-4: the directions chosen (alpha * 8, at least 1)
     GlowKind glowKind = GlowKind::Green;   // ShapeChange
     std::vector<ParticleElement> elements;   // per type

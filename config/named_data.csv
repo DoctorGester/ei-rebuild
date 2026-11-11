@@ -1,6 +1,4 @@
 address,size,name,file
-0073CB38,64,kSphereSizeByLife,src/game/effects/particle_casting.cpp
-0073CB78,24,kAntimagicSizeByLife,src/game/effects/particle_casting.cpp
 0073E048,84,kArmourCoverage,src/game/units/unit_stats.cpp
 0073E09C,96,kArmourPieces,src/game/units/unit_hits.cpp
 0073E0FC,20,kSlotWeights,src/game/units/unit.h
@@ -49,8 +47,6 @@ address,size,name,file
 0078AAC8,16,kDustAxisY,src/game/effects/particle_world.cpp
 0078AAD8,64,kDustAlpha,src/game/effects/particle_world.cpp
 0078AB18,128,kCylinderAlpha,src/game/effects/particle_casting.cpp
-0078AC18,96,kFeetAlpha,src/game/effects/particle_marks.cpp
-0078ACF8,64,kTransAlpha,src/game/effects/particle_marks.cpp
 0078B0E8,4,g_nextPartyId,src/game/players/party_manager.cpp
 0078BC8C,4,kCommentOpen,src/game/script/script_parse.h
 0078BC90,4,kCommentClose,src/game/script/script_parse.h
@@ -114,7 +110,6 @@ address,size,name,file
 0079BF70,512,g_keyActions,src/game/app/key_bindings.h
 0079C1F8,1600,g_noiseSide,src/game/effects/lightning.cpp
 0079C838,1600,g_noiseUp,src/game/effects/lightning.cpp
-007A9BF8,4,kSpinAngle,src/game/effects/particle_marks.cpp
 007A9C30,16,kIdentityRotation,src/game/effects/particle_create.cpp
 007A9D40,2068,g_random,src/game/core/random.cpp
 007ABA58,256,g_fogTiles,src/game/effects/effects.h

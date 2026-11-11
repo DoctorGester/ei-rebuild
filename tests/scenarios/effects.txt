@@ -1,5 +1,5 @@
-# Effects: particle sources placed around the hero (smoke, fire and Nuke: data effects;
-# PoisonFog: UpdateCloud; the spheres and Antimagic: UpdateOrbit; Mushroom: TickMushroom; every
+# Effects: particle sources placed around the hero (smoke, fire, Nuke, the spheres and Antimagic: data
+# effects; PoisonFog: UpdateCloud; Mushroom: TickMushroom; every
 # script source: ScaleSize each tick), wind changes for the rain layer (CRainSnow::SetWind), a resize, then
 # deletion. CreateParticleSource(id, x, y, z, size, name). The verify totals in the report show
 # what ran.
