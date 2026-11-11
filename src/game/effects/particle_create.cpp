@@ -317,7 +317,7 @@ std::set<int> g_unknownTypes;
 
 int ShownParticleType(int type) {
     if (FindSpec(type)) return type;
-    // TODO(MF15e): a mod effect known by name shows its declared fallback type.
+    // TODO: a mod effect known by name shows its declared fallback type.
     if (g_unknownTypes.insert(type).second)
         ei::Log("particles: unknown particle type 0x%X, no effect shown (once per type)", static_cast<unsigned>(type));
     return kNoParticleType;
