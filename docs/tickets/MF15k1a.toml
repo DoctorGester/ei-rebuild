@@ -4,4 +4,4 @@ group = "mods"
 size = 2
 depends = ["MF15k1"]
 note = "After MF15k1 (tools/engine_layers.txt names each). TextManager::GetItemTexts (items, spells) becomes the items' (a free function in items/, its ~12 callers in ui/); figure_manager.h includes what it uses instead of world.h (many files then add their own includes); dib.cpp's app::ShowLibraryMessageBox and lib/crt.h's game::Warning / DebugLog / FatalExit get definitions in the engine (Warning and DebugLog log only; FatalExit's message box through the platform) so ei_engine links without app.cpp; screen_layout's AxisScale / AxisScaleY (read by the scene renderer and the camera) into the engine. Every golden the same; engine_layers.txt shrinks."
-order = 1391
+order = 1394

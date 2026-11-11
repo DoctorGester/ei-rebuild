@@ -4,5 +4,6 @@ group = "mods"
 size = 3
 note = "User 2026-11-11: the effect viewer becomes a separate exe (MF15k4). ei_game is one OBJECT library today (render and platform are separate). Carve ei_engine: lib, data/resource and archives, models (textures, figures, animation), scene (camera, lights, clip, pipeline, scene renderer), core engine objects / transforms / random, the particle core (particle_data/manager/create/record/expr, effect_files builtin), mods' file layers. The engine never includes game headers (units, world, ai, net, spells, script, ui, app): a build check like layout.py's enforces it. Game-side effects (world_effect_*, weather, lightning, vis fog) stay in ei_game. Expect back-references (singletons.h, g_clientWorld, g_camera): move what belongs to the engine, leave hooks MF15k2 fills. Behaviour unchanged: vanilla/Rebirth --golden the same. Start after MF15g6 merges (it deletes the per-type particle code this split moves)."
 order = 1384
-status = "running"
+status = "done"
 started = "2026-11-11"
+done = "2026-11-11"
