@@ -567,6 +567,9 @@ the engine's side (MF15l1; the old fields still read until MF15l3). Left: 6, the
   name, the client's source and its stages (`effect ... check`), inputs set by value and by enum name, the burst's
   `set` seen (`effect ... value`), an event fired; captures `calm`, `storm`; an unknown name makes nothing.
 - `tests/unit/mod_hash.cpp`: Res\effects counts.
+- The goldens hold no particle, but a save's visuals.sav keeps the client particle generator (`visuals.particleGenerator`):
+  a change of the client's particle draws (MF15l1: 110 vanilla and 27 Rebirth goldens) differs there alone; re-record
+  only the saves (`golden.py saves --runs <pass1> <pass2>`, standalone-verification.md, "Recording goldens").
 
 ## The effect viewer
 
