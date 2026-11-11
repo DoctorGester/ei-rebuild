@@ -21,6 +21,7 @@ class MapObjectServer;
 class MapObjectClientSpecific;
 struct DeltaState;
 enum class SpellType : int;   // spell_db.h
+namespace itemdb { struct SpellRecord; }
 
 // An active effect (an array): what a spell's cast:Apply puts on the object (the buffs, Buff.lua) or Teleport's
 // record, which stuns its caster like Stun. Strengthen, Weaken, Enlarge and Shrink scale the object.
@@ -37,6 +38,8 @@ struct MapEffect {
     SpellType Behaviour() const;
     // The place of the record whose OnStats gives it its stats (itemdb::EffectKindAt; -1: none).
     int Kind() const;
+    // That record, whose fields also say how the effect looks and sounds (SpellRecord::look ...); null for none.
+    const itemdb::SpellRecord* KindRecord() const;
 
     // One tick less; whether any are left (0 / 1).
     int Tick();
@@ -232,6 +235,9 @@ public:
     void MarkChanged(NetField part);
     // Has the object an active effect of the behaviour `type` (MapEffect::Behaviour())?
     bool HasEffect(SpellType type);
+    // Has the object an active effect whose kind's record (MapEffect::KindRecord) passes `test`? The client's facts
+    // of a kind: its quiet steps, its greyed spells.
+    bool HasEffectKind(bool (*test)(const itemdb::SpellRecord& kind)) const;
 
     // The per-tick update: lets the companion update. Unit's update calls it after its controller's.
     void Update();

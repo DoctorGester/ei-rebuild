@@ -29,9 +29,10 @@ MapObjectClientSpecific), `map_object_client_effects.cpp`, `map_object_manager.c
 - AddEffect renews an effect already present (as Rebirth's FixSpellEffectsOverflow does, without its 20-effect cap or
   its skip after a removal).
 - The client counts its copy down too (network part 3 resends the list). For text-key objects it plays
-  "magic\end1.wav" under 30 ticks left; stench plays "magic\Stench\1..3.wav" every 17 ticks (an ISAAC draw); a shown
-  light sits 2 above the object. `EffectsChanged` rebuilds the merged effect list: one record per merged type at the
-  highest power (one per effect otherwise), one sound per type.
+  "magic\end1.wav" under 30 ticks left; a kind's loop by ticks (stench's "magic\Stench\1..3.wav" every 17 ticks)
+  draws the client generator; a shown light sits 2 above the object. `EffectsChanged` rebuilds the look and sound
+  records: one per effect kind at its highest power, from the kind's record (items_spells.md, "Active effects on
+  scripts").
 - Light modes: 1 holds the light on and lists it with the light manager, 2 drops it.
 
 ## Shadows

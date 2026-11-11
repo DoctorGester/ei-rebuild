@@ -1,6 +1,7 @@
 # The mod's spell (docs/modding.md, "Spells"): Chain Spark, a new record after the game's 42. Its `script` makes it
 # scripted: Res\spells\chain_spark.lua runs each cast, on the server. The spark it throws and the sparks of a strike are
-# the mod's data effects Res\effects\ChainSpark.effect.toml and ChainSparkHit.effect.toml; its pictures are
+# the mod's data effects Res\effects\ChainSpark.effect.toml and ChainSparkHit.effect.toml, the shock it leaves on a
+# struck unit (its own active effect: `look`) ChainSparkShock.effect.toml; its pictures are
 # Res\textures\spell0101.png and prototype0101.png (icon 101). The island's quest gives it (Maps\zone1.lua).
 
 [[spell]]
@@ -28,3 +29,4 @@ light_rise_divisor = 10.0
 ai = "attack"                   # a unit given it casts it at its enemies, its damage judged as lightning
 damage_type = "lightning"
 offensive = true                # the HUD's cast at once aims it at the nearest enemy
+look = "ChainSparkShock"        # its own effect on a struck unit shows Res\effects\ChainSparkShock.effect.toml

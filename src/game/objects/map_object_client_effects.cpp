@@ -1,8 +1,9 @@
-// The client companion's effect visuals (MapObjectClientSpecific, map_object.h / unit.h): the
-// particle sources and looping sounds that follow the object's effect list, and the reset of the
-// parts' alpha / tint when an invisibility or stun effect ends.
+// The client companion's effect looks and sounds (MapObjectClientSpecific, map_object.h / unit.h): the particle
+// sources, rings, figure flags and sounds that follow the object's effect list, each from its kind's record
+// (SpellRecord::look ...; docs/notes/items_spells.md, "Active effects on scripts"), and the object's light.
 
 #include "game/effects/effects.h"
+#include "engine/particles/particle_data.h"
 #include "engine/scene/light.h"
 #include "game/objects/map_object.h"
 #include "game/objects/object3d.h"
@@ -15,8 +16,11 @@
 
 #include "game/console/console.h"
 #include "lib/crt.h"
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -32,97 +36,58 @@ namespace {
 constexpr int kWarmUpTicks = 0x1E;                    // a source arriving with the object runs ahead
 constexpr float kPowerScale = 0.0625f;                // power / 16
 
-constexpr ParticleType kRingSource = ParticleType::ClayRing;        // Lichdom's ring
-constexpr ParticleType kScaleRingSource = ParticleType::Modifier1;   // strengthen / weaken
-
 // The sound distances (10 and 50), read from the exe.
 constexpr float kSoundNear = 10.0f;
 constexpr float kSoundFar = 50.0f;
 
-// The behaviours whose several effects share one particle source (the strongest power wins).
-bool MergesParticles(SpellType type) {
-    switch (type) {
-    case SpellType::ProtectionFromFire: case SpellType::ProtectionFromLightning: case SpellType::ProtectionFromAcid:
-    case SpellType::EagleSight: case SpellType::Infravision: case SpellType::DetectLife: case SpellType::Silence:
-    case SpellType::Stench: case SpellType::Stun: case SpellType::Antimagic: case SpellType::Strengthen:
-    case SpellType::Weaken: case SpellType::Regeneration: case SpellType::Feeblemind: case SpellType::Speed:
-    case SpellType::Slow:
-        return true;
-    default:
-        return false;
-    }
+// The particle type of the data effect `name` (the game's by its script name, a mod's from Res\effects); none for an
+// empty name or one no effect has (the registry logs it).
+std::optional<int> EffectTypeNamed(const std::string& name) {
+    if (name.empty()) return std::nullopt;
+    if (std::shared_ptr<const effectdata::Record> effect = effectdata::g_effects.Find(name)) return effect->id;
+    return std::nullopt;
 }
 
-// The particle source type of a lasting effect's behaviour; none for a behaviour without a look (None).
-std::optional<ParticleType> ParticleSourceType(SpellType type) {
-    switch (type) {
-    case SpellType::ProtectionFromFire: return ParticleType::SphereFire;
-    case SpellType::ProtectionFromLightning: return ParticleType::SphereElectricity;
-    case SpellType::ProtectionFromAcid: return ParticleType::SphereAcid;
-    case SpellType::EagleSight: return ParticleType::VisionStar1;
-    case SpellType::Infravision: return ParticleType::VisionStar2;
-    case SpellType::DetectLife: return ParticleType::VisionStar3;
-    case SpellType::Silence: return ParticleType::VisionStar4;
-    case SpellType::Stench: return ParticleType::BlueGas;
-    case SpellType::Antimagic: return ParticleType::Antimagic;
-    case SpellType::Regeneration: return ParticleType::Silence;
-    case SpellType::Feeblemind: return ParticleType::FeebleMind;
-    case SpellType::Speed: return ParticleType::FeetCloud2;
-    case SpellType::Slow: return ParticleType::FeetCloud1;
-    default: return std::nullopt;
-    }
-}
-
-// The folder of a behaviour's effect sounds ("" for those without).
-const char* SoundFolder(SpellType type) {
-    switch (type) {
-    case SpellType::ProtectionFromFire: return "magic\\Fireshield";
-    case SpellType::ProtectionFromLightning: return "magic\\Lightsheild";
-    case SpellType::ProtectionFromAcid: return "magic\\PoisonShield";
-    case SpellType::EagleSight: return "magic\\Eaglesight";
-    case SpellType::Infravision: return "magic\\Infravision";
-    case SpellType::DetectLife: return "magic\\Detectlife";
-    case SpellType::Invisibility: return "magic\\Invisibility";
-    case SpellType::Silence: return "magic\\Silence";
-    case SpellType::Lichdom: return "magic\\Lichdom";
-    case SpellType::Stun: return "magic\\Stun";
-    case SpellType::Antimagic: return "magic\\Antimagic";
-    case SpellType::Strengthen: return "magic\\Strengthen";
-    case SpellType::Weaken: return "magic\\Weaken";
-    case SpellType::Regeneration: return "magic\\Regeneration";
-    case SpellType::Speed: return "magic\\Speed";
-    case SpellType::Slow: return "magic\\Slow";
-    case SpellType::Enlarge: return "magic\\Enlarge";
-    case SpellType::Shrink: return "magic\\Shrink";
-    default: return "";
-    }
-}
-
-// The one-shot ring of Lichdom / strengthen / weaken, scaled by `size` (stored as a float).
-void SpawnRing(MapObject* owner, SpellType type, float size, bool negate) {
-    const bool scales = type == SpellType::Strengthen || type == SpellType::Weaken;
-    ParticleSource* ring = g_clientWorld.particleManager->CreateSource(static_cast<int>(scales ? kScaleRingSource : kRingSource));
+// The kind's ring (SpellRecord::lookRing) on `owner` at `power`: power / 16 times the record's ringScale, negated
+// as the kind goes (`ending`).
+void SpawnRing(MapObject* owner, const itemdb::SpellRecord& kind, int power, bool ending) {
+    const std::optional<int> type = EffectTypeNamed(kind.lookRing);
+    if (!type) return;
+    ParticleSource* ring = g_clientWorld.particleManager->CreateSource(*type);
+    if (!ring) return;
     ring->Attach(owner);
-    float factor = size / ring->baseSize;
-    ring->ScaleSize(negate ? -factor : factor);
+    const float size = static_cast<float>(power) * kPowerScale * kind.ringScale;
+    const float factor = size / ring->baseSize;
+    ring->ScaleSize(ending ? -factor : factor);
 }
 
-// The ring's size: power / 16, negative for weaken, rounded to a float.
-float RingSize(SpellType type, int power) {
-    const float size = static_cast<float>(power) * kPowerScale;
-    return type == SpellType::Weaken ? -size : size;
+// A kind's sounds as it comes: its loop as a sequence led by the start sound (`play`: not when the effect arrives
+// with the object), or the start sound alone; a loop by ticks plays at the next tick (RunTick).
+void StartKindSounds(EffectSoundRecord& record, const itemdb::SpellRecord& kind, bool play,
+                     const Vector3& position) {
+    SoundManager* sounds = g_clientWorld.sounds.get();
+    const bool withStart = play && !kind.startSound.empty();
+    if (!kind.loopSounds.empty() && kind.loopTicks <= 0) {
+        std::vector<std::string> names;
+        if (withStart) names.push_back(kind.startSound);
+        names.insert(names.end(), kind.loopSounds.begin(), kind.loopSounds.end());
+        record.handle = sounds->AddSequence(names, 0, position, kSoundNear, kSoundFar, false, -1,
+                                            ChooserFor(static_cast<int>(kind.loopSounds.size()), withStart));
+        return;
+    }
+    if (withStart) sounds->Play3D(kind.startSound, 0, position, kSoundNear, kSoundFar, false);
 }
 
-// The feeble mind sequence's chooser: the first name once, then the second.
-int FeebleMindChooser(int, int previous) { return previous != 0 ? 1 : 0; }
-
-// Is there a record of `type` other than `index`?
-bool OtherRecordOfType(const std::vector<ParticleRecord>& particles, int index, SpellType type) {
-    for (int i = 0; i < std::ssize(particles); ++i)
-        if (i != index && particles[i].type == type) return true;
-    return false;
+// A kind's sounds as it goes: its loop stopped, its end sound played when `play` (the object is not dead).
+void EndKindSounds(EffectSoundRecord& record, const itemdb::SpellRecord* kind, bool play, const Vector3& position) {
+    SoundManager* sounds = g_clientWorld.sounds.get();
+    if (record.handle != -1) {
+        sounds->RemoveSequence(record.handle);
+        record.handle = -1;
+    }
+    if (play && kind && !kind->endSound.empty())
+        sounds->Play3D(kind->endSound, 0, position, kSoundNear, kSoundFar, false);
 }
-
 
 // A new light's flags (ShowLight then clears Hidden).
 constexpr LightFlag kLightNew = LightFlag::Hidden | LightFlag::Moving | LightFlag::Off;
@@ -140,192 +105,136 @@ void DropLight(MapObjectClientSpecific* self) {
 
 } // namespace
 
-void PlayEffectSound(bool play, EffectSoundRecord* record, const Vector3& position, const char* suffix) {
-    SoundManager* sounds = g_clientWorld.sounds.get();
-    const SpellType kind = record->kind;
-    if (kind == SpellType::Stench) {
-        record->timer = 0;
-        return;
-    }
-    if (kind == SpellType::Feeblemind) {
-        if (record->handle == -1) {
-            std::vector<std::string> names{"magic\\FeebleMind\\start.wav", "magic\\FeebleMind\\circle.wav"};
-            record->handle = sounds->AddSequence(names, 0, position,
-                                                 kSoundNear, kSoundFar, false, -1, FeebleMindChooser);
-            // The sequence plays start.wav once, then circle.wav.
-        } else {
-            sounds->RemoveSequence(record->handle);
-            record->handle = -1;
-            g_clientWorld.sounds->Play3D("magic\\FeebleMind\\end.wav", 0, position, kSoundNear, kSoundFar, false);
-        }
-        return;
-    }
-    const char* folder = SoundFolder(kind);
-    if (*folder == '\0' || !play) return;
-    std::string name = folder;
-    name += suffix;
-    sounds->Play3D(name, 0, position, kSoundNear, kSoundFar, false);
-}
-
 void MapObjectClientSpecific::EffectsChanged(bool first) {
     UpdateEffectParticles(first);
     UpdateEffectSounds(first);
 }
 
 void MapObjectClientSpecific::UpdateEffectParticles(bool first) {
-    MapObject* mapObject = owner;
-    // The effects, those of the merging behaviours once each with the highest power.
-    std::vector<MapEffect> wanted;
-    if (std::ssize(mapObject->effects) > 0) {
-        for (int i = 0; i < std::ssize(mapObject->effects); ++i) {
-            const MapEffect& effect = mapObject->effects[i];
-            bool merged = false;
-            if (MergesParticles(effect.Behaviour())) {
-                for (int j = 0; j < std::ssize(wanted); ++j) {
-                    if (wanted[j].Behaviour() != effect.Behaviour()) continue;
-                    if (effect.power > wanted[j].power) wanted[j].power = effect.power;
-                    merged = true;
-                    break;
-                }
-            }
-            if (!merged) wanted.push_back(effect);
-        }
+    // The effects' kinds, once each at the highest power.
+    struct Wanted {
+        int kind = -1;
+        int power = 0;
+    };
+    std::vector<Wanted> wanted;
+    for (const MapEffect& effect : owner->effects) {
+        if (!effect.KindRecord()) continue;
+        const int kind = effect.Kind();
+        const auto same = std::ranges::find(wanted, kind, &Wanted::kind);
+        if (same == wanted.end()) wanted.push_back({kind, effect.power});
+        else if (effect.power > same->power) same->power = effect.power;
     }
 
-    for (int i = 0; i < std::ssize(particles); ++i) particles[i].present = 0;
+    for (ParticleRecord& record : particles) record.present = 0;
 
-    for (int w = 0; w < std::ssize(wanted); ++w) {
-        SpellType spellType = wanted[w].Behaviour();
-        int power = wanted[w].power;
-        // The same effect at the same power keeps its record.
-        bool kept = false;
-        for (int i = 0; i < std::ssize(particles) && !kept; ++i) {
-            ParticleRecord& record = particles[i];
-            if (!record.present && record.type == spellType && record.power == power) {
-                record.present = 1;
-                kept = true;
-            }
+    for (const Wanted& want : wanted) {
+        // The same kind at the same power keeps its record.
+        auto kept = std::ranges::find_if(particles, [&want](const ParticleRecord& record) {
+            return !record.present && record.kind == want.kind && record.power == want.power;
+        });
+        if (kept != particles.end()) {
+            kept->present = 1;
+            continue;
         }
-        if (kept) continue;
-        // A source of the same type takes the new power.
-        for (int i = 0; i < std::ssize(particles) && !kept; ++i) {
-            ParticleRecord& record = particles[i];
-            if (!record.present && record.type == spellType && record.source) {
-                record.power = power;
-                ParticleSource* source = particles[i].source;
-                source->ScaleSize(static_cast<float>(power) * kPowerScale / source->baseSize);
-                particles[i].present = 1;
-                kept = true;
-            }
+        // A look of the same kind takes the new power.
+        kept = std::ranges::find_if(particles, [&want](const ParticleRecord& record) {
+            return !record.present && record.kind == want.kind && record.source;
+        });
+        if (kept != particles.end()) {
+            kept->power = want.power;
+            ParticleSource* source = kept->source;
+            source->ScaleSize(static_cast<float>(want.power) * kPowerScale / source->baseSize);
+            kept->present = 1;
+            continue;
         }
-        if (kept) continue;
 
-        ParticleRecord added = {};
-        added.type = spellType;
-        added.power = power;
+        const itemdb::SpellRecord& kind = *itemdb::SpellAt(static_cast<std::uint32_t>(want.kind));
+        ParticleRecord added;
+        added.kind = want.kind;
+        added.power = want.power;
         added.present = 1;
-        switch (spellType) {
-        case SpellType::Invisibility:
-            owner->flags |= MapObjectFlag::Invisible;
-            break;
-        case SpellType::Stun:
-            owner->flags |= MapObjectFlag::Stunned;
-            break;
-        case SpellType::Lichdom:
-        case SpellType::Strengthen:
-        case SpellType::Weaken:
-            if (!first) SpawnRing(owner, spellType, RingSize(spellType, power), false);
-            break;
-        case SpellType::Teleport:
-        case SpellType::Enlarge:
-        case SpellType::Shrink:
-            break;
-        default: {
-            const std::optional<ParticleType> look = ParticleSourceType(spellType);
-            if (!look) break;
-            ParticleSource* source = g_clientWorld.particleManager->CreateSource(static_cast<int>(*look));
-            added.source = source;
-            source->Attach(owner);
-            source->ScaleSize(static_cast<float>(power) * kPowerScale / source->baseSize);
-            if (first)
-                for (int tick = 0; tick < kWarmUpTicks; ++tick) source->RunTick();
-            break;
-        }
+        if (!first) SpawnRing(owner, kind, want.power, false);
+        if (const std::optional<int> look = EffectTypeNamed(kind.look)) {
+            if (ParticleSource* source = g_clientWorld.particleManager->CreateSource(*look)) {
+                added.source = source;
+                source->Attach(owner);
+                source->ScaleSize(static_cast<float>(want.power) * kPowerScale / source->baseSize);
+                if (first)
+                    for (int tick = 0; tick < kWarmUpTicks; ++tick) source->RunTick();
+            }
         }
         particles.push_back(std::move(added));
     }
 
-    for (int i = 0; i < std::ssize(particles); ++i) {
-        ParticleRecord* record = &particles[i];
-        if (record->present) continue;
-        switch (record->type) {
-        case SpellType::Stun:
-            if (OtherRecordOfType(particles, i, SpellType::Stun)) break;
-            owner->flags &= ~MapObjectFlag::Stunned;
-            owner->ClientSpecific()->ClearPartTints();
-            break;
-        case SpellType::Invisibility:
-            if (OtherRecordOfType(particles, i, SpellType::Invisibility)) break;
-            owner->flags &= ~MapObjectFlag::Invisible;
-            owner->ClientSpecific()->ResetPartAlpha();
-            break;
-        case SpellType::Lichdom:
-        case SpellType::Strengthen:
-        case SpellType::Weaken:
-            if (!owner->IsDead())
-                SpawnRing(owner, record->type, RingSize(record->type, record->power), true);
-            break;
-        default:
-            break;
+    for (std::size_t i = 0; i < particles.size();) {
+        ParticleRecord& record = particles[i];
+        if (record.present) {
+            ++i;
+            continue;
         }
-        record = &particles[i];
-        if (record->source) record->source->Stop();
-        particles.erase(particles.begin() + i);
-        --i;
+        const itemdb::SpellRecord* kind = itemdb::SpellAt(static_cast<std::uint32_t>(record.kind));
+        if (kind && !owner->IsDead()) SpawnRing(owner, *kind, record.power, true);
+        if (record.source) record.source->Stop();
+        particles.erase(particles.begin() + static_cast<std::ptrdiff_t>(i));
+    }
+
+    // The figure flags follow the kinds left; the figure's alpha or tint goes back as its flag goes.
+    bool faded = false;
+    bool tinted = false;
+    for (const ParticleRecord& record : particles) {
+        const itemdb::SpellRecord* kind = itemdb::SpellAt(static_cast<std::uint32_t>(record.kind));
+        if (!kind) continue;
+        faded = faded || kind->figure == EffectFigure::Faded;
+        tinted = tinted || kind->figure == EffectFigure::Tinted;
+    }
+    if (faded) {
+        owner->flags |= MapObjectFlag::Invisible;
+    } else if (lib::Has(owner->flags, MapObjectFlag::Invisible)) {
+        owner->flags &= ~MapObjectFlag::Invisible;
+        owner->ClientSpecific()->ResetPartAlpha();
+    }
+    if (tinted) {
+        owner->flags |= MapObjectFlag::Stunned;
+    } else if (lib::Has(owner->flags, MapObjectFlag::Stunned)) {
+        owner->flags &= ~MapObjectFlag::Stunned;
+        owner->ClientSpecific()->ClearPartTints();
     }
 }
 
 void MapObjectClientSpecific::UpdateEffectSounds(bool first) {
-    MapObject* mapObject = owner;
-    // The effects' behaviours, once each.
-    SpellType types[256];
-    int typeCount = 0;
-    for (int i = 0; i < std::ssize(mapObject->effects); ++i) {
-        SpellType spellType = mapObject->effects[i].Behaviour();
-        bool known = false;
-        for (int j = 0; j < typeCount && !known; ++j) known = types[j] == spellType;
-        if (!known) types[typeCount++] = spellType;
+    // The effects' kinds, once each.
+    std::vector<int> kinds;
+    for (const MapEffect& effect : owner->effects) {
+        if (!effect.KindRecord()) continue;
+        const int kind = effect.Kind();
+        if (std::ranges::find(kinds, kind) == kinds.end()) kinds.push_back(kind);
     }
 
-    for (int i = 0; i < std::ssize(sounds); ++i) sounds[i].present = 0;
+    for (EffectSoundRecord& record : sounds) record.present = 0;
 
-    for (int t = 0; t < typeCount; ++t) {
-        bool kept = false;
-        for (int i = 0; i < std::ssize(sounds) && !kept; ++i) {
-            if (!sounds[i].present && sounds[i].kind == types[t]) {
-                sounds[i].present = 1;
-                kept = true;
-            }
+    for (const int kind : kinds) {
+        const auto kept = std::ranges::find_if(
+            sounds, [kind](const EffectSoundRecord& record) { return !record.present && record.kind == kind; });
+        if (kept != sounds.end()) {
+            kept->present = 1;
+            continue;
         }
-        if (kept) continue;
-        EffectSoundRecord added = {};
-        added.kind = types[t];
-        added.spareHandle = -1;
-        added.handle = -1;
-        added.timer = 0;
+        EffectSoundRecord added;
+        added.kind = kind;
         added.present = 1;
-        PlayEffectSound(!first, &added, owner->localPosition, "\\start.wav");
+        StartKindSounds(added, *itemdb::SpellAt(static_cast<std::uint32_t>(kind)), !first, owner->localPosition);
         sounds.push_back(added);
     }
 
-    for (int i = 0; i < std::ssize(sounds); ++i) {
-        EffectSoundRecord* record = &sounds[i];
-        if (record->present) continue;
-        MapObject* target = owner;
-        bool alive = !target->IsDead();
-        PlayEffectSound(alive, record, target->localPosition, "\\end.wav");
-        sounds.erase(sounds.begin() + i);
-        --i;
+    for (std::size_t i = 0; i < sounds.size();) {
+        EffectSoundRecord& record = sounds[i];
+        if (record.present) {
+            ++i;
+            continue;
+        }
+        EndKindSounds(record, itemdb::SpellAt(static_cast<std::uint32_t>(record.kind)), !owner->IsDead(),
+                      owner->localPosition);
+        sounds.erase(sounds.begin() + static_cast<std::ptrdiff_t>(i));
     }
 }
 

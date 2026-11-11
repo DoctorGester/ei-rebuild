@@ -1,0 +1,42 @@
+# Effect looks (docs/notes/items_spells.md, "Active effects on scripts"; docs/modding.md, "Active effects"): the game's
+# buffs on the hero and three wolves beside it, each shown by its kind's record fields (look, look_ring, figure,
+# sounds): the hero protection from fire, speed and strength (its ring as it starts), wolf W1 stun (tinted) and eagle
+# sight, W2 stench and slow, W3 invisibility (faded), antimagic and feeblemind. The wolves' AI is cleared and the
+# hero cannot be hurt. Captures: as the effects start (start_1 to start_3: strength's ring) and while they last
+# (lasting_1 to lasting_3), for a look at the frames (before / after a change of the looks), not compared.
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+camera 54 138 90 12 50
+climate 0
+console @AddUnitToServer("W1","WolfTutor","W1",Add(GetX(GetLeader()),3),GetY(GetLeader()),0)
+console @AddUnitToServer("W2","WolfTutor","W2",Sub(GetX(GetLeader()),3),GetY(GetLeader()),0)
+console @AddUnitToServer("W3","WolfTutor","W3",GetX(GetLeader()),Add(GetY(GetLeader()),3),0)
+waitfor 10 IsAlive(GetObjectByName("W3"))
+console @UMClear(GetObjectByName("W1"))
+console @UMClear(GetObjectByName("W2"))
+console @UMClear(GetObjectByName("W3"))
+wait 500
+
+console @CastSpellUnit("prot_fire{d2;d2;d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("speed{d2;d2;d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("stun{d2;d2;d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("W1"))
+console @CastSpellUnit("eagle_sight{d2;d2;d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("W1"))
+console @CastSpellUnit("stench{d2;d2;d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("W2"))
+console @CastSpellUnit("slow{d2;d2;d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("W2"))
+console @CastSpellUnit("invisibility{d2;d2;d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("W3"))
+console @CastSpellUnit("antimagic{d2;d2;d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("W3"))
+console @CastSpellUnit("feeblemind{d2;d2;d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("W3"))
+console @CastSpellUnit("strength{d2;d2;d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+frames 4
+capture start 3
+wait 1500
+capture lasting 3
+check IsAlive(GetLeader())
+check IsAlive(GetObjectByName("W1"))
+report
+quit

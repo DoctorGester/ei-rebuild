@@ -268,7 +268,7 @@ float Unit::TotalItemWeight() {
 bool Unit::CanCastSpell(std::uint32_t slot) {
     if (slot >= 8) return false;
     // A client-side test: the client knows its units' effect kinds but not their stat totals (NoCasting).
-    if (HasEffect(SpellType::Feeblemind)) return false;
+    if (HasEffectKind([](const itemdb::SpellRecord& kind) { return kind.greysSpells; })) return false;
     Spell* spell = GetSpellObject(slot);
     if (!spell) return false;
     float cost = SpellCost(spell);

@@ -7,7 +7,8 @@
 #   fight would end the chain). The hero walks beside them (about 6 from each), where it sees them, and casts the
 #   spell at the golem with its key (3) and a click. Res\spells\chain_spark.lua sends the spark (a missile carrying
 #   the data effect ChainSpark, Res\textures\chainspark.png's pictures) at the golem; each strike damages the unit
-#   (lightning), slows it, starts ChainSparkHit on it, draws an arc to the nearest enemy not struck yet within 5 (shard
+#   (lightning), shocks it (the spell's own active effect: slowed by its OnStats, crackling with the record's look
+#   ChainSparkShock), starts ChainSparkHit on it, draws an arc to the nearest enemy not struck yet within 5 (shard
 #   4002, then 4003) and sends the spark along it 10 ticks later (a timer). Its game variables hold each strike's
 #   damage: 12, 7.2 (12 x 0.6), 4.32 (7.2 x 0.6).
 # - The game is saved after the first strike, mid-chain (one strike in the variables), and plays on to the three
@@ -78,6 +79,7 @@ check IsLess(HP(GetObject(4003)),20)
 read mod Res\textures\chainspark.mmp yes
 read mod Res\effects\ChainSpark.effect.toml yes
 read mod Res\effects\ChainSparkHit.effect.toml yes
+read mod Res\effects\ChainSparkShock.effect.toml yes
 read mod Res\spells\chain_spark.lua yes
 
 wait 300

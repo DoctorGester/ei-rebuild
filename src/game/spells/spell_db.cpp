@@ -201,6 +201,8 @@ constexpr Name kEffectKinds[] = {
     {static_cast<int>(SpellType::Enlarge), "enlarge"},
     {static_cast<int>(SpellType::Shrink), "shrink"},
 };
+// EffectFigure by name (`figure`).
+constexpr Name kFigures[] = {{0, "plain"}, {1, "faded"}, {2, "tinted"}};
 // DamageType by the texts' names (record_names.h).
 constexpr Name kDamageTypeNames[] = {
     {0, recordnames::kDamageTypes[0]}, {1, recordnames::kDamageTypes[1]}, {2, recordnames::kDamageTypes[2]},
@@ -251,6 +253,16 @@ void Fields(SpellRecord& r, Visit& v) {
     v("effect", Enum<int>{r.effect, kEffectKinds});
     v("max_ticks", r.maxTicks);
     v("item_heals", dbtoml::Bool{r.itemHeals});
+    v("look", r.look);
+    v("look_ring", r.lookRing);
+    v("look_ring_scale", r.ringScale);
+    v("figure", Enum<EffectFigure>{r.figure, kFigures});
+    v("sound_start", r.startSound);
+    v("sound_end", r.endSound);
+    v("sound_loop", r.loopSounds);
+    v("sound_loop_ticks", r.loopTicks);
+    v("quiet_steps", dbtoml::Bool{r.quietSteps});
+    v("greys_spells", dbtoml::Bool{r.greysSpells});
 }
 
 template <class Visit>

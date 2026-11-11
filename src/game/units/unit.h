@@ -291,8 +291,8 @@ public:
     // The item ids of the 4 weapons and then of the 7 armour pieces (-1 for an empty slot).
     std::array<std::uint32_t, 11> GetEquipmentIds();
 
-    // Whether the unit can cast the spell in slot `slot` (0..7): false with no spell there, with the
-    // feeblemind effect on it, or with too little mana.
+    // Whether the unit can cast the spell in slot `slot` (0..7): false with no spell there, with an effect whose
+    // kind greys its spells (SpellRecord::greysSpells: feeblemind), or with too little mana.
     bool CanCastSpell(std::uint32_t slot);
     // Whether quick item `slot` is a wand or potion and a wand has the charge for its spell.
     bool CanUseQuickItem(std::uint32_t slot);
@@ -976,25 +976,19 @@ struct ParticleRecord {
     ParticleRecord& operator=(ParticleRecord&&) noexcept;
     ~ParticleRecord();
 
-    SpellType type{};                   // the effect's behaviour (MapEffect::Behaviour())
+    int kind = -1;                      // the effect's kind (MapEffect::Kind())
     int power = 0x10;                   // the effect's power byte
-    HeldRef<ParticleSource> source;    // null when the effect has no lasting source
+    HeldRef<ParticleSource> source;    // null when the kind has no look
     std::uint8_t present = 0;           // set while the effect list is compared
 };
 
-// One looping effect sound record.
+// One effect kind's sound record.
 struct EffectSoundRecord {
-    SpellType kind{};           // the effect's behaviour
-    int spareHandle = -1;       // nothing reads it
-    int handle = -1;            // feeble mind's sound sequence, -1 none
-    std::uint32_t timer = 0;    // ticks to the next stench sound (it plays when the count runs below 0)
+    int kind = -1;              // the effect's kind (MapEffect::Kind())
+    int handle = -1;            // the kind's loop as a sound sequence, -1 none
+    std::uint32_t timer = 0;    // ticks to the next sound of a loop by ticks (it plays when the count runs below 0)
     std::uint8_t present = 0;   // set while the effect list is compared
 };
-
-// An effect's sound at `position`: "<folder of the record's kind><suffix>" when `play` (types with a folder);
-// stench (0x13) only clears the record's timer; feeble mind (0x20) starts its sound sequence into the record (and
-// the bare suffix) or stops it and plays its end sound.
-void PlayEffectSound(bool play, EffectSoundRecord* record, const Vector3& position, const char* suffix);
 
 // The client-side companion of a map object (ClassName "MapObjectClientSpecific"); its owner is a unit for IsDead
 // / IsOverkilled.
@@ -1020,16 +1014,17 @@ public:
     bool RunTick() override;
 
     // The object's effect list changed; the particles and the looping sounds follow it. `first` is set when
-    // the list arrives with the object (no sounds; particles run 30 ticks ahead, the scale effects' one-shot
+    // the list arrives with the object (no start sounds, the loops start; looks run 30 ticks ahead, the starting
     // rings are left out).
     void EffectsChanged(bool first) override;
-    // One particle record per effect (types merged to the highest power); records still matching are kept (a power
-    // change rescales the source), new ones make the source of their type (0x0F invisibility and 0x19 stun set flags
-    // 0x10000 / 0x40000 on the object; 0x11 / 0x1D / 0x1E only spawn a ring); records whose effect is gone stop their
-    // source and undo their flag when no other record of the type is left.
+    // One particle record per effect kind at the kind's highest power, its look from the kind's record
+    // (SpellRecord::look, lookRing, figure): records still matching are kept (a power change rescales the source),
+    // new ones make the kind's look and start its ring; records whose kind is gone stop their look and start the ring
+    // again, inverted; the figure flags (Invisible, Stunned) follow the kinds left, their tint or alpha reset as they
+    // go.
     void UpdateEffectParticles(bool first);
-    // One sound record per effect type: a new type plays its "<sound>\start.wav", a vanished one its
-    // "<sound>\end.wav" (unless the object is dead) and is removed.
+    // One sound record per effect kind: a new kind plays its start sound and starts its loop, a vanished one stops
+    // its loop, plays its end sound (unless the object is dead) and is removed.
     void UpdateEffectSounds(bool first);
     // A new point light (the light factory's class 0x31) of `colour` (rgb of an rgba) and `radius`, 2 above
     // the object, replaces the light (the old one hidden first); flags 0x580 (0x40 more with `flag`), then

@@ -21,13 +21,11 @@
 
 namespace {
 constexpr int kEndSoundTicks = 0x1E;                 // end sound when fewer ticks are left
-constexpr std::uint32_t kStenchPeriod = 0x10;
 constexpr float kEndSoundNear = 8.0f;
 constexpr float kEndSoundFar = 20.0f;
-constexpr float kStenchNear = 10.0f;
-constexpr float kStenchFar = 50.0f;
+constexpr float kLoopNear = 10.0f;                   // the distances of a loop by ticks
+constexpr float kLoopFar = 50.0f;
 const char* const kEndSoundName = "magic\\end1.wav";
-const char* const kStenchSoundFormat = "magic\\Stench\\%i.wav";
 } // namespace
 
 
@@ -67,19 +65,19 @@ bool MapObjectClientSpecific::RunTick() {
         }
     }
 
-    // Looping effect sounds: stench every 16 ticks (one of three, picked at random), feeble mind
-    // follows the object.
-    for (int i = 0; i < std::ssize(sounds); ++i) {
-        EffectSoundRecord* sound = &sounds[i];
-        if (sound->kind == SpellType::Stench) {
-            --sound->timer;
-            if (static_cast<std::int32_t>(sound->timer) >= 0) continue;
-            std::uint32_t variant = g_clientRandom.Next() % 3 + 1;
-            const std::string name = str::Format(kStenchSoundFormat, variant);
-            sound->timer = kStenchPeriod;
-            g_clientWorld.sounds->Play3D(name, 0, owner->localPosition, kStenchNear, kStenchFar, false);
-        } else if (sound->kind == SpellType::Feeblemind && sound->handle != -1) {
-            g_clientWorld.sounds->MoveSequence(sound->handle, owner->localPosition);
+    // The kinds' loops (SpellRecord::loopSounds): one by ticks plays one of its sounds at random every loopTicks + 1
+    // ticks (stench's every 17), a sequence follows the object.
+    for (EffectSoundRecord& sound : sounds) {
+        const itemdb::SpellRecord* kind = itemdb::SpellAt(static_cast<std::uint32_t>(sound.kind));
+        if (kind && kind->loopTicks > 0 && !kind->loopSounds.empty()) {
+            --sound.timer;
+            if (static_cast<std::int32_t>(sound.timer) >= 0) continue;
+            const std::uint32_t variant = g_clientRandom.Next() % static_cast<std::uint32_t>(kind->loopSounds.size());
+            sound.timer = static_cast<std::uint32_t>(kind->loopTicks);
+            g_clientWorld.sounds->Play3D(kind->loopSounds[variant], 0, owner->localPosition, kLoopNear, kLoopFar,
+                                         false);
+        } else if (sound.handle != -1) {
+            g_clientWorld.sounds->MoveSequence(sound.handle, owner->localPosition);
         }
     }
 

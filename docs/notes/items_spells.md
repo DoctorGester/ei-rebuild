@@ -156,12 +156,10 @@ after them (a mod's: the showcase's "spark", 42) `SpellType::None`, which starts
   the kind its TOML `effect` names (`SpellRecord::effect`, spell_db.cpp's `kEffectKinds`: the codes of the game's 20
   buffs and `teleport`, the stun without a look its caster gets; `none`: nothing), else (`own`, the default) its
   behaviour, so a game record still in code does what it did and a Scripted record without it nothing. The buffs'
-  records name their own (`effect = "slow"`); a mod's buff names any. What reads it: the AI's `HasEffect` and the
-  client's looks and sounds (`MergesParticles`, `ParticleSourceType`, `SoundFolder`, the rings, the invisible
-  and stunned flags, map_object_client_effects.cpp; the stench and feeble mind sounds, map_object_companion.cpp). A
-  kind without a look (None, Scripted) gets no particle source and no sound. The HUD's buff icons keep the record (its
-  icon). A save's active effects hold the record's place, so they read the same whatever its `effect` says. What an
-  effect does to the stats is its kind's OnStats ("Active effects on scripts").
+  records name their own (`effect = "slow"`); a mod's buff names any. What reads it: the AI's `HasEffect` (the
+  record's `aiEffect`). The HUD's buff icons keep the record (its icon). A save's active effects hold the record's
+  place, so they read the same whatever its `effect` says. What an effect does to the stats is its kind's OnStats, how
+  it shows its kind's look fields ("Active effects on scripts").
 - What the tables say of a spell is `itemdb::UseOf(record)` (`Spell::Use()`, spell_behaviour.cpp): the AI's option
   kind (`ai`), the damage type of the AI's estimate (`GetSpellDamage`), `offensive` (the HUD's use at once aims at the
   nearest enemy), `turnsVictim` (`CreateMissile`: the victim sees the caster, diplomacy counts an attack) and
@@ -388,9 +386,23 @@ twenty buffs' hook is Buff.lua's OnStats (a table by `effect.kind`), teleport's 
   bindings off, so the result depends on nothing else). The client has no effect values (the network sends type,
   power, ticks and the end flag) and no server state: its totals are none, which is what its values of 0 gave the
   original's client (its only read, the attack display's damage scale, was 1).
-- **Left on SpellType.** The client: the looks, sounds, Silence's mute and `Unit::CanCastSpell`'s feeblemind (the
-  battle interface's spell cursor and caster choice) are MF17h2's; the AI's "has it already" (`HasEffect` of the
-  record's `aiEffect`).
+- **How it shows: the kind's record.** The client has the effects' kinds (their records' places), not their values,
+  so what it shows of a kind is fields of the kind's record (`MapEffect::KindRecord`; TOML only, the game's buffs'
+  in assets/spells/spells.sdb.toml; the table in docs/modding.md, "Active effects"): `look`, `look_ring`,
+  `look_ring_scale`, `figure` (MapObjectFlag::Invisible / Stunned: the pulses of unit_client_update.cpp),
+  `sound_start` / `sound_end` / `sound_loop` / `sound_loop_ticks` (map_object_client_effects.cpp,
+  `UpdateEffectParticles` / `UpdateEffectSounds`; the loops in `MapObjectClientSpecific::RunTick`), `quiet_steps`
+  (the footsteps, unit_client_effects.cpp) and `greys_spells` (`Unit::CanCastSpell`: the battle interface's spell
+  cursor and caster choice), the last two through `MapObject::HasEffectKind`. One record per kind at its strongest
+  power, every kind alike: the original merged by behaviour except invisibility, lichdom, teleport, enlarge and
+  shrink (one record per effect), which differs only for two lichdoms of different powers on one unit (one ring now,
+  one each before). Two more corners of the uniform path: feeblemind's loop is a sequence led by the start sound
+  (`ChooserFor`, sound.h), its circle.wav one looped sound where the original restarted it as it ended; it skips the
+  start sound for a unit arriving with the effect and the end sound for a dead unit, as every other kind (the
+  original played both). The AI's "has it already" stays on SpellType (`HasEffect` of the record's `aiEffect`).
+  Checked by `effect_looks` (ten buffs on the hero and three wolves, captured as they start and while they last;
+  the frames matched the switches' pixel for pixel when the fields replaced them) and the showcase's Chain Spark
+  (`mod_showcase_spell`: its own shock with its own look, `read mod ... ChainSparkShock.effect.toml`).
 - **Cost.** Measured (2026-11-11, `--quiet`, a scratch scenario: ten GoblinF1 given buffs by script casts fighting
   the god-mode hero for some 1200 frames, a timer around `Of` and `Recompute` in a scratch build): 2450 `Of` calls,
   140 of them running the Lua (2.0 us each, three kinds), the others a cache hit (0.09 us); 0.49 ms in all over the

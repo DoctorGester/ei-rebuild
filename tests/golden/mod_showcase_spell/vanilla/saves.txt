@@ -1,7 +1,7 @@
 showcase_mod/save1/info.sav c8c2e73824d99dd6
-showcase_mod/save1/mission.sav cd1af860f90723ec
+showcase_mod/save1/mission.sav 8e448b4a1db11b87
 showcase_mod/save1/scenario.sav 70e4e633af0d99c8
-showcase_mod/save1/visuals.sav b8c6cc5d5882ca4f
+showcase_mod/save1/visuals.sav 68b432053343a80e
 showcase_mod/savea/info.sav 1a6467a48a11b9cd
 showcase_mod/savea/mission.sav 37edbb4b43f17dfc
 showcase_mod/savea/scenario.sav 1007fa6eeb1849d7

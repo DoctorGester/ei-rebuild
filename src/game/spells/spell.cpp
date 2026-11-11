@@ -176,6 +176,11 @@ SpellType MapEffect::Behaviour() const { return ActiveEffectAt(type); }
 
 int MapEffect::Kind() const { return itemdb::EffectKindAt(type); }
 
+const itemdb::SpellRecord* MapEffect::KindRecord() const {
+    const int kind = Kind();
+    return kind < 0 ? nullptr : itemdb::SpellAt(static_cast<std::uint32_t>(kind));
+}
+
 int MapEffect::Tick() {
     --ticksLeft;
     return ticksLeft > 0 ? 1 : 0;

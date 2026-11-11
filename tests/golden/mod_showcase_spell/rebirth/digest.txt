@@ -2217,7 +2217,7 @@ client ticksRun 692
 client partyDanger 2
 cunit1000011214 #place F4A514BA
 cunit1000011214 #unit A34FCB57
-@ 36 update 740 frame 147 tick 702 zone gz1g hash 53ADFA96 n 17
+@ 36 update 740 frame 147 tick 702 zone gz1g hash 09D60585 n 17
 world tick 702
 world updates 740
 world timedObjects 2
@@ -2228,7 +2228,7 @@ player0 var.chain_spark.strikes 1.0
 obj4001 hp 25.1499958
 obj4001 #ai A8B4E844
 obj4001 #unit F7E98BBC
-obj4001 #vitals 65730251
+obj4001 #vitals 9D5C7942
 obj4002 #ai 710D2D3A
 obj4002 #vitals F9E0F6CC
 obj4003 #ai 28EA5828
@@ -2253,7 +2253,7 @@ cunit4001 #vitals 143A64AB
 cunit1000011214 #place 79979435
 cunit1000011214 #unit A446638B
 cunit1000011214 #vitals 8EC1EC07
-@ 37 update 760 frame 151 tick 707 zone gz1g hash F8CEDD30 n 21
+@ 37 update 760 frame 151 tick 707 zone gz1g hash 545C57F2 n 21
 world tick 707
 world updates 760
 world paused 1
@@ -2264,7 +2264,7 @@ random crt.rand 0xFF4C846B
 player0 lastTick 707
 player0 var.gtime 6.75333452
 obj4001 #unit 80EEBB2A
-obj4001 #vitals 713DBF61
+obj4001 #vitals 8912C472
 obj4002 #unit 0A6EDAE7
 obj4002 #vitals 898A0243
 obj4003 #unit 543D15E8
@@ -2284,10 +2284,10 @@ client tick 708
 client paused 1
 client ticksRun 732
 cunit1000011214 #place CD67330E
-@ 38 update 780 frame 155 tick 707 zone gz1g hash 7280E1CF n 21
+@ 38 update 780 frame 155 tick 707 zone gz1g hash DE126B0D n 21
 world updates 780
 client ticksRun 752
-@ 39 update 800 frame 159 tick 722 zone gz1g hash 1FCE3717 n 19
+@ 39 update 800 frame 159 tick 722 zone gz1g hash BE0A50FB n 19
 world tick 722
 world updates 800
 world paused 0
@@ -2299,13 +2299,13 @@ player0 var.chain_spark.strike2 7.19999981
 obj4001 hp 25.2999916
 obj4001 #ai 3FA66BA4
 obj4001 #unit F7E98BBC
-obj4001 #vitals DD612DCE
+obj4001 #vitals 254E56DD
 obj4002 #ai 760E5BEC
 obj4002 #unit 6AA95302
 obj4003 hp 13.9000015
 obj4003 #ai 6B295655
 obj4003 #unit B64CB2C7
-obj4003 #vitals 45FF2E5C
+obj4003 #vitals BDD0554F
 obj1000011214 #unit D0A13878
 - timed5147081
 - timed5147082
@@ -2327,7 +2327,7 @@ cunit4003 #unit 11BDF683
 cunit4003 #vitals E3CD34A2
 cunit1000011214 #place D834FD4F
 cunit1000011214 #unit A34FCB57
-@ 40 update 820 frame 163 tick 742 zone gz1g hash 10C1B659 n 16
+@ 40 update 820 frame 163 tick 742 zone gz1g hash DE54ADF8 n 16
 world tick 742
 world updates 820
 world timedObjects 1
@@ -2340,10 +2340,10 @@ obj4001 #vitals 438B6305
 obj4002 hp 16.7799988
 obj4002 #ai 42242A2A
 obj4002 #unit AE31CE6E
-obj4002 #vitals E6D6F367
+obj4002 #vitals 62909DC2
 obj4003 hp 13.999999
 obj4003 #ai 4B8430E6
-obj4003 #vitals 11DF26A1
+obj4003 #vitals 95994804
 obj1000011214 mana 47.5383186
 obj1000011214 #unit 888CE7C3
 obj1000011214 #vitals ECA55E0C
@@ -2362,7 +2362,7 @@ cunit4002 #vitals 50591961
 cunit1000011214 #place E952D7D0
 cunit1000011214 #unit ACC6F38B
 cunit1000011214 #vitals 4FF7E40C
-@ 41 update 840 frame 167 tick 762 zone gz1g hash 1D1495DE n 14
+@ 41 update 840 frame 167 tick 762 zone gz1g hash CB0B6AD4 n 14
 world tick 762
 world updates 840
 world timedObjects 0
@@ -2373,7 +2373,7 @@ obj4001 #ai 77F33317
 obj4001 #vitals 9AE72FE8
 obj4002 hp 16.9799957
 obj4002 #ai CBBD1B6B
-obj4002 #vitals 5E174147
+obj4002 #vitals A6383A54
 obj4003 hp 14.199995
 obj4003 #ai 3909E13B
 obj4003 #vitals F9E0F6CC
@@ -2445,7 +2445,7 @@ obj1000011214 #vitals 32357845
 aievents tick 822
 client tick 822
 client ticksRun 872
-@ 45 update 920 frame 183 tick 718 zone gz1g hash 184AA102 n 20
+@ 45 update 920 frame 183 tick 718 zone gz1g hash 24C318CE n 20
 world tick 718
 world updates 922
 world secondsPerTick 0.00111111137
@@ -2461,14 +2461,14 @@ player0 var.chain_spark.strikes 2.0
 player0 var.chain_spark.strike3 -
 obj4001 hp 25.2999916
 obj4001 #ai C1DBA181
-obj4001 #vitals 8DD185F9
+obj4001 #vitals 75FEFEEA
 obj4002 hp 20.0
 obj4002 #ai 3DF4F261
 obj4002 #unit 6AA95302
 obj4002 #vitals 8EE7C65A
 obj4003 hp 13.9000015
 obj4003 #ai 20D3FFD8
-obj4003 #vitals 5A9D5DF4
+obj4003 #vitals A2B226E7
 obj1000011214 mana 42.4893799
 obj1000011214 #unit D0A13878
 obj1000011214 #vitals 9579E6A8
@@ -2497,7 +2497,7 @@ cunit4003 #vitals E3CD34A2
 cunit1000011214 #place 507C4D2D
 cunit1000011214 #unit A34FCB57
 cunit1000011214 #vitals 8EC1EC07
-@ 46 update 940 frame 187 tick 738 zone gz1g hash 50799B7B n 19
+@ 46 update 940 frame 187 tick 738 zone gz1g hash 96AA1EB9 n 19
 world tick 738
 world updates 942
 world timedObjects 4
@@ -2510,10 +2510,10 @@ obj4001 #vitals 73848ADD
 obj4002 hp 16.7799988
 obj4002 #ai C5D2436C
 obj4002 #unit AE31CE6E
-obj4002 #vitals 6B735865
+obj4002 #vitals 935C2376
 obj4003 hp 13.999999
 obj4003 #ai 5EA4D381
-obj4003 #vitals 0C811347
+obj4003 #vitals F4AE6854
 obj1000011214 mana 47.5383186
 obj1000011214 #unit 888CE7C3
 obj1000011214 #vitals E5131227
@@ -2533,7 +2533,7 @@ cunit4003 #place 3AB778D0
 cunit1000011214 #place E36E3187
 cunit1000011214 #unit ACC6F38B
 cunit1000011214 #vitals 4FF7E40C
-@ 47 update 960 frame 191 tick 758 zone gz1g hash 92698952 n 18
+@ 47 update 960 frame 191 tick 758 zone gz1g hash D32AEABA n 18
 world tick 758
 world updates 962
 world timedObjects 3
@@ -2543,7 +2543,7 @@ obj4001 #ai 10C395EE
 obj4001 #vitals 348C5393
 obj4002 hp 16.8799973
 obj4002 #ai 4C4B722D
-obj4002 #vitals EC51F740
+obj4002 #vitals 681799E5
 obj4003 hp 14.0999966
 obj4003 #ai FD0F9B25
 obj4003 #vitals 08ECB09B
