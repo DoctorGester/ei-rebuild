@@ -4,7 +4,6 @@
 #include "game/scene/light.h"
 #include "game/objects/map_object.h"
 #include "game/objects/object3d.h"
-#include "game/spells/spell.h"
 #include "platform/platform.h"
 
 #include <cstring>

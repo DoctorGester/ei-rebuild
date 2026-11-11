@@ -288,8 +288,3 @@ void game::Warning(const char* format, ...) {
     ei::Log("warning: %s", text);
 }
 
-// --- The start folders ---------------------------------------------------------------------------
-
-std::string g_startFolder;
-std::string g_textFolder;
-std::string g_dataFolder;

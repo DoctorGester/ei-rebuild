@@ -23,6 +23,7 @@ base_manager.h              core/base_manager.h
 base_manager.cpp            core/base_manager.cpp
 manager_context.h           core/manager_context.h
 manager_context.cpp         core/manager_context.cpp
+engine_globals.h            core/engine_globals.h
 ref.h                       core/ref.h
 core_refcount.h             core/core_refcount.h
 core_refcount.cpp           core/ref.cpp                fold  # RefObject's two members (13 lines) beside the references' save and load

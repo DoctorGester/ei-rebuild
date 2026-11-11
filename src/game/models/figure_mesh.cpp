@@ -5,7 +5,6 @@
 #include "game/core/core_maths.h"
 #include "game/core/core_transform.h"
 #include "game/models/figure_manager.h"
-#include "game/items/item.h"
 #include "game/models/link_figure.h"
 #include "game/core/manager_context.h"
 #include "game/scene/pipeline.h"

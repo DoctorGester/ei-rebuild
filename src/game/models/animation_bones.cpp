@@ -10,7 +10,6 @@
 #include "game/models/animation.h"   // AnimationTrack
 #include "game/models/figure_manager.h"
 #include "game/models/figure_mesh.h"   // FigureMesh
-#include "game/world/world.h"
 
 #include "lib/containers.h"
 #include "lib/str.h"

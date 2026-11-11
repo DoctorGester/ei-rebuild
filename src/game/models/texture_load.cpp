@@ -5,7 +5,6 @@
 
 #include "game/console/console.h"
 #include "game/models/dib.h"
-#include "game/app/singletons.h"
 #include "game/app/options.h"
 #include "game/scene/surface.h"
 #include "game/core/text_split.h"
