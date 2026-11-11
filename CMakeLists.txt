@@ -172,17 +172,18 @@ else()
     set(EI_SYSTEM posix)   # src/platform/posix (Linux and macOS)
 endif()
 
-# The game code, with its sound (src/audio: our mixer on SDL3's audio device, the dr_wav / dr_mp3 decoders;
-# docs/notes/sound.md) and its movies (src/video: our Bink 1 decoder): an object library, every object linked in (the
-# static objects' initialisers too) ahead of the renderer and the platform it calls. No archive of them: with the
-# debug information inside each object it was 1.1 GB, rewritten on every change. src/game's files are all in its
-# folders (src/game/units/unit.cpp; docs/notes/file-layout.md: layout.py check refuses a flat one).
-file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*/*.cpp src/lib/*.cpp src/audio/*.cpp
-     src/video/*.cpp)
-add_library(ei_game OBJECT ${EI_GAME_SOURCES})
-target_include_directories(ei_game PRIVATE src third_party)
-target_link_libraries(ei_game PUBLIC ei_render ei_platform tomlc17 stb_dxt wuffs cgltf eris PRIVATE SDL3::SDL3-static)
-# The original effects on data (assets/effects/*.effect.toml) built into the game as bytes at build time
+# The engine (docs/notes/file-layout.md, "The engine library"): src/lib, the data and its archives (src/game/data), the
+# models (textures, figures, animation), the scene (camera, lights, clip, pipeline, scene renderer), the core objects
+# (engine objects, transforms, references, streams, random), the mods' file layers and the particle core (src/game/
+# effects/particle_*), for the game and later the effect viewer's own exe (MF15k4). It includes no game header
+# (tools/engine_layers.py, a build check). An object library as the game's (below), every object linked in; an object
+# library's objects reach only the targets that link it themselves, so each program that links ei_game links it too.
+file(GLOB EI_ENGINE_SOURCES CONFIGURE_DEPENDS src/lib/*.cpp src/game/core/*.cpp src/game/data/*.cpp
+     src/game/models/*.cpp src/game/scene/*.cpp src/game/mods/*.cpp src/game/effects/particle_*.cpp)
+add_library(ei_engine OBJECT ${EI_ENGINE_SOURCES})
+target_include_directories(ei_engine PRIVATE src third_party)
+target_link_libraries(ei_engine PUBLIC ei_render ei_platform tomlc17 stb_dxt wuffs cgltf PRIVATE SDL3::SDL3-static)
+# The original effects on data (assets/effects/*.effect.toml) built into the engine as bytes at build time
 # (src/game/effects/embed_effects.cmake; docs/notes/effects.md, "The original effects on data").
 file(GLOB EI_BUILTIN_EFFECTS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/assets/effects/*.effect.toml)
 add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/effect_files/builtin.h
@@ -192,7 +193,19 @@ add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/effect_files/builtin.h
     DEPENDS ${EI_BUILTIN_EFFECTS} ${CMAKE_SOURCE_DIR}/src/game/effects/embed_effects.cmake
     COMMENT "Writing assets/effects as bytes"
     VERBATIM)
-target_sources(ei_game PRIVATE ${CMAKE_BINARY_DIR}/effect_files/builtin.h)
+target_sources(ei_engine PRIVATE ${CMAKE_BINARY_DIR}/effect_files/builtin.h)
+
+# The game code on the engine, with its sound (src/audio: our mixer on SDL3's audio device, the dr_wav / dr_mp3
+# decoders; docs/notes/sound.md) and its movies (src/video: our Bink 1 decoder): an object library, every object linked
+# in (the static objects' initialisers too) ahead of the renderer and the platform it calls. No archive of them: with
+# the debug information inside each object it was 1.1 GB, rewritten on every change. src/game's files are all in its
+# folders (src/game/units/unit.cpp; docs/notes/file-layout.md: layout.py check refuses a flat one).
+file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*/*.cpp src/audio/*.cpp src/video/*.cpp)
+list(REMOVE_ITEM EI_GAME_SOURCES ${EI_ENGINE_SOURCES})
+add_library(ei_game OBJECT ${EI_GAME_SOURCES})
+target_include_directories(ei_game PRIVATE src third_party)
+target_link_libraries(ei_game PUBLIC ei_engine ei_render ei_platform tomlc17 stb_dxt wuffs cgltf eris
+                      PRIVATE SDL3::SDL3-static)
 # The game's spells on scripts (assets/spells: their Lua files and the records' fields, spells.sdb.toml), the same
 # way (docs/notes/items_spells.md, "Scripted spells").
 file(GLOB EI_BUILTIN_SPELLS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/assets/spells/*)
@@ -385,7 +398,7 @@ if(APPLE)
         MACOSX_BUNDLE_ICON_FILE ei-rebuild.icns)
 endif()
 target_include_directories(ei-rebuild PRIVATE src)
-target_link_libraries(ei-rebuild PRIVATE ei_game)
+target_link_libraries(ei-rebuild PRIVATE ei_game ei_engine)
 # The tools built into the game's exe (src/tools; ei-rebuild --effects): only ei-rebuild has them and imgui.
 file(GLOB EI_TOOL_SOURCES CONFIGURE_DEPENDS src/tools/*.cpp)
 target_sources(ei-rebuild PRIVATE ${EI_TOOL_SOURCES})
@@ -407,7 +420,7 @@ add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/effect_files/reference.h
     DEPENDS ${CMAKE_SOURCE_DIR}/tests/effects/reference.txt ${CMAKE_SOURCE_DIR}/src/render/embed.cmake
     COMMENT "Writing the effect check's reference as bytes"
     VERBATIM)
-target_link_libraries(ei-convert PRIVATE ei_game SDL3::SDL3-static)
+target_link_libraries(ei-convert PRIVATE ei_game ei_engine SDL3::SDL3-static)
 # The repository's examples folder copied beside ei-convert, as a release package has it: --example-mod reads its own
 # files from there (tools/convert/example_mod.h).
 file(GLOB_RECURSE EI_EXAMPLES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/examples/*)
@@ -456,7 +469,7 @@ if(EI_HARNESS)
     target_compile_definitions(ei_render PRIVATE EI_RENDER_VALIDATION)
     if(EI_COVERAGE)
         set(EI_COVERAGE_OPTIONS /fsanitize-coverage=inline-bool-flag /Gh)
-        foreach(target ei_game ei_render ei_platform)
+        foreach(target ei_engine ei_game ei_render ei_platform)
             target_compile_options(${target} PRIVATE ${EI_COVERAGE_OPTIONS})
         endforeach()
         set_property(SOURCE src/main.cpp ${EI_PROGRAM_SOURCES} APPEND PROPERTY COMPILE_OPTIONS ${EI_COVERAGE_OPTIONS})
@@ -545,7 +558,7 @@ else()
     add_executable(ei_render_check tests/port/render_check.cpp tests/render/glyph_cases.cpp ${EI_PROGRAM_SOURCES}
                    ${EI_GAME_CALLS} ${EI_SDL_CALLS})
     target_include_directories(ei_render_check PRIVATE src tests ${CMAKE_BINARY_DIR})
-    target_link_libraries(ei_render_check PRIVATE ei_game SDL3::SDL3-static)
+    target_link_libraries(ei_render_check PRIVATE ei_game ei_engine SDL3::SDL3-static)
     # SDL3 comes again through ei_game's static libraries (their link-only dependencies); Apple's linker warns.
     if(APPLE)
         target_link_options(ei_render_check PRIVATE LINKER:-no_warn_duplicate_libraries)

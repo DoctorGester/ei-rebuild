@@ -210,6 +210,24 @@ ui/ui_float.h; its raw-bit constants are a cleanup of their own (they should be 
 - **A fold keeps the code as it is:** the two files' text one after the other, their includes merged, two anonymous
   namespaces made one (a name defined in both is one definition or two names). Nothing else changes in a fold.
 
+## The engine library
+
+`ei_engine` (CMakeLists.txt, MF15k1) is the part of the code a program without the game links: the effect viewer's own
+exe (MF15k4) after the particle core's host interface (MF15k2) and a figure drawn without a unit (MF15k3). It is
+`src/lib` and `src/game`'s `core/`, `data/`, `models/`, `scene/` and `mods/` folders, and the particle core in
+`effects/` (its `particle_*` files: the sources, their manager and set-up, the data effects' records, expressions and
+runtime, the built-in effects); `ei_game` is the rest of src/game with src/audio and src/video. Both are object
+libraries; a program that links ei_game links ei_engine too (an object library's objects reach only the targets that
+link it themselves).
+
+- **The engine includes no game header.** `tools/engine_layers.py` (a build check) fails on an include from an
+  engine file of any other src/game file; the engine may include its own files, src/render, src/platform, third_party
+  and the system's. `tools/engine_layers.txt` lists the includes still crossing (the back-references left); the list
+  only shrinks: a new crossing fails, and so does a listed one that is gone (`engine_layers.py --write` rewrites the
+  list, keeping each kept line's comment).
+- The check reads includes only. Code of the engine that calls a function defined in ei_game links only because both
+  are in the same programs today; such calls are the seams MF15k2 turns into a host interface.
+
 ## The target tree
 
 | Folder | Files | What |
