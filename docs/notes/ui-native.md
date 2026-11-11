@@ -31,7 +31,7 @@ surface is drawn above every mesh, in stack and child order.
 | Textures the interface writes | `CopyImage` (portraits, HUD icons, help pictures), `ItemFigureTexture`, the save / load pictures, the global-map clouds (noise and blend in shaders) | GPU |
 
 What is left on the CPU per frame: the quads of every shown surface, the text layout of every painted surface's texts,
-the mesh path's projection for picking bounds, and the Bink decode.
+the picking rectangles' box corners, and the Bink decode.
 
 ## 2. Text
 
@@ -51,11 +51,11 @@ and drawing use one set of metrics.
 - The text extent feeds word wrap in `DrawWrappedText`, `UiScrollText`'s tokens (sample "W" for each font's height), tooltip
   sizes, the chat (wrap at 780), the message box and the console's prompt width. `DrawTextIn`'s return value (the text's
   height scaled back) and DT_CALCRECT measurements decide layout.
-- **Smoothing.** Text is always smoothed, whatever the desktop's setting and in harness runs too (user 2026-11-05: no
-  option; our rasteriser is deterministic, so captures stay the same run to run); the atlas is grey
-  coverage, never ClearType's colour fringes. The original's credits switched the system's font smoothing off for the
-  session (and never restored it); ours changes no system setting: the titles' text is unsmoothed by its own layout and
-  the header is drawn in an unsmoothed font (`UiFont::unsmoothed`).
+- **Smoothing.** Text is always smoothed, whatever the desktop's setting and in harness runs too (the user: no option;
+  our rasteriser is deterministic, so captures stay the same run to run); the atlas is grey coverage, never ClearType's
+  colour fringes. No system setting changes (the original's credits switched the system's font smoothing off for the
+  session): the titles' text is unsmoothed by its own layout and the header is drawn in an unsmoothed font
+  (`UiFont::unsmoothed`).
 - The fonts are byte arrays built into the executable: CMakeLists.txt runs `src/render/embed.cmake` on each at build time
   into fonts/ in the build folder (not committed, no Windows resource); `render::text::FontForFace(face)` gives the bytes.
   Every build writes `third_party_notices.txt` beside the executables (the fonts' SIL Open Font License, SDL's zlib
@@ -108,15 +108,15 @@ whose value sets layout (a text's height, a wrapped text's line count) is measur
 `TextExtent`), the paint draws only. A draw outside a surface's paint draws nothing (a text still returns its
 value), so the surface keeps no draws. Painted: the options' spins, the main menu's version line, the FPS and status surfaces, tooltips, the item
 strips' counts and prices, the HUD unit panel's texts and the HUD map's marker, the global map's zone tip and title,
-the help page's three surfaces, the edit field and the connection screen's note (P9a); the console (its lines, scroll and
+the help page's three surfaces, the edit field and the connection screen's note; the console (its lines, scroll and
 input), the chat overlay's lines (each line's coloured pieces, measured when it is added) and typed line, the base
 screen's chat window (the players' statuses Update finds), the connection screen's list, the save / load list, the
 scrolling texts (the words `PlaceWords` placed when the position moved: the briefing, the objectives, the message log),
-the options' rows and the objectives' quest list and zone text (P9b); the camp's action and title lines, the hero
+the options' rows and the objectives' quest list and zone text; the camp's action and title lines, the hero
 statistics panel, the trade panel's lists, the trade, repair and spell maker grids' counts, prices and costs, the item
 description panel, the exchange window's four surfaces, the multiplayer hero screen's list, commands, voices, experience
 and rename title, the message box and the difficulty question, the briefing's topics and person label and the titles'
-header (P9c). What a redraw did besides drawing stays where it ran: the console's and the lists' clamps, the sprites,
+header. What a redraw did besides drawing stays where it ran: the console's and the lists' clamps, the sprites,
 tips and tints, the connection screen's text colour left for its note, the message boxes' measuring.
 
 **Labels.** Where a window's texts come from reads that must stay where they ran (the text manager's open text, the
@@ -178,8 +178,7 @@ second player; `net_pair_companion` reaches it). Rebirth's layout is covered by 
 
 ### The drop-down list
 
-`UiDropList` (ui_drop_list.cpp; ours) picks one of many texts: the options' resolution row (R45's sizes,
-`platform::DisplaySizes`) and the main menu's list of mods (mods.md, "The menu's list") use it, the other rows keep the original's spin and slider. It is drawn in the game's list look,
+`UiDropList` (ui_drop_list.cpp; ours) picks one of many texts: the options' resolution row (`platform::DisplaySizes`) and the main menu's list of mods (mods.md, "The menu's list") use it, the other rows keep the original's spin and slider. It is drawn in the game's list look,
 nothing new: the save list's frame art (`saveload` texels 2, 0xFE - 0xB4, 0xF9, 5 wide) and shade (flat black, denser:
 0xE0000000 where the save list's is 0xA0, so what the list covers hardly shows), the
 rows' highlight (flat 0xC8A06800) on the active entry and a darker one (0xC8503400: a window's
@@ -204,8 +203,8 @@ scroll bar's down arrow at the right of the closed row.
   the row's name opens it, Left / Right step the value as the spin did.
 - **Size and rate.** Everything is placed in layout units from pointer positions, and the scroll bar's arrows and wheel
   count frames' time and notches, so the list behaves the same at any window size and frame rate (ui.md, "Camera mouse
-  turn": no motion counts are involved). The scroll bar's arrows took no click at any size but 800x600 before (the
-  original scaled the point twice); `UiScrollbar::LeftDown` tests the region on the screen point now.
+  turn": no motion counts are involved). `UiScrollbar::LeftDown` tests the region on the screen point (the original
+  scaled the point twice, so its arrows took clicks only at 800x600).
 - **Choosing** sets the value and its changed flag, as the spin did: the options' Update copies it into the setting and
   OK's Apply asks `app::ChooseResolution` (renderer.md, "Resolution changes").
 - **Checks.** Scenario `ui_options_droplist` (harness steps `droplist open | pick <n> | expect <text> | isopen <0|1>`):
@@ -238,9 +237,9 @@ px lines instead of 49 at 192 DPI). Bold widens each glyph by max(1, (pixels + 1
 
 **Scale.** Twips and points go to pixels at a DPI taken from the window, not the system's: `TitlesDpi` = 96 * (screen width /
 800) * (0.01 / `screen_layout::FontScale`), the scale the interface's fonts get. The titles grow with the window like the
-rest of the interface and do not move with the system DPI. No scenario captures them
-(H74: the titles' code runs in every menu scenario). `ei_text_check --titles` streams the file into a real RichEdit and compares each
-line's bottom (by EM_FORMATRANGE) and the height that fits the whole text with ours, at several widths: 0 differ.
+rest of the interface and do not move with the system DPI. No scenario captures them. `ei_text_check --titles` streams
+the file into a real RichEdit and compares each line's bottom (by EM_FORMATRANGE) and the height that fits the whole
+text with ours, at several widths: 0 differ.
 
 ### Justified scroll text and the help page's block
 
@@ -261,7 +260,6 @@ Both changed from the original on the user's playtest; layout and state are othe
   original in a few places (the objectives' help page breaks one word earlier, the objectives' zone description and the
   briefing's scroll text move one word). DT_VCENTER without SINGLELINE and the '&' prefix in formats without DT_NOPREFIX are
   the easy ones to get wrong.
-- A resolution-independent interface scale (4K) needs atlases rasterised again and changes metrics.
 
 ## DrawText layout rules (render_text.cpp)
 
@@ -313,19 +311,3 @@ frame pictures: `CapturePicture` makes a render target of the picture's size and
 at the start of the next DrawPending (`RunCanvasCommands`) or of a read (`RunCanvasesNow`); `DrawPicture` records a
 `Command::Picture` (`ui_picture`, nearest texel, greyed on request); `ReadPicture` reads a picture back as it is. The GDI pen and frame rules as rectangles (`LineRects`, `FrameRects`). render.cpp's
 part: the two commands, `UploadUi`, `UiFrameDone` after the present; tools/ui_check plays it itself.
-
-### render_ui.h
-
-The interface drawn into the frame (section 3): solid rectangles and glyph runs at the point of the call in screen pixels,
-the frame pictures (copies of the frame kept as data, drawn stretched and optionally grey, read back),
-and the GDI pen rules. Single-threaded: the thread that draws the interface.
-
-### render_text.h
-
-Interface text without GDI (section 2): TrueType fonts built into the executable (stb_truetype), a glyph atlas per font and
-pixel size, and a layout that follows user32's DrawTextA for the formats the game uses. The same layout gives the text extent
-(GetTextExtentPoint32A), so wrapping and drawing use one set of metrics. Nothing here is pixel-exact with GDI: the fonts are
-metric-compatible stand-ins rasterised without hinting. What follows DrawText exactly are the rules: where lines break, how
-they are aligned, tabs, the '&' prefix, clipping and the return value / DT_CALCRECT rectangle, given the font's advances.
-Output: glyph quads (atlas rectangle -> destination rectangle) plus underline rectangles, for render_ui to draw, and a
-CPU composition "against black" for tests.

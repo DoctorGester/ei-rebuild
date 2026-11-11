@@ -1,11 +1,11 @@
 # User interface
 
 Screens, windows and the battle HUD (`src/game/ui*.cpp`). Layouts and per-function behaviour are in the headers and the
-code; this note holds how the pieces fit, which scenarios reach them and the facts the code does not say. `ui.h` keeps the
-core only: the interface manager (`Interface3D`), the window base (`UiWindow`, `UiContainer`), `UiSurface`, `UiRegion`
-with its tooltip, labels and models, the event and the screen fade. Every other window family has its own header and
-source (the table below): a family's classes are declared in its header and their functions defined in its source file. How the interface's pixels are made (the surfaces drawn
-each frame, text, the glyph atlas) is ui-native.md.
+code; this note holds how the pieces fit, which scenarios reach them and the facts the code does not say. `ui.h` keeps
+the core only: the interface manager (`Interface3D`), the window base (`UiWindow`, `UiContainer`), `UiSurface`,
+`UiRegion` with its tooltip, labels and models, the event and the screen fade. Every other window family has its own
+header and source (the table below): a family's classes are declared in its header and their functions defined in its
+source file. How the interface's pixels are made (the surfaces drawn each frame, text, the glyph atlas) is ui-native.md.
 
 ## 1. Conventions shared by every screen
 
@@ -71,23 +71,23 @@ in the key table (`config\keyboard.ini`, `key_bindings.cpp`); a zone has no inve
 ## 2. Interface manager and window base (`ui_interface.cpp`, `ui_window.cpp`)
 
 `Interface3D` (`g_interface`, the only one: windows, surfaces, regions and inputs name it, they keep no pointer to it)
-owns the active windows in a vector (`unique_ptr`; `PushWindow` and `Activate` take the
-new window's), the top one receives input; it owns its backdrops, screen copy, frame rate and status surfaces the same
-way. A `UiWindow` holds five
+owns the active windows in a vector (`unique_ptr`; `PushWindow` and `Activate` take the new window's), the top one
+receives input; it owns its backdrops, screen copy, frame rate and status surfaces the same way. A `UiWindow` holds five
 arrays: referenced engine objects and scene objects (counted: released in ~UiWindow), and the surfaces, regions and
 models it owns (`unique_ptr`; `AddSurface` takes the owner and returns the surface); a container owns its children and
 extra inputs the same way (`AddChild`). A window destroyed while it holds the mouse lets it go. `UiRegion` is a
 rectangle or a convex polygon (from 3 vertices) tested with integer cross products; a region owns its tooltip
-(`UiTooltip`, a plain struct holding its surface while it shows); tooltip states 0 idle, 1 hovered, 2 appearing, 3 disappearing,
-4 shown (0 and 4 stay, 1 -> 0 or 2, 2 -> 4, 3 -> 0). A hovered tooltip goes back to idle (its timer 0) as soon as the
-mouse is outside its region: the original's kept counting there and showed for one frame at the mouse, over whatever
-region the mouse was on, when the count reached the delay (scenario `ui_tooltip_switch`). `UiRegion::SetTip` formats "tip %d" up to '#'; a missing text shows
-the key. A window keeps the regions and sprites it uses again in named members (`okButton`, `rows[n]`, `exitMarkers`)
-and compares the region under the mouse with them (`RegionUnder`; a slot list's index `RegionIndex(list, region)`); a
-window that clears or trims its regions or sprites resets or rebuilds those members with them (the help page, the
-briefing's topic rows, the objectives' exits and places). The creation order still decides the hit test (the first
-region holding the point), the drawing order and the harness's `region <n>` steps, so the scenario notes keep region
-numbers. The camp's and the hero screen's curtains are a `screen_layout::Curtains` pair. `SetScreenPosition` computes `(x * 0.0025f - 1) * 0.48157f * depth` with each step stored as float.
+(`UiTooltip`, a plain struct holding its surface while it shows); tooltip states 0 idle, 1 hovered, 2 appearing, 3
+disappearing, 4 shown (0 and 4 stay, 1 -> 0 or 2, 2 -> 4, 3 -> 0). A hovered tooltip goes back to idle (its timer 0) as
+soon as the mouse is outside its region: the original's kept counting there and showed for one frame at the mouse, over
+whatever region the mouse was on, when the count reached the delay (scenario `ui_tooltip_switch`). `UiRegion::SetTip`
+formats "tip %d" up to '#'; a missing text shows the key. A window keeps the regions and sprites it uses again in named
+members (`okButton`, `rows[n]`, `exitMarkers`) and compares the region under the mouse with them (`RegionUnder`; a slot
+list's index `RegionIndex(list, region)`); a window that clears or trims its regions or sprites resets or rebuilds those
+members with them (the help page, the briefing's topic rows, the objectives' exits and places). The creation order still
+decides the hit test (the first region holding the point), the drawing order and the harness's `region <n>` steps, so
+the scenario notes keep region numbers. The camp's and the hero screen's curtains are a `screen_layout::Curtains` pair.
+`SetScreenPosition` computes `(x * 0.0025f - 1) * 0.48157f * depth` with each step stored as float.
 
 News only one screen hears (items picked up, speech and quest variables for the battle screen; "briefing <name>" and
 the players changing for the briefing; an exchange's end; the console's "give <player> assortment" for the camp) goes
@@ -126,10 +126,11 @@ reads the same.
 ## 3. Interface base: frame update, text, console window, cursor, chat
 
 - `Interface3D::Update`: a pending value pops the top window (Deactivate, CloseScreen, delete); 0x990001 sets close-all
-  and leaves the game; then close-all pops every window, the mouse position is copied, a
-  network client that lost the server gets the "disconnect" box (0x990000; its text is `disconnectReason` when the
-  client left on its own, objects.md "Leaving the server"), else the top window's Update runs, last the root's. `ScreenFade::Draw`: alpha step `ms * rate + alpha` stored as float, clamped at 255, below 0 the fade ends.
-  `Shutdown` writes `config\tutorial.ini` from `helpTopics`.
+  and leaves the game; then close-all pops every window, the mouse position is copied, a network client that lost the
+  server gets the "disconnect" box (0x990000; its text is `disconnectReason` when the client left on its own, objects.md
+  "Leaving the server"), else the top window's Update runs, last the root's. `ScreenFade::Draw`: alpha step `ms * rate +
+  alpha` stored as float, clamped at 255, below 0 the fade ends. `Shutdown` writes `config\tutorial.ini` from
+  `helpTopics`.
 - The interface's root window is the `ChatOverlay`. `UiItemPanel` is the base of the description panel, hero equipment,
   quick strip, trade / repair grids, constructor pages and the blank panel.
 - Glue (`ui_interface_input.cpp`): `PlayInterfaceSound` (Play2D, priority 1000, volume 100), `OnQuestVariable` (at 1 the
@@ -139,8 +140,8 @@ reads the same.
   cursor is the system's ("Cursor in the frame" below).
 - Flying hit points (`ui_flying_hit_points.cpp`): `Add` with flag 8 starts 0.5 s later; numbers need option 17. Their
   sizes (8x12 digits, 64x10 label rows, the 32x10 marker), offsets and drift are 800x600 layout pixels scaled by
-  max(1, height43 / 1200) (P8e: the original's pixels up to a 1600x1200 screen, grown above it; 1.8 at 4K. The user found height43 / 600 twice too large at 4K, 2026-11-04); the 8x12 texture
-  is magnified, so at 4K the digits are soft (a native-font path is P8's).
+  max(1, height43 / 1200) (the original's pixels up to a 1600x1200 screen, grown above it; 1.8 at 4K; height43 / 600 was
+  twice too large at 4K for the user); the 8x12 texture is magnified, so at 4K the digits are soft.
 - Chat overlay (`ui_chat_overlay.cpp`; multiplayer only, no scenario): `Update` erases lines older than 20 s, `AddLine`
   wraps at 780 px, "^<digit>" colours, at most 12 lines; Enter sends a `net::SayMessage` kept 60 s.
 - Camera input (`ui_camera_input.cpp`, `ui/ui_camera_input.h`): `RightDown` / `RightUp` turn with the cursor held,
@@ -149,7 +150,7 @@ reads the same.
   the option speeds.
 - Console window (`console/console_window.cpp`): `PaintInput`, `PaintLines`, `OnKeyDown`, `OnChar` (Rebirth's ImproveConsole behind
   its flag); harness key names `grave`, `backspace`, `delete`, `home`, `end`, `pgup`, `pgdn`, `enterchar` (Enter plus its
-  character, which the console needs); scenario `console.txt`. **Size** (`console_window.cpp`, P11): every size the window draws
+  character, which the console needs); scenario `console.txt`. **Size** (`console_window.cpp`): every size the window draws
   with (the 9-point Courier New, the 15-pixel line pitch, the 8-pixel padding, the 31-pixel input strip, the caret's 2
   pixels, the minimum window, the 24-pixel top margin) is a layout pixel times `scale` = `height43` / 600 (`ConsoleWindow::Px`),
   like the interface's fonts (`TitlesDpi`): the same in proportion at 1280x720, 3840x2160 and on a Retina Mac (the game
@@ -173,9 +174,9 @@ resume, Esc, the quit box cancelled), `ui_view_screen`. The harness's `newgame` 
   difficulty question, "option_difficulty"), 1 load, 2 exit ("Movies\Exit.bik", then quit), 3 options, 4 credits, 5 the
   multiplayer hero screen. `Update`: rain at 0 / 7 o'clock, night lightning 1 in 41 per 100 ms. The signpost is the
   stones, unit 2 of the menu's world ("unmoco2"): a hovered button plays its Briefing animation, none the rest pose
-  (kind 0x80590000), and `CreateScreen` plays the rest pose too (R58). `UnitClientSpecific::RunTick` sets flag 8 (no
-  shadow: `ShadowCastStrength`) on a unit lying, long dead or playing no animation, so before R58 the signpost cast no
-  shadow until the first hover. Scenario `render_menu_shadow`.
+  (kind 0x80590000), and `CreateScreen` plays the rest pose too: `UnitClientSpecific::RunTick` sets flag 8 (no shadow:
+  `ShadowCastStrength`) on a unit playing no animation, so without it the signpost would cast no shadow until the first
+  hover. Scenario `render_menu_shadow`.
 - **Escape menu** (Esc in the menu resumes): rectangles from `menus.reg` in `Res\menus.res`: 0 save, 1 load, 2 resume, 3
   exit to the main menu (asks `quit_msg`; Enter = 0x10001 leaves the game, Esc = 0x10002), 4 options. The click builds the
   save / load and options windows and pushes them; save opens in save mode, load without; both slide in.
@@ -212,17 +213,18 @@ offered, and no script command or key wears one). The map's camp button (region 
 
 **Global map** (`ui_global_map*.cpp`). Titles go through `PlaceTitle`, positions from the map database's records
 (`MapRecord::position`, `FindQuest`; (0, 0, 0) for a missing entry). `SetWeather` gives the three layers, the display
-colour and the clouds' ramp their final values once.
-The zone under the mouse is `ZoneAt`: each zone marker's triangles projected as its draw projects them (the screen
-matrix the window's draw starts from, recorded by `GlobalMap::DrawSprites`, times the marker's placement and scale), the faces the
-clockwise cull keeps, the nearest depth there and of equal ones the later marker (the depth test's LessEqual), at the
-mouse's pixel (Direct3D 7's pixel centres). The original drew the markers alone in grey levels into a half-size picture and
-read the clicked pixel back; a scratch run (P9d, 960x720, 12 zones) found ZoneAt equal to that picture at every one of its
-pixels, so the picks differ only by the picture's half resolution (it read the even pixel), within a pixel of a marker's
-edge. `RefreshSelection` keeps what that step left: the tip hidden, the title, every scene object but the zone markers
-shown (the glow layer and a hidden camp button too) but the tip's two sprites, nothing selected; a zone whose state is not
-0-2 keeps its own texture (the original left it in its pick grey). `FindPaths` is a recursive way search; `arrivals` maps exit -> the shortest "#passtime" sum
-(`ui_global_map_paths.cpp`). Right button drags; `KeyDown`: Esc menu, '5' / '6' quick save / load "saveq".
+colour and the clouds' ramp their final values once. The zone under the mouse is `ZoneAt`: each zone marker's triangles
+projected as its draw projects them (the screen matrix the window's draw starts from, recorded by
+`GlobalMap::DrawSprites`, times the marker's placement and scale), the faces the clockwise cull keeps, the nearest depth
+there and of equal ones the later marker (the depth test's LessEqual), at the mouse's pixel (Direct3D 7's pixel
+centres). The original drew the markers alone in grey levels into a half-size picture and read the clicked pixel back; a
+scratch run (960x720, 12 zones) found ZoneAt equal to that picture at every one of its pixels, so the picks differ only
+by the picture's half resolution (it read the even pixel), within a pixel of a marker's edge. `RefreshSelection` keeps
+what that step left: the tip hidden, the title, every scene object but the zone markers shown (the glow layer and a
+hidden camp button too) but the tip's two sprites, nothing selected; a zone whose state is not 0-2 keeps its own texture
+(the original left it in its pick grey). `FindPaths` is a recursive way search; `arrivals` maps exit -> the shortest
+"#passtime" sum (`ui_global_map_paths.cpp`). Right button drags; `KeyDown`: Esc menu, '5' / '6' quick save / load
+"saveq".
 - Positions are `centre + turn(local)` (centre = layout point (400, 280) at depth 10, each step stored; `turn` = the spin
   about z times a tilt of 0.8 pi about x, `TurnProduct` with its own operand order). Markers come from the player's
   variables ("z.<zone>", "q.<zone>.<quest>" = 1 by bit compare with 1.0f, ways out whose "z.<way>" equals 2, unordered
@@ -304,7 +306,7 @@ database's `QuestBriefingRecord` (quest_records.h). Per-function detail: section
 `MarkPeople` (each Update in states 0 and 1) marks the people with a topic open (`WorldClient::MarkPerson`: the
 figure lit, MapObjectFlag::BoxMarked; a selected one is left alone) on the local view directly, only where the game is
 served (player 0 has a server half); the original sent each mark as message 0x19 kind 1 / 2 through the server's player
-0, which reached the view a tick or two after the screen's first frame (the people lit up late, R56a).
+0, which reached the view a tick or two after the screen's first frame (the people lit up late).
 
 Meshes: 0 / 1 the topics' backdrop and frame (shown in state 1 only), 2 / 3 the text's backdrop and frame, then the people's
 slots. Update hides them all each frame, then state 1 shows 0 and 1 and states 3 / 4 show 2 onwards (showing every mesh drew
@@ -351,12 +353,12 @@ portrait pick branch (multiplayer).
 
 ## 7. Battle HUD panels
 
-Files `ui_hud_slots.cpp`, `ui_hud_corner.cpp`, `ui_hud_side.cpp`, `ui_hud_portraits.cpp` (declarations in `ui_hud.h`); scenario `ui_hud` (new game, mouse moves
-over every panel, clicks on weapon slots, top panel pages and sling, unit panel body parts and sling, map views, movement
-panel, a portrait; the escape menu: Options -> group -> Cancel, Load -> row -> Cancel, Save -> Esc, Resume; the hero must
-take damage; the wheel over the map's sling button (in, then out past the limit) and the map; TAB opens the objectives
-window. Spell, action and quick item buttons get only mouse moves: a click would start a targeting mode the following Esc
-cancels).
+Files `ui_hud_slots.cpp`, `ui_hud_corner.cpp`, `ui_hud_side.cpp`, `ui_hud_portraits.cpp` (declarations in `ui_hud.h`);
+scenario `ui_hud` (new game, mouse moves over every panel, clicks on weapon slots, top panel pages and sling, unit panel
+body parts and sling, map views, movement panel, a portrait; the escape menu: Options -> group -> Cancel, Load -> row ->
+Cancel, Save -> Esc, Resume; the hero must take damage; the wheel over the map's sling button (in, then out past the
+limit) and the map; TAB opens the objectives window. Spell, action and quick item buttons get only mouse moves: a click
+would start a targeting mode the following Esc cancels).
 
 Panel rectangles (800x600 layout; WideScreen moves the edge panels): weapon bar 80..240 x 520..600 (4 slots of 40), quick
 items 520..720 x 500..600 (8 slots 50x50), spell column 760..800 x 190..510, action column 0..40 x 250..510 (6 buttons from y
@@ -410,8 +412,10 @@ Rectangles from `menus.reg`: save/load OK 163..237, Cancel 563..637, Delete 363.
 in 24 steps; options OK 213..287, Cancel 513..587, groups 100..250 x 156.. in 24 steps, rows x 250..520.
 
 Scenarios: save / load (`SaveLoadWindow`, `ui_saveload.cpp`) ui_hud, ui_saveload, ui_saveload_delete; options
-(`OptionsWindow`, `ui_options.cpp`) ui_hud (also clicks group 2), ui_main_menu (OK = Apply), key remapping ui_options_remap (Enter, `dblclickregion`, a taken key's box, OK, then the keys used
-in the game, the hero's moveMode in the digest), the graphics rows ui_options_graphics; objectives ui_hud's TAB (Rebirth), ui_base_objectives. `UiEditField::KeyDown` has no scenario that types into one. The titles' RTF text is drawn as glyph runs
+(`OptionsWindow`, `ui_options.cpp`) ui_hud (also clicks group 2), ui_main_menu (OK = Apply), key remapping
+ui_options_remap (Enter, `dblclickregion`, a taken key's box, OK, then the keys used in the game, the hero's moveMode in
+the digest), the graphics rows ui_options_graphics; objectives ui_hud's TAB (Rebirth), ui_base_objectives.
+`UiEditField::KeyDown` has no scenario that types into one. The titles' RTF text is drawn as glyph runs
 (`UiScrollingSurface::RenderText`, render_rich_text; ui_main_menu).
 
 - Save entries' titles: `ZoneTitle` / `AllodTitle` ("zone " / "allod " with the space; else "save_camp" / "Unknown").
@@ -431,12 +435,12 @@ in the game, the hero's moveMode in the digest), the graphics rows ui_options_gr
   (its position the pixels scrolled; the window passes it its input and update and draws its sprites); it tokenises
   every text added into `TextToken` values: format tokens (runs of "\n", BEL 'C' r g b, BEL 'F' digit) and word
   tokens (a string and its width).
-- **Options data**: rows are {OptionBinding*, OptionSetting*}; 27 option definitions (id, name, kind, maximum, group, row;
-  0-20 the original's, 21 our resolution row, a drop-down list: renderer.md, "Resolution changes"; 22-26 our graphics
-  rows in the display group's free rows 8 and 10-13, kind 3 a spin control over a list of choices: renderer.md, "The
-  graphics rows"; their labels and tips are added texts, Russian where the game's are),
-  59 key actions; 14 rows, 11 groups. The slider (`UiSlider : UiScrollbar`): `upButton` (left, bottom - 10, left + 12,
-  bottom), `downButton` (right - 12, bottom - 10, right, bottom), `trackArea` (left, top, right, bottom - 10); the scroll bar's depth is 3.0. The
+- **Options data**: rows are {OptionBinding*, OptionSetting*}; 27 option definitions (id, name, kind, maximum, group,
+  row; 0-20 the original's, 21 our resolution row, a drop-down list: renderer.md, "Resolution changes"; 22-26 our
+  graphics rows in the display group's free rows 8 and 10-13, kind 3 a spin control over a list of choices: renderer.md,
+  "The graphics rows"; their labels and tips are added texts, Russian where the game's are), 59 key actions; 14 rows, 11
+  groups. The slider (`UiSlider : UiScrollbar`): `upButton` (left, bottom - 10, left + 12, bottom), `downButton` (right
+  - 12, bottom - 10, right, bottom), `trackArea` (left, top, right, bottom - 10); the scroll bar's depth is 3.0. The
   edit field's keys: Backspace, End, Home, Left, Right, Delete. Key names are followed by "  |  ".
 - **Objectives window**: TAB (keyboard.ini `obj`) opens it, Esc or Enter closes it; OK asks for the zone at the nearest exit.
   Build shows the current zone's page, or the zones of the allod in which the player holds quests ("q.<zone>.<quest>" = 1;
@@ -475,12 +479,12 @@ The steps added for UI work (`screen`, `clickregion` / `moveregion`, `wheel`, `d
 `campputon`, `zone` / `waitzone`, `ldown` / `lup`, key names `ctrl`, `grave`, ... `enterchar`) are documented in the header of
 `tests/verify/harness.cpp`. Facts behind them:
 - **Picking** (`clickunit`): the client world keeps a list of the objects drawn this frame with their screen rectangles
-  (world.md, "World client frame"); a button release gathers the entries whose rectangle holds the point (then the object's
-  finer test), sorts them by depth and takes the first unit, which must have flag 0x400000. The step tries a 9x9 grid inside
-  the unit's rectangle until the game's own pick answers with that unit, so the click cannot land on a unit in front; it
-  fails when the unit is off screen or hidden. Modifier words (`ctrl`, `shift`, `alt`) after a key or mouse step hold those
-  keys around it (Ctrl + a unit orders an attack), and `hold` / `release` keep them across steps (`camera_limits`). They are posted as key events, the only way
-  the game learns them; the harness cannot drag.
+  (world.md, "World client frame"); a button release gathers the entries whose rectangle holds the point (then the
+  object's finer test), sorts them by depth and takes the first unit, which must have flag 0x400000. The step tries a
+  9x9 grid inside the unit's rectangle until the game's own pick answers with that unit, so the click cannot land on a
+  unit in front; it fails when the unit is off screen or hidden. Modifier words (`ctrl`, `shift`, `alt`) after a key or
+  mouse step hold those keys around it (Ctrl + a unit orders an attack), and `hold` / `release` keep them across steps
+  (`camera_limits`). They are posted as key events, the only way the game learns them; the harness cannot drag.
 - **Zone steps**: `zone` calls `LeaveToZone` on the local player's connection, as the zone exit handler and the script
   command do; it needs state 1, and in campaign mode 1 or 3 a dead or missing leader loses the game instead. `waitzone`
   waits for no pending game request, campaign mode not 2 (menu), the server world's zone name and state 1; the party appears
@@ -497,8 +501,8 @@ The steps added for UI work (`screen`, `clickregion` / `moveregion`, `wheel`, `d
 Scenario lessons:
 - **Race with a zone's intro script.** The server drops a hero blocked by script (BlockUnit / IsUnitBlocked, flag
   0x800000), and gz1g's intro script blocks the hero for about 37 s with its first tick unordered against the hero's
-  creation: a scenario that orders the hero waits for the block (`waitfor 15 IsUnitBlocked(GetLeader())`) before lifting it and checks the
-  hero is not blocked before each click (scripted moves ignore the flag).
+  creation: a scenario that orders the hero waits for the block (`waitfor 15 IsUnitBlocked(GetLeader())`) before lifting
+  it and checks the hero is not blocked before each click (scripted moves ignore the flag).
 - **Armed traps.** gz2g starts its magic traps armed (its scripts disarm them from triggers), so MTF4 strikes a placed wolf
   at the next world update: the scenario disarms it before placing the wolf, checks the wolf alive, arms it and waits for it
   to die.
@@ -653,10 +657,10 @@ Each in its window's file:
   sprites and models and its enabled children;
 - the briefing screen's and the main menu's draws (`DrawScreen`, ui_container.cpp; ui_briefing.cpp, ui_main_menu.cpp): the
   client world's frame, (the briefing screen) a mouse move to the window itself, a depth clear, then the children;
-- the hero equipment panel's draw (HeroEquipPanel, ui_hero_panels.cpp): the two highlight frames placed (the shown weapon, the selected quick
-  item), the weapons' (left) and quick items' (from the right) item models, and with the body (the camp) the seven equipment
-  slots' models inside depth clears (all to 0, the slots' rectangles to 1, all to 1 afterwards), as the hero preview and the
-  trade grid do;
+- the hero equipment panel's draw (HeroEquipPanel, ui_hero_panels.cpp): the two highlight frames placed (the shown
+  weapon, the selected quick item), the weapons' (left) and quick items' (from the right) item models, and with the body
+  (the camp) the seven equipment slots' models inside depth clears (all to 0, the slots' rectangles to 1, all to 1
+  afterwards), as the hero preview and the trade grid do;
 - the alpha reference set to the window's value.
 
 Every state set goes to render::g_renderState; every depth clear to render::ClearDepth through `ClearUiDepth` (ui.h; ui_interface.cpp).
@@ -681,34 +685,27 @@ order, kept.
 
 - The drag is the mouse's speed, not the frame's motion (Cursor::TakeDrag): the motion of the polls in the last 1000 / 60
   ms (or the last poll's interval, when longer), the oldest poll counted for its part in that window, scaled from the
-  window to 1000 / 60 ms. At 60 Hz it is the frame's motion as before (frames of 16 / 17 ms: within a count); at other
-  rates the same mouse speed gives the same drag. It used to be the frame's motion, so the turn per second went with the
-  frame's length: `camera_drag_rate` (2 counts a ms across for 0.96 s) turned 7.57 rad at 32 ms frames, 3.66 at 16,
-  1.83 at 8 and 0.85 at 4, and a slow tilt not at all at 4 ms (1 count a frame truncates to 0 in layout units); now 3.80
-  to 3.85 rad at all four, tilts within 5%. A slow machine (or a frame that took long) turned fast and tilted to the
-  pitch limit in a frame or two, a fast one turned slowly.
+  window to 1000 / 60 ms. At 60 Hz it is the frame's motion (frames of 16 / 17 ms: within a count); at other rates the
+  same mouse speed gives the same drag, so the turn per second does not go with the frame's length (`camera_drag_rate`:
+  3.80 to 3.85 rad at 4, 8, 16 and 32 ms frames, tilts within 5%).
 - Taking hold (Cursor::SetHeld) polls the mouse and drops its motion so far, so motion from before the press does not turn
-  the camera in the first frame, and keeps the pointer's position (the user's macos-port 26d016239; the global map's drag
-  too).
+  the camera in the first frame, and keeps the pointer's position (the global map's drag too).
 - The mouse counts are the pointer's motion on every system: SDL's relative motion with
   SDL_HINT_MOUSE_RELATIVE_SYSTEM_SCALE (platform_sdl.cpp), on Windows raw input through SDL's copy of the system's pointer
   speed and acceleration, on X11 XInput2's accelerated valuators, on Wayland the compositor's accelerated relative motion
   times the window's pointer_scale (1 for the game's window, which is never exclusive full screen). So the desktop's
   pointer settings set the camera's speed too.
-- The turn per count is a fixed amount (PL20a), the same at every screen size: the drag in counts times 800 / 2880 layout
-  units (kLayoutPerCount, kept as a fraction, not truncated), then the same rates. 2880 is the 4:3 part's width of a
-  3840x2160 screen (2160 * 4 / 3): the user's 4K monitor at 200% Windows scaling, whose borderless full screen the game
-  sees in physical pixels (SDL's coordinates are pixels on Windows, PixelsPerPoint 1), so that setup turns as before.
-  It had scaled the drag to the window (800 / width43: a 1920x1080 screen turned twice as far as 3840x2160, and at 2160p
-  a drag below about 4 counts a 60 Hz frame truncated to nothing; the original took raw counts at 800x600). The pan with
-  the modifier held shares the scaling. The constant is screen_layout::kLayoutPerCount, shared with the global map's
-  drag (GlobalMap::MouseMove: the angle turns `counts * kLayoutPerCount / 300`, as the window-scaled integer drag did
-  before). Positions (pointing, clicking, hit tests, a scroll bar's thumb following the cursor) still scale to the
-  window; every response per count or wheel step is the same at any size. Checked in PL20b and left alone: the
-  camera's wheel zoom, the scroll bars' and minimap's wheel steps and the item strip's (wheel delta only), the edge
-  pan (a fixed speed over the options' margin in pixels), the village and briefing cameras (the same CameraInput), the
-  scroll bar and slider thumbs (placed by the cursor's position), and the briefing's map click (a position).
-  `EI_CAMERA_TRACE=1` logs the global map's drag taken (`global map drag dx dy (layout) at ms: angle`).
+- The turn per count is a fixed amount, the same at every screen size: the drag in counts times 800 / 2880 layout units
+  (screen_layout::kLayoutPerCount, kept as a fraction, not truncated), then the same rates. 2880 is the 4:3 part's width
+  of a 3840x2160 screen (2160 * 4 / 3): the user's 4K monitor at 200% Windows scaling, whose borderless full screen the
+  game sees in physical pixels (SDL's coordinates are pixels on Windows, PixelsPerPoint 1). The pan with the modifier
+  held and the global map's drag (GlobalMap::MouseMove: the angle turns `counts * kLayoutPerCount / 300`) share the
+  scaling. Positions (pointing, clicking, hit tests, a scroll bar's thumb following the cursor) still scale to the
+  window; every response per count or wheel step is the same at any size. Already size independent: the camera's wheel
+  zoom, the scroll bars' and minimap's wheel steps and the item strip's (wheel delta only), the edge pan (a fixed speed
+  over the options' margin in pixels), the village and briefing cameras (the same CameraInput), the scroll bar and
+  slider thumbs (placed by the cursor's position), and the briefing's map click (a position). `EI_CAMERA_TRACE=1` logs
+  the global map's drag taken (`global map drag dx dy (layout) at ms: angle`).
 - Harness: `mousedrag dx dy` adds (dx, dy) to each frame's poll; with `frametime` that is a mouse speed of dx / frametime
   counts a ms (`camera_spin`, `camera_drag_rate`).
 - `EI_CAMERA_TRACE=1` traces it into ei-rebuild.log (src/game/ui/camera_trace.cpp): a line a second (`camera trace: N frames
@@ -881,12 +878,12 @@ Regions past the links do nothing.
 
 ### GlobalMap::LeftDown
 
-The left button pressed (nothing while dragging; ui_global_map_paths.cpp). Regions 0 / 1, the turn buttons: turning -1 / +1 and "buttons\globalmap\move.wav". Region 2, the
-camp (unless noCamp is 1): "buttons\globalmap\transit.wav", the constructor 0 and screen 5 asked for. A link (regions 3..),
-or on gipat a zone that has one: "buttons\globalmap\ok.wav", the ways to the link's zone searched from the local player's
-zone and, when there is one, the time of arrival exit 0 passed and the zone asked for at entrance 0. Any other zone under
-the mouse (`ZoneAt`; its state not 0): the sound, the search, and the objectives
-window opened over the map with the zone, the arrival times, two buttons and no zone list.
+The left button pressed (nothing while dragging; ui_global_map_paths.cpp). Regions 0 / 1, the turn buttons: turning -1 /
++1 and "buttons\globalmap\move.wav". Region 2, the camp (unless noCamp is 1): "buttons\globalmap\transit.wav", the
+constructor 0 and screen 5 asked for. A link (regions 3..), or on gipat a zone that has one: "buttons\globalmap\ok.wav",
+the ways to the link's zone searched from the local player's zone and, when there is one, the time of arrival exit 0
+passed and the zone asked for at entrance 0. Any other zone under the mouse (`ZoneAt`; its state not 0): the sound, the
+search, and the objectives window opened over the map with the zone, the arrival times, two buttons and no zone list.
 
 ### CampPages::BuildPages
 

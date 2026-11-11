@@ -118,13 +118,11 @@ the wide text). `RemoveFile` refuses a folder and `RemoveFolder` a file, as Dele
 
 Every open shares the file for reading and writing (FILE_SHARE_READ | FILE_SHARE_WRITE, never FILE_SHARE_DELETE, so
 removing an open file still fails; ReadWholeFile's open shares deleting too, the file is closed before it returns)
-with FILE_ATTRIBUTE_NORMAL; MFC's per-call share bits, the archives' FILE_FLAG_NO_BUFFERING / FILE_FLAG_RANDOM_ACCESS
-hints and the sector-size test that chose between them are gone. Most of the game's opens were exclusive. An open
-that the old sharing refused would now succeed; none happens: PL11b's temporary check logged, over a main and a
-Rebirth suite, only read opens of a file already open for reading (the .res archives and maps/zq.mq), which were
-shared before too, and no sharing violation (PL11s removed it).
+with FILE_ATTRIBUTE_NORMAL, and takes no buffering hints. Most of the original's opens were exclusive; an open that
+sharing refused would now succeed, but none happens: a check over both suites found only read opens of a file already
+open for reading (the .res archives and maps/zq.mq), which were shared then too.
 
-**One path seam** (src/platform/seams.h, PL15): every file and folder call of every backend takes its path through
+**One path seam** (src/platform/seams.h): every file and folder call of every backend takes its path through
 `platform::SystemPath(path, use)` and then the backend's `NativePath`. `PathUse` says what the call does with it:
 `Read` (opens, maps, searches, exists, free space), `Write` (creates, truncates, removes, a rename's target) or
 `Update` (a change of a file that is there: WriteExisting, a rename's source), or `Layer` (ReadLayerFile: one layer's
@@ -142,25 +140,20 @@ A folder search asks `SystemSearches(pattern)` instead: the searches of every la
 which FolderEntries (files.cpp) merges, a name an upper layer has hiding the same name below (mods.md, "The layered
 path map"); without layers one search, the system's own order.
 
-The overlay used to answer eight calls itself (CreateFolder, RemoveFile, RenameFile, CopyFileOver, RemoveFolder,
-FileExists, the open and the folder search); now it answers two questions, where a path is and which folders a
-search reads. The seam is plain C++
-(std::string_view in, std::string out), so a harness on Linux (H47) maps paths with the same function. Rebirth's
-look-ups (IsFile, FolderEntries) and the settings file (ReadWholeFile / WriteWholeFile next to the exe or in the
-user's data folder) pass the seam too, though addon.dll's and the settings' calls never reached the harness's answers
-before: their paths are outside the saves and the install's overlaid files, so the map leaves them as
-they are. Nothing of the harness sits below the seam: a write still under an install after the mapping is refused
-there (standalone-verification.md, "No run writes into an install").
+The seam is plain C++ (std::string_view in, std::string out), so the harness on Linux maps paths with the same
+function. Rebirth's look-ups (IsFile, FolderEntries) and the settings file (ReadWholeFile / WriteWholeFile next to the
+exe or in the user's data folder) pass the seam too; their paths are outside the saves and the install's overlaid
+files, so the map leaves them as they are. Nothing of the harness sits below the seam: a write still under an install
+after the mapping is refused there (standalone-verification.md, "No run writes into an install").
 
 No file outside src/platform calls Windows.
 
 ### The harness's answers
 
-game.exe's import slots (a table of ours, generated from its import directory until PL14: gameapi.h, import_table.h,
-image_imports.cpp, tools/gen_iat.py) existed only so that the harness could patch them. Now the harness answers the
-game's calls in its own builds, through named seams or whole area files, never half an area or a class (C142):
-CMakeLists.txt leaves src/platform/seams.cpp, src/platform/<system>/sockets.cpp and platform_sdl.cpp out of them
-(EI_GAME_CALLS, EI_SDL_CALLS), and tests/verify/platform defines the same functions, one file each for both systems:
+The harness answers the game's calls in its own builds, through named seams or whole area files, never half an area
+or a class: CMakeLists.txt leaves src/platform/seams.cpp, src/platform/<system>/sockets.cpp and platform_sdl.cpp out
+of them (EI_GAME_CALLS, EI_SDL_CALLS), and tests/verify/platform defines the same functions, one file each for both
+systems:
 
 - game_answers.cpp, the seams (seams.h): `SystemPath` (above: harness.cpp's MapPath); the write watch, which each
   backend's `File::Write` asks (`WriteFailsAsFull`: "diskfull" fails a file's writes as on a full disk;
@@ -175,9 +168,7 @@ CMakeLists.txt leaves src/platform/seams.cpp, src/platform/<system>/sockets.cpp 
 Each answer is the game's while the harness is not running (a verify build started without EI_HARNESS). The harness's
 own system calls (threads, clocks, files, faults, stacks, a pair's shared memory, the window's concealment) are
 tests/verify/system/harness_system.h's, system_win32.cpp and system_posix.cpp. The harness hooks nothing of the
-system: no import slot, hot patch or module patch is left. The redirects the game no
-longer reached went with the slots: the window's creation and showing (SDL's window), the cursor's position (the
-harness's backend), WaitForSingleObject and GetMessageA (the threads and events are SDL's), GetSystemTime.
+system.
 
 ## Window and events
 
@@ -190,9 +181,8 @@ window (gpu.h's `ClaimWindow`; the NativeWindow the game holds is `SDL_PROP_WIND
 
 - **Linkage: static.** third_party/SDL (3.4.18, zlib licence) is built by CMakeLists.txt as SDL3-static with only
   video, audio and the GPU API on Direct3D 12 and Vulkan (no 2D renderer, camera, joystick, haptic, HID, sensor, power,
-  dialog, OpenGL), before the
-  game's compile options, into ei-rebuild.exe: the exe stays one file dropped into a game folder (S23), for x86 and
-  x64 alike. Its sources compile without a warning under its own flags.
+  dialog, OpenGL), before the game's compile options, into ei-rebuild.exe: the exe stays one file dropped into a game
+  folder. Its sources compile without a warning under its own flags.
 - **The harness has its own platform backend on SDL** (tests/verify/harness_platform.cpp), built in its builds in
   place of the game's platform_sdl.cpp (the key tables, sdl_keys.cpp, are shared): an SDL window
   shown without activation, every system event SDL takes dropped (the real keyboard and mouse never reach a harness
@@ -203,18 +193,18 @@ window (gpu.h's `ClaimWindow`; the NativeWindow the game holds is `SDL_PROP_WIND
   and held clocks and fixed date, harness.cpp's own mouse). The backend is SDL and
   the harness's own system layer (tests/verify/system), the same on both systems. Its steps queue the
   platform's events (harness_input.h: a key with its scan code, Alt's own key holding Alt, a character as UTF-8 text
-  with its key's scan code, a double click's second press with two clicks, the wheel's turn), as the games saw them
-  on the window-procedure path (gone with DirectInput: PL12). SDL's translation of real
+  with its key's scan code, a double click's second press with two clicks, the wheel's turn), as the game's own
+  backend makes them. SDL's translation of real
   input is checked by tools/input_check against Windows' layouts. A live recording (`recordinput live`, harness.md
   "Recorded play") takes the real keyboard and mouse through that translation (sdl_input.h) instead of dropping them,
   in a window shown and activated, its cursor held as the game's backend holds it.
 - What stays Windows in every build: the other game window (FindWindowW on the class name, which SDL_RegisterApp
   gives SDL's window class: "EIGAME"), the key names and keyboard layouts, the paths (SDL's pref path is the roaming
   folder and creates it, its base path is the folder, not the file: the settings file would move), the
-  files and sockets. Their POSIX versions (src/platform/posix, PL9b): the program's path from `/proc/self/exe`, the user data folder from SDL's pref path, the one-instance check
+  files and sockets. Their POSIX versions (src/platform/posix): the program's path from `/proc/self/exe`, the user data folder from SDL's pref path, the one-instance check
   as an advisory `flock` on a lock file named after the name and title (another process's window is not raised), the
   layout's key codes, Ctrl characters and key names from SDL's keymap (`SDL_GetKeyFromScancode`: what the key types,
-  read as Windows' layouts give theirs; linux.md, "What differs from Windows", LX4), `ActivateKeyboardLayout` a no-op
+  read as Windows' layouts give theirs; linux.md, "What differs from Windows"), `ActivateKeyboardLayout` a no-op
   (text follows the system's layout), `IsLetter` by `iswalpha_l`.
 
 What SDL's backend does (platform_sdl.cpp):
@@ -255,7 +245,7 @@ What SDL's backend does (platform_sdl.cpp):
   count, the wheel in notches (`SDL_MOUSEWHEEL_FLIPPED` turned back). `TakeMouseMotion` gives the motion events' sum
   since the last call.
 - **The cursor**: the game's pictures as SDL colour cursors (`MakeCursor`: `SDL_CreateColorCursor` on an RGBA
-  surface; the renderer makes them, docs/notes/renderer.md section 9, R40), shown with `SDL_SetCursor` +
+  surface; the renderer makes them, docs/notes/renderer.md section 9), shown with `SDL_SetCursor` +
   `SDL_ShowCursor`, hidden with `SDL_HideCursor` (null shape). The position is `SDL_GetGlobalMouseState`, placed with
   `SDL_WarpMouseGlobal`. `HoldCursor`: the window in relative mode with a one-pixel mouse rectangle at the point (the
   hints keep the cursor visible there, not centred, the motion scaled as the pointer's; the motion's fractions are
@@ -330,34 +320,21 @@ What needed no system at all is standard C++, each checked equal to the call it 
   `EI_RETURN_ADDRESS()` / `EI_CALLER_FRAME()`, MSVC's intrinsics (declared without <intrin.h>) or clang's builtins.
   Macros, so that they read the frame of the function that uses them: an inline function is not inlined at /Ob0 (the
   debug build) and would name itself as the caller.
-- **Dates** (lib/calendar.h, PL15): `LocalDateTime` / `FormatLocalTime` of `platform::SecondsSince1970()` by the C
+- **Dates** (lib/calendar.h): `LocalDateTime` / `FormatLocalTime` of `platform::SecondsSince1970()` by the C
   library's `localtime_s` (`localtime_r`) and `strftime`: a save's date, the log's time of day.
-- **IPv4 text and byte order** (lib/ipv4.h, PL15): `ParseIpv4` is inet_addr's parser (one to four parts, decimal, octal
+- **IPv4 text and byte order** (lib/ipv4.h): `ParseIpv4` is inet_addr's parser (one to four parts, decimal, octal
   or hexadecimal, the last filling the rest, whitespace ending the text, inet_addr's overflow rules), equal to Winsock
   on 6 million strings (a scratch sweep; tests/unit/ipv4.cpp keeps the edge cases); `ToNetwork` / `FromNetwork` are
   htons / ntohs.
-- The world's wincurs\Df0000.cur cursor (LoadCursorFromFileA) was loaded and never used: gone.
 
 ## Rectangles
 
 `lib/rect.h` (`Rect::IsEmpty`, `Contains`, `Offset`, `Intersection`, `Union`, `Width`, `Height`) is plain integer
-code with USER32's rules, so the UI and figure files no longer call SetRect, OffsetRect, IntersectRect ... (not an area
-of the layer: no system call is left). An empty rectangle has right <= left or bottom <= top; `Intersection` and
-`Union` return the all-zero rectangle when nothing is left (`Union` ignores an empty operand); `Contains` excludes the
-right and bottom edges; `Offset` and the aggregate initialisation do not normalise. Layout code builds rectangles from
-others with `Inset` (all edges, dx / dy, or each edge), the `LeftStrip` / `RightStrip` / `TopStrip` / `BottomStrip`
-bands inside an edge and `Rect::Sized(topLeft, size)`; none of them normalises either. The edge rules were compared with
-USER32 on 56 million edge and random rectangle pairs (H33h's scratch test); `std::min` / `std::max` are written
-`(std::min)` in the header because windows.h defines the macros. A mouse event's position is a `Point` (the
-`LeftDown(int buttons, Point point)` handlers).
-
-## What the game depends on (2026-10-09 estimate, kept for scale)
-
-| Area | Original dependency | Note |
-|---|---|---|
-| Window, messages, cursor, input | USER32 (151 imports), DINPUT (1) | SDL3 since PL9 (the harness's builds: the window procedure) |
-| 2D text and surfaces | GDI32 (83) | the native interface (P track) replaces GDI |
-| Rendering | DDRAW, D3D7 through COM | isolated: SDL_GPU behind the DDraw7 / D3D7 boundary |
-| Sound / video | Miles mss32 (47), DSOUND (1); Bink (12) | none since PL6: SDL3's audio device (miniaudio until PL9), our Bink 1 decoder |
-| Network | WSOCK32 (22, by ordinal) | BSD sockets map almost 1:1 (PL5) |
-| Files, threads, time | KERNEL32 (159), WINMM (5), ADVAPI32 (11) | PL3, PL4; time done here |
+code with USER32's rules in place of SetRect, OffsetRect, IntersectRect ... (not an area of the layer: no system call
+is left). An empty rectangle has right <= left or bottom <= top; `Intersection` and `Union` return the all-zero
+rectangle when nothing is left (`Union` ignores an empty operand); `Contains` excludes the right and bottom edges;
+`Offset` and the aggregate initialisation do not normalise. Layout code builds rectangles from others with `Inset` (all
+edges, dx / dy, or each edge), the `LeftStrip` / `RightStrip` / `TopStrip` / `BottomStrip` bands inside an edge and
+`Rect::Sized(topLeft, size)`; none of them normalises either. The edge rules were compared with USER32 on 56 million
+edge and random rectangle pairs; `std::min` / `std::max` are written `(std::min)` in the header because windows.h
+defines the macros. A mouse event's position is a `Point` (the `LeftDown(int buttons, Point point)` handlers).

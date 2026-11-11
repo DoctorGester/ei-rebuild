@@ -38,9 +38,9 @@ The build (CMakeLists.txt):
   runs at the start): `vs_main` under `EI_VERTEX`, `ps_main` under `EI_FRAGMENT`. The MSL is spirv-cross's from that
   SPIR-V (`--msl --msl-version 10200 --msl-decoration-binding`): every texture, sampler and block at its SPIR-V
   binding, which is SDL_GPU's Metal slot (texture and sampler n, uniform buffer n; vertex buffers sit at 14 and up).
-  shadercross's own MSL binds only the textures whose sampler the stage reads, plus those after the last of them in its
-  resource list, so shadow_receiver.hlsli's `shadow_range` (read with Load, its sampler unused) landed at texture(0),
-  over the stage's first texture (R43h). The output goes to `shaders/hlsl/` in the build folder.
+  shadercross's own MSL binds only the textures whose sampler the stage reads (and those after the last of them), so a
+  texture read with Load, such as shadow_receiver.hlsli's `shadow_range`, landed on the stage's first texture. The
+  output goes to `shaders/hlsl/` in the build folder.
 - **Reflection.** `spirv-cross --reflect` writes each stage's interface. The generator checks each MSL entry point's
   `[[texture(n)]]`, `[[sampler(n)]]` and `[[buffer(n)]]` against it (each at its binding, no two of a kind at one).
 - **The header.** `tools/gen_gpu_shaders.py` checks the rules below and writes two files into `shaders/` in the build
@@ -80,7 +80,7 @@ Rules (SDL_GPU's, or the generator's):
   `T`'s members are `float4`, `int4`, `uint4`, `row_major float4x4` and arrays of them (16-byte members: DXIL, SPIR-V and
   MSL then lay the element out alike); the generator writes `T` as a C++ struct like a block's. In MSL SDL binds a
   stage's storage buffers after its uniform blocks, so the generator moves spirv-cross's `[[buffer(n)]]` of a storage
-  buffer to blocks + slot (untested on Metal so far: no Mac run since R37f3). The renderer binds a whole buffer
+  buffer to blocks + slot (untested on Metal so far). The renderer binds a whole buffer
   (`gpu::BindStorageBuffers`, no offset); a draw finds its element by an index (the mesh draws: an instance-rate
   `uint` vertex input, `record`).
 - **Names.** A block's type is its HLSL struct's name (`MeshFsParams`), its members named as there. Each value has its
@@ -153,12 +153,10 @@ unless kept on the GPU (section 13); textures are kept per holder.
 A frame step without a present (`app::FrameStep(false)`: a frame drawn for a copy of the screen, the quick save's
 picture and the windows' backdrops) is a renderer frame of its own: `render::EndUnshownFrame()` draws it into the frame
 target, which keeps it for the copies taken after it (they run before the next frame's first pass), and begins a new
-frame. Before R60 its draws stayed in the frame and the next step's were added to them: the shown frame's once-a-frame
-passes (the shadow maps, the point shadows, the occlusion, the sky reflection) and its kept state came from the first
-draw's hand-over, so a new game's autosave frame (QuickSave: the unshown frame for its picture, then "saving..." over
-the scene, the first frame shown) was lit otherwise than every frame after it: the meshes warmer and lighter, 15-18%
-of the world view off by more than 8 (the user's Lost in Astral start at the camp fire, 2026-11-05; vanilla's zone1
-alike). Scenario render_save_frame: the save's frame and the next (the same tick) match in the world view.
+frame. Left in the frame, its draws would feed the shown frame's once-a-frame passes (the shadow maps, the point
+shadows, the occlusion, the sky reflection) and its kept state, and a new game's autosave frame would be lit otherwise
+than every frame after it. Scenario render_save_frame: the save's frame and the next (the same tick) match in the
+world view.
 
 Conventions taken over: Direct3D clip space (the game's projection already produces it), Direct3D 7 pixel centres (3D
 draws shift their clip positions by half a pixel, `Frame::pixelShift`, because the viewport is kept in whole pixels
@@ -171,32 +169,29 @@ texturing. Textures have the .mmp file's own mip levels and no others (section 7
 - **Visibility** (the frustum test, the in-view flag 0x20 of client objects): readers are client-side only (cursor
   picking and rubber band, particle sources, the shadow lists, client animation to game time, pending figure changes,
   model LRU). **Visibility only gates client-side animation, figure changes and picking, never server state or timing.**
-- **Picking** uses screen rectangles written during the object draw from projected positions (copied into node and
-  figure pieces; `WorldClient::UnitAt` / `Pick` (HitTest::Parts) test the parts' rectangles only). Whatever draws the objects must still
-  produce them. The rule (R37f13, `map_object_draw.cpp` `BoxRect`, units' and levers' parts only): the bounds of the
-  part's box (its cube when it has no box) projected by the screen stack's top, the corners inside the depth range
-  (nothing behind the camera or nearer than the near plane), clamped to the screen. No vertex is projected on the CPU;
-  a part the object's draw skips (too far, hidden, not in its figure) gets an empty rectangle.
-  - **Accepted difference from the original** (user's call): the original clipped a crossing mesh on the CPU and took
-    the bounds of the clipped triangles' points inside every plane; an empty clip kept the last draw's rectangle. Ours is
-    the part's box, a little larger than its triangles (the hit order still goes by the triangles under the pixel,
-    below), and larger past a screen corner or across an edge: at the bottom edge an ogre's part picks a few 800x600
-    pixels further left or right than in the original. No scenario clicks the edges on purpose (H74: their code is the
-    picking every click runs, which the suite reaches elsewhere). The
-    corners are under the battle screen's HUD, so no click reaches a corner's difference.
-  - **The order of the hits** (R64, a deviation by the user's choice): `WorldClient::Pick` sorts the objects that pass
-    the test front to back, living before dead, each by `Object3DSpecific::PickDepth`: the view depth (the screen
-    stack's w) of the nearest triangle drawn under the pixel's centre, over the parts whose rectangle holds the point
+- **Picking** uses screen rectangles the object draw writes for units' and levers' parts (`map_object_draw.cpp`
+  `BoxRect`; `WorldClient::UnitAt` / `Pick` (HitTest::Parts) test the parts' rectangles only): the bounds of the part's
+  box (its cube when it has no box) projected by the screen stack's top, the corners inside the depth range (nothing
+  behind the camera or nearer than the near plane), clamped to the screen. No vertex is projected on the CPU; a part
+  the object's draw skips (too far, hidden, not in its figure) gets an empty rectangle.
+  - **Accepted difference from the original** (user's call): the original took the bounds of the triangles it clipped
+    on the CPU (an empty clip kept the last draw's rectangle). The box is a little larger than the triangles (the hit
+    order still goes by the triangles under the pixel, below), and larger past a screen corner or across an edge: at
+    the bottom edge an ogre's part picks a few 800x600 pixels further left or right. The corners are under the battle
+    screen's HUD, so no click reaches a corner's difference.
+  - **The order of the hits** (a deviation by the user's choice): `WorldClient::Pick` sorts the objects that pass the
+    test front to back, living before dead, each by `Object3DSpecific::PickDepth`: the view depth (the screen stack's
+    w) of the nearest triangle drawn under the pixel's centre, over the parts whose rectangle holds the point
     (`FigureMeshDrawer::SurfaceDepth`: a ray from the eye against the triangles the part's last draw had, its figure's
     part or its own buffers moved by its offsets, placed by the matrix the draw kept, `screenMatrix`); an object with
     no triangle there (a rectangle's empty corner, a hit by the bounds) counts at its origin's depth as drawn
-    (`originDepth`), the original's key, so a unit's generous click area works as before. The original (00565E40)
-    sorted every hit by the objects' origins along the view, so a big platform whose origin was nearer won over a lever
-    on its deck (LiA's gz1d2 lift, `mod_lost_in_astral_elevator`; mods.md). A box-front key for the surfaceless hits
-    was tried and dropped: it reordered near ties between bodies lying together, which the origins had kept
-    (net_pair_quest's walk searched another body and the quest failed). One rule for every pick: UnitAt, the battle
-    screen's use cursor and click, the harness's `clickunit`. CPU-side from what the draw kept (no frame read back),
-    so picks stay deterministic and the same under every GPU driver.
+    (`originDepth`), the original's key, so a unit's generous click area works as before. The original sorted every
+    hit by the objects' origins along the view, so a big platform whose origin was nearer won over a lever on its deck
+    (LiA's gz1d2 lift, `mod_lost_in_astral_elevator`; mods.md). Not a box-front key for the surfaceless hits: it
+    reordered near ties between bodies lying together (net_pair_quest's walk searched another body and the quest
+    failed). One rule for every pick: UnitAt, the battle screen's use cursor and click, the harness's `clickunit`.
+    CPU-side from what the draw kept (no frame read back), so picks stay deterministic and the same under every GPU
+    driver.
 - **One real state change in a draw path:** the terrain pass applies pending water level changes to the sectors it
   draws; the water layer at rest, with the waves worked out on it (Terrain::WaterVertex), is what height queries read.
   Terrain::DrawPages applies them before handing over (the water mesh's range follows: `WaterMoved`).
@@ -329,7 +324,7 @@ file's bytes.
 
 **A texture found nowhere** (its name in no archive and not composed; `LoadTexture`'s "Can't find texture" is a
 `DebugLog`, which writes nothing) keeps no image and draws white, as a Direct3D stage without a texture did: a unit made by AddUnitToServer has the texture
-name "" and draws white lit, pale (world.md, "A record's texture names"; the original's look, R49).
+name "" and draws white lit, pale (world.md, "A record's texture names"; the original's look).
 
 **Texture patches**: `render::TexturePatch(target, to, source, from)` records that a rectangle of one holder's texture
 shows a rectangle of another's (first-level texels, one per target, gone with either holder). `ReadPassState` gives stage
@@ -358,11 +353,10 @@ picture's rectangle (or white, without the file) into it, replacing what was the
 pixels right after the header (the extra block not skipped, as the original read them). Colours are 8-bit.
 - The save / load pictures: a blank texture of the picture's size into which its RGBA8 pixels are drawn
   (`ImageLayout::Rgba`; the 5:6:5 ones decoded on the CPU, `save_picture.h`).
-- **The global map's clouds** (R66; `GlobalMapClouds`, global_map_clouds.cpp; `map_clouds.hlsl`). The map draws its
+- **The global map's clouds** (`GlobalMapClouds`, global_map_clouds.cpp; `map_clouds.hlsl`). The map draws its
   three cloud layers (shadow, haze and glow: big planes at three heights that turn with the map, each in its flat colour
   and scrolling the texture at its own pace, ui_global_map.cpp) from one blank texture, which `render::DrawClouds`
-  redraws each frame with our own cloud shader (the game's look, 256 x 256 blocky value noise that swapped frames every
-  16 steps, is gone). Per texel:
+  redraws each frame with our own cloud shader. Per texel:
   - a density from fractal gradient noise (7 octaves, each 2x finer and 0.55x as strong), its point first moved by two
     slower noises (the domain warp: billows and wisps). Every octave repeats across the texture (4 cells at the coarsest,
     a hashed lattice taken modulo its period), so the layers' scrolling wraps without a seam;
@@ -376,9 +370,8 @@ pixels right after the header (the extra block not skipped, as the original read
     thick parts greyer (x 0.72 at full alpha), so the clouds show volume.
   The texture's size follows the frame (the power of two at or above its height, 512 .. 2048: about a texel a pixel
   where the layers show it), remade when the frame's height changes; its levels below the first are drawn after it.
-  The pattern is one word of the client's random numbers (a new one at each visit; the old code drew 24 words at the
-  start and 3 a step). Check: render_map_clouds (the map's first frames, four consecutive frames, frames a second apart
-  that must differ; the captures page's R66 section).
+  The pattern is one word of the client's random numbers (a new one at each visit). Check: render_map_clouds (the
+  map's first frames, four consecutive frames, frames a second apart that must differ).
 
 ## 8. Draws outside the frame: movies and the cursor
 
@@ -392,8 +385,7 @@ go through `ClearUiDepth` (ui.h) to `render::ClearDepth`.
 | The cursor | the system's cursor (section 9, "The cursor") |
 
 The harness's input steps are not posted inside a movie (the harness empties movie.ini's lists). No suite scenario calls
-PlayMovie by script (H74: the code is the loading movie's); the loading movie runs in every new game
-(render_cursor_present: the cursor hidden there).
+PlayMovie by script; the loading movie runs in every new game (render_cursor_present: the cursor hidden there).
 
 Images kept across frames (`render_blit.cpp`): a movie keeps one texture per player, written whole (`Discard`) in
 place unless it was already blitted in this frame (the blits are drawn at the end of the frame; then a new one replaces
@@ -414,8 +406,8 @@ stand-in for any of them:
   points' screen) it reads `screen`.
 - What the game read from the old device's capabilities is constant, with the values the game saw: the material presets
   take every stage of their states; the texture manager loads textures up to their size (4096 pixels) and caches released
-  ones up to a tenth of 256 MB (`TextureManager::kCacheLimit`); mipmapping follows the options; the little-memory branches
-  are gone; start-up's "the interface takes the input" byte is always 1 (`RunMainLoop`; app.md).
+  ones up to a tenth of 256 MB (`TextureManager::kCacheLimit`); mipmapping follows the options;
+  start-up's "the interface takes the input" byte is always 1 (`RunMainLoop`; app.md).
 - No scene bracket, viewport, clears or texture binds on a device: `SceneRenderer::BeginScene` / `EndScene` keep the
   last frame's time, a texture bind only records the stage's holder (`stageSurfaces`, which the renderer draws with), the
   frame clear is the renderer's (its colour is the scene renderer's `fogColour`).
@@ -455,22 +447,19 @@ game at once with one message (section 1, "When the renderer fails"). On Direct3
 first error that found the device removed, hung or reset as the device property EI_PROP_GPU_DEVICE_LOST_STRING
 (third_party/SDL/README.txt); `gpu::DeviceLost` reads it at each submission and swap chain texture, logs "gpu: the
 device was lost: <SDL's error with GetDeviceRemovedReason's text>" once, and a device found lost there is a refused
-call too, the message naming that reason. Nothing goes on after a refused call: D7's GPU hang
-(DXGI_ERROR_DEVICE_HUNG, a dozen 4K msaa-8 harness games at once) crashed several games when a refused submission
-was only logged and the next frame's first uniform push met SDL's Direct3D 12 driver without a uniform buffer (its
-mapping refused; a null read at offset 8 in D3D12_INTERNAL_PushUniformData; WARP on the Windows CI runner crashed the
-same way, H62f). A device lost while a frame is recorded has SDL's driver drop the pushes and binds of a uniform buffer
-it could not take (a local change, third_party/SDL/README.txt) until the submission fails. The harness's
-`losedevice <point>` step removes the device for real (ID3D12Device5::RemoveDevice, tests/verify/system/system_win32.cpp;
-Direct3D 12 keeps one device per adapter, so D3D12CreateDevice on SDL's adapter gives SDL's) just before the renderer's
-next call at one point (`gpu::LoseDeviceAt`: a new command buffer, a pass, a uniform push, the swap chain's texture, a
-submission, a write, a download's wait); render_device_lost_<point> check each ends on the message (`expectcrash`).
-Never reproduce a loss by hanging the real GPU: overloading it has crashed the machine's Windows. Vulkan's loss shows
-only as a refused call. Why no recovery (user): a device is
-lost only on a driver update or reset, a TDR or a GPU switch, rare for a player and a restart away. Making everything again needed every module to drop and remake its resources, each decoded
-texture to keep its file's bytes, composed textures their recipes, and runtime
-backends would need it twice. Dropping the kept file bytes took the process from about 130 MB to about 119 MB private
-bytes on zone1.
+call too, the message naming that reason. Nothing goes on after a refused call: a refused submission that was only
+logged left SDL's Direct3D 12 driver without a uniform buffer, and the next frame's first uniform push crashed (a GPU
+hang under a dozen 4K msaa-8 harness games; WARP on the Windows CI runner alike). A device lost while a frame is
+recorded has SDL's driver drop the pushes and binds of a uniform buffer it could not take (a local change,
+third_party/SDL/README.txt) until the submission fails. The harness's `losedevice <point>` step removes the device for
+real (ID3D12Device5::RemoveDevice, tests/verify/system/system_win32.cpp; Direct3D 12 keeps one device per adapter, so
+D3D12CreateDevice on SDL's adapter gives SDL's) just before the renderer's next call at one point (`gpu::LoseDeviceAt`:
+a new command buffer, a pass, a uniform push, the swap chain's texture, a submission, a write, a download's wait);
+render_device_lost_<point> check each ends on the message (`expectcrash`). Never reproduce a loss by hanging the real
+GPU: overloading it has crashed the machine's Windows. Vulkan's loss shows only as a refused call. Why no recovery
+(user): a device is lost only on a driver update or reset, a TDR or a GPU switch, rare for a player and a restart
+away. Making everything again would need every module to drop and remake its resources, each decoded texture to keep
+its file's bytes and composed textures their recipes.
 
 ### Resolution changes
 
@@ -610,7 +599,6 @@ still needs of that is `projection.cpp`, as members of `TransformPipeline` (pipe
 `ClipVerdict`; on screen the points go on to `ToScreen`), `Project` / `ProjectPoints` (the screen matrix's division),
 `ProjectSprites`, `ToScreen`, `FogVertices` and `ClipBounds::Fit`. The pipeline keeps the viewport's half size
 (`SetViewportSize`).
-Checked once bit-identical against the DLL on random inputs (with the far plane it had then).
 
 Behaviour differences (one path for every input; none in a golden):
 - A terrain quarter is culled only by its box's `ClipTest`; a quarter whose vertices are all outside one plane is drawn and
@@ -636,21 +624,15 @@ Behind the camera 1 / w is negative and z / w lies above 1; at w 0 it is infinit
 The camera's projection (`ProjectionMatrix`, scene/pipeline.cpp) has no far plane: its depth z / w is 1 - near / d (d the
 distance along the view, near the settings' NearClipDistance, 1), 0 at the near plane and below 1 at any distance, so
 the ground and the map's scenery draw to the map's edge. The original cut everything at FarClipDistance (100 units
-along the view): pitched up, the ground ended in a hard edge against the sky and the hills behind it were missing (R62,
-the user's 4K frame). In the D32F depth a step at d is about d^2 / near x 6e-8 units: 0.0006 at 100, 0.0054 at 300 (near 1), as
-with the far plane (whose depth differed by the factor far / (far - near) only). What follows:
+along the view, a setting no longer read): pitched up, the ground ended in a hard edge against the sky. In the D32F
+depth a step at d is about d^2 / near x 6e-8 units: 0.0006 at 100, 0.0054 at 300 (near 1). What follows:
 - Drawn to the map's edge: the terrain's sectors and quarters (`SectorData::ClipTest`; their waves move wherever they
   are drawn), the trees, buildings and the other map objects (`CollectVisible`), the vision fog. Picking reads the matrix's x, y and w rows, which the far plane never touched.
 - The figures too (units and levers, drawn with their own poses and weather), the casters out of view whose shadows
   `CollectVisible` lists (`ShadowInView`), the particle sources and the lightning: everything in the view volume, at
-  any distance (P12; until then they stopped at FarClipDistance, 100 units along the view, a setting no longer read).
-  The server sends a player its units only within about 100 units of the camera anyway; what the figures drawn do on
-  the client (their poses, footprints, weather, the client generator's draws) goes into visuals.sav and the digests.
-  What it cost (P12, quiet runs of the verify build, the Portal zone gz19h from its middle at 3840 x 2160, msaa 1,
-  anisotropy 1, 240 frames a view, two runs before and three after): looking along the ground (pitch 5, 30 back) 29
-  more meshes past the old reach (1463 to 1492), the main thread 2.27-2.35 to 2.35-2.46 ms a frame, the GPU's median
-  2.12-2.36 to 1.96 ms; at pitch 0, 15 and 45 the same meshes and times within the runs' noise (the main thread
-  0.77-2.44 ms, the GPU 1.4-2.3 ms by view).
+  any distance. The server sends a player its units only within about 100 units of the camera anyway; what the figures
+  drawn do on the client (their poses, footprints, weather, the client generator's draws) goes into visuals.sav and the
+  digests.
 - The distance fog (`render::DistanceFog`, render_state.h; `distance_fog.hlsli`): a world draw's point at depth d
   along the view keeps exp(-((d - start) x density)^2) of its colour past `start`, the rest is the fog's colour, a haze
   that thickens smoothly with distance (nothing up to `start`, flat at first, near full far away). `WorldClient::
@@ -664,24 +646,18 @@ with the far plane (whose depth differed by the factor far / (far - near) only).
   from far at a grazing angle the 16 units were a few pixels, a hard line. The sky dome (`Sky::Draw`, `MeshFog::Horizon`)
   is hazed into the fog's colour towards the eye's level (none from a rise of 11.5 degrees up, all of it at the eye's
   level and below), so the fogged distance and the map's edge meet a sky of the same colour; pitched up, what lies
-  past the map's edge was the dome's lower part, darker than the fog, and the edge drew a line against it. The original's ran linearly from 90 units by day (50 at night) to the far plane at 100 and only
-  on the pre-transformed draws; on our meshes it ran on clip w (0.43 times the distance), so it began past the far
-  plane and never showed; the ground had only the map's edge fade, so the middle distance had no haze at all.
+  past the map's edge was the dome's lower part, darker than the fog, and the edge drew a line against it.
 - The sun's shadow map covers the ground within kShadowReach (100 units) along the view (the fit's sixth plane,
-  render_shadows.cpp's ViewPlanes), so its texels are as fine as before, and its shadows fade out over the last 20
-  units of distance from the camera (`ShadowParams::fadeFrom` / `fadeLength`): no line marks where they end. The
-  clouds' shadows have no end.
-- Cost: what is in view is drawn, so a pitched-up view across the map draws more. Zone1 at msaa 8 and anisotropy 16,
-  medians of 300 frozen frames (one game at a time, two rounds, NVIDIA RTX 4070 Ti SUPER, Direct3D 12): looking across
-  the map from its middle (194 ground pages and 430 meshes instead of 97 and 294) 1.19-1.28 -> 1.54-1.56 ms a frame
-  at 1080p (GPU 1.04-1.07 -> 1.26-1.29) and 1.95-1.97 -> 2.25-2.29 ms at 4K (GPU 2.07-2.13 -> 2.16-2.19); from the
-  corner over the shore and at the game's default pitch the same as before.
+  render_shadows.cpp's ViewPlanes), so its texels stay as fine as with a far plane, and its shadows fade out over the
+  last 20 units of distance from the camera (`ShadowParams::fadeFrom` / `fadeLength`): no line marks where they end.
+  The clouds' shadows have no end.
+- Cost: what is in view is drawn, so a pitched-up view across the map draws more (zone1 from its middle: twice the
+  ground pages and half again the meshes, about 0.3 ms more a frame at 1080p and 4K).
 - Check: scenario `render_far_ground` (zone1 at 1920x1080, pitched up to the settings' least pitch, 30 degrees, at the
   farthest zoom, from the map's corner and middle). `groundreach on` measures each frame's ground through the camera's
   clip planes (render_shadows.cpp's MeasureGroundReach: the terrain pieces' runs, the farthest point kept and the runs
   the far side z <= w cuts or leaves out); `groundreach <least>` requires no run cut and the farthest point at least
-  that far. With the far plane 71-108 of 451-519 runs were cut and the ground reached 121 units; now none, and 133-204
-  units.
+  that far.
 
 ## 11. Verification and frame capture
 
@@ -694,9 +670,10 @@ with the far plane (whose depth differed by the factor far / (far - near) only).
   INVSRCALPHA) with z-write on. The terrain shader picks the alpha (texture for ground, vertex colour for water) and always
   adds the specular colour. The harness build logs each new terrain pipeline's state.
 - **Terrain sampling**: the pages are sampled anisotropically (16x) with linear mips (`AnisotropicSampler`,
-  render_textures.cpp) when stage 0 asks for linear filters (always; the textures keep their mip levels). The game asks for point mips, through which whole terrain triangles snapped to the next
-  level and the sharpness jumped along the tiles' edges: seams moving with the camera. The user's own Rebirth setup
-  (dgVoodoo, Filtering 16) did not show them; that is the look kept. Check (scenario `render_terrain_seams`):
+  render_textures.cpp) when stage 0 asks for linear filters (always; the textures keep their mip levels), not with the
+  point mips the game asks for: through those whole terrain triangles snapped to the next level, seams moving with the
+  camera (the user's Rebirth setup, dgVoodoo with Filtering 16, showed none: that is the look kept). Check (scenario
+  `render_terrain_seams`):
   `terrainlevels on|point|off` (the ground pages draw one grey per level through the shipped or the point-mip sampler)
   and `levelsteps <frame> <least> <most>` (the fraction of neighbouring level-map pairs whose level jumps); `mmplevels
   <most>` (`render::CheckMmpLevels`): every held .mmp texture's levels, decoded as drawn, against its level 0, both
@@ -731,7 +708,7 @@ with its own level.
   world view with water ends (render.cpp's WaterCopyPoint, render_water.cpp's CopyFrameForWater): with msaa the
   world's own resolve, without it a pass ending there. A copy before the water's first draw splits the world's
   multisampled pass and resolves it once more (about 0.2-0.25 ms at 3840x2009, msaa 8; SDL_GPU reads a multisampled
-  target only through a resolve): taken so only when the last frame left no copy (R17a3; R17a1 took it every frame).
+  target only through a resolve): taken so only when the last frame left no copy.
 - **The depth copy.** A multisampled depth is never read back: SDL_GPU samples no multisampled texture and resolves
   only colour. So a multisampled pass has a second colour attachment, R32F (`kDepthCopyFormat`), and every pipeline
   made for more than one sample has it (`AddDepthCopy`): written (red only, no blending) when the pipeline writes the
@@ -753,11 +730,9 @@ with its own level.
   `depth_from_resolved`): the battle screen and the container screens clear the depth (ClearUiDepth) right after the
   world, so the game's frames there go without it (the battle's selection box, drawn between the two while dragged,
   is a mesh batch with the game's depth state: with the depth test on those frames keep the copy). The pipelines take it by the pass (`MakePassPipeline`,
-  `PassDepthCopy`); `ListPipelines` lists the multisampled ones both ways. Its cost was the writes: at 3840x2009,
-  msaa 8, render_water's views (the R17a4 kit's frame GPU times, lowest of 6-7 runs on a shared machine) went
-  from shore 2.63 / sea 2.66 / lake 3.35 / river 2.55 / river at night 3.19 / lake at night 3.31 ms to 1.92 / 1.88 /
-  2.26 / 1.94 / 1.98 / 2.27, 0.6-1.2 ms less; R17a4's bound (the copy written nowhere but still resolved) 2.04-2.40,
-  the target kept with its writes masked instead of left out the same as without it. **Not bit-identical**: without
+  `PassDepthCopy`); `ListPipelines` lists the multisampled ones both ways. Its cost is the writes: 0.6-1.2 ms a frame
+  at 3840x2009, msaa 8 in render_water's views (masking the writes costs the same as leaving the target out). **Not
+  bit-identical**: without
   the copy's output the driver compiles the world's pipelines differently, and an alpha-tested edge sample can
   flip: render_smooth's 960x720 frame (Direct3D 12, NVIDIA) has 2 pixels 3 levels off the frame drawn with the copy
   (masking the writes instead gives the same 2; writing them with no resolve and no `depth_from_resolved` gives none).
@@ -789,7 +764,7 @@ differ. `tools/compare_frames.py A B [--mask M1 M2 [--mask-background]] [--exclu
 OUT]`: per-pixel tolerance (default 8), differing fraction (default limit 0.1%), worst regions. What moves by itself
 between frames without the game's clocks (other threads) is not held.
 
-**Bursts** (R56). `capture <name> <count> [freeze] [after <text> | on <window>]` writes `count` presented frames one
+**Bursts.** `capture <name> <count> [freeze] [after <text> | on <window>]` writes `count` presented frames one
 after another (`<name>_1` .. `<name>_<count>`; a single `capture` lands only every third frame): from the next present,
 from the first present after the console printed a line holding `<text>` (a load's `Loaded <slot>`, a new game's or
 zone entry's `Saved savea`) or from the first with `<window>` on top (`menu` after a return to the main menu); with
@@ -797,7 +772,7 @@ zone entry's `Saved savea`) or from the first with `<window>` on top (`menu` aft
 The first frame after a load is the first present after it: the battle screen is made by a client tick, so a load with
 the clocks already frozen presents nothing. `tools/frame_preview.py` makes the sheets.
 
-**The first frames after a load** (R56; scenario render_load_first_frame: a new game, F8, the Load window, Esc > main
+**The first frames after a load** (scenario render_load_first_frame: a new game, F8, the Load window, Esc > main
 menu > new game, the main menu's load, a zone change). With the clocks frozen from the first frame, every later frame
 matches it in the world view to the pixel, also at msaa 8, at night with point shadows and in the town (scratch runs
 over 30-40 frames each): no shadow map, point shadow face, terrain or mesh cache entry, occlusion or light starts a
@@ -806,25 +781,22 @@ step. What does change on the second frame is the HUD's own animation: the inter
 (`UiContainer::FrameTime`) is 0 on the first frame after a load and the load's length on the next, so the selected
 portrait's face, eased from its straight rest towards its selected turn (`HudPortraits::Update`: at once when the step
 is 0.5 s or more), snaps into the turn on frame 2, and the clock's marks step (the game's behaviour). The main menu's
-first frozen frames differ in a few single pixels (its particles). Its signpost (a unit) cast no shadow until the first
-hover, as it played no animation (R58; ui.md, section 4; scenario render_menu_shadow).
+first frozen frames differ in a few single pixels (its particles); its signpost casts its shadow from the first frame
+(ui.md, section 4; scenario render_menu_shadow).
 
-**The town's first frames** (R56a; scenario render_load_town, the user's save "ShadowCorrupt", tests/saves/shadow_corrupt:
-the town bz1g, its camera panned off the leader, saved from the Esc menu). Frozen bursts hid what moves only when the
-clocks run. Three things differed from the settled frames: the camera swung in from its stale pose and glided ~3 units
-onto the leader (section 14, "Placed"), and the people with a topic lit up a tick or two late (ui.md, "Briefing / base
-screen": the screen marks them on the local view itself). The poses the user saw change were those two (the swing's
-other angle, the lit figures' white emissive); no animation starts from a default pose: each unit's first frame shows
-its animation where it restarted. On the virtual clock the save's pause (the Esc menu's, saved with the world and
-cleared when the screen is made) reaches the client after the first tick, so the first dozen 8 ms frames show the
-world still (the fires too) until the unpause arrives; on the real clock the load's long passes (60-160 ms) run those
-ticks before the first present. Captures: build/captures/r56a in the main checkout.
+**The town's first frames** (scenario render_load_town, the user's save "ShadowCorrupt", tests/saves/shadow_corrupt:
+the town bz1g, its camera panned off the leader, saved from the Esc menu). The camera starts on the leader (section 14,
+"Placed"), the people with a topic are lit from the first frame (ui.md, "Briefing / base screen"), and no animation
+starts from a default pose: each unit's first frame shows its animation where it restarted. On the virtual clock the
+save's pause (the Esc menu's, saved with the world and cleared when the screen is made) reaches the client after the
+first tick, so the first dozen 8 ms frames show the world still (the fires too) until the unpause arrives; on the real
+clock the load's long passes (60-160 ms) run those ticks before the first present.
 
 ## 12. The device layer in game code
 
 All in `src/game`:
-- `device_draw.cpp`: texture binds (the stage's holder recorded), the screen bounds of projected positions (picking,
-  section 3), the pass hand-over, `SetBlend`. The present is the game's (`present_window::Present`).
+- `device_draw.cpp`: the material draw (the pass hand-over), texture binds (the stage's holder recorded), `SetBlend`.
+  The present is the game's (`present_window::Present`).
 - `device_mesh.cpp`: the device object (`TextureDevice`) and its mesh draws; its constructor applies the engine's
   config's renderer switches (quality, overlay, vsync; read by the game, app/main_loop.cpp).
 - `surface.cpp`: the holders, the channel split, the screenshot capture.
@@ -841,7 +813,7 @@ All in `src/game`:
   hands the points to the line strip draw). Users: the figure parts' debug bounds and the world client's line lists; no
   scenario turns either on.
 
-**Weather** (R59, R59a; the game's own draw was replaced). The particles are a field (`weather_field.h`) without
+**Weather** (our own draw, not the game's). The particles are a field (`weather_field.h`) without
 state: a box of 80 x 80 x 40 units that repeats over the world, 20000 raindrops or 16000 snowflakes in it, each one's
 point, fall group, size, shade (and a flake's drift, spin and picture) from a hash of its index, worked out once into a
 table. Its anchor at a frame is that point carried by the wind so far (`RainSnow::carry`, summed from the world's time
@@ -857,7 +829,7 @@ Nothing jumps or vanishes while it shows: the unit check `weather_field.cpp` (te
 frames of a third of a tick with the view panning and the wind changing, none moves further than its speed takes it
 nor its alpha by more than 0.2 in a frame; and every particle that shows lies in its bin's boxes.
 
-What a frame costs (R59a): the table is ordered by bins (8 x 8 columns, 4 layers, the 4 fall speeds), so a bin's
+What a frame costs: the table is ordered by bins (8 x 8 columns, 4 layers, the 4 fall speeds), so a bin's
 particles stay together in a 10 x 10 x 10 box (and the drift); `weather::Field` works out per frame what all particles
 share (each axis's wrap, each fall group's height), so an anchor is a few sums. The draw tests each bin's boxes against
 the view's seven planes (the screen's edges with a tenth's margin, the depth range, the nearest distance: Ahead and
@@ -866,9 +838,8 @@ only then places it; the ground under it comes from `RainSnow::ground`, the terr
 128 x 128 table that wraps over the world, kept across frames (emptied when the terrain changes), blended between the
 four around the point. The snow on gz11k at 1920x1080 (`render_weather_cost`: `renderstats` gives the weather's own
 time and vertices, `FrameStats` WeatherMs / WeatherVertices): of 16000 flakes the bins in view hold about 5700, 1300
-are on the screen, 700 above the ground are drawn; 0.22 ms a frame. Before R59a it placed all 26000 and looked up the
-ground under each (Terrain::SurfaceHeight: two HeightAt, each four SectorAt / VertexAt) and built 25 vertices a flake:
-about 4 ms a frame (the user's 120 fps fell to 80).
+are on the screen, 700 above the ground are drawn; 0.22 ms a frame (placing every flake and looking up the ground under
+each cost about 4 ms).
 
 The draw (`weather_particles.cpp`) projects each particle that shows with the clip stack's top and builds it on the
 screen, so its shape in pixels is the same at any aspect: a raindrop is a streak from where it was 1.6 ticks ago to
@@ -883,13 +854,8 @@ or water as it lands (the depth test cut landing flakes in half). Thinner or sma
 their share of it (so far ones fade instead of flickering). Their colour is the scene's light (`frameAmbient` + 0.6 x
 `frameSun`, at least 0.12). `RainSnow::Draw` binds the white texture for rain and the "RainSnow" texture for snow (taken
 at the first snow drawn). Drawn as pre-transformed triangles in batches of up to 65535 vertices, clockwise on the screen
-(the effects pass culls the other way: R59's first draw showed nothing), fogged by `FogVertices`, with the effects
-pass's alpha blend and depth test. The old draw's faults (R59, the user's report at 16:9): its snowflakes were triangles
-offset in clip units, 1.75 times too wide at 21:9, and cut the pictures' sides off; its rain cycled every 200 ticks per
-cell and wrapped within a band around the camera's height, so drops jumped while seen and when the camera climbed; its
-snow was cut off at 30 units under the camera and swayed by tables read by the place modulo 50 (a jump at each wrap);
-its 40-unit grid around the camera's upwind point left the sides of a wide view empty. R59 drew the flakes as soft
-discs, which the user found did not look like snowflakes (R59a). Checked for the look by `render_weather` and
+(the effects pass culls the other way), fogged by `FogVertices`, with the effects pass's alpha blend and depth test.
+Soft discs did not look like snowflakes (the user), hence the pictures. Checked for the look by `render_weather` and
 `render_weather_particles` (rain on zone1, snow on gz11k at 1440x1080, 1920x1080 and 2520x1080: frozen frames against
 the same without the particles, bursts of four 16 ms frames, close up at 21:9 and 16:9, a night frame and 3840x2160;
 rain about 2.5% of the frame, snow about 0.9%); the goldens do not see it (client-only).
@@ -915,21 +881,23 @@ against the last frame's (same / relit / moved / new). The harness step `renders
 the last one into the report, with the main thread's CPU and wall time per frame; scenario `render_stats` measures the
 main menu, zone1, a fight of twelve creatures, the camp, the base bz1g (a town), the global map and its escape menu.
 `EI_PROFILE=1` gives the game side (tools/profile_report.py).
-The GPU's time (SDL_GPU has no timestamp queries): the harness step `gputiming frame|pass|off` (`gpu::SetGpuTiming`,
-R37e3) polls the submissions' fences from a thread that does not sleep, at time-critical priority; a submission made
-while the GPU still runs the one before is timed from that one's end. `frame` times the whole frame; `pass` submits every
-pass on its own at its end (the copies waiting before a pass as `upload`), so each is timed, about 0.015 ms of GPU time
-more per submission (the save below: 3.47 ms split, 3.25 whole). The next `renderstats` logs (not into the report) a
-line "renderstats <label> GPU ms a frame: mean (median, p10, p90; frames, the share of submissions sent while the GPU
-ran the one before); by pass: label ms, ..." largest first. Only on a quiet machine, one 4K game at a time: another
-build or game makes the poller late (a run's main-thread CPU time above its quiet value says so). A frame that leaves the
-GPU idle most of the time may run at lower GPU clocks, so a CPU-bound frame's passes read somewhat dearer than a
-GPU-bound one's, and differ by 0.3 ms from run to run: to compare variants of one draw kind, draw it several times in
-its pass (R37e10 drew the ground 8 times: the GPU becomes the limit and the variants' differences, divided by the
-count, hold to about 0.02 ms), and switch the variants inside one run (a harness step), not between runs. Finer splits (a pass cut by its draws' kind, a resolve in a pass of its own, a part switched off) are
-probes: the R37e3 kit shows how (build/r37e3/kit in the main checkout: probe.patch, made on main before `gputiming`,
-with the main thread's time by part of the frame; its scenarios; runs.py, its worktree's path at the top; the logs;
-the save in build/r37e3/save5, the captures in build/r37e3/rdoc).
+The GPU's time (SDL_GPU has no timestamp queries): the harness step `gputiming frame|pass|off` (`gpu::SetGpuTiming`)
+polls the submissions' fences from a thread that does not sleep, at time-critical priority; a submission made while the
+GPU still runs the one before is timed from that one's end. `frame` times the whole frame; `pass` submits every pass on
+its own at its end (the copies waiting before a pass as `upload`), so each is timed, about 0.015 ms of GPU time more per
+submission (0.2-0.3 ms over a frame). The next `renderstats` logs (not into the report) a line "renderstats <label> GPU
+ms a frame: mean (median, p10, p90; frames, the share of submissions sent while the GPU ran the one before); by pass:
+label ms, ..." largest first. Only on a quiet machine, one 4K game at a time (`work.py test --quiet`): another build or
+game makes the poller late (a run's main-thread CPU time above its quiet value says so). A frame that leaves the GPU
+idle most of the time may run at lower GPU clocks, so a CPU-bound frame's passes read somewhat dearer than a GPU-bound
+one's, and differ by 0.3 ms from run to run: to compare variants of one draw kind, draw it several times in its pass
+(the ground drawn 8 times makes the GPU the limit, and the variants' differences, divided by the count, hold to about
+0.02 ms), and switch the variants inside one run (a harness step), not between runs. Finer splits (a pass cut by its
+draws' kind, a resolve in a pass of its own, a part switched off) are probes; the kits in build/ of the main checkout
+show how: build/r37f5 (the probe patch with the main thread's time by part, and a sampling profiler of the main thread,
+`EI_R37F5_SAMPLE=<path>`: every 250 us between two `renderstats`, exclusive, inclusive and caller > callee counts
+through dbghelp), build/r37e10 (the ground's GPU cost by part), build/r37e3 (the stress save, RenderDoc captures and
+their analysis).
 RenderDoc 1.46 (E:\bin\renderdoc) captures a frame of a run: the probe loads renderdoc.dll before the device
 (`RENDERDOC_GetAPI`, `SetCaptureFilePathTemplate` to a path under build/, `TriggerCapture` at a step), and
 `qrenderdoc.exe --python <script>` replays it without the interface (rdoc_analyse.py in the kit: actions by target,
@@ -938,89 +906,52 @@ around it (the save's frame: 27 ms summed against 3.3 by fences), so they rank t
 call counts are exact. PIX (installed) also takes captures (WinPixGpuCapturer.dll, `CaptureNextFrame`), but its timing
 needs the Performance Log Users group (or an administrator), which the runs lack.
 
-**2. Where the time goes.** The main thread is the frame's limit (1.7-3.8 ms a frame in the zones and the town at 4K,
-5.9-7.4 ms with a crowd; the GPU frame 1.5-2.6 ms); draws (a few hundred) and state changes are cheap, and triangles are
-few (25-60 K a frame). A many-figure frame's main-thread time is mostly the game's: the server's AI path search in a
-fight. So these were measured and not built, each worth well under 0.2 ms a frame: per-draw records and instancing
-(the uniforms are 0.03-0.07 ms, mergeable draws about 0.06-0.09 ms); keeping interface sprites on the GPU (0.01-0.1 ms;
-they are streamed, since the interface rewrites its quads in place in many places); a GPU ground
-decal path (under 0.07 ms). The water's waves went to the vertex shader after all (R37e4c, item 3a: 0.15 + 0.08 ms on
-the heavy save once the pages were kept).
-Figure animation stays on the CPU: creatures animate by their bones (each part's matrix, which the GPU applies), the
-per-vertex morph is almost unused, and its result is read by game code (projection for picking).
-On SDL_GPU (R37e2, times by submission) the town at night at 4K, msaa 8 takes the GPU 2.75 ms a frame (2.8 with the
-crowd) and the main thread 1.1 (2.1) ms of CPU, so there a frame without a limit waits for the GPU (every submission
-found the one before still running); 2.4 ms of it is after the shadow maps (the world's pass, its resolve and the
-present).
+**2. Where the time goes.** At the user's settings (item 12) the main thread is the limit in the heavy zones and the
+GPU in the town: the stress save (2a) takes about 2.6-3.1 ms of main thread against 2.3 ms of GPU, the town bz1g at
+night about 0.85 ms (1.7 with a crowd of 12) against 2.0-2.4 ms of GPU, the main thread waiting in the swap chain's
+acquire. Draws (a few thousand in a few hundred calls) and state changes are cheap, and triangles few. A many-figure
+frame's main-thread time is mostly the game's: the server's AI path search in a fight. Figure animation stays on the
+CPU: creatures animate by their bones (each part's matrix, which the GPU applies), the per-vertex morph is almost
+unused, and its result is read by game code.
 
-**2a. A heavy frame (R37e3).** The user's Lost in Astral save (gz1h, desert with hundreds of palms; the camera as a
-load leaves it, distance 50, pitch 30; kit in build/r37e3) at 3840 x 2160, msaa 8, anisotropy 16, Direct3D 12 on the
-RTX 4070 Ti SUPER, 300 frames, harness (verify) build; beside it R37e2's town bz1g at night (alone / with the crowd).
-- **The limit is the main thread**: 9.0-9.4 ms of CPU a frame in the save against 3.25 ms of GPU (no submission found
-  the GPU busy). The town: CPU 1.1 (2.2) ms, GPU 2.30 (2.33) ms, every submission waiting, the main thread waiting
-  1.15-1.25 ms for the swap chain's texture (R37e2 measured 2.75 ms of GPU there).
-- **GPU by pass** (`gputiming pass`; save / town at night, ms): the world's multisampled pass 2.03 / 1.36, of it the ground
-  1.1 / 0.68, the caster models 0.48 / 0.51, the other models 0.30 / 0.12, the water 0.10 / 0.05 (the pass cut by its
-  draws' kind, without the resolve), the resolve 0.14-0.18 / 0.15 (a pass of its own; RenderDoc 0.14 / 0.12); the
-  ambient occlusion 0.46 / 0.41 (half-size depth 0.19 / 0.07, the search 0.17 / 0.21, the two blurs 0.10 / 0.13); the
-  sun's map 0.30 / 0.15 with its range passes 0.14 / 0.15; the point lights' faces - / 0.05 (0.07 with the crowd);
-  the present 0.17 / 0.13; the interface's pass 0.13 / 0.04; the copies before passes 0.17 / 0.12; the water's frame
-  copy and sky 0.08 / 0.10. Corrected by R37e10 (frame-plan.md, "Ground GPU cost"): the ground's draws take 0.85-1.0
-  / 0.65-0.75 ms of the world pass (the 1.1 above includes cutting the pass); measured with the ground drawn 8 times, half
-  of it is writing 8 samples a pixel (a trivial shader: 0.47 ms a draw at msaa 8, 0.21 at 4, 0.085 at 1) and half shading
-  (the sun's PCSS 0.26, the point-light loop 0.19); anisotropy changes nothing. RenderDoc's dearest single events: ground batches (one of 12864 indices 0.26
-  ms), the occlusion search, the resolve, the 8-sample colour clear (0.11 ms).
-- **The command stream** (RenderDoc, the save's frame): 5754 draws (1894 into the sun's map, 1854 into the occlusion's
-  depth, 1858 into the world, 140 for the interface), 23 pipeline changes, 2045 uniform buffer binds, 262 descriptor
-  tables, 1294 descriptor copies, 13 vertex and 12 index buffer binds, 38 barriers, one ExecuteCommandLists. The town:
-  769 draws, 21 pipelines, 265 uniform binds. gpu.h's filter leaves little for the driver; the cost is ours per draw.
-- **The main thread** (save / town crowd, ms a frame, each part without the parts inside it; probe in the kit): the game's
-  update 0.55 / 0.35; the world's hand-over 6.0 / 0.9: the static objects' draws 3.1 (the game's figure draws, the
-  device's CPU projection of every mesh 0.96 and the renderer's hand-over 0.98 inside), the units' 0 / 0.42, the visible
-  objects' walk over the whole map (CollectVisible) 0.70 / 0.08, the old shadow lists 0.27 / 0.03, the ground's pages
-  1.08 / 0.04, the water's 0.48 / 0.02, the casters outside the view 0.27 / 0.10, particles 0.004 / 0.04; the interface
-  0.17 / 0.002; EndFrame 2.3 / 1.2: the world's model draws 0.93 for 1749 (0.53 us a draw, 1.33 KB of uniforms each,
-  2.3 MB a frame) / 0.30 for 409, PrepareShadows 0.40 / 0.13, the sun's map 0.41 for 1894 draws / 0.11, the occlusion's
-  depth 0.19 / 0.05, the point faces - / 0.05, the submission 0.15 / 0.10, uploads 0.06. The sampling profile's own
-  time (EI_PROFILE, the save): the terrain pages' hand-over (`TerrainPage` 8.3%, `MakeVertex` 3%, `Build`, `BuildPage`,
-  `MakeGroups`, `ChangesOf` 5%), the heap (ntdll 6.5%), the device's projection (`TransformPipeline::Project` 5%,
-  `ProjectToClip`, `ClipTest`, `PushMatrix` 4.4%), the objects' sort (`object_order::DrawBefore` 4.5%), samplers and
-  pipelines found by description at each draw (`MakeSampler`, `SamplerDesc` ==, `PipelineHash` 4.9%), byte compares
-  (memcmp 3.1%: the uniform filter), `DrawParts` 3%, `CollectVisible` 2.7%, the driver 2.5%, the casters' sort 1.4%.
-- **Top costs**, the save: the world hand-over's figure draws and the device's projection (3.1 ms), the terrain pages
-  handed over every frame (1.55 ms), the model draws' per-draw state work in EndFrame (0.93 ms, plus 0.6 ms of shadow
-  and occlusion caster draws), the whole-map visibility walk and the objects' sort (about 1.1 ms). The follow-ups
-  (R37e4-R37e9) are filed in that order of expected gain; the GPU's ground cost is split in frame-plan.md ("Ground GPU
-  cost", R37e10; fixes R37e10a-R37e10e, waiting until the GPU limits play).
-- **The terrain pages after R37e4** (the same save and kit, the harness build, ms a frame; the probe split the pages'
-  hand-over from the game's walk and the harness's own check): a still page costs its lookups (item 3: the quarters keep
-  the sector's move count they were read at, the occlusion's neighbours are looked at once a frame); the ground's pages
-  0.68 -> 0.12-0.14, the water's 0.37 -> 0.16-0.19 (12 wave pages read again in one loop of positions and specular
-  words), the game's walk over the sectors 0.11 + 0.05 -> 0.09 + 0.04 (the drawn sectors gathered once a pass, not once
-  a page): the hand-over 1.20 -> 0.41-0.46 ms of what the shipped build spends; with the waves (AnimateWaves, 0.35 ->
-  0.15: `lib::RoundAway` for std::lround) 1.55 -> 0.56-0.61. The harness build's check of every kept page every 16th
-  frame (item 3; R37e3's 1.08 + 0.48 counted it) costs another 0.43 ms before, 0.56-0.66 after (it compares the
-  colours too); the shipped build has none. The town at night: pages 0.034 -> 0.016, walk 0.012 -> 0.010. Draws: the
-  ground's casters into the sun's map one per run of sectors in their pool
-  (the save 1894 -> 1875 map draws, the town 487 -> 480); the occlusion's ground depth by pool place whatever the
-  texture (103 draws in the save, 28 in the town; the quarters out of view break the runs).
-- **The zone's terrain on the GPU (R37e4b)** (the same save and kit, alone on the machine: `work.py test --quiet`; ms a
-  frame over the 300 measured frames, where R37e4 averaged its run from the start; the release terms a harness build
-  with EI_RENDER_VALIDATION off): the hand-over, the game's walk over the sectors and the two passes' hand-over
-  (`TerrainPass`), 0.41-0.46 -> 0.12 (harness build 0.14), with the writes of what moved (the water's ranges as the waves
-  move them, UploadTerrain) 0.20 (0.23); with the waves (AnimateWaves 0.15, unchanged) 0.35 (0.38) against 0.56-0.61.
-  The main thread's frame: 5.7-5.9 ms in release terms, 7.0 in the harness build (R37e3's 9.0-9.4 was before R37e4 and
-  the other frame tickets). Draws: the ground and the water one each in the world pass (108 ground draws before), the
-  ground one in the occlusion's depth (103) and one in the sun map (1875 -> 1874 map draws). The town at night: the
-  hand-over 0.008 ms.
-- **The waves in the vertex shader (R37e4c)** (the same save at the user's settings, msaa 1, anisotropy 1, release terms,
-  `work.py test --quiet`, before and after alternated three times; kit: build/r37e4c in the main checkout, the probe
-  timing RunTick's sector walk): the walk 0.17 -> 0.012 ms a frame (AnimateWaves gone; the animated tiles are what is
-  left), the terrain's vertex writes 334 KB -> 0 a frame (the moved water's, about 0.08 ms in R37e4b); the main
-  thread 5.27 / 4.76 / 4.79 -> 4.26 / 4.64 / 4.77 ms (medians 4.79 -> 4.64; the runs move by 0.5 ms, so read the
-  parts).
+How frame-cost work is chosen (the user's order): delete work first, then make what stays more than twice as fast, and
+run in parallel only as a last resort; no draw-call cuts without a frame-time gain, no small gains that only add code.
+Measure the product: `EI_RENDER_VALIDATION`, on in every harness build, adds work the shipped game never does
+(`render::Check`, the caches' compares every 16th frame, the reuse checks and timers per mesh: about 0.5 ms of the
+stress save's frame), so a timing ticket gives the release-equivalent cost (the same build without it) beside the
+harness one.
 
-**3. The zone's terrain on the GPU** (`render_terrain.cpp`, R37e4b). The whole landscape is two meshes kept on the
+**2a. A heavy frame.** The user's Lost in Astral save (gz1h, desert with hundreds of palms; the camera as a load leaves
+it, distance 50, pitch 30; build/r37e3/save5 in the main checkout) is the main thread's stress case; the town bz1g at
+night (alone and with the crowd) the GPU's. 3840 x 2160 windowed, RTX 4070 Ti SUPER, Direct3D 12.
+- **The main thread** (release terms, the save): about 2.6 ms panning, 2.9-3.1 ms still. The largest parts: the
+  objects' draws (about 1.2 ms: DrawParts itself, the lights in reach, the matrices, the units' boxes), the visibility
+  walk (CollectCells, Place: every object's drawn pose), PlanMeshDraws (the records and runs), the casters handed
+  over, PrepareShadows and the sun map's CPU side (about 0.2-0.3 ms each). The heap and memcmp are under 0.1 ms.
+- **The GPU by pass** (`gputiming pass`, msaa 1; the save / the town at night, ms): the world 1.33 / 1.26; the sun map
+  0.28 / 0.18 and its range passes 0.13 / 0.17; the occlusion's depth, search and blurs 0.19, 0.16, 0.09 / 0.08, 0.21,
+  0.12; the uploads (4-5 copy passes a frame, mostly their fixed cost) 0.20 / 0.23; the present (the gamma ramp's pass)
+  0.13; the water's sky and scene copies 0.08 / 0.14; the point shadows 0 / 0.06. Open: R37f12 (these passes, where
+  the town is GPU-bound).
+- **The draw calls**: the save about 190 a frame (the sun map 41 for about 2000 draws, the occlusion depth 29, the
+  world about 30 for about 1800 draws, the interface 84); the town at night 131.
+- **The ground's GPU cost** (ms for one draw of the visible ground at 4K, msaa 8, the ground drawn 8 times in its
+  pass; the save / the town): 0.75 / 0.61, of it the floor of rasterising and writing 8 samples a pixel 0.47 / 0.42
+  (0.21 at msaa 4, 0.085 at msaa 1). The shader's parts, each compiled out alone: the sun's PCSS 0.26 / 0.20 (its quad
+  sharing 0.07, 16 taps where 8 would do 0.05, the blocker search 0.03), the point-light loop 0.19 / 0.13, the weather
+  code with the weather off 0.08 / 0.04, the screen occlusion's lookups 0.07, the clouds 0.02, the fog 0.01;
+  anisotropy and the water's path nothing. The parts do not add up: at msaa 8 shading and sample writes overlap.
+  Overdraw: the save shades 10.05 M ground pixels for 8.16 M shown (the pages in no depth order), the town 1.06 times;
+  drawing the ground after the opaque models took 0.29 ms off the save's world pass and nothing in the town (R37e10a,
+  later). The save draws 207 K ground triangles, 132 K on screen, 51 K under 16 pixels: the vertex cost is nil, the 2 x
+  2 quads 1.26 shader lanes a pixel. Far tiles at lower detail would save 0.10 ms in the save, none in the town.
+- **Weighed and not done**: the occlusion from last frame's depth (ghosting; the user); still objects' draws kept
+  across frames (large for the gain); the instances grouped by figure part (few calls saved, blended pixels could
+  move); uploading only the changed records (about 0.05 ms of a GPU that waits); a looser sun map fit (moves shadow
+  texels); point lights per ground draw, weather program variants, a half-size sun mask, far tiles at lower detail
+  (small gains that add code); parallel work (not needed).
+
+**3. The zone's terrain on the GPU** (`render_terrain.cpp`). The whole landscape is two meshes kept on the
 GPU, the ground and the water, each one draw per pass, with the zone's page textures in one Texture2DArray (a vertex
 carries its page's layer with its texture coordinates). Each place of the sector grid (`Slot`) holds a fixed range of
 both meshes: the sector the game holds there, all its tiles of every page and quarter, in the game's list order, in four
@@ -1040,21 +971,20 @@ The shadow map's fit reads a drawn quarter's vertices in runs of 72 with their b
 at rest). Check: `terraincache off` builds and writes the whole zone at every pass (its frames the same as kept:
 render_scene, render_smooth, render_terrain_seams).
 
-**3a. The waves (R37e4c).** Nothing moves the water per frame: its vertices stay on the GPU as built (at rest, with the
+**3a. The waves.** Nothing moves the water per frame: its vertices stay on the GPU as built (at rest, with the
 water levels) and terrain_water.hlsl's `waved` moves them. Terrain::RunTick only advances the phase (`wavePhase`) and takes the
 circling's time (`waveTime`, the client world's tick and fraction times 0.05); the water pass's hand-over takes the
 uniforms from them (`TakeWaves`: the wave direction, the time, per water material its turn `fmod(phase * priority, 2
 pi)`, lift `waveHeight * priority`, crest colour `waveGlow * priority * 50 * waveColour` and whether it keeps the
 ground's x, y; Terrain::WavesOf), and each water vertex carries the rest (its phase offset, Terrain::wavePhases, in
-`loss`; its material, column and row in its specular word's colour bytes; the water has a program of its own, no longer a
-`vs.water` branch of the ground's, R37e4d). The formula is the one the game's per-vertex pass had (SectorData::Animate): the sine
+`loss`; its material, column and row in its specular word's colour bytes). The formula is the one the game's per-vertex
+pass had (SectorData::Animate): the sine
 table's entry (512 entries, the phase rounded half away from zero) at the phase along the wave direction from the
 sector's first water vertex (mod 2 pi) plus the material's turn and the vertex's offset lifts the vertex by a quarter of
 the lift and gives the crest (the colour bytes rounded, mod 256, where the entry is not negative); the entries at its
 column and row a quarter turn apart with the time circle it sideways by three times the lift. A material of kind 4
-(keeps the ground's x, y: no map has one; the old pass moved such a vertex only where a water record's depth was
-negative, which it never is) gets the crest only. Only the first 32 materials wave (`kWaveMaterials`; maps have up to
-7). The game's height queries work the same waves out where asked (Terrain::WaterVertex: the vertices HeightAt's walk
+(keeps the ground's x, y: no map has one) gets the crest only. Only the first 32 materials wave (`kWaveMaterials`;
+maps have up to 7). The game's height queries work the same waves out where asked (Terrain::WaterVertex: the vertices HeightAt's walk
 reads, then the plane), with the phase and time of the last RunTick. Client side only: WorldClient::RawSurfaceHeightAt
 (Terrain::SurfaceHeight) is read by the flyers' shown height (UnitParams::movementKind 2: Banshee, Bat, Beholder,
 Dragon, Succub, Willowisp, Ancient Curse, Shadow; `kFlies`), particles, rain splashes, spell blasts and strikes, insect
@@ -1062,30 +992,22 @@ swarms and footprints, and SurfaceClass by the shallow water's footstep sounds a
 reads HeightAt. The camera's terrain sample (SampleTerrain) and the sound listener's height read the water at rest
 (Terrain::CalmSurfaceHeight; the user: the camera's bobbing was not intended). The server's height (the AI map's
 TopHeightAt) has no waves, so the AI, the server's unit placement and combat never read them.
-Against the old per-vertex pass (a temporary check, R37e4c: the old pass kept on copies of every drawn water sector of
-zone1 for 2000 updates, every water vertex and 64 random points a sector compared; build/r37e4c in the main checkout,
-r37e4c_check.patch): 99.92% of the vertices are bit-identical to the old formula with the phase base read from the
-first vertex at rest, the rest a sine table entry apart (the sums' float order; at most 0.00018 units), the heights at
-the points 99.86% the same, SurfaceClass always. The old pass read its phase base from its own vertex 0 as the last
-frame's waves had moved it (a frame-late feedback: the whole sector's phase shifted by the direction times that
-vertex's circling), which the closed form leaves out: against the pass as it was, 5% of the vertices are bit-identical,
-moved by 0.0017 units on average (at most 0.0044; zone1's lift is 0.06), the heights by 0.0008 on average (at most
-0.005, and 0.04 where a point's walk takes another branch). The old pass also moved only the drawn sectors (the others
-kept the waves of their last drawn frame); now every sector waves. The digest's `water` group (scenario
-`terrain_water_waves`) hashes WaterVertex's positions; the crests are the GPU's alone.
+Against the game's per-vertex pass the closed form is bit-identical on 99.92% of the vertices (the rest a sine table
+entry apart, at most 0.00018 units) once the pass's frame-late feedback is left out (it read its phase base from its
+own vertex 0 as the last frame's waves had moved it); against the pass as it was the heights differ by 0.0008 units on
+average, at most 0.005 (zone1's lift is 0.06). Every sector waves, drawn or not (the pass moved only the drawn ones).
+The digest's `water` group (scenario `terrain_water_waves`) hashes WaterVertex's positions; the crests are the GPU's
+alone.
 
-**3b. Animated tiles on the GPU (R37e4d, R37e4e).** A map lists the textures that animate (`MapAnimatedTexture`: texture,
-frames) and each texture has a class whose speed decides how its tiles step (`kAnimationSpeeds`): classes 0 .. 13 step
-at every animation step (every third RunTick with `LandscapeFlag::AnimatedTiles`), classes 14 and 15 (speeds 5 and 9)
-are at frame 0 and start a cycle at a chance of speed / 1000 per resting step (the game drew a client random number per
-resting tile and step for it; no draw is made now). Scan of every map of both installs
-(`Maps/*.mpr`: 38 maps in each install, 5,008 sectors, 1,494 of them with water; a throwaway script of that ticket):
-**no ground tile of any map uses an animated texture** (0 of the ground layers' tiles; 196,084 water-layer tiles do, in
-1,360 sectors: 183,476 of class 6 and 12,608 of class 14); 16 of the 76 maps list no animated texture, the others list a
-class 6 one (56 lists) and some also a class 14 one (16 lists; zone1's swamp, sectors 4 .. 5 x 0 .. 1, is one: 1,296
-tiles of one 8-frame texture). Classes 0 .. 5 and 7 .. 13 and 15 do not occur. Both
-layers keep the path all the same (mods may animate ground tiles; the cost is a compare in the vertex shader and 16
-bytes of vertex stream per vertex), and every sector has the same path.
+**3b. Animated tiles on the GPU.** A map lists the textures that animate (`MapAnimatedTexture`: texture, frames) and
+each texture has a class whose speed decides how its tiles step (`kAnimationSpeeds`): classes 0 .. 13 step at every
+animation step (every third RunTick with `LandscapeFlag::AnimatedTiles`), classes 14 and 15 (speeds 5 and 9) are at
+frame 0 and start a cycle at a chance of speed / 1000 per resting step (the game drew a client random number per
+resting tile and step for it; no draw is made now). In both installs' maps (38 each) **no ground tile uses an animated
+texture**; 196,084 water-layer tiles do, of class 6 (183,476) or 14 (12,608; zone1's swamp, sectors 4 .. 5 x 0 .. 1, is
+one: 1,296 tiles of one 8-frame texture); no other class occurs. Both layers keep the path all the same (mods may
+animate ground tiles; the cost is a compare in the vertex shader and 16 bytes of vertex stream per vertex), and every
+sector has the same path.
 - The GPU works every animated tile's frame out, nothing steps on the CPU: the vertex carries `anim` = (the texture's slot
   in its page, the frame count, the tile's seed, the rate = speed / 1000) and, in `uv`, its coordinates within the page's
   first tile (`Terrain::uvLocal`: `uvTables` without the tile's column and row); `tile_uv` (terrain_stages.hlsli) takes
@@ -1099,21 +1021,13 @@ bytes of vertex stream per vertex), and every sector has the same path.
   steps); a hash of the seed and the window number says whether the tile plays in that window (at the chance that keeps
   the mean number of cycles started per step at the game's: `window * rate / (1 + rate * frames)`, from 5/1000 per
   resting step, a cycle taking `frames` steps) and at which step of the window it starts (uniform over the steps that
-  leave room for the cycle); outside the cycle it shows frame 0. Checked against the old rule in a throwaway
-  simulation (frames 4, 8, 16, 20 at rate 0.005: cycles started per step 0.0049 / 0.0048 / 0.0047 / 0.0046 against
-  the old rule's 0.0049 / 0.0048 / 0.0046 / 0.0046) and in zone1's swamp with a debug lift of the playing tiles (two or
-  three dozen of the swamp's tiles in view lifted at a time, a different set in every capture over 1,100 frames).
-  The start frame is the hash too (no client random draw in FillTiles any more), so the client generator is not drawn by
-  sector building or by the tiles: client effects' draws and `visuals.sav`'s generator changed once (goldens
-  re-recorded with R37e4e).
-- Every tile steps from the global count, wherever it is (the sector drawn or not, in reach or not): tile frames
-  are client-only visuals, and the waves already move in every sector (3a). The game stepped a tile only while its
-  sector was drawn and within reach (RunTick), so a sector coming back into view showed the frame it had left at; now
-  it shows the frame it would have had. No tile writes to the zone's meshes after the sector is read: `TerrainChange::Moved`,
-  the uv range uploads and the RunTick sector walk are gone.
-- Cost on the main thread: see the numbers below (R37e4e).
-- Check: both suites with `--golden`: the same goldens except the visuals' client generator (R37e4e re-recorded them).
-
+  leave room for the cycle); outside the cycle it shows frame 0. A simulation of the rule (frames 4 to 20 at rate
+  0.005) starts cycles at the game's rate within 0.0001 a step. The start frame is the hash too, so the client
+  generator is not drawn by sector building or by the tiles.
+- Every tile steps from the global count, wherever it is (the sector drawn or not, in reach or not): tile frames are
+  client-only visuals, and the waves already move in every sector (3a). A sector coming back into view shows the frame
+  it would have had (the game's showed the frame it had left at). No tile writes to the zone's meshes after the sector
+  is read.
 
 **4. Meshes kept on the GPU** (`render_mesh_cache.cpp`, the pool shared with the terrain in `render_buffers.cpp`:
 `GpuPool`; a kept item, page or mesh, is a `KeptRanges`: its place and what is left to write, which `UploadKept`
@@ -1139,9 +1053,8 @@ mesh kept on the GPU was stale") in any run of the harness build.
 swept along the light to the ground) for the shadow lists, which ShadowInView tests for objects out of view. The map's
 casters out of view come from the outside walk (item 10).
 
-**6. The device's mesh draws** (`device_mesh.cpp`, `device_draw.cpp`) project a mesh crossing the view's edges (the
-visibility verdict) and one whose rectangle is asked (draw flag 1: picking, section 3; a mesh wholly in view is not
-projected otherwise), override the colours (draw flag 4: the hand-over reads them) and hand every pass to the renderer. Not made: pre-transformed vertices, the fog, the z scale, the CPU clip of a crossing mesh.
+**6. The device's mesh draws** (`device_mesh.cpp`, `device_draw.cpp`) hand every mesh over whole in model space with
+its pass state; the GPU clips it. Nothing is projected, clipped, fogged or z-scaled on the CPU.
 
 **9. GPU lighting** (`render_lighting.cpp`, `shaders/scene_lighting.hlsli`, `render_terrain.cpp`, `shaders/mesh.hlsl`).
 The light objects stay the game's (the sun, its colour and the ambient, the torches and point lights with their positions,
@@ -1161,7 +1074,7 @@ colours and ranges); what they light is done per pixel.
   lights each pixel as 3DfpFPU's LightMesh lit each vertex (below), the point lights in the landscape's space (the part's
   matrix turns and moves only, so its distances are the model space's). The colour arrays hold white with the material's
   alpha (`Material::GpuLitColour`). An interface figure (no landscape rows) takes no point light.
-- **The point lights' grid** (R68; `render_lighting.cpp`'s PreparePointLights, `shaders/point_lights.hlsli`). No cap on
+- **The point lights' grid** (`render_lighting.cpp`'s PreparePointLights, `shaders/point_lights.hlsli`). No cap on
   the lights: every kept scene light goes into one storage buffer a frame (its place, 1 / range squared, colour,
   specular flag and its point shadow's map), and the CPU bins the lights whose reach is in the camera's view
   (`SphereInView`) into a grid of square cells over the landscape's x and y around their reach (8 units a cell, larger
@@ -1169,7 +1082,7 @@ colours and ranges); what they light is done per pixel.
   per cell, its first light's word and count, then the lists). The grid's place is in `PointLightParams` (the block the
   point shadows had). The ground, the water, the figure parts and the ground prints look up the pixel's cell and loop
   over its lights. Keep it without a cap on the lights a frame or a part: a cap (the 16 nearest the camera, the 8
-  nearest a part) left lights dark in a crowded town at night (the captures page's R68 section). The figure parts take
+  nearest a part) left lights dark in a crowded town at night. The figure parts take
   the ground's lights, `Terrain::lights` (the lights shown); no CPU walk over the lights per object.
 - **Shadows in the light.** On the ground a shadow takes away the sun's part: lit = the smaller of the light with the sun
   hidden (the ambient plus the material's own) and the sunlit light x (1 - hidden x strength x the normal's turn towards
@@ -1193,7 +1106,7 @@ colours and ranges); what they light is done per pixel.
   cast (`ScenePointLight::shadows`) are weighed by their weight on the screen (the brightest channel x the share of the
   screen their sphere of reach covers, `ScreenShare`); the `kMostPointShadows` (4) weightiest that some caster reaches
   are wanted. Each gets a cube of six 512 x 512 D32 faces (perspective, 90 degrees, near 0.05, far its range) in one
-  atlas (a light a row, a face a column). A shadow fades (R68): a row's light (by its id) fades in while it is wanted
+  atlas (a light a row, a face a column). A shadow fades: a row's light (by its id) fades in while it is wanted
   and out while it is not, keeping its row, over 250 ms of the frame clock (`kFadeMs`; the receivers take
   `PointLightParams::shadows`' w of it); a wanted light without a row waits for a free one (a row is freed when its light
   faded out, left the view, went out or shadows nothing) and fades in from nothing: picked anew each frame, the shadows
@@ -1212,26 +1125,19 @@ colours and ranges); what they light is done per pixel.
   only when its row's light moved, changed its range or another took the row, or the list of its casters changed
   (`PlaceRow`). A caster is the same when its kept
   mesh and `CachedMeshVersion`, index range, texture, sampler, cut-out and texture offset are, and its model matrix is
-  the same (the game's own matrix, not one taken back out from under the camera: R37f13). Only the faces drawn are cleared;
+  the same (the game's own matrix). Only the faces drawn are cleared;
   units' idle animations redraw the faces holding them every frame. PreparePointShadows keeps its working lists across
   frames, makes one sphere per caster mesh (`BoxSphere`) only where the mesh may matter to a candidate light (its placed
   box's middle within the light's range, or `kHoldMargin`, plus a bound on the radius: `PlaceBox`, the middle and |M|
   times the half extents, widened past the rounding) and compares squared distances (`NotFurther` takes a root only
   where a test is too close to tell). The meshes' matrices into the landscape's space are the ones the game handed over
   (`MeshDraw::model`, kept in `Frame::models`, `MeshBatch::placement`) and shared with the roofs; an object's state is found by its place in
-  ShadowFrame::casters (section 10), not looked up.
-- **Units over a kept still layer: measured, not built** (R37a1; SDL_GPU on Direct3D 12, the town bz1g at night at 4K,
-  msaa 8, alone and with a crowd of 12; times by submission on a quiet machine, section 13 item 1; the kit, with the
-  tried code as a patch, is build/R37a1 in the main checkout). Tried: the faces as layers of two 2D depth arrays, the
-  still casters in one (cleared by the pass's load op), each face a whole-layer GPU copy of its still layer with its
-  units drawn over it, a pass per layer. Point draws fell from 135 to 97 (town) and 414 to 377 (crowd), but the point
-  pass's GPU time rose from 0.044 to 0.048 ms and 0.052 to 0.057 ms (against the sun map's 0.25 ms: 0.18 -> 0.19 and
-  0.21 -> 0.23), and DrawPointShadows' CPU from 0.032 to 0.040 and 0.064 to 0.073 ms; with the passes repeated 20
-  times a frame the gap is plain (0.19 -> 0.44 and 0.26 -> 0.57 ms). A layer's pass, copy and barriers cost more than
-  the small meshes they save drawing into a 512 x 512 face. Drawing every face every frame instead costs 0.057 / 0.061
-  ms, so keeping faces saves about 0.01 ms; on SDL_GPU the point pass is about a fifth of the sun map's time (D3D11's
-  timestamps had 0.55). SDL_GPU took what was tried on Direct3D 12 and Vulkan: 2D array depth textures drawn layer by
-  layer and sampled as a Texture2DArray, a depth layer copied whole (Direct3D 12 copies a depth subresource only whole).
+  ShadowFrame::casters (item 10), not looked up.
+- **Units over a kept still layer: measured, not built.** The faces as layers of two 2D depth arrays, each face a
+  whole-layer GPU copy of its still casters with its units drawn over it: fewer point draws (135 to 97 in the town at
+  night) but more GPU and CPU time (a layer's pass, copy and barriers cost more than the small meshes they save
+  drawing into a 512 x 512 face). Keeping the faces at all saves only about 0.01 ms; the point pass is about a fifth
+  of the sun map's time. The kit with the tried code: build/R37a1 in the main checkout.
 - Check: render_lighting (zone1's start, creatures on slopes, a fight, zone1 at night, the hero's light at night with a
   goblin and a wolf beside him and running, the town by day and at night with its campfire), render_shadows*,
   render_scene, render_stats.
@@ -1255,46 +1161,40 @@ from the sun at a grazing angle averages fronds away) go into it in a depth-only
 water: the ground under it), the world's model meshes after the ground (not the sky, the selection markers or additive
 passes) and the ground prints sample it (`shaders/shadow_receiver.hlsli`) and darken by up to half (the old decal's alpha
 0x80) before fog. The map is the only shadow look.
-- **Ground prints** (R52; blood, footprints, scorch marks: flat geometry, `MeshDraw::groundDecal`, `MeshBatch::decal`)
-  are blended over the ground, which the map, the clouds and the point shadows darken; a print took none of them, so a
-  blood splat in a tree's shadow showed sunlit (the old game drew its shadow decals over the prints). A print is
-  darkened as the ground under it: mesh.hlsl's `ground_shade` works the ground's light at the pixel as ground_light
-  does on dry ground (no material colour, all of the ambient light; the face normal turned up) with the shadows and
-  without them, and multiplies the print by the first over the second per channel. Prints follow the time of day
-  (R52a): the game's print colour is unlit (white footprints and scorch marks; blood a grey of the brightest of the
-  sun's luminance and the lights reaching it, re-lit only every 10 s), so footprints and scorch marks stayed white at
-  night, and blood kept the last grey for up to 10 s (dark under a lamp lit since, bright after nightfall); the
-  grey also ignored the night's blue. A print is drawn in its
-  colour under the daylight colours (`GroundPrint::DayColour`; `WorldClient::DaylightColours`: the light table's noon,
-  a cave's hour 0, handed over in SceneLights) and the second light is at least the ground's light in the daylight
-  colours (the same sun direction and normal): at noon, and all day where the table's sun is white (every zone's from
-  7 to 17), a print looks as in the game; at night it is as dark against its ground as by day, at dawn it takes the
-  ground's tint, under a lamp at night the lamp's light. Its light (`GroundDecalLight`, in the mesh
-  shader's `PartLight`, its record's `groundPrint` 1): the scene's sun,
-  ambient and the point lights of its pixel's cell (the grid, item 9), with their point shadows, and the map's light
-  (`mapSun`); its positions are the landscape's (identity landscape rows), its map lookup lifted along the
-  landscape's up (no vertex normals). The specular lights (spell, missile and quest lights: `PointLight::colour`'s w) count in the shade as on the ground (lit = max(other, spec)) and their light is added
-  again after the print's colour (rgb x shade + spec, at most 1), as the ground adds it after its texture (R52c:
-  before, a print under such a light was darker than its ground by that light times its alpha). No weather on prints. The selection marker stays unshaded (the old game drew it
-  after the shadows; it is a mark of the interface). Check: render_shadows_decals (shadowcheck: every print samples
-  the map; with `shadowview on` the frame with the prints matches it without them, `decals off`, while the frames
-  differ; then at night under a point light and under a lightning spell's light; `printlight`: the prints'
-  brightness over the ground's under them, by day, at night and under each light; the spell step's floor is 1.04 on vanilla
-  and 1.015 on Rebirth, the same gain of 0.036 from the added light on both: the ratio is over every pixel that differs
-  between the two frames, which holds the lightning bolt and the blood far from the light, and Rebirth's gz2g weighs
-  them differently; R16j3a; the scenario runs in the Rebirth set through its `rebirth` step).
+- **Ground prints** (blood, footprints, scorch marks: flat geometry, `MeshDraw::groundDecal`, `MeshBatch::decal`) are
+  blended over the ground, which the map, the clouds and the point shadows darken, so a print is darkened as the
+  ground under it (else a blood splat in a tree's shadow shows sunlit): mesh.hlsl's `ground_shade` works the ground's
+  light at the pixel as ground_light does on dry ground (no material colour, all of the ambient light; the face normal
+  turned up) with the shadows and without them, and multiplies the print by the first over the second per channel.
+  Prints follow the time of day. The game's print colour is unlit (white footprints and scorch marks; blood a grey of
+  the brightest of the sun's luminance and the lights reaching it, re-lit only every 10 s, blind to the night's blue),
+  so a print is drawn in its colour under the daylight colours (`GroundPrint::DayColour`;
+  `WorldClient::DaylightColours`: the light table's noon, a cave's hour 0, handed over in SceneLights) and the second
+  light is at least the ground's light in the daylight colours (the same sun direction and normal): at noon, and all
+  day where the table's sun is white (every zone's from 7 to 17), a print looks as in the game; at night it is as dark
+  against its ground as by day, at dawn it takes the ground's tint, under a lamp at night the lamp's light. Its light
+  (`GroundDecalLight`, in the mesh shader's `PartLight`, its record's `groundPrint` 1): the scene's sun, ambient and the
+  point lights of its pixel's cell (the grid, item 9), with their point shadows, and the map's light (`mapSun`); its
+  positions are the landscape's (identity landscape rows), its map lookup lifted along the landscape's up (no vertex
+  normals). The specular lights (spell, missile and quest lights: `PointLight::colour`'s w) count in the shade as on
+  the ground (lit = max(other, spec)) and their light is added again after the print's colour (rgb x shade + spec, at
+  most 1), as the ground adds it after its texture, so a print under such a light is not darker than its ground. No
+  weather on prints. The selection marker stays unshaded (a mark of the interface). Check: render_shadows_decals
+  (shadowcheck: every print samples the map; with `shadowview on` the frame with the prints matches it without them,
+  `decals off`, while the frames differ; then at night under a point light and under a lightning spell's light;
+  `printlight`: the prints' brightness over the ground's under them, by day, at night and under each light; the spell
+  step's floor is 1.04 on vanilla and 1.015 on Rebirth, the same gain of 0.036 from the added light on both: the ratio
+  is over every pixel that differs between the two frames, which holds the lightning bolt and the blood far from the
+  light, and Rebirth's gz2g weighs them differently; the scenario runs in the Rebirth set through its `rebirth` step).
 - **Soft edges** (PCSS, contact-hardening; the user wanted the old decals' softness). After the casters two small passes
   make the map's depth range per 16 x 16-texel cell (`shaders/shadow_reduce.hlsl`: nearest and farthest texel;
   `shadow_dilate.hlsl`: the same over the cells within the widest filter's reach and one cell more, plus the cell's own
   nearest; one 256 x 256 RGBA32F image). Details: "shaders/shadow_receiver.hlsli" below. Radius = the mean blocker
   distance x `kSunSize` (0.01, about twice the real sun's angular radius), 1.5 texels to `kWidestRadius` (0.6 units); 8
   (under 4 texels) or 16 bilinear comparisons on a Vogel disc across the light (drawn onto the map by `disc`), turned per
-  2 x 2 quad by interleaved gradient noise, each of the quad's pixels on its own quarter of the spiral. First
-  tuned on the town gate at 0.025 (its edge about 125 px at 4K), which blurred a tree's crown, 8-12 units above the
-  ground, by 20-30 texels: its cut-out leaves merged into one dark mass (the user's "blocky" tree shadows, R47; measured
-  in gz2g: the cut-outs are right, a hard filter shows every leaf, no cut-out casts whole quads). A creature's shadow
-  stays sharp at its feet. Check: the render_shadows_* scenarios (gz2g's forest is no longer captured on its own: H74, its code runs in the
-  others).
+  2 x 2 quad by interleaved gradient noise, each of the quad's pixels on its own quarter of the spiral. A larger sun
+  (0.025) blurred a tree's crown, 8-12 units above the ground, by 20-30 texels into one dark mass (the user's "blocky"
+  tree shadows). A creature's shadow stays sharp at its feet. Check: the render_shadows_* scenarios.
 - **Casters outside the view** (shadows popped in at the screen's edge with their objects). The world's draw
   (WorldClient::Render, after its object draws; `world_client_shadow_casters.cpp`) walks the objects that can reach the
   map and hands over the meshes the game did not draw, reading the game's objects only (nothing the goldens record
@@ -1307,14 +1207,10 @@ passes) and the ground prints sample it (`shaders/shadow_receiver.hlsli`) and da
   flags, a multiplayer spectator's hidden units, CastsShadow's tests). Each part is placed as
   Object3DClientSpecific::DrawParts places it; an object the game drew this frame is left out (`render::CasterDrawn`). Cut out
   by alpha as the on-screen meshes with the same texture were, else at alpha 0.5. A part goes through the world's mesh hand-over as a
-  caster alone (R37f14: `FigureMeshDrawer::HandOverCaster` within `BeginCaster` / `EndCaster`, `render::CasterMesh`: a
+  caster alone (`FigureMeshDrawer::HandOverCaster` within `BeginCaster` / `EndCaster`, `render::CasterMesh`: a
   batch no command draws, `MeshBatch::casterOnly`, whose pass state is the texture and its cut), kept on the GPU in the
   part's own slot as its world draw keeps it. Per frame a part costs its selection, its placement (object x part
-  matrix), the kept mesh's checks and the light x model product of its instance. CPU at
-  3840 x 2160 (harness build, its mesh checks included; the shadow map's CPU ms with them / without them, R24): the town
-  bz1g 0.23 / 0.14 (the walk 0.05, 120 parts handed over), with the camera moved until the gate leaves the screen
-  0.35-0.5 / 0.25-0.4 (the walk 0.07-0.10, 170-180 parts, 9k corners); R20 measured +0.4 and +1.0 when the corners were
-  copied each frame.
+  matrix), the kept mesh's checks and the light x model product of its instance.
 - **Faces turned away from the sun** have no sun light to lose (the GPU lights them by N.L), so a receiver darkens by its
   own facing with a normal-offset bias. Check: render_shadows_mound (the user's save in tests/saves/shadow_mound).
 - **Steady soft edges.** Per-cell reads of the range image made cell-sized squares and straight cuts in a penumbra that
@@ -1325,53 +1221,43 @@ passes) and the ground prints sample it (`shaders/shadow_receiver.hlsli`) and da
   their weighted mean is still a bound; the search taps read the cells' own nearest filtered too; the searched radius is
   blended in from the bound between half a cell and a cell. The widest radius is capped to what `kMostCellsAround` cells
   reach. Without a map a 1 x 1 RGBA32F stand-in is bound for the range.
-- **Calm penumbra grain** (R25a). The map's axes used to turn with the sun about the landscape's origin, so at every game
-  tick each soft edge's taps landed on other texels and its grain changed all at once (render_shadows_shimmer's shadow
-  view, frames at 8 ms: 3.3% of the frame by more than 8 between frames across a tick on Rebirth's data, 1.7% on the
-  vanilla data; 0.4% between the others, the torches' flames and the units' idle animations). Three changes: the map's
-  x and y are the ground's (above), so a texel stays on the ground while the sun turns; the lighting takes the time of
-  day at the drawn frame (tick + tickFraction, world_client_lights.cpp), so the sun turns a little every frame instead
-  of a step per tick; and a filter wider than a few pixels averages its 2 x 2 quad's four tap sets (each neighbour's
-  result moved to the pixel by its gradient, read with `ddx_fine` / `ddy_fine`; each neighbour at most 0.25 from the
-  pixel's own, since a helper lane past a silhouette or a fold extrapolates its triangle's plane into the air or into
-  the caster), 4 x the taps at the cost of the gradient. Now 0.6-1.0% (Rebirth) and 0.6-0.8% (vanilla) between every
-  pair of frames, no tick steps; without the quad average 0.8-1.3%. A filter is at least half a pixel wide (`foot`), so
-  a hard edge far away does not crawl from pixel to pixel. Not taken: reuse across frames (a history buffer and its
-  reprojection for a small gain), a prefiltered map (its blur loses the contact hardening). GPU cost (the town bz1g at
-  4K, msaa 8, day, night and night with a crowd of 12, four runs each interleaved with main's): within 0.01 ms of the
-  frame's 2.4-2.8 ms. Harness build: `shadowview on` shows the shadow alone (with the clouds; white lit, black at full strength),
-  `shadowshift <n>` moves the map's origin by n x n/2 whole texels. Check: render_shadows_shimmer (the user's save in
-  tests/saves/shadow_corrupt).
+- **Calm penumbra grain.** Three choices keep a soft edge's grain still while the sun turns: the map's x and y are
+  the ground's (above), so a texel stays on the ground (axes turning with the sun about the landscape's origin moved
+  every soft edge's taps onto other texels at each tick); the lighting takes the time of day at the drawn frame (tick +
+  tickFraction, world_client_lights.cpp), so the sun turns a little every frame instead of a step per tick; and a
+  filter wider than a few pixels averages its 2 x 2 quad's four tap sets (each neighbour's result moved to the pixel by
+  its gradient, read with `ddx_fine` / `ddy_fine`; each neighbour at most 0.25 from the pixel's own, since a helper
+  lane past a silhouette or a fold extrapolates its triangle's plane into the air or into the caster), 4 x the taps at
+  the cost of the gradient. A filter is at least half a pixel wide (`foot`), so a hard edge far away does not crawl
+  from pixel to pixel. Not taken: reuse across frames (a history buffer and its reprojection for a small gain), a
+  prefiltered map (its blur loses the contact hardening). Harness build: `shadowview on` shows the shadow alone (with
+  the clouds; white lit, black at full strength), `shadowshift <n>` moves the map's origin by n x n/2 whole texels.
+  Check: render_shadows_shimmer (the user's save in tests/saves/shadow_corrupt).
 - **The casters' draws** (both maps, `CasterDraws` in render_internal.h): a draw's own data (`CasterInstance`: the light x
   model matrix, the texture offsets, the alpha cut) goes into an instance-rate vertex buffer, read at the draw's first
   instance (`DrawIndexed`'s first instance; Direct3D's SV_InstanceID leaves the first instance out, an instance-step
   attribute does not), so a
   draw applies no uniforms. A depth-only map with LESS_EQUAL keeps the nearest depth whatever the order, so the draws are
-  grouped by what they bind, then by their indices (R37f3): draws of the same geometry (the kept meshes that share one
+  grouped by what they bind, then by their indices: draws of the same geometry (the kept meshes that share one
   copy, the palms of one morph) become one draw of consecutive instances, and every draw of one binding is one
   `DrawIndexedIndirect` call (the commands written once a frame into an indirect buffer; one command alone is a plain
-  `DrawIndexed`). The save's sun map: 1874 draws in 41 calls. No comparison sort (R37f7): `Add` finds each draw's binding
+  `DrawIndexed`). No comparison sort: `Add` finds each draw's binding
   and its group (binding, first index, count) in two open-addressed tables reset by a stamp, and `Sort` places a range's
   draws by group in one counting pass: the frame's stream's bindings, then the kept meshes' (one pipeline change), each
-  binding and group in the order the range met it, a group's draws in the order added. The order of bindings differs
-  from R37f3's pointer order; the depth does not depend on it, and the calls are the same.
-- **The map's GPU time** (R37e2: the town bz1g at night at 4K, msaa 8, with and without a crowd of 12 fighting; times by
-  submission, section 13 item 1): 0.155 ms on Direct3D 12 and 0.155-0.17 on Vulkan, the same with the crowd as without.
-  Of it the casters' draws are about 0.06 (drawn twice: +0.05); the pass without casters takes 0.09, the same with the
-  clear left out (so the clear costs nothing) and with an optimised clear value of 1.0 given to SDL, so it is most
-  likely the map's turn from depth target to sampled texture at the pass's end (SDL's barrier, a pass over the 64 MB
-  map); the range passes after it 0.12 (the reduction reads the whole map). The 0.4-0.5 ms wait inside the crowd's map
-  that R37e1 measured was the D3D11 driver's: its timeline followed the batches the driver sent while the main thread
-  was still recording the frame. On SDL_GPU the frame is one command buffer, submitted whole at its end (a GPU capture
-  shows one command list: one clear, the casters' draws, one barrier, the two range passes), so the GPU never waits
-  inside it.
+  binding and group in the order the range met it, a group's draws in the order added (the depth does not depend on
+  the order).
+- **The map's GPU time** (the town bz1g at night at 4K, msaa 8): about 0.155 ms on Direct3D 12 and Vulkan, the same
+  with a crowd; the casters' draws about 0.06 of it, the rest most likely the map's turn from depth target to sampled
+  texture at the pass's end (SDL's barrier over the 64 MB map; the clear costs nothing); the range passes after it
+  0.12 (the reduction reads the whole map). The frame is one command buffer submitted whole at its end, so the GPU
+  never waits inside the map's pass.
 - How the map's look differs from the old decals: every object whose shadow the game draws and which can reach the view
   casts; the decals of overlapping objects stacked and were laid on the terrain under objects standing higher; a decal's
   direction was the sum of the sun and the point lights in reach, the map's is the sun's alone (the point lights have
   their own maps).
   - Where shadows overlap, the decals each darkened by half (the dirt under the fight's ruin at 21% of its lit
     brightness); the map hides the sun once (43% there). The user kept the strength at 0.5 with no extra darkening
-    where shadows overlap (2026-10-21: "Color-wise shadows looked about the same").
+    where shadows overlap.
   - Near the town bz1g's campfire at night the units' shadows point away from the fire, as the decals' summed
     direction made them, from the fire's cube map (point-light shadows, item 9), beside the moon's map shadow. A unit
     carrying its own light (the hero at night) lights the ground where the fire's shadow of it falls, so that shadow
@@ -1382,7 +1268,7 @@ passes) and the ground prints sample it (`shaders/shadow_receiver.hlsli`) and da
   from the walk: the last matches the first, so the walk places, selects and cuts out meshes as the game's draws do; in the
   town with the camera moved the gate's long shadow is there with them and gone without them).
 
-**11. Cloud shadows** (`render_cloud_shadows.cpp`, `shaders/cloud_shadow.hlsli`; R17d). Soft cloud patches drift over
+**11. Cloud shadows** (`render_cloud_shadows.cpp`, `shaders/cloud_shadow.hlsli`). Soft cloud patches drift over
 the land by day; client side only, nothing the game simulates reads them, always on (no option). The world's light
 (WorldClient::UpdateLighting) hands over the client's weather each frame (`render::CloudShadows`): `day` (0 before
 hour 4 and after 20, rising to 1 at 6, falling from 18; 0 in a cave), the rain or snow's strength as its layer fades it
@@ -1412,11 +1298,9 @@ hour 4 and after 20, rising to 1 at 6, falling from 18; 0 in a cave), the rain o
   `diffcapture` between the views; rain: `cloudcheck` with the cover at 0.7 .. 0.8; night and the cave gz5g:
   `cloudcheck 0 0`). `cloudcheck <least> <most> [<least cover> <most cover>]` reads ShadowInfo's `cloudLight` and
   `cloudCover`; `shadowview on` shows the clouds with the map's shadows.
-- GPU cost (the town bz1g by day at 3840 x 2160, msaa 8, alone and with a crowd of 12; whole-frame times by submission,
-  item 1; five rounds interleaved with the clouds switched off by a probe): none measurable, the medians 2.21-2.35 ms
-  with them and 2.27-2.40 without (the machine's noise is larger than two R8 reads a pixel).
+- GPU cost: none measurable at 4K, msaa 8 (two R8 reads a pixel).
 
-**11a. Ambient occlusion** (R17b; always on, no option). Two parts, both taken off the ambient light alone: the ground's
+**11a. Ambient occlusion** (always on, no option). Two parts, both taken off the ambient light alone: the ground's
 `ambient` in ground_light and the figures' in figure_light (so in the sun, where the game's max() takes the sun's light,
 it hardly shows; in the shade, at night and in the caves it does). Nothing else (the sun, the point lights, the emissive
 colour, the meshes the game lights, the water, the interface's previews) is touched.
@@ -1447,13 +1331,11 @@ colour, the meshes the game lights, the water, the interface's previews) is touc
 - Harness build: `occlusion on|off|view|check` (`render::SetOcclusion`; view: the receivers show the occlusion alone,
   white none; check: made, ground and meshes in the depth and taking it, sectors worked out). Check: render_occlusion
   (bz1g by day, at night, a crowd of 12 at night and by day: each on, off and alone; two captures of one moment match),
-  render_occlusion_cave (the Dragon's Cave gz5g, "#sky cave"); the frames in build/r17b of the R17b worktree.
-- GPU cost (R17b, RTX 4070 Ti SUPER, D3D12, 3840 x 2160 msaa 8, bz1g by day and with a crowd of 12; the depth and
-  occlusion passes submitted apart and timed by their fences, on and off alternated twice, 200 frames each): the
-  passes 0.30 ms a frame in both (p10-p90 0.29-0.31), the rest of the frame (about 1.9-2.0 ms) no dearer with the
-  lookups; the ground's own occlusion costs only when a sector is first held.
+  render_occlusion_cave (the Dragon's Cave gz5g, "#sky cave").
+- GPU cost: the depth, search and blur passes about 0.3-0.45 ms a frame at 4K (item 2a), the receivers' lookups
+  little; the ground's own occlusion costs only when a sector is first held.
 
-**11b. Weather on the surfaces** (`render_weather.cpp`, `shaders/terrain_ground.hlsl`, `shaders/mesh.hlsl`; R17c; always on, no
+**11b. Weather on the surfaces** (`render_weather.cpp`, `shaders/terrain_ground.hlsl`, `shaders/mesh.hlsl`; always on, no
 option). Client side only: driven by the weather the world's light hands over (`render::CloudWeather`, item 11, with
 `snow` when the rain / snow layer's mode is snow), nothing the game simulates reads it, and the goldens hold no frames.
 - **State** (PrepareSurfaces, from PrepareShadows once a frame): the wetness and the puddles follow the settled rain,
@@ -1462,15 +1344,15 @@ option). Client side only: driven by the weather the world's light hands over (`
   constant (ticks for 1 - 1/e of the way): wet in 200 (about 11 s) and dry in 1600 (about 90 s), the puddles 450 /
   2400, the snow 1600 (about half the cover in a minute, three quarters in two) and melting in 2400, in rain 900. The
   time only goes forward: the drawn frame's tick fraction can run past the next tick while the client waits for the
-  server (app/main_loop.cpp's backlog), so the time handed over steps back a little now and then. Any step back (or over 64
-  ticks) used to start the state again from the weather as it was, which in play made the snow and the wetness come at
-  once (R53). Only a zone's landscape loaded (`render::LandscapeLoaded`, from Terrain::LoadMap; a save's load goes
+  server (app/main_loop.cpp's backlog), so the time handed over steps back a little now and then; no step back (or
+  over 64 ticks) starts the state again (that made the snow and the wetness come at once). Only a zone's landscape
+  loaded (`render::LandscapeLoaded`, from Terrain::LoadMap; a save's load goes
   through it too) starts again: for the first 32 ticks after it the state is the settled weather as it is (the weather
   message comes a tick or more after the zone's; a zone entered or loaded in snow is covered at once, in rain wet), then
   it follows; after a load with a side file (11c: a save's, or a zone's left before) the surfaces hold the kept state
   over those 32 ticks instead. The world's time goes on over a zone change (8 ticks), so without the landscape's call
   the ground of gz11k stayed as wet as zone1's. Every load (a save's, a revisited zone's, a multiplayer zone's) keeps
-  the saved weather (R57d; world.md, "Weather across a load"), and the zone's first weather message after it has no
+  the saved weather (world.md, "Weather across a load"), and the zone's first weather message after it has no
   fade, so the client's rain layer is at the saved weather at once. The rain falling now (the layer's density, none in snow) drives the
   rings and splashes.
 - **Ground** (terrain_ground.hlsl, `ground_weather`, `weathered`, `wet_ground`; nothing under the water, by `loss`): snow on
@@ -1487,16 +1369,16 @@ option). Client side only: driven by the weather the world's light hands over (`
   ticks modulo a whole number of both periods: 16 and 21 ticks), its centre anywhere in the middle half of the cell,
   growing to a quarter of a cell and fading; the slope of a Gaussian ring turns the normal, and (`rain_dimples`) the
   ring's crest and a splash (a small soft spot in the first 12% of a ring's time) take up to 0.55 / 0.5 of a lighter
-  colour: the water's own towards the sky it reflects (never brighter than that sky). Seen from above, water reflects
-  little of the sky whatever the slope, so by the slope alone the rings did not show, and the splashes, once a disc of
-  the foam's light colour made opaque, read as isolated bright dots (R53). They fade out where a cell is under a few
+  colour: the water's own towards the sky it reflects (never brighter than that sky): seen from above, water reflects
+  little of the sky whatever the slope, so by the slope alone the rings do not show, and opaque discs of the foam's
+  colour read as isolated bright dots. They fade out where a cell is under a few
   pixels across (`footprint`, the units a pixel spans). On the water (and the swamps) they add to the ripples, which
   the rain makes half again as rough; in a puddle they are blended by the puddle's share.
 - **Meshes** (mesh.hlsl, `weathered_mesh`): the world's meshes that receive the shadow map (`MeshBatch::light`) get
   `MeshFsParams::weather` (wetness, snow) and the sun; from the face normal (the map's clip space's derivatives taken to
   the landscape's space, turned to the camera): snow on faces turned up (n.z from 1.1 .. 1.3 down to 0.6 .. 0.85 with the
   cover; at most 0.85 of the face, full cover from a third of it; (0.76, 0.78, 0.83), as grey as the ground's), wet faces down to 0.65 with a sheen of the sun. Without a fitted map (no shadow space) none.
-- **Units** (mesh.hlsl, `weathered_unit`; R17c2): a unit's figure part lit on the GPU (`MeshBatch::figure`,
+- **Units** (mesh.hlsl, `weathered_unit`): a unit's figure part lit on the GPU (`MeshBatch::figure`,
   `MeshFsParams::weather.z`) takes the weather per pixel from its interpolated vertex normal instead (a low-poly figure's
   faces are too few and large for a face normal: a face's sheen flips on and off as it turns). The vertex shader takes the
   normal into the map's clip space by the receiver's matrix (`mapNormal`), the pixel back to the landscape's
@@ -1509,7 +1391,7 @@ option). Client side only: driven by the weather the world's light hands over (`
   ambient light's colour plus 0.1, (r.z)^3 x (0.3 + Schlick's term) x 0.35) and the sun's highlight (Blinn-Phong 30,
   0.4, as hidden by the map and the clouds). A unit drawn without the GPU's lighting (none known) keeps the face path,
   only darker.
-- **Each unit's own weather** (render_weather.cpp, `PrepareUnitWeather`, after PrepareSurfaces; R17c3): the wetness
+- **Each unit's own weather** (render_weather.cpp, `PrepareUnitWeather`, after PrepareSurfaces): the wetness
   and snow a unit's figure parts take (`MeshBatch::weather`) are kept per unit (the object its meshes are handed over
   with, `BeginCaster`). Out of shelter they follow the settled rain / snow (as the ground: State above) with the
   ground's rise (200 / 1600 ticks) on the ground's time, which only goes forward, so a unit in the open is exactly as
@@ -1520,7 +1402,7 @@ option). Client side only: driven by the weather the world's light hands over (`
   times its exposure; no step of the time back restarts it. After a save's load the units of its side file (11c) take
   their kept state at the first frame, and every unit holds its state while the ground holds the kept one. Client-side only: no random, nothing the
   game simulates reads it.
-  The HUD unit panel's figure takes its unit's own value too (R53a): `HudUnitPanel::DrawSprites` hands its meshes over between
+  The HUD unit panel's figure takes its unit's own value too: `HudUnitPanel::DrawSprites` hands its meshes over between
   `render::BeginInterfaceUnit(unit as a MapObject)` and `EndInterfaceUnit` (the object the world's draw gave
   `BeginCaster`), `MeshBatch::interfaceUnit` finds that unit's state (the ground's when the world has not drawn it
   lately), and the mesh shader's `weathered_figure` (`MeshFsParams::weather` z 2) applies it: the snow's and the wet's
@@ -1540,7 +1422,7 @@ option). Client side only: driven by the weather the world's light hands over (`
   is in view). The ground and the other meshes take the roof map instead (Roofs, below). Cost: a few hundred box tests per unit, the five rays tested together against the triangles of the
   meshes over it; measured 0.005-0.014 ms a frame on average (render_weather, render_weather_units, the shelter scenario;
   1-5 units, 7-44 roof meshes), within shadowMs.
-- **Roofs** (render_weather.cpp `PrepareRoofs` / `DrawRoofMap`, shaders/roof.hlsli `roof_open`; R17c5): the ground
+- **Roofs** (render_weather.cpp `PrepareRoofs` / `DrawRoofMap`, shaders/roof.hlsli `roof_open`): the ground
   (wetness, puddles, snow), the rain's rings on the water and the world's meshes (`weathered_mesh`) under a roof take no
   weather. A depth map (2048 texels a side, D32F) seen straight down over the visible ground (the sun map's fit's box,
   2 units around, its side in steps of 8 so the texel size changes seldom, the texels on whole texels of the landscape)
@@ -1556,10 +1438,6 @@ option). Client side only: driven by the weather the world's light hands over (`
   rock), over a 3 x 3 tent of comparisons 0.3 units apart (a soft edge about half a unit wide). Units keep their own
   shelter (the roof test above). Plants count as roofs: the ground under a fern or a torch's stand stays dry and bare
   of snow, as under the trees.
-- Cost of the units' path (R17c2, the same machine and settings, zone1 a minute into rain with the hero and four
-  creatures beside him, frozen; the units' path and the face path alternated every 150 frames by a probe, 1200 frames
-  each view; the kit and the captures in build/r17c2 of the main checkout): R17c's view 2.64-2.66 ms either way, zoomed in on the units
-  2.60-2.61 ms either way; nothing above the noise.
 - Check: scenario `render_weather` (1440x1080, zone1 by day: dry, five seconds into rain (with the particles' share),
   after a minute, half a minute after it stopped, the sea and the beach in rain; gz11k before the snow, five seconds
   into it (at most 0.15 of the cover, the flakes' share) and two minutes (0.5 .. 0.95), then a minute of rain (the cover
@@ -1570,22 +1448,20 @@ option). Client side only: driven by the weather the world's light hands over (`
   open (as wet as the ground), he walks into the gateway of the town's gate (under its roof: shelter 1) and dries for
   half a minute while the ground stays wet (1.0 to about 0.5), then steps out drier than he went in (the roof hides him
   from the camera inside); `unitweather leader|#id|<name> <least wet> <most wet> [<least snow> <most snow> [<least
-  shelter> <most shelter>]]` reads `render::UnitWeatherState` (and logs where the unit stood); the frames of R17c3 in
-  build/r17c3 of its worktree.
-  `render_weather_roofs` (R17c5, bz1g by day, 1440x1080, the camera turned to look through the town gate's gateway): a
+  shelter> <most shelter>]]` reads `render::UnitWeatherState` (and logs where the unit stood).
+  `render_weather_roofs` (bz1g by day, 1440x1080, the camera turned to look through the town gate's gateway): a
   minute of rain, then two of snow; each frozen moment captured with the roofs and without (`roofs off`, harness only:
   everything weathered as in the open); diffcapture requires the gateway's floor under the roof to differ (97-98% of its
   pixels) and the open ground before the gate not to (none); `roofs check <n>` requires the map made with at least n
-  roof meshes (50 there). The frames in build/captures/r17c5 of its worktree.
-  `render_weather_panel` (R53a, 1440x1080, zone1 by day): the hero dry, then a minute into rain (unitweather: wet
+  roof meshes (50 there).
+  `render_weather_panel` (1440x1080, zone1 by day): the hero dry, then a minute into rain (unitweather: wet
   0.5 .. 1); `diffcapture <a> <b> <least> <most> <tolerance> <left> <top> <right> <bottom>` on the panel's rectangle
   requires the figure to differ between the two frozen moments (a dry figure differs in none of it).
-- Cost (R17c, RTX 4070 Ti SUPER, Direct3D 12, 3840x2009 msaa 8 anisotropy 16, zone1 a minute into rain, a frozen
-  frame; the uniforms zeroed and set again in turn, 150 frames each): the frame's GPU time 2.59 .. 2.61 ms with the
-  weather and 2.59 .. 2.63 ms without, at the start and at the shore; no difference above the noise.
+- Cost: nothing measurable on the frame's GPU time (4K, msaa 8, zone1 in rain), the units' path nothing over the face
+  path.
 
-**11c. What a save keeps of the picture** (src/game/client_visuals.{h,cpp}, `render::WeatherToKeep` / `RestoreWeather`
-/ `UnitWeatherToKeep` / `RestoreUnitWeather`, render/kept_weather.h; R57, R57c). The user (2026-11-05): a loaded save
+**11c. What a save keeps of the picture** (src/game/saves/client_visuals.{h,cpp}, `render::WeatherToKeep` /
+`RestoreWeather` / `UnitWeatherToKeep` / `RestoreUnitWeather`, render/kept_weather.h). The user's rule: a loaded save
 shows the weather and the marks it was saved with, through a side file beside the save; the original's files stay as
 they are, and a save without the side file starts from the defaults. The same goes for a zone left and entered again,
 and each multiplayer client writes its own.
@@ -1600,10 +1476,10 @@ and each multiplayer client writes its own.
   - The ground prints: blood, footprints and scorch marks. `GroundPrint::Save` / `Load` (and Footprint's and
     BloodPrint's) exist from the original with no caller; WorldClient::LoadZone clears the three vectors. Kept (Prints).
   - The client's rain or snow layer: not kept, but the zone's first weather message after the load carries the
-    saved weather with no fade, so the layer is at it at once (R57d).
+    saved weather with no fade, so the layer is at it at once.
   - The landscape's wave phase (`terrain::Terrain::wavePhase`, the water vertices' waves, Terrain::WaterVertex):
     back to 2 pi at every map load; the tiles' animation frame (`Terrain::frame`) back to 1.
-  - The client generator (`g_clientRandom`, R34a): seeded once per process (World::Create), so the client's draws
+  - The client generator (`g_clientRandom`): seeded once per process (World::Create), so the client's draws
     after a load depended on the session before it. Kept (Generator): the draws after a load follow the save. The
     game's own ISAAC and rand() are not saved (game state, not the picture).
   - Ours: the surfaces' wetness, puddles and snow and each unit's (11b) started again from the settled weather (a
@@ -1628,20 +1504,20 @@ and each multiplayer client writes its own.
   - Weather (1): wetness, puddles, snow (f32), the clouds' two layers' drift (x, y in f64 each) and cover (f32).
   - Waves (2): the landscape's wave phase (f32).
   - Units (3): a u32 count, then per unit drawn lately its object id (i32), wetness and snow (f32), by ascending id.
-  - Prints (4; R57a): the blood prints, the footprints and the scorch marks, each list a u32 count and its prints'
+  - Prints (4): the blood prints, the footprints and the scorch marks, each list a u32 count and its prints'
     `Save` (the original's record: place, sizes, growth, life, texture name, tile, angles, lit, alpha scale, lifetime;
     a footprint's scale, kind and ours, its visible byte; a blood print's spin, spread, kind, fresh). Always written
     (three zero counts when there are none); read back only at the restore, where the prints look their textures up.
     A list that runs past the section, or a print whose place or sizes are not numbers or whose life or lifetime is
     not above 0, drops all three lists. The alpha is not saved: Load sets it from the life left, as Tick does.
-  - Generator (5; R57b): `g_clientRandom` whole: seeded, count, results and memory (256 u32 each), aa, bb, cc (2068
+  - Generator (5): `g_clientRandom` whole: seeded, count, results and memory (256 u32 each), aa, bb, cc (2068
     bytes). Only when seeded; skipped when its size is wrong or its count above 256. A slot's file only: the
     generator goes on through the zones of a session, so a zone's file leaves it out.
-  - ParticleGenerator (8; MF15a): `g_particleRandom` whole, as Generator (2068 bytes, a slot's file only). A file
+  - ParticleGenerator (8): `g_particleRandom` whole, as Generator (2068 bytes, a slot's file only). A file
     with Generator but without it (older saves) seeds the particles' generator from the kept client one at the restore
     (`InitFrom`, as World::Create does), so a save gives the same particles whatever the session before it drew.
-  - Zone (6; R57c): the client world's tick when the picture was taken (i32) and the zone's map as the server named
-    it (zero-terminated). Every file has it; a file without it (R57's) is taken as it is.
+  - Zone (6): the client world's tick when the picture was taken (i32) and the zone's map as the server named
+    it (zero-terminated). Every file has it; an older file without it is taken as it is.
   - WeatherDelay (7): the server's `WorldServer::weatherDelay` (i32, at most 10; world.md, "Weather across a load"):
     not the picture's, but mission.sav does not keep it either. A slot's file only (GameFlow::SaveGame); GameFlow::LoadGame
     reads it from the slot's file before the zone loads (0 when there is none), not at the restore, which comes after
@@ -1685,11 +1561,12 @@ and each multiplayer client writes its own.
   same after its load (none without the side file). Every golden with saves holds its visuals.sav decoded (tools/savefile.py's
   `read_visuals`, field by field in saves.txt), not left out of the comparison.
 
-**12. Profiling the heaviest scenes.** The user's play settings: 3840 x 2160 windowed, msaa 8, anisotropy 16, flora
-shadows on, Rebirth's draw radii, `frametime 8`; zone1, zone7 (forest), zone11 (snow forest), zone19, the town bz1g, the
-camera at its default and tilted low, noon and night, the town at night with a crowd of 12 fighting. Findings: the main
-thread is the limit (wall time equals CPU time; no GPU waits); shadow work is the largest share of the renderer's CPU
-(the fit, the walk of outside casters, the passes' submission, point shadows); shadow draws are 50-65% of all draws.
+**12. Profiling the heaviest scenes.** At the user's play settings: 3840 x 2160 windowed, Msaa 1, Anisotropy 1 (msaa
+8 as the worst case), flora shadows on, Rebirth's draw radii, `frametime 8`. The scenes: the stress save (item 2a), the
+town bz1g at night alone and with a crowd of 12 fighting, zone1, zone7 (forest), zone11 (snow forest), zone19, the
+camera at its default and tilted low, noon and night. Timing runs are quiet (`work.py test --quiet`) and alternate the
+builds compared, a few rounds in one session, medians; untouched parts move by 20-40% between sessions, so compare the
+changed parts and read the untouched ones as the noise.
 
 ### Loose .bmp textures
 
@@ -1724,14 +1601,13 @@ only the pose the world's draw shows changes (always on, no option; moving the c
   SetHeading, RestoreView, SetDistancePitch, LookFrom, PlaybackStart, Init, Load), so the next frame draws the placed
   pose. Until a frame draws the world after it, every tick's step is a cut: a load leaves the camera's own position
   and turn as they were (only its update places them by the loaded focus), so the first tick's step began at a pose no
-  frame showed and the first frames after the user's town save swung in from there (R56a). A target given in that time
+  frame showed and the first frames after the user's town save swung in from there. A target given in that time
   (`Camera::SetTargetId`: the base and battle screens take the leader as they are made after a load or a zone's entry)
   is drawn as reached: the gap from the camera's own focus to where the update's drift (a fifth of the way a call) and
   height lag (a tenth) settle it is added to the drawn focus and position (`camera::SettleBy`), and the update shrinks
   it by the same parts (both are linear, so it stays exact wherever the target goes) until it is gone. The camera's own
-  focus keeps the game's glide: it is saved (scenario.sav's camera) and clicks pick through it, and moving it moved 153
-  goldens (savea's camera focus, units 1e-5 apart in the recorded and network scenarios). A pan or a lost target drops
-  the gap; later targets keep the glide (a click on another hero).
+  focus keeps the game's glide: it is saved (scenario.sav's camera) and clicks pick through it, so moving it would move
+  the goldens. A pan or a lost target drops the gap; later targets keep the glide (a click on another hero).
 - **Rotations of other lengths:** a camera file's key may hold a rotation that is not of unit length (Lost in Astral's
   `Camera\mainmenu.cam`, its first key 1.16 long, which the main menu places the camera by; the game draws it as it is,
   a stretched view). The rotation that undoes a step is `before * now^-1` with the inverse (the conjugate over the
@@ -1741,7 +1617,7 @@ only the pose the world's draw shows changes (always on, no option; moving the c
   its focus stays where it was, so the drawn position turns about that stale focus. Not reached in play.
 - **Cut:** a tick whose update moved the focus by more than 8 map units, or the camera nearer to its focus or farther
   from it by more, placed it anew: no step, shown at once. A turn, pan, tilt, zoom or lift stays within both in a tick
-  however fast it goes (a test on the turn's angle once took a fast spin for a cut and made it jerk).
+  however fast it goes (a test on the turn's angle took a fast spin for a cut and made it jerk).
 - **Where it is read:** `WorldClient::Render` takes the frame's pose once at its start (`camera::TakeFrameView`); what the
   world's draw places by the camera reads `camera::FrameView()`: the view matrix (`view::ViewMatrix`), the sky dome,
   particle billboards, lightning's glow, rain and snow's band, the lighting's eye (`HandOverSceneLights`). The terrain's
@@ -1781,8 +1657,8 @@ objects the server's updates move, a held unit (pathTimeShift 1, not placed on i
   (none at the harness's default pass), unless longer than the cut.
 - **Interface figures:** a unit the interface draws (the HUD unit panel's, top left; the camp's and hero screen's
   previews; MapObjectFlag::NoEdgeFade during the draw) is placed by the interface in its own view, so `drawn::PoseOf`
-  gives it its own pose: the world's step and path change jump would move it there (the panel's figure jumped about
-  0.16 units up and right at each set-off, fading over the 150 ms, which looked like the animation switch's doing).
+  gives it its own pose: the world's step and path change jump would move it there (the panel's figure jumped at each
+  set-off).
 - Lag: up to a tick's step; an arrow vanishes up to one step short of its target (it is removed in the tick it arrives,
   so the original never drew it there either).
 
@@ -1820,16 +1696,13 @@ blends the pose last placed into the new one's (models/animation.cpp, models/ani
   animation's kind: attack, cast and hit 100 ms (the blow's moment reads at once), death 150, idle 250, the rest
   (walk, run, cross, special, map objects' None) 200. None from or into no animation (a figure built anew, a fresh
   unit). An object not drawn for longer than the length switches at once.
-- **First shown pose** (R65): a switch blends only from a pose the player saw, in a figure seen moving
-  (`poseShown`: the pose last placed was drawn, `PlaceForDraw` from DrawParts and the out-of-view shadow casters;
-  `seenMoving`: a placement once replaced a drawn pose). So a figure's first shown pose is its current animation's,
-  with no blend. Before R65 a load's units restarted their saved animation and passed into the queued one before
-  any draw (RestartAnimation's Advance), blending from the rest pose `SetUpAnimatedFigure` placed: the HUD's hero
-  swung out of a T pose (the user's Lost in Astral save, saved paused, so it stayed half-way until the blend's real
-  time ran out). And back in the main menu after a game, its creatures arrive in the server's state before its first
-  tick (special idle) and are drawn frozen (the client world is still paused from the game's Esc menu) until the
-  tick sets them walking: they all blended into the walk at once. Now they switch at once. A figure first shown in a
-  paused world (a paused save) likewise takes its first switch after the unpause at once. Scenario
+- **First shown pose**: a switch blends only from a pose the player saw, in a figure seen moving (`poseShown`: the
+  pose last placed was drawn, `PlaceForDraw` from DrawParts and the out-of-view shadow casters; `seenMoving`: a
+  placement once replaced a drawn pose). So a figure's first shown pose is its current animation's, with no blend.
+  Otherwise a load's units, which restart their saved animation and pass into the queued one before any draw, would
+  blend from the rest pose `SetUpAnimatedFigure` placed (the HUD's hero swung out of a T pose), and the main menu's
+  creatures, drawn frozen until the first tick sets them walking, would all blend into the walk at once. A figure first
+  shown in a paused world likewise takes its first switch after the unpause at once. Scenario
   mod_lost_in_astral_first_pose (`animblend count`, the HUD figure's first frames against a later one).
 - Goldens: the harness's default frames are 275 ms apart, longer than any blend, so each draw shows the new pose
   alone, as before. A blend counted from the switch itself drew the outgoing pose on the switch's frame: its parts'
@@ -1860,9 +1733,8 @@ blends the pose last placed into the new one's (models/animation.cpp, models/ani
 - `camera_spin`: the low keyboard spin (`camsteadier`: the drawn height's largest step at most 0.35 of the camera's) and the
   fast drag zoomed out (turn without jumps; `camsame ... reach`: the drawn view's distance from its focus changes as the
   camera's own does, within 3%).
-- No scenario clicks a unit mid-pan on purpose (H74: the camera and picking code runs in the camera scenarios). What
-  the drawn view feeds (the Shown flags, the
-  visible and shadow lists, picking) must not reach the world's state.
+- What the drawn view feeds (the Shown flags, the visible and shadow lists, picking) must not reach the world's state;
+  no scenario clicks a unit mid-pan on purpose.
 - Harness: `keydown` / `keyup` (a key held over frames), `frametime <ms>`, `mousedrag <dx> <dy>`, `camtrace` / `camsame` /
   `camsteadier` / `camsmooth` (tests/verify/harness_camera.h; kinds pan, turn, zoom, height, reach); `objtrace start <who>
   [part|-] [log]` / `objtrace stop <name>` (an object's drawn and own place, or a part's place in the figure, or with
@@ -1937,11 +1809,7 @@ blends the pose last placed into the new one's (models/animation.cpp, models/ani
 
 ## 15b. SDL_GPU's limits
 
-The renderer draws with SDL3's GPU API (R43e; sokol_gfx on Direct3D 11 and OpenGL before it). The spike that compared
-the two (build/reviews/r43_sdl_gpu.md) found the same pixels and close frame times, the device about 150 ms slower to
-make (made in the background from GameMain's window class registration, `render::PrepareDevice`).
-
-Rules it found:
+The rules of SDL3's GPU API that shape the renderer:
 - **Vertex buffer slots.** A pipeline's slots are packed from 0. The D3D12 backend looks a buffer's description up by
   slot number. The renderer's pipelines do this: the casters' instances are slot 1, `kInstanceBuffer`.
 - **What SDL_GPU lacks:**
@@ -1959,13 +1827,13 @@ forward-declared handles, so the files include no SDL header. `ei_gpu_check` che
 
 **Shape.**
 - **Device.** `PrepareInBackground` (the device made on a thread of its own; SDL's video must be up already, or both
-  drivers refuse and `Start` makes the device again on the calling thread: R43e removed the video start from here,
-  which left the background device failing until `PrepareDevice` moved to after the platform layer's window class and
-  video start, R43d1) and `Start` (takes it, or makes one); `Stop` waits for the GPU and releases everything. Driver: Direct3D 12, else
+  drivers refuse and `Start` makes the device again on the calling thread: `app::StartVideo` calls `PrepareDevice`
+  after the platform layer's window system) and `Start` (takes it, or makes one); `Stop` waits for the GPU and
+  releases everything. Driver: Direct3D 12, else
   Vulkan, on Windows; Vulkan on Linux; Metal on macOS; `DeviceOptions::driver` picks one. Shaders: DXIL on Direct3D 12,
   SPIR-V on Vulkan, MSL on Metal, from `gpu_shaders::kPrograms` (made at their first pipeline). `MaxSamples`,
   `FormatSupported`. No device loss is reported (section 9).
-- **Pipelines made ahead** (R43d1). `PrepareInBackground(options, lister)`: the thread that made the device calls the
+- **Pipelines made ahead.** `PrepareInBackground(options, lister)`: the thread that made the device calls the
   `PipelineLister` (descriptions appended to a vector; `DeviceLimits::MaxSamples` for the device-dependent ones) and
   makes each into its own cache and shader list, which nothing else touches; `Start` joins the thread and moves both
   into the globals, so no lock is needed and the cache is the main thread's from then on. An exit between
@@ -1983,13 +1851,10 @@ forward-declared handles, so the files include no SDL header. `ei_gpu_check` che
   (Bgra8), and for the render quality's samples the meshes, terrain and the copies between the targets. A pass state
   the list lacks is made at its first draw as before; when the draws change, log the creations (a temporary line in
   `MakePipeline`) over a few scenarios and list what shows up. The log line "gpu: N of M pipelines made ahead in X ms
-  (the start waited Y ms for them)" says what it cost: on this machine's warm driver cache 5-10 ms for the 28 of a run
-  (the same as making them at first use), several hundred under four games at once or after a driver or shader change.
-  Y is mostly the device itself (R43d2): `app::StartVideo` (main(): the one-instance check, SDL's video, `PrepareDevice`)
-  runs before GameMain, and GameMain does the work that needs no device (sound, the databases, the map list) before
-  `CreateRenderer`, but that is all of 30-40 ms on a quiet machine; the start still waits about 260 ms of the device's
-  ~290 (Direct3D 12 on this machine). Hiding more needs more device-free work in front of the first use, or a faster
-  `CreateDevice`.
+  (the start waited Y ms for them)" says what it cost: on this machine's warm driver cache 5-10 ms for the 28 of a run,
+  several hundred under four games at once or after a driver or shader change. Y is mostly the device itself: GameMain's
+  device-free work before `CreateRenderer` (sound, the databases, the map list) is 30-40 ms, so the start still waits
+  about 260 ms of the device's ~290 (Direct3D 12 on this machine).
 - **Handles** are plain values: `Texture` (with its size, levels, samples and format), `Buffer`, `Sampler`, `Pipeline`,
   `Ticket`. `Release` empties a handle. A texture or buffer released while recorded commands use it lives until they
   are done (SDL's). A handle released and then bound is not: a file that replaces a buffer or texture binds the new
@@ -2016,7 +1881,7 @@ forward-declared handles, so the files include no SDL header. `ei_gpu_check` che
   (`ApplyPipeline`, `BindVertexBuffers`, `BindIndexBuffer` 32-bit, `BindTextures` texture-sampler pairs,
   `PushUniforms`) last for the pass, across pipelines, and one set again unchanged is not sent again (a uniform block
   is compared byte for byte with the one last pushed in its slot; one its caller keeps unchanged for the pass,
-`PushPassUniforms`, by its address only; `BindStorageBuffers` whole buffers, R37f3). `DeviceSerial` and `PassSerial` count the devices made and the passes begun,
+`PushPassUniforms`, by its address only; `BindStorageBuffers` whole buffers). `DeviceSerial` and `PassSerial` count the devices made and the passes begun,
 for callers that keep pipelines and samplers by a key of their own (the mesh draws) or bindings for a pass. `Counts()` says what the draws sent and what the
   filter left out; in a real run (scenario `render_stats`, 272k draws) 8% of the pipeline calls, 4% of the vertex and 4%
   of the index buffer binds, 12% of the texture calls and 30% of the uniform pushes were sent. `SetStateFiltering(false)`
@@ -2048,41 +1913,35 @@ for callers that keep pipelines and samplers by a key of their own (the mesh dra
   queries, so `SetFrameTiming(true)` starts a thread that polls the submissions' fences every 0.2 ms; a submission's
   time runs from its submission (or the end of the one before, if later) to when its fence was seen signalled.
   `FrameGpuTime` gives the latest. The thread is joined when the renderer stops (`render::Shutdown`, from
-  `SceneRenderer::DestroyRenderer`) and by an `std::atexit` function for exits that skip it: a joinable `std::thread`
-  destroyed at exit called `std::terminate`, and with the overlay on (Rebirth's profile) every quit crashed after the
-  exit functions and waited 2-3 s for the system's crash report (PL22). `gpu::Stop` is not called at exit: the device,
-  its textures and the window go with the process. The thread only queries fences: SDL's Direct3D 12 `SDL_WaitForGPUFences` holds the
-  submit lock while it waits, so a waiting thread would stall the main thread's submissions.
+  `SceneRenderer::DestroyRenderer`) and by an `std::atexit` function for exits that skip it (a joinable `std::thread`
+  destroyed at exit calls `std::terminate`: every quit with the overlay on crashed). `gpu::Stop` is not called at exit:
+  the device, its textures and the window go with the process. The thread only queries fences: SDL's Direct3D 12
+  `SDL_WaitForGPUFences` holds the submit lock while it waits, so a waiting thread would stall the main thread's
+  submissions.
 - **Fences**: each `Submit` keeps its submission's fence until the submission is seen finished; with the frame timer
   off, `Submit` asks the older ones itself, so a finished submission's fence goes back to SDL at the next submission
-  (`SubmissionsHeld` counts the kept ones). Before (H50) only the timer or a download's wait asked, so outside the
-  overlay every fence was kept: thousands a minute, which lavapipe and Windows' Direct3D 12 took, but Dozen on WSL
-  turned down after a few seconds of several games (`vkCreateFence` VK_ERROR_OUT_OF_DEVICE_MEMORY, then an abort).
+  (`SubmissionsHeld` counts the kept ones). Kept fences pile up by thousands a minute, which Dozen on WSL turns down
+  after a few seconds of several games (`vkCreateFence` VK_ERROR_OUT_OF_DEVICE_MEMORY, then an abort).
 - `Problems()` counts misused calls (each logged "gpu: ..."); the check holds it at its deliberate misuses. A call
   SDL refuses is not misuse but a lost device: `Failed` logs it, calls `SetFailureHandler`'s handler and exits
   (section 1, "When the renderer fails").
 
-**Cost** (`ei_gpu_check --bench [--driver NAME] [--frames N]`, tools/gpu_check/gpu_bench.cpp; the numbers below are
-the RTX 4070 Ti SUPER on Windows 10, two runs of 3 x 500 frames, a quiet machine; the spike's tables are in
-build/reviews/r43_sdl_gpu.md, 'Numbers'). The bench replays a synthetic world frame through gpu.h's calls the way
-render_mesh.cpp and render_shadows.cpp make them (155 instanced caster draws into a 4096 x 4096 depth map, 263 mesh draws
-with three uniform blocks, six samplers and a record each in a storage buffer, the present; half of the draws keep the
-last one's mesh, 40% its textures; the numbers below are from before R37f3's records, when the draws had five blocks),
-once with the filter off and once on, and reads a frame target back:
+**Cost** (`ei_gpu_check --bench [--driver NAME] [--frames N]`, tools/gpu_check/gpu_bench.cpp; the RTX 4070 Ti SUPER on
+Windows 10, two runs of 3 x 500 frames, a quiet machine, measured when the mesh draws had five uniform blocks). The
+bench replays a synthetic world frame through gpu.h's calls the way render_mesh.cpp and render_shadows.cpp make them
+(155 instanced caster draws into a 4096 x 4096 depth map, 263 mesh draws with their uniform blocks, six samplers and a
+record each in a storage buffer, the present; half of the draws keep the last one's mesh, 40% its textures), once with
+the filter off and once on, and reads a frame target back:
 - **The draw loop**, CPU time of recording and submitting a frame (median, ms): Direct3D 12 0.26 without the filter, 0.17
-  with it (960x720 and 2560x1440 alike); Vulkan 0.29 and 0.155. The spike's replay sent every call (D3D12 level with
-  D3D11, Vulkan 15-25% slower); with the filter on the call counts of a frame fall from 419 pipeline, 418 + 418 buffer,
-  1208 texture and 1317 uniform calls to 19, 195 + 195, 279 and 398 (94 KB of uniforms instead of 259). The frame time
+  with it (960x720 and 2560x1440 alike); Vulkan 0.29 and 0.155. With the filter on the call counts of a frame fall from
+  419 pipeline, 418 + 418 buffer, 1208 texture and 1317 uniform calls to 19, 195 + 195, 279 and 398. The frame time
   (acquire to submit) then follows the swap chain: 0.17-0.21 ms on D3D12 and 0.32-0.36 ms on Vulkan.
-- **Downloads** (RGBA8 frame target, median ms, idle / drawn then read; the spike's SDL path made a transfer buffer
-  each time): 960x720 Direct3D 12 0.20 / 0.21, Vulkan 0.18 / 0.19 (spike 0.78-1.21 / 0.95-1.50); 2560x1440 Direct3D 12
-  0.75 / 0.69, Vulkan 0.72 / 0.76 (spike 3.3-5.2 / 3.8-5.9; its sokol D3D11 2.7-3.1 / 2.1-2.7). The first read pays the
-  buffer (0.6-0.7 ms at 960x720, 1.6 at 1440p on D3D12; 7-8 ms on Vulkan's first). A download recorded with the frame
-  and read a frame later with `Done` / `Read` costs the calls only: 0.12-0.14 / 0.6 ms including the frame's own
-  commands. The game's own reads (screenshots, the movie recorder, the harness's captures, a picture of the escape
-  menu) want the pixels now and wait; nothing in a frame's path reads back.
-- **Pipelines made ahead** (the log line, a scenario run on this machine's warm driver cache): 28 of 28 in 8 ms, and the
-  start waited about 500 ms for the thread, which is the device itself.
+- **Downloads** (RGBA8 frame target, median ms, idle / drawn then read): 960x720 Direct3D 12 0.20 / 0.21, Vulkan
+  0.18 / 0.19; 2560x1440 Direct3D 12 0.75 / 0.69, Vulkan 0.72 / 0.76. The first read pays the buffer (0.6-0.7 ms at
+  960x720, 1.6 at 1440p on D3D12; 7-8 ms on Vulkan's first). A download recorded with the frame and read a frame later
+  with `Done` / `Read` costs the calls only: 0.12-0.14 / 0.6 ms including the frame's own commands. The game's own reads
+  (screenshots, the movie recorder, the harness's captures, a picture of the escape menu) want the pixels now and wait;
+  nothing in a frame's path reads back.
 
 **Check**: `ei_gpu_check` (tools/gpu_check; build_checks.py on Windows, ctest `port_gpu --require` on Linux), per driver
 (Direct3D 12 and Vulkan on Windows, Vulkan on Linux: lavapipe without a GPU), in a few seconds:
@@ -2137,7 +1996,7 @@ draws is kept on the GPU (render_mesh_cache.cpp) and its batches draw from that 
 frame's stream. A figure part handed over with its lighting (MeshDraw::lighting, its model space to the landscape's) is lit in the
 shader from its normals.
 
-The draws (R37f3, `MeshDraws`): before the frame's passes `PlanMeshDraws` (render.cpp) fills each mesh command's record
+The draws (`MeshDraws`): before the frame's passes `PlanMeshDraws` (render.cpp) fills each mesh command's record
 (`MeshRecord`, mesh.hlsl: the matrices, the place, fog, flags; 336 bytes) and its lights (`PartLight`: the sun,
 ambient and point lights a figure part or ground print is lit by, 432 bytes; one for consecutive draws lit alike, entry
 0 none), together what the draw's uniform blocks were, and joins consecutive commands with the same pipeline key, geometry, textures, shadow block and
@@ -2167,7 +2026,7 @@ and uploaded again is what the game says changed:
   the units' fronts), taken again only when they were built or moved. The casters outside the view
   (render::CasterMesh) are kept the same way, in the part's own slot: one copy whether the part is drawn or only casts
   (a part leaving the view is relit to the caster's colour pair, 0 and 0, which the shadow maps do not read).
-- One GPU copy for the same arrays (R37f3, `GpuMesh`): a kept mesh's built arrays (corners, colours, triangles) are looked
+- One GPU copy for the same arrays (`GpuMesh`): a kept mesh's built arrays (corners, colours, triangles) are looked
   up by a hash of their bytes and compared whole; a figure mesh whose arrays match another's takes its copy (the palms
   of one morph, lit alike), so their draws bind the same indices and merge into instances. A mesh whose arrays change
   (moved, relit) while shared takes a copy of its own first (relit, it looks for a match again); a copy no mesh uses is
@@ -2177,42 +2036,31 @@ and uploaded again is what the game says changed:
   build compares every kept mesh and box with a fresh build every 16th frame (`meshcache check`); `meshcache off`
   builds every mesh into the frame's stream.
 
-### World objects drawn whole (R37f13)
+### World objects drawn whole
 
-The design that came before (retained objects: an instance buffer on the GPU per object part, written when the object
-changes, the view applied in the shaders, about -650 lines) was built in a smaller form after the user's change: one
-view test per object, the GPU clips the rest.
-- **The verdict.** `CollectVisible` / `CollectCells` test each object's bounds once (`InView`); that is the draw's verdict. `Object3DClientSpecific::DrawParts` pushes nothing on the matrix stacks, takes no
-  `ClipTest` per part and projects no vertex: every part near enough (`PartTooFar`) and not hidden goes to the renderer
-  whole (`FigureMeshDrawer::DrawLit`, `TextureDevice::DrawMesh`), placed by its model matrix (the object's drawn pose
-  times its extra scale times the part's) under the screen stack's top. `FigureMeshFlag::Drawn` is set for those parts,
+One view test per object; the GPU clips the rest.
+- **The verdict.** `CollectVisible` / `CollectCells` test each object's bounds once (`InView`); that is the draw's
+  verdict. `Object3DClientSpecific::DrawParts` pushes nothing on the matrix stacks, takes no `ClipTest` per part and
+  projects no vertex: every part near enough (`PartTooFar`) and not hidden goes to the renderer whole
+  (`FigureMeshDrawer::DrawLit`, `TextureDevice::DrawMesh`), placed by its model matrix (the object's drawn pose times
+  its extra scale times the part's) under the screen stack's top. `FigureMeshFlag::Drawn` is set for those parts,
   `MapObjectFlag::Shown` when any was drawn, `MapObjectFlag::Static` when every part near enough is neither hidden nor
-  flat (the digest's client units carry it; the relight rule that cleared it, `TouchedModels`, `touchTime`,
-  `kLightingPeriod`, `ClientHalfFlag::Redraw` and `FigureMeshFlag::Lit` are gone). A unit's or lever's part gets its
-  rectangle from its box (`BoxRect`, section 3, "Picking").
+  flat (the digest's client units carry it). A unit's or lever's part gets its rectangle from its box (`BoxRect`,
+  section 3, "Picking").
 - **The hand-over.** `MeshDraw` carries the part's model matrix (`model`, multiplied in at BeginMesh and kept in
-  `Frame::models`: `MeshBatch::placement`), its lighting in that space (`MeshLighting::model`: FigureLight no longer takes
-  the camera back out) and one colour / specular pair (`colour`, `specular`) in place of colour arrays: a lit part's
-  `Material::GpuLitColour` and specular, a flat part's flat pair; only the sky keeps its arrays. The device's CPU mesh
-  draws (MeshArgs, DrawMeshBlocks, the textured DrawMeshBlocks2 and DrawTwoTextures, BoundsOfProjected) and
-  link_mesh_draw.cpp are gone.
-- **The renderer reads the game's matrices.** The point shadows, the units' weather and the roofs read
-  `Frame::models` (`CameraInverse` and `LandscapeModel` are gone), so a kept point-shadow face compares its casters'
-  matrices exactly; the water's sky dome takes the sky's own matrix (`Sky::Draw` hands it over instead of pushing it).
-  The casters' walk outside the view passes over an object the world drew (`render::CasterDrawn`; the per-part list
-  `CasterPartDrawn` and the objects' `casterParts` are gone).
-- **Not built**: the retained instances (an instance buffer and its upload, about 300 lines for about 0.05 ms once the
-  per-part work above is gone), the kept verdicts while the camera is still (dropped by the user), `ReceiverMatrices` by model. The
-  outside casters through the mesh hand-over followed in R37f14 (section 13, item 10).
-- **Looks**: an object partly in view casts and is drawn whole, so its shadow no longer comes from the casters' walk
+  `Frame::models`: `MeshBatch::placement`), its lighting in that space (`MeshLighting::model`) and one colour / specular
+  pair (`colour`, `specular`) in place of colour arrays: a lit part's `Material::GpuLitColour` and specular, a flat
+  part's flat pair; only the sky keeps its arrays.
+- **The renderer reads the game's matrices.** The point shadows, the units' weather and the roofs read `Frame::models`,
+  so a kept point-shadow face compares its casters' matrices exactly; the water's sky dome takes the sky's own matrix
+  (`Sky::Draw` hands it over instead of pushing it). The casters' walk outside the view passes over an object the world
+  drew (`render::CasterDrawn`) and hands the others' parts over through the same mesh hand-over (section 13, item 10).
+- **Not built**: retained instances (an instance buffer per object part and its upload, about 300 lines for about
+  0.05 ms), verdicts kept while the camera is still (dropped by the user), `ReceiverMatrices` by model.
+- **Looks**: an object partly in view casts and is drawn whole, so its shadow comes from its draw, not the casters' walk
   (render_shadows_outside: the town gate). A unit's rectangle is its parts' boxes, a little larger than its triangles
-  (render_load_town's colour check reads the larger rectangle).
-- **Measured** (R37f5's probe on the commits before and after, release terms, 3840 x 2160, Msaa 1, Anisotropy 1, three
-  quiet runs each, medians; frame-plan.md, "Measured after R37f13"): the stress save's main thread 4.74 -> 3.81 ms with
-  the camera still (the objects' draws 1.93 -> 1.19), 3.48 -> 2.64 panning (the draws 1.14 -> 0.64); the sampled
-  2400-frame runs 3.88 -> 2.90. The town at night is GPU-bound and stays where it
-  was (0.87 / 0.85 ms; with the crowd 1.62 / 1.66). More meshes reach the GPU (parts outside the view are no longer
-  left out: the save 1822 -> 2081 a frame, the town 119 -> 227), in about as many calls (56 -> 58).
+  (render_load_town's colour check reads the larger rectangle). Parts outside the view reach the GPU too (the stress
+  save hands over about 2100 meshes a frame) in about as many calls.
 
 ### render_occlusion.cpp: the screen's ambient occlusion
 
@@ -2220,7 +2068,7 @@ Section 13, item 11a: once a frame after the shadow maps the world's depth at ha
 models that write the depth), the occlusion found in it (occlusion.hlsl) and blurred (occlusion_blur.hlsl); the ground
 and the world's meshes lit on the GPU take it off their ambient light (shaders/ambient_occlusion.hlsli). The ground's own
 occlusion from the height field is render_terrain.cpp's. The water's reflected rays are marched through the same depth
-(render_water.cpp, R17a3), so with the occlusion off the water reflects the sky alone.
+(render_water.cpp), so with the occlusion off the water reflects the sky alone.
 
 ### render_point_shadows.cpp: point-light shadows
 
@@ -2259,16 +2107,16 @@ layer in the zone's page array; the clip matrix is the pipeline's. The GPU clips
 
 ### render_water.cpp: the ripple map and the reflections
 
-The water's small ripples (R17a): a 256 x 256 RGBA8 map with its levels down to 1 x 1, made at the start (section 1) from
+The water's small ripples: a 256 x 256 RGBA8 map with its levels down to 1 x 1, made at the start (section 1) from
 a fixed generator of its own (the same map on every run and system, nothing drawn from the game's): r, g the slopes of
 100 waves along x and y (3 to 24 cycles across, in random directions), b the foam's pattern (the height of 24 finer
-waves), each wave a whole number of cycles across the map so it repeats without a seam. With 40 (until R63) a few long
-waves crossed into a regular knit that no shifting of the map hid. The terrain batches bind it with a repeating, linearly mipmapped sampler
+waves), each wave a whole number of cycles across the map so it repeats without a seam (40 waves crossed into a regular
+knit that no shifting of the map hid). The terrain batches bind it with a repeating, linearly mipmapped sampler
 (anisotropy 8); RippleOffsets gives its two layers' offsets at the client's time (SceneLights::clientTicks: the client
 world's tick and the fraction of the next one it has had), and the swamps' a fifth as fast, so the ripples hold still
 under `freeze` and move with the game's clock.
 
-The reflections (R17a1), read by shaders/terrain_stages.hlsli's `reflected_sky` (the water's and the puddles') and
+The reflections, read by shaders/terrain_stages.hlsli's `reflected_sky` (the water's and the puddles') and
 terrain_water.hlsl's `screen_reflection`:
 - **The sky image** (DrawSkyReflection, once a frame before the first pass, after the ambient occlusion): the world's
   meshes before its first ground (the sky dome: WorldClient::Render draws the sky first) drawn again into a quarter-size
@@ -2277,7 +2125,7 @@ terrain_water.hlsl's `screen_reflection`:
   give the dome's centre, radius across and height. The shader meets the reflected ray with the dome (an ellipsoid)
   and looks the hit up in the image through its matrix, so water at any level reads it right: the plane only keeps the
   dome in view. About 0.02 ms.
-- **The rays' depth and colour** (R17a3): the rays are marched through this frame's depth before the water, the ambient
+- **The rays' depth and colour**: the rays are marched through this frame's depth before the water, the ambient
   occlusion's half-size depth (render_occlusion.cpp: the ground and the models that write the depth, no water; drawn
   before the frame's first pass, terrain_water.hlsl's `occlusion_depth`), and take the colour where they hit from the last
   frame's world view: CopyFrameForWater (shaders/scene_copy.hlsl) copies the frame target's colour at half size (per
@@ -2285,18 +2133,15 @@ terrain_water.hlsl's `screen_reflection`:
   matrix; the hit point is looked up through it (`sceneView`), so the camera's motion moves nothing; what moved in the
   frame shows where it was one frame before. When the last frame left no copy at this size (the first frame after a
   load or a resolution change, or with water again after frames without) the copy is taken before the water's first
-  draw instead, as R17a1 did (one more resolve, that frame only), so the reflections start with the first frame
+  draw instead (one more resolve, that frame only), so the reflections start with the first frame
   (render_load_first_frame: its first frame against a later one). Without the occlusion (`occlusion off`) the water
   reflects the sky alone.
-  Why: SDL_GPU samples no multisampled texture, so a copy of the frame before the water (R17a1's) needs the world's pass
-  split there and resolved once more, about 0.2-0.25 ms at 3840x2009, msaa 8 (the colour's resolve about 0.1, the depth
-  copy's 0.12; the split itself 0.03). The copy at the world's end reuses its resolve, and the depth before the water
-  was already there. Not the world's depth at its end: the water writes it and its waves rise up to 0.3 units, so a ray at
-  a grazing angle would pass behind the next crest and hit the water itself. The last frame's colour holds the water, the
-  effects and the rain drawn after it: a ray hits only above the water, where they differ only at its edges and under
-  an effect. The frames of render_water, render_water_looks and five low views (pitch 12-15 degrees, msaa 8) against
-  R17a1's: a mean difference under 0.11 a channel, 0.4% of the pixels by more than 8 at most (the swamp's low view),
-  the rest under 0.05%.
+  Why: SDL_GPU samples no multisampled texture, so a copy of the frame before the water needs the world's pass split
+  there and resolved once more, about 0.2-0.25 ms at 3840x2009, msaa 8. The copy at the world's end reuses its resolve,
+  and the depth before the water was already there. Not the world's depth at its end: the water writes it and its waves
+  rise up to 0.3 units, so a ray at a grazing angle would pass behind the next crest and hit the water itself. The last
+  frame's colour holds the water, the effects and the rain drawn after it: a ray hits only above the water, where they
+  differ only at its edges and under an effect.
 - **BindWaterReflections**: every terrain batch's part of TerrainFsParams (the camera's clip matrix, the sky image's,
   the dome, the depth's map to clip w: render_occlusion.cpp's DepthMap, the copied frame's clip matrix, whether the
   rays are marched) and the two images at terrain slots 9 and 10 (a white image where one is missing). The fields sit in TerrainFsParams because a stage
@@ -2311,7 +2156,7 @@ half size and 10 + 3 steps about 0.1-0.2 ms, with no visible loss under the ripp
 
 ### shaders/terrain_water.hlsl: the water
 
-The ground and the water are two programs (R37e4d; `terrain_ground.hlsl`, `terrain_water.hlsl`) over a shared
+The ground and the water are two programs (`terrain_ground.hlsl`, `terrain_water.hlsl`) over a shared
 `terrain_common.hlsli` (the vertex layout, both blocks' first members, the slot names' use) and `terrain_stages.hlsli`
 (the animated tiles' coordinates, the edge fade, clip and shadow-map coordinates, the receivers' includes, the rain's
 rings and the sky's reflection). Each program names its fragment slots itself (the slots of a stage run from 0 without
@@ -2331,22 +2176,18 @@ red (0.8, 0, 0, lit by itself) lava; the kind is interpolated, so where a swamp 
 then, per pixel:
 - **Ripples**: two layers of the ripple map, one repeating every 9 landscape units and one every 5 turned 0.65 radians
   against it (at 0.45 of A's weight), drifting apart; their slopes (0.165 at the steepest texel, calmer within half a
-  unit of the shore) turn the vertex normal. **No repeat shows** (R63): each layer is laid in patches (`ripple_patch`),
-  the map shifted by a patch's own offset (the R2 sequence), the patch picked by the cloud map at 1/47 a unit (turned
-  0.4 radians): 8 patches across its range for A, 10.6 for B with their borders between A's; across a border a narrow
+  unit of the shore) turn the vertex normal. **No repeat shows**: each layer is laid in patches (`ripple_patch`), the
+  map shifted by a patch's own offset (the R2 sequence), the patch picked by the cloud map at 1/47 a unit (turned 0.4
+  radians): 8 patches across its range for A, 10.6 for B with their borders between A's; across a border a narrow
   blend whose slopes are scaled back to their contrast; the same noise scales the slopes 0.75 .. 1.2 (calmer and
-  rougher stretches). Before, the map's repeat showed as a grid of the same glints every 9 units (B was turned by
-  (0.8, 0.6), a 3-4-5 turn, so the two layers together repeated exactly every 45 units), plainest at sunset from a low
-  camera. Measured from above (a scratch model of the map and the shader): the slopes' correlation with themselves 9
-  units along was 0.79-0.83 and 1.0 at (27, 36); now 0.09-0.12. Cost: four ripple reads and one noise read per water
-  pixel, as before (the swamps' slower layers are read only where a swamp is, the scum's noise likewise); the frame's GPU
-  time on zone1's sea at 4K, msaa 8 (whole frame, lowest of 4 interleaved runs): 2.38 / 2.24 / 2.45 / 2.39 ms before,
-  2.35 / 2.28 / 2.52 / 2.44 after (noon from 45 and 18 degrees, sunset from 45 and 16). The rippled normal lights the layer up to 30% more or 25% less as it turns to the sun or away
-  (kRippleShade 2, by the sun's share of the light not under a cloud).
+  rougher stretches). Without the patches the map's repeat shows as a grid of the same glints every 9 units, plainest
+  at sunset from a low camera. Four ripple reads and one noise read per water pixel (the swamps' slower layers and the
+  scum's noise only where a swamp is). The rippled normal lights the layer up to 30% more or 25% less as it turns to
+  the sun or away (kRippleShade 2, by the sun's share of the light not under a cloud).
 - **Depth** (`depth`, VertexRest's: the water's depth over the ground at the vertex, from the ground record,
   interpolated): the share 1 - e^(-0.5 depth) of the depth's look: from half the material's opacity at the shore to 1.15
   times it in deep water, and up to 15% darker.
-- **Reflection** (R17a1): Schlick's Fresnel term (0.02 head-on, but at least 0.12, kLeastReflection: the game's lit
+- **Reflection**: Schlick's Fresnel term (0.02 head-on, but at least 0.12, kLeastReflection: the game's lit
   layer is far brighter than deep water, so 2% of the sky did not show) of the rippled normal towards the camera
   (SceneLightParams::camera) blends in what the reflected ray (turned up to just above the horizon where a ripple tips
   it down) meets: the sky dome (`reflected_sky`, render_water.cpp's sky image), and over it what the frame showed before
@@ -2356,25 +2197,21 @@ then, per pixel:
   ground at a grazing view. At the game's 45-degree camera the reflections of objects are short (the ray leaves the
   frame soon); low views show them whole. In shadow the reflection loses up to 0.3 (kShadedReflection).
 - **Sun glints**: a sharp (0.25) and a broad Blinn-Phong lobe of the sun's colour on the rippled normal, gone as the sun
-  sets and in a shadow: the water receives the objects' shadows from the sun's map and the clouds' as the ground does
-  (R17a1; before, the clouds' only, and glints showed in a tree's shadow), and its layer is lit by that shade.
+  sets and in a shadow: the water receives the objects' shadows from the sun's map and the clouds' as the ground does,
+  and its layer is lit by that shade.
 - **Foam**: within half a unit of the shore, the ripple map's foam pattern above a threshold, lit by the ambient and sun
   light, at most 0.35 opaque.
-- **The shore line**: the water fades in over the first 0.25 units of depth, so where its surface meets the ground there
-  is no edge. Before, the water at the shore line was already half its opacity and more at a grazing view (the
-  reflection), and it ended in a hard line along the triangles where the ground rose out of it (not the shore's
-  seams: next item). The water layer's tiles themselves never end over ground under the water (zone1:
-  of 1203 vertices on the edge of the water tiles, 3 lie under it, by at most 0.07).
-- **Which layer a pixel is** comes from the batch (its own program since R37e4d; before it `TerrainFsParams::flags.x`), never
-  from an interpolated attribute.
+- **The shore line**: the water fades in over the first 0.25 units of depth, so no hard line runs along the triangles
+  where the ground rises out of it (not the shore's seams: next item). The water layer's tiles themselves never end
+  over ground under the water (zone1: of 1203 vertices on the edge of the water tiles, 3 lie under it, by at most
+  0.07).
+- **Which layer a pixel is** comes from the batch (each layer its own program), never from an interpolated attribute.
   With multisampling a pixel on a triangle's edge is shaded at its centre for each triangle covering any of its
-  samples, so the attributes are carried past the triangle; the ground's `loss` (0 on dry ground, more under the
-  water) fell below 0 there at the shore, the old single terrain program took the sign for the water layer, and the ground's edge
-  samples got the water's look and its near-0 alpha at the shore line: the sky showed through in a dotted cyan line
-  along the ground's triangle edges where the sand meets the water (R17c1; R17a2's fade of the water's own edge was
-  another line). Not cracks: the vertices are shared and the frame without multisampling had none. A per-pixel test of
-  an attribute against a value its vertices sit at (0, -1) goes wrong the same way. Check: scenario `render_shore_seams`
-  (the user's save on zone 1's beach, msaa 8 against 1, `smoothedges`).
+  samples, so the attributes are carried past the triangle: the ground's `loss` (0 on dry ground, more under the
+  water) falls below 0 there at the shore, and a test of its sign gave the ground's edge samples the water's look and
+  its near-0 alpha (a dotted cyan line along the shore's triangle edges). A per-pixel test of an attribute against a
+  value its vertices sit at (0, -1) goes wrong the same way. Check: scenario `render_shore_seams` (the user's save on
+  zone 1's beach, msaa 8 against 1, `smoothedges`).
 - **A swamp** is standing water, distinct from the sea and darker than the grass around it: the ripples at 0.2 of the
   slope, drifting at a fifth of the speed (TerrainFsParams::slowRipples); a deep green body, the game's green kept:
   0.8 of the lit layer (the game's swamp, its texture lit by the material's green) blended 0.35 towards a murk of
@@ -2384,23 +2221,18 @@ then, per pixel:
   opaque) where the cloud map at 1/17 a unit and the ripple pattern sum above a threshold, a little more within 1.5
   units of the shore. Its edge goes by the distance from the shore line, not by the depth: it fades in over 0.25
   units, is 0.35 opaque there and fully opaque 1.2 units in (or half a unit deep). The swamps are shallow and their
-  shores flat, so the water's fade by 0.25 of depth (R17a2's first try) faded whole pools out and left them the
+  shores flat, so a fade by 0.25 of depth faded whole pools out and left them the
   grass's green. On the ground a muddy wet rim: the ground layer's `depth` is the swamp's depth over it
   (render_terrain.cpp's SwampDepth; -1 where the record's water is not a swamp), and within 0.6 units of its shore
   line and 0.3 under it the ground turns 0.45 of the way to an earthy tint of its own luminance (kMud) and is half wet
   (ground_weather's `mud`, which counts as wet ground whatever the weather: wet_ground's sheen).
   **The shore distance** (`shore_distance`) is the depth over the ground's slope, and the slope comes from the map's
   vertex normals, interpolated: on the water layer the ground record's (render_terrain.cpp's GroundSlope, in the
-  vertex's second depth value, `shore`), on the ground its own interpolated normal. Taken from the depth's pixel
-  derivatives (until R17c4b) the slope was the triangle's own, so the distance jumped at every triangle edge where the
-  ground bent: the swamp's fade and the mud rim stepped in straight lines and notches along the triangles (a sharp
-  vertical edge and diagonal steps by the grass tongue in render_swamp_shore's swamp_near), and the rim, which ran
-  under the whole swamp, mixed brown into the bed, which the game's lighting tints by the water's green: near black
-  (R17c4b; swamp_view's body (23, 25, 12) at the save's hour and (37, 45, 29) at noon against the game's look
-  (16, 29, 2) and (26, 48, 4); now (16, 27, 7) and (29, 48, 17); swamp_near_noon's shore, 800 x 500 at (300, 300):
-  the darkest 5% under luminance 20.9, now 27.7, the game's 30.0; the step by the tongue, a column's mean jump over
-  120 rows at x 878: 7.5, now 1.5, the game's 1.8). The game's look for such a comparison: Water returning `game` with
-  the material's opacity for the swamps too (as for lava) and no mud.
+  vertex's second depth value, `shore`), on the ground its own interpolated normal. Not from the depth's pixel
+  derivatives: that slope is the triangle's own, so the distance jumps at every triangle edge where the ground bends
+  (the fade and the mud rim stepped in straight lines and notches; render_swamp_shore's swamp_near), and the rim ran
+  under the whole swamp and darkened its bed near black. The game's look for such a comparison: Water returning `game`
+  with the material's opacity for the swamps too (as for lava) and no mud.
   Where a swamp meets other water (zone1: material 1 against material 0 at (147, 87), (172, 94) and (122, 69), both
   under water; the swamp's priority 0.5 is the lower, so the shared vertices are the swamp's) the ground's `depth`
   runs from the swamp's depth to -1 across the triangle and crosses 0 under the water: a false shore line. No one
@@ -2408,42 +2240,21 @@ then, per pixel:
   river), so the ground carries a second value, `otherWater` (VertexRest, beside `depth` in one float2 attribute: the
   terrain pipeline has all 8 of its attributes): 1 where it lies under water that is not a swamp. The rim fades out
   over its first quarter (kMudOther), so it ends near the swamp's vertices, under the swamp's own near-opaque water;
-  only triangles with both a swamp vertex and ground under other water change (every other ground vertex has 0). R17c4a,
-  looks_swamp_river: the false band under the river (an olive strip by the bridge, a 40 x 140 strip at (680, 540))
-  differed from the frame with the rim off by 2.3 a channel on average, 745 of its 5600 pixels by more than 8; now
-  0.13 and 22. The real shores (looks_shore, looks_shore_near, looks_swamp, looks_swamp_east and the swamp edge's own
-  shores) are the same to the pixel.
+  only triangles with both a swamp vertex and ground under other water change (every other ground vertex has 0). Check:
+  looks_swamp_river (no olive band under the river by the bridge); the real shores are the same to the pixel.
 - **Lava** keeps the game's look (its texture lit by its own colour, the material's opacity).
 
 The depth is per vertex (one unit apart), so the foam's band follows the triangles near the shore. Cost (3840x2009,
-msaa 8, frame GPU time on a quiet machine by the fence probe of section 13 item 1, frozen frames of render_water's
-scenes; the water's part: frames with its draws against frames without them, medians), before R17a1 / after:
-the shore 1.06 / 1.35 ms, the sea 1.18 / 1.33, the lake 0.09 / 0.40, the river 0.10 / 0.48, the river at night
-0.24 / 0.44, the lake at night 0.18 / 0.45. Of the 0.15-0.38 ms added, the resolve for the copy before the water was
-about 0.2-0.3 (gone with R17a3), the march 0.1-0.2 on a screen of water, the sky image 0.02, the shadow map on the
-water little. R17a3, the views render_water's steps reach at 3840x2009 (three rounds alternated, medians; the kit: build/R17a3 in
-the main checkout, a probe patch script whose EI_R17A3=s skips the water's draws (its render.cpp variants were written
-against R17a1's copy), the scenarios r17a3_time and r17a3_low, the runner and the tables), the water's part with R17a1's copy / without the rays (`sceneOn` 0) /
-R17a3's: the shore 0.61 / 0.29 / 0.32 ms, the sea 0.60 / 0.26 / 0.30, the lake 1.23 / 1.17 / 1.18, the river
-0.45 / 0.16 / 0.20, the river at night 0.47 / 0.20 / 0.20, the lake at night 1.24 / 1.21 / 1.27.
-Why the lake views cost more (R17a4; the kit: build/R17a4 in the main checkout, R17a3's probe adapted (EI_R17A4: the
-water skipped, flat, unblended, without its depth or its depth copy; no pipeline writing the depth copy; the copy not
-resolved or not stored), the scenarios r17a4_time and r17a4_over (variant o draws the water a see-through red, and
-r17a4_cover.py counts the frame's share of it), the runner and the table): at 3840x2009 their water covers 81% and 86%
-of the frame (render_water's 4:3 captures show the lake far smaller), the shore and sea views' 28%, the river's 13%;
-per frame of water every view costs about the same, 1.2-1.5 ms. Not the shading: the water's fragment returning its
-vertex colour costs the same (the lake 1.24 against 1.23 ms), without blending 1.09-1.21, without the shadow map's
-lookup the same. The per-sample writes are the cost: the flat water without its depth and its depth copy 0.31-0.35 ms on
-the lakes. Most of it is the depth copy (section 11, "The depth copy": an R32F target every depth-writing draw of the
-world writes at each sample): with no pipeline writing it the frame is 0.55-1.2 ms cheaper in every view (three rounds,
-medians: the shore 2.63 / 2.08 ms, the sea 2.67 / 2.10, the lake 3.46 / 2.42, the river 2.58 / 2.11, the river at night
-3.32 / 2.15, the lake at night 3.38 / 2.41), and the lakes' water then costs 0.25 ms. Its resolve is a smaller part (without it 0.05-0.5 ms
-less, a noisier round). The copy is general, not the water's: since R17a4a only frames that read it write it (section 11). R17a's look (ripples, depth, glints, foam) added nothing measurable over the game's
-plain water shading. Check: scenario `render_water`
-(frozen moments on zone1: the beach at the west sea, the sea, the lake in the middle, the river with stones, the river
-and the lake at night; samecapture of a frozen moment drawn twice, diffcapture that the ripples move). zone1's water materials
-(kind 3): 0 and 2 water (0.19, 0.32, 0.65; 0 the lake and the river, 2 the sea), 1 the swamp; the swamp's tiles lie in
-x 123..193, y 3..93 (the big one around (158, 34), deepest (163, 47); the east one around (172, 70)).
+msaa 8, frame GPU time on a quiet machine by the fence probe of section 13 item 1): the water costs by the pixels it
+covers, about 1.2-1.5 ms for a frame full of it (render_water's lake views cover 81-86% of the frame, the shore and the
+sea views 28%). Not the shading (the water returning its vertex colour costs the same) but the per-sample writes, most
+of them the depth copy's (section 11, "The depth copy"), which only frames that read it write: without it the lakes'
+water costs about 0.25 ms. The march costs 0.1-0.2 ms on a screen of water, the sky image 0.02. Check: scenario
+`render_water` (frozen moments on zone1: the beach at the west sea, the sea, the lake in the middle, the river with
+stones, the river and the lake at night; samecapture of a frozen moment drawn twice, diffcapture that the ripples
+move). zone1's water materials (kind 3): 0 and 2 water (0.19, 0.32, 0.65; 0 the lake and the river, 2 the sea), 1 the
+swamp; the swamp's tiles lie in x 123..193, y 3..93 (the big one around (158, 34), deepest (163, 47); the east one
+around (172, 70)).
 
 ### render_checks.{h,cpp}: the harness's API
 
@@ -2554,6 +2365,6 @@ draws every object standing where such a caster can stand (render::ShadowCasterA
 whose bounding sphere passes the map's test (render::ShadowCasterReaches) hands its parts to the map
 through the world's mesh hand-over as casters alone (render::BeginCaster, CastsShadow with the strength found,
 FigureMeshDrawer::HandOverCaster: render::CasterMesh), placed as Object3DClientSpecific::DrawParts places them. An object the world's draw drew
-this frame (whole: R37f13; render::CasterDrawn) is passed over after the sphere test (which still moves the map's near
+this frame (render::CasterDrawn) is passed over after the sphere test (which still moves the map's near
 plane). Everything here only reads the game's
 objects, so the game's logic and its goldens are those of a run without it.
