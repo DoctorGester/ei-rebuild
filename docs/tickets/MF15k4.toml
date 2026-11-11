@@ -4,3 +4,5 @@ group = "mods"
 size = 2
 note = "After MF15k2, MF15k3. A new exe linking ei_engine + ei_render + ei_platform + imgui: the install's archives and mods loaded, a flat stub ground, a free camera, one figure to attach to, the viewer panel (src/tools moved onto the host interface). Harness scenarios for it (the effect_viewer ones move over); the release ships it. Then drop the in-game --effects mode (one path; user 2026-11-11) and MF15i3's --zone start. User 2026-11-11: the ei-effects exe's UI uses imgui's docked mode (a dockspace over the main window; effect list, fields, text, inputs and timeline as dockable windows, layout saved). The vendored imgui 1.93.0 is the master branch without docking (no IMGUI_HAS_DOCK): vendor the docking branch at the same pinned version, unmodified (library-downloads-ok). imgui is used only by the viewer (src/tools/imgui_layer.cpp, effect_viewer_panel.cpp); once the in-game --effects mode is dropped the game exe links no imgui at all."
 order = 1387
+status = "review"
+started = "2026-11-11"
