@@ -3,18 +3,29 @@
 // The figure manager: makes the figure objects and loads their data from its archives or a cached model
 // (docs/notes/models.md).
 
-#include "game/world/world.h"
+#include "engine/core/manager_context.h"
+#include "engine/data/resource_manager.h"
 
+#include "lib/rect.h"
 #include "lib/str.h"   // ViewHash
 
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <string>
 #include <string_view>
 #include <unordered_map>
 
-// The figure manager's object types (CreateObject / type), named after their classes.
+class FigureAnimationState;
+class FigureMesh;
 class UiMesh;
+struct AnimationTrack;
+struct ClipBounds;
+struct FigureAnimation;
+struct FigureBone;
+struct FigureModel;
+
+// The figure manager's object types (CreateObject / type), named after their classes.
 
 enum class FigureObjectType : int {
     LoosePart = 0x41,             // FigureMesh: a part that is not attached
