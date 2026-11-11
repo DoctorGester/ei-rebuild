@@ -21,6 +21,7 @@
 #include "eris/lauxlib.h"
 #include "eris/lua.h"
 
+#include <algorithm>
 #include <bit>
 #include <cstdint>
 #include <cstdio>
@@ -775,6 +776,44 @@ return {
     {"sleepy.lua", "return {\n  OnCast = function(cast) Sleep(1) end,\n  OnEnd = function(cast, reason) _G.spellEnd = reason end,\n}"},
     {"world.lua", "local id = GetObjectID(nil)\nreturn {}"},
     {"timerless.lua", "return { OnCast = function(cast) cast:After(1, 'Missing') end }"},
+    {"api.lua", R"lua(
+-- The world methods on a stone in a world without a map (no units, no ground): what each takes, gives and owns.
+local spell = {}
+function spell.OnCast(cast)
+    local stone = cast.target
+    local here = { x = 0, y = 0, z = 0 }
+    check(cast.power == 1 and cast.school == "fire", "the cast's power and school")
+    check(#cast:FindUnits(here, 5, { enemies = true, alive = true, exclude = { [1001] = true } }) == 0,
+          "FindUnits: none on an empty map")
+    check(not pcall(cast.FindUnits, cast, "here", 5), "FindUnits: a position expected")
+    check(cast:CanAffect(stone) == true and cast:CanAffect(nil) == false, "CanAffect: anything, with no caster")
+    check(cast:Damage(stone, 3, "fire") == 0 and cast:Damage(nil, 3, "Acid", { area = true, noCredit = true }) == 0,
+          "Damage: what is no unit loses nothing")
+    check(not pcall(cast.Damage, cast, stone, 3, "cold"), "Damage: an unknown damage type")
+    check(cast:Heal(stone, 5) == 0, "Heal: only units")
+    cast:Apply(stone, "own", { ticks = 50, power = 300, value = 2.5 })
+    cast:Apply(stone, "pulse")
+    check(cast:Has(stone, "own") and cast:Has(stone, "PULSE"), "Apply, Has (a spell's code in any case)")
+    check(cast:Remove(stone, "own") == 1 and not cast:Has(stone, "own") and cast:Has(stone, "pulse"), "Remove")
+    check(cast:Remove(stone, "pulse") == 1 and cast:Remove(stone, "pulse") == 0, "Remove: how many")
+    check(not pcall(cast.Apply, cast, stone, "nosuch"), "Apply: an unknown kind")
+    check(cast:Move(stone, { x = 2, y = 2, z = 0 }) == false, "Move: only units")
+    cast:Bolt(here, { x = 1, y = 0, z = 0 }, { lifetime = 2 })
+    cast:Light({ x = 0, y = 0, z = 1 }, { color = { 1, 0.5, 0 }, range = 4, lifetime = 3 })
+    cast:Effect("sparks", { at = here, lifetime = 4 })
+    check(not pcall(cast.Effect, cast, "NoSuchEffect"), "Effect: an unknown name")
+    cast:Sound("magic\\x.wav", here)
+    cast:Missile { to = stone, from = { x = 5, y = 0, z = 0 }, payload = { n = 7 } }
+    cast:Missile { to = stone, from = { x = 6, y = 0, z = 0 }, effect = "AcidRay" }
+    check(not pcall(cast.Missile, cast, { from = here }), "Missile: an object to fly at")
+    check(not pcall(cast.Missile, cast, { to = stone, effect = "NoSuchEffect" }), "Missile: an unknown effect")
+end
+function spell.OnHit(cast, target, payload, point)
+    _G.hits = (_G.hits or "") .. string.format("%s@%d,%g;", payload and payload.n or "nil", cast.tick, point.x)
+end
+function spell.OnEnd(cast, reason) _G.spellEnd = reason .. " at " .. cast.tick end
+return spell
+)lua"},
 };
 
 std::string SpellEnd(ScriptLuaScheduler& scheduler) {
@@ -909,6 +948,59 @@ void CheckSpellHost(TestWorld& world) {
         Expect(!scheduler.spells.Adopt(missing), "a key the restored state lacks is no cast");
     }
     Expect(reported.size() == 4, "no errors through the saves");
+
+    // The world methods: what they own and when it goes, OnHit for each missile that arrived.
+    {
+        PrepareWorld();
+        // The stone in a world (its changes stamped with the world's count) and the AI map's sectors (none).
+        CStone* const stone = world.stones[0];
+        BaseManager* const stoneOwner = stone->owner;
+        stone->owner = g_serverWorld.timedObjectManager.get();
+        SectorMap& sectors = g_serverWorld.aiMap.sectorMap;
+        AIMap* const sectorsMap = sectors.aiMap;
+        sectors.aiMap = &g_serverWorld.aiMap;
+        std::vector<unsigned> before;
+        for (const auto& node : g_serverWorld.timedObjects.map) before.push_back(node.first);
+
+        Script script;
+        ScriptLuaScheduler& scheduler = script.Runner();
+        prepare(scheduler);
+        lua_register(scheduler.lua.State(), "check", LuaCheck);
+        ScriptSpellHost& host = scheduler.spells;
+        SpellEffect api;
+        cast(api, "api.lua", 0);
+        api.world = &g_serverWorld;
+        Expect(host.Cast(api) && reported.size() == 4, "the world methods run in OnCast");
+        Expect(api.owned.size() == 5, "a bolt, a light, an effect and two missiles owned (the sound is not)");
+        host.Tick(api);
+        host.Tick(api);
+        Expect(api.owned.size() == 4, "the bolt goes when its lifetime runs out");
+        const auto arrive = [&api](int payload) {
+            for (const SpellOwned& entry : api.owned)
+                if (entry.payload == payload) static_cast<EffectMissile*>(entry.object.Get())->arrived = 1;
+        };
+        int firstMissile = 0;
+        for (const SpellOwned& entry : api.owned)
+            if (entry.payload && !firstMissile) firstMissile = entry.payload;
+        arrive(firstMissile);
+        Expect(host.Tick(api) && api.owned.size() == 2, "the light and the missile that arrived go at tick 3");
+        arrive(firstMissile + 1);
+        Expect(!host.Tick(api) && api.owned.empty() && SpellEnd(scheduler) == "idle at 4",
+               "the cast ends idle once its objects are gone");
+        lua_State* L = scheduler.lua.State();
+        lua_getglobal(L, "hits");
+        Expect(lua_isstring(L, -1) && std::string(lua_tostring(L, -1)) == "7@3,5;nil@4,6;",
+               "OnHit for each missile, with its payload and where it ended");
+        lua_pop(L, 1);
+        Expect(stone->effects.empty(), "the stone's effects removed");
+
+        for (const auto& node : std::vector(g_serverWorld.timedObjects.map.begin(), g_serverWorld.timedObjects.map.end()))
+            if (std::ranges::find(before, node.first) == before.end()) g_serverWorld.RemoveTimedObject(node.first);
+        sectors.aiMap = sectorsMap;
+        stone->owner = stoneOwner;
+    }
+    Expect(reported.size() == 4, "no errors from the world methods");
+    for (std::size_t i = 4; i < reported.size(); ++i) std::printf("lua_check: reported: %s\n", reported[i].c_str());
     records.resize(first);
 }
 

@@ -635,6 +635,104 @@ frame = { start = "pick(16)", delay = 1 }
   nothing. An unknown key is only noted.
 - In a network game every player needs the same effect files: they count in the mod's content hash.
 
+## Spells
+
+A spell of your own is a record and a Lua file: the record (`Res\database\spells.sdb.toml`, [Databases](#databases))
+names the file with `script`, and the file below `Res\spells\` runs every cast of it, on the server.
+
+```toml
+[[spell]]
+name = "Chain Spark"
+code = "spark"
+script = "chain_spark.lua"     # Res\spells\chain_spark.lua
+school = "lightning"
+target_kind = "unit"
+mana = 8.0
+range = 15.0
+damage = 12.0
+target_count = 3
+light_color = [0.3, 0.6, 0.9]
+light_range = 2.0
+ai = "attack"                  # how the AI casts it (none: never, the default)
+damage_type = "lightning"
+offensive = true
+```
+
+```lua
+-- Res\spells\chain_spark.lua: a spark that jumps from its target to the nearest enemy, targetCount times.
+local spell = {}
+
+function spell.OnCast(cast)
+    cast.data.hit = {}
+    cast.data.jumps = 0
+    cast:Missile { to = cast.target, effect = "SphereElectricity", payload = { damage = cast.damage } }
+end
+
+function spell.OnHit(cast, target, payload, point)
+    if not target then return end                      -- the unit is gone: nothing more to do
+    cast:Damage(target, payload.damage, "lightning")
+    cast:Effect("Sparks", { at = point })
+    cast:Sound("magic\\lightning\\start.wav", point)
+    cast.data.hit[GetObjectID(target)] = true
+    cast.data.jumps = cast.data.jumps + 1
+    if cast.data.jumps >= cast.targetCount then return end
+    local next = cast:FindUnits(target, 4, { enemies = true, alive = true, affect = true, exclude = cast.data.hit })[1]
+    if next then
+        cast:Bolt(target, next, { lifetime = 5 })
+        cast:Missile { from = target, to = next, effect = "SphereElectricity", payload = { damage = payload.damage * 0.7 } }
+    end
+end
+
+return spell
+```
+
+- **The hooks** (the file returns a table of them; each is optional):
+  - `OnCast(cast)` once, when the cast starts;
+  - `OnTick(cast)` every tick after (a file with it keeps its casts going until `cast:Finish()` or the limit);
+  - `OnHit(cast, target, payload, point)` when a missile of the cast lands (`target` nil when the unit is gone,
+    `payload` what `cast:Missile` was given, `point` where it ended);
+  - `OnEnd(cast, reason)` once, at the end: `"finished"`, `"idle"`, `"limit"` or `"error"`;
+  - a function you name in `cast:After(ticks, "Name", payload)`: `spell.Name(cast, payload)` that many ticks later.
+- **No waits.** `Sleep` and the other waits are errors in a hook; pace the spell with `cast:After` and `OnTick`.
+- **The cast value**: `cast.id`, `cast.code`, `cast.caster` and `cast.target` (units or nil), `cast.from` and
+  `cast.point` (`{x, y, z}`), `cast.tick` (ticks since the cast), the spell's built numbers (runes included):
+  `cast.damage`, `cast.range`, `cast.radius`, `cast.duration`, `cast.targetCount`, `cast.speed`, `cast.mana`,
+  `cast.power` (the game's power curve of its damage, about 0.8 to 1.8) and `cast.school` (its school's name); and
+  `cast.data`, a table of your own that is kept with the cast (and in saves): numbers, strings, booleans, units,
+  tables.
+- **The methods.** Positions are `{x, y, z}` tables or units (where the unit stands). Each does what the game's own
+  spells do:
+
+| Method | What it does |
+|---|---|
+| `cast:FindUnits(at, radius, filter)` | the units within `radius` of `at`, nearest first. `filter` keys: `enemies` / `friends` (of the caster; with no caster every unit is an enemy), `alive`, `area` (those area spells hit), `sight` (in the line of sight the spell needs from `at`), `affect` (the rune filters let the spell hit them), `exclude` (a set of ids: `{[GetObjectID(unit)] = true}`) |
+| `cast:CanAffect(unit)` | the spell's hits would hit the unit (its rune filters) |
+| `cast:Damage(unit, amount, type, {area, noCredit})` | a spell's hit of `amount` of a damage type (`fire`, `lightning`, `acid`, `piercing`, `slashing`, `crushing`, `general`): armour and protections count, the caster is the attacker unless `noCredit`; `area` hits have no direction, as the walls' and clouds'. Gives the hit points lost |
+| `cast:Heal(unit, amount)` | heals as the healing spell does; gives the hit points gained |
+| `cast:Apply(unit, kind, {ticks, power, value, strength})` | an active effect on the unit: `kind` a spell's code (`slow`, `stun`, `weak`, `prot_fire`, ...: that spell's effect and look) or `"own"` (this spell's, with its icon and no effect of its own). The values default to the cast's (duration, power, damage, radius) |
+| `cast:Remove(unit, kind)`, `cast:Has(unit, kind)` | the unit's effects of that kind removed (how many) / whether it has one |
+| `cast:Move(unit, to, {check = true})` | the unit moved to the point (at its own height) unless it cannot stand there; true when it moved. A push is a small move each tick |
+| `cast:Bolt(from, to, {width, lifetime})` | a lightning bolt; an end that is a unit follows it |
+| `cast:Missile{to, from, effect, size, sound, payload}` | a spell missile flying at the unit `to` (at the game's missile speed) from `from` (default the caster), showing `effect` (default `FireArrow`) with the spell's light; `OnHit` runs when it lands |
+| `cast:Effect(name, {at, attach, size, alpha, velocity, lifetime})` | a particle effect: one of yours (`Res\effects`, [Effects](#effects)) or a game's by its script name (`Sparks`, `LightningBlast`, `FireBlast`, `Healing`, ...); at `at` (default the cast's point) or on the unit `attach` |
+| `cast:Sound(name, at, volume, hearing)` | a sound played once (`magic\...\x.wav`) |
+| `cast:Light(at, {color, range, rise, lifetime})` | a point light, by default in the record's `light_color` and `light_range` |
+| `cast:After(ticks, "Name", payload)`, `cast:Finish()` | a timer; the end of the cast after this hook |
+
+- **How long a cast lives.** A bolt, effect or light lasts `lifetime` ticks, and while one does, the cast goes on; one
+  given no `lifetime` lasts as long as the cast. The cast ends after a hook calls `cast:Finish()` (its bolts, effects
+  and lights go with it), when nothing is left (no timer, no missile in flight, nothing with a lifetime, no `OnTick`:
+  `"idle"`), or at its limit: the record's `duration` in ticks, else 600.
+- **Randomness**: `Random(n)`, the game's generator, as in mission scripts. The game's script functions
+  (`GetObjectID`, `IsAlive`, `GetX`, `SetGameVar`, ...) work in the hooks too; the file's top level runs before any
+  cast and cannot reach the world.
+- **Errors** go to the console as `Script error: chain_spark.lua:<line>: <message>`; the cast then ends
+  (`OnEnd(cast, "error")`), the game goes on. A file that does not load is said once per zone.
+- **Saves and network games.** A save keeps every cast with its data, timers and missiles; the file is read again at
+  the load, so a fixed file reaches saved casts. Only the server runs the spell; the players see its bolts, missiles,
+  effects, sounds and lights. `Res\spells\` counts in the mod's content hash: every player needs the same files.
+- `tools/make_lua_mod.py spellapi` writes a test mod whose spell uses every method (`tests/scenarios/mod_spell_api.txt`).
+
 ## What stays in the original formats
 
 ei-convert converts every record, text, texture, model, animation, map and map object of the game. What stays as it
@@ -709,6 +807,5 @@ for the quest, and its hammer and boots are yours. Read its files as a recipe fo
 | An effect | `Res\effects\showcase_aura.effect.toml` (orbs trailing light and rising motes, driven by its inputs; `tests/scenarios/mod_effect.txt` starts it from the console) |
 
 What it cannot do yet: add a zone beside the game's (it replaces zone 1: the zone list is one text read whole), show
-a new weapon in the hero's hand or a new helmet or body armour on him (those are parts of the hero's figure), give a
-new spell an effect (the game's 42 spells have their code; a spell after them does nothing yet), and its island keeps zone 1's
-path-finding graph. The pictures and models are made by `tools/make_showcase_mod.py` in this repository.
+a new weapon in the hero's hand or a new helmet or body armour on him (those are parts of the hero's figure), and its
+island keeps zone 1's path-finding graph. Its new spell has no script yet: it does nothing ([Spells](#spells)). The pictures and models are made by `tools/make_showcase_mod.py` in this repository.

@@ -380,6 +380,9 @@ struct ScriptParticleType {
     int lifetime = 0;       // ticks, -1 forever
 };
 constexpr int kScriptParticleTypeCount = 60;
+// The particle type a script names (CreateParticleSource, a spell's Effect and Missile): one of the 60 (any case), else
+// a data effect's id (Res\effects); 0 for neither. *lifetime: its ticks as a script's source (-1 forever).
+int ScriptParticleTypeByName(std::string_view name, int* lifetime);
 
 namespace scriptir {
 struct Block;

@@ -150,8 +150,9 @@ using dbtoml::Name;
 namespace {
 
 constexpr Name kSchools[] = {
-    {0, "fire"},       {1, "lightning"}, {2, "acid"},       {3, "illusion"}, {4, "divination"},
-    {5, "enchantment"}, {6, "healing"},  {7, "domination"}, {8, "none"},
+    {0, recordnames::kSpellSchools[0]}, {1, recordnames::kSpellSchools[1]}, {2, recordnames::kSpellSchools[2]},
+    {3, recordnames::kSpellSchools[3]}, {4, recordnames::kSpellSchools[4]}, {5, recordnames::kSpellSchools[5]},
+    {6, recordnames::kSpellSchools[6]}, {7, recordnames::kSpellSchools[7]}, {8, recordnames::kSpellSchools[8]},
 };
 // SpellRecord::targetKind, the letter: a unit or a point.
 constexpr Name kTargetKinds[] = {{'u', "unit"}, {'t', "point"}};

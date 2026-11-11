@@ -84,6 +84,24 @@ constexpr ScriptParticleType kScriptParticleTypes[kScriptParticleTypeCount] = /*
     {"Transform", 0x2052, 200},
 };
 
+} // namespace
+
+int ScriptParticleTypeByName(std::string_view name, int* lifetime) {
+    for (const ScriptParticleType& type : kScriptParticleTypes) {
+        if (text::CompareIgnoringCase(type.name, name) != 0) continue;
+        *lifetime = type.lifetime;
+        return type.type;
+    }
+    if (std::shared_ptr<const effectdata::Record> effect = effectdata::g_effects.Find(name)) {
+        *lifetime = effect->scriptLifetime;
+        return effect->id;
+    }
+    *lifetime = -1;
+    return 0;
+}
+
+namespace {
+
 // The effect object saved under `id` (kNoObjectId: none), as the slot's effect class.
 template <class T>
 ScriptEffect<T> ReadObject(ByteStream* stream) {
@@ -206,22 +224,8 @@ void Script::CreateParticleSource(ScriptArgs args) {
     const float z = args.Float();
     const float size = args.Float();
     std::string name = args.Text();
-    const ScriptParticleType* type = nullptr;
-    for (int i = 0; i < kScriptParticleTypeCount; ++i) {
-        if (text::CompareIgnoringCase(kScriptParticleTypes[i].name, name) == 0) {
-            type = &kScriptParticleTypes[i];
-            break;
-        }
-    }
-    int particleType = 0;
     int lifetime = -1;
-    if (type) {
-        particleType = type->type;
-        lifetime = type->lifetime;
-    } else if (std::shared_ptr<const effectdata::Record> effect = effectdata::g_effects.Find(name)) {
-        particleType = effect->id;
-        lifetime = effect->scriptLifetime;
-    }
+    const int particleType = ScriptParticleTypeByName(name, &lifetime);
     if (particleType == 0) return;
 
     int id = requestedId;

@@ -1,0 +1,62 @@
+# A scripted spell's world bindings (docs/modding.md, "Spells"; docs/notes/items_spells.md, "Scripted spells"):
+# tools/make_lua_mod.py spellapi adds the spell "mf17c_storm", a point spell whose Res\spells\mf17c_storm.lua uses each
+# method of the cast value. Zone1's wolf 1804 (as unit_cast_at.txt) gets the spell and casts it (Cast) at a wolf spawned
+# next to the hero. OnCast finds that wolf as the unit nearest the cast's point (the caster left out), damages it
+# without credit, heals it, applies a game buff (slow) and the spell's own effect, moves it a step, puts a bolt from the
+# caster to it, a light and a sound, starts the mod's data effect mf17c_glow on it for 300 ticks and fires a missile at
+# it; OnHit damages it again where the missile landed (with Sparks). A pulse every 10 ticks removes the own effect at
+# pulse 10 and fires a second missile at pulse 15. The game is saved and loaded mid-cast: the cast goes on from the save
+# (its data, timers and owned objects: the glow's ticks left), both missiles hit, and the cast ends idle when the glow
+# goes, at tick 300, as an unbroken run does.
+# prepare: make_lua_mod.py spellapi
+mod harness_saves\lua_mod
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitline 15 Saved savea
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @GodMode(0,1)
+console @AddUnitToServer("MF17cTarget","WolfTutor","MF17cTarget",Add(GetX(GetLeader()),4),GetY(GetLeader()),0)
+waitfor 10 IsAlive(GetObjectByName("MF17cTarget"))
+console @BlockUnit(GetObjectByName("MF17cTarget"),1)
+console @GiveIntelligence(GetObject(1804),60)
+console @GiveSkill(GetObject(1804),"elemental",5)
+console @GiveUnitSpell(GetObject(1804),"mf17c_storm")
+console @Cast(GetObject(1804),GetX(GetObjectByName("MF17cTarget")),GetY(GetObjectByName("MF17cTarget")))
+waitline 20 MF17c: OnCast mf17c_storm, school lightning, power 0.80
+check IsEqual(GSGetVar(0,"mf17c.target"),GetObjectID(GetObjectByName("MF17cTarget")))
+check IsEqual(GSGetVar(0,"mf17c.affects"),1)
+check IsEqual(GSGetVar(0,"mf17c.lightning"),1)
+check IsGreater(GSGetVar(0,"mf17c.lost"),0)
+check IsGreater(GSGetVar(0,"mf17c.healed"),0)
+check IsEqual(GSGetVar(0,"mf17c.slowed"),1)
+check IsEqual(GSGetVar(0,"mf17c.marked"),1)
+check IsEqual(GSGetVar(0,"mf17c.moved"),1)
+waitline 20 MF17c: OnHit shot 1
+check IsGreater(GSGetVar(0,"mf17c.hitLost"),0)
+waitfor 20 IsGreater(GSGetVar(0,"mf17c.count"),4)
+
+key esc
+waitwindow 10 escmenu
+click 395 120
+waitwindow 10 saveload
+clickregion 0
+waitline 15 Saved save1
+wait 300
+load save1
+waitwindow 30 battle
+waitfor 20 IsGreater(HP(GetLeader()),0)
+check IsLess(GSGetVar(0,"mf17c.count"),20)
+check IsGreater(GSGetVar(0,"mf17c.count"),4)
+waitline 30 MF17c: OnHit shot 2
+check IsEqual(GSGetVar(0,"mf17c.removed"),1)
+check IsEqual(GSGetVar(0,"mf17c.marked"),0)
+waitline 20 MF17c: OnEnd idle at tick 300 after 2 hits
+check IsEqual(GSGetVar(0,"mf17c.count"),20)
+check IsEqual(GSGetVar(0,"mf17c.ended"),300)
+check IsAlive(GetObjectByName("MF17cTarget"))
+dump loaded_save1
+check IsAlive(GetLeader())
+report
+quit

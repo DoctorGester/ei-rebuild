@@ -111,6 +111,31 @@ void MapObject::AddEffect(const MapEffect* effect) {
     if (effect->ticksLeft > 1) RemoveOutdatedEffects(this, effect);
 }
 
+void MapObject::EffectRemoved(SpellType spellType) {
+    bool scales = spellType == SpellType::Strengthen || spellType == SpellType::Weaken || spellType == SpellType::Enlarge ||
+                  spellType == SpellType::Shrink;
+    if (scales) RecomputeScale();
+    MarkChanged(NetField::Effects);
+    ScaleEffectChanged(scales);
+    EffectsChanged();
+    if (!HasEffect(SpellType::Stun) && !HasEffect(SpellType::Teleport)) SetStunned(0);
+}
+
+int MapObject::RemoveEffects(std::uint8_t record) {
+    int removed = 0;
+    for (std::size_t i = 0; i < effects.size();) {
+        if (effects[i].type != record) {
+            ++i;
+            continue;
+        }
+        const SpellType spellType = effects[i].Behaviour();
+        effects.erase(effects.begin() + static_cast<std::ptrdiff_t>(i));
+        EffectRemoved(spellType);
+        ++removed;
+    }
+    return removed;
+}
+
 void MapObject::ClearEffects() {
     effects = {};
     MarkChanged(NetField::Effects);

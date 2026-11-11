@@ -235,6 +235,11 @@ public:
     // Removes every effect (frees the array), marks part 3 changed and calls the vitals, stun (0) and scale
     // virtuals.
     void ClearEffects();
+    // After an effect of the behaviour `spellType` left the array (it ran out, or RemoveEffects): the scale recomputed
+    // for a scaling one, part 3 marked changed, the scale and effects-changed virtuals, unstunned without a stun left.
+    void EffectRemoved(SpellType spellType);
+    // Every effect of the spell record `record` (MapEffect::type) removed, each as one that ran out; how many.
+    int RemoveEffects(std::uint8_t record);
 
     // The largest MapEffect::value (as a float, at least 0) of the effects of the behaviour `type`; 0 without
     // one. NaN values win the comparison.

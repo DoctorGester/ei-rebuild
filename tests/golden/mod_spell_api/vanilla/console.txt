@@ -1,0 +1,31 @@
+  Activated!
+  Cannot open file autoexec.cfg for reading
+  Saved savea
+  1
+  1
+  MF17c: OnCast mf17c_storm, school lightning, power 0.80
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  MF17c: OnHit shot 1
+  1
+  1
+  Saved save1
+  Cannot open file autoexec.cfg for reading
+  Loaded save1
+  1
+  1
+  1
+  MF17c: OnHit shot 2
+  1
+  1
+  MF17c: OnEnd idle at tick 300 after 2 hits
+  1
+  1
+  1
+  1

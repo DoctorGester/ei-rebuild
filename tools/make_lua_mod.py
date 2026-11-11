@@ -1,6 +1,6 @@
 r"""A mod whose zone 1 mission script is Lua (docs/notes/mods.md, "Scripts in Lua"; tests/scenarios/mod_lua_*.txt).
 
-usage: python tools/make_lua_mod.py <saves dir> plain|changed|none|named|broken|spell|addmob
+usage: python tools/make_lua_mod.py <saves dir> plain|changed|none|named|broken|spell|spellapi|addmob
 
 Writes <saves dir>\lua_mod (the scenarios' `mod harness_saves\lua_mod`): a config.reg with [MOD] Title, Rebirth.txt and
   plain    Maps\zone1.lua   the game's zone1.mob script as ei-convert writes it (a converted install's own Maps\zone1.lua,
@@ -18,6 +18,10 @@ Writes <saves dir>\lua_mod (the scenarios' `mod harness_saves\lua_mod`): a confi
   spell    Res\database\spells.sdb.toml  a spell "mf17b_pulse" whose script is Res\spells\mf17b_pulse.lua (SPELL;
                             docs/notes/items_spells.md, "Scripted spells"): its cast pulses every 10 ticks into the
                             game variable mf17b.count, 40 times, then finishes (no Maps\zone1.lua: the zone's .mob runs)
+  spellapi Res\database\spells.sdb.toml  a spell "mf17c_storm" whose Res\spells\mf17c_storm.lua (SPELL_API) uses each
+           Res\effects\mf17c_glow.effect.toml  world binding of the cast (docs/modding.md, "Spells") on the unit nearest
+                            its point, fires two missiles with OnHit and keeps a data effect (GLOW_EFFECT) for 300 ticks;
+                            its values go into the game variables mf17c.*
 and for addmob, no mod:
   addmob   <saves dir>\l8b_addmob.lua  the Lua of <saves dir>\l8b_addmob.mob (make_trap_mob.py makes the .mob, no
                             script in it), which `AddMob("..\saves\l8b_addmob.mob")` loads into zone 1's mission script
@@ -97,6 +101,108 @@ end
 
 return spell
 '''
+# The spellapi kind: the record, its script and the data effect it starts.
+SPELL_API_RECORD = b'''[[spell]]
+name = "MF17c Storm"
+code = "mf17c_storm"
+script = "mf17c_storm.lua"
+school = "lightning"
+target_kind = "point"
+mana = 1.0
+range = 30.0
+damage = 4.0
+skill = 1
+icon = 1
+light_color = [0.3, 0.6, 0.9]
+light_range = 3.0
+light_rise_divisor = 10.0
+'''
+SPELL_API = '''-- MF17c's spell (tools/make_lua_mod.py spellapi): a cast that uses each world binding of the cast value on the unit
+-- nearest its point (not the caster; the scenario's WolfTutor has one hit point, so the hits are small), then goes
+-- on: a pulse every PERIOD ticks, PULSES times (the "own" mark removed at pulse UNMARK, a second missile at pulse
+-- SECOND) while its data effect glows for GLOW ticks; with the glow gone and nothing pending the cast ends ("idle") at
+-- tick GLOW. Its values go into the game variables mf17c.*, its hooks say on the console what ran.
+local PERIOD = 10
+local PULSES = 20
+local UNMARK = 10
+local SECOND = 15
+local GLOW = 300
+
+local spell = {}
+
+local function Var(name, value) SetGameVar(0, "mf17c." .. name, value) end
+local function Flag(value) return value and 1 or 0 end
+
+function spell.OnCast(cast)
+    local near = cast:FindUnits(cast.point, 2, { alive = true, exclude = { [GetObjectID(cast.caster)] = true } })
+    local target = near[1]
+    cast.data = { target = target, count = 0, hits = 0 }
+    Var("target", GetObjectID(target))
+    Var("near", #near)
+    Var("enemies", #cast:FindUnits(cast.point, 30, { enemies = true, alive = true }))
+    Var("friends", #cast:FindUnits(cast.point, 30, { friends = true, area = true, affect = true, sight = true }))
+    Var("affects", Flag(cast:CanAffect(target)))
+    Var("lightning", Flag(cast.school == "lightning"))
+    Var("power", cast.power)
+    Var("lost", cast:Damage(target, 0.3, "fire", { noCredit = true }))
+    Var("healed", cast:Heal(target, 0.2))
+    cast:Apply(target, "slow", { ticks = 200 })
+    cast:Apply(target, "own", { ticks = 600 })
+    Var("slowed", Flag(cast:Has(target, "slow")))
+    Var("marked", Flag(cast:Has(target, "own")))
+    Var("moved", Flag(cast:Move(target, { x = GetX(target) + 1, y = GetY(target), z = 0 })))
+    cast:Bolt(cast.caster, target, { lifetime = 10 })
+    cast:Light(target, { lifetime = 30, rise = 0.05 })
+    cast:Sound("magic\\\\lightning\\\\start.wav", target)
+    cast:Effect("mf17c_glow", { attach = target, lifetime = GLOW })
+    cast:Missile { to = target, effect = "AcidRay", sound = "magic\\\\Acidray\\\\circle.wav", payload = { shot = 1 } }
+    print(string.format("MF17c: OnCast %s, school %s, power %.2f", cast.code, cast.school, cast.power))
+    cast:After(PERIOD, "Pulse")
+end
+
+function spell.OnHit(cast, target, payload, point)
+    cast.data.hits = cast.data.hits + 1
+    Var("hits", cast.data.hits)
+    Var("hitLost", cast:Damage(target, 0.2, "acid", { area = true }))
+    cast:Effect("Sparks", { at = point, lifetime = 15 })
+    print("MF17c: OnHit shot " .. payload.shot)
+end
+
+function spell.Pulse(cast)
+    local count = cast.data.count + 1
+    cast.data.count = count
+    Var("count", count)
+    if count == UNMARK then
+        Var("removed", cast:Remove(cast.data.target, "own"))
+        Var("marked", Flag(cast:Has(cast.data.target, "own")))
+    end
+    if count == SECOND then cast:Missile { to = cast.data.target, payload = { shot = 2 } } end
+    if count < PULSES then cast:After(PERIOD, "Pulse") end
+end
+
+function spell.OnEnd(cast, reason)
+    Var("ended", cast.tick)
+    print("MF17c: OnEnd " .. reason .. " at tick " .. cast.tick .. " after " .. cast.data.hits .. " hits")
+end
+
+return spell
+'''
+GLOW_EFFECT = b'''# MF17c's data effect (tools/make_lua_mod.py spellapi): sparks rising around what it is attached to.
+texture = "Teleport"
+blend = "additive"
+
+[emit]
+rate = 1
+
+[[particle]]
+name = "spark"
+lifetime = 20
+spawn = { shape = "disc", radius = 0.5 }
+velocity = [0, 0, 0.03]
+size = 0.2
+color = "80C0FF"
+frame = { start = "pick(16)", delay = 1 }
+'''
 BROKEN = '-- L8b (tools/make_lua_mod.py broken): Lua does not load this file.\nfunction WorldScript(\n'
 ADDMOB = '''-- L8b (tools/make_lua_mod.py addmob): the Lua of an AddMob'd .mob, loaded into zone 1's mission script while it
 -- runs (docs/notes/mods.md, "Scripts in Lua").
@@ -158,7 +264,7 @@ def changed(text, definition, lines):
 
 
 def main():
-    kinds = ('plain', 'changed', 'none', 'named', 'broken', 'spell', 'addmob')
+    kinds = ('plain', 'changed', 'none', 'named', 'broken', 'spell', 'spellapi', 'addmob')
     if len(sys.argv) != 3 or sys.argv[2] not in kinds:
         sys.exit(__doc__)
     kind = sys.argv[2]
@@ -189,6 +295,10 @@ def main():
     elif kind == 'spell':
         write(os.path.join(root, 'Res', 'database', 'spells.sdb.toml'), SPELL_RECORD)
         write(os.path.join(root, 'Res', 'spells', 'mf17b_pulse.lua'), SPELL.encode('utf-8'))
+    elif kind == 'spellapi':
+        write(os.path.join(root, 'Res', 'database', 'spells.sdb.toml'), SPELL_API_RECORD)
+        write(os.path.join(root, 'Res', 'spells', 'mf17c_storm.lua'), SPELL_API.encode('utf-8'))
+        write(os.path.join(root, 'Res', 'effects', 'mf17c_glow.effect.toml'), GLOW_EFFECT)
     print(f'{root}: {kind}')
 
 

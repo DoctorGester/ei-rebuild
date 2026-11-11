@@ -1,0 +1,13 @@
+{
+  "scenario": "mod_spell_api",
+  "install": "vanilla",
+  "recorded": "2026-11-11",
+  "commit": "c61258af8",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "MF17c: a new scenario, a scripted spell using every world binding (damage, heal, apply / remove, move, bolt, missiles with OnHit, a data effect) saved and loaded mid-cast",
+  "source": "image",
+  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs"
+}
