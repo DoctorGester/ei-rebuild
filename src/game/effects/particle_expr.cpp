@@ -7,11 +7,11 @@
 #include "lib/maths.h"
 #include "lib/vecmath.h"
 
-#include <algorithm>
 #include <array>
 #include <charconv>
 #include <cmath>
 #include <cstdio>
+#include <utility>
 
 namespace effectdata {
 namespace {
@@ -29,7 +29,8 @@ constexpr FunctionName kFunctions[] = {
     {"ceil", Function::Ceil, 1},     {"round", Function::Round, 1}, {"min", Function::Min, 2},
     {"max", Function::Max, 2},       {"clamp", Function::Clamp, 3}, {"lerp", Function::Lerp, 3},
     {"pow", Function::Pow, 2},       {"range", Function::Range, 2}, {"below", Function::Below, 1},
-    {"chance", Function::Chance, 1}, {"pick", Function::Pick, 1},
+    {"chance", Function::Chance, 1}, {"pick", Function::Pick, 1},   {"exp", Function::Exp, 1},
+    {"log", Function::Log, 1},
 };
 
 bool IsNameStart(char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'; }
@@ -284,6 +285,8 @@ float CallFunction(Function f, const float* a, IsaacRandom* random) {
     case Function::Clamp: return a[0] < a[1] ? a[1] : (a[0] > a[2] ? a[2] : a[0]);
     case Function::Lerp: return a[0] + (a[1] - a[0]) * a[2];
     case Function::Pow: return lib::Pow(a[0], a[1]);
+    case Function::Exp: return lib::Exp(a[0]);
+    case Function::Log: return lib::Log(a[0]);
     case Function::Range: return random ? random->Range(a[0], a[1]) : a[0];
     case Function::Below: return random ? random->Below(a[0]) : 0.0f;
     case Function::Chance: {
@@ -331,6 +334,9 @@ float Expr::Run(const Env& env, float fallback) const {
         const Instruction& i = code[pc++];
         switch (i.op) {
         case Op::Constant: stack[++top] = i.value; break;
+        case Op::LoadMeasured:
+            if (env.measure) env.measure(env.measureContext);
+            [[fallthrough]];
         case Op::Load: {
             const float* scope = env.scopes[static_cast<int>(i.scope)];
             stack[++top] = scope ? scope[i.index] : 0.0f;
@@ -385,11 +391,6 @@ float Expr::Run(const Env& env, float fallback) const {
         }
     }
     return top >= 0 ? stack[top] : fallback;
-}
-
-bool Expr::Reads(Scope scope) const {
-    return std::any_of(code.begin(), code.end(),
-                       [scope](const Instruction& i) { return i.op == Op::Load && i.scope == scope; });
 }
 
 Expr Compile(std::string_view text, const Resolver& resolve, std::string* error) {

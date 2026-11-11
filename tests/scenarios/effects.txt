@@ -1,7 +1,6 @@
-# Effects: particle sources of the kinds whose callbacks are rewritten, placed around the hero
-# (smoke and fire: EmitSmoke/UpdateSmoke; PoisonFog: UpdateCloud; the spheres and Antimagic:
-# UpdateOrbit; Nuke: UpdateDebris/TickNuke; Mushroom: TickMushroom; every script source:
-# ScaleSize each tick), wind changes for the rain layer (CRainSnow::SetWind), a resize, then
+# Effects: particle sources placed around the hero (smoke, fire and Nuke: data effects;
+# PoisonFog: UpdateCloud; the spheres and Antimagic: UpdateOrbit; Mushroom: TickMushroom; every
+# script source: ScaleSize each tick), wind changes for the rain layer (CRainSnow::SetWind), a resize, then
 # deletion. CreateParticleSource(id, x, y, z, size, name). The verify totals in the report show
 # what ran.
 reject Script error

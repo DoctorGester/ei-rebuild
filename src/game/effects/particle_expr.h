@@ -41,6 +41,9 @@ struct Env {
     const std::vector<std::vector<float>>* tables = nullptr;
     const std::vector<Curve>* curves = nullptr;
     IsaacRandom* random = nullptr;
+    // Called before a LoadMeasured: fills the values measured at their first read (null: they stand as they are).
+    void (*measure)(void* context) = nullptr;
+    void* measureContext = nullptr;
 };
 
 // What a name means where an expression is compiled.
@@ -56,7 +59,9 @@ using Resolver = std::function<Resolved(std::string_view name)>;
 
 // One instruction of a compiled expression.
 enum class Op : std::uint8_t {
-    Constant, Load, Negate, Not, Add, Subtract, Multiply, Divide, Modulo,
+    Constant, Load,
+    LoadMeasured,   // a Load of a value measured at its first read (Env::measure runs first)
+    Negate, Not, Add, Subtract, Multiply, Divide, Modulo,
     Less, LessEqual, Greater, GreaterEqual, Equal, NotEqual,
     Truth,          // the top as 0 or 1
     Jump,           // to `target`
@@ -72,6 +77,7 @@ enum class Op : std::uint8_t {
 // once per call).
 enum class Function : std::uint8_t {
     Sin, Cos, Atan2, Sqrt, Abs, Floor, Ceil, Round, Min, Max, Clamp, Lerp, Pow,
+    Exp, Log,   // e^x and the natural logarithm
     Range,      // range(lo, hi): IsaacRandom::Range
     Below,      // below(k): IsaacRandom::Below
     Chance,     // chance(percent): 1 when Next() % 100 is below it
@@ -93,8 +99,6 @@ public:
     // Whether it is one number (a constant folded by the compiler or written as one).
     bool IsConstant() const { return code.size() == 1 && code[0].op == Op::Constant; }
     float Run(const Env& env, float fallback = 0.0f) const;
-    // Whether any instruction loads from `scope`.
-    bool Reads(Scope scope) const;
 
     std::string text;
     std::vector<Instruction> code;

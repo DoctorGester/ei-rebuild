@@ -23,7 +23,7 @@ effects by family (`particle_casting.cpp`, `particle_marks.cpp`, `particle_blast
   ("In multiplayer and saves"). Check: `ei-convert --lua-check`'s `CheckUnknownParticleType`.
 - Each effect is a section of its family's file: its set-up, `Emit*` (fill one particle; 0 returns it to the pool),
   `Update*` (move one; 0 drops it) and `Tick*` (one element of the source's array, or the whole array for Tornado,
-  Casting*, Cylinder*, Tendril, Portal and ShapeChange), free functions over the source declared in
+  Casting*, Cylinder* and ShapeChange), free functions over the source declared in
   `particle_common.h`. The tick picks them by type in `EmitParticle`, `UpdateParticle` and `TickSource`
   (particle_manager.cpp); a type without an element tick has none.
 - `Tick` computes the source motion, runs the type's element tick and its update per particle (saving / restoring
@@ -36,7 +36,7 @@ effects by family (`particle_casting.cpp`, `particle_marks.cpp`, `particle_blast
   (Shower) and `glowKind` (ShapeChange, set by the path markers). The original kept these three in `frameDelay`,
   `lifetime` and `alpha`.
 - `ParticleManager`: free particles, `held` (sources by id, one reference each), a quiet-start flag that stops
-  CampFire, Fire and Smoke. `TickSources` ticks every source (paused: only `TicksWhilePaused`; a held source whose
+  CampFire, Fire and Smoke (by type id; never set). `TickSources` ticks every source (paused: only `TicksWhilePaused`; a held source whose
   tick returned 0 is released); `ReleaseUnheld` releases held sources with no other reference (the client's zone
   load). `DrawAll` sorts the sources by depth and draws each through the renderer's sprite draw (models.md,
   "Renderer").
@@ -53,14 +53,15 @@ Kept:
 - `Tick` unlinks and pools a particle the previous update rejected, then still updates it and counts it in the bounds.
 - Tables read past their data where the original read zeros: Modifier markers by their element's tick (to 25),
   AcidRay's spread and size (to 16; its file's tables), ClayRing's alpha at the first ticks (12, 13), Modifier's fade (10), FireBlast's
-  frame (to 16), TeleportRing's column alpha in the update after death; the tables carry the zeros or the reads are guarded.
+  frame (to 16), TeleportRing's column alpha in the update after death (its file's fade table); the tables carry the
+  zeros or the reads are guarded.
 - An update that counts the life down then reads its life table at index -1 (Shower, Casting, CastSwirl, Orbit;
   ClayRing its countdown table): the original read the previous table's last entry; `ByLife` (effects.h) gives
   that value. FireBlast's flame frame can step to 16 (read as alpha 0); Link sparks are emitted on a frame up to
   frameCount, one past the grid (drawn with the first frame).
 - `EmitLightning` never counts its bursts; CastSwirl reads its locals one slot off (an element gets sign * carrier
   radius instead of the size); Mushroom's spread is ln(1) = 0; Falling's direction spread is ftol(10 degrees) = 0;
-  Teleport adds its alpha step as an unsigned sum capped at 255 (a fade out below 19 jumps back to opaque);
+  Teleport adds its alpha step as an unsigned sum capped at 255 (a fade out below 19 jumps back to opaque; its file);
   LightningBlast sparks shift the alpha table by 22, not 24; Shower and FireBlast keep odd counters (see the code);
   Casting's swirl pick 0 is element 0, the effect's state, read as a swirl (its radius and size as x and y, z 0).
 
@@ -69,7 +70,7 @@ Kept:
 An effect written as data (MF15c; plan: the MF15 study, approved by the user 2026-11-11): `Res\effects\<name>.effect.toml`,
 read through the mod layers and run by one C++ runtime inside the generic source tick above. The end state (MF15g)
 is every original effect on this path and the per-type `Emit*` / `Update*` / `Tick*` deleted: the original effects
-and a modder's use the same runtime, so nothing below is mod-only (eleven are there now: "The original effects on
+and a modder's use the same runtime, so nothing below is mod-only (twenty-two are there now: "The original effects on
 data"). Game code (and later Lua) drives an effect only
 through the typed inputs it declares; the data maps them to rates, curves, stages, anchors and sub-effects.
 
@@ -148,7 +149,10 @@ numbers), `[curves]` (name = `[[t, value], ...]`, linear, held at the ends).
   source emits), `{ set = "<input>", value = ... }`, `{ stage = "<name>" | "end" }`, `{ effect = "<name>" }` (another
   effect started at the source's origin, free, on its own), `{ end = true }`, `{ stop = true }` (the source stops as
   the game's Stop stops it: no emission, not kept alive, its carrier let go; the effect goes on and the game may
-  start it again).
+  start it again), `{ stop_emitting = true }` (the emission flag cleared, as the game's StopEmitting without its
+  KeepAlive: the game may set it again). `set` names an input or one of the source's values `size`, `height`,
+  `growth`, `alpha`, `param` (written back to the source after the step, so the next tick, ScaleSize and the
+  particles' fields see it; Banshee keeps its ring's speed in `height`).
 - **Anchors** (`[[anchor]]`): a group of points the source owns (rings, orbs, bolt points, swirls), made at the
   start: `count`, `ticks` (each one's life; none: it lasts), `vars` (per anchor), and its position relative to the
   source's origin, `x`, `y`, `z` or `radius`, `angle` (x = cos(angle) * radius, y = sin(angle) * radius), `z`. An
@@ -175,12 +179,12 @@ numbers), `[curves]` (name = `[[t, value], ...]`, linear, held at the ends).
 
 A number, `true` / `false`, or a string compiled once at load (`particle_expr.h`): numbers, names, `+ - * / %`,
 comparisons, `!`, `&&`, `||` (both short), `a ? b : c`, functions `sin cos atan2 sqrt abs floor ceil round min max
-clamp lerp pow`, random `range(lo, hi)` (IsaacRandom::Range), `below(k)`, `chance(percent)`, `pick(n)` (Next() % n),
+clamp lerp pow exp log`, random `range(lo, hi)` (IsaacRandom::Range), `below(k)`, `chance(percent)`, `pick(n)` (Next() % n),
 a curve `name(t)`, a table `name[i]` (truncated, held to the ends). Constants `pi`, `deg`. Names, by where the
 expression runs:
 - everywhere: the inputs, the vars, the source's values (`size`, `height`, `growth`, `alpha`, `param`, `base_size`,
   `age`, `stage_age`, `stage`, `carrier_radius`, `carrier_z`, `attached`, `distance`, `motion.x/y/z`,
-  `origin.x/y/z`, `count`, `index`, `total`, `wind.x/y`, `wind_strength`, `extent.x/y/z`, `turn_cos`, `turn_sin`,
+  `origin.x/y/z`, `count`, `index`, `total`, `wind.x/y/z`, `wind_strength`, `extent.x/y/z`, `turn_cos`, `turn_sin`,
   `emitting`: the source's emission flag, which the game's StopEmitting and Stop and an effect's `once` clear,
   `spread_min.x/y/z`, `spread_max.x/y/z` (the spread box, scaled by ScaleSize), `side.x/y/z`, `up.x/y/z` (the
   motion's side and up axes this tick, zero while the source moves 0.001 or less: the trails' across directions)),
@@ -188,17 +192,19 @@ expression runs:
 - in an anchor's and its particles' fields: `a.index`, `a.count`, `a.age`, `a.ticks` (left), `a.x/y/z`, `a.<var>`;
 - in a particle's: `p.age`, `p.life`, `p.t` (age / (age + life)), `p.x/y/z`, `p.vx/vy/vz`, `p.size`, `p.alpha`,
   `p.frame`, `p.anchor`, `p.index` (the values before this tick's update), `p.spawn.x/y/z` (at the emission; 0 in the
-  update), `p.<var>` (as the vars' ticks left them).
+  update), `p.<var>` (as the vars' ticks left them). A particle var may not take one of these names (`age`, `x`,
+  `life`...): a load error, since `p.life` would read the var.
 A name the context lacks is a load error. Every operation is a float operation in the written order, so the draws come
 in the written order too; an emission's parts draw in the order lifetime, vars, the shape, the vars after it, the
 offset or position, velocity, size, colour, frame. Every draw is `g_particleRandom`'s.
 
 ### One tick
 
-`TickSource` → `TickData`: the source's values written (the carrier's radius and centre only when an expression reads
-them: measuring them recomputes the carrier's bounds), `State::Step` (events of this tick, the start's work or the
+`TickSource` → `TickData`: the source's values written (the carrier's radius and centre measured at an expression's
+first read in the tick, once: measuring recomputes the carrier's bounds, so an effect that reads them behind a
+condition, `first ? carrier_radius : 0`, measures only when it holds), `State::Step` (events of this tick, the start's work or the
 vars' and anchors' ticks, "stop" reactions, event reactions, "tick" reactions, the stage's move, the tick's rate /
-chance / emitting), a `stop` action's Stop, then the source's `emitCount` and `emitChance` set for the generic
+chance / emitting), the `set` source values written back, a `stop` action's Stop, a `stop_emitting`, then the source's `emitCount` and `emitChance` set for the generic
 emission (not emitting: no tries, none from the movement either; the spacing is the source's, `[emit] spacing` scaled
 by ScaleSize as an original type's) and the started sub-effects made. `UpdateParticles` → `UpdateData` per particle
 (life, frame, vars, the move, then the velocity's change, size, colour, kill). A `die` particle past its last frame
@@ -215,9 +221,10 @@ offset in `source` / `anchor` space.
 ### The original effects on data
 
 FireStar, AcidStar, CurseStars, PortalStar (MF15d), Sparks, FeebleMind, ZoneExit and the trails FireBall, FireArrow,
-RikArrowSmoke, AcidRay (MF15g) run from `assets/effects/<Name>.effect.toml`, built into the executable
+RikArrowSmoke, AcidRay (MF15g), the smoke family CampFire, Fire, Smoke, Tendril, then VulcanSmoke, Portal,
+TeleportRing, Teleport, Banshee, BlueGas and Nuke (MF15g2) run from `assets/effects/<Name>.effect.toml`, built into the executable
 (src/game/effects/embed_effects.cmake writes them as bytes at build time; `effectdata::BuiltinText`). Their C++
-emitters and their `kSpecs` entries are gone. The next batches are tickets MF15g2 and MF15g3 (the other plain types)
+emitters and their `kSpecs` entries are gone. The next batches are ticket MF15g3 (the other plain types)
 and MF15g4 (the last plain ones and, after MF15j, the state machines).
 - **The built-in file is the bottom layer.** The registry reads it below the mod layers' files of the same name
   (`Res\effects\FireStar.effect.toml` in a mod retunes the field it names), unless a mod's file says `replace = true`.
@@ -225,8 +232,9 @@ and MF15g4 (the last plain ones and, after MF15j, the state machines).
   the saves and the game code that names the type (`ParticleType::FireStar` in the spell impacts) are unchanged.
   `FindById` answers an original type's id from its built-in file; a type still in code has none, and a mod's file of
   such a type's name is left out (and not listed by `Scan`).
-- **What the C++ tables held moved into the file**: `[server] one_shot` (FireStar, AcidStar, Sparks: 60;
-  `OneShotTicks` reads the record), `script_lifetime` (FireStar, AcidStar: 20; Sparks 60; the others -1, the default;
+- **What the C++ tables held moved into the file**: `[server] one_shot` (FireStar, AcidStar, Sparks, Banshee, Nuke:
+  60; Teleport 120;
+  `OneShotTicks` reads the record), `script_lifetime` (FireStar, AcidStar: 20; Sparks 60; Teleport, Nuke 200; the others -1, the default;
   their `kScriptParticleTypes` entries are gone, and CreateParticleSource finds the name in the registry), the spec's
   texture, flags, part, rates, limits and starting values (`[source]`: ZoneExit's alpha and param 5, the trails' size,
   growth and spread).
@@ -238,7 +246,9 @@ and MF15g4 (the last plain ones and, after MF15j, the state machines).
   `when`, the `stop` action, `emitting`, `once` clearing the flag, `keep_alive` off by default, the move before the
   drag, `speed` scaled as `offset * speed / length`, no additions of zero to a still or unplaced particle; MF15g's
   seven `position` start and tick, vars `after_spawn` with `p.spawn.*`, 8 vars, the spread and the side / up axes as
-  source values, the frame step first with a `die` particle's timer left run out).
+  source values, the frame step first with a `die` particle's timer left run out; MF15g2's `wind.z`, `exp` and `log`,
+  `set` on the source's values, `stop_emitting`, the carrier measured at its first read, the shadowing var names
+  refused).
 - **Exactness rules found**: an expression's operations are float operations in the written order, so
   `(below(0.4) + 0.8) * size * 0.04` is the C++'s `(Below(0.4f) + 0.8f) * s.size * 0.04f` bit for bit; a draw the C++
   makes before the position goes into a var (vars draw before the position: CurseStars's `cell = "pick(16)"`, which
@@ -253,6 +263,17 @@ and MF15g4 (the last plain ones and, after MF15j, the state machines).
   stepped frame is `p.frame + 1` where the delay is 1 (the arrows' swelling); the first-ever particle is
   `total == 0`, a tick's first `index == 0`. A draw the C++ makes only on one path goes behind the same condition
   (`moving ? range(...) : 0`).
+- **MF15g2's rules**: a C++ particle that dies by `--life == 0` but whose update in the tick after its death still
+  moves it ("Kept") is a long `lifetime` with `kill = "p.age == <its end>"` and every change of state the dead update
+  must not see (a var's step, TeleportRing's `drag = "p.age == 13 ? 1 : 1.05"`) guarded on that age, so the dead update
+  runs as the C++'s (the smoke family, TeleportRing, Teleport). The vars tick in file order and the frame tick before
+  them, so a var that must read another's old value comes first. Velocity changed by `drag` after the move is
+  per-particle storage that grows by a factor (Portal's rise, `drag = 1.03`). A C++ effect that sets itself up at its
+  first emitting tick (Banshee, TeleportRing, BlueGas) is vars `first` and `set_up` with the carrier read only behind
+  `first`; a C++ try that is rejected but draws is a `pick(1)` (one draw, value 0) in a var on that tick. Two kinds
+  by a chance are `when = "chance(60)"` on the first (VulcanSmoke). A C++ count set in its tick (Nuke's tries, halved to 8) is
+  a var, a power (Nuke's alpha start, 4 to the tick) `exp(log(4) * ticks)`, and the C++'s own end of its emission a
+  `stop_emitting` reaction (Teleport, Banshee, Nuke).
 
 ### The original state machines on inputs (MF15g's path)
 
@@ -340,15 +361,16 @@ a particle's death; a `segment` spawn shape.
 ### Checks
 
 - `ei-convert --effect-check` (build checks; ctest `port_effects`; tools/convert/effect_check.cpp): every original type
-  on data against the run recorded from its C++ (tests/effects/reference.txt, built into the tool): 28 cases
+  on data against the run recorded from its C++ (tests/effects/reference.txt, built into the tool): 52 cases
   (carried, free, a fast carrier's distance tries, rescaled, StopEmitting / StartEmitting / Stop, the carrier removed
-  and back), each tick's particles (position, size, colour, frame, their previous values, the dead flag), origin,
+  and back, the world's wind), each tick's particles (position, size, colour, frame, their previous values, the dead flag), origin,
   bounds, flags, RunTick's answer and the particle generator's draws, hashed per tick. No game data (no texture is
   loaded).
 - `tests/unit/particle_record.cpp` (ei_unit_check): expressions (precedence, short evaluation and its draws, tables,
   curves, errors), a record read and merged over a lower layer (a field by name, an element appended), problems named
   with file and line, the state machine driven by its inputs (stages by ticks, by `until` on an input, by an event;
-  enter and event actions; anchors; `next = "end"`), a tick reaction's `when` and the stop action, and every whole
+  enter and event actions; anchors; `next = "end"`), a tick reaction's `when` and the stop action, `exp` / `log`, a source value
+  `set`, `stop_emitting`, the carrier measured once and only when read, and every whole
   effect written out in this file and in docs/modding.md read without a problem (EI_SOURCE_DIR).
 - `mod_effect` (both installs; the showcase mod's `Res\effects\showcase_aura.effect.toml`): CreateParticleSource by
   name, the client's source and its stages (`effect ... check`), inputs set by value and by enum name, the burst's

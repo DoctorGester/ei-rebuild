@@ -59,12 +59,11 @@ int StepFraction(const Vector3& velocity, const Vector3& dxdy, float* t) {
     return 1;
 }
 
-// The ticks a particle type plays for: 60 for the original's one-shot types (Teleport 120), a data effect's
+// The ticks a particle type plays for: 60 for the original's one-shot types, a data effect's
 // [server] one_shot; 0 for a type that lasts until its object is removed (or an unknown type).
 int OneShotTicks(int type) {
     switch (ParticleTypeOf(type)) {
-    case ParticleType::Teleport: return 0x78;
-    case ParticleType::FireBlast: case ParticleType::Healing: case ParticleType::Casting: case ParticleType::Nuke: case ParticleType::Banshee: case ParticleType::Mushroom: case ParticleType::Shower1:
+    case ParticleType::FireBlast: case ParticleType::Healing: case ParticleType::Casting: case ParticleType::Mushroom: case ParticleType::Shower1:
     case ParticleType::ClayRing: case ParticleType::Modifier1: case ParticleType::Modifier2: case ParticleType::Modifier3: case ParticleType::Modifier4: case ParticleType::Modifier5:
     case ParticleType::Modifier6: case ParticleType::Modifier7: case ParticleType::Modifier8: case ParticleType::Modifier9: case ParticleType::Modifier10: case ParticleType::Modifier11: case ParticleType::Modifier12:
     case ParticleType::LightningBlast: case ParticleType::Shower2: case ParticleType::Shower3: case ParticleType::Shower4: case ParticleType::Cylinder1: case ParticleType::Cylinder2:

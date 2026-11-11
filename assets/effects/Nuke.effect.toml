@@ -1,0 +1,54 @@
+# Nuke (0x200C): debris thrown up from a blast. 64 pieces in the first tick, the count halved each tick down to 8, for
+# 12 ticks. A piece starts at a random point of the disc of a fifth of the size, at a random height up to twice the
+# size, rising (less as the blast ages) and falling back (0.85 a tick, gravity 0.055), its alpha 4 ^ age * 4 growing
+# fourfold a tick; once it falls below the middle of the size it turns to dust that spreads outwards (by its fall's
+# speed, slowing by 0.85), swells by 1.13 and fades by 16 a tick to frame 14. Later pieces live shorter (41 ticks less
+# the blast's age) and start on later frames.
+# A piece counts its own ticks: the update the original still gives a piece after its end (effects.md, "Kept") moves
+# it, so the end is a `kill` that changes nothing (halt), and that last update runs as the original's.
+# The original types on data: docs/notes/effects.md, "The original effects on data".
+
+texture = "AcidRay"
+
+[server]
+one_shot = 60
+script_lifetime = 200
+
+[source]
+height = 1
+
+[emit]
+rate = "tries"
+max = 400
+
+[vars]
+ticks = { start = 1, tick = "ticks + 1" }       # the blast's age
+tries = { start = 64, tick = "tries > 8 ? floor(tries / 2) : tries" }
+
+[[on]]
+event = "tick"
+when = "ticks == 13"
+do = [{ stop_emitting = true }]
+
+[[particle]]
+name = "debris"
+lifetime = 2147483647                           # its span below (halt)
+velocity = ["sin(p.angle)", "cos(p.angle)", 0]   # the dust's spread (x, y)
+drag = "p.halt ? 1 : (p.turn ? abs(p.rise) : (p.dust ? 0.85 : 1))"
+size = { start = "size * 0.2", tick = "p.dust && !p.turn ? p.size * 1.13 : p.size" }
+alpha = { start = "min(floor(exp(log(4) * ticks) * 4), 255)", tick = "p.dust && !p.turn ? (p.alpha >= 16 ? p.alpha - 16 : 0) : min(floor(p.alpha * 4), 255)" }
+frame = { start = "floor(ticks / 3)", tick = "p.dust ? p.frame + 1 : p.frame" }
+kill = "p.halt"
+
+[particle.vars]
+reach = "range(0, size * 0.2)"
+angle = "range(0, pi + pi)"
+span = "11 - ticks + 30"
+halt = { start = 0, tick = "p.age == p.span || (p.dust && p.frame >= 14)" }   # the original's update returns at once
+rise = { start = "(11 - ticks) * size * 0.1", tick = "p.halt || p.dust ? p.rise : 0.85 * p.rise - 0.055" }
+turn = { start = 0, tick = "!p.halt && !p.dust && p.rise < 0 && size * 0.5 + origin.z > p.rise + p.z" }   # lands
+dust = { start = 0, tick = "p.dust || p.turn" }
+
+[particle.position]
+start = ["p.reach * sin(p.angle) + origin.x", "p.reach * cos(p.angle) + origin.y", "range(0, size + size) + origin.z"]
+tick = ["p.dust && !p.turn ? p.vx + p.x : p.x", "p.dust && !p.turn ? p.y + p.vy : p.y", "p.dust && !p.turn ? p.z : p.rise + p.z"]

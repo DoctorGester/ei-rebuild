@@ -60,9 +60,6 @@ constexpr int kEndless = 0x7FFFFFFF;    // an emission or particle count without
 
 using enum ParticleType;
 
-constexpr ParticleSpec kSmoke = {.texture = "TendriSmoke", .emitChance = 88, .emitCount = 6, .lifetime = 32,
-                                 .frameCount = 15, .frameDelay = 1, .size = 0.8f, .height = 0.3f, .growth = 0.85f,
-                                 .spreadMin = {-0.2f, -0.2f, 0.0f}, .spreadMax = {0.2f, 0.2f, 0.0f}};
 constexpr ParticleSpec kPoison = {.texture = "PoisonCloud", .emitChance = 50, .emitCount = 1,
                                   .maxParticles = kEndless, .lifetime = 0xCA4, .frameCount = 15, .frameDelay = 1};
 constexpr ParticleSpec kMushroom = {.texture = "ChangeHero", .emitCount = 10, .maxParticles = 4000, .frameDelay = 1,
@@ -112,16 +109,9 @@ constexpr ParticleSpec Like(const ParticleSpec& base, ParticleType type) {
 // One entry per type still in code, in the order of ParticleType; the others are data (assets/effects,
 // ParticleSource::Create).
 constexpr ParticleSpec kSpecs[] = {
-    Like(kSmoke, CampFire),
     {.type = FireBlast, .texture = "Explosion", .emitCount = 60, .maxParticles = 600, .lifetime = 15,
      .frameDelay = 1, .size = 0.6f, .height = 1.0f, .growth = 0.8f, .elementCount = 15,
      .spreadMin = {-0.02f, -0.02f, -0.02f}, .spreadMax = {0.02f, 0.02f, 0.02f}},
-    Like(kSmoke, Fire),
-    Like(kSmoke, Smoke),
-    // The height is the spread's top y (4) / 64.
-    {.type = VulcanSmoke, .texture = "Vulkan", .emitChance = 88, .emitCount = 2, .maxParticles = 400, .lifetime = 16,
-     .frameDelay = 1, .size = 2.5f, .height = 0.0625f, .growth = 0.99f, .spreadMin = {0.2f, 0.5f, 0.0f},
-     .spreadMax = {0.3f, 4.0f, 0.0f}},
     {.type = Healing, .texture = "Healing", .flags = ParticleSourceFlag::AttachedOnly, .additiveBlend = true,
      .emitCount = kEndless, .lifetime = 8, .frameDelay = 1, .size = 0.5f},
     Like(kPoison, PoisonFog),
@@ -132,19 +122,8 @@ constexpr ParticleSpec kSpecs[] = {
     {.type = Tornado, .texture = "Tornado", .emitCount = 4, .maxParticles = 800, .frameDelay = 1, .height = 0.2f,
      .elementCount = 6},
     {.type = Casting, .texture = "FireSmoke", .flags = kCarried, .emitCount = kEndless, .frameDelay = 1},
-    {.type = Nuke, .texture = "AcidRay", .emitCount = 128, .maxParticles = 400, .frameDelay = 1, .height = 1.0f,
-     .elementCount = 1},
-    {.type = Banshee, .texture = "Banshee", .flags = kCarried, .emitCount = kEndless, .frameDelay = 1},
     Like(kMushroom, Mushroom),
     Like(kShower, Shower1),
-    Like(kSmoke, Tendril, [](ParticleSpec& spec) {
-        spec.emitCount = 20;
-        spec.maxParticles = 1500;
-        spec.elementCount = 1;
-    }),
-    {.type = BlueGas, .texture = "Stench", .flags = ParticleSourceFlag::AttachedOnly, .emitChance = 80,
-     .emitCount = 5, .lifetime = 45, .frameCount = 15, .frameDelay = 3, .spreadMin = {-1.0f, -1.0f, -1.0f},
-     .spreadMax = {1.0f, 1.0f, 1.0f}},
     {.type = Link, .texture = "Link", .emitChance = 80, .emitCount = 10, .lifetime = 45, .frameCount = 15,
      .frameDelay = 3, .spreadMin = {-0.2f, -0.2f, -0.2f}, .spreadMax = {0.2f, 0.2f, 0.2f},
      .extent = {-10.0f, 0.0f, 0.0f}},
@@ -153,8 +132,6 @@ constexpr ParticleSpec kSpecs[] = {
     Like(kSphere, SphereFire, [](ParticleSpec& spec) { spec.texture = "ProtectionF"; }),
     {.type = ClayRing, .texture = "ClayRing", .additiveBlend = true, .emitCount = 80, .lifetime = 15,
      .frameDelay = 2, .elementCount = 10},
-    {.type = Teleport, .texture = "Teleport", .emitCount = 20, .maxParticles = 320, .lifetime = 14, .frameDelay = 1,
-     .elementCount = 1},
     Like(kSphere, Antimagic, [](ParticleSpec& spec) {
         spec.texture = "AntiMagic";
         spec.lifetime = 4;
@@ -194,8 +171,6 @@ constexpr ParticleSpec kSpecs[] = {
         spec.texture = "Casting1";
         spec.lifetime = 1;
     }),
-    {.type = TeleportRing, .texture = "Teleport", .flags = kCarried, .emitCount = 25, .lifetime = 14,
-     .frameDelay = 1},
     {.type = LightningBlast, .texture = "TendriLight", .additiveBlend = true, .emitChance = 88, .emitCount = 250,
      .maxParticles = 600, .lifetime = 15, .frameCount = 15, .frameDelay = 1, .spreadMin = {-0.2f, -0.2f, -0.2f},
      .spreadMax = {0.2f, 0.2f, 0.2f}},
@@ -214,8 +189,6 @@ constexpr ParticleSpec kSpecs[] = {
     }),
     {.type = Bag, .texture = "Bag", .flags = kCarried, .emitCount = 100, .maxParticles = 800,
      .elementCount = kBagBalls},
-    {.type = Portal, .texture = "Teleport", .additiveBlend = true, .emitCount = 50, .maxParticles = 800,
-     .lifetime = 10, .frameDelay = 3, .elementCount = 1},
     Like(kCylinder, Cylinder1),
     Like(kCylinder, Cylinder2, [](ParticleSpec& spec) { spec.texture = "Casting1"; }),
     Like(kVisionStar, VisionStar1),

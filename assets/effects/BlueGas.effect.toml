@@ -1,0 +1,50 @@
+# BlueGas (0x2013, the Stench texture): gas swirling up around a unit. The carrier is measured at the first tick that
+# emits (the gas's radius 0.3 of the carrier's, its height twice the carrier's radius); from the next tick the source
+# emits 5 times its size then (rounded, at least 1) tries a tick, 5 before. A puff starts at a random point of the disc
+# of the gas's radius at the carrier's centre, a little above or below it, and turns about the axis faster the farther
+# out it is (0.3 radians a tick at the edge), rising faster and faster (2-3% of the height a tick, growing by 1.02),
+# swelling by 1.01 and fading over its last 8 ticks; a frame every 3 ticks, 45 ticks.
+# The original types on data: docs/notes/effects.md, "The original effects on data".
+
+texture = "Stench"
+frames = 15
+attach = "attached_only"
+
+[source]
+spread_min = [-1, -1, -1]
+spread_max = [1, 1, 1]
+
+[emit]
+rate = "tries"
+chance = 80
+
+[vars]
+gas_radius = { start = "emitting && attached ? carrier_radius * 0.3 : 0", tick = "set_up ? gas_radius : (emitting && attached ? carrier_radius * 0.3 : 0)" }
+gas_height = { start = "emitting && attached ? carrier_radius + carrier_radius : 0", tick = "set_up ? gas_height : (emitting && attached ? carrier_radius + carrier_radius : 0)" }
+gas_z = { start = "emitting && attached ? carrier_z : 0", tick = "set_up ? gas_z : (emitting && attached ? carrier_z : 0)" }
+later = { start = "emitting && attached ? (!(size * 5 + 0.5 >= 1) ? 1 : floor(size * 5 + 0.5)) : 0", tick = "set_up ? later : (emitting && attached ? (!(size * 5 + 0.5 >= 1) ? 1 : floor(size * 5 + 0.5)) : 0)" }
+tries = { start = 5, tick = "set_up ? later : 5" }
+set_up = { start = "emitting && attached", tick = "set_up || (emitting && attached)" }   # measured
+
+[[particle]]
+name = "puff"
+lifetime = 45
+velocity = [0, 0, "range(gas_height * 0.02, gas_height * 0.03)"]   # the rise (grows by the drag after the move)
+drag = 1.02
+size = { start = "gas_radius * 0.7", tick = "p.size * 1.01" }
+alpha = { tick = "45 - p.age < 8 ? (p.alpha >= 32 ? p.alpha - 32 : p.alpha + 224) : p.alpha" }   # the original's byte sum
+frame = { start = 0, delay = 3, mode = "die" }
+
+[particle.vars]
+r = "range(0, gas_radius)"                      # out from the axis (its turn a tick: r * 0.3 / gas_radius)
+angle = "range(0, pi + pi)"
+last_x = { start = 0, tick = "p.x_off" }        # the offset from the axis before this tick's turn
+last_y = { start = 0, tick = "p.y_off" }
+last_z = { start = 0, tick = "p.z_off" }
+x_off = { start = "sin(p.angle) * p.r", tick = "cos(p.r * 0.3 / gas_radius) * p.last_x - p.last_y * sin(p.r * 0.3 / gas_radius)" }
+y_off = { start = "cos(p.angle) * p.r", tick = "p.last_x * sin(p.r * 0.3 / gas_radius) + p.last_y * cos(p.r * 0.3 / gas_radius)" }
+z_off = { start = "range(gas_radius * -0.3, gas_radius * 0.3)", tick = "p.vz + p.last_z" }
+
+[particle.position]
+start = ["origin.x + 0 + p.x_off", "origin.y + 0 + p.y_off", "origin.z + gas_z + p.z_off"]
+tick = ["p.x - p.last_x + p.x_off", "p.y - p.last_y + p.y_off", "p.z - p.last_z + p.z_off"]

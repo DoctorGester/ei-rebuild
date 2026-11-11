@@ -128,10 +128,12 @@ constexpr int kMaxAnchors = 4096;   // per group
 constexpr std::string_view kSourceNames[kSourceValues] = {
     "size", "height", "growth", "alpha", "param", "base_size", "age", "stage_age", "stage", "carrier_radius",
     "carrier_z", "attached", "distance", "motion.x", "motion.y", "motion.z", "origin.x", "origin.y", "origin.z",
-    "count", "index", "total", "wind.x", "wind.y", "wind_strength", "extent.x", "extent.y", "extent.z", "turn_cos",
-    "turn_sin", "emitting", "spread_min.x", "spread_min.y", "spread_min.z", "spread_max.x", "spread_max.y",
-    "spread_max.z", "side.x", "side.y", "side.z", "up.x", "up.y", "up.z",
+    "count", "index", "total", "wind.x", "wind.y", "wind.z", "wind_strength", "extent.x", "extent.y", "extent.z",
+    "turn_cos", "turn_sin", "emitting", "spread_min.x", "spread_min.y", "spread_min.z", "spread_max.x",
+    "spread_max.y", "spread_max.z", "side.x", "side.y", "side.z", "up.x", "up.y", "up.z",
 };
+// The source values a `set` action may write (the [source] table's numbers).
+constexpr std::string_view kSettableSourceNames[] = {"size", "height", "growth", "alpha", "param"};
 constexpr std::string_view kAnchorNames[kAnchorValues] = {"index", "count", "age", "ticks", "x", "y", "z"};
 constexpr std::string_view kParticleNames[kParticleValues] = {
     "age", "life", "t", "x", "y", "z", "vx", "vy", "vz", "size", "alpha", "frame", "anchor", "index",
@@ -427,7 +429,7 @@ private:
         for (const RawNode* anchor : Tables("anchor")) {
             Anchor& a = record->anchors.emplace_back();
             if (!Text((*anchor)["name"], &a.name)) Error(*anchor, "an [[anchor]] without its name");
-            DeclareVars((*anchor)["vars"], &a.vars, false);
+            DeclareVars((*anchor)["vars"], &a.vars, false, true);
         }
         for (const RawNode* particle : Tables("particle")) {
             ParticleKind& kind = record->particles.emplace_back();
@@ -436,8 +438,14 @@ private:
         }
         DeclareVars(root["vars"], &record->vars, false);
     }
-    void DeclareVars(const RawNode& table, std::vector<Var>* vars, bool particle) {
-        for (const auto& [name, value] : table.keys) vars->push_back({name, {}, {}});
+    // A particle's or an anchor's var named as one of its own values (`p.z`, `a.age`) would never be read: refused.
+    void DeclareVars(const RawNode& table, std::vector<Var>* vars, bool particle, bool anchor = false) {
+        for (const auto& [name, value] : table.keys) {
+            if ((particle && IndexIn(kParticleNames, name) >= 0) || (anchor && IndexIn(kAnchorNames, name) >= 0))
+                Error(value, "var '" + name + "' is the name of the " + (particle ? "particle's" : "anchor's") +
+                                 " own value " + (particle ? "p." : "a.") + name);
+            vars->push_back({name, {}, {}});
+        }
         if (particle && vars->size() > static_cast<std::size_t>(kParticleVars))
             Error(table, "a particle has at most " + std::to_string(kParticleVars) + " vars");
     }
@@ -515,11 +523,14 @@ private:
             Expr expr = Compile(node.text, [this, context](std::string_view name) { return Resolve(name, context); },
                                 &error);
             if (expr.Empty()) Error(node, "\"" + node.text + "\": " + error);
-            for (const Instruction& i : expr.code)
+            for (Instruction& i : expr.code) {
                 if (i.op == Op::Load && i.scope == Scope::Source &&
                     (i.index == static_cast<int>(SourceValue::CarrierRadius) ||
-                     i.index == static_cast<int>(SourceValue::CarrierZ)))
+                     i.index == static_cast<int>(SourceValue::CarrierZ))) {
+                    i.op = Op::LoadMeasured;
                     record->readsCarrier = true;
+                }
+            }
             return expr;
         }
         default: Error(node, "a number or an expression expected"); return {};
@@ -628,7 +639,7 @@ private:
             return actions;
         }
         for (const RawNode& node : list.items) {
-            Known(node, {"emit", "kind", "at", "set", "value", "stage", "effect", "end", "stop"});
+            Known(node, {"emit", "kind", "at", "set", "value", "stage", "effect", "end", "stop", "stop_emitting"});
             Action action;
             std::string name;
             if (node["emit"].Exists()) {
@@ -639,9 +650,16 @@ private:
             } else if (Text(node["set"], &name)) {
                 action.kind = Action::Kind::Set;
                 const Input* input = record->FindInput(name);
-                if (!input || input->type == InputType::Vector || input->type == InputType::Event)
-                    Error(node, "'" + name + "' is no float, bool or enum input");
-                else action.target = input->slot;
+                const int own = IndexIn(kSettableSourceNames, name);
+                if (input && input->type != InputType::Vector && input->type != InputType::Event) {
+                    action.target = input->slot;
+                } else if (!input && own >= 0) {
+                    action.kind = Action::Kind::SetSource;
+                    action.target = IndexIn(kSourceNames, name);
+                } else {
+                    Error(node, "'" + name + "' is no float, bool or enum input, nor " + Joined({"size", "height",
+                          "growth", "alpha", "param"}));
+                }
                 action.value = Field(node["value"], {});
                 if (action.value.Empty()) Error(node, "set needs a value");
             } else if (node["stage"].Exists()) {
@@ -653,8 +671,10 @@ private:
                 action.kind = Action::Kind::End;
             } else if (node["stop"].Exists()) {
                 action.kind = Action::Kind::Stop;
+            } else if (node["stop_emitting"].Exists()) {
+                action.kind = Action::Kind::StopEmitting;
             } else {
-                Error(node, "an action is emit, set, stage, effect, end or stop");
+                Error(node, "an action is emit, set, stage, effect, end, stop or stop_emitting");
                 continue;
             }
             actions.push_back(std::move(action));
@@ -870,6 +890,8 @@ Env State::SourceEnv(IsaacRandom* random) const {
     env.tables = &record->tables;
     env.curves = &record->curves;
     env.random = random;
+    env.measure = measure;
+    env.measureContext = measureContext;
     return env;
 }
 
@@ -885,6 +907,8 @@ void State::Step(IsaacRandom& random) {
     burst = 0;
     queue.clear();
     effects.clear();
+    sourceWrites.clear();
+    stopEmitting = false;
     source[static_cast<int>(SourceValue::Age)] = static_cast<float>(age);
 
     // The events fired since the last step are this tick's values.
@@ -990,11 +1014,18 @@ void State::Run(const std::vector<Action>& actions, IsaacRandom& random, int dep
         case Action::Kind::Set:
             if (action.target >= 0) inputs[action.target] = action.value.Run(SourceEnv(&random));
             break;
+        case Action::Kind::SetSource:
+            source[action.target] = action.value.Run(SourceEnv(&random));
+            sourceWrites.push_back(action.target);
+            break;
         case Action::Kind::Stage: Enter(action.target, random, depth); break;
         case Action::Kind::Effect: effects.push_back(action.effect); break;
         case Action::Kind::End: ended = true; break;
         case Action::Kind::Stop:
             stopRequested = true;
+            break;
+        case Action::Kind::StopEmitting:
+            stopEmitting = true;
             break;
         }
     }
