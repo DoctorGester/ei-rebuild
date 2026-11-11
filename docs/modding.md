@@ -875,7 +875,8 @@ return spell
   `light_range`), `cast.school` (its school's name), `cast.silent` (an item's own periodic cast: the game's buffs end
   without their sound and its healing makes no sound or light on a unit at full health); and
   `cast.data`, a table of your own that is kept with the cast (and in saves): numbers, strings, booleans, units,
-  tables.
+  tables. The cast value is the same table at every hook of a cast, its fields brought up to date before each one:
+  read them, but keep your own values in `cast.data` (what you set on the cast value itself is not saved).
 - **The methods.** Positions are `{x, y, z}` tables or units (where the unit stands). Each does what the game's own
   spells do:
 

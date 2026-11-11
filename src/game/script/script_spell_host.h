@@ -127,16 +127,35 @@ private:
     static SpellEffect& Self(lua_State* L, const char* method, bool inResume = false);
     enum class Hook { Ran, Absent, Failed };
 
+    // The values a cast value holds, as PushCast last set them: it sets a field again only when its value changed.
+    struct CastFields {
+        const void* record = nullptr;   // the spell's record (code, school, lightRange)
+        MapObject* caster = nullptr;
+        MapObject* target = nullptr;
+        Vector3 from, point;
+        std::int64_t tick = -1;
+        float numbers[9] = {};          // damage, range, radius, speed, mana, power, areaPower, lightRise, lightRange
+        std::uint32_t duration = 0, targetCount = 0;
+        bool silent = false;
+    };
     // What the C++ knows of a live cast between its hooks (docs/notes/items_spells.md, "Scripted spells", the idle
-    // ticks): its tick count, its first timer's due tick and its module. Settle fills it after each hook; After keeps
-    // `due`; Finish and a restore make it unknown, so that the next tick takes Lua's walk.
+    // ticks): its tick count, its first timer's due tick, its module and its cast value. Settle fills `tick` and
+    // `due` after each hook; After and the timers' walk keep `due`; Finish and a restore make them unknown, so that
+    // the next tick takes Lua's walk and Settle reads the entry.
     struct Clock {
+        static constexpr int kUnresolved = -3;  // `module` not looked up yet
         std::int64_t tick = 0;      // the cast's ticks so far; the entry's `tick` lags while `stale`
         std::int64_t due = 0;       // the earliest timer's due tick, 0 none
-        int module = -2;            // the module table's registry reference (LUA_NOREF: none)
+        int module = kUnresolved;   // the module table's registry reference (LUA_NOREF: none)
+        int value = -2;             // the cast value's registry reference (LUA_NOREF before the first hook)
+        CastFields shown;           // what the cast value holds
         bool known = false;
         bool stale = false;
     };
+    // The clock of a new or adopted cast under `key` (unknown), and a clock's cast value let go (its registry
+    // reference).
+    Clock& NewClock(int key);
+    void ReleaseValue(Clock& clock);
     // The entry's `tick` written from the clock (when stale).
     void Flush(int key, Clock& clock);
     // True when the cast's tick needs no Lua: known, no timer due, no OnTick in its module (a plain table), below its
@@ -151,11 +170,13 @@ private:
     // The module of the file below Res\spells\ pushed (nil when it did not load: said once on the console); its
     // registry reference, LUA_NOREF for nil.
     int PushModule(const std::string& file);
-    // The module of the effect's spell (PushModule of its script).
+    // The module of the effect's spell: its clock's, looked up once by its script's name (PushModule of the file).
     int PushModule(const SpellEffect& effect);
     // The entry of `key` pushed on `state`'s stack (nil when there is none).
     void PushEntry(lua_State* state, int key);
-    // The cast value of the effect's hooks: its values, objects and points, and its entry's data.
+    // The cast value of the effect's hooks: its values, objects and points, and its entry's data. One table per live
+    // cast, kept by its clock from its first hook: a field is set again when the cast's value changed (a moved point a
+    // new table), the data every time.
     void PushCast(const SpellEffect& effect, int entry);
     // Calls the module's function `name` with the cast and the `arguments` values on top of the stack (popped);
     // the cast's data is kept from the cast value after it.
@@ -166,6 +187,8 @@ private:
     void End(SpellEffect& effect, const char* reason);
     void Drop(SpellEffect& effect);
     bool EntryFlag(int entry, const char* name);
+    // The entry's `finished` after a hook: only Finish sets it, which makes the clock unknown.
+    bool Finished(const SpellEffect& effect, const Clock& clock);
     void Report(const std::string& message);
 
     ScriptLuaScheduler& scheduler;

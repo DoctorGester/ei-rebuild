@@ -21,6 +21,8 @@
 #include "eris/lua.h"
 
 #include <algorithm>
+#include <array>
+#include <bit>
 #include <climits>
 #include <cmath>
 #include <format>
@@ -249,12 +251,15 @@ lua_Integer IntegerField(lua_State* L, int table, const char* name) {
 }
 
 // The entry of the cast value `self` (argument 1) of a method, from the host's casts table (its upvalue's registry
-// reference) pushed; a Lua error when the cast has ended.
-int CheckEntry(lua_State* L, int casts, const char* method) {
+// reference) pushed, its key in *key; a Lua error when the cast has ended.
+int CheckEntry(lua_State* L, int casts, const char* method, int* key = nullptr) {
     luaL_checktype(L, 1, LUA_TTABLE);
     lua_rawgeti(L, LUA_REGISTRYINDEX, casts);
     lua_getfield(L, 1, "id");
-    if (lua_isinteger(L, -1)) lua_rawget(L, -2);
+    if (lua_isinteger(L, -1)) {
+        if (key) *key = static_cast<int>(lua_tointeger(L, -1));
+        lua_rawget(L, -2);
+    }
     if (!lua_istable(L, -1)) return luaL_error(L, "%s: the cast has ended", method);
     lua_remove(L, -2);
     return lua_gettop(L);
@@ -352,6 +357,7 @@ ScriptSpellHost::ScriptSpellHost(ScriptLuaScheduler& owner)
 
 ScriptSpellHost::~ScriptSpellHost() {
     for (const auto& [key, effect] : live) effect->host = nullptr;
+    for (auto& [key, clock] : clocks) ReleaseValue(clock);
     luaL_unref(L, LUA_REGISTRYINDEX, casts);
     for (const auto& [file, module] : modules) luaL_unref(L, LUA_REGISTRYINDEX, module);
     luaL_unref(L, LUA_REGISTRYINDEX, castMeta);
@@ -363,7 +369,7 @@ void ScriptSpellHost::NewEntry(SpellEffect& effect, int key) {
     effect.castKey = key;
     effect.host = this;
     live[key] = &effect;
-    clocks[key] = Clock{};
+    NewClock(key);
     lua_rawgeti(L, LUA_REGISTRYINDEX, casts);
     lua_createtable(L, 0, 5);
     const int entry = lua_gettop(L);
@@ -379,7 +385,7 @@ void ScriptSpellHost::NewEntry(SpellEffect& effect, int key) {
 
 bool ScriptSpellHost::Cast(SpellEffect& effect) {
     NewEntry(effect, nextCast++);
-    PushModule(ScriptOf(effect));
+    PushModule(effect);
     const bool loaded = lua_istable(L, -1);
     lua_pop(L, 1);
     if (!loaded) {
@@ -436,16 +442,13 @@ bool ScriptSpellHost::Tick(SpellEffect& effect) {
         PushPoint(L, arrival.point);
         lua_remove(L, entry);
         const Hook result = Call(effect, "OnHit", 3);
-        if (result == Hook::Failed) return Settle(effect, result);
-        PushEntry(L, effect.castKey);
-        const bool finished = EntryFlag(lua_gettop(L), "finished");
-        lua_settop(L, base);
-        if (finished) return Settle(effect, result);
+        if (result == Hook::Failed || Finished(effect, clock)) return Settle(effect, result);
     }
 
     // The due timers one at a time by their due tick, then the order they were set in: a timer's function may set
-    // more (none due before the next tick).
-    for (;;) {
+    // more (none due before the next tick). A known clock says whether one is due, and the walk keeps its `due` (the
+    // earliest of the timers left; After lowers it), so one due timer takes one walk and a tick without any none.
+    while (!clock.known || (clock.due && clock.due <= tick)) {
         PushEntry(L, effect.castKey);
         const int entry = base + 1;
         if (!lua_istable(L, entry)) {
@@ -455,45 +458,52 @@ bool ScriptSpellHost::Tick(SpellEffect& effect) {
         lua_getfield(L, entry, "timers");
         const int timers = base + 2;
         const lua_Integer count = static_cast<lua_Integer>(lua_rawlen(L, timers));
-        lua_Integer best = 0, bestDue = 0, bestSeq = 0;
+        // The best is the earliest due, so the timers left start at the second lowest due.
+        lua_Integer best = 0, bestDue = 0, bestSeq = 0, lowest = 0, second = 0;
         for (lua_Integer i = 1; i <= count; ++i) {
             lua_rawgeti(L, timers, i);
             const lua_Integer due = IntegerField(L, -1, "due");
             const lua_Integer seq = IntegerField(L, -1, "seq");
             lua_pop(L, 1);
+            if (i == 1 || due < lowest) {
+                second = lowest;
+                lowest = due;
+            } else if (i == 2 || due < second) {
+                second = due;
+            }
             if (due > tick || (best && (due > bestDue || (due == bestDue && seq > bestSeq)))) continue;
             best = i;
             bestDue = due;
             bestSeq = seq;
         }
         if (!best) {
+            clock.due = count > 0 ? lowest : 0;
             lua_settop(L, base);
             break;
         }
+        // One at 0 or below is due now (Settle's walk).
+        clock.due = count > 1 ? (second > 0 ? second : tick) : 0;
         lua_rawgeti(L, timers, best);
         lua_getfield(L, -1, "name");
-        const std::string name = lua_isstring(L, -1) ? lua_tostring(L, -1) : "";
-        lua_pop(L, 1);
-        lua_getfield(L, -1, "payload");
-        const int payload = lua_gettop(L);
+        lua_getfield(L, -2, "payload");
         for (lua_Integer i = best; i < count; ++i) {
             lua_rawgeti(L, timers, i + 1);
             lua_rawseti(L, timers, i);
         }
         lua_pushnil(L);
         lua_rawseti(L, timers, count);
-        lua_copy(L, payload, base + 1);
-        lua_settop(L, base + 1);
-        Hook result = Call(effect, name.c_str(), 1);
+        // The name below the payload, kept on the stack while the call runs.
+        lua_copy(L, base + 4, base + 1);
+        lua_copy(L, base + 5, base + 2);
+        lua_settop(L, base + 2);
+        const char* name = lua_isstring(L, base + 1) ? lua_tostring(L, base + 1) : "";
+        Hook result = Call(effect, name, 1);
         if (result == Hook::Absent) {
             Report(std::format("{}: no function {} for a timer", ScriptOf(effect), name));
             result = Hook::Failed;
         }
-        if (result == Hook::Failed) return Settle(effect, result);
-        PushEntry(L, effect.castKey);
-        const bool finished = EntryFlag(lua_gettop(L), "finished");
         lua_settop(L, base);
-        if (finished) return Settle(effect, result);
+        if (result == Hook::Failed || Finished(effect, clock)) return Settle(effect, result);
     }
     return Settle(effect, Call(effect, "OnTick", 0));
 }
@@ -562,6 +572,19 @@ int ScriptSpellHost::StatSubtract(lua_State* L) { return Stat(L, StatOperation::
 int ScriptSpellHost::StatLarger(lua_State* L) { return Stat(L, StatOperation::Larger, "Larger"); }
 int ScriptSpellHost::StatMultiply(lua_State* L) { return Stat(L, StatOperation::Multiply, "Multiply"); }
 
+ScriptSpellHost::Clock& ScriptSpellHost::NewClock(int key) {
+    Clock& clock = clocks[key];
+    ReleaseValue(clock);
+    clock = Clock{};
+    return clock;
+}
+
+void ScriptSpellHost::ReleaseValue(Clock& clock) {
+    if (clock.value == LUA_NOREF) return;
+    luaL_unref(L, LUA_REGISTRYINDEX, clock.value);
+    clock.value = LUA_NOREF;
+}
+
 void ScriptSpellHost::Flush(int key, Clock& clock) {
     if (!clock.stale) return;
     clock.stale = false;
@@ -571,7 +594,7 @@ void ScriptSpellHost::Flush(int key, Clock& clock) {
 }
 
 bool ScriptSpellHost::Idle(const SpellEffect& effect, const Clock& clock) {
-    if (!clock.known || clock.module == LUA_NOREF || (clock.due && clock.due <= clock.tick)) return false;
+    if (!clock.known || clock.module < 0 || (clock.due && clock.due <= clock.tick)) return false;
     if (clock.tick >= TickCap(effect, false) || (!clock.due && !effect.OwnsPending())) return false;
     // OnTick looked up as Call does; a module with a metatable could answer anything, so it takes the walk.
     const int base = lua_gettop(L);
@@ -599,7 +622,7 @@ bool ScriptSpellHost::Adopt(SpellEffect& effect) {
     if (!found) return false;
     effect.host = this;
     live[effect.castKey] = &effect;
-    clocks[effect.castKey] = Clock{};
+    NewClock(effect.castKey);
     nextCast = std::max(nextCast, effect.castKey + 1);
     // The footprint the cast blocked (the AI map is not saved).
     PushEntry(L, effect.castKey);
@@ -689,7 +712,10 @@ void ScriptSpellHost::Restore(int root) {
         lua_pop(L, 1);
     }
     if (const lua_Integer next = IntegerField(L, root, "nextCast"); next > 0) nextCast = static_cast<int>(next);
-    for (auto& [key, clock] : clocks) clock = Clock{};
+    for (auto& [key, clock] : clocks) {
+        ReleaseValue(clock);
+        clock = Clock{};
+    }
 }
 
 // cast:After(ticks, name [, payload]): module.name(cast, payload) after `ticks` ticks (at least 1, whole ticks).
@@ -698,11 +724,12 @@ int ScriptSpellHost::After(lua_State* L) {
     lua_settop(L, 4);   // the payload nil when none is given
     const lua_Number ticks = luaL_checknumber(L, 2);
     luaL_checkstring(L, 3);
-    const int entry = CheckEntry(L, host->casts, "After");
-    // The cast may be another's (a cast value kept in a script's data), between its ticks: its tick written first.
-    lua_getfield(L, 1, "id");
-    const auto clock = host->clocks.find(static_cast<int>(lua_tointeger(L, -1)));
-    lua_pop(L, 1);
+    int key = 0;
+    const int entry = CheckEntry(L, host->casts, "After", &key);
+    // The cast may be another's (a cast value kept in a script's data), between its ticks: its tick written first
+    // (a known clock then holds the entry's).
+    const auto clock = host->clocks.find(key);
+    const bool known = clock != host->clocks.end() && clock->second.known;
     if (clock != host->clocks.end()) host->Flush(clock->first, clock->second);
     const lua_Integer delay =
         ticks >= 1.0 ? static_cast<lua_Integer>(std::floor(std::min(ticks, kMaxDelay))) : lua_Integer{1};
@@ -712,7 +739,7 @@ int ScriptSpellHost::After(lua_State* L) {
     const int timers = lua_gettop(L);
     lua_createtable(L, 0, 4);
     const int timer = lua_gettop(L);
-    const lua_Integer due = IntegerField(L, entry, "tick") + delay;
+    const lua_Integer due = (known ? clock->second.tick : IntegerField(L, entry, "tick")) + delay;
     if (clock != host->clocks.end() && (!clock->second.due || due < clock->second.due)) clock->second.due = due;
     SetInteger(L, timer, "due", due);
     SetInteger(L, timer, "seq", seq);
@@ -727,11 +754,9 @@ int ScriptSpellHost::After(lua_State* L) {
 // cast:Finish(): the cast ends after the hook that called it.
 int ScriptSpellHost::Finish(lua_State* L) {
     auto* host = static_cast<ScriptSpellHost*>(lua_touserdata(L, lua_upvalueindex(1)));
-    const int entry = CheckEntry(L, host->casts, "Finish");
-    lua_getfield(L, 1, "id");
-    if (const auto clock = host->clocks.find(static_cast<int>(lua_tointeger(L, -1))); clock != host->clocks.end())
-        clock->second.known = false;
-    lua_pop(L, 1);
+    int key = 0;
+    const int entry = CheckEntry(L, host->casts, "Finish", &key);
+    if (const auto clock = host->clocks.find(key); clock != host->clocks.end()) clock->second.known = false;
     lua_pushboolean(L, true);
     lua_setfield(L, entry, "finished");
     return 0;
@@ -761,6 +786,7 @@ bool ScriptSpellHost::Hand(std::string* data, std::map<int, SpellEffect*>* effec
     }
     *effects = std::move(live);
     live.clear();
+    for (auto& [key, clock] : clocks) ReleaseValue(clock);
     clocks.clear();
     return true;
 }
@@ -777,7 +803,7 @@ void ScriptSpellHost::Take(std::string_view data, const std::map<int, SpellEffec
     for (const auto& [key, effect] : effects) {
         effect->host = this;
         live[key] = effect;
-        clocks[key] = Clock{};
+        NewClock(key);
     }
 }
 
@@ -1467,7 +1493,15 @@ int ScriptSpellHost::Vision(lua_State* L) {
     return PushHandle(L, shown);
 }
 
-int ScriptSpellHost::PushModule(const SpellEffect& effect) { return PushModule(ScriptOf(effect)); }
+int ScriptSpellHost::PushModule(const SpellEffect& effect) {
+    const auto clock = clocks.find(effect.castKey);
+    if (clock == clocks.end()) return PushModule(ScriptOf(effect));
+    int& module = clock->second.module;
+    if (module == Clock::kUnresolved) return module = PushModule(ScriptOf(effect));
+    if (module == LUA_NOREF) lua_pushnil(L);
+    else lua_rawgeti(L, LUA_REGISTRYINDEX, module);
+    return module;
+}
 
 int ScriptSpellHost::PushModule(const std::string& file) {
     std::string key = file;
@@ -1523,49 +1557,93 @@ void ScriptSpellHost::PushEntry(lua_State* state, int key) {
 }
 
 void ScriptSpellHost::PushCast(const SpellEffect& effect, int entry) {
-    lua_createtable(L, 0, 24);
+    const auto found = clocks.find(effect.castKey);
+    Clock* const clock = found != clocks.end() ? &found->second : nullptr;
+    const bool fresh = !clock || clock->value == LUA_NOREF;
+    CastFields unkept;
+    CastFields& shown = clock ? clock->shown : unkept;
+    if (fresh) lua_createtable(L, 0, 24);
+    else lua_rawgeti(L, LUA_REGISTRYINDEX, clock->value);
     const int cast = lua_gettop(L);
     const Spell& spell = *effect.HeldSpell();
     const itemdb::SpellRecord* record = spell.GetPrototype();
-    SetInteger(L, cast, "id", effect.castKey);
-    lua_pushstring(L, record ? record->code.c_str() : "");
-    lua_setfield(L, cast, "code");
-    scriptlua::PushObject(L, effect.caster.Get());
-    lua_setfield(L, cast, "caster");
-    scriptlua::PushObject(L, effect.target.Get());
-    lua_setfield(L, cast, "target");
-    PushPoint(L, effect.position);
-    lua_setfield(L, cast, "from");
-    PushPoint(L, effect.targetPoint);
-    lua_setfield(L, cast, "point");
-    SetInteger(L, cast, "tick", IntegerField(L, entry, "tick"));
-    SetNumber(L, cast, "damage", spell.damage);
-    SetNumber(L, cast, "range", spell.range);
-    SetNumber(L, cast, "radius", spell.radius);
-    SetInteger(L, cast, "duration", spell.duration);
-    SetInteger(L, cast, "targetCount", spell.targetCount);
-    SetNumber(L, cast, "speed", spell.speed);
-    SetNumber(L, cast, "mana", spell.manaCost);
-    SetNumber(L, cast, "power", spellfx::Power(&effect));
-    SetNumber(L, cast, "areaPower", record ? spellfx::AreaCurve(spell.radius, record->area) : 0.0f);
-    SetNumber(L, cast, "lightRise", record ? spellfx::LightRise(&effect) : 0.0f);
-    SetNumber(L, cast, "lightRange", record ? record->lightRange : 0.0f);
-    const auto school = static_cast<std::size_t>(record ? record->school : SpellSchool::None);
-    lua_pushstring(L, school < std::size(recordnames::kSpellSchools) ? recordnames::kSpellSchools[school].data() : "");
-    lua_setfield(L, cast, "school");
-    lua_pushboolean(L, effect.silentEnd != 0);
-    lua_setfield(L, cast, "silent");
+    const bool newRecord = fresh || record != shown.record;
+    // The fields in the order a fresh table gets them; a kept one's only when they changed (floats by their bits).
+    const auto number = [&](const char* name, int slot, float value) {
+        float& was = shown.numbers[slot];
+        if (!fresh && std::bit_cast<std::uint32_t>(was) == std::bit_cast<std::uint32_t>(value)) return;
+        was = value;
+        SetNumber(L, cast, name, value);
+    };
+    const auto integer = [&](const char* name, auto& was, auto value) {
+        if (!fresh && was == value) return;
+        was = value;
+        SetInteger(L, cast, name, value);
+    };
+    const auto object = [&](const char* name, MapObject*& was, MapObject* value) {
+        if (!fresh && was == value) return;
+        was = value;
+        scriptlua::PushObject(L, value);
+        lua_setfield(L, cast, name);
+    };
+    const auto point = [&](const char* name, Vector3& was, const Vector3& value) {
+        const auto bits = [](const Vector3& v) {
+            return std::array{std::bit_cast<std::uint32_t>(v.x), std::bit_cast<std::uint32_t>(v.y),
+                              std::bit_cast<std::uint32_t>(v.z)};
+        };
+        if (!fresh && bits(was) == bits(value)) return;
+        was = value;
+        PushPoint(L, value);
+        lua_setfield(L, cast, name);
+    };
+    if (fresh) SetInteger(L, cast, "id", effect.castKey);
+    if (newRecord) {
+        lua_pushstring(L, record ? record->code.c_str() : "");
+        lua_setfield(L, cast, "code");
+    }
+    object("caster", shown.caster, effect.caster.Get());
+    object("target", shown.target, effect.target.Get());
+    point("from", shown.from, effect.position);
+    point("point", shown.point, effect.targetPoint);
+    integer("tick", shown.tick, IntegerField(L, entry, "tick"));
+    number("damage", 0, spell.damage);
+    number("range", 1, spell.range);
+    number("radius", 2, spell.radius);
+    integer("duration", shown.duration, spell.duration);
+    integer("targetCount", shown.targetCount, spell.targetCount);
+    number("speed", 3, spell.speed);
+    number("mana", 4, spell.manaCost);
+    number("power", 5, spellfx::Power(&effect));
+    number("areaPower", 6, record ? spellfx::AreaCurve(spell.radius, record->area) : 0.0f);
+    number("lightRise", 7, record ? spellfx::LightRise(&effect) : 0.0f);
+    number("lightRange", 8, record ? record->lightRange : 0.0f);
+    if (newRecord) {
+        shown.record = record;
+        const auto school = static_cast<std::size_t>(record ? record->school : SpellSchool::None);
+        lua_pushstring(L,
+                       school < std::size(recordnames::kSpellSchools) ? recordnames::kSpellSchools[school].data() : "");
+        lua_setfield(L, cast, "school");
+    }
+    if (fresh || shown.silent != (effect.silentEnd != 0)) {
+        shown.silent = effect.silentEnd != 0;
+        lua_pushboolean(L, shown.silent);
+        lua_setfield(L, cast, "silent");
+    }
     lua_getfield(L, entry, "data");
     lua_setfield(L, cast, "data");
+    if (!fresh) return;
     lua_rawgeti(L, LUA_REGISTRYINDEX, castMeta);
     lua_setmetatable(L, cast);
+    if (!clock) return;
+    lua_pushvalue(L, cast);
+    clock->value = luaL_ref(L, LUA_REGISTRYINDEX);
 }
 
 ScriptSpellHost::Hook ScriptSpellHost::Call(const SpellEffect& effect, const char* name, int arguments) {
     const int base = lua_gettop(L) - arguments;
     PushEntry(L, effect.castKey);
     const int entry = lua_gettop(L);
-    PushModule(ScriptOf(effect));
+    PushModule(effect);
     if (!lua_istable(L, entry) || !lua_istable(L, -1) || lua_getfield(L, -1, name) != LUA_TFUNCTION) {
         lua_settop(L, base);
         return Hook::Absent;
@@ -1603,32 +1681,42 @@ bool ScriptSpellHost::Settle(SpellEffect& effect, Hook result) {
         End(effect, "error");
         return false;
     }
-    PushEntry(L, effect.castKey);
-    const int entry = lua_gettop(L);
-    if (!lua_istable(L, entry)) {
-        lua_pop(L, 1);
-        Drop(effect);
-        return false;
-    }
-    const bool finished = EntryFlag(entry, "finished");
-    const lua_Integer tick = IntegerField(L, entry, "tick");
-    // The earliest timer's due tick for the clock (0: no timer; one at 0 or below is due at the next tick).
-    lua_Integer due = 0;
-    if (lua_getfield(L, entry, "timers") == LUA_TTABLE) {
-        const auto count = static_cast<lua_Integer>(lua_rawlen(L, -1));
-        for (lua_Integer i = 1; i <= count; ++i) {
-            lua_rawgeti(L, -1, i);
-            const lua_Integer at = IntegerField(L, -1, "due");
-            lua_pop(L, 1);
-            if (i == 1 || at < due) due = at;
+    // A known clock (a tick's hooks, the entry's tick written first) holds the tick and the earliest due already, and
+    // the cast is not finished (Finish makes the clock unknown); else they are read from the entry.
+    const int base = lua_gettop(L);
+    const auto known = clocks.find(effect.castKey);
+    bool finished = false;
+    lua_Integer tick = 0, due = 0;
+    if (known != clocks.end() && known->second.known) {
+        tick = known->second.tick;
+        due = known->second.due;
+    } else {
+        PushEntry(L, effect.castKey);
+        const int entry = base + 1;
+        if (!lua_istable(L, entry)) {
+            lua_settop(L, base);
+            Drop(effect);
+            return false;
         }
-        if (count > 0 && due <= 0) due = tick + 1;
+        finished = EntryFlag(entry, "finished");
+        tick = IntegerField(L, entry, "tick");
+        // The earliest timer's due tick for the clock (0: no timer; one at 0 or below is due at the next tick).
+        if (lua_getfield(L, entry, "timers") == LUA_TTABLE) {
+            const auto count = static_cast<lua_Integer>(lua_rawlen(L, -1));
+            for (lua_Integer i = 1; i <= count; ++i) {
+                lua_rawgeti(L, -1, i);
+                const lua_Integer at = IntegerField(L, -1, "due");
+                lua_pop(L, 1);
+                if (i == 1 || at < due) due = at;
+            }
+            if (count > 0 && due <= 0) due = tick + 1;
+        }
+        lua_settop(L, base);
     }
-    lua_pop(L, 2);
     const bool pending = due != 0 || effect.OwnsPending();
-    const int module = PushModule(effect);
+    PushModule(effect);
     const bool ticks = lua_istable(L, -1) && lua_getfield(L, -1, "OnTick") == LUA_TFUNCTION;
-    lua_settop(L, entry - 1);
+    lua_settop(L, base);
     const lua_Integer cap = TickCap(effect, ticks);
 
     const char* reason = nullptr;
@@ -1641,7 +1729,10 @@ bool ScriptSpellHost::Settle(SpellEffect& effect, Hook result) {
     }
     if (!reason) {
         Clock& clock = clocks[effect.castKey];
-        clock = {tick, due, module, true, false};
+        clock.tick = tick;
+        clock.due = due;
+        clock.known = true;
+        clock.stale = false;
         return true;
     }
     End(effect, reason);
@@ -1660,7 +1751,10 @@ void ScriptSpellHost::Drop(SpellEffect& effect) {
     lua_rawseti(L, -2, effect.castKey);
     lua_pop(L, 1);
     live.erase(effect.castKey);
-    clocks.erase(effect.castKey);
+    if (const auto clock = clocks.find(effect.castKey); clock != clocks.end()) {
+        ReleaseValue(clock->second);
+        clocks.erase(clock);
+    }
     effect.host = nullptr;
 }
 
@@ -1669,6 +1763,14 @@ bool ScriptSpellHost::EntryFlag(int entry, const char* name) {
     const bool flag = lua_toboolean(L, -1) != 0;
     lua_pop(L, 1);
     return flag;
+}
+
+bool ScriptSpellHost::Finished(const SpellEffect& effect, const Clock& clock) {
+    if (clock.known) return false;
+    PushEntry(L, effect.castKey);
+    const bool finished = lua_istable(L, -1) && EntryFlag(lua_gettop(L), "finished");
+    lua_pop(L, 1);
+    return finished;
 }
 
 void ScriptSpellHost::Report(const std::string& message) {

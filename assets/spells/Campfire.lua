@@ -4,6 +4,7 @@
 -- radius that area spells hit (the damage shared by the duration's targets).
 local PULSE = 4         -- it burns every this many ticks
 local ABOVE = 1         -- it stands this far above the ground
+local BURNS = { area = true, unsorted = true }  -- whom it burns: those area spells hit, in the map's order
 
 local spell = {}
 
@@ -18,9 +19,12 @@ function spell.OnCast(cast)
 end
 
 function spell.Pulse(cast)
-    local hit = { area = true, split = cast.duration }
-    for _, unit in ipairs(cast:FindUnits(cast.data.at, cast.radius, { area = true, unsorted = true })) do
-        cast:Damage(unit, cast.damage, "fire", hit)
+    local units = cast:FindUnits(cast.data.at, cast.radius, BURNS)
+    if units[1] then
+        local hit = { area = true, split = cast.duration }
+        for _, unit in ipairs(units) do
+            cast:Damage(unit, cast.damage, "fire", hit)
+        end
     end
     cast:After(PULSE, "Pulse")
 end
