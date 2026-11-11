@@ -1258,11 +1258,14 @@ def git_lines(root, *command):
 
 
 def converted_base(root=ROOT):
-    """What a checkout's changes are counted against: main's previous commit on main (the merge just made), else the
-    branch's merge base with main."""
+    """What a checkout's changes are counted against: on main, origin/main (everything not pushed yet: the merge and
+    any ticket commits after it; HEAD^1 missed a merge followed by a status commit), else HEAD^1; on a branch, its
+    merge base with main."""
     branch = git_lines(root, 'rev-parse', '--abbrev-ref', 'HEAD')
     if branch == ['main']:
-        return 'HEAD^1'
+        pushed = git_lines(root, 'rev-parse', '--verify', '-q', 'origin/main')
+        ahead = pushed and git_lines(root, 'rev-list', '--count', 'origin/main..HEAD')
+        return 'origin/main' if ahead and ahead != ['0'] else 'HEAD^1'
     base = git_lines(root, 'merge-base', 'HEAD', 'main')
     return base[0] if base else 'HEAD'
 
