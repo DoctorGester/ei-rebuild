@@ -1,0 +1,7 @@
+id = "H70"
+title = "Flake: a Lost in Astral savea/visuals.sav differs under full-suite load"
+group = "harness"
+size = 1
+model = "opus"
+note = "Seen twice on 2026-11-11 in main's Rebirth suite after merges (L10, L11), never in a rerun of the LIA scenarios alone: savea/visuals.sav 359 fields differ (weather cloudDriftA, visuals generator aa 1231877229 -> 3958333962), plus template moneyKey and partyManager record1 missing. Find which scenario writes savea, why its visuals (client-only random R34a?) or save timing depends on load, and make it deterministic. Repeat the full Rebirth suite several times to reproduce."
+order = 1337

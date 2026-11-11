@@ -5,5 +5,6 @@ size = 2
 model = "opus"
 note = "From L10's review (build/l10_review.md): our saves still write the parsed program (command blocks, WorldScript blocks, definitions' if-then pairs) though the Eris state holds it; only old saves need it and those are only read. Keep definitions' names/parameters and globals' names (later texts resolve). Drop ScriptCall::Save and friends, scriptir::Mark/DumpLoaded, ei-convert's tree-vs-load check if nothing else needs them (~400-600 lines), and savefile.py's eval rule (game.exe saves only). One decoded-save re-record; old-save scenarios must still resume. D2 (the scheduler state written into the old fields, read only by savefile.py) stays: it is the decoded saves' view of script state. Done (e61778351 code, 961e5ce95 goldens): saves write block counts 0 and definitions' pairs as {0, rule number}; parser builds no ScriptCall program; Mark/DumpLoaded, tree check, eval rule gone. Save version kept 0x74 (layout unchanged): a main-made save (script_quest_save save1) loads and its quests finish. 300 decoded saves re-recorded (only the commands record); normal and --converted suites 383 the same, 0 differ."
 order = 1334
-status = "review"
+status = "done"
 started = "2026-11-11"
+done = "2026-11-11"
