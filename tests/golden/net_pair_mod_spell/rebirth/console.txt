@@ -1,2 +1,0 @@
-  MF17d: OnCast mf17d_bolt by 0 at 1000000000
-  MF17d: OnEnd finished at tick 60

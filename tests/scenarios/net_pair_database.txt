@@ -1,5 +1,5 @@
 # C154c: a client leaves a server whose item database it lacks a record of (a pair of games, harness_pair.h). This
-# game hosts as net_pair_party does, with a network item database of one quest item more: tools/make_extra_item_db.py
+# game hosts as net_pair_kick does, with a network item database of one quest item more: tools/make_extra_item_db.py
 # writes harness_saves\Res\databaselmp\items.idb, the overlay's loose file over the install's archive. The peer
 # (peer/net_pair_database.txt) joins with the install's database. Both go into the game zone as in net_pair_leave
 # (the sheriff's second topic picks the map; the bases are each game's own). Then this game's server gives the peer's
@@ -10,6 +10,8 @@
 # A clickground lands where the clicked pixel's ray meets the ground (the vanilla runs play in a 4:3 window, the
 # Rebirth runs at the desktop's size; net_pair_leave).
 # prepare: make_extra_item_db.py
+# Only on the vanilla data: the Rebirth run reaches no code and checks nothing the vanilla run does not.
+# installs: vanilla
 rebirth resolution desktop
 timeout 180
 peer net_pair_database

@@ -4,6 +4,8 @@
 # each time); the briefing's variable is checked there. cz3k, cz4k and Jigran's cz1j are mod_lost_in_astral_cz_ingos_end
 # (H70: the six bases in one game took 24 s alone and passed the 60 s limit on a full machine). One digest record, in
 # cz2k (a small zone; the others are checked by their variables). On the vanilla data only the menu runs.
+# Only on Rebirth's data: the vanilla run checks nothing another scenario does not.
+# installs: rebirth
 mod starter\Mods\LostInAstral
 reject Script error
 waitmenu

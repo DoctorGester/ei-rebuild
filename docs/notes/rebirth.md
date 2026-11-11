@@ -109,9 +109,9 @@ on either install (`src/game/mod_folders.{h,cpp}`, `modfolders::Active`); withou
 - CameraPatch (Camera::LoadPath), MoviesPatch (every movie open), StreamPatch (the music stream's path): the mod's
   `Camera\`, `Movies\` or `Stream\` file of that name when it exists.
 - Check: `tests/scenarios/rebirth_mod_folders.txt` (S19b), with a mod `tools/make_test_mod.py` writes into the run's
-  folder and the harness step `mod harness_saves\s19b_mod`; `rebirth_mod_stream_movies`, `rebirth_mod_archives`,
-  `rebirth_mod_maps` and `rebirth_mod_zone_table` (S19d, mods from `tools/make_mod_s19d.py`: Stream, Movies, arrays and
-  `-` entries, extra figure and texture archives, every Maps site). Each runs on both installs with the same results
+  folder and the harness step `mod harness_saves\s19b_mod`; `rebirth_mod_stream_movies` and
+  `rebirth_mod_maps` (S19d, mods from `tools/make_mod_s19d.py`: Stream, Movies, every Maps site; the arrays and `-`
+  entries of [RES] and the extra archives run through the same lists, H74). Each runs on both installs with the same results
   (the mod's saves in `harness_saves\<mod>`). Not reproduced: Rebirth's own override folders, the
   mod's [CONFIG] / [DEV] / SavesPath.
 - NivalRegistry (the starter's registry root) is dropped: one settings file serves both installs (standalone.md,
@@ -296,7 +296,7 @@ proportions over the whole window through the axis swap's y scale); at exactly 4
 original's. `screen_layout::Configure` computes them right after the options load, from the resolution the game loaded and makes
 its window at, and again at each resolution change (`app::SetResolution`; renderer.md, "Resolution changes") (the
 settings file's [video] VideoResolution; tests/scenarios/
-ui_widescreen_resolution.txt; ui_layout_narrow at 1000x800).
+ui_widescreen_resolution.txt).
 - At 4:3 every branch's wide side gives the plain side's values (checked on every vanilla golden at 960x720). Two things
   are not addon's: the unit panel's setup keeps the original's slide and moves the original's rectangle by the shift,
   and the curtains are added at 4:3 too (empty sprites).

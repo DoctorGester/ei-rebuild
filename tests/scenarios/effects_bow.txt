@@ -4,6 +4,8 @@
 # target. The hero gets a bow ("bone short bow.decayed bones", the bandit archer's weapon) through
 # the camp (page 0, campputon 3004) and attacks a wolf three squares to the right (clickunit, a player's order: the zone's
 # intro script ends a scripted Attack order at once).
+# Only on the vanilla data: the Rebirth run reaches no code and checks nothing the vanilla run does not.
+# installs: vanilla
 reject Script error
 waitmenu
 console thingamabob

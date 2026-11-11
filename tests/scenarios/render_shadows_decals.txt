@@ -87,7 +87,7 @@ decals on
 unfreeze
 printlight night night_bare 0.95 1.2
 
-# With a script point light right of the hero (render_shadows_trees' light): the prints take its light as the ground
+# With a script point light right of the hero: the prints take its light as the ground
 # does (before R52a the blood kept its last re-lighting's grey: 0.87, darker than by day), and in its point shadows
 # lose it as the ground does.
 console @CreatePointLight(7,Add(GetX(GetLeader()),3),Sub(GetY(GetLeader()),1),Add(GetZ(GetLeader()),2),12,255,230,180)

@@ -18,6 +18,8 @@
 # the walk follows the frame's pixel grid. The vanilla runs play in the image's 4:3 window (harness_starter.h), the
 # layout their goldens have had since game.exe's; the Rebirth runs at the desktop's size, the wide layout at 16:9 (W12).
 # prepare: make_mp_hero.py --stats 1000 60 60 --skills 60 --damage 300 --absorb 100
+# Only on the vanilla data: the Rebirth run reaches no code and checks nothing the vanilla run does not.
+# installs: vanilla
 rebirth resolution desktop
 timeout 240
 reject Script error

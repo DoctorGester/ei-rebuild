@@ -13,6 +13,8 @@
 # world's time, which differs between the runs.
 # Clicks go through clickregion (the game's own scaling); "move 400 20" parks the mouse at the top
 # middle, which is the same point in either layout.
+# Only on the vanilla data: the Rebirth run reaches no code and checks nothing the vanilla run does not.
+# installs: vanilla
 deterministic
 resolution desktop
 widescreen 1

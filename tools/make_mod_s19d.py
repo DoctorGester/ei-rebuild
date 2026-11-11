@@ -1,6 +1,6 @@
 """Writes a Rebirth mod for the S19d scenarios (the mod-folder patches the S19b scenario leaves unchecked).
 
-usage: python tools/make_mod_s19d.py <saves dir> stream|archives|maps|loose|toml|databases|png|heights|gltf|anim|mobs
+usage: python tools/make_mod_s19d.py <saves dir> stream|maps|loose|toml|databases|png|heights|anim|mobs
                                     [--zip <name> [--top]]
   <saves dir>   the run's harness_saves folder; the mod goes to <saves dir>\\s19d_mod, which the scenario selects with
                 the harness step "mod harness_saves\\s19d_mod" (the settings' Mod)
@@ -15,13 +15,7 @@ nothing is committed. Kinds (docs/notes/rebirth.md, "Resources and paths"):
               Stream\\s19d.mp3      a copy of the install's murder.mp3: a track the game has no file of
               Stream\\bravery.mp3   a copy of rage.mp3: a track the game has, in the mod another one
               Movies\\crdtfin.bik   a copy of the install's progres.bik under the name of a movie the game has
-  archives  ResOverride's lists (tests/scenarios/rebirth_mod_archives.txt), config.reg [RES]:
-              texts.res    = [Res\\s19d_texts_a.res, Res\\s19d_texts_b.res]   two mod archives, the first one wins
-              outro.res    = [Res\\s19d_outro.res, "-"]                       the game's archive switched off
-              figures.res  = Res\\s19d_figures.res                            extra figure archive (before the game's)
-              textures.res = Res\\s19d_textures.res                           also overrides the game's archive
-              menus.res    = Res\\s19d_menus.res                              extra figure (before) and texture (after)
-  maps      Maps (tests/scenarios/rebirth_mod_maps.txt, rebirth_mod_zone_table.txt)
+  maps      Maps (tests/scenarios/rebirth_mod_maps.txt)
               Maps\\zone2.mpr       a copy of the install's: zone2's map from the mod, its .mob from the game's folder
               Maps\\z9q2.mq         a copy of the install's: the zone table and the quest files read the mod's folder
               Maps\\s19d\\note.txt   a file of a subfolder, listed as "s19d\\note.txt"
@@ -48,18 +42,11 @@ nothing is committed. Kinds (docs/notes/rebirth.md, "Resources and paths"):
               Maps\\zone1.mpr             a copy of the install's (packed from its folder on an unpacked or converted one)
               Maps\\zone1\\heights.png    its heights (from the sectors, or from the converted folder's heights.png) with
                                         a plateau of 60000 raised around HILL: over the archive's map, the rest its own
-  gltf      models as glTF (tests/scenarios/mod_gltf_model.txt; docs/notes/mods.md, "Models as glTF"):
-              Res\\figures\\unhuma.glb   the hero's figure (unhuma.mod, .bon and .anm of the install's figures.res) as
-                                        ei-convert writes it, then as another tool would leave it: the meshes'
-                                        and the scene's `extras` dropped (the nodes' kept: their bones' versions),
-                                        the animations too (the game's unhuma.anm below is read), and the figure 1.5
-                                        times as large (the positions, the morph targets' displacements, the nodes'
-                                        translations and bones scaled); ei-convert is the run's build's
-                                        (EI_BUILD_DIR, else build\\verify); a converted install's own unhuma.glb when
-                                        it has one
   anim      animations as glTF (tests/scenarios/mod_gltf_animation.txt; docs/notes/mods.md, "Animations as glTF"):
-              Res\\figures\\unhuma.glb   the hero's figure as gltf's (before its changes), its idle "cidle18" twice as
-                                        slow: its keys' times doubled and its `extras` dropped (so the loader samples
+              Res\\figures\\unhuma.glb   the hero's figure (unhuma.mod, .bon and .anm of the install's figures.res) as
+                                        ei-convert writes it (the run's build's: EI_BUILD_DIR, else
+                                        build\\verify; a converted install's own unhuma.glb when it has one),
+                                        its idle "cidle18" twice as slow: its keys' times doubled and its `extras` dropped (so the loader samples
                                         the glTF's rotations at every tick: 211 keys for 106)
               Res\\database\\unhuma.adb.toml  "cidle18" with twice its frames (210), alone
   mobs      a map's objects as TOML (tests/scenarios/mod_map_objects.txt; docs/notes/mods.md, "Map objects as TOML"):
@@ -123,26 +110,6 @@ def stream(root):
     copy(vanilla('Stream', 'murder.mp3'), os.path.join(root, 'Stream', 's19d.mp3'))
     copy(vanilla('Stream', 'rage.mp3'), os.path.join(root, 'Stream', 'bravery.mp3'))
     copy(vanilla('Movies', 'progres.bik'), os.path.join(root, 'Movies', 'crdtfin.bik'))
-
-
-def archives(root):
-    res = {
-        'texts.res': ['Res\\s19d_texts_a.res', 'Res\\s19d_texts_b.res'],
-        'outro.res': ['Res\\s19d_outro.res', '-'],
-        'figures.res': 'Res\\s19d_figures.res',
-        'textures.res': 'Res\\s19d_textures.res',
-        'menus.res': 'Res\\s19d_menus.res',
-    }
-    config(root, res)
-    out = lambda name, files: write(os.path.join(root, 'Res', name), mod.archive(files))
-    out('s19d_texts_a.res', {'s19d.txt': b'first\r\n'})                                    # 7 bytes
-    out('s19d_texts_b.res', {'s19d.txt': b'second file\r\n', 's19d_b.txt': b'only in b\r\n'})   # 13 and 11
-    out('s19d_outro.res', {'outro_mod.txt': b'outro of the mod\r\n'})                      # 18
-    # unmodr.anm is the dragon's animation, in the game's figures.res (and Rebirth's), loaded only when a dragon appears.
-    out('s19d_figures.res', {'s19d.fig': b'a figure of the mod', 'unmodr.anm': b'dragon, mod'})   # 19 and 11
-    out('s19d_textures.res', {'s19d_t2.mmp': b'texture'})                                  # 7
-    # armytent01.mmp is in the game's textures.res: the game's three archives come first for the texture manager.
-    out('s19d_menus.res', {'s19d_tex.mmp': b'a texture of the mod, 30 bytes', 'armytent01.mmp': b'mod copy'})   # 30 and 8
 
 
 def maps(root):
@@ -327,7 +294,6 @@ def heights(root):
 
 
 
-GLTF_SCALE = 1.5
 
 
 def install_entries(archive, names):
@@ -364,47 +330,6 @@ def glb_of(doc, binary):
     text += b' ' * (-len(text) % 4)
     chunks = struct.pack('<II', len(text), 0x4E4F534A) + text + struct.pack('<II', len(binary), 0x4E4942) + binary
     return struct.pack('<III', 0x46546C67, 2, 12 + len(chunks)) + chunks
-
-
-def glb_scaled(glb, scale):
-    """A .glb with its animations and every `extras` but the nodes' dropped, and its positions, morph displacements
-    and node translations and bones scaled."""
-    doc, binary = glb_parts(glb)
-    doc.pop('animations', None)
-
-    def drop_extras(value):
-        if isinstance(value, dict):
-            value.pop('extras', None)
-            for item in value.values():
-                drop_extras(item)
-        elif isinstance(value, list):
-            for item in value:
-                drop_extras(item)
-    nodes = doc.pop('nodes', [])
-    drop_extras(doc)
-    doc['nodes'] = nodes
-    scaled = set()
-    for mesh in doc.get('meshes', []):
-        for primitive in mesh['primitives']:
-            for attributes in [primitive['attributes']] + primitive.get('targets', []):
-                scaled.add(attributes['POSITION'])
-    for index in sorted(scaled):
-        accessor = doc['accessors'][index]
-        if 'bufferView' in accessor:   # (an accessor without a view is all zero)
-            at = doc['bufferViews'][accessor['bufferView']].get('byteOffset', 0) + accessor.get('byteOffset', 0)
-            count = accessor['count'] * 3
-            values = [v * scale for v in struct.unpack_from(f'<{count}f', binary, at)]
-            struct.pack_into(f'<{count}f', binary, at, *values)
-        for bound in ('min', 'max'):
-            if bound in accessor:
-                accessor[bound] = [single(single(v) * scale) for v in accessor[bound]]   # as the floats are
-    for node in doc.get('nodes', []):
-        if 'translation' in node:
-            node['translation'] = [v * scale for v in node['translation']]
-        ei = node.get('extras', {}).get('ei', {})
-        if 'bone' in ei:
-            ei['bone'] = [[v * scale for v in version] for version in ei['bone']]
-    return glb_of(doc, binary)
 
 
 def glb_slower(glb, animation, factor):
@@ -449,11 +374,6 @@ def unhuma_glb():
         subprocess.run([convert, archive, os.path.join(scratch, 'out')], check=True, capture_output=True)
         with open(os.path.join(scratch, 'out', 'figures', 'unhuma.glb'), 'rb') as f:
             return f.read()
-
-
-def gltf(root):
-    config(root)
-    write(os.path.join(root, 'Res', 'figures', 'unhuma.glb'), glb_scaled(unhuma_glb(), GLTF_SCALE))
 
 
 ANIM_SLOWER = 2   # the idle's keys' times multiplied; its .adb frames likewise (105 for its 106 keys: 210)
@@ -515,8 +435,8 @@ def mobs(root):
     write(os.path.join(root, 'Maps', 'zone1.mob.toml'), '[[object]]\n'.join(records).encode('utf-8'))
 
 
-KINDS = {'stream': stream, 'archives': archives, 'maps': maps, 'loose': loose, 'toml': toml, 'databases': databases, 'png': png,
-         'heights': heights, 'gltf': gltf, 'anim': anim, 'mobs': mobs}
+KINDS = {'stream': stream, 'maps': maps, 'loose': loose, 'toml': toml, 'databases': databases, 'png': png,
+         'heights': heights, 'anim': anim, 'mobs': mobs}
 
 
 def zip_folder(root, target, top):

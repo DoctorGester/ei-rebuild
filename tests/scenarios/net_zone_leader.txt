@@ -10,6 +10,8 @@
 # A clickground lands where the clicked pixel's ray meets the ground and the leader walks to that exact point, so
 # the walk follows the frame's pixel grid. The vanilla runs play in the image's 4:3 window (harness_starter.h), the
 # layout their goldens have had since game.exe's; the Rebirth runs at the desktop's size, the wide layout at 16:9 (W12).
+# Only on the vanilla data: the Rebirth run reaches no code and checks nothing the vanilla run does not.
+# installs: vanilla
 rebirth resolution desktop
 timeout 120
 reject Script error

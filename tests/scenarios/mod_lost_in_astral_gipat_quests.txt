@@ -4,6 +4,8 @@
 # the broken palantir picked from the quick panel, then the lever clicked. Each SetCPFast puts the hero on a cell he
 # can walk from (a cell inside a blocked one leaves him no path to the lever's use spot; MOD2b). The quest's end and
 # the briefing it opens next are checked. On the vanilla data only the menu runs.
+# Only on Rebirth's data: the vanilla run checks nothing another scenario does not.
+# installs: rebirth
 mod starter\Mods\LostInAstral
 reject Script error
 waitmenu

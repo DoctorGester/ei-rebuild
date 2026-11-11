@@ -1,6 +1,8 @@
 # C163: the host's pause mode "off" (EI_Plugin's Pause 3: three clicks on the create-server screen's pause region, 29,
 # with the new game's row selected): a game hosted alone, into zone z3q2 as net_pair_portraits' host goes; there the
 # host, the game's leader, presses Space and its world keeps running. The player slider is left at the original's 6.
+# Only on the vanilla data: the Rebirth run reaches no code and checks nothing the vanilla run does not.
+# installs: vanilla
 rebirth resolution desktop
 timeout 120
 reject Script error

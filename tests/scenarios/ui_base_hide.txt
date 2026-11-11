@@ -1,5 +1,4 @@
-# H43h: a base dialogue that hides what it showed (BriefingScreen::HideSpeaker; ui_base_topic is the same walk with
-# M4). Smith's topic "M6" (texts.res "briefing M6") shows a rune item ("#show CryptRune00") and hides it again and
+# H43h: a base dialogue that hides what it showed (BriefingScreen::HideSpeaker). Smith's topic "M6" (texts.res "briefing M6") shows a rune item ("#show CryptRune00") and hides it again and
 # then hides Smith himself ("#hide CryptRune00", "#hide Smith"): the first hide finds no unit, so it takes the shown
 # item's scene objects away; the second finds the unit among the speakers and sends it back to its place.
 # Esc skips the phrases (every command line runs), the next Esc takes the rewards.

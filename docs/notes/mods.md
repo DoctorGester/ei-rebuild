@@ -30,7 +30,7 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `tools/unpack_install.py` | an install's archives unpacked into their folders; run_all.py `--unpacked` |
 | `tests/scenarios/mod_loose_files.txt` | loose files of a mod over its archives and the game's |
 | `src/platform/zip_folders.h`, `.cpp` | a .zip read as a folder ("Zip mods"): `InZip`, `ZipFile`, `SearchZip`, on miniz (third_party/miniz) |
-| `tests/scenarios/mod_zip_archives.txt`, `mod_zip_loose_files.txt`, `mod_zip_menu.txt` | zip mods: rebirth_mod_archives' and mod_loose_files' mods zipped, the menu's list finding one |
+| `tests/scenarios/mod_zip_loose_files.txt`, `mod_zip_menu.txt` | zip mods: mod_loose_files' mod zipped, the menu's list finding one |
 | `src/lib/toml.h`, `.cpp`; `third_party/tomlc17/` | TOML read (tomlc17) and written ("Records as TOML") |
 | `src/engine/data/resource.h`, `.cpp` | `RecordFile`, `FindRecordFile`, `MappedResource::FindRecord` / `FindText`, `MergeTomls` |
 | `tools/convert/convert.cpp` | ei-convert: an install's records as TOML, each round trip checked |
@@ -59,7 +59,6 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `src/engine/data/resource.cpp` | `MappedResource::ModelFile`, `HasModelFile`, `MadeModel`: a figure file answered from a glTF where it is found |
 | `tools/convert/convert_models.h`, `.cpp` | ei-convert's models: an archive's figure files grouped into figures, each as a .glb, its round trip compared |
 | `tests/unit/figure_gltf.cpp` | the unit check (ei_unit_check, the POSIX port check) |
-| `tests/scenarios/mod_gltf_model.txt` | a mod's glTF hero (no extras, 1.5 times as large) seen in a new game |
 | `docs/modding.md` | the modder's guide (MF10): keep it in step with the loaders when a format changes |
 | `examples/example_mod/`, `examples/example_mod_additions/`, `tools/convert/example_mod.cpp` | the guide's example mod: hand-written TOML and Lua, and zone 1's ground PNGs (recoloured), zone1.mob.toml (a pig appended) and zone1.lua (the mod's lines spliced in) made from the install by `ei-convert --example-mod`, which reads the examples folder beside the exe (the build copies it there; the release packages ship it); `tools/make_example_mod.py` is mod_example's prepare step calling it |
 | `tests/scenarios/mod_example.txt` | the example mod played: its text, weapons, pig, red ground (`hues world 0.2 1 red`) and reads |
@@ -247,8 +246,6 @@ mod's folder below one top folder LostInAstral\: 280 entries, 272 deflated, 8 st
 - `tests/unit/path_layers.cpp` (ei_unit_check, the POSIX port check): a zip of a mod folder (its one top folder) and a
   zip of files at its root, made with miniz's writer: the mod's folder and name, reads through the map (whole, File
   with seeks and ReadAt, MappedFile), a write and an update going to saves\<mod>\files\ and read back after a switch, folder searches merged with the game's, FilesByLayer, ModRoot.
-- `mod_zip_archives` (either install; make_mod_s19d.py archives --zip s19d_mod.zip): rebirth_mod_archives' mod as a zip
-  of files: the same answers and the same goldens as rebirth_mod_archives (its console, digest and saves files equal).
 - `mod_zip_loose_files` (make_mod_s19d.py loose --zip s19d_mod.zip --top): mod_loose_files' mod zipped below its
   folder: the same answers, the log naming the zip's s19d_mod\ and saves\s19d_mod.
 - `mod_zip_menu` (make_mod_s19d.py loose --zip starter\Mods\0_s19d.zip --top: the zip in the run's overlay of the game
@@ -977,9 +974,8 @@ millisecond a figure (a converted install's load: "Textures as PNG", "Loading co
   unused slots, a normal's w, zero and non-unit normals, words of their own, a prism bone, an unlinked part, a part
   without a record, an entry of another kind) come back as the same files; a hand-made .gltf with an external buffer
   and a data URI and no extras is turned to the game's axes, numbered by value, its bounds fitted; lib/json.h.
-- `mod_gltf_model` (both installs; tools/make_mod_s19d.py gltf): the hero's figure (unhuma) as ei-convert writes it,
-  then with every `extras` dropped and 1.5 times as large; the hero stands taller in the capture and the trace has the
-  glTF read for unhuma.mod and unhuma.bon.
+- `mod_gltf_animation` (below) loads the hero's figure (unhuma) as ei-convert writes it from a mod: the trace has the
+  glTF read for unhuma.mod and unhuma.bon (H74 dropped mod_gltf_model, which also scaled it: the same code).
 - `ei-convert --check` on both installs, and on the stub data in the Linux suites' workflow.
 - `work.py test <ID> --converted --golden` (and `--rebirth-only`): the converted installs have every figure as a .glb.
 - The Khronos glTF Validator (the npm package gltf-validator 2.0.0-dev.3.10, run with node on a few exported .glb:
@@ -1062,7 +1058,6 @@ PNG", "Loading cost").
   frames (the game's 105). The figure manager's track of `hp` has 211 keys (the game's 106 at the even ticks, slerps
   between), the other idles' as they were (`cidle02`: 96), the hero standing plays `cidle18` past its frame 105
   (`objplayed cidle18 past 105`: to 207 vanilla, 195 Rebirth, in 120 frames), the trace has the glTF read for `unhuma.anm`.
-  `mod_gltf_model` drops the animations of its glTF (the game's `.anm` below is read).
 - `ei-convert --check` on both installs, and on the stub data in the Linux suites' workflow.
 - `work.py test <ID> --converted --golden` (and `--rebirth-only`): the converted installs have every `.anm` in its .glb.
 - The Khronos glTF Validator (gltf-validator 2.0.0-dev.3.10 with node) on the hero (179 animations), unmowi (vertex
@@ -1104,9 +1099,7 @@ each question, so a plugin's change is on exactly while the chosen mod names it.
     class 5 nothing.
   - `PartyManager::Load` builds them again after reading the save: the saved templates and their stock are dropped,
     so a loaded game restocks at the next camp visit.
-  Checked by `mod_lost_in_astral_shops` (the camp of classes 1 and 5, a quick save, its load, the camp again, a
-  second quick save: the saves golden holds the four templates and the stock made after the load) and by every
-  Lost in Astral scenario's autosave (four templates).
+  Checked by every Lost in Astral scenario's autosave (four templates).
 - IronMod's `fixfslpatei.plg`: not supported (below).
 
 ### IronMod's fixfslpatei.plg (MOD1b)
@@ -1162,7 +1155,7 @@ makes that call and then `TemplateTable::Build(this + 0x38, 1)`; and the byte 0x
   `harness_saves\LostInAstral\savea`. On the vanilla data the folder is missing: logged, the game without a mod.
 - `mod_heroes` (both installs; tools/make_mp_hero.py `--mod`): a hero prepared in the mod's `mp\` and one in the game's;
   the hero screen (it logs `heroes: <n> listed <files>`) lists only the mod's under the mod, then after a switch to no
-  mod only the game's. `rebirth_mod_zone_table` hosts a game with a mod: its hero is the mod's (`--mod s19d_mod`).
+  mod only the game's.
 - Every other scenario has no mod: the overlay's map with two layers gives the paths MapPath gave before (the goldens
   the same).
 

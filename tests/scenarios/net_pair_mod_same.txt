@@ -1,5 +1,5 @@
 # MF16: a pair of games playing the same mod (docs/notes/network.md, "Mods"): each its own copy of the showcase mod
-# (tools/make_mod_pair.py). This game hosts as net_pair_join does; the peer (peer/net_pair_mod_same.txt) joins. Its
+# (tools/make_mod_pair.py). This game hosts as net_pair_kick does; the peer (peer/net_pair_mod_same.txt) joins. Its
 # login carries our mod mark after the password (the title and the content hash, modhash::ContentHash), which agrees
 # with this game's (modidentity::Agrees), so the server admits it as before; the acceptance's mark tells the peer the
 # host's mod. "netmod" shows both sides: nothing refused, the host's mod the peer's own files.

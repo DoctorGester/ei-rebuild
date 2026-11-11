@@ -1,10 +1,12 @@
 # W4c, C163: a game for more than 7 players (EI_Plugin's NPlayers; rebirth.md, "EI_Plugin.asi"): the host drags the
 # create-server screen's player slider from 6 to 8; the joined peer takes the limit from the lobby's answer. The battle
 # screen's portraits are 20 wide at a pitch of 20 with the face models at depth 9.1875 (AddPortrait's six extra sites;
-# HudPortraits::AddPortrait) and the chat window starts at 0. A pair as net_pair_zone (without its exchange): the peer,
+# HudPortraits::AddPortrait) and the chat window starts at 0. A pair as net_pair_speed (without its exchange): the peer,
 # a network client, captures its battle screen in the zone, the host its own. The host's pause mode is "any player"
 # (EI_Plugin's Pause 2: two clicks on the mode's region): in the zone the peer, not the game's leader, pauses the
 # host's world (Space) and resumes it; the original's mode would ignore its pause.
+# Only on the vanilla data: the Rebirth run reaches no code and checks nothing the vanilla run does not.
+# installs: vanilla
 rebirth resolution desktop
 timeout 180
 peer net_pair_portraits

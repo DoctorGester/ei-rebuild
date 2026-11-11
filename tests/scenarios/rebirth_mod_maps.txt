@@ -2,7 +2,7 @@
 # and paths"): the new zone's map and mob files (NewZone), the client's zone load, the shared-file handler's
 # MapFileExists. A mod of our own: tools/make_mod_s19d.py maps writes it into the run's harness_saves\s19d_mod, which
 # "mod" makes the settings' Mod (both installs: the mod-folder patches apply whenever a mod is played). The mod's Maps\
-# holds zone2.mpr (a copy of the install's, but not zone2.mob), z9q2.mq (a copy, for rebirth_mod_zone_table) and
+# holds zone2.mpr (a copy of the install's, but not zone2.mob), z9q2.mq (a copy) and
 # s19d\note.txt (a file of a subfolder, listed as "s19d\note.txt"). The checks are the trace of the files the game
 # touches (tests/verify/harness_modtrace.h): the folder each file was taken from shows in the path.
 # Each site picks the folder by the file it is about, so the zone's two files may come from two folders:

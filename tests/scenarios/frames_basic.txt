@@ -5,6 +5,8 @@
 # update, no clock-driven animation) and the mouse is parked away from buttons and units; each
 # capture skips two presented frames. world and world_again come from the same freeze and must match
 # (samecapture; a difference means something on screen moves while frozen).
+# Only on Rebirth's data: the vanilla run checks nothing another scenario does not.
+# installs: rebirth
 reject Script error
 waitmenu
 console thingamabob

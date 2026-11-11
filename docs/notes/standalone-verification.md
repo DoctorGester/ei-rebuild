@@ -92,7 +92,7 @@ numbers; older ones show "hash only" for units' place and AI. For every number, 
 tick and frame.
 
 Renderer-only scenarios (render_cursor_present, render_present_shot,
-render_present_window, render_present_fullscreen) have goldens too, but their digests do not follow the renderer: the
+render_present_fullscreen) have goldens too, but their digests do not follow the renderer: the
 world moves only with frames on the virtual clock, presents are counted on the main thread, a stall is one long frame.
 
 `golden.py KNOWN` / `SAVES_KNOWN` (fields kept in clear but left out of comparisons until a ticket lands;
@@ -109,8 +109,8 @@ Every scenario in tests/scenarios has a vanilla golden but these (run_all's summ
   frames and renderer upgrades replace the look), over a world other goldens already play, several from a user's save
   whose decoded text is megabytes: `render_clouds`, `render_drawn_lights`, `render_drawn_motion`, `render_far_ground`,
   `render_load_town`, `render_map_clouds`, `render_occlusion`, `render_occlusion_cave`, `render_preview_blend`,
-  `render_resize_edgepan`, `render_resize_zone`, `render_save_frame`, `render_shadows_decals`, `render_shadows_trees`,
-  `render_shore_seams`, `render_swamp_shore`, `render_unit_skin`, `render_water_looks`, `render_weather`,
+  `render_resize_edgepan`, `render_resize_zone`, `render_save_frame`, `render_shadows_decals`,
+  `render_shore_seams`, `render_unit_skin`, `render_weather`,
   `render_weather_panel`, `render_weather_particles`, `render_weather_roofs`, `render_weather_shelter`,
   `render_weather_units`, `mod_lost_in_astral_first_pose` (R65's first drawn pose).
 
@@ -141,9 +141,7 @@ Which of src/'s functions and lines the suites reach: `python tools/coverage.py 
   disk). Dib::Read runs only for a loose `textures\<name>.bmp`.
 - Dead: the fake unit (class 0x39): no shipped data makes one; the map object factory makes nothing for class 0x39
   (CreateObject returns null, as for an unknown class).
-- Multiplayer pairs (section 6): `net_pair_join` (a second game finds the first's hosted game in the lobby list, joins
-  it, both say a chat line, the second leaves); `net_pair_zone` (an exchange on the base, the host's map choice through
-  the sheriff's topic, both games through bz1mpg's gate into the game zone); `net_pair_kick` (kick by serial, ban by name,
+- Multiplayer pairs (section 6): `net_pair_kick` (kick by serial, ban by name,
   a refused join); `net_pair_leave` (shared files to a peer that lacks one, the peer lost in the game zone, the host back
   to the base: LeaveZone and its award); `net_pair_quest` (a prepared strong hero, `make_mp_hero.py`, finishes z9q2 and
   the sheriff's "_3" topic: CompleteZone and its awards; a public game whose `fakemaster` answers); `net_pair_master`

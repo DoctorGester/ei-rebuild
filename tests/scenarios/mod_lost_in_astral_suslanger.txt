@@ -5,6 +5,8 @@
 # a zone's script that does not load is reported on the console ("Script error: <zone>.mob line <n>: ...") and the
 # run fails on it. docs/notes/mods.md, "Lost in Astral played (MOD2)".
 # On the vanilla data (no starter\Mods) only the menu runs: every later step is Rebirth's.
+# Only on Rebirth's data: the vanilla run checks nothing another scenario does not.
+# installs: rebirth
 mod starter\Mods\LostInAstral
 waitmenu
 rebirth console thingamabob

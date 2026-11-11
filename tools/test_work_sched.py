@@ -983,6 +983,18 @@ class SchedTest(unittest.TestCase):
         stepped = self.scenario('stepped', 'waitmenu\nrebirth click 1 1\n')
         self.assertEqual(run_all.plan(run_all.parse_args(['--rebirth-only']), root=self.tmp), [('stepped', 'standalone-rebirth')])
         os.remove(stepped)
+        # "# installs:" keeps a scenario to one install, named or not; "# suite: named" leaves it out of the suite (H74)
+        only = self.scenario('only', '# installs: rebirth\nwaitmenu\nquit\n')
+        plain = self.scenario('plain', '# installs: vanilla\nwaitmenu\nrebirth click 1 1\n')
+        named = self.scenario('named', '# suite: named\nwaitmenu\nquit\n')
+        self.assertEqual(run_all.plan(run_all.parse_args(['--rebirth']), root=self.tmp),
+                         [('boot', 'standalone'), ('only', 'standalone-rebirth'), ('plain', 'standalone'),
+                          ('wide', 'standalone')])
+        self.assertEqual(run_all.plan(run_all.parse_args(['--all-rebirth', 'only', 'plain']), root=self.tmp),
+                         [('only', 'standalone-rebirth'), ('plain', 'standalone')])
+        self.assertEqual(run_all.plan(run_all.parse_args(['named']), root=self.tmp), [('named', 'standalone')])
+        for path in (only, plain, named):
+            os.remove(path)
         # and every scenario with a Rebirth golden (H51a)
         os.makedirs(os.path.join(self.tmp, 'tests', 'golden', 'boot', 'rebirth'))
         with open(os.path.join(self.tmp, 'tests', 'golden', 'boot', 'rebirth', 'golden.json'), 'w') as f:

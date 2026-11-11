@@ -1,6 +1,6 @@
 # MF16: a pair of games playing different versions of one mod (docs/notes/network.md, "Mods"): this game the showcase
 # mod, the peer (peer/net_pair_mod_differ.txt) a copy whose Maps\zone1.lua has one line more (tools/make_mod_pair.py
-# changed): the same title, another content hash. This game hosts as net_pair_join does; the peer's join is refused
+# changed): the same title, another content hash. This game hosts as net_pair_kick does; the peer's join is refused
 # for its mod (Admit: RefusalReason::ModMismatch, with this game's mark in the refusal), the server's line names it
 # once (modidentity::RefusedLine) and the peer's box names the host's mod. Then this game's lobby acts as the original's
 # ("originalnet": any mod admitted, no mark in the acceptance) and the peer joins again: accepted, but the peer, which

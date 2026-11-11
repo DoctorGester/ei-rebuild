@@ -66,7 +66,7 @@ void LogConnection(const char* before, net::Connection* connection, const char* 
 
 // Their static initialisers (in the list's order): the counted pointer's constructor clears it, then the exit
 // function is registered, so the sessions go in the game's exit order, not at our CRT's (the harness's network pair
-// has ended by then: net_pair_zone's leave packets went to the other game's ports).
+// has ended by then: a zone pair's leave packets went to the other game's ports).
 void InitGameServerPointer() {
     net::g_gameServer.Reset();
     std::atexit(ReleaseGameServer);

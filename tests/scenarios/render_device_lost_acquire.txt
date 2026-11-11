@@ -1,9 +1,0 @@
-# A lost device ends the game with the renderer's fatal message (render_device_lost_commands.txt). Here: acquire.
-timeout 40
-reject Script error
-waitmenu
-wait 500
-expectcrash The renderer cannot draw the frame: the GPU refused
-losedevice acquire
-frames 60
-quit

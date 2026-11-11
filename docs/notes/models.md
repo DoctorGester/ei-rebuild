@@ -4,7 +4,7 @@ Code: `scene/scene_renderer.h` (the scene renderer), `pipeline.h` / `scene/pipel
 `device.h`, `link_loader.h/.cpp`, `figure_*.cpp`, `link_figure.cpp`, `renderer_init.cpp`, `renderer_strip.cpp`, `renderer_sprites.cpp`, `renderer_lines.cpp`,
 `device_*.cpp`, `unit_skins.cpp`, `terrain*.cpp`, `ground_print.cpp` (with prints.db's load), `ground_decal.cpp`, `acks_db.cpp` (with acks.db's load), `water_tweens.cpp`, `dib.cpp`,
 `resource*.cpp`. Algorithms are described in each file's header comment. Scenario: `tests/scenarios/models.txt` (the
-draw functions run in every scenario; ribbons and sprites in `spells` / `spells_cast`).
+draw functions run in every scenario; ribbons and sprites in `spells`).
 
 ## Resources
 

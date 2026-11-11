@@ -1,5 +1,5 @@
 # H43g: the lobby's direct queries and the address book (a pair of games, harness_pair.h). This game hosts as
-# net_pair_join does and waits; the peer (peer/net_pair_lobby.txt) works the connection screen's address box on
+# net_pair_kick does and waits; the peer (peer/net_pair_lobby.txt) works the connection screen's address box on
 # it (ClientBase::Ask, Forget, MpConnectScreen::EditAddress, the address book file and its reload), then joins by a
 # double click on the row (MpConnectScreen::LeftDouble) and leaves.
 timeout 180

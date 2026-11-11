@@ -5,8 +5,7 @@
 # holds: the "key_already_mapped" box's OK (region 0) moves it (00652000). OK (region 0) stores the key
 # table (006524A0) and closes the Esc menu too. Then Y opens the objectives and TAB no longer does; V
 # does nothing, J crawls, Q runs (the hero's moveMode in the digest). On quit the interface's shutdown
-# (005F4F90) writes config\keyboard.ini (00462DF0) into harness_saves' overlay, never the install;
-# ui_options_remap_load starts with that file.
+# (005F4F90) writes config\keyboard.ini (00462DF0) into harness_saves' overlay, never the install.
 reject Script error
 waitmenu
 console thingamabob

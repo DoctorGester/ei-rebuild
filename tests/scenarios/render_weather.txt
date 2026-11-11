@@ -7,6 +7,8 @@
 # the ground is and the snow's cover; its ranges are wide, as the game's rain grows and fades at its own pace
 # (Rebirth's faster, and five minutes after SetWeather("clear") its ground is still a little wet). Frames only
 # (goldens hold none).
+# Only on the vanilla data: the Rebirth run reaches no code and checks nothing the vanilla run does not.
+# installs: vanilla
 render checkall
 resolution 1440x1080
 reject Script error

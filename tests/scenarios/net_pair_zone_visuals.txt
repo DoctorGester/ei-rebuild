@@ -1,12 +1,14 @@
 # R57c: a multiplayer client keeps its own picture of a zone it leaves (saves\current\<zone>.visuals.sav in its own
 # saves folder, src/game/saves/client_visuals.h; docs/notes/renderer.md, "What a save keeps of the picture"). This game hosts
-# as net_pair_join does, picks z3q2 (the sheriff's second topic, as net_host_death) and walks into it; the peer
+# as net_pair_kick does, picks z3q2 (the sheriff's second topic, as net_host_death) and walks into it; the peer
 # (peer/net_pair_zone_visuals.txt) joins it there and walks (footprints), leaves back to its own base through exit 1
 # and comes in again: its prints come back from its own side file, aged by the ticks this game's zone ran on without
 # it. This game stays in the zone throughout and keeps no side file of the peer's (each game its own saves folder).
 # A clickground lands where the clicked pixel's ray meets the ground and the leader walks to that exact point, so
 # the walk follows the frame's pixel grid. The vanilla runs play in the image's 4:3 window (harness_starter.h); the
 # Rebirth runs at the desktop's size, the wide layout at 16:9 (W12).
+# Only on the vanilla data: the Rebirth run reaches no code and checks nothing the vanilla run does not.
+# installs: vanilla
 rebirth resolution desktop
 timeout 180
 peer net_pair_zone_visuals

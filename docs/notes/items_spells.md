@@ -9,13 +9,13 @@ what they do not say. The HUD panels and windows are in `ui.md`; players and the
 | Item rules, construction, names | item, item_manager, item_names | items, ui_camp |
 | Item texts | text_manager | items |
 | Spell rules, construction | spell, spell_manager | spells |
-| Spell effects | spell_effect, spell_effect_update | spells, spells_cast, spells_more |
+| Spell effects | spell_effect, spell_effect_update | spells, spells_more |
 | Scripted spells | script/script_spell_host | mod_spell_script, `--lua-check` |
 | Quest database | quest_database, quest_records | any new game in zone1 |
 | Textures (mmp, composed) | texture_load, texture | all (skins at zone load) |
 | Registry files, ini | registry, ini_file, settings | all |
-| Trader stock | item_stock, class_templates | trader_stock |
-| Party, records, item lists | party*.cpp | ui_camp, trader_stock, party_records, items |
+| Trader stock | item_stock, class_templates | ui_camp, ui_camp_deals |
+| Party, records, item lists | party*.cpp | ui_camp, party_records, items |
 
 ## Databases and naming
 
@@ -327,8 +327,7 @@ cast of one starts them).
   now nearly all of it: the hook's plumbing (the timer walk, the cast value's 24 fields, the module found by its
   file name, OnTick looked up) and FindUnits / Damage / After (MF17g4c).
 - The rest: `spells`, `combat`, `units`, `world`, `particles` and the other healing casts, `unit_ai_heal` (the AI's),
-  `spells_more` (fireworks by script, the hero's teleport), `spells_cast` (clairvoyance and vision fog without a
-  caster), `spells_hero` (the hero's vision fog), and `spells_old_rest` (tests/saves/rest_old, made by the C++ build:
+  `spells_more` (fireworks by script, the hero's teleport), `spells_hero` (the hero's vision fog), and `spells_old_rest` (tests/saves/rest_old, made by the C++ build:
   clairvoyance and vision fog lasting, a fireworks gone out and one frightening, a teleport 9 ticks before the hero
   arrives, a healing's light; all resume and end at their counts, the hero arrives; against the C++ build's run of it
   only the missile records differ); `--lua-check` (Position, IsDead, IsHurt, silent, Shout, Reveal, Wake, Notice,
@@ -345,10 +344,10 @@ cast of one starts them).
   differ), `spells_old_area` (tests/saves/area_old, made by the C++ build: two fireballs in flight, one with its sound
   sequence, an acid column before its hit and a light strike with its first bolt; all resume, the column and the far
   fireball kill their wolves; against the C++ build's run only the missile records differ), the fireball and strike
-  scenarios (`spells`, `spells_cast`, `unit_ai_cast` and `unit_cast_at`: the AI's fireball, `unit_ai_corpse`: its
+  scenarios (`spells`, `unit_ai_cast`: the AI's fireball, `unit_ai_corpse`: its
   noise), `spells_old_lasting` (tests/saves/lasting_old, made by the C++ build: a cloud gone out, two walls and a cloud
   standing; all resume with their footprints, wolves added in the walls and the cloud die at their next pulses;
-  against the C++ build's run only the missile records differ), the lasting-area scenarios (`spells`, `spells_cast`,
+  against the C++ build's run only the missile records differ), the lasting-area scenarios (`spells`,
   `save_flight`: a wall of 750 ticks saved and loaded mid-cast, its footprint stamped again) and `--lua-check` (handles, SetVelocity, Eye, a demon bolt, the timer-paced cap, IsUnit, HitPoint, a free
   effect, OnResume of a C++ missile with bindings off and its hit and handles; Ground, Flight, SoundLoop, Release,
   Noise, the Sound / Light / Effect options, FindUnits unsorted, Damage split, areaPower; Across, FindUnits along,

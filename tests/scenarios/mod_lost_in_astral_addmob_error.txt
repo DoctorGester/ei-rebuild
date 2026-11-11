@@ -3,6 +3,8 @@
 # ("Duplicate script"); the original dropped the file's scripts without a word and does so still, now with
 # "Script error: <file>.mob line <n>: ..." (as a zone's own script, WorldServer::LoadZoneScripts). docs/notes/script.md.
 # On the vanilla data (no starter\Mods) only the menu runs: every later step is Rebirth's.
+# Only on Rebirth's data: the vanilla run checks nothing another scenario does not.
+# installs: rebirth
 mod starter\Mods\LostInAstral
 waitmenu
 rebirth console thingamabob

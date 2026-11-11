@@ -3,6 +3,8 @@
 # moments on zone1 for the frame checks and the user's review: the beach at the west sea, the sea, the lake in the
 # middle, the river with stones, the river and the lake at night. Frames only (image); each frozen moment drawn twice
 # must match (samecapture), and the ripples move with the client's time (diffcapture).
+# Only on the vanilla data: the Rebirth run reaches no code and checks nothing the vanilla run does not.
+# installs: vanilla
 render checkall
 reject Script error
 waitmenu

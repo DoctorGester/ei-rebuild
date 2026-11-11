@@ -1,8 +1,0 @@
-showcase_mod/save1/info.sav c8c2e73824d99dd6
-showcase_mod/save1/mission.sav 89c2a5ff89b92f1a
-showcase_mod/save1/scenario.sav 92b192689a92535d
-showcase_mod/save1/visuals.sav 22c2cc3116c3dccb
-showcase_mod/savea/info.sav 1a6467a48a11b9cd
-showcase_mod/savea/mission.sav 9f3e7e4802d1a2fa
-showcase_mod/savea/scenario.sav d9b438d2690d3233
-showcase_mod/savea/visuals.sav 57738a957a0a1a35

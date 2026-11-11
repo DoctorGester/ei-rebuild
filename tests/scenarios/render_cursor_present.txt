@@ -25,7 +25,7 @@ cursormark
 frames 5
 cursorcheck menu shown 5
 
-# The gamma ramp reaches the shape: the options' gamma slider held (as render_present_window does) changes the ramp, the
+# The gamma ramp reaches the shape: the options' gamma slider held changes the ramp, the
 # shape is made again through it; Cancel puts the old value back and the shape returns to the marked one.
 cursormark
 frames 100

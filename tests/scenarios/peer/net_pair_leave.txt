@@ -1,5 +1,5 @@
 # The peer of net_pair_leave: lacks a quest file the host's server offers (z6q2.mq on Rebirth,
-# z7q1.mq on vanilla; both offers start with z3q2: A-I23, R34c) and joins the host's game (as in net_pair_join), follows the host into
+# z7q1.mq on vanilla; both offers start with z3q2: A-I23, R34c) and joins the host's game (as in net_pair_kick), follows the host into
 # the game zone, then its network is cut there.
 # A clickground lands where the clicked pixel's ray meets the ground and the leader walks to that exact point, so
 # the walk follows the frame's pixel grid. The vanilla runs play in the image's 4:3 window (harness_starter.h), the

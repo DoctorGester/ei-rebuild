@@ -5,7 +5,7 @@
 # and the peer (peer/net_pair_companion.txt) joins. In the base:
 # - The base screen's companions button opens the companions window; its first row is "comp" (region 2), OK
 #   (region 0) puts it on the list (SavedParties::companions), nothing is sent. The sheriff's second topic (z3q2_1,
-#   as net_pair_zone) picks the map; out through the gate into z3q2.
+#   as net_pair_speed) picks the map; out through the gate into z3q2.
 # In z3q2 (a network zone):
 # - comp is asked for by the client (ClientMessage::AddCompanion with the restore dword): the party holds two
 #   records and the companion stands beside the hero. The HUD has no companions button, F3 opens nothing and an add
@@ -19,6 +19,8 @@
 #   into comp's own file (SavedParties::ReturnCompanions); heroxp reads that file from the disk.
 # Back in the base the list still holds comp: out through the gate again, comp comes back by itself (companions last
 # the game) and kills; home again, F3 and OK on its row take it off the list.
+# Only on the vanilla data: the Rebirth run reaches no code and checks nothing the vanilla run does not.
+# installs: vanilla
 rebirth resolution desktop
 timeout 60
 peer net_pair_companion

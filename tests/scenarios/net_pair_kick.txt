@@ -1,4 +1,4 @@
-# SV5d1: kick and ban on the pair harness. This game hosts as net_pair_join does; the peer
+# SV5d1: kick and ban on the pair harness. This game hosts as the other pairs do; the peer
 # (peer/net_pair_kick.txt) joins. Then:
 # - "kick" in the console without a name opens the host's player pick on the base (chatActive_ 1); a click on
 #   the peer's face sends command 4 with its serial (CChatWindow::OnLButtonDown 006097E0, ServerOnCommand
@@ -6,6 +6,8 @@
 # - The peer joins again with a new hero ("z...") and "ban z" sends command 3 (by name prefix:
 #   FindGuestConnection, Ban): the peer is dropped again, and its next join is refused by the ban list
 #   (Admit), its game showing the refusal box.
+# Only on Rebirth's data: the vanilla run checks nothing another scenario does not.
+# installs: rebirth
 timeout 180
 peer net_pair_kick
 reject Script error

@@ -18,7 +18,7 @@ console thingamabob
 newgame
 waitfor 15 IsGreater(HP(GetLeader()),0)
 # Leave once zone1's intro script has started (it blocks the hero), so the moment is the same in
-# every run (ui_order_move.txt).
+# every run.
 waitfor 15 IsUnitBlocked(GetLeader())
 zone gz2g 0
 waitzone 20 gz2g

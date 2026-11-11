@@ -1,5 +1,5 @@
 # MF16: a game playing a mod and one playing none (docs/notes/network.md, "Mods"). This game hosts the showcase mod
-# (tools/make_mod_pair.py) as net_pair_join does; the peer (peer/net_pair_mod_none.txt) plays no mod: its join's mark
+# (tools/make_mod_pair.py) as net_pair_kick does; the peer (peer/net_pair_mod_none.txt) plays no mod: its join's mark
 # names none, so it is refused (ModMismatch). Then the peer's lobby acts as the original's ("originalnet": its join
 # carries no mark), as an original client's join to this server: refused too, an unmarked client counting as playing
 # no mod. The server's line names each refusal once.

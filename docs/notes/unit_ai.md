@@ -3,7 +3,7 @@
 Code: `src/game/ai/unit_ai.h` (layouts and per-function comments: the structure reference), `unit_ai*.cpp` (in unit_ai.cpp
 the brain's Think, lookups, actions and movement, resets, calls, memory, behaviour records and save;
 modes, senses, targets). Scenarios: `unit_ai.txt`, `unit_ai_fear.txt`,
-`unit_ai_attack_removed`, `script_exec` (UMClear, UM*, UMAg, Guard / Sentry), `combat_more` (a death), `world_load`,
+`script_exec` (UMClear, UM*, UMAg, Guard / Sentry), `combat_more` (a death), `world_load`,
 every spawn; `unit_ai_flight` (an archer in Fear mode steps away from the hero: FindFlightPoint), `party_leader_switch`
 (PlayerMode::SetLeader through the battle screen's follow button, CommandGoTo with Ctrl, StaysWithParty, SeeCorpse of a
 party member), `unit_ai_bridge` (zone1's bridge 299: a walk over it, then RemoveObjectFromServer lifts its deck cells:
@@ -85,7 +85,7 @@ recommendation per entry). Crashes, undefined behaviour and invisible bookkeepin
   the same tick's `PropagateHostility` then swaps hostility claims with the allies in the nearby list, relations changed
   or not. Kept as the original has it (not asked whether it meant to).
 - A target removed mid-attack leaves the brain at AIAction::Attack with its target cleared; UpdateCombat (finding nobody)
-  leaves it so (`unit_ai_attack_removed`).
+  leaves it so (no scenario of its own: H74, its code runs in the fights).
 
 Facts behind fixed entries: Player mode's UpdateCombat carries out its choice like the enemy modes (ApplyAttack: a
 spell choice is cast); it matters for the 11 numbered hub NPCs in Player mode with attack spells (BabaSit in bz14h,

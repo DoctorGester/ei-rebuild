@@ -1,6 +1,8 @@
 # Boot (S15): the main menu comes up and takes input, the game quits. The standalone image's first goal
 # (S16; the quickest standalone check: run_all boot). No capture: the harness's frame capture patches a
 # call site in the original code, which the image does not have (S15a).
+# Out of the suite: the CI workflows' gate (suites-windows.yml, suites-macos.yml) plays it by name.
+# suite: named
 timeout 40
 reject Script error
 waitmenu

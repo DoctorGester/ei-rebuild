@@ -1,2 +1,0 @@
-  Cannot open file autoexec.cfg for reading
-  Loaded saveq

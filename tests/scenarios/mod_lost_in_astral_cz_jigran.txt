@@ -4,6 +4,8 @@
 # leaves for gz35j, where merc2 dies in the acid column (no GodMode in this run: the death is the check).
 # One digest record, on arrival in cz2j (the others are checked by their variables). On the vanilla data only the
 # menu runs.
+# Only on Rebirth's data: the vanilla run checks nothing another scenario does not.
+# installs: rebirth
 mod starter\Mods\LostInAstral
 reject Script error
 waitmenu

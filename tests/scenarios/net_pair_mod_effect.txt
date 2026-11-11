@@ -10,6 +10,8 @@
 # A clickground lands where the clicked pixel's ray meets the ground (the vanilla runs play in a 4:3 window, the
 # Rebirth runs at the desktop's size; net_pair_leave).
 # prepare: make_mod_pair.py showcase showcase
+# Only on the vanilla data: the Rebirth run reaches no code and checks nothing the vanilla run does not.
+# installs: vanilla
 rebirth resolution desktop
 timeout 180
 peer net_pair_mod_effect

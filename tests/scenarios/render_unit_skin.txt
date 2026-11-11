@@ -5,6 +5,8 @@
 # draws in the colours of the map's LoneWolf (#1804) beside it, and one without draws far from them. The hero walks
 # to LoneWolf first: the client draws no unit out of the party's sight (and none new while zone1's arrival plays,
 # hence the leader blocked at once). Frames only (image).
+# Only on the vanilla data: the Rebirth run reaches no code and checks nothing the vanilla run does not.
+# installs: vanilla
 render checkall
 timeout 60
 reject Script error

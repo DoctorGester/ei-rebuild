@@ -1,4 +1,4 @@
-# The peer of net_pair_database: joins the host's game (as in net_pair_party) with the install's network item
+# The peer of net_pair_database: joins the host's game (as in net_pair_kick) with the install's network item
 # database, follows the host into the game zone (as in net_pair_leave), is given the host's extra quest item, which
 # its database lacks, and leaves the server: the disconnect box (with the reason) and, after its Enter, the main menu.
 rebirth resolution desktop

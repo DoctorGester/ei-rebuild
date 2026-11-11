@@ -46,7 +46,7 @@ frames 5
 freeze
 capture options_keys
 unfreeze
-# Enter waits for a key; Q is weapon1's, so the message box asks (ui_options_bind); OK binds it, Cancel
+# Enter waits for a key; Q is weapon1's, so the message box asks; OK binds it, Cancel
 # (region 1) drops the options.
 key enter
 frames 5

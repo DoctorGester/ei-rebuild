@@ -399,8 +399,8 @@ writes extras only with "Custom Properties" checked).
 
 In Blender: File > Import > glTF 2.0 the converted `.glb`, edit, File > Export > glTF 2.0 with "Shape Keys" on and the
 mesh's transforms applied, under the same name into your mod's `Res\figures\`. Blender itself is not part of this
-repository's checks: the loader is checked on ei-convert's files, on files with the extras removed and scaled
-(`mod_gltf_model`), and on hand-written glTF.
+repository's checks: the loader is checked on ei-convert's files, on files with the extras removed
+(`mod_gltf_animation`), and on hand-written glTF.
 
 ## Animations as glTF
 

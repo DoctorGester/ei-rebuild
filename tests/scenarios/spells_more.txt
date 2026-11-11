@@ -8,6 +8,8 @@
 # one of those types is the only way in.
 # The hero (skills and intelligence raised so that the camp puts the three containers on it, as spells_hero.txt
 # does) is unblocked and in god mode. Coordinates are the 800x600 layout. No `speed`, so a golden can be recorded.
+# Only on the vanilla data: the Rebirth run reaches no code and checks nothing the vanilla run does not.
+# installs: vanilla
 reject Script error
 waitmenu
 console thingamabob

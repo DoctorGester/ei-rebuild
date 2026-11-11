@@ -1,4 +1,4 @@
-# A lost device ends the game with the renderer's fatal message (render_device_lost_commands.txt). Here: submit.
+# A lost device ends the game with the renderer's fatal message (here at the submit).
 timeout 40
 reject Script error
 waitmenu

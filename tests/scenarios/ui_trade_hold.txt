@@ -4,6 +4,8 @@
 # another while the experience lasts; the release ends the hold. GiveUnitExp is Rebirth's, so the
 # purchases happen in the Rebirth run only (vanilla: the press buys nothing, the release still
 # runs).
+# Only on Rebirth's data: the vanilla run checks nothing another scenario does not.
+# installs: rebirth
 reject Script error
 waitmenu
 console thingamabob

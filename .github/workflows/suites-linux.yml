@@ -239,7 +239,7 @@ jobs:
           export EI_BUILD_DIR=$PWD/build/linux-harness EI_GAME_VANILLA=$DATA/vanilla EI_GAME_REBIRTH=$DATA/rebirth
           names="$SCENARIOS"
           if [ -z "$names" ]; then
-            names=$(ls tests/scenarios/*.txt | xargs -n1 basename | sed 's/\.txt$//' | grep -v '^screenshots_' | grep -vE '^(render|net|camera|mod_lost_in_astral)_' | grep -vxF -f <(tr ' ' '\n' <<< "$LINUX_SKIP"))
+            names=$(python3 -c "import sys; sys.path.insert(0, 'tools'); import run_all; print(' '.join(run_all.suite_names()))" | tr ' ' '\n' | grep -vE '^(render|net|camera|mod_lost_in_astral)_' | grep -vxF -f <(tr ' ' '\n' <<< "$LINUX_SKIP"))
           fi
           names=$(tr ' ' '\n' <<< "$names" | grep . | sort | awk -v n="$SHARDS" -v s="$SHARD" '(NR - 1) % n == s' | tr '\n' ' ')
           echo "shard $SHARD of $SHARDS: $names"

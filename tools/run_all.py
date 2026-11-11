@@ -5,8 +5,9 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
                                [--dzn | --lavapipe]
        python tools/run_all.py --widescreen [scenario names...]
   scenario names   e.g. combat items (default: every tests/scenarios/*.txt but the screenshots_* ones, which take
-                   the README's pictures and run by name only; on Linux less those its driver cannot match,
-                   LINUX_LEFT_OUT)
+                   the README's pictures and run by name only, and those with a line "# suite: named" (in_suite());
+                   on Linux less those its driver cannot match, LINUX_LEFT_OUT). A line "# installs: vanilla" or
+                   "# installs: rebirth" keeps a scenario's runs to that install, named or not (scenario_installs())
   default          the image, build\\verify\\ei-rebuild.exe (the game and the harness linked in), started by this
                    tool (launch()) on an install's data: EI_GAME_ROOT names the install, each run takes the
                    install folder's own EI_Plugin values as a player's exe does. Installs: "standalone" the vanilla data (vanilla goldens), "standalone-rebirth" Rebirth's
@@ -326,6 +327,37 @@ def scenario_arguments(scenario):
                 if text.startswith(ARGUMENTS_PREFIX):
                     return text[len(ARGUMENTS_PREFIX):].split()
     return []
+
+
+INSTALLS_PREFIX = '# installs:'
+SUITE_PREFIX = '# suite:'
+
+
+def header_value(scenario, prefix):
+    """The rest of a scenario's first line that starts with prefix ("# installs:", "# suite:"), stripped, or None."""
+    with contextlib.suppress(OSError):
+        with open(scenario, encoding='utf-8', errors='replace') as f:
+            for text in f:
+                if text.startswith(prefix):
+                    return text[len(prefix):].strip()
+    return None
+
+
+def scenario_installs(name, root=ROOT):
+    """The installs a scenario's line "# installs: vanilla" or "# installs: rebirth" (H74) restricts it to: its runs on
+    any other are never made, named or not (a scenario whose steps are all for Rebirth's data, a Rebirth run whose code
+    and checks the vanilla run already covers); None without one. --widescreen plays its scenarios on Rebirth's data
+    whatever the line says (that comparison needs addon's WideScreen)."""
+    value = header_value(os.path.join(root, 'tests', 'scenarios', name + '.txt'), INSTALLS_PREFIX)
+    return set(value.split()) if value else None
+
+
+def in_suite(name, root=ROOT):
+    """Whether the suite plays the scenario when no names are given: not the screenshots_ ones, nor one with a line
+    "# suite: named" (H74: kept for a tool or a workflow that names it, e.g. the CI gate boot, --widescreen's)."""
+    if name.startswith(SCREENSHOT_PREFIX):
+        return False
+    return header_value(os.path.join(root, 'tests', 'scenarios', name + '.txt'), SUITE_PREFIX) != 'named'
 
 
 def expected_result(scenario):
@@ -1141,6 +1173,11 @@ def rebirth_scenarios(names, root=ROOT, goldens=True):
                 marked.add(parts[0])
     smoke = set()
     for n in names:
+        installs = scenario_installs(n, root)
+        if installs is not None:
+            if 'rebirth' in installs:
+                smoke.add(n)
+            continue
         if n in marked or (goldens and has_golden(n, 'rebirth', root)):
             smoke.add(n)
             continue
@@ -1185,14 +1222,24 @@ def has_golden(name, install, root=ROOT):
 SCREENSHOT_PREFIX = 'screenshots_'
 
 
+def suite_names(root=ROOT, left_out=()):
+    """The scenarios a run without names plays: every tests/scenarios/*.txt in the suite (in_suite()) but left_out."""
+    return sorted(n for p in glob.glob(os.path.join(root, 'tests', 'scenarios', '*.txt'))
+                  if (n := os.path.splitext(os.path.basename(p))[0]) not in left_out and in_suite(n, root))
+
+
+def allowed(name, install, root=ROOT):
+    """Whether the scenario runs on install (standalone or standalone-rebirth) at all (scenario_installs())."""
+    installs = scenario_installs(name, root)
+    return installs is None or ('rebirth' if install == 'standalone-rebirth' else 'vanilla') in installs
+
+
 def plan(args, root=ROOT, left_out=()):
     """The runs args ask for: (scenario, install) pairs in the summary's order. install is standalone (the vanilla
     data) or standalone-rebirth; the run folder is <scenario>-<install>. Also used by tools/work_sched.py
     (`work.py test`), so a batch holds the runs run_all would make. left_out: scenarios that no names given means
     leaving out (linux_left_out())."""
-    names = args.scenarios or sorted(n for p in glob.glob(os.path.join(root, 'tests', 'scenarios', '*.txt'))
-                                     if (n := os.path.splitext(os.path.basename(p))[0]) not in left_out
-                                     and not n.startswith(SCREENSHOT_PREFIX))
+    names = args.scenarios or suite_names(root, left_out)
     if args.widescreen and args.vanilla_only:
         sys.exit("--widescreen compares the image on the Rebirth install with addon's recorded frames: not with "
                  '--vanilla-only')
@@ -1208,7 +1255,7 @@ def plan(args, root=ROOT, left_out=()):
     if args.rebirth_only:
         names = [n for n in names if n in rebirth]
     jobs = [(name, install) for name in names for install in installs
-            if install != 'standalone-rebirth' or name in rebirth]
+            if (install != 'standalone-rebirth' or name in rebirth) and allowed(name, install, root)]
     if args.widescreen:
         # addon's WideScreen exists on the Rebirth install only
         names = args.scenarios or WIDESCREEN_SCENARIOS
@@ -1433,8 +1480,8 @@ DZN_ICD = os.path.join('~', 'mesa-dzn', 'share', 'vulkan', 'icd.d', 'dzn_icd.x86
 D3D12_ONLY_PREFIX = 'render_device_lost_'
 
 LINUX_LEFT_OUT = {
-    'system': ('net_pair_join', 'net_pair_kick', 'net_pair_leave', 'net_pair_master', 'net_pair_quest', 'net_pair_speed',
-               'net_pair_zone', 'render_terrain_seams', 'camera_drag_rate', 'camera_smooth',
+    'system': ('net_pair_kick', 'net_pair_leave', 'net_pair_master', 'net_pair_quest', 'net_pair_speed',
+               'render_terrain_seams', 'camera_drag_rate', 'camera_smooth',
                'camera_spin', 'render_stats', 'zone_gz15h_tornado'),
     'gpu': ('net_pair_master',),
 }
