@@ -777,6 +777,22 @@ return {
     {"sleepy.lua", "return {\n  OnCast = function(cast) Sleep(1) end,\n  OnEnd = function(cast, reason) _G.spellEnd = reason end,\n}"},
     {"world.lua", "local id = GetObjectID(nil)\nreturn {}"},
     {"timerless.lua", "return { OnCast = function(cast) cast:After(1, 'Missing') end }"},
+    // Another cast's value sets a timer and finishes the cast between its ticks (the host's idle ticks touch no Lua).
+    {"waiter.lua", R"lua(
+return {
+    OnCast = function(cast) _G.waiter = cast; cast:After(20, "Late") end,
+    Late = function(cast) _G.pinged = (_G.pinged or "") .. " late" end,
+    Ping = function(cast) _G.pinged = (_G.pinged or "") .. " ping at " .. cast.tick end,
+    OnEnd = function(cast, reason) _G.spellEnd = string.format("%s at %d%s", reason, cast.tick, _G.pinged or "") end,
+}
+)lua"},
+    {"poker.lua", R"lua(
+return {
+    OnCast = function(cast) cast:After(3, "Poke") end,
+    Poke = function(cast) _G.waiter:After(5, "Ping"); cast:After(6, "Stop") end,
+    Stop = function(cast) _G.waiter:Finish(); cast:Finish() end,
+}
+)lua"},
     {"resume.lua", R"lua(
 -- A cast of a save from before its spell's script: its missile flies on, OnHit when it lands, its old count's end.
 return {
@@ -994,6 +1010,20 @@ void CheckSpellHost(TestWorld& world) {
         Expect(host.Cast(timerless) && !host.Tick(timerless) && reported.size() == 4 &&
                    reported.back() == "timerless.lua: no function Missing for a timer",
                "a timer naming no function ends the cast");
+
+        SpellEffect waiter, poker;
+        cast(waiter, "waiter.lua", 0);
+        cast(poker, "poker.lua", 0);
+        Expect(host.Cast(waiter) && host.Cast(poker), "two casts, one keeping its cast value in a global");
+        int round = 0;
+        bool waiting = true;
+        while (waiting && round < 30) {
+            ++round;
+            waiting = host.Tick(waiter);
+            if (poker.host) host.Tick(poker);
+        }
+        Expect(round == 10 && SpellEnd(scheduler) == "finished at 10 ping at 8" && reported.size() == 4,
+               "another cast's After counts from the cast's own tick, its Finish ends it at its next tick");
         Expect(world.stones[0]->refCount > 1, "the casts' effects hold their target");
     }
 

@@ -13,6 +13,7 @@
 #include "game/script/script.h"
 #include "game/spells/effect_stats.h"
 
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <string>
@@ -34,7 +35,8 @@ public:
     // the cast ended at once (no module, an error, Finish, nothing pending): OnEnd ran and the effect is free.
     bool Cast(SpellEffect& effect);
     // One tick of a live cast: its tick counted, its owned objects' lives, OnHit for each missile that arrived, its due
-    // timers in order, OnTick, then the end test. False when it ended (OnEnd ran).
+    // timers in order, OnTick, then the end test. False when it ended (OnEnd ran). A tick with none of them to run
+    // (its Clock: no arrival, no timer due, no OnTick, below the cap, something pending) touches no Lua.
     bool Tick(SpellEffect& effect);
     // The effect goes while its cast lives (its destructor): the entry dropped without a hook.
     void Forget(SpellEffect& effect);
@@ -125,11 +127,32 @@ private:
     static SpellEffect& Self(lua_State* L, const char* method, bool inResume = false);
     enum class Hook { Ran, Absent, Failed };
 
+    // What the C++ knows of a live cast between its hooks (docs/notes/items_spells.md, "Scripted spells", the idle
+    // ticks): its tick count, its first timer's due tick and its module. Settle fills it after each hook; After keeps
+    // `due`; Finish and a restore make it unknown, so that the next tick takes Lua's walk.
+    struct Clock {
+        std::int64_t tick = 0;      // the cast's ticks so far; the entry's `tick` lags while `stale`
+        std::int64_t due = 0;       // the earliest timer's due tick, 0 none
+        int module = -2;            // the module table's registry reference (LUA_NOREF: none)
+        bool known = false;
+        bool stale = false;
+    };
+    // The entry's `tick` written from the clock (when stale).
+    void Flush(int key, Clock& clock);
+    // True when the cast's tick needs no Lua: known, no timer due, no OnTick in its module (a plain table), below its
+    // cap and something pending (a timer or an owned object).
+    bool Idle(const SpellEffect& effect, const Clock& clock);
+    // The most ticks the cast lives (Settle's end test), with or without OnTick.
+    static std::int64_t TickCap(const SpellEffect& effect, bool ticks);
+
     // A new cast's entry under `key` (its data, timers, tick and seq), the effect live under it.
     void NewEntry(SpellEffect& effect, int key);
 
-    // The module of the file below Res\spells\ pushed (nil when it did not load: said once on the console).
-    void PushModule(const std::string& file);
+    // The module of the file below Res\spells\ pushed (nil when it did not load: said once on the console); its
+    // registry reference, LUA_NOREF for nil.
+    int PushModule(const std::string& file);
+    // The module of the effect's spell (PushModule of its script).
+    int PushModule(const SpellEffect& effect);
     // The entry of `key` pushed on `state`'s stack (nil when there is none).
     void PushEntry(lua_State* state, int key);
     // The cast value of the effect's hooks: its values, objects and points, and its entry's data.
@@ -148,7 +171,6 @@ private:
     ScriptLuaScheduler& scheduler;
     lua_State* L = nullptr;
     int casts = 0;          // the registry's reference of the casts table
-    int modules = 0;        // the registry's reference of the loaded modules by file (false: it did not load)
     int castMeta = 0;       // the registry's reference of the cast values' metatable
     int statsValue = 0;     // the registry's reference of OnStats' stats value (one, reused)
     int effectValue = 0;    // and of its effect value
@@ -157,5 +179,9 @@ private:
     int nextCast = 1;
     bool resuming = false;  // OnResume runs (Self lets the methods that work in it through)
     std::map<int, SpellEffect*> live;   // the effects of the live casts by key
+    std::map<int, Clock> clocks;        // their clocks by key
+    // The modules loaded in this state by their lowered file names: registry references, LUA_NOREF for one that
+    // did not load.
+    std::map<std::string, int> modules;
     ScriptRun run;          // the run the hooks' commands run in
 };
