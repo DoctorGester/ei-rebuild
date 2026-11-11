@@ -48,19 +48,21 @@ one-line pointer; move, don't lose.
 
 ## tools/comments.py
 
-- `check [--update]`: the ratchet build.cmd runs: per file, addresses and ticket ids in comments and the banned
-  narration words (x87 instruction names, slot numbers, MFC names in game code) may only go down
-  (config/comment_baseline.csv). Workers don't update the baseline; the coordinator does after a merge.
-  Two more columns are ratcheted (style round 2): "addon addresses" (addon.dll's 8-hex-digit addresses in a comment;
-  say what the code does) and "unnamed Rebirth patches" (a comment line that says "Rebirth-patched" without a
-  patch name from `config/rebirth_patches.csv` or "always on"). The scan includes the shaders (`.hlsl`,
-  `.hlsli`). The banned words also hold hook-era and decompiler narration (style round 3): "installs in the vanilla
-  launch", "called through its address", "verify wrapper", "scalar deleting destructor", "SHR by CL", the registers
-  (`EAX`, `ECX`, ...) and "the new renderer" (it is the renderer). Style round 4 adds the banned words "new
-  renderer", "inlined", "provisional", a size in bytes ("0x20 bytes"), "Direct3D", "DirectDraw", "old path",
-  "game.exe", "through its address" and "stored as/to/in a float" (an x87 store; SSE rounds every operation), and the
-  ratcheted column "never-read comments" ("never read", "nothing reads", "nobody reads", "not read": the member goes
-  with the comment; the comment on the line of an `unread...` member of a file format is not counted).
+- `check [--update]`: the ratchet build.cmd runs over `src/`, shaders (`.hlsl`, `.hlsli`) included: per file, the
+  counts may only go down (config/comment_baseline.csv). Workers don't update the baseline; the coordinator does
+  after a merge. The columns:
+  - addresses and ticket ids in comments;
+  - "banned words": x87 instruction names, slot numbers, registers (`EAX`, `ECX`, ...), MFC names in game code;
+    hook-era and decompiler narration ("installs in the vanilla launch", "called through its address", "verify
+    wrapper", "scalar deleting destructor", "SHR by CL"); "new renderer" (it is the renderer), "inlined",
+    "provisional", a size in bytes ("0x20 bytes"), "Direct3D", "DirectDraw", "old path", "game.exe", "through its
+    address" and "stored as/to/in a float" (an x87 store; SSE rounds every operation);
+  - "addon addresses": addon.dll's 8-hex-digit addresses (say what the code does);
+  - "unnamed Rebirth patches": a line that says "Rebirth-patched" without a patch name from
+    `config/rebirth_patches.csv` or "always on";
+  - "never-read comments" ("never read", "nothing reads", "nobody reads", "not read"): the member goes with the
+    comment; the comment on the line of a file format's `unread...` member is not counted;
+  - "orphan comments" (What goes, above).
 - `stats [--files] [--kinds] [PATH... | --batch ID]`: counts per area or file; `--kinds` the removal candidates
   (offset trailers, slot mentions, registers, stale claims, long blocks, rewrap savings).
 - `list [PATH...]`: every comment line still holding an address or a ticket id.
