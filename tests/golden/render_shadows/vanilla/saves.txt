@@ -3,4 +3,4 @@ current/gz1g.visuals.sav 36af10a1379b2d1e
 savea/info.sav 1a6467a48a11b9cd
 savea/mission.sav 98a3b69133992cce
 savea/scenario.sav 84889297446d64b6
-savea/visuals.sav c0983602f27de0e3
+savea/visuals.sav b30527aee23aefec

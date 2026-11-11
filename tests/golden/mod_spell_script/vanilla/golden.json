@@ -9,7 +9,6 @@
   "repeated_in": 2,
   "reason": "MF17g4a: the campfire runs on Campfire.lua (its missile records are the scripted cast's, its entry in the Lua state's casts), the casts carry over a base's script reset; outcomes and units the same.",
   "source": "image",
-  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
     "digest: 25 of 25 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; no unit position differs",
     "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 1 fields",
@@ -24,5 +23,6 @@
     "save lua_mod/save1/mission.sav: 13 fields in 3 records differ: missile 13",
     "  missile: 13 fields in 3 records; first missile0 position.z: 7.35812235 in the old golden, 0.5 in the new run; largest numeric d 225 at missile0 timer: 225 -> 0",
     "... 2 more lines"
-  ]
+  ],
+  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs"
 }
