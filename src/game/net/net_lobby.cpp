@@ -1,8 +1,8 @@
 // The client base's lobby: finding servers and joining one, and the server base's half that answers. See
 // net/net_session.h (ClientBase, ServerBase) for the fields. The packets (first byte): 3 ping (the session time),
 // 4 join (magic, id, rate, extra data), 5 info (the echoed time, magic, the server entry), 6 accepted (id), 7
-// refused (id, reason). Plain float maths (rule 7). See docs/notes/network.md. The game announcement record
-// (GameInfoRecord) is at the end.
+// refused (id, reason); ours add their mod mark to 4, 6 and 7 (WriteModMark). Plain float maths (rule 7). See
+// docs/notes/network.md. The game announcement record (GameInfoRecord) is at the end.
 
 #include "game/console/console.h"
 #include "game/core/coder.h"
@@ -59,11 +59,12 @@ void AppendServer(ClientBase* self, SharedRef<ServerEntry>& entry) {
     self->servers.push_back(std::move(entry));
 }
 
-// PacketKind::Accepted with the join's id, to `to`.
+// PacketKind::Accepted with the join's id, to `to`; ours add the mod mark.
 void SendAccepted(ServerBase* self, const NetAddress* to, std::uint32_t id) {
     GrowingBuffer b;
     b.Put(static_cast<std::uint8_t>(PacketKind::Accepted));
     b.Put(id);
+    if (!g_originalPeer) WriteModMark(&b, modidentity::Played());
     self->Send(to, &b);
 }
 
@@ -75,6 +76,36 @@ void Sanitize(std::string* s) {
 }
 
 } // namespace
+
+// ---- Our mod mark -------------------------------------------------------------------------------------
+
+void WriteModMark(GameBuffer* out, const modidentity::Identity& mod) {
+    out->Write(kModMark, sizeof(kModMark));
+    out->Put(kModMarkFormat);
+    out->Put(static_cast<std::uint32_t>(mod.hash));
+    out->Put(static_cast<std::uint32_t>(mod.hash >> 32));
+    const auto length = static_cast<std::uint8_t>(std::min<std::size_t>(mod.title.size(), 0xFF));
+    out->Put(length);
+    out->Write(mod.title.data(), length);
+}
+
+std::optional<modidentity::Identity> ReadModMark(BufferCursor* cursor) {
+    char mark[sizeof(kModMark)];
+    cursor->ReadBytes(mark, sizeof(mark));
+    std::uint8_t format = 0;
+    cursor->Take(format);
+    if (std::memcmp(mark, kModMark, sizeof(mark)) != 0 || format != kModMarkFormat) return std::nullopt;
+    modidentity::Identity mod;
+    std::uint32_t low = 0, high = 0;
+    cursor->Take(low);
+    cursor->Take(high);
+    mod.hash = static_cast<std::uint64_t>(high) << 32 | low;
+    std::uint8_t length = 0;
+    cursor->Take(length);
+    mod.title.resize(length);
+    cursor->ReadBytes(mod.title.data(), length);
+    return mod;
+}
 
 // ---- Small members --------------------------------------------------------------------------------
 
@@ -131,6 +162,17 @@ void ClientBase::OnAccepted(const NetAddress* from, BufferCursor* cursor) {
         LogLine("ERROR: Accepted msg received with wrong linkID");
         return;
     }
+    if (joinState == JoinState::Asking && !g_originalPeer) {
+        // Ours: a host whose mod is not this game's (or the original game while this one plays a mod) is not joined.
+        hostMod = ReadModMark(cursor);
+        if (!modidentity::Agrees(hostMod)) {
+            ei::Log("mod: the host %s plays %s, this game %s: not joined", host.ToString(),
+                    modidentity::Described(hostMod), modidentity::Described(modidentity::Played()));
+            refusal = RefusalReason::ModMismatch;
+            joinState = JoinState::NotJoined;
+            return;
+        }
+    }
     if (joinState == JoinState::Asking) {
         joinState = JoinState::Joined;
         std::uint32_t rate = RateFor(&host);
@@ -157,6 +199,10 @@ void ClientBase::OnRejected(const NetAddress* from, BufferCursor* cursor) {
     if (joinState == JoinState::Asking) {
         cursor->Take(refusal);
         joinState = JoinState::NotJoined;
+        if (!g_originalPeer) hostMod = ReadModMark(cursor);
+        if (refusal == RefusalReason::ModMismatch)
+            ei::Log("mod: the host %s refused the join: it plays %s, this game %s", host.ToString(),
+                    modidentity::Described(hostMod), modidentity::Described(modidentity::Played()));
     } else {
         LogAddressLine("ERROR: Reject not during connecting from ", from);
     }
@@ -334,6 +380,7 @@ void ClientBase::Join(const NetAddress* address, const GrowingBuffer* data) {
     retryTimer = 0.0f;
     retryInterval = kFirstRetry;
     refusal = RefusalReason::None;
+    hostMod.reset();
     joinData = *data;
 }
 
@@ -464,7 +511,7 @@ void ServerBase::OnLogin(const NetAddress* from, BufferCursor* cursor) {
     }
 
     RefusalReason reason;
-    if (Admit(from, cursor, &reason)) {
+    if (Admit(from, id, cursor, &reason)) {
         LogAddressLine("Accepting client from ", from);
         PendingJoin join;
         join.address = *from;
@@ -480,6 +527,7 @@ void ServerBase::OnLogin(const NetAddress* from, BufferCursor* cursor) {
     b.Put(static_cast<std::uint8_t>(PacketKind::Rejected));
     b.Put(id);
     b.Put(reason);
+    if (reason == RefusalReason::ModMismatch) WriteModMark(&b, modidentity::Played());
     Send(from, &b);
 }
 

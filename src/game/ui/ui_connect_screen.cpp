@@ -4,6 +4,7 @@
 // NPlayers and Pause are the new game's player slider and pause mode.
 #include "game/app/game_flow.h"
 #include "game/net/net_session.h"
+#include "game/mods/mod_identity.h"
 #include "game/app/options.h"
 #include "game/core/asset_text.h"
 #include "game/ui/ui.h"
@@ -56,6 +57,7 @@ const char* RefusalKey(net::RefusalReason refusal) {
     case net::RefusalReason::Full: return "lmp_server_full";
     case net::RefusalReason::Banned: return "lmp_you_are_banned";
     case net::RefusalReason::WrongPassword: return "lmp_wrong_password";
+    case net::RefusalReason::ModMismatch: return "lmp_mod_mismatch";
     default: return "lmp_cannot_connect";
     }
 }
@@ -128,7 +130,14 @@ void MpConnectScreen::Update() {
             joining = false;
             std::string key = RefusalKey(client->refusal);
             std::string text = key + kMessageSuffix;
-            g_interface.PushWindow(std::make_unique<MessageWindow>(key, text, MpConnectScreen::kBoxNotice, MessageButtons::Ok), WindowBackdrop::FirstWindow);
+            auto box = std::make_unique<MessageWindow>(key, text, MpConnectScreen::kBoxNotice, MessageButtons::Ok);
+            if (client->refusal == net::RefusalReason::ModMismatch) {
+                // Ours: the two mods named (modidentity::RefusalBox).
+                const modidentity::Box shown = modidentity::RefusalBox(client->hostMod);
+                box->title = shown.title;
+                box->text = shown.text;
+            }
+            g_interface.PushWindow(std::move(box), WindowBackdrop::FirstWindow);
             return;
         }
     }

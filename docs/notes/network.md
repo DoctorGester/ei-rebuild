@@ -23,7 +23,8 @@ and `net_pair_party` (an exchange offered, withdrawn, answered, left);
   `net_host_death` (one hosted game: its hero killed in the game zone, the zone saved and entered again);
   `net_zone_vars` (one hosted game: z6q3's script raises server variables), `net_zone_leader` (z7q3's script asks for the leader)
   and `net_pair_companion` (ours: a companion picked in the base, fighting, dying, written back, restored in the next
-  zone and taken off the list, "Companions" below).
+  zone and taken off the list, "Companions" below); `net_pair_mod_same`, `net_pair_mod_differ`, `net_pair_mod_none`
+  (ours: the mods compared at the join, "Mods" below).
 
 ## The multiplayer game
 
@@ -121,6 +122,39 @@ list again. Scenario `net_pair_companion`.
   games without companions share as before; companions do not take experience from the other players. Quest experience, gold and items come through the Award message 60 s after
   the zone, when the companions are back in their files: they go to the hero and the party as before.
 
+## Mods (ours)
+
+Peers learn each other's mod at the lobby's join (MF16): the mod's title and its content hash (`modidentity::Identity`,
+src/game/mods/mod_identity.h; the hash: mods.md, "Mods in multiplayer"). Scenarios `net_pair_mod_same`,
+`net_pair_mod_differ` and `net_pair_mod_none`.
+- **The mark** (`net::WriteModMark` / `ReadModMark`, net_lobby.cpp): `kModMark` "ei-rebuild mod" with its zero, a
+  format byte (1), the hash's low and high dwords, the title's length (a byte) and its UTF-8 bytes. Our client writes it
+  after the login's 20-byte password (`JoinWithPassword`); our server after an acceptance's join id (`SendAccepted`)
+  and after a refusal's reason when the reason is `ModMismatch` (4). An original peer reads none of it: its server
+  reads the password's 20 bytes at most, its client the id and the reason byte. No mark (the packet ends before it)
+  means the original game, which counts as playing no mod.
+- **The server** (`ServerSession::Admit`, after the ban check, before the password and the limit): a client whose mod
+  is not the server's (`modidentity::Agrees`: the same title and hash) is refused with `ModMismatch` and the server's
+  mark. Each refused join (address and join id: a client asks again until answered) is logged ("mod: refused the join
+  of ..."), counted (`modRefusals`, `modRefused`) and named in a chat line to every player (`RefusedLine`, text
+  `lmp_mod_refused`).
+- **The client**: a ModMismatch refusal keeps the host's mark (`ClientBase::hostMod`); the connection screen's refusal
+  box then names both mods (`modidentity::RefusalBox`: `lmp_mod_mismatch` with `lmp_mod_mismatch_msg`, or
+  `lmp_mod_version_msg` for the same title with other files). An acceptance is read for the mark too: a host whose mod
+  is not this game's, or a host without the mark (the original game) while this game plays a mod, is not joined
+  (`OnAccepted`: refusal ModMismatch, the box `lmp_mod_original_msg`); the server's pending join then times out.
+- **Original clients on a server that plays a mod are refused.** They send no mark, so the server cannot tell whether
+  they play the same mod; the formats our mods use (TOML records, PNG, glTF, Lua, loose files, zips) are not readable
+  by the original game at all, and a mismatch shows inside the zone as a fatal error (an unknown particle or record) or
+  a game drifting apart. Refused at the door, the original client shows its box for an unknown reason
+  (`lmp_cannot_connect`). A Rebirth player of the original exe with the same classic mod (Lost in Astral) is refused
+  as well; a host's option to admit unmarked clients would be the way back if wanted. A server without a mod admits
+  them as before, and our client without a mod joins an original server as before.
+- **The texts** are the game's when its texts have the key (a texts.toml of a mod or a converted install can carry
+  `string lmp_mod_mismatch` and the others), else ours in Russian where the game's texts are, otherwise English.
+- `net::g_originalPeer` (the harness's `originalnet`): this game's lobby acts as the original's (no mark sent or read,
+  any mod admitted), so the scenarios meet an original peer.
+
 ## Sessions and messages
 
 - `SessionBase : RefCounted`: frame, time (a double holding float sums), the connections and the UDP socket driver.
@@ -128,7 +162,8 @@ list again. Scenario `net_pair_companion`.
   Changed or Removed, the message), one switch on the message's `Type()` per session. `ServerBase` / `ClientBase` are
   the lobby layers; `ServerSession` / `ClientSession` on top. +8 of both sessions is the magic 0xDEC0AD07.
 - Packet kinds (first byte, `net::PacketKind`): Master (0xFF, -1), Update 0, Leave 1, (2 none), GetInfo 3, Login 4,
-  Info 5, Accepted 6, Rejected 7 (the join id and a `RefusalReason`: Full 1, Banned 2, WrongPassword 3). The other
+  Info 5, Accepted 6, Rejected 7 (the join id and a `RefusalReason`: Full 1, Banned 2, WrongPassword 3; ours
+  ModMismatch 4, "Mods"). The other
   numbers of the wire are enums too, in `net/net_session.h`: `AwardKind`, `CommandKind`, `PlayerStatus` (the state of a
   client's login record: InZone 0, InBase 1, InCamp 2, Connecting 3, Fresh 4); the player link's message types are
   `ServerMessage` / `ClientMessage` (`player_messages.h`), the connection states `PlayerServer::State` /

@@ -149,7 +149,10 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   game's network (`net_pair_leave.txt`); `hidefile <path>` makes an install file read as missing in that game until it
   writes the file itself. A file a `# prepare:` tool writes into `harness_saves\<install path>` is read in place of the
   install's by the scenario's own game (the overlay), not by its peer: `net_pair_database.txt`'s host plays with a
-  network item database of one item more (`tools/make_extra_item_db.py`).
+  network item database of one item more (`tools/make_extra_item_db.py`). The peer's own overlay is the run folder's
+  `peer\harness_saves`, which a prepare tool may fill too (`tools/make_mod_pair.py`: a mod for each game). `netmod`
+  prints the mods the lobby compares (network.md, "Mods"); `originalnet` makes the game's lobby act as the original's
+  (no mod mark, any mod admitted).
 - `secondmaster <host[:port]>` sets NewMaster's second master server for the run, over the settings file's
   `[network]` SecondMaster (rebirth.md, "Settings"). A game's player limit and pause mode are the host's create-server choices:
   a scenario drags the player slider (`layout ldown` / `move` / `lup`, `net_pair_portraits`) or clicks the pause
