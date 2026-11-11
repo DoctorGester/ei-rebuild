@@ -2,27 +2,18 @@
   "scenario": "mod_showcase_buff",
   "install": "vanilla",
   "recorded": "2026-11-11",
-  "commit": "8341df8a4",
+  "commit": "c71479d07",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MF13a: the showcase mod's island is a zone of its own (showcase) reached through gz1g's merged exit 3, no longer zone 1 replaced: the runs start in gz1g and enter the island with the harness's zone step, the quest variables are q.showcase.*, the island's AI graph is built at the load; mod_showcase_zone walks into the island and back",
+  "reason": "MF13a merged with MF13c, MF15h and the client save rule: the showcase runs start on the first island and enter the showcase zone (zone showcase 0); the worn hammer, the cast look and the saves without the client particle generator together.",
   "source": "image",
   "saves": "14 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "console: differs from line 3: the old golden 'Showcase mod: the island loads', the new run '0'",
-    "digest: 17 of 18 records differ, first at record 1 (world update 40, tick 40, frame 7, zone gz1g); outcomes CHANGED: zone, spawns, quest variables, party and items, script (deaths unknown: hash only); max unit move 3.85 (obj4001, record 17); the digests have different numbers of records",
-    "  digest: the records no longer line up at record 5: the old golden world update 120 tick 105, the new run world update 120 tick 120",
-    "  digest: the new run has more records; the other ends before its record 18 (world update 380, frame 75, tick 226, zone showcase)",
-    "  first difference at record 1 (world update 40, tick 40, frame 7, zone gz1g): 827 fields",
-    "    world (world) wind.x: -0.600000024 in the old golden, -0.728199959 in the new run (d 0.128)",
-    "    world (world) wind.y: -0.800000012 in the old golden, -0.685364664 in the new run (d 0.115)",
-    "    world (world) exits: 2 in the old golden, 3 in the new run (d 1)",
-    "    ... 824 more",
-    "  outcomes: CHANGED zone, spawns, quest variables, party and items, script (deaths unknown: vitals differ, only a hash is kept); same: money, game result",
-    "    zone: record 3: gz1g in the old golden, showcase in the new run (+14 more)",
-    "    spawns: obj299 (84 stbr1) only in the new run, from record 1 (+1560 more)",
-    "... 81 more lines"
+    "save showcase_mod/save1/visuals.sav: 8 fields in 1 records differ: visuals 8",
+    "  visuals: 8 fields in 1 records; first visuals.particleGenerator seeded: 1 in the old golden, (none) in the new run",
+    "save showcase_mod/savea/visuals.sav: 8 fields in 1 records differ: visuals 8",
+    "  visuals: 8 fields in 1 records; first visuals.particleGenerator seeded: 1 in the old golden, (none) in the new run"
   ]
 }

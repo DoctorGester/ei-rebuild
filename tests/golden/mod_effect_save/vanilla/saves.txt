@@ -5,10 +5,10 @@ showcase_mod/save1/gz1g.visuals.sav 15c7316df0091840
 showcase_mod/save1/info.sav 68242baa35b8ddb7
 showcase_mod/save1/mission.sav 0828eba6b6af364b
 showcase_mod/save1/scenario.sav e04a62efe5752c7f
-showcase_mod/save1/visuals.sav a60cffe60202a94f
+showcase_mod/save1/visuals.sav 4c0c8da9c349a61b
 showcase_mod/savea/gz1g.sav fdd9d9eb9722e0e4
 showcase_mod/savea/gz1g.visuals.sav 15c7316df0091840
 showcase_mod/savea/info.sav 142890f7734279fc
 showcase_mod/savea/mission.sav 50430f2aa51a3c76
 showcase_mod/savea/scenario.sav 7cefaccdbf559d96
-showcase_mod/savea/visuals.sav 7c31d3b9cc7080b8
+showcase_mod/savea/visuals.sav c301f85cd242abe8

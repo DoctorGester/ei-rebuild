@@ -2,12 +2,27 @@
   "scenario": "mod_showcase_worn",
   "install": "vanilla",
   "recorded": "2026-11-11",
-  "commit": "6f950face",
+  "commit": "c71479d07",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MF13c: new scenario mod_showcase_worn, the showcase hammer's worn model in the hero's hand",
+  "reason": "MF13a merged with MF13c, MF15h and the client save rule: the showcase runs start on the first island and enter the showcase zone (zone showcase 0); the worn hammer, the cast look and the saves without the client particle generator together.",
   "source": "image",
-  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "console: differs from line 3: the old golden 'Showcase mod: the island loads', the new run '0'",
+    "digest: 15 of 16 records differ, first at record 1 (world update 40, tick 40, frame 7, zone gz1g); outcomes CHANGED: zone, spawns, quest variables, party and items, script (deaths unknown: hash only); max unit move 10.5 (obj4001, record 15); the digests have different numbers of records",
+    "  digest: the old golden has more records; the other ends before its record 16 (world update 340, frame 67, tick 340, zone gz1g)",
+    "  first difference at record 1 (world update 40, tick 40, frame 7, zone gz1g): 827 fields",
+    "    world (world) wind.x: -0.600000024 in the old golden, -0.728199959 in the new run (d 0.128)",
+    "    world (world) wind.y: -0.800000012 in the old golden, -0.685364664 in the new run (d 0.115)",
+    "    world (world) exits: 2 in the old golden, 3 in the new run (d 1)",
+    "    ... 824 more",
+    "  outcomes: CHANGED zone, spawns, quest variables, party and items, script (deaths unknown: vitals differ, only a hash is kept); same: money, game result",
+    "    zone: record 3: gz1g in the old golden, showcase in the new run (+12 more)",
+    "    spawns: obj299 (84 stbr1) only in the new run, from record 1 (+1560 more)",
+    "    quest variables: 13 variables differ (AnimPray, Said1, ZT1, b.bz2g.z0, gtime, q.gz1g.showcase_golem, ...); first from record 1: player0 q.gz1g.showcase_golem: 1.0 in the old golden, (none) in the new run",
+    "... 40 more lines"
+  ]
 }

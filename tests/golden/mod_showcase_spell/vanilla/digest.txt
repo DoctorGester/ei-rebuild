@@ -7861,7 +7861,7 @@ obj1000011214 #vitals ECA55E0C
 aievents tick 602
 client tick 602
 client ticksRun 577
-@ 32 update 660 frame 131 tick 622 zone showcase hash 6656E5AE n 15
+@ 32 update 660 frame 131 tick 622 zone showcase hash 6403E3F1 n 15
 world tick 622
 world updates 660
 world timedObjects 1
@@ -7875,7 +7875,7 @@ obj1000011214 #place 7C9E0994
 obj1000011214 #unit 643D96CC
 obj1000011214 #vitals 32357845
 + timed261 74 CEffectParticle
-timed261 # C971487E
+timed261 # BDDA49FF
 aievents tick 622
 client tick 622
 client ticksRun 597

@@ -2,12 +2,16 @@
   "scenario": "mod_showcase_zone",
   "install": "vanilla",
   "recorded": "2026-11-11",
-  "commit": "8341df8a4",
+  "commit": "c71479d07",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MF13a: the showcase mod's island is a zone of its own (showcase) reached through gz1g's merged exit 3, no longer zone 1 replaced: the runs start in gz1g and enter the island with the harness's zone step, the quest variables are q.showcase.*, the island's AI graph is built at the load; mod_showcase_zone walks into the island and back",
+  "reason": "MF13a merged with MF13c, MF15h and the client save rule: the showcase runs start on the first island and enter the showcase zone (zone showcase 0); the worn hammer, the cast look and the saves without the client particle generator together.",
   "source": "image",
-  "saves": "10 decoded saves (tools/savefile.py), the same in 2 runs"
+  "saves": "10 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "save showcase_mod/savea/visuals.sav: 8 fields in 1 records differ: visuals 8",
+    "  visuals: 8 fields in 1 records; first visuals.particleGenerator seeded: 1 in the old golden, (none) in the new run"
+  ]
 }
