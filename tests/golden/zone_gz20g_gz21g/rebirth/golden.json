@@ -1,0 +1,13 @@
+{
+  "scenario": "zone_gz20g_gz21g",
+  "install": "rebirth",
+  "recorded": "2026-11-11",
+  "commit": "43d63b988",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "MF13d2: new scenario, a zone that cannot be entered (gz21g) goes to the main menu.",
+  "source": "image",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+}

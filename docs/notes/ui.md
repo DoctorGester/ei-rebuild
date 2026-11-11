@@ -488,8 +488,9 @@ The steps added for UI work (`screen`, `clickregion` / `moveregion`, `wheel`, `d
   counts `#exit` blocks from 0 (map.txt's `#exit n` minus 1); an index outside the zone's exits leaves the party at (0, 0).
   Zones: game `gz1g`..`gz21g`, brief `bz1g`..`bz18h`, edge zones `<a>_<b>` (no `#res`, mode 4; `waitzone` does not recognise
   them). One-way entrances (`none 0`): gz1g's #exit 1, gz4g's 5, bz4g's and bz13h's 1, gz11k's 4, gz15h's 2..4, gz20g's;
-  `gz21g` names zonemichel.mpr / .mob, which the install lacks (untested); `gz6g` loads its frozen map when `z.gz6g.frozen`
-  is nonzero; no zone needs quest state to load. Not tried: edge zones, `endofgame`, leaving a zone other than zone1.
+  `gz21g` names zonemichel.mpr / .mob, which no install has, so it goes to the main menu (`zone_gz20g_gz21g`; world.md,
+  "Party between zones"); `gz6g` loads its frozen map when `z.gz6g.frozen` is nonzero; no zone needs quest state to
+  load. Not tried: edge zones, `endofgame`.
   Scenarios `zone_gz2g_traps` (party at (67, 15), zone2's traps 1324..1330, MTF4 armed with a wolf), `zone_base_bz1g` (mode
   3, party at (59.25, 54.25), Smith), `zone_gz3g` (party at (23, 138.5), the Pyramid trap 4515).
 

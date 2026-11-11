@@ -155,6 +155,10 @@ map and its lights without them (R61; scenario `render_menu_return`). The menu's
   back fresh copies of the carried items (all on a client; in single player the quest items of this zone,
   `TakeZoneQuestItems`), units are created at the target exit's centre (a lost game goes back to exit 0) facing away
   from the map centre unless the exit has a heading; the first command queue runs 5x.
+  A zone that cannot be entered (EnterZone 0: its map or objects missing, NewZone refusing them after the old zone was
+  torn down, or its saves\current file gone) goes to the main menu with the warning "Zone <name> cannot be entered", as
+  a zone map.txt lacks does (StartZone); playing on left the battle screen over no world, reading the party's units
+  (MF13d2: gz21g, whose zonemichel files no install has). StartNetworkZone's failure is still ignored by its callers (MF13d2a).
 - **Briefings**: the client's speaker is the second word of the first "#show" line of section "briefing <name>" that is
   not "Hero"; the variable is "b.<speaker>.<name>" or "b.elder.<name>"; `MarkBriefing` / `ForgetBriefing` set / remove it
   (loading the zone's quests first for "<zone>_N" names); `OnVariableChanged` passes "q." variables to the quest log.
