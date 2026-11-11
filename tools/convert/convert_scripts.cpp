@@ -1,4 +1,4 @@
-// ei-convert --scripts: the script survey and the parse tree check (convert_scripts.h).
+// ei-convert --scripts: the script survey and the Lua check (convert_scripts.h).
 // usage: ei-convert --scripts [<install>...] [--scenarios <folder>] [--dump <folder>] [--lua <folder>] [--quiet]
 //   <install>     an unpacked install (tools/unpack_install.py): every .mob under it, a mod's (starter\Mods\<mod>\...)
 //                 counted as the mod's; a mob that another's AddMob names, or a network quest's (its archive's
@@ -7,7 +7,7 @@
 //                 scenario's lines loaded one after another as the console does
 //   --dump        each text and its tree's dump (with lines) written there, as <group>\<name>.txt and .ir
 //   --lua         each text's Lua (script_lua_writer.h) written there, as <group>\<name>.lua
-//   --quiet       only the tree check's line (the build check: the samples and the scenarios, no game data)
+//   --quiet       only the Lua check's lines (the build check: the samples and the scenarios, no game data)
 // The texts: each zone's script chunk (encoded or plain, read as WorldServer::LoadZoneScripts does), the quest texts
 // QFinish would build from each mission's QStart / QObj* commands (loaded after the mission, into its script), the
 // console lines, the texts the engine writes (a trap's mushroom, a lightning bolt, the heroes' group, a briefing's
@@ -286,8 +286,6 @@ struct Stats {
 
 std::map<std::string, Stats> g_stats;   // by group
 Stats g_all;
-int g_mismatches = 0;
-Listing g_mismatchList;
 fs::path g_dumpFolder;
 
 std::string ArgText(const scriptir::Arg& arg) {
@@ -733,25 +731,11 @@ void LoadEarlier(Script& script, LuaSide& side, const Source& source) {
     CheckLua(side, source, file, false);
 }
 
-// Loads `source` into `script` with its tree, compares the tree's dump with what the load built, checks its Lua,
-// counts it. Returns the survey's quest texts.
+// Loads `source` into `script` with its tree, checks its Lua, counts it. Returns the survey's quest texts.
 std::vector<std::string> LoadAndSurvey(Script& script, LuaSide& side, const Source& source) {
-    const scriptir::LoadMark mark = scriptir::Mark(script);
     std::string text = source.text;
     scriptir::File file;
     script.Parse(&text, file);
-    const std::string fromTree = scriptir::Dump(file);
-    const std::string fromLoad = scriptir::DumpLoaded(script, mark);
-    if (fromTree != fromLoad) {
-        ++g_mismatches;
-        std::size_t at = 0;
-        while (at < fromTree.size() && at < fromLoad.size() && fromTree[at] == fromLoad[at]) ++at;
-        const std::size_t line = fromTree.rfind('\n', at == 0 ? 0 : at - 1);
-        const std::size_t start = line == std::string::npos ? 0 : line + 1;
-        g_mismatchList.Add(std::format("{}\\{}: tree `{}` / load `{}`", source.group, source.name,
-                                       fromTree.substr(start, fromTree.find('\n', start) - start),
-                                       fromLoad.substr(start, fromLoad.find('\n', start) - start)));
-    }
     WriteDump(source, file);
     CheckLua(side, source, file, true);
 
@@ -775,7 +759,8 @@ std::vector<std::string> LoadAndSurvey(Script& script, LuaSide& side, const Sour
     return quests;
 }
 
-// The comments of kCommentSample, where the Lua writer puts them (docs/notes/lua-scripting.md, "Converted scripts").
+// The comments of kCommentSample, where the Lua writer puts them (docs/notes/lua-scripting.md, "Converted scripts"):
+// a Lua check failure when they are not.
 void CheckComments() {
     Script script;
     std::string text = kCommentSample;
@@ -784,8 +769,8 @@ void CheckComments() {
     scriptlua::LuaNames names;
     const std::string lua = scriptlua::WriteLua(file, names, "comments").text;
     if (lua == kCommentLua) return;
-    ++g_mismatches;
-    g_mismatchList.Add("samples\\comments: the Lua differs from the expected:\n" + lua);
+    ++g_luaAll.failed;
+    g_luaAll.failures.Add("samples\\comments: the Lua differs from the expected:\n" + lua);
 }
 
 // ---- The corpus ---------------------------------------------------------------------------------------------------
@@ -1173,12 +1158,10 @@ int Main(const std::vector<std::string>& args) {
         PrintStats("all", g_all, false);
         PrintKeywords(groups);
     }
-    std::printf("== tree check: %d texts, %d trees differ from their loads\n", g_all.files, g_mismatches);
-    for (const std::string& line : g_mismatchList.lines) std::printf("    %s\n", line.c_str());
     if (!quiet)
         for (const std::string& group : groups) PrintLuaStats(group, g_lua[group]);
     PrintLuaStats("lua check", g_luaAll);
-    return g_mismatches == 0 && g_luaAll.failed == 0 ? 0 : 1;
+    return g_luaAll.failed == 0 ? 0 : 1;
 }
 
 }   // namespace convert_scripts

@@ -9,7 +9,6 @@
   "repeated_in": 2,
   "reason": "L8c: the loop bindings set the counter global a converted loop names, as the game's loops do, so the digest's script record and the decoded saves compare the loops' counters again (L8a had left them out): the counters' values now recorded (script gobject, saves commands globals).",
   "source": "image",
-  "saves": "2 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
     "digest: 419 of 545 records differ, first at record 91 (world update 1840, tick 1592, frame 367, zone z9q2); outcomes CHANGED: script; no unit position differs",
     "  first difference at record 91 (world update 1840, tick 1592, frame 367, zone z9q2): 1 fields",
@@ -20,5 +19,6 @@
     "    gobject: 1 script, 419 records, from 91; hash only (no numbers kept)",
     "save current/z9q2.sav: 1 fields in 1 records differ: commands 1",
     "  commands: 1 fields in 1 records; first commands globals.objects.2.value: ~loop in the old golden, 1000197 in the new run"
-  ]
+  ],
+  "saves": "2 decoded saves (tools/savefile.py), the same in 2 runs"
 }

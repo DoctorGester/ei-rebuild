@@ -1,6 +1,6 @@
 // Saving the mission script into a savegame (Script::SaveState) and the savers of its parts:
-// command blocks, the four kinds of variables, the scheduler's state in the old format's fields and the areas. See
-// script.h and docs/notes/script.md.
+// the definitions, the four kinds of variables, the scheduler's state in the old format's fields and the areas. The
+// program is the scheduler's state; the old format's blocks are written empty. See script.h and docs/notes/script.md.
 // Every piece goes through the stream's Write in the save's order and in its pieces.
 #include "game/core/core_streams.h"
 #include "game/script/script.h"
@@ -28,11 +28,6 @@ void WriteList(ByteStream* stream, const Container& list) {
 
 } // namespace
 
-void ScriptBlock::Save(ByteStream* stream) const {
-    stream->WriteValue(id);
-    WriteList(stream, commands);
-}
-
 template <typename T>
 void ScriptNamedValues<T>::Save(ByteStream* stream) const {
     stream->WriteCount(values.size());
@@ -53,20 +48,29 @@ void ScriptVars::Save(ByteStream* stream) const {
     groups.Save(stream);
 }
 
-// A definition (Script::definitions) or an instance (instances). The pairs' blocks are not null-checked.
-void ScriptDefinition::Save(ByteStream* stream) const {
+// A definition (Script::definitions) or an instance (the scheduler's, as its definition). The pairs' numbers only tie
+// the saved runs to their rules (tools/savefile.py names a run by them), and their count is the rule count a later
+// text's redeclaration is checked against.
+void ScriptDefinition::Save(ByteStream* stream, int firstRule) const {
     stream->WriteValue<std::int32_t>(killed);
     stream->WriteString(name);
     stream->WriteString(params);
-    stream->WriteCount(ifThen.size());
-    for (const ScriptIfThen& pair : ifThen) {
-        stream->WriteValue(pair.conditions->id);
-        stream->WriteValue(pair.commands->id);
+    stream->WriteCount(static_cast<std::size_t>(rules));
+    for (int rule = 0; rule < rules; ++rule) {
+        stream->WriteValue<std::int32_t>(0);
+        stream->WriteValue<std::int32_t>(firstRule + rule);
     }
     vars.Save(stream);
 }
 
 namespace {
+
+// A definition and the save's number of its first rule (ScriptDefinition::Save), by name.
+struct NumberedDefinition {
+    const ScriptDefinition* definition = nullptr;
+    int firstRule = 0;
+};
+using NumberedDefinitions = std::unordered_map<std::string_view, NumberedDefinition>;
 
 // A run's fields: block id, command index, ticks, sleep start, its instance's index (-1: none), the variables.
 void WriteRun(ByteStream* stream, int block, int index, int ticks, int sleepStart, int instance, const ScriptVars& vars) {
@@ -80,30 +84,33 @@ void WriteRun(ByteStream* stream, int block, int index, int ticks, int sleepStar
 
 // The scheduler's globals, instances and runs in the old format's fields, as far as they go (ScriptInstanceView):
 // the globals the parser declared with their Lua values; each instance as its definition with its kill flag and
-// values (a definition the program lacks: its name alone); each run with its rule's then-section (a WorldScript's: -1,
-// no block), command -1 (Lua has none). The fields the original game wrote its state in, so tools/savefile.py reads
-// them as it reads an old-format save; LoadState drops them again (the Lua state after the areas is the script's).
-void WriteLuaState(ByteStream* stream, Script* script) {
+// values (a definition the program lacks: its name alone); each run with its rule's number as the block (a
+// WorldScript's: -1), command -1 (Lua has none). The fields the original game wrote its state in, so
+// tools/savefile.py reads them as it reads an old-format save; LoadState drops them again (the Lua state after the
+// areas is the script's).
+void WriteLuaState(ByteStream* stream, Script* script, const NumberedDefinitions& definitions) {
     script->GlobalValues(true).Save(stream);
-    std::unordered_map<std::string_view, const ScriptDefinition*> definitions;
-    for (const ScriptDefinition& definition : script->definitions) definitions.emplace(definition.name, &definition);
     const std::vector<ScriptInstanceView> instances = script->InstanceViews();
     stream->WriteCount(instances.size());
     for (const ScriptInstanceView& view : instances) {
         ScriptDefinition record;
-        if (const auto found = definitions.find(view.name); found != definitions.end()) record = *found->second;
+        int firstRule = 0;
+        if (const auto found = definitions.find(view.name); found != definitions.end()) {
+            record = *found->second.definition;
+            firstRule = found->second.firstRule;
+        }
         record.name = view.name;
         record.killed = view.killed;
         record.vars = view.vars;
-        record.Save(stream);
+        record.Save(stream, firstRule);
     }
     const std::vector<ScriptRunView> runs = script->RunViews();
     stream->WriteCount(runs.size());
     for (const ScriptRunView& run : runs) {
         int block = -1;
-        if (const auto found = definitions.find(run.script); found != definitions.end() && run.rule >= 0 &&
-                                                              run.rule < std::ssize(found->second->ifThen))
-            block = found->second->ifThen[static_cast<std::size_t>(run.rule)].commands->id;
+        if (const auto found = definitions.find(run.script);
+            found != definitions.end() && run.rule >= 0 && run.rule < found->second.definition->rules)
+            block = found->second.firstRule + run.rule;
         WriteRun(stream, block, -1, run.ticks, run.sleepStart, run.instance, run.vars);
     }
 }
@@ -117,10 +124,20 @@ void Script::SaveState(ByteStream* stream) {
     WriteList(stream, lightning);
     stream->WriteValue(nextParticleId);
     stream->WriteValue(nextFxId);
-    WriteList(stream, blocks);
-    WriteList(stream, worldBlocks);
-    WriteList(stream, definitions);
-    WriteLuaState(stream, this);
+
+    // No command blocks or WorldScript blocks: the scheduler's state holds the program. The definitions with their
+    // rules numbered from 1 in this order.
+    stream->WriteCount(0);
+    stream->WriteCount(0);
+    NumberedDefinitions numbered;
+    int nextRule = 1;
+    stream->WriteCount(definitions.size());
+    for (const ScriptDefinition& definition : definitions) {
+        definition.Save(stream, nextRule);
+        numbered.emplace(definition.name, NumberedDefinition{&definition, nextRule});
+        nextRule += definition.rules;
+    }
+    WriteLuaState(stream, this, numbered);
     stream->WriteValue(loaded + kScriptLoadedOnLua);
     stream->WriteValue(fileCount);
 

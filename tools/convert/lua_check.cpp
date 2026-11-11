@@ -331,6 +331,29 @@ end
     Expect(stopped.loaded == 0 && count(stopped) == 0, "its .lua not started");
 }
 
+// The declarations through a save (Script::SaveState writes no program, only the definitions with their rule counts):
+// after a load a second body of a saved script is still a multiple declaration, a call of it and a declared-only
+// script's first body load.
+void CheckSavedDeclarations() {
+    Script script;
+    std::string text = "DeclareScript SDLater() Script SDRule()( if(IsEqual(1,2)) then( Sleep(1) ) )";
+    Expect(script.Load(&text, false), "the declarations load");
+    MemoryStream stream;
+    script.SaveState(&stream);
+    Script loaded;
+    stream.Seek(0);
+    loaded.LoadState(&stream);
+    Expect(loaded.definitions.size() == 2 && loaded.definitions[1].rules == 1 && loaded.definitions[0].rules == 0,
+           "the definitions and their rule counts back");
+    std::string again = "Script SDRule()( if(IsEqual(1,2)) then( Sleep(1) ) )";
+    Expect(!loaded.Load(&again, false) && loaded.errorCode == ScriptParseError::MultipleDeclaration,
+           "a saved script's second body: multiple declaration");
+    // A declared script's body follows its name's `(` (its parameters were given with the declaration).
+    std::string later = "Script SDLater( if(IsEqual(1,2)) then( SDRule() ) )";
+    Expect(loaded.Load(&later, false) && loaded.definitions[0].rules == 1,
+           "a declared-only script's body and a call of a saved script load");
+}
+
 // A coroutine waiting in Sleep with an object, a group and a NaN in its locals: persisted, unpersisted into another
 // state (the first one closed), resumed to its end there.
 void CheckPersistence(Script& script, TestWorld& world) {
@@ -735,6 +758,7 @@ int Main() {
         CheckPersistence(script, world);
     }
     CheckMission();
+    CheckSavedDeclarations();
     CheckCases();
     CheckRuntime();
     Expect(world.OnlyWorldReferences(), "every reference released at the end");

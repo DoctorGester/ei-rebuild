@@ -16,25 +16,27 @@ the tick and the zone reset it shares), the old-save shim (`script_lua_resume.cp
   object deleted while referenced has bit 0 of `flags`. `ScriptGroup`: references kept sorted by object address
   (unsigned) without duplicates.
 - `ScriptVars`: per type a value array and a name array.
-- `ScriptCall` (a command): id (`ScriptFunction`); for Assign and CallScript the target (`target`, `targetType`,
-  `targetName`); argument arrays per type (objects and groups point into variables or temporaries); local and global
-  variable bindings `{type, argIndex, varIndex}`; nested calls `{type, argIndex, ScriptCall*}`; the For / ForIf body.
-  A save keeps the target in leading argument slots, as the game did (Assign: float 0 the variable index, float 1 its
-  type - 1; CallScript: float 0 the definition index, string 0 its name; the saved bindings and nested calls count those
-  slots); `ScriptCall::Load` / `Save` move it in and out.
+- `ScriptCall` (a command: a Lua binding's call, or one of an old-format save's program): id (`ScriptFunction`); for
+  Assign and CallScript the target (`target`, `targetType`, `targetName`); argument arrays per type (objects and groups
+  point into variables or temporaries); local and global variable bindings `{type, argIndex, varIndex}`; nested calls
+  `{type, argIndex, ScriptCall*}`; the For / ForIf body. An old-format save keeps the target in leading argument slots,
+  as the game did (Assign: float 0 the variable index, float 1 its type - 1; CallScript: float 0 the definition index,
+  string 0 its name; the saved bindings and nested calls count those slots); `ScriptCall::Load` moves it out.
 - Commands and functions read their arguments through `ScriptArgs` (`Float()`, `Text()`, `Object()`, `Group()`,
   `FindPlayer()`), in signature order, each type at its own position. One read per statement: a function call's
   arguments are evaluated in no fixed order. The loops (For, ForIf, Every / Any / Sum) re-read their counter and
   condition slots directly.
-- `ScriptDefinition`: index, qualified name, parameter type letters ("fso"), the if-then pairs {conditions block,
-  commands block}, its variables. `ScriptRun`, a Lua run's state: ticks, sleep start, the kill flag (a pointer to the
-  instance's flag; null for the WorldScript). An old-format save's instances are copies of a definition whose first
+- `ScriptDefinition`: index, qualified name, parameter type letters ("fso"), its rule count (a second body is
+  "Multiple declaration"), an old-format save's if-then pairs {conditions block, commands block}, its variables.
+  `ScriptRun`, a Lua run's state: ticks, sleep start, the kill flag (a pointer to the instance's flag; null for the
+  WorldScript). An old-format save's instances are copies of a definition whose first
   field is the "killed" flag, its waiting runs `ScriptSavedRun`s (block, index, ticks, sleep start, the instance's
   index, a copy of the variables), both only on the way to the old-save shim.
-- `Script`: a command block's id is the list's count right after the append (the WorldScript's with bit 31 set); the
-  temporaries lists always keep one entry; the loaded flag and file counter; error text / code / line. Areas hold parts `{isRect; x, y, x2 | radius^2, y2}`
+- `Script`: an old-format save's command block's id is the list's count right after the append (the WorldScript's
+  with bit 31 set); the temporaries lists always keep one entry; the loaded flag and file counter; error text / code /
+  line. Areas hold parts `{isRect; x, y, x2 | radius^2, y2}`
   (AddRectToArea / AddRoundToArea make a missing area; IsInArea of an unknown id is 0 and makes none). A script body
-  (`LoadScriptBody`) that fails to parse drops the blocks and pairs it added. FX
+  (`LoadScriptBody`) that fails to parse drops the rules it added. FX
   sources are sound sources (volume, radius, idle, placement radius, min / max delay, countdown). Point lights: 256
   slots.
 - The keyword table (`ScriptKeyword`): name, id, function signature ("Fff": result + params) or command signature
@@ -76,11 +78,11 @@ in the target; the value is the one argument). `LoadFunction` parses one call ag
 loop counter = a global object variable); each parameter is a literal, a local variable, a global variable (plain or
 qualified) or a nested call of a function with the right result type.
 The parser reads the tokens through a `TokenReader` (`Next(&id)` takes a token and classifies it, `Expect(lexeme)` checks
-the next one, `EndOfFileError()` reports on the last line); error codes are `ScriptParseError`. Each Load also fills a
-parse tree beside its structures (`script_ir.h`, handed out through `Load`'s `ir`; lua-scripting.md, "Design" and
-"Survey"). `Script::Parse` stops there (ei-convert's survey, `Script::LoadLua`); `Script::Load` hands the tree to the
-script's scheduler, which converts and loads it and starts its WorldScript; its failure is error 18, ours
-(lua-scripting.md, "Texts at runtime"). The structures are the program a save keeps (below).
+the next one, `EndOfFileError()` reports on the last line); error codes are `ScriptParseError`. The Load* functions
+build the declarations (definitions with their parameters and rule counts, globals) and the text's parse tree
+(`script_ir.h`; lua-scripting.md, "Design" and "Survey"), no program of their own. `Script::Parse` stops there
+(ei-convert's survey, `Script::LoadLua`); `Script::Load` hands the tree to the script's scheduler, which converts and
+loads it and starts its WorldScript; its failure is error 18, ours (lua-scripting.md, "Texts at runtime").
 
 **Lexer** (`ClassifyToken`): lines start at 1 and count `\n` in white space and block comments; a token runs to white
 space (a space inside quotes does not end it) or to one of `, ) ( : =` after its first character, at most 255
@@ -131,19 +133,24 @@ INT_MAX (the sound stays, as with any positive garbage).
 ## Savegame writer and reader
 
 `ScriptSave` order: point lights, the particle / FX / lightning lists, two state ints, command blocks and WorldScript
-blocks (block id, count, each command), definitions, globals (floats, strings, objects, groups), instances, runs (each
-with the index of its instance, found by comparing its kill-flag pointer with each instance, -1 when absent), the loaded
-flag, the file counter, then the areas (read only for stream versions >= 0x57). Lists are written as count then each
+blocks (block id, count, each command; ours writes both counts 0: the Lua state holds the program), definitions,
+globals (floats, strings, objects, groups), instances, runs (each with the index of its instance, found by comparing its
+kill-flag pointer with each instance, -1 when absent), the loaded flag, the file counter, then the areas (read only for
+stream versions >= 0x57). Lists are written as count then each
 node; a variable's name is written with its terminator, or as one zero byte when the name array is shorter than the
 value array. Effect elements: object id (-1 none), then fields; loading looks the id up in the effect manager.
 `ScriptLoad` mirrors it: list loaders replace the list with that many default nodes and read each.
 Block ids resolve in the lists of the world's first script (negative ids in the WorldScript blocks, others in the
 command blocks; unknown gives null). A definition's or instance's if-then pair and a run whose block did not resolve
 (a save made with other scripts) are dropped at load, and a For / ForIf whose body did not resolve is cleared into a
-command that does nothing (id 0; the block keeps its length, so runs' saved indices stay right), so the saver and the
-old-save shim always have their blocks. Our saves write the scheduler's globals, instances and runs in those fields as
-far as they go and its Lua state after the areas, 2 added to the loaded flag; an old-format save (vanilla's, or ours
-before every script ran on Lua) goes on through the old-save shim (lua-scripting.md, "Saves"). Runs: block id, index, ticks, sleep start, the instance index (0 out of range),
+command that does nothing (id 0; the block keeps its length, so runs' saved indices stay right), so the old-save shim
+always has its blocks; the program is dropped after the shim. Our saves write the scheduler's globals, instances and runs
+in those fields as far as they go and its Lua state after the areas, 2 added to the loaded flag; a definition's (and an
+instance's) if-then pairs are its rule count of pairs {0, the rule's number in the save, from 1 in definition order},
+and a run's block that number (-1 for a WorldScript's), so the decoder names a run's rule; the loader drops the pairs
+(no block resolves) and keeps the count. An old-format save (vanilla's, or ours before every script ran on Lua) goes on
+through the old-save shim (lua-scripting.md, "Saves"); one of ours from before L11 (with the blocks) loads the same way
+as now, its blocks read and dropped. Runs: block id, index, ticks, sleep start, the instance index (0 out of range),
 the variables (object ids looked up, group members sorted).
 
 ## Quests, unit modes, text manager

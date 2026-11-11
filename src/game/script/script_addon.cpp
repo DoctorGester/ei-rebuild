@@ -203,54 +203,26 @@ bool RejectsMatch(const char* keyword, char next) {
     return IsAsciiAlpha(keyword[0]) && (IsAsciiAlnum(next) || next == '_' || next == '#');
 }
 
-void SignatureStep(ScriptCall* cmd, std::string_view signature, std::size_t* letter, int tokenId) {
+void SignatureStep(std::string_view signature, std::size_t* letter, int tokenId) {
     std::size_t& p = *letter;
     // The letter at p (a zero byte past the end, as the C string it was).
     const auto at = [&] { return p < signature.size() ? signature[p] : '\0'; };
-    bool repeat = at() == '+';
-    bool optional = at() == '?';
+    const bool repeat = at() == '+';
+    const bool optional = at() == '?';
     if (!repeat && !optional) return;
     if (tokenId == ScriptLexeme::Close) {
         if (repeat) {
             ++p;
             return;
         }
-        int floats = 0, strings = 0, objects = 0, groups = 0;
-        if (at() == 0) return;
-        do {
-            switch (at()) {
-            case 'f': ++floats; break;
-            case 'g': ++groups; break;
-            case 'o': ++objects; break;
-            case 's': ++strings; break;
-            }
-            ++p;
-        } while (at());
-        cmd->floatArgs.resize(cmd->floatArgs.size() - floats);
-        cmd->stringArgs.resize(cmd->stringArgs.size() - strings);
-        cmd->objectArgs.resize(cmd->objectArgs.size() - objects);
-        cmd->groupArgs.resize(cmd->groupArgs.size() - groups);
+        while (at()) ++p;   // the optional parameters are left out
         return;
     }
     if (optional) {
         ++p;
         return;
     }
-    --p;
-    switch (at()) {
-    case 's':
-        cmd->stringArgs.emplace_back();
-        break;
-    case 'o':
-        cmd->objectArgs.push_back(nullptr);
-        break;
-    case 'g':
-        cmd->groupArgs.push_back(nullptr);
-        break;
-    case 'f':
-        cmd->floatArgs.push_back(0.0f);
-        break;
-    }
+    --p;   // back to the repeated type
 }
 
 void CalcString(ScriptCall* cmd, Script* script, std::string* result) {

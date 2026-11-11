@@ -812,9 +812,9 @@ the script's Lua scheduler; the runtime, the scheduler and the saves are lua-scr
   - the runs by definition and rule (a WorldScript's: no name, -1), ticks, sleep start, instance and values (a
     scheduler's run keeps its definition, rule and starting values for this: `Run::values`, persisted with it);
     no block id or command index, which Lua has not;
-  - in the saves, the program without the arguments a binding or nested call fills when a call runs (rule `eval`:
-    the game's executor's last values, which Lua's calls never write), `loaded` without the 2, and the Lua state left
-    out (rule `lua`: Eris writes tables in the order of Lua's string hashes, whose seed changes every run).
+  - in the saves, no program (ours writes no blocks; a definition's pairs are its rules' numbers, which name a run's
+    rule), `loaded` without the 2, and the Lua state left out (rule `lua`: Eris writes tables in the order of Lua's
+    string hashes, whose seed changes every run).
 - **The sandbox** (script_lua.cpp, every ScriptLua): no io, os, debug, package / require, dofile / loadfile; no
   `math.random` / `math.randomseed` (C's rand() is a draw outside the game's: a script draws through `Random`, the
   game's generator, saved with the game); `print` writes a console line; `load` text only (bytecode could break the

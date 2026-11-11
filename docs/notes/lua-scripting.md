@@ -97,9 +97,9 @@ quest and engine texts (401 texts, 183,486 lines), without the harness lines.
   touches FindScript or the load) and now says "Script error: <file>.mob line <n>: ..." on the console (L1a). All
   those files hold the same leftover template script (watch object 1000027, set q.gz5g.q22g.1 to 2), so only the
   first copy running loses nothing.
-- **Block ids.** Only saves use them (if-then pairs, For bodies, runs). They count the blocks in load order (the
-  mission, then AddMob'd mobs and QFinish texts as the game runs them), so the same file gets other ids after another
-  load history. A saved run is always at a top-level command (no waits in loop bodies): on a wait, at index 0 of a
+- **Block ids.** Only old-format saves use them (if-then pairs, For bodies, runs). They counted the blocks in load
+  order (the mission, then AddMob'd mobs and QFinish texts as the game ran them), so the same file got other ids after
+  another load history. A saved run is always at a top-level command (no waits in loop bodies): on a wait, at index 0 of a
   WorldScript not yet run, or at the end of its block.
 
 ### What it settled for L2-L9
@@ -115,8 +115,8 @@ quest and engine texts (401 texts, 183,486 lines), without the harness lines.
   script (5,416) is common; the lost kill flag of a waiting run is not reached by content.
 - **L6 (saves).** Resume points are only top-level waits, starts and ends, so the old-save shim enters a converted block
   at a top-level label (Lua 5.3's `goto` at function level is enough). Since block ids follow the load history, the
-  shim should build its tree from the save's own program (the saved blocks, as `DumpLoaded` walks them), not map ids
-  onto a fresh load of the .mob.
+  shim should build its tree from the save's own program (the saved blocks), not map ids onto a fresh load of the
+  .mob.
 - **L7 (quests, console).** 26 distinct quest texts, multiplayer only; their objective arguments are expressions and
   need the mission's `i` and `Heroes`. The engine's texts are five fixed forms; the console's are three wrappers.
 - **L8 (mods).** The mods use the vanilla built-ins plus GameOver / GameOverMSG; Lost in Astral's AddMob name clash
@@ -124,17 +124,18 @@ quest and engine texts (401 texts, 183,486 lines), without the harness lines.
 
 ## Design
 
-- **Front end.** The existing parser fills a parse tree beside its own structures (`src/game/script/script_ir.h`,
-  `scriptir::File`; `Script::Parse`). That keeps the lexer quirks (`Run1` lexes as `Run 1`; Rebirth's
-  stricter match makes `Orc1` an identifier), #define expansion, `!n!` name qualification and the parse errors. The
+- **Front end.** The existing parser fills a parse tree beside its declarations (`src/game/script/script_ir.h`,
+  `scriptir::File`; `Script::Parse`); it builds no program of its own (L11). That keeps the lexer quirks (`Run1` lexes
+  as `Run 1`; Rebirth's stricter match makes `Orc1` an identifier), #define expansion, `!n!` name qualification and the
+  parse errors. The
   tree holds the sections (globals, WorldScripts, definitions with their parameters and rules), each call with its
   keyword id, the token as written, its line, its arguments in the written order (each with its type, slot and kind:
-  number, string, parameter, global, nested call) and the block id the loader gave each block; Assign and declared-script
-  calls name their target. The Lua writer never reads script text itself.
-  - `scriptir::Dump` prints the tree, `scriptir::DumpLoaded` prints what a load added to a Script in the same form (by
-    type and slot: the loader keeps no other order); `ei-convert --scripts` compares the two for every text it loads
-    (Survey below). The build runs it on the samples in `tools/convert/convert_scripts.cpp` and the scenarios' console
-    lines (`--quiet`, no game data).
+  number, string, parameter, global, nested call); Assign and declared-script calls name their target. The Lua writer
+  never reads script text itself.
+  - `scriptir::Dump` prints the tree (by type and slot), `ei-convert --scripts --dump` writes it for every text it
+    loads (Survey below). The build runs `--scripts` on the samples in `tools/convert/convert_scripts.cpp` and the
+    scenarios' console lines (`--quiet`, no game data): each text's Lua loaded and checked. Until L11 it also compared
+    the tree with the ScriptCall program the parser built beside it (0 differ), which saves no longer hold.
 - **Built-ins and data stay in C++.** Lua drives control flow and calls bindings generated from the keyword table, which go
   to the same CalcFloat / CalcObject / CalcGroup / command code by id, under readable Lua names ("Bindings" below).
   - Object references and groups are userdata over the existing types: reference counts, deleted-object dropping, and
@@ -261,7 +262,7 @@ Script (AddMob'd mobs, network quests, quest texts, console lines). The game loa
     follows the last item goes at the end of the file, and a text the parser stopped in drops what lies past its error.
     Text is UTF-8 (the asset code page's bytes converted unless they already are UTF-8), each line trimmed, a block
     comment one `--` line per line. Comments inside a call's arguments go before the next item; `Dump` leaves comments
-    out, so the tree check stays exact. A header comment (`-- <name>: converted by ei-convert ...`) is the writer's own.
+    out. A header comment (`-- <name>: converted by ei-convert ...`) is the writer's own.
   - A header comment; for a text the game's parser stops in, the error (what came before stays loaded, as in the game;
     its WorldScript, if the error came after it, the game runs only at the zone reset).
   - `GlobalVars { ... }`: the text's globals (a renamed one with its original name in a comment). A global the text
@@ -505,10 +506,14 @@ world_load ...) and those that load the user's old-format saves ("Verification")
   those statements resumes it; once running it is an ordinary coroutine (Eris persists its closure like any other),
   and it ends with its block, so a later save holds no shim but those still waiting.
 - **In the save files** (`Script::SaveState`, script_save.cpp): the old format with the scheduler's state in its
-  fields as far as they go (`WriteLuaState`: the parsed program, the declared globals with their Lua values, each
-  instance as its definition with its kill flag and values, each run with its rule's then-section, command -1 and its
-  values, a WorldScript's run with block -1), 2 added to `loaded` (`kScriptLoadedOnLua`), and after the areas this
-  state (a count and its bytes; one that does not persist is written empty and said on the console).
+  fields as far as they go: no blocks (both counts 0: the Eris state holds the program, L11), the definitions with
+  their names, parameters and variables' names and their rule count of if-then pairs {0, the rule's number in the save}
+  (a later text's names and its "Multiple declaration" check), then `WriteLuaState`: the declared globals with their
+  Lua values, each instance as its definition with its kill flag and values, each run with its rule's number as the
+  block, command -1 and its values, a WorldScript's run with block -1; 2 added to `loaded` (`kScriptLoadedOnLua`), and
+  after the areas this state (a count and its bytes; one that does not persist is written empty and said on the
+  console). The save version stays 0x74: the layout is the old one, so a save of ours from before L11 (with its
+  blocks) loads as before, its blocks read and dropped.
   `Script::LoadState` reads it into a new scheduler (`Restore`), or without the 2 resumes the old format by the shim;
   either way the old format's globals, instances and runs are dropped after, and a state that does not go on leaves
   the script empty, said on the console. tools/savefile.py reads the old format's fields (mods.md, "Scripts in
@@ -584,8 +589,8 @@ mission script, console_addon.cpp), AddMob'd mobs, the zone's .mob and the engin
   _unarmed_search) resume old-format saves through the shim.
 - **`--lua-check`** (the build checks): the bindings, the waits, the sandbox, persistence, the short texts through a
   save at every tick, the runtime conversion's cache ("Converted scripts", "Checks").
-- **`--scripts`** (the build checks on the samples and console lines; by hand with the installs): every text's tree
-  against what the loader built, its Lua loaded and its globals checked ("Survey", "Converted scripts").
+- **`--scripts`** (the build checks on the samples and console lines; by hand with the installs): every text's Lua
+  loaded and its globals checked ("Survey", "Converted scripts").
 - **Determinism.** The `deterministic` step and the harness's virtual clock make the runs repeatable.
 - Before L9 the game's executor ran beside the Lua and was compared call by call over every scenario and the whole
   corpus (0 differ); git history has those checks (L4-L8c).
