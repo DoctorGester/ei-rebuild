@@ -48,6 +48,8 @@ core_transform.h            core/core_transform.h
 core_transform.cpp          core/core_transform.cpp
 random.h                    core/random.h
 random.cpp                  core/random.cpp
+lua_sandbox.h               core/lua_sandbox.h   new   # the Lua sandbox missions and effect hooks share (MF15f)
+lua_sandbox.cpp             core/lua_sandbox.cpp
 asset_text.h                core/asset_text.h
 asset_text.cpp              core/asset_text.cpp
 text_split.h                core/text_split.h
@@ -381,6 +383,9 @@ particle_record.h           particles/particle_record.h
 particle_record.cpp         particles/particle_record.cpp
 particle_data.h             particles/particle_data.h
 particle_data.cpp           particles/particle_data.cpp
+particle_lua.h              particles/particle_lua.h   new   # effects' Lua hooks, client-only (MF15f)
+particle_lua.cpp            particles/particle_lua.cpp
+particle_lua_api.inc        particles/particle_lua_api.inc
 particle_source.h           particles/particle_source.h
 particle_host.h             particles/particle_host.h
 particle_figure_host.h      particles/particle_figure_host.h  new   # the particle host without the game's world: a figure alone carries the sources (MF15k2)

@@ -397,7 +397,7 @@ Risks:
 | `app/` | 23 | 6905 | C168e |
 | `combat/` | 13 | 6386 | C168f |
 | `console/` | 5 | 2038 | C168e |
-| `core/` | 29 | 3800 | C168d |
+| `core/` | 31 | 3889 | C168d |
 | `data/` | 19 | 6824 | C168d |
 | `effects/` | 20 | 5118 | C168g |
 | `items/` | 12 | 2958 | C168g |
@@ -406,20 +406,20 @@ Risks:
 | `mods/` | 9 | 809 | C168d |
 | `net/` | 23 | 8423 | C168h |
 | `objects/` | 23 | 7378 | C168f |
-| `particles/` | 13 | 5276 | C168g |
+| `particles/` | 16 | 6050 | C168g |
 | `players/` | 24 | 5494 | C168e |
 | `saves/` | 7 | 848 | C168d |
 | `scene/` | 27 | 3085 | C168g |
-| `script/` | 35 | 12169 | C168h |
+| `script/` | 35 | 12105 | C168h |
 | `sound/` | 3 | 1715 | C168e |
 | `spells/` | 11 | 2185 | C168g |
 | `terrain/` | 12 | 3584 | C168g |
 | `ui/` | 97 | 33138 | C168h |
 | `units/` | 27 | 9923 | C168f |
 | `world/` | 39 | 11592 | C168e |
-| all | 539 | 164516 | |
+| all | 544 | 165315 | |
 
-570 files today; 55 fold into an owner, 10 split by meaning, 28 new files come out of the splits, 36 moves rename for meaning.
+573 files today; 55 fold into an owner, 10 split by meaning, 30 new files come out of the splits, 36 moves rename for meaning.
 
 ### Every file
 
@@ -555,6 +555,8 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | engine_object.cpp | core/engine_object.cpp |  |  |
 | engine_object.h | core/engine_object.h |  |  |
 | hash_tables_400.h | core/id_tables.h |  | address-named: the id tables' map members (namespace idtable since C168b) |
+| lua_sandbox.cpp | core/lua_sandbox.cpp |  |  |
+| lua_sandbox.h | core/lua_sandbox.h | new | the Lua sandbox missions and effect hooks share (MF15f) |
 | manager_context.h | core/manager_context.h |  |  |
 | named_floats.cpp | core/named_floats.cpp | new | NamedFloatTable's members, out of object_tables.cpp |
 | named_floats.h | core/named_floats.h | new | NamedFloatTable, out of object_tables.h |
@@ -789,6 +791,9 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | particle_figure_host.cpp | particles/particle_figure_host.cpp | new |  |
 | particle_figure_host.h | particles/particle_figure_host.h | new | the particle host without the game's world: a figure alone carries the sources (MF15k2) |
 | particle_host.h | particles/particle_host.h |  |  |
+| particle_lua.cpp | particles/particle_lua.cpp |  |  |
+| particle_lua.h | particles/particle_lua.h | new | effects' Lua hooks, client-only (MF15f) |
+| particle_lua_api.inc | particles/particle_lua_api.inc |  |  |
 | particle_manager.cpp | particles/particle_manager.cpp |  |  |
 | particle_record.cpp | particles/particle_record.cpp |  |  |
 | particle_record.h | particles/particle_record.h |  |  |
