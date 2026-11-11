@@ -48,8 +48,8 @@ text manager and split into words. A directive word sets the current record:
 
 Kept: the map index continues from the last map of the earlier file (lines before the first "#zone" go to it), the
 exit index restarts with every "#zone"; "#allod" reads word 0 of its five lines even without words; "#view" /
-"#deployangle" append a "0" word. Then a mod's `Res\texts\map.toml` merges over the lists by name (mods.md, "Zones
-from a mod").
+"#deployangle" append a "0" word. Then a mod's `Res\texts\map.toml` merges over the lists by name, again after each
+quest folder's map.txt (mods.md, "Zones from a mod").
 
 ## Zone files and unit records
 

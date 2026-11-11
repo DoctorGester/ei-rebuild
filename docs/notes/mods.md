@@ -826,10 +826,14 @@ The zone table (`MapDatabase`, map_database.cpp: the allods, the zones with thei
 is texts.res's `map.txt` and `map-LMP.txt`, read once at `StartGame` (`LoadAll`) and for a quest's folder
 (`GameFlow::RegisterQuests`: `<folder>\map.txt`). A mod adds zones, exits and quests to it, or changes the game's, with
 `Res\texts\map.toml` (MF13a, user 2026-11-11), the common TOML records ("Records as TOML": `FindRecord("map")` in
-texts.res's place, each layer's file merged bottom first, `replace = true` the whole table): after the texts are read
+texts.res's place, each layer's file merged bottom first, `replace = true` the whole table but the quest folders'):
 each `[[allod]]`, `[[zone]]` and `[[quest]]` merges into the record of its `name` (matched without case, as the game's
-`FindMap`), or is added. A zone's `[[zone.exit]]` with `number` n (1-based, map.txt's `#exit n`) merges into its n-th
-exit; one without, or past the last, is added (target "none" until it names one). The keys are those of map.txt's
+`FindMap`), or is added. The texts' records are kept as read, and the lists are made again from them after each text
+file, the map.toml files merged over them all (`MapDatabase::Merge`; the files parsed once, at `LoadAll`, which alone
+logs what they refuse): a quest folder's map.txt, read later, is merged over as map.txt is, so a mod changes its
+zones by name too (MF13d2b: `net_zone_missing_map` gives z3q2 only its `mob`). Until the folder is read such a record
+is a zone of its own, with no map. A zone's `[[zone.exit]]` with `number` n (1-based, map.txt's `#exit n`) merges into
+its n-th exit; one without, or past the last, is added (target "none" until it names one). The keys are those of map.txt's
 lines, one `Fields(record, visit)` per record (`name`, `allod`, `kind`, `map`, `mob`, `camera`, `size`, `minimap`,
 `objectives_map`, `figure`, `position`, `weather`, `sky`, `cage`, `restrict`; an exit's `target`, `entrance`, `deploy`,
 `remove`, `angle`, `pass_time`, `view`, `deploy_angle`, its angles in degrees). A zone given another allod moves from
