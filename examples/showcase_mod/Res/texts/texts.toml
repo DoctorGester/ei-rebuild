@@ -1,4 +1,5 @@
-# The mod's texts (docs/modding.md, "Texts"): the island's name, the quest, the golem, the items and the spell.
+# The mod's texts (docs/modding.md, "Texts"): the island's name, the quest, the golem and its shards, the items and
+# the spell.
 "zone gz1g" = "Showcase Island"
 
 "quest showcase_golem" = """
@@ -11,6 +12,8 @@ It stands by the path, north-east of where you came ashore.\r
 
 "UNIT ShowcaseGolem" = "Stone golem"
 
+"UNIT ShowcaseShard" = "Golem shard"
+
 "weapon showcase_hammer granite" = """
 Golem-breaker\r
 A granite hammer with a blue rune, kept by the island's golem.\r
@@ -22,6 +25,6 @@ Soft leather boots with stitched bands, kept by the island's golem.\r
 """
 
 "SPELL spark" = """
-Spark\r
-The showcase mod's spell record. It has no effect of its own: a new spell cannot have one yet.\r
+Chain Spark\r
+A spark that strikes its target, then leaps on to the nearest enemy it has not struck yet, each strike weaker than the one before and each slowing its victim for a moment.\r
 """

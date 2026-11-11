@@ -1,7 +1,9 @@
 -- The showcase island's script (docs/modding.md, "Scripts"): the whole of zone 1's script, which the mod replaces.
--- One quest: break the golem (Maps\zone1.mob.toml's object 4001) that guards the path; its reward is the mod's
--- hammer and boots. The quest's title and objective are Res\texts\texts.toml's "quest showcase_golem", its
--- experience Res\database\quests.qdb.toml's record.
+-- One quest: break the golem (Maps\zone1.mob.toml's object 4001) that guards the path with its two shards; its
+-- reward is the mod's hammer and boots. Taking it gives the party the mod's spell for the fight: a spell container of
+-- Chain Spark (Res\database\spells.sdb.toml's "spark"), which the camp's magic page puts on a hero. The quest's title
+-- and objective are Res\texts\texts.toml's "quest showcase_golem", its experience Res\database\quests.qdb.toml's
+-- record.
 
 GlobalVars {
     Heroes = "group",      -- the party: the game adds its members when they arrive
@@ -33,5 +35,7 @@ function WorldScript()
     print("Showcase mod: the island loads")
     SetGameVarMax(0, QUEST, 1)
     SetGameVarMax(0, QUEST .. ".1", 1)
+    GiveItem(0, "spell container[spark]")
+    print("Showcase mod: the party has the Chain Spark")
     GolemFalls(Golem)
 end

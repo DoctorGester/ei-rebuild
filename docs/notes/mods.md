@@ -1298,23 +1298,25 @@ the start.
 
 `examples/showcase_mod/` (MF13, user 2026-11-10): a mod made only of our own files, so it lives in the public repo and
 releases ship it ready-made (MF12 adds the Mods folder; the package copies the folder whole into `Mods\showcase_mod\`).
-A new game starts on its island: its ground, a stone golem of its own guarding the path, one quest whose reward is the
-mod's hammer and boots. Hand-written: config, texts, databases, the golem's animation list, the map objects and the
-script. Made by `tools/make_showcase_mod.py --write` (procedural pixels and boxes from one seeded generator per file,
-no game file read; `--check` compares pixels and glTF data, not bytes, since zlib's output may differ between
-versions): the map folder's PNGs and `map.toml`, the ground page and minimap pictures, the golem's skin and `.glb`,
-the item models and textures. About 0.5 MB. LICENSE.txt: the files are ours, under the repo's MIT license.
+A new game starts on its island: its ground, a stone golem of its own and two smaller shards of it guarding the path,
+one quest that gives the mod's spell, Chain Spark, and whose reward is the mod's hammer and boots. Hand-written: config,
+texts, databases, the golem's animation list, the map objects, the scripts and the effects. Made by
+`tools/make_showcase_mod.py --write` (procedural pixels and boxes from one seeded generator per file, no game file read;
+`--check` compares pixels and glTF data, not bytes, since zlib's output may differ between versions): the map folder's
+PNGs and `map.toml`, the ground page and minimap pictures, the golem's skin and `.glb`, the item models and textures,
+the shards' skin, the spell's pictures and its effects' texture. About 0.5 MB. LICENSE.txt: the files are ours, under
+the repo's MIT license.
 
 Each part, its format, and what the formats could not do (each gap a ticket):
 
 | Part | Files | Format | Gap |
 |---|---|---|---|
 | The zone | `Maps\zone1\` (map.toml, heights.png, tiles.png), `Maps\zone1.mob.toml`, `Maps\zone1.lua`; `Res\textures\zone1000.png` (the ground page), `zone1map.png`, `zone1quest.png` (minimap, objectives map); texts' `zone gz1g` | map folder, map objects TOML, Lua, PNG | It replaces zone 1 (map.txt's gz1g: `#res zone1 zone1`): a mod cannot add a zone, since map.txt is one texts entry read whole (MF13a). A new game enters it with no extra step, its 8 x 6 sectors keep gz1g's exits fitting: the party lands at exit 1's (49, 133)-(59, 143), exit 2 at (181, 108)-(193, 120) still leads to the base bz1g. The AI region graph is zone 1's, read from the game's zone1.mob (MF13d) |
-| The enemy | `Res\figures\scgolem.glb` (15 boxes, 13 animations), `Res\database\scgolem.adb.toml`, `units.udb.toml` (`[[model]]` "Showcase Golem", `[[unit]]` "ShowcaseGolem"), `Res\textures\scgolem00.png` (the placement's `parent_iname`) | glTF set, records TOML, databases TOML, PNG | None. No sounds: `sound_folder` empty, the animations' `sounds` empty; its footsteps name the game's stone steps |
+| The enemy | `Res\figures\scgolem.glb` (15 boxes, 13 animations), `Res\database\scgolem.adb.toml`, `units.udb.toml` (`[[model]]` "Showcase Golem", `[[unit]]` "ShowcaseGolem"), `Res\textures\scgolem00.png` (the placement's `parent_iname`) | glTF set, records TOML, databases TOML, PNG | None. No sounds: `sound_folder` empty, the animations' `sounds` empty; its footsteps name the game's stone steps. The shards (`[[unit]]` "ShowcaseShard", 4002 and 4003 by the golem) are the golem's model at scale 0.3 in their own skin (`Res\textures\scshard00.png`) |
 | The weapon | items.idb.toml `[[weapon]]` "showcase hammer" (hammer number 9), `Res\figures\initwehm9.glb` (inventory model, loose figure, part `weapon`), `Res\redress\unhumahm_09.gr.0.png` | databases TOML, glTF loose, PNG | Not seen in the hand: the hand's model is a part of every unit figure (`rh3.<type><nn>`), which a new number lacks (MF13c) |
 | The armour | `[[armor]]` "showcase boots" (boots number 20), `initarbt20.glb`, `Res\redress\unhumabt_20.le.0.png` (a layer over the hero's 256 x 256 skin: opaque where the feet and shins are) | as the weapon | None: boots, gloves, shirts and trousers are skin layers, no part. Helmets, body armour and leggings would need parts (MF13c) |
-| The spell | spells.sdb.toml `[[spell]]` "spark", texts' `SPELL spark` | databases TOML | Placeholder: place 42 gets the behaviour None (items_spells.md, "Spell behaviours"), which starts nothing; nothing gives or casts it (MF13b) |
-| The quest | `Maps\zone1.lua` (sets `q.gz1g.showcase_golem` and its objective `.1`, watches the golem, `QuestComplete`, `GiveItem`), `quests.qdb.toml` (its experience), texts' `quest showcase_golem` | Lua, databases TOML, texts TOML | None |
+| The spell | spells.sdb.toml `[[spell]]` "spark" (Chain Spark, `script = "chain_spark.lua"`, icon 101), `Res\spells\chain_spark.lua`, `Res\effects\ChainSpark.effect.toml`, `ChainSparkHit.effect.toml`, `Res\textures\chainspark.png` (the effects' 16 pictures), `spell0101.png`, `prototype0101.png`, texts' `SPELL spark` | databases TOML, Lua, data effects, PNG | None (MF17e): a scripted spell (items_spells.md, "Scripted spells"). The spark (a missile carrying ChainSpark) strikes, then an arc reaches the nearest enemy within the radius not struck yet and the spark leaps along it 10 ticks later (a timer), each strike 0.6 of the one before (12, 7.2, 4.32), each slowing its victim 40 ticks and starting ChainSparkHit on it, up to `target_count`; the last chain's strikes go into the game variables `chain_spark.*`. No sounds of its own: the game's lightning sound |
+| The quest | `Maps\zone1.lua` (sets `q.gz1g.showcase_golem` and its objective `.1`, gives the spell container `spell container[spark]`, watches the golem, `QuestComplete`, `GiveItem`), `quests.qdb.toml` (its experience), texts' `quest showcase_golem` | Lua, databases TOML, texts TOML | None |
 
 Notes from making it:
 - A map folder with no `.mpr` of the mod's: the mod's `Maps\zone1\` makes Rebirth's Maps rule (`SelectMaps`) read the
@@ -1327,6 +1329,15 @@ Notes from making it:
 - Units a `.mob.toml` places have no script name (`GetObjectByName`, the harness's names): the scenario and the script
   find the golem by its id, and the harness's `objtrace start #<id>` follows a unit by id.
 - Inventory models are drawn at their own size: the game's lie diagonally, about 2.5 long.
+- A `.mob.toml` placement's `texture` is the figure (the shards' is "scgolem"), its `parent_iname` the skin: a
+  placement naming a figure that does not exist ends the game ("Can't load skeleton file").
+- Guards wander within their `guard_radius` until they see an enemy: by the time a new game's battle screen is up the
+  golem and the shards stood up to 2.5 from their posts. The shards keep a radius of 2, so the Chain Spark's 5 still
+  reaches from one to the next.
+- A spell given as `spell container[<code>]` goes on a hero in the camp's magic page only with the school's skill
+  (`skill` in the record; mod_showcase_spell gives the hero the skill first). A hero's own auto-attack and the
+  golem's guard end a scripted chain early when they kill its next victim first: the scenario clears the units' AI
+  modes (UMClear).
 
 ### Checks
 
@@ -1335,7 +1346,11 @@ Notes from making it:
   attacks (`objplayed cwalk`, `uattack01` from the glTF), and breaks it in the fight; the quest is done (variable 2, the
   message log's lines), the party has the hammer at granite's damage (`modweapon showcase hammer 14.4 21.6`); captures
   of the fight, the broken golem and the camp's inventory with both items; the trace has each kind of file read from
-  the mod, and the game's zone1.mob read, its zone1.mpr not.
+  the mod, and the game's zone1.mob read, its zone1.mpr not. The shards join the fight and fall.
+- `mod_showcase_spell` (both installs): the quest's spell container put on the hero in the camp (the mod's picture
+  read), the hero casts Chain Spark at the golem from the HUD; three strikes, 12 / 7.2 / 4.32 in the game variables
+  (and so in the digest), golem, shard 4002, shard 4003; saved after the first strike and loaded: the chain goes on
+  from the save to the same strikes. Captures: the spark in flight, the first strike and its arc, the leaps.
 
 ## Mods in multiplayer
 
@@ -1378,7 +1393,8 @@ server that plays a mod).
   client refused too), `net_pair_mod_list` (the peer without a mod lists the host's mod from its info answer, the row
   marked as one it cannot join; then the host as the original game, joinable), `net_pair_mod_effect` (a data effect
   started by the host's server shown on the peer; effects.md, "In multiplayer and saves"), `net_pair_mod_spell` (a
-  scripted spell the host's server casts, its bolt in the peer's client; items_spells.md, "Scripted spells");
+  scripted spell the host's server casts, its bolt and its blow, the target's hit points, in the peer's client;
+  items_spells.md, "Scripted spells");
   `tools/make_mod_pair.py` copies each game's mod (the peer's into the run folder's `peer\harness_saves`; `spell`: the
   showcase with that spell added).
 

@@ -1,0 +1,31 @@
+# The showcase mod's spark in flight (docs/modding.md, "Effects"): Res\spells\chain_spark.lua's missile. A white-blue
+# core that flickers through the spark pictures, riding the missile, and sparks shed along its path that fly out a
+# little, slow down and fade. The missile's size (the spell's power, about 0.8) scales it all.
+
+texture = "chainspark"          # Res\textures\chainspark.png: 16 pictures of a spark, 4 x 4
+blend = "additive"
+
+[emit]
+rate = 2
+spacing = 0.08                  # and one every 0.08 of the path
+
+[[particle]]
+name = "core"
+when = "total == 0"             # the first particle; it lasts while the missile flies
+lifetime = 2147483647
+space = "source"
+size = "size * 0.9"
+color = "E8F4FF"
+frame = { tick = "pick(16)" }   # a new picture each tick: the flicker
+kill = "!emitting"
+
+[[particle]]
+name = "spark"
+lifetime = "range(6, 12)"
+spawn = { shape = "ball", radius = "size * 0.2" }
+speed = "range(0.01, 0.04)"
+drag = 0.85
+size = { start = "range(0.25, 0.4) * size", growth = 0.9 }
+color = "70B8FF"
+alpha = { tick = "255 * (1 - p.t)" }
+frame = { start = "pick(16)", delay = 1 }

@@ -1,0 +1,17 @@
+{
+  "scenario": "mod_showcase_spell",
+  "install": "rebirth",
+  "recorded": "2026-11-11",
+  "commit": "7cfdeedc3",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "MF17e: the showcase mod's Chain Spark, a new scenario: three strikes 12 / 7.2 / 4.32, saved and loaded mid-chain",
+  "source": "image",
+  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "save showcase_mod/save1/scenario.sav: 5 fields in 1 records differ: camera 5",
+    "  camera: 5 fields in 1 records; first camera focus.x: 79.0 in the old golden, 82.0 in the new run; largest numeric d 4 at camera distance: 12.0 -> 16.0"
+  ]
+}

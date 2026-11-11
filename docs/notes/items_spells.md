@@ -260,8 +260,9 @@ zone's server state that Eris saves. Only the server runs it; clients see what i
   CreateLightning and InflictDamage, 60 ticks): `mod_spell_ai` (zone1's wolf 1804 given the spell casts it at the
   hero by its ai = "attack"), `mod_spell_hero` (Ingos' stock has its scroll and prototype, `campstock`; the camp draws
   the mod's pictures, `read mod`; the container put on, the hero casts it from the HUD at a wolf; the client has the
-  bolt, `clientbolts`), `net_pair_mod_spell` (make_mod_pair.py spell: the host's server casts it, the peer's client
-  has the bolt; the peer's view of the blow is MF17e's, with cast:Damage). The HUD's use at once (Ctrl and the key)
+  bolt, `clientbolts`), `net_pair_mod_spell` (make_mod_pair.py spell, its blow 20: the host's server casts it, the peer's
+  client has the bolt, `clientbolts`, and the target below its maximum hit points, `clienthurt`; a blow of 5 left
+  the hero's as they were). The HUD's use at once (Ctrl and the key)
   found no target for the game's lightning either in mod_spell_hero's setup, so the scenario casts with a click.
 - **Checks.** `--lua-check`'s host cases (tools/convert/lua_check.cpp `CheckSpellHost`: timers in order with payloads,
   Finish, OnTick to the cap, idle, a hook's error, a wait in a hook, no bindings at the top level and the file said
@@ -271,7 +272,11 @@ zone's server state that Eris saves. Only the server runs it; clients see what i
   spell): a console cast of a timer spell, saved and loaded mid-cast, its count going on to the same end tick as an
   unbroken run; `mod_spell_api` (both installs; make_lua_mod.py spellapi): zone1's wolf 1804 casts a spell that uses
   every world method on a spawned wolf, two missiles with OnHit and a data effect for 300 ticks, saved and loaded
-  mid-cast, ending idle at tick 300.
+  mid-cast, ending idle at tick 300; `mod_showcase_spell` (both installs): the showcase mod's Chain Spark
+  (examples/showcase_mod's `Res\spells\chain_spark.lua`, mods.md "The showcase mod"), cast by the hero from the HUD
+  at the golem: missiles with OnHit, FindUnits for the next victim, Damage, Apply (slow), Effect (its own data
+  effects), Bolt and a timer per leap; three strikes 12 / 7.2 / 4.32 in game variables, saved after the first and
+  loaded, the chain going on to the same strikes.
 
 ## Spell effects
 

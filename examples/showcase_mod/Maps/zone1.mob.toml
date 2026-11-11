@@ -35,3 +35,44 @@ type = "guard"
 guard = [78.0, 116.0, 0.0]
 guard_radius = 8.0
 call_radius = 12.0
+
+# The golem's shards (Res\database\units.udb.toml's "ShowcaseShard") behind it, each within the Chain Spark's reach (5)
+# of the one before: the golem, then 4002, then 4003. They play for the golems' side too, and keep near their posts
+# (guard_radius 2: a guard wanders within its radius until it sees an enemy).
+[[object]]
+kind = "unit"
+id = 4002
+name = "ShowcaseShard"
+texture = "scgolem"
+primary_texture = "ShowcaseShard"
+parent_iname = "ScShard00"
+class = "creature"
+position = [80.5, 115.0, 0.0]
+side = "Golems"
+shadow = true
+prototype = "ShowcaseShard"
+
+[[object.behaviour]]
+type = "guard"
+guard = [80.5, 115.0, 0.0]
+guard_radius = 2.0
+call_radius = 12.0
+
+[[object]]
+kind = "unit"
+id = 4003
+name = "ShowcaseShard"
+texture = "scgolem"
+primary_texture = "ShowcaseShard"
+parent_iname = "ScShard00"
+class = "creature"
+position = [82.5, 117.5, 0.0]
+side = "Golems"
+shadow = true
+prototype = "ShowcaseShard"
+
+[[object.behaviour]]
+type = "guard"
+guard = [82.5, 117.5, 0.0]
+guard_radius = 2.0
+call_radius = 12.0

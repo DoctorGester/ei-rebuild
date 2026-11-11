@@ -642,7 +642,9 @@ frame = { start = "pick(16)", delay = 1 }
 ## Spells
 
 A spell of your own is a record and a Lua file: the record (`Res\database\spells.sdb.toml`, [Databases](#databases))
-names the file with `script`, and the file below `Res\spells\` runs every cast of it, on the server.
+names the file with `script`, and the file below `Res\spells\` runs every cast of it, on the server. The showcase mod's
+Chain Spark ([The showcase mod](#the-showcase-mod)) is this example: a spark that strikes its target, then leaps to
+the nearest enemy it has not struck, each strike 0.6 of the one before, each slowing its victim.
 
 ```toml
 [[spell]]
@@ -653,8 +655,10 @@ school = "lightning"
 target_kind = "unit"
 mana = 8.0
 range = 15.0
-damage = 12.0
-target_count = 3
+area = 78.5                    # the leap's reach: radius sqrt(78.5 / pi), about 5 (cast.radius)
+damage = 12.0                  # the first strike (cast.damage)
+target_count = 3               # strikes (cast.targetCount)
+icon = 101                     # Res\textures\spell0101.png, prototype0101.png
 light_color = [0.3, 0.6, 0.9]
 light_range = 2.0
 ai = "attack"                  # how the AI casts it (none: never, the default)
@@ -663,28 +667,43 @@ offensive = true
 ```
 
 ```lua
--- Res\spells\chain_spark.lua: a spark that jumps from its target to the nearest enemy, targetCount times.
+-- Res\spells\chain_spark.lua (the showcase mod's, without its game variables)
+local FALLOFF = 0.6     -- each strike deals this share of the one before
+local LEAP_TICKS = 10   -- the arc stands this long before the spark leaps along it
+
 local spell = {}
 
-function spell.OnCast(cast)
-    cast.data.hit = {}
-    cast.data.jumps = 0
-    cast:Missile { to = cast.target, effect = "SphereElectricity", payload = { damage = cast.damage } }
+local function Launch(cast, from, victim, damage)
+    cast:Missile { from = from, to = victim, effect = "ChainSpark", payload = { damage = damage } }
 end
 
-function spell.OnHit(cast, target, payload, point)
-    if not target then return end                      -- the unit is gone: nothing more to do
-    cast:Damage(target, payload.damage, "lightning")
-    cast:Effect("Sparks", { at = point })
-    cast:Sound("magic\\lightning\\start.wav", point)
-    cast.data.hit[GetObjectID(target)] = true
-    cast.data.jumps = cast.data.jumps + 1
-    if cast.data.jumps >= cast.targetCount then return end
-    local next = cast:FindUnits(target, 4, { enemies = true, alive = true, affect = true, exclude = cast.data.hit })[1]
-    if next then
-        cast:Bolt(target, next, { lifetime = 5 })
-        cast:Missile { from = target, to = next, effect = "SphereElectricity", payload = { damage = payload.damage * 0.7 } }
-    end
+function spell.OnCast(cast)
+    if not cast.target then return cast:Finish() end
+    cast.data.struck = { [GetObjectID(cast.target)] = true }
+    cast.data.strikes = 0
+    Launch(cast, nil, cast.target, cast.damage)        -- nil: from the caster
+end
+
+function spell.OnHit(cast, victim, payload, point)
+    if not victim then return end                      -- the unit is gone: the chain ends here
+    cast:Damage(victim, payload.damage, "lightning")
+    cast:Apply(victim, "slow", { ticks = 40, value = 1 })
+    cast:Effect("ChainSparkHit", { attach = victim, size = cast.power, lifetime = 30 })
+    cast:Sound("magic\\lightning\\start.wav", victim)
+    cast.data.strikes = cast.data.strikes + 1
+    if cast.data.strikes >= cast.targetCount then return end
+    local next = cast:FindUnits(victim, cast.radius, {
+        enemies = true, alive = true, sight = true, affect = true, exclude = cast.data.struck,
+    })[1]
+    if not next then return end
+    cast.data.struck[GetObjectID(next)] = true
+    cast:Bolt(victim, next, { width = 2 * cast.power, lifetime = LEAP_TICKS + 4 })
+    cast:After(LEAP_TICKS, "Leap", { from = victim, to = next, damage = payload.damage * FALLOFF })
+end
+
+function spell.Leap(cast, leap)                        -- the timer cast:After named
+    if not leap.to then return end
+    Launch(cast, leap.from, leap.to, leap.damage)
 end
 
 return spell
@@ -798,18 +817,20 @@ game reading each of the mod's files.
 ## The showcase mod
 
 `examples/showcase_mod/` is a whole small mod made only of new files (no game data, so release packages carry it):
-a new game starts on an island of its own in place of the first one, where a stone golem guards the path; break it
-for the quest, and its hammer and boots are yours. Read its files as a recipe for each kind of new content:
+a new game starts on an island of its own in place of the first one, where a stone golem and its two shards guard
+the path; the quest gives you a spell for the fight, Chain Spark; break the golem, and its hammer and boots are yours.
+Read its files as a recipe for each kind of new content:
 
 | Part | Files |
 |---|---|
 | A zone | `Maps\zone1\map.toml`, `heights.png`, `tiles.png` (a map folder with no `.mpr`), `Res\textures\zone1000.png` (its ground tiles), `zone1map.png` / `zone1quest.png` (the minimap and objectives pictures), `Maps\zone1.mob.toml` (its objects), `Maps\zone1.lua` (its script) |
-| A creature | `Res\figures\scgolem.glb` (parts and animations), `Res\database\scgolem.adb.toml` (its animation list), `units.udb.toml` (a `[[model]]` and a `[[unit]]`), `Res\textures\scgolem00.png` (the skin its placement names) |
+| A creature | `Res\figures\scgolem.glb` (parts and animations), `Res\database\scgolem.adb.toml` (its animation list), `units.udb.toml` (a `[[model]]` and a `[[unit]]`), `Res\textures\scgolem00.png` (the skin its placement names); the shards: a second `[[unit]]` on the golem's model at a smaller scale, `Res\textures\scshard00.png` |
 | A weapon, boots | `items.idb.toml`, `Res\figures\initwehm9.glb`, `initarbt20.glb` (inventory models: a loose figure named `initwe<type code><number>` / `initar...`, one part `weapon` / `armor`), `Res\redress\unhumahm_09.gr.0.png`, `unhumabt_20.le.0.png` (their textures; the boots' is a layer over the hero's skin) |
 | A quest | `Maps\zone1.lua` (the quest's variable `q.<zone>.<quest>`, its reward), `quests.qdb.toml` (its experience), `Res\texts\texts.toml` (`quest <name>`: the title, the description, `#subobj` lines) |
-| A spell | `spells.sdb.toml`: a record and its text only |
-| An effect | `Res\effects\showcase_aura.effect.toml` (orbs trailing light and rising motes, driven by its inputs; `tests/scenarios/mod_effect.txt` starts it from the console) |
+| A spell | `spells.sdb.toml` (Chain Spark's record, `script` naming its file), `Res\spells\chain_spark.lua` (its mechanic: a missile with `OnHit`, the next victim by `FindUnits`, `Damage`, `Apply`, `Effect`, `Bolt`, a timer for the leap; [Spells](#spells)), `Res\textures\spell0101.png`, `prototype0101.png` (its pictures, `icon = 101`), `Maps\zone1.lua` (`GiveItem` of its spell container); `tests/scenarios/mod_showcase_spell.txt` casts it |
+| An effect | `Res\effects\showcase_aura.effect.toml` (orbs trailing light and rising motes, driven by its inputs; `tests/scenarios/mod_effect.txt` starts it from the console); the spell's `ChainSpark.effect.toml` (the missile's spark and its trail) and `ChainSparkHit.effect.toml` (a strike's flash and ring of sparks), both on the mod's own texture `Res\textures\chainspark.png` (16 pictures, 4 x 4) |
 
 What it cannot do yet: add a zone beside the game's (it replaces zone 1: the zone list is one text read whole), show
 a new weapon in the hero's hand or a new helmet or body armour on him (those are parts of the hero's figure), and its
-island keeps zone 1's path-finding graph. Its new spell has no script yet: it does nothing ([Spells](#spells)). The pictures and models are made by `tools/make_showcase_mod.py` in this repository.
+island keeps zone 1's path-finding graph. The pictures and models are made by `tools/make_showcase_mod.py` in this
+repository.
