@@ -1,0 +1,13 @@
+{
+  "scenario": "party_join_skin",
+  "install": "vanilla",
+  "recorded": "2026-11-11",
+  "commit": "b80a6ccb2",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "H71: goldens for the game-state scenarios that had none",
+  "source": "image",
+  "saves": "12 decoded saves (tools/savefile.py), the same in 2 runs"
+}
