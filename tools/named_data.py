@@ -1,4 +1,4 @@
-"""game.exe's data as named C++ globals (C18; docs/notes/standalone.md "Named data (C18)").
+"""game.exe's data as named C++ globals (C18; docs/notes/standalone.md "Named data").
 
 A table or object of game.exe's .rdata or .data that only our code reads becomes a typed definition in the source
 whose initialiser carries the original's address as a tag right after the `=`:
