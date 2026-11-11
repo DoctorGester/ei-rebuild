@@ -50,24 +50,22 @@ build/live/scheduler.lock, leaves after 120 s with nothing queued; log in build/
   submitting checkout (its verify build, or EI_BUILD_DIR) and writes the batch and its runs in one transaction.
 - Order: batches by id; within one, expected time descending, alone runs last. A batch takes every free slot; later
   batches backfill. A retry's game is granted before anything new.
-- Quiet batches (H64; `work.py test ID --quiet ...`, for timing runs): every run is an alone run. Once the earliest
+- Quiet batches (`work.py test ID --quiet ...`, for timing runs): every run is an alone run. Once the earliest
   batch with queued runs has only alone runs left, the scheduler takes the alone gate (run_all's SLOT_DIR/alone): no
   new game of any scheduler or run_all and no new build (below) starts from then on, and no later batch backfills.
   It gathers every slot and starts the run once none of its own games plays (frame packing included) and no build
   compiles; the run keeps every slot to its end and the gate stays held between the batch's runs, so a quiet batch of
   several scenarios plays them one at a time on an otherwise idle machine. A quiet batch behind others waits its turn
-  as any batch; the games already running when it gathers finish (they are never stopped). Before H64 a backfill
-  batch that batch_priority put ahead of the gathering batch took each slot it freed.
+  as any batch; the games already running when it gathers finish (they are never stopped).
 - A run folder (`<build>/runs/<scenario>-<install>`) belongs to the earlier batch that has a run in it until that batch's
   `work.py test` has ended (its `--golden` comparison reads the folders after the last game): a later batch's run in the
-  same folder waits (`reserved_folders`; only earlier batches block, so batches cannot wait on each other). Before
-  H54 a rerun by name of a suite's scenario emptied the folder under the suite's comparison, which then counted the
+  same folder waits (`reserved_folders`; only earlier batches block, so batches cannot wait on each other). Else a
+  rerun by name of a suite's scenario would empty the folder under the suite's comparison, which would count the
   passing run as differing (no digest.txt, no saves).
 - A quiet head whose every remaining run folder is still an earlier batch's keeps its place: no later batch starts,
   the alone gate is not taken (builds go on; it gathers once the folder is free), the log says once "waits for batch
   #N's folder", and the scheduler's process row (`info.waits`) gives the board's quiet panel and queue its "waits for
-  #N's folder". The holder is earlier and never waits on the head. Before H66 the plain batches behind it took every
-  slot meanwhile (#9450 waited 10 minutes).
+  #N's folder". The holder is earlier and never waits on the head.
 - Each batch's games get the scheduler's environment plus the batch's EI_* variables.
 - Expected times: the median of the last 5 timings for (scenario, install, scenario commit), else (scenario,
   install), else the build's run_times.json.
@@ -79,13 +77,12 @@ build/live/scheduler.lock, leaves after 120 s with nothing queued; log in build/
   `--widescreen` and `--record` comparisons run in the submitting process after the batch.
 - "Submitter alive" is the pid and a process creation time no later than the batch's submitted time: Windows reuses
   pids, and a later `work.py test` given a finished batch's pid once held that batch's run folders against its own run
-  forever (R52c1). A process the scheduler may not open (a third of the machine's: services, the search indexer's
-  hosts) has no creation time to read: it counts only when the process list names a Python as its program (H66: a
-  finished batch's pid taken by such a process held its folder for 10 minutes).
+  forever. A process the scheduler may not open (a third of the machine's: services, the search indexer's hosts) has no
+  creation time to read: it counts only when the process list names a Python as its program.
 
 ## Builds
 
-build.cmd runs itself again under tools/build_gate.py (H64), which holds a build ticket in `<live>/builds` (next to
+build.cmd runs itself again under tools/build_gate.py, which holds a build ticket in `<live>/builds` (next to
 work.db; WORK_DB moves it) for the whole build, configure to build checks:
 - `<id>.lock`, byte-locked for the wrapper's life: the build exists. A killed or crashed build's lock goes with its
   process; the next lister (a build starting, the scheduler) removes its files. Never marker files alone.
@@ -104,23 +101,24 @@ the gate (and says so). Tests: tools/test_build_gate.py.
 `work.py serve` (tools/work_board/; 127.0.0.1 only, Host header check) on http://127.0.0.1:8765/: `#tickets` (worker,
 last note, last commit, the latest batch) and `#runs` (queue, running batch, history); `/tickets/` is the ticket board
 with live statuses. Read-only connections; JSON endpoints `/api/status`, `/api/tickets`, `/api/runs`,
-`/api/batch/<id>`, `/api/processes`, `/api/machine` (H64: the builds and the quiet run). `#runs` shows the quiet run
+`/api/batch/<id>`, `/api/processes`, `/api/machine` (the builds and the quiet run). `#runs` shows the quiet run
 (holding the machine, clearing it with the games and builds it waits for, or queued) with what waits on it, and a
 Builds lane (ticket, checkout, config, `[n/m]`, stage, time); a worker's card shows its build in progress; the header
-has a `quiet run #N` pill while one holds or clears the machine. Test data: `python tools/work_board/sample_db.py <path>`, then `WORK_DB=<path>
-python tools/work.py serve`.
+has a `quiet run #N` pill while one holds or clears the machine. Test data: `python tools/work_board/sample_db.py
+<path>`, then `WORK_DB=<path> python tools/work.py serve`.
 
 ## Run data
 
 - Frames are packed as `<name>.bmp.z` (tools/frame_store.py: each byte XORed with the byte one pixel before, then zlib
   level 3; lossless) in processes of their own at below-normal priority; compare_frames.py and the frame listings read
   either form.
-- Tests: tools/test_work_sched.py, tools/test_build_gate.py, tools/test_tickets.py, tools/test_frame_store.py, tools/test_install_watch.py.
+- Tests: tools/test_work_sched.py, tools/test_build_gate.py, tools/test_tickets.py, tools/test_frame_store.py,
+  tools/test_install_watch.py.
 
 ## Games at once
 
-At most 16 harness games on the machine, every worker's together. 24 games (under the old dgVoodoo path) crashed
-Windows twice with NVIDIA TDR storms. Measured with our renderer: a game takes ~250 MiB of GPU memory and one CPU
+At most 16 harness games on the machine, every worker's together. 24 games once crashed Windows twice with NVIDIA TDR
+storms. Measured: a game takes ~250 MiB of GPU memory and one CPU
 thread (the virtual clock never sleeps); at 16 games the GPU is 84-90% busy and throughput flattens from 12 on, so more
 games mostly queue. Going above 16 needs the user's OK: measure with `tools/game_load.py run --games N ...` (it samples
 GPU memory, utilisation and TDR events and exits 2 on any), step to 20 only on an otherwise idle machine and go back to
@@ -134,14 +132,14 @@ database. Per worker: wall time, reasoning (the gaps before assistant turns), fo
 jobs from launch to their task notification, and every build and test call. Findings, largest first: golden suites
 beyond image + Rebirth, more than three build calls, batches that queued over two minutes, scenarios averaging over
 40 s. Per-transcript results are cached in build/live/waits_cache.json. The coordinator looks at it after merges and
-acts on the largest avoidable wait (user 2026-11-04).
+acts on the largest avoidable wait.
 
-The page picks its window (WB19): length buttons 6 h, 1 day, 3 days, 7 days, 30 days, Earlier / Later / Now (steps of one
+The page picks its window: length buttons 6 h, 1 day, 3 days, 7 days, 30 days, Earlier / Later / Now (steps of one
 window length), kept in the URL hash as `#w-<length>-<steps back>` (`#w-7d-0`, `#w-1d-2`). `waits.json` therefore holds
 timestamped rows over the last 30 days (about 1.3 MB): per worker its times, fg/bg seconds per kind and its build and
 test calls; per submitted batch [id, ticket, submitted, queue, run, games, retries, args]; game time per hour, and per
 hour for the 100 slowest standalone scenarios (the slowest table lists 25). waits.html totals a window client-side
-(the block between its `the model` markers); `worker_waits.view()` is the same computation for `--print [--window-days N]`,
-and tools/test_waits.py checks the two against each other (node) and that adjacent windows partition the rows. Window
+(the block between its `the model` markers); `worker_waits.view()` is the same computation for `--print
+[--window-days N]`, and tools/test_waits.py checks the two against each other (node) and that adjacent windows partition the rows. Window
 edges are whole hours; a worker belongs to the window where it finished (or still runs), a batch to where it was
 submitted, game time to the hour it was played.

@@ -2,7 +2,7 @@
 
 Code (layouts and per-function comments are in `ai_map.h`, `ai_motion.h`, `ai/unit_shape.h`, `sector_map.h`; each
 file's header says what it does): `ai_map*.cpp` (cell queries, heights, line of sight, construction, load),
-`ai_footprint*.cpp`, `ai/ai_footprint.cpp`, `ai/ai_footprint.cpp`, `ai_refresh.cpp`, `ai_region_reach.cpp`,
+`ai_footprint*.cpp`, `ai_refresh.cpp`, `ai_region_reach.cpp`,
 `ai_block_search.cpp`, `ai_local_search.cpp`, `ai_path*.cpp`, `ai_movement.cpp`, `ai_motion.cpp`, `ai_unit_layer.cpp`,
 `ai_events.cpp`, `sector_map.cpp`. Scenario: the `movement` section of `tests/scenarios/batch_units_death.txt` (the
 map functions also run in every scenario).
@@ -38,7 +38,7 @@ region (1, 2, ...) flooded from a queue of blocks.
 
 ### Built graphs
 
-The region map a zone starts with (MF13d). One rule, whatever the map's format: a zone's graph is no older than its
+The region map a zone starts with. One rule, whatever the map's format: a zone's graph is no older than its
 ground. `WorldServer::NewZone` (world_save.cpp) reads the zone's graph (`ReadAIGraph`: the .mob's 0x31415926 chunk,
 else `<map>.grp`; one whose block grid is not the map's size counts as none) and `LoadMap` loads it
 (`RegionMap::LoadBlocks`), unless
@@ -47,8 +47,8 @@ else `<map>.grp`; one whose block grid is not the map's size counts as none) and
   (the showcase island's folder, mod_map_heights' painted heights, rebirth_mod_maps' copy of zone2.mpr);
 - or no graph is found (the original ended the game with "Can't load AIGraph"), or none of the map's size: Lost in
   Astral's main menu map is 24 x 24 blocks but its zonemainmenunew.mob carries the game's 16 x 16 menu graph (one of its
-  zones, 24 x 32, has a misfit too); `LoadBlocks` used to size the region grids by the graph, and region reads for
-  units past the 16th block went beyond the grid.
+  zones, 24 x 32, has a misfit too); region grids sized by such a graph let region reads for units past the 16th block
+  go beyond the grid.
 
 Then the graph is built: `AIMap::BuildRegionGraph`, after `EndRefresh` (the objects' footprints stamped, the cells
 refreshed) and before `refreshUnits` goes on: the region map reset and attached blank, every unit lifted from the
@@ -63,16 +63,14 @@ graph (the same change as a mod builds).
   map, else zeros of the graph's size (`RegionMap::SavedSize`), whether the zone built its graph or not. A save's load
   (`LoadSave`) loads the AI map first (`LoadAIMap`), applies the difference over the same base and loads the result;
   it never builds.
-- Why not build for every map made from a folder (measured 2026-11-11 with every map of the converted vanilla install built and
-  compared with its shipped graph, 32 maps): the shipped graphs are not ours. With the units lifted the representative
-  cells match (20 of 1.2 million block-classes differ) and every map has as many class-0 regions as its file, but 11%
-  of the edge words differ (1,060,450 of 9,584,640), a quarter of those by 1, 1.2% (117,682) open in one and closed in
-  the other; the regions of 7.6% of the block-classes are numbered otherwise. (With the units standing the regions
-  split: zone 17 has 337 class-0 regions for the file's 160.) The editor measured with something we do not have (its
-  own cost tables, or the objects as they stood then). Built everywhere, the converted install's smoke tier had 40 of
-  58 goldens differ from the binary install's (unit moves from the first record: the main menu's zone builds too), so
-  the converted check would lose its paths; and every zone load paid the cost below.
-- Threads (MF13d1): `UpdateBlocks` runs each pass (the representative cells, then the edges) a row at a time on
+- Why not build for every map made from a folder: the shipped graphs are not ours. Built from the converted vanilla
+  install's 32 maps, the representative cells match (with the units lifted) and every map has as many class-0 regions
+  as its file, but 11% of the edge words differ (1.2% open in one and closed in the other) and the regions of 7.6% of
+  the block-classes are numbered otherwise: the editor measured with something we do not have (its own cost tables, or
+  the objects as they stood then). Built everywhere, most of the converted install's smoke goldens differed from the
+  binary install's (the main menu's zone builds too), so the converted check would lose its paths, and every zone load
+  would pay the cost below.
+- Threads: `UpdateBlocks` runs each pass (the representative cells, then the edges) a row at a time on
   `lib::OnThreads`, each row with a `LocalSearch` of its own attached to the map; the second pass starts when the first
   has ended (the edges read the neighbours' representative cells). A block's measurement reads only the AI map and the
   representative cells and writes only its own block's words, and a search never reaches the cells off the map (the
@@ -81,20 +79,19 @@ graph (the same change as a mod builds).
   original picked the representative cells with the region map's own search in whatever direction the region queries
   had left it (`ReachesRegion` turns it backward, `NearbyBlocks` by its flag) and the edges set it forward, so the
   first pass's searches take `local.backward` and the second leaves it false (a refresh in play: without it Lost in
-  Astral's gz1h saved 18 other aigraph bytes in mod_lost_in_astral_suslanger). Checked byte for byte (SaveBlocks)
+  Astral's gz1h saved other aigraph bytes in mod_lost_in_astral_suslanger). Checked byte for byte (SaveBlocks)
   against one search measuring every block in order on all 40 vanilla map and .mob pairs of map.txt and map-LMP.txt
   (the harness step `graphthreads <zone> ...`; scenario `ai_graph_threads` keeps four of them).
-- Cost (verify build, 2026-11-11, `--quiet`, two loads each): zone 19 (128 x 128 blocks, the largest) 0.17-0.33 s on
-  the threads against 3.2-3.9 s with one search, zone 11 (128 x 96) 0.13-0.24 s against 2.4-2.7 s, zone 1 (64 x 48)
-  0.04-0.07 s against 0.5 s; a base (32 x 32) about 0.02 s. Nearly all of it the edges' local searches (8 size classes
-  x 8 neighbours a block). (Before MF13d1, four games at once: zone 19 2.55 s, zone 11 2.0 s, zone 1 0.4-1.2 s.)
-  Paid at a new zone that builds (a save's load reads the save's graph).
+- Cost (verify build, a quiet run): zone 19 (128 x 128 blocks, the largest) 0.17-0.33 s on the threads against
+  3.2-3.9 s with one search, zone 1 (64 x 48) 0.04-0.07 s, a base (32 x 32) about 0.02 s. Nearly all of it the edges'
+  local searches (8 size classes x 8 neighbours a block). Paid at a new zone that builds (a save's load reads the
+  save's graph).
 
 ## The map's data
 
 - The grids are `SearchGrid`s (search_grid.h: a `std::vector` of `height` rows of `rowLength` elements, sized by
-  `Resize(width, height, fill, perCell)`, which leaves a grid of that size alone; `grid[y][x]` reads a row; new cells are
-  `fill`, 0 by default): `waterDepth`, `cells` (the map's size), `occluders`, `marks`. The large-unit layer's Set / Merge
+  `Resize(width, height, fill, perCell)`, which leaves a grid of that size alone; `grid[y][x]` reads a row; new cells
+  are `fill`, 0 by default): `waterDepth`, `cells` (the map's size), `occluders`, `marks`. The large-unit layer's Set / Merge
   also write signed bytes into `waterDepth`'s rows (the small layer writes the cells' `level` byte).
 - Cells and blocks are `Point`s (`grid[cell]`, `grid.Contains(cell)`). Areas come two ways: the refreshes
   (`QueueRefresh`, `RefreshArea`, `LimitSteepCells`, `ClearUnmarkedArea`, the dirty rectangle) and
@@ -102,8 +99,8 @@ graph (the same change as a mod builds).
   blocks (right and bottom edges outside, as everywhere `Rect` is used).
 - The packed words have names in ai_map.h: AIMapCell::flags is the water's depth (kCellDepthMask), kCellBridge and
   kCellWater; AIMapCell::Passability reads a size class's nibble; namespace `occluder` reads and writes the occluder word.
-  The occluder kinds (sector_map.h `OccluderKind`) come from the part names (pipeline.h BoundsFlag: "CROWN" kind 2, "BASE"
-  a bridge, "EMPTY" no footprint), the spells' walls and clouds (kind 3, HasSpellArea) and ApplyBridgeDecks (kind 4); no
+  The occluder kinds (sector_map.h `OccluderKind`) come from the part names (pipeline.h BoundsFlag: "CROWN" kind 2,
+  "BASE" a bridge, "EMPTY" no footprint), the spells' walls and clouds (kind 3, HasSpellArea) and ApplyBridgeDecks (kind 4); no
   part gives kind 1, whose cost-table entries are unused.
 - `UnitLayer` (small and large): a list of every node ever allocated, 1024 hash buckets by (block x * 17 + block y), 4x4
   blocks. Unit shapes are cached keyed by standing height rounded up to tenths.
@@ -122,8 +119,8 @@ graph (the same change as a mod builds).
 
 ## Original bugs kept
 
-Visible behaviour of the original kept until the user decides (rewrite-guide rule 9; C84 triaged the list, with a
-recommendation per entry). Crashes, undefined behaviour and invisible bookkeeping are fixed, not listed.
+Visible behaviour of the original kept until the user decides (rewrite-guide rule 9). Crashes, undefined behaviour and
+invisible bookkeeping are fixed, not listed.
 
 - Path smoother: the first-cell climb test is `<= 0`, the later ones `< 0`.
 - LimitSteepCells clears the neighbour that broke the scan, or entry 4 of the offset table when none did.

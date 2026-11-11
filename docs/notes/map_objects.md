@@ -10,8 +10,7 @@ skeleton and tracks) and `models/animation_db.*` (the .adb database and the anim
 ## Classes
 
 - `MapObject` (under `Object3D`, under the engine's `FigureInstance`, a `TransformObject`) is every object on a map;
-  `Unit` derives from it. Its side
-  halves: a companion (`MapObjectServer` on the server: the statistics block, hit points; the client's
+  `Unit` derives from it. Its side halves: a companion (`MapObjectServer` on the server: the statistics block, hit points; the client's
   `MapObjectClientSpecific`: looping effect sounds, effect particles, the light, the end sound) and the 3D object's
   side half (`Object3DSpecific`: `Object3DClientSpecific` draws, `Object3DServer` is all stubs; GetScale gives the
   client's scale or 1, 1, 1 on the server).
@@ -43,16 +42,16 @@ The renderer's shadow map draws the shadow (renderer.md); `DrawPartsShadow` hand
 (`render::CastsShadow`) and fits the shadow's sphere, which `ShadowInView` tests for objects out of view
 (`CollectVisible` lists them for shadows and updates their pose). The sphere: the object's bounding sphere swept along
 the lights' direction down to the ground, taken as level at the lower of the object's origin and the sphere's bottom;
-a box around the sweep, the sphere around the box. The original projected the figure's parts from the light into a
-64x64 texture laid on the ground as a decal and took the decal's sphere (0.3-1.1 ms a frame for a value only
-ShadowInView reads); the sweep lists a few more objects out of view (more poses updated, the same casters drawn).
+a box around the sweep, the sphere around the box. The original took the sphere of a 64x64 shadow decal it projected
+for every object, a cost for a value only ShadowInView reads; the sweep lists a few more objects out of view (more
+poses updated, the same casters drawn).
 `shadowMade` means "the sphere was fitted" (the first draw after Create / ClearShadow fits it; until then ShadowInView
 lists the object).
 
 ## Drawing
 
-`Object3DClientSpecific::DrawParts` is described in `map_object_shadow.h` and `map_object_draw.cpp` (lights within range +
-10, matrix stacks, the part sets). Picking: the parts' screen rectangles. Wounds: a texture of kind 6 made per object,
+`Object3DClientSpecific::DrawParts` is described in `map_object_shadow.h` and `map_object_draw.cpp` (lights within
+range + 10, matrix stacks, the part sets). Picking: the parts' screen rectangles. Wounds: a texture of kind 6 made per object,
 reloaded unless its .mmp extra block is unchanged, drawn with a two-stage material.
 
 ## Figures
@@ -82,8 +81,7 @@ when the scale changes. The figure is a `LinkMesh` (link_figure.h, models.md) wh
 (map<string, LinkPartHeader>). Part lookups: FindPartByPrefix (strstr at the name's start, case-sensitive), FindPart
 (strcmp), FindPartIndex (_mbscmp). Animations come from "<name>.adb" on first use:
 `MapObjectManager::AnimationDatabaseOf` reads the file (`ReadAnimationDatabase`, engine/models/animation_db.cpp, with
-any TOML over it) into an `AnimationDatabase` (its header's time factor and the
-0x58-byte entries, each a `FigureAnimation` that points back at its database) and keeps it by file name until the
+any TOML over it) into an `AnimationDatabase` (its header's time factor and the 0x58-byte entries, each a `FigureAnimation` that points back at its database) and keeps it by file name until the
 manager's Destroy, so Object3D::animations, FindAnimation and FindFigureAnimation share one database per name. What
 an object plays need not come from its own database (UiModel's and the main menu stones' rest pose come from
 FindAnimation by name), so the database of a playing animation is its entry's `database`, never the object's. Four of
@@ -104,30 +102,29 @@ without a parent name.
 **Animation tracks and cages**: AnimationTrack::Evaluate uses the CRT's modf of the time rounded to an integer and
 `Quaternion::Slerp`; LoadKeyFrames copies the key frames (rotations, positions, the frames' vertex sets) out of the
 .anm entry into the track's own vectors. The bone's cage (`LoadFigureBones`: its offset at its morph
-coefficients) is `fig::MorphPrism` / `fig::MorphCube` (figure_mesh.h) over a 0x48-byte / other record. UpdatePose evaluates the tracks at the frame,
-then places the skeleton at AnimationFactor(scale.z) * defaultScale, one float factor for x, y and z.
+coefficients) is `fig::MorphPrism` / `fig::MorphCube` (figure_mesh.h) over a 0x48-byte / other record. UpdatePose
+evaluates the tracks at the frame, then places the skeleton at AnimationFactor(scale.z) * defaultScale, one float factor for x, y and z.
 
 **Blends** (client side only): a switch of animation blends the pose last placed into the new one's over 100-250 ms
 (BeginBlend, FigureBone::Place's `blend`); renderer.md section 14, "Animation blends".
 
 ## Original bugs kept
 
-Visible behaviour of the original kept until the user decides (rewrite-guide rule 9; C84 triaged the list, with a
-recommendation per entry). Crashes, undefined behaviour and invisible bookkeeping are fixed, not listed.
+Visible behaviour of the original kept until the user decides (rewrite-guide rule 9). Crashes, undefined behaviour and
+invisible bookkeeping are fixed, not listed.
 
 - The client's stench sound tests the record's kind a second time after drawing the random number (always true); the
   timer runs 0x10 .. -1, so the period is 17 ticks.
 - A source of an unknown type logs and uses 0x2013.
 
-By design (user 2026-11-03): RecomputeScale adds the net enlarge / shrink level to the strengthen level when enlarge or
+By design (the user's decision): RecomputeScale adds the net enlarge / shrink level to the strengthen level when enlarge or
 shrink is present (strengthened + enlarged grows by 0.8; strong units get wider) and leaves y alone for strengthen /
 weaken; heroes keep their height.
 
 ## Virtual slot names with low confidence
 
-Guesses to re-check when a caller needs them: MapObject 29 `IsSynchronised` (flags 0x20000, set by the zone loader for
+Guesses to re-check when a caller needs them: MapObject's `IsSynchronised` (flags 0x20000, set by the zone loader for
 records with a script name; units, levers, traps, torches answer 1; SendFreshObjects moves the objects answering 0 out
-of the map-object maps), 39 `IsDirectUseBlocked` (levers; a plain click uses an object only when 38 IsUsable is set and
-39 is 0), 43 `KeepsMapFlag` (levers); UnitController 15 / 17 `Unused*`, 36
-`HasOtherArmour` (server: armour slots 3..6, client: any weapon model; they differ); World 37 / 38 `ClientManager194` /
-`ClientManager198` (not identified).
+of the map-object maps), `IsDirectUseBlocked` (levers; a plain click uses an object only when IsUsable is set and
+IsDirectUseBlocked is 0) and `KeepsMapFlag` (levers); UnitController's `HasOtherArmour` (server: armour slots 3..6,
+client: any weapon model; they differ).
