@@ -20,6 +20,7 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `src/engine/mods/mod_hash.h`, `.cpp`, `mod_identity.h`, `.cpp` | the mod's content hash and the mod a game plays as our peers tell it at login, the refusal texts ("Mods in multiplayer"; network.md, "Mods") |
 | `src/engine/particles/particle_data.h`, `.cpp`, `particle_record.*`, `particle_expr.*` | the data effects, `Res\effects\<name>.effect.toml` merged through the layers (effects.md, "Data effects") |
 | `src/game/script/script_spell_host.h`, `.cpp` | the scripted spells, `Res\spells\<file>.lua` through the layers (items_spells.md, "Scripted spells") |
+| `src/game/script/script_lua_api.inc`, `.h`; `tools/convert/lua_api.h`, `.cpp` | the Lua API declared once, registering the bindings; `ei-convert --lua-api` (a LuaLS file, shipped as `examples/lua_api/ei_api.lua`) and docs/modding.md's API tables (lua-scripting.md, "The API's declarations") |
 | `tests/unit/mod_hash.cpp`, `tools/make_mod_pair.py`, `tests/scenarios/net_pair_mod_*.txt` | their checks: the hash of a folder and of its zip, the pairs with the same mod, another version and none |
 | `tests/verify/harness.cpp` | `Layers` / `MapPath` / `MapSearches`: the run's overlay as the map's top layer |
 | `tests/unit/path_layers.cpp` | the unit check (ei_unit_check, the POSIX port check) |

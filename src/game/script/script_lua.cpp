@@ -6,6 +6,7 @@
 #include "game/console/console.h"
 #include "game/objects/map_object.h"
 #include "game/script/script_addon.h"
+#include "game/script/script_lua_api.h"
 #include "game/script/script_lua_number.h"
 #include "game/world/world.h"
 #include "lib/crt.h"
@@ -49,86 +50,6 @@ constexpr const char* kUnpersistKey = "ei.unpersist";    // and for unpersisting
 constexpr const char* kGlobalsKey = "ei.globals";        // the registry's types of the GlobalVars: name -> type
 constexpr const char* kResetKey = "ei.resetGlobals";     // the registry's prelude function that zeroes them
 constexpr const char* kBuiltinsKey = "ei.builtins";      // the registry's copy of the globals the runtime made
-
-// The keywords whose Lua name is not their own (docs/notes/lua-scripting.md, "Bindings": the naming rule).
-struct Rename {
-    const char* keyword = nullptr;
-    const char* lua = nullptr;
-};
-constexpr Rename kRenames[] = {
-    {"For", "ForEach"},
-    {"ForIf", "ForEachIf"},
-    {"UMAg", "UnitModeAggressionLevel"},
-    {"UMAggression", "UnitModeAggression"},
-    {"UMClear", "UnitModeClear"},
-    {"UMCorpseWatcher", "UnitModeCorpseWatcher"},
-    {"UMFear", "UnitModeFear"},
-    {"UMFollow", "UnitModeFollow"},
-    {"UMGuard", "UnitModeGuard"},
-    {"UMGuardEx", "UnitModeGuardEx"},
-    {"UMPatrol", "UnitModePatrol"},
-    {"UMPatrolAddPoint", "UnitModePatrolAddPoint"},
-    {"UMPatrolAddPointLook", "UnitModePatrolAddPointLook"},
-    {"UMPatrolClear", "UnitModePatrolClear"},
-    {"UMPlayer", "UnitModePlayer"},
-    {"UMRevenge", "UnitModeRevenge"},
-    {"UMSentry", "UnitModeSentry"},
-    {"UMStandard", "UnitModeStandard"},
-    {"UMSuspection", "UnitModeSuspicion"},
-    {"GSSetVar", "SetGameVar"},
-    {"GSSetVarMax", "SetGameVarMax"},
-    {"GSDelVar", "DeleteGameVar"},
-    {"GSGetVar", "GetGameVar"},
-    {"GSSetPlayerVar", "SetPlayerGameVar"},
-    {"GSGetPlayerVar", "GetPlayerGameVar"},
-    {"GSListPlayerVars", "ListPlayerGameVars"},
-    {"QStart", "QuestStart"},
-    {"QFinish", "QuestFinish"},
-    {"QObjArea", "QuestObjectiveArea"},
-    {"QObjSeeObject", "QuestObjectiveSeeObject"},
-    {"QObjSeeUnit", "QuestObjectiveSeeUnit"},
-    {"QObjKillUnit", "QuestObjectiveKillUnit"},
-    {"QObjKillGroup", "QuestObjectiveKillGroup"},
-    {"QObjUse", "QuestObjectiveUse"},
-    {"QObjGetItem", "QuestObjectiveGetItem"},
-    {"CreateFX", "CreateSound"},
-    {"CreateFXSource", "CreateSoundSource"},
-    {"CreateRandomizedFXSource", "CreateRandomizedSoundSource"},
-    {"DeleteFXSource", "DeleteSoundSource"},
-    {"PlayFX", "PlaySound"},
-    {"HP", "HitPoints"},
-    {"MaxHP", "MaxHitPoints"},
-    {"SetCP", "SetPosition"},
-    {"SetCPFast", "SetPositionFast"},
-    {"AlarmPosX", "AlarmPositionX"},
-    {"AlarmPosY", "AlarmPositionY"},
-    {"GetZValue", "GetGridHeight"},
-    {"GetBSZValue", "GetSurfaceHeight"},
-    {"GetMercsNumber", "GetMercenaryCount"},
-    {"RecalcMercBriefings", "RecalculateMercenaryBriefings"},
-    {"GroupAdd", "GroupUnion"},
-    {"GroupSub", "GroupDifference"},
-    {"GroupCross", "GroupIntersection"},
-    {"UnitSee", "SeenByUnit"},
-    {"GroupSee", "SeenByGroup"},
-    {"PlayerSee", "SeenByPlayer"},
-    {"SetBackGroundColor", "SetBackgroundColor"},
-    {"GetUnitExp", "GetUnitExperience"},
-    {"GiveExp", "GiveExperience"},
-    {"GiveUnitExp", "GiveUnitExperience"},
-    {"FloatToStr", "FloatToString"},
-    {"StrToFloat", "StringToFloat"},
-    {"StrCat", "StringConcat"},
-    {"StrLen", "StringLength"},
-    {"StrHas", "StringContains"},
-    {"StrMid", "StringMid"},
-    {"StrLower", "StringLower"},
-    {"StrUpper", "StringUpper"},
-    {"RandStr", "RandomString"},
-    {"RandObj", "RandomObject"},
-    {"GameOverMSG", "GameOverMessage"},
-    {"IsFileExists", "FileExists"},
-};
 
 // The four waits: their bindings poll the command once and return whether it goes on; the prelude's Lua functions of
 // their names yield while it waits.
@@ -795,9 +716,7 @@ const char* LuaName(std::string_view keyword) {
     for (const ScriptKeyword* k = KeywordTable(); k->name; ++k) {
         if (keyword != k->name) continue;
         if (!k->function && !k->command) return nullptr;
-        for (const Rename& rename : kRenames)
-            if (keyword == rename.keyword) return rename.lua;
-        return k->name;
+        return luaapi::BindingName(keyword);
     }
     return nullptr;
 }
@@ -874,8 +793,8 @@ ScriptLua::ScriptLua(Script* script) : script(script), state(luaL_newstate()) {
     SetFunction(L, hidden, "GroupIds", GroupIds);
     SetFunction(L, hidden, "GroupWithIds", GroupWithIds);
     SetFunction(L, hidden, "StartScript", StartScript);
-    lua_register(L, "NewGroup", NewGroup);
-    lua_register(L, "CopyGroup", CopyGroup);
+#define EI_LUA_GLOBAL(name, params, returns, text) lua_register(L, #name, name);
+#include "game/script/script_lua_api.inc"
 
     // The bindings, from the keyword table: the waits' polls into the hidden table (the prelude makes their functions).
     for (const ScriptKeyword* k = KeywordTable(); k->name; ++k) {
@@ -907,9 +826,13 @@ ScriptLua::ScriptLua(Script* script) : script(script), state(luaL_newstate()) {
         lua_getfield(L, -1, keyword);
         lua_setglobal(L, LuaName(keyword));
     }
-    for (const char* helper : {"GlobalVars", "Script", "pairs", "load"}) {
-        lua_getfield(L, -1, helper);
-        lua_setglobal(L, helper);
+#define EI_LUA_HELPER(name, params, returns, text) \
+    lua_getfield(L, -1, #name);                    \
+    lua_setglobal(L, #name);
+#include "game/script/script_lua_api.inc"
+    for (const char* own : {"pairs", "load"}) {   // Lua's, replaced (kPrelude)
+        lua_getfield(L, -1, own);
+        lua_setglobal(L, own);
     }
     lua_getfield(L, -1, "ResetGlobals");
     lua_setfield(L, LUA_REGISTRYINDEX, kResetKey);

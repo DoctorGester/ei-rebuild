@@ -558,9 +558,9 @@ end
 
 - **Built-ins.** Every command and function of the game's script language (and Rebirth's additions) under its Lua
   name: the game's name, except where it abbreviates (`UMGuard` is `UnitModeGuard`, `GSSetVar` / `GSGetVar` are
-  `SetGameVar` / `GetGameVar`, `SetCP` is `SetPosition`, `For` is `ForEach`; the list is in
-  `docs/notes/lua-scripting.md`, "The naming rule"). They take and give what the game's do: numbers (single precision,
-  as in the game; a condition holds unless it is 0), strings, objects (`nil` for none) and groups.
+  `SetGameVar` / `GetGameVar`, `SetCP` is `SetPosition`, `For` is `ForEach`; [Script functions](#script-functions)
+  lists them all, each with the game's name). They take and give what the game's do: numbers (single precision, as in
+  the game; a condition holds unless it is 0), strings, objects (`nil` for none) and groups.
 - **Waits.** `Sleep(ticks)`, `WaitSegment(ticks)`, `SleepUntil(condition)` and `SleepUntilIdle(unit)` pause the
   running function and go on in a later tick. `ForEach(group, function(member) ... end)` walks a group from its last
   member to its first; a wait inside its body ends the body for that member, as the game's For does.
@@ -586,6 +586,400 @@ end
 - **Saves.** A game saved in such a zone keeps the script's whole Lua state, every waiting function with its local
   variables, and goes on from there when it is loaded. A loaded save keeps running the code it was saved with, even
   when the mod's file has changed since; the new file runs the next time the zone is loaded fresh.
+
+### Lua in an editor
+
+The whole API (the functions below, the spells' cast value, methods and hooks, the active effects' stats) is one Lua
+definition file for a Lua language server, so an editor completes the names and checks the arguments' types:
+`examples\lua_api\ei_api.lua` beside ei-convert in a release (the repository's `examples/lua_api/ei_api.lua`), or
+written anew by `ei-convert --lua-api <file>`. In VS Code with the Lua extension (sumneko's LuaLS), put a
+`.luarc.json` in the mod's folder that names the file's folder as a library:
+
+```json
+{
+    "runtime.version": "Lua 5.3",
+    "workspace.library": ["C:/Games/ei-rebuild/examples/lua_api"]
+}
+```
+
+In a spell file, annotate the table it returns (`local spell = {} ---@type ei.Spell`) and its hooks' arguments get
+their types: `cast` is an `ei.Cast`, `stats` an `ei.Stats`.
+
+### Script functions
+
+Every mission script function, by subject. The types: `object` a map object (a unit, an item, a lever, ...; `nil` for
+none), `group`, `number`, `string`; `name?:` may be left out (and what follows it), `...:` takes any number more.
+The functions also work in the spells' hooks. These tables, and the spells' below, are generated from
+`src/game/script/script_lua_api.inc` (`ei-convert --lua-api-docs`).
+
+<!-- lua-api: functions -->
+
+#### Script flow
+
+| Function | Gives | What it does |
+|---|---|---|
+| `GlobalVars(declarations: table<string, string>)` |  | the script's globals, each set to its type's zero value: `{ name = "float" \| "string" \| "object" \| "group" }` (0, `""`, nil, an empty group) |
+| `Script(rules: {condition?: fun(...): number\|boolean, action?: fun(...)}[])` | `fun(...)` | a definition: each call starts an instance with those arguments, which checks its rules in order every tick and runs the action of one that holds |
+| `Sleep(ticks: number\|fun(): number)` |  | waits that many ticks, then the function goes on (a function argument is called again on every tick) |
+| `WaitSegment(ticks: number\|fun(): number)` |  | waits until the running instance has run that many ticks |
+| `SleepUntil(condition: number\|fun(): number)` |  | waits until the condition holds (pass a function: it is called again on every tick) |
+| `SleepUntilIdle(unit: object\|fun(): object)` |  | waits while the unit's AI has an action under way |
+| `KillScript()` |  | the running instance checks no more rules (not in the WorldScript) |
+| `WaitEndAnimation()` |  | does nothing (as in the game) |
+
+#### Groups and loops
+
+| Function | Gives | What it does |
+|---|---|---|
+| `NewGroup()` | `group` | an empty group |
+| `CopyGroup(group: group)` | `group` | a copy of the group (a group value is shared, as a table is; the game's assignment copied) |
+| `AddObject(group: group, object: object)` |  | puts the object into the group (once) |
+| `RemoveObject(group: group, object: object)` |  | takes the object out of the group |
+| `GroupSize(group: group)` | `number` | the number of objects in the group (also #group) |
+| `GroupHas(group: group, object: object)` | `number` | 1 when the object is in the group, else 0 |
+| `GroupUnion(a: group, b: group)` (`GroupAdd`) | `group` | a new group of the objects in either |
+| `GroupDifference(a: group, b: group)` (`GroupSub`) | `group` | a new group of a's objects that are not in b |
+| `GroupIntersection(a: group, b: group)` (`GroupCross`) | `group` | a new group of the objects in both |
+| `RandomObject(group: group)` (`RandObj`) | `object` | a member at random (the game's generator); nil for an empty group |
+| `ForEach(group: group, body: fun(member: object))`<br>`ForEach(counter: string, group: group, body: fun(member: object))` (`For`) |  | calls the body for each member from the last to the first; a wait in the body ends it for that member. A counter global's name first: it holds each member in turn |
+| `ForEachIf(group: group, condition: number\|fun(member: object): number\|boolean, body: fun(member: object))`<br>`ForEachIf(counter: string, group: group, condition: number\|fun(member: object): number\|boolean, body: fun(member: object))` (`ForIf`) |  | `ForEach`, the body only for the members the condition holds for |
+| `Every(group: group, condition: number\|fun(member: object): number\|boolean)`<br>`Every(counter: string, group: group, condition: number\|fun(member: object): number\|boolean)` | `number` | 1 when the condition holds for every member (from the first; it stops at one that fails), else 0 |
+| `Any(group: group, condition: number\|fun(member: object): number\|boolean)`<br>`Any(counter: string, group: group, condition: number\|fun(member: object): number\|boolean)` | `number` | 1 when the condition holds for a member (from the first; it stops there), else 0 |
+| `Sum(group: group, condition: number\|fun(member: object): number\|boolean)`<br>`Sum(counter: string, group: group, condition: number\|fun(member: object): number\|boolean)` | `number` | the sum of the condition's values over the members |
+
+#### Finding objects
+
+| Function | Gives | What it does |
+|---|---|---|
+| `GetObject(id: number)` | `object` | the object with that id (nil when there is none) |
+| `GetObjectByName(name: string)` | `object` | the object whose id is the text key of that name |
+| `GetObjectByID(id: string)` | `object` | the object whose id is that decimal number |
+| `GetLeader()` | `object` | the party leader: the server's in a network game, else player 0's first unit |
+| `GetUnitOfPlayer(player: number, index: number)` | `object` | the player's party member at that index, from 0 |
+| `NearestUnit(x: number, y: number, radius: number, filter: number)` | `object` | the nearest object within `radius` of (x, y) that the `filter` passes: + 1 units, + 2 other objects, + 4 any living object with a named id |
+| `UnitsNearPoint(x: number, y: number, radius: number, filter: number)` | `group` | every object within `radius` of (x, y) that the filter passes (as `NearestUnit`'s) |
+| `GetObjectsOnMap(class: number, ...: number)` | `group` | the world's objects whose class id is one of those given; -1: every object |
+| `GetPlayerUnits(player: number)` | `group` | the world's units of that player |
+| `SeenByUnit(unit: object)` (`UnitSee`) | `group` | the objects the unit sees |
+| `SeenByGroup(group: group)` (`GroupSee`) | `group` | the objects the group's units see |
+| `SeenByPlayer(player: number)` (`PlayerSee`) | `group` | what the player sees: its units, what they see and what it has spotted |
+
+#### Reading objects
+
+| Function | Gives | What it does |
+|---|---|---|
+| `GetObjectID(object: object)` | `number` | the object's id; 0 for none |
+| `GetObjectStringID(object: object)` | `string` | the object's id as a decimal string |
+| `GetObjectTypeID(object: object)` | `number` | the object's class id; -1 for none |
+| `GetPrototype(unit: object)` | `string` | the unit's prototype name |
+| `GetRace(unit: object)` | `string` | the unit's race |
+| `GetX(object: object)` | `number` | the object's x; 0 for none |
+| `GetY(object: object)` | `number` | the object's y; 0 for none |
+| `GetZ(object: object)` | `number` | the object's height: the ground's at its place plus its own z |
+| `GetFutureX(object: object, ticks: number)` | `number` | where the moving object's x will be that many ticks from now |
+| `GetFutureY(object: object, ticks: number)` | `number` | where the moving object's y will be that many ticks from now |
+| `DistanceUnitUnit(a: object, b: object)` | `number` | the distance between two objects on the ground plane (1e30 when one is missing) |
+| `DistanceUnitPoint(object: object, x: number, y: number)` | `number` | the distance from the object to (x, y) on the ground plane (1e30 for none) |
+| `DistancePointPoint(x: number, y: number)` | `number` | the distance of (x, y) from (0, 0): Rebirth's signature passes two of the four numbers its function reads |
+| `IsInSquare(x: number, y: number, x1: number, y1: number, x2: number, y2: number)` | `number` | 1 when (x, y) lies in the rectangle from (x1, y1) to (x2, y2), else 0 |
+| `UnitInSquare(object: object, x1: number, y1: number, x2: number, y2: number)` | `number` | 1 when the object stands in the rectangle from (x1, y1) to (x2, y2), else 0 |
+| `IsUnitInWater(object: object)` | `number` | 1 when the object stands in water, else 0 |
+| `IsUnitVisible(object: object)` | `number` | 1 when player 0 sees the object, else 0 |
+| `IsUnitBlocked(object: object)` | `number` | 1 when the object is blocked (`BlockUnit`), else 0 |
+| `WasLooted(object: object)` | `number` | 1 when the object's loot was taken (or it is gone), else 0 |
+| `GetAIClass(unit: object)` | `number` | the unit's size class; -1 for none |
+| `IsPlayer(unit: object)` | `number` | 1 when the unit is a named party member, else 0 |
+
+#### Units' stats
+
+| Function | Gives | What it does |
+|---|---|---|
+| `IsAlive(object: object)` | `number` | 1 when the object is not dead, else 0 (also for none) |
+| `IsDead(object: object)` | `number` | the object's death state: 0 alive, not 0 dead (0 for none) |
+| `HitPoints(unit: object)` (`HP`) | `number` | the unit's hit points |
+| `MaxHitPoints(unit: object)` (`MaxHP`) | `number` | the unit's maximum hit points |
+| `Mana(unit: object)` | `number` | the unit's mana |
+| `MaxMana(unit: object)` | `number` | the unit's maximum mana |
+| `GetStrength(unit: object)` | `number` | the unit's strength |
+| `GetDexterity(unit: object)` | `number` | the unit's dexterity |
+| `GetIntelligence(unit: object)` | `number` | the unit's intelligence |
+| `GetSkill(unit: object, skill: string)` | `number` | the unit's skill: science, melee, archery, elemental, sense or astral |
+| `GetPerk(unit: object, perk: string)` | `number` | the unit's level of the perk by its name |
+| `GetActions(unit: object)` | `number` | the unit's action rate |
+| `GetActionsBase(unit: object)` | `number` | the unit's action rate before its effects |
+| `GetEncumbrance(unit: object)` | `number` | the weight the unit carries |
+| `GetMaxEncumbrance(unit: object)` | `number` | the weight the unit can carry |
+| `GetArmor(unit: object, kind: number, part: number)` | `number` | the unit's protection of the body part (0 to 6) by damage kind (0 to 5); a negative kind: the part's total |
+| `GetUnitExperience(unit: object, what?: string)` (`GetUnitExp`) | `number` | the unit's experience: "max" (the default), "spent", "penalty" or "real" (max + penalty) |
+
+#### Changing objects
+
+| Function | Gives | What it does |
+|---|---|---|
+| `SetPosition(object: object, x: number, y: number, z: number)` (`SetCP`) |  | moves the object there; units near a moved object step off cells they cannot stay in |
+| `SetPositionFast(object: object, x: number, y: number, z: number)` (`SetCPFast`) |  | moves the object there without moving the units around it |
+| `HideObject(object: object, hide: number)` |  | hides the object (not 0) or shows it (0) |
+| `BlockUnit(unit: object, block: number)` |  | the unit is blocked (not 0: it does not act) or free (0) |
+| `KillUnit(object: object)` |  | kills the object (a plain hit that kills) |
+| `InflictDamage(unit: object, amount: number)` |  | the unit takes a hit of that much lightning damage |
+| `SetPlayer(unit: object, player: number)` |  | the unit joins the player's side, with its enemies |
+| `SetEnemy(unit: object, player: number)` |  | the unit takes the player's side as an enemy |
+| `GiveStrength(unit: object, amount: number)` |  | raises the unit's strength |
+| `GiveDexterity(unit: object, amount: number)` |  | raises the unit's dexterity |
+| `GiveIntelligence(unit: object, amount: number)` |  | raises the unit's intelligence |
+| `GiveSkill(unit: object, skill: string, amount: number)` |  | raises the unit's skill: science, melee, archery, backstab, elemental, sense, astral, stealth or awareness |
+| `GiveUnitExperience(unit: object, amount: number)` (`GiveUnitExp`) |  | the unit gains that much experience |
+| `GiveUnitSpell(unit: object, spell: string)` |  | the unit gets the spell made from that text |
+| `GiveUnitQuestItem(unit: object, item: string)` |  | the unit gets the quest item of that name |
+| `RemoveQuestItem(unit: object, id: number)` |  | takes the unit's first quest item of that id |
+| `GiveUnitWeapon(unit: object, item: string, override: number)` |  | the unit gets the weapon of that name; `override` 1 (a unit without a named id) also takes its stats from it |
+| `GiveUnitArmor(unit: object, item: string, override: number)` |  | the unit gets the armour of that name; `override` 1 (a unit without a named id) also takes its protection from it |
+| `AddUnitToServer(id: string, prototype: string, name: string, x: number, y: number, z: number)` |  | a new unit of the prototype at (x, y, z), its id the text key of `id` |
+| `RemoveUnitFromServer(unit: object)` |  | takes the unit out of the world |
+| `RemoveObjectFromServer(object: object)` |  | takes the object out of the world |
+| `PlayAnimation(unit: object, animation: string)` |  | the unit plays the animation once |
+| `StartAnimation(unit: object, animation: string)` |  | does nothing (as in the game) |
+| `SetSpellAggression(unit: object, value: number)` |  | does nothing (as in the game) |
+| `SetDirectionToObject(value: number)` |  | does nothing (as in the game) |
+
+#### Unit orders
+
+| Function | Gives | What it does |
+|---|---|---|
+| `MoveToPoint(unit: object, x: number, y: number)` |  | the unit walks to (x, y) |
+| `MoveToObject(unit: object, target: object)` |  | the unit walks to where the target stands |
+| `RotateTo(unit: object, x: number, y: number)` |  | the unit turns towards (x, y) |
+| `Follow(unit: object, leader: object)` |  | the unit follows the leader |
+| `Attack(unit: object, target: object)` |  | the unit attacks the target |
+| `ResetTarget(unit: object)` |  | the unit drops its target and goes back to its behaviour |
+| `Cast(unit: object, x: number, y: number)` |  | the unit casts its first spell at (x, y) on the ground |
+| `CastSpellPoint(spell: string, x: number, y: number, toX: number, toY: number)` |  | the spell made from that text cast with no caster from (x, y) at the point (toX, toY) |
+| `CastSpellUnit(spell: string, x: number, y: number, target: object)` |  | the spell made from that text cast with no caster from (x, y) at the target |
+| `Idle(unit: object)` |  | the unit's modes cleared and its action stopped |
+| `Guard(unit: object, x: number, y: number, radius: number)` |  | the unit guards the circle around (x, y) |
+| `Sentry(unit: object, x: number, y: number)` |  | the unit stands sentry at (x, y) |
+| `Lie(unit: object)` |  | the unit lies down |
+| `Crawl(unit: object)` |  | the unit crawls |
+| `Stand(unit: object)` |  | the unit walks upright |
+| `Walk(unit: object)` |  | the unit walks |
+| `Run(unit: object)` |  | the unit runs |
+| `Rest(unit: object)` |  | the unit stops what it has queued |
+
+#### Unit modes (the AI)
+
+| Function | Gives | What it does |
+|---|---|---|
+| `UnitModeClear(unit: object)` (`UMClear`) |  | takes every mode off the unit |
+| `UnitModeStandard(unit: object)` (`UMStandard`) |  | adds aggression, suspicion and the corpse watcher |
+| `UnitModeAggressionLevel(unit: object, level: number)` (`UMAg`) |  | the unit's temper from 0 (fearful) to 3 (aggressive): its aggression, fear, suspicion and corpse watcher modes replaced |
+| `UnitModeAggression(unit: object)` (`UMAggression`) |  | adds aggression: the unit attacks enemies it notices |
+| `UnitModeRevenge(unit: object)` (`UMRevenge`) |  | adds revenge: aggression against who attacks it |
+| `UnitModeFear(unit: object, fearful: number)` (`UMFear`) |  | adds fear: the unit flees (not 0: from any enemy) |
+| `UnitModeSuspicion(unit: object)` (`UMSuspection`) |  | adds suspicion: the unit goes to look at what it hears |
+| `UnitModeCorpseWatcher(unit: object)` (`UMCorpseWatcher`) |  | adds the corpse watcher: the unit raises the alarm at corpses |
+| `UnitModeSentry(unit: object, x: number, y: number)` (`UMSentry`) |  | adds a sentry post at (x, y) |
+| `UnitModeGuard(unit: object, x: number, y: number, radius: number)` (`UMGuard`) |  | adds guarding the circle around (x, y) |
+| `UnitModeGuardEx(unit: object, x: number, y: number, radius: number, chase: number)` (`UMGuardEx`) |  | adds guarding the circle around (x, y), chasing up to the second radius |
+| `UnitModeFollow(unit: object, leader: object)` (`UMFollow`) |  | adds following the leader |
+| `UnitModePatrol(unit: object)` (`UMPatrol`) |  | adds a patrol (its points from `UnitModePatrolAddPoint`) |
+| `UnitModePatrolClear(unit: object)` (`UMPatrolClear`) |  | empties the unit's patrol route |
+| `UnitModePatrolAddPoint(unit: object, x: number, y: number)` (`UMPatrolAddPoint`) |  | adds a point to the unit's patrol route |
+| `UnitModePatrolAddPointLook(unit: object, angle: number, wait: number, turn: number)` (`UMPatrolAddPointLook`) |  | at the route's last point the unit looks towards the angle for `wait`, turning in `turn` |
+| `UnitModePlayer(unit: object)` (`UMPlayer`) |  | the unit's modes replaced by the player's (it obeys its player) |
+
+#### Players, parties and diplomacy
+
+| Function | Gives | What it does |
+|---|---|---|
+| `GetPlayer(unit: object)` | `number` | the unit's side (player number) |
+| `GetPlayerOfUnit(unit: object)` | `number` | the player whose party the unit is in; -1 for none |
+| `PlayerExists(player: number)` | `number` | 1 when there is a player of that number, else 0 |
+| `AddUnitUnderControl(player: number, unit: object)` |  | the player controls the unit |
+| `RemoveUnitFromControl(player: number, unit: object)` |  | no player controls the unit |
+| `GetDiplomacy(a: number, b: number)` | `number` | the two players' relation: 1 allied, -1 hostile, 0 neutral |
+| `SetDiplomacy(a: number, b: number, relation: number)` |  | sets the two players' relation: above 0 allied, below 0 hostile, else neutral |
+| `IsEnemy(unit: object, player: number)` | `number` | 1 when the unit is hostile to the player, else 0 |
+| `SetPlayerAggression(player: number, value: number)` |  | does nothing (as in the game) |
+| `IsPlayerInDanger(player: number)` | `number` | 1 when the player's party is in danger, else 0 |
+| `IsPlayerInSafety(player: number)` | `number` | 1 when the player's party is safe, else 0 |
+| `GodMode(player: number, on: number)` |  | the player's units cannot die (not 0) or can (0) |
+| `GetMercenaryCount(player: number)` (`GetMercsNumber`) | `number` | the player's living mercenaries |
+| `RecalculateMercenaryBriefings()` (`RecalcMercBriefings`) |  | the mercenaries' briefings worked out again |
+| `CreateParty(player: number, party: string)` |  | a new party record of that name |
+| `RemoveParty(player: number, party: string)` |  | removes the party record |
+| `SetCurrentParty(player: number, party: string)` |  | the party the player plays next |
+| `SendCurrentParty(player: number)` |  | sends the player's party to its client again |
+| `AddUnitToParty(player: number, unit: string, prototype: string)` |  | adds a unit of the prototype to a party record ("party.unit") |
+| `RemoveUnitFromParty(player: number, unit: string)` |  | removes the unit ("party.unit") from its party record |
+| `RedeployParty(player: number)` |  | places the player's party again at its start |
+| `CopyItems(player: number, from: string, to: string)` |  | one party unit's items copied to another ("party.unit") |
+| `CopyStats(player: number, from: string, to: string)` |  | one party unit's stats copied to another ("party.unit") |
+| `LeaveToZone(player: number, zone: string, entrance: number)` |  | the player's party leaves for the zone, at that entrance |
+| `ShowAllUnits(show: number)` |  | 0 draws every unit; anything else only the visible ones |
+
+#### Items and money
+
+| Function | Gives | What it does |
+|---|---|---|
+| `GiveItem(player: number, item: string)` |  | the player gets the item of that name |
+| `GiveQuestItem(player: number, item: string)` |  | the player gets the quest item of that name |
+| `EraseQuestItem(player: number, id: number)` |  | takes the player's quest item of that id |
+| `HaveItem(player: number, id: number)` | `number` | 1 when the player has the quest item of that id, else 0 |
+| `GetLootItemsCount(player: number)` | `number` | the number of the player's items |
+| `GetMoney(player: number)` | `number` | the player's party's money |
+| `GiveMoney(player: number, amount: number)` |  | the player's party gets that much money |
+| `AddLoot(player: number, from: string, to: string)` |  | one party record's items and money added to another's |
+| `CopyLoot(player: number, from: string, to: string)` |  | one party record's items and money replace another's |
+| `Loot(player: number, unit: object)` |  | the player loots the dead unit, which then goes |
+| `FixItems()` |  | repairs every item |
+| `GiveExperience(player: number, amount: number)` (`GiveExp`) |  | the player's party is awarded that much experience |
+
+#### Quests and game variables
+
+| Function | Gives | What it does |
+|---|---|---|
+| `QuestStart(name: string)` (`QStart`) |  | starts building the quest of that name |
+| `QuestObjectiveArea(area: number)` (`QObjArea`) |  | the quest's objective: the heroes reach the area |
+| `QuestObjectiveSeeObject(object: string)` (`QObjSeeObject`) |  | the quest's objective: the heroes come near the object (a script name) |
+| `QuestObjectiveSeeUnit(unit: string)` (`QObjSeeUnit`) |  | the quest's objective: the heroes see the unit |
+| `QuestObjectiveKillUnit(unit: string)` (`QObjKillUnit`) |  | the quest's objective: the unit dies |
+| `QuestObjectiveKillGroup(group: string)` (`QObjKillGroup`) |  | the quest's objective: every unit of the group dies |
+| `QuestObjectiveUse(lever: string, state: number)` (`QObjUse`) |  | the quest's objective: the lever is in that state |
+| `QuestObjectiveGetItem(id: number)` (`QObjGetItem`) |  | the quest's objective: the heroes have the quest item |
+| `QuestFinish()` (`QFinish`) |  | ends the quest begun by `QuestStart` and adds its script |
+| `QuestComplete(player: number, quest: string)` |  | the quest is done: its experience to the player |
+| `SetGameVar(player: number, name: string, value: number)` (`GSSetVar`) |  | sets the game variable (the game server's in a network game) |
+| `SetGameVarMax(player: number, name: string, value: number)` (`GSSetVarMax`) |  | raises the game variable to the value when it is lower |
+| `DeleteGameVar(player: number, name: string)` (`GSDelVar`) |  | deletes the game variable |
+| `GetGameVar(player: number, name: string)` (`GSGetVar`) | `number` | the game variable's value (0 when not set) |
+| `SetPlayerGameVar(player: number, name: string, value: number)` (`GSSetPlayerVar`) |  | sets the player's own variable |
+| `GetPlayerGameVar(player: number, name: string)` (`GSGetPlayerVar`) | `number` | the player's own variable |
+| `ListPlayerGameVars(player: number)` (`GSListPlayerVars`) |  | writes the player's variables to the console |
+
+#### Areas and alarms
+
+| Function | Gives | What it does |
+|---|---|---|
+| `AddRectToArea(area: number, x1: number, y1: number, x2: number, y2: number)` |  | adds the rectangle from (x1, y1) to (x2, y2) to the area of that number |
+| `AddRoundToArea(area: number, x: number, y: number, radius: number)` |  | adds the circle around (x, y) to the area of that number |
+| `DeleteArea(area: number)` |  | deletes the area |
+| `IsInArea(area: number, x: number, y: number)` | `number` | 1 when (x, y) lies in the area, else 0 |
+| `InvokeAlarm(alarm: number, x: number, y: number)` |  | raises the alarm of that number at (x, y) |
+| `IsAlarm(alarm: number)` | `number` | 1 while the alarm is raised, else 0 |
+| `AlarmTime(alarm: number)` | `number` | the tick the alarm was raised at |
+| `AlarmPositionX(alarm: number)` (`AlarmPosX`) | `number` | the x where the alarm was raised |
+| `AlarmPositionY(alarm: number)` (`AlarmPosY`) | `number` | the y where the alarm was raised |
+
+#### Levers and traps
+
+| Function | Gives | What it does |
+|---|---|---|
+| `GetLeverState(lever: object)` | `number` | the lever's state |
+| `SwitchLeverState(lever: object, state: number)` |  | switches the lever to the state |
+| `SwitchLeverStateEx(lever: object, state: number, time: number)` |  | switches the lever to the state over that time |
+| `EnableLever(lever: object, on: number)` |  | the lever can be used (not 0) or not (0) |
+| `SetScience(lever: object, key: number, level: number, a: number, b: number, c: number, d: number)` |  | locks the lever: the key's id, the lock's level and four flags (not 0: set) |
+| `ActivateTrap(trap: object, on: number)` |  | arms the trap (not 0) or disarms it (0) |
+
+#### World, time and weather
+
+| Function | Gives | What it does |
+|---|---|---|
+| `GetWorldTime()` | `number` | the hour of the day, 0 to 24 |
+| `IsNight()` | `number` | how much night it is, 0 by day |
+| `RunWorldTime(hour: number)` |  | sets the hour and lets the time run |
+| `FixWorldTime(hour: number)` |  | sets the hour and stops the time there |
+| `SetWeather(weather: string)` |  | "rain", "snow" or "clear" |
+| `SetWind(x: number, y: number, z: number, strength: number)` |  | the wind's direction and strength |
+| `SetWaterLevel(material: number, level: number, ticks: number)` |  | the water of the terrain material rises or falls to the level over that many ticks |
+| `SetBackgroundColor(r: number, g: number, b: number)` (`SetBackGroundColor`) |  | the fog's colour, 0 to 255 each |
+| `SetSunLight(a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number)` |  | does nothing (as in the game) |
+| `GetGridHeight(x: number, y: number)` (`GetZValue`) | `number` | the ground's height at (x, y) on the terrain grid |
+| `GetSurfaceHeight(x: number, y: number)` (`GetBSZValue`) | `number` | the surface's height at (x, y), objects such as bridges included |
+| `AddMob(file: string)` |  | loads the objects of the .mob file into the zone |
+| `AddMobEx(file: string, keepIds?: number)` |  | `AddMob` without the loading movie; `keepIds` 1: the objects keep their ids |
+| `PauseGame(pause: number)` |  | outside network games: 0 pauses the game, anything else goes on |
+| `GameOver()` |  | the game is over for player 0 |
+| `GameOverMessage(title: string, text: string)` (`GameOverMSG`) |  | the game is over for player 0, with a message |
+| `FileExists(path: string)` (`IsFileExists`) | `number` | 1 when the mod's folder holds the file, else 0 |
+
+#### Lights, particles and sounds
+
+| Function | Gives | What it does |
+|---|---|---|
+| `CreatePointLight(id: number, x: number, y: number, z: number, radius: number, r: number, g: number, b: number)` |  | a point light (a light of that id replaced), its colour 0 to 255 each |
+| `MovePointLight(id: number, x: number, y: number, z: number, ticks: number, remove: number)` |  | the light moves to (x, y, z) over that many ticks; `remove` 1: then it goes |
+| `DeletePointLight(id: number)` |  | removes the light |
+| `CreateParticleSource(id: number, x: number, y: number, z: number, size: number, effect: string)` |  | a particle effect (the game's by its name or one of `Res\effects`); a negative id takes a new one |
+| `MoveParticleSource(id: number, x: number, y: number, z: number, ticks: number, remove: number)` |  | the effect moves to (x, y, z) over that many ticks; `remove` 1: then it goes |
+| `DeleteParticleSource(id: number)` |  | removes the particle effect |
+| `AttachParticleSource(id: number, object: number)` |  | the effect follows the object of that id |
+| `AttachParticles(id: number, object: object)` |  | the effect follows the object |
+| `SetParticleSourceSize(id: number, size: number)` |  | the effect's size |
+| `CreateLightning(id: number, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, width: number)` |  | a lightning bolt from one point to the other; a negative id takes a new one |
+| `DeleteLightning(id: number)` |  | removes every bolt of that id |
+| `CreateSound(x: number, y: number, z: number, volume: number, radius: number, sound: string)` (`CreateFX`) |  | plays the sound once at (x, y, z) |
+| `CreateSoundSource(id: number, x: number, y: number, z: number, volume: number, radius: number, sound: string)` (`CreateFXSource`) |  | a looping sound at (x, y, z); a negative id takes a new one |
+| `CreateRandomizedSoundSource(id: number, x: number, y: number, z: number, volume: number, radius: number, minDelay: number, maxDelay: number, spread: number, sound: string)` (`CreateRandomizedFXSource`) |  | a sound played again and again after random delays (ticks), spread around (x, y, z) |
+| `DeleteSoundSource(id: number)` (`DeleteFXSource`) |  | removes the sound source |
+| `PlaySound(x: number, y: number, z: number, volume: number, sound: string)` (`PlayFX`) |  | does nothing (as in the game) |
+
+#### Camera, movies, music and messages
+
+| Function | Gives | What it does |
+|---|---|---|
+| `PlayCamera(path: string)` |  | plays the camera path |
+| `IsCameraPlaying()` | `number` | not 0 while a camera path plays |
+| `StartCameraSave(file: string)` |  | records the camera's moves into the file |
+| `StopCameraSave()` |  | stops recording the camera |
+| `SetCameraOrientation(angle: number)` |  | does nothing (as in the game) |
+| `SetCameraPosition(x: number, y: number, z: number)` |  | does nothing (as in the game) |
+| `PlayMovie(file: string)` |  | plays the movie of the `Movies` folder |
+| `PlayMusic(player: number, music: string)` |  | the player hears the jingle |
+| `ShowCredits(file: string)` |  | does nothing (as in the game) |
+| `ShowBitmap(value: number, file: string)` |  | does nothing (as in the game) |
+| `SendEvent(kind: number, value: number)` |  | sends the value to every player |
+| `SendStringEvent(kind: number, text: string)` |  | sends the text to every player |
+| `Say(text: string, ...: string)` |  | in a network game, the texts joined as a chat line from the server |
+| `ConsoleFloat(value: number)` |  | writes the number as a console line |
+| `ConsoleString(text: string, ...: string)` |  | writes the texts joined as a console line |
+
+#### Numbers and strings
+
+| Function | Gives | What it does |
+|---|---|---|
+| `IsEqual(a: number, b: number)` | `number` | 1 when a equals b, else 0 |
+| `IsLess(a: number, b: number)` | `number` | 1 when a is less than b, else 0 |
+| `IsGreater(a: number, b: number)` | `number` | 1 when a is greater than b, else 0 |
+| `IsEqualString(a: string, b: string)` | `number` | 1 when the strings are equal, else 0 |
+| `Not(a: number)` | `number` | 1 when a is 0, else 0 |
+| `And(a: number, b: number, ...: number)` | `number` | 1 when no argument truncates to 0, else 0 |
+| `Or(a: number, b: number, ...: number)` | `number` | 1 when an argument does not truncate to 0, else 0 |
+| `Add(a: number, b: number, ...: number)` | `number` | the sum, in single precision |
+| `Sub(a: number, b: number)` | `number` | a - b, in single precision |
+| `Mul(a: number, b: number, ...: number)` | `number` | the product, in single precision |
+| `Div(a: number, b: number)` | `number` | a / b, in single precision |
+| `Max(a: number, b: number, ...: number)` | `number` | the largest |
+| `Min(a: number, b: number, ...: number)` | `number` | the smallest |
+| `Abs(a: number)` | `number` | a without its sign |
+| `Round(a: number)` | `number` | a rounded to the nearest whole number, halves away from 0 |
+| `Ceil(a: number)` | `number` | the smallest whole number not below a |
+| `Floor(a: number)` | `number` | the largest whole number not above a |
+| `Sin(radians: number)` | `number` | the sine |
+| `Cos(radians: number)` | `number` | the cosine |
+| `Pow(a: number, b: number)` | `number` | a to the power b |
+| `Random(a: number, b?: number)` | `number` | a draw of the game's generator: from 0 to `a`; with `b`, from `a` to `b` |
+| `RandomString(a: string, b: string, ...: string)` (`RandStr`) | `string` | one of the strings at random (the game's generator) |
+| `FloatToString(value: number, digits?: number)` (`FloatToStr`) | `string` | the number in decimals (3 unless given, 0 to 8), trailing zeros cut |
+| `StringToFloat(text: string)` (`StrToFloat`) | `number` | the number the text starts with (0 when none) |
+| `StringConcat(a: string, b: string, ...: string)` (`StrCat`) | `string` | the strings joined |
+| `StringLength(text: string)` (`StrLen`) | `number` | the text's length in characters |
+| `StringContains(text: string, part: string)` (`StrHas`) | `number` | 1 when the text contains the part, else 0 |
+| `StringMid(text: string, start: number, count: number)` (`StrMid`) | `string` | `count` characters from `start` (1 the first, -1 the last; `count` 0: the rest) |
+| `StringLower(text: string)` (`StrLower`) | `string` | the text in lower case |
+| `StringUpper(text: string)` (`StrUpper`) | `string` | the text in upper case |
+
+<!-- /lua-api -->
 
 ## Effects
 
@@ -885,67 +1279,167 @@ end
 return spell
 ```
 
-- **The hooks** (the file returns a table of them; each is optional):
-  - `OnCast(cast)` once, when the cast starts;
-  - `OnTick(cast)` every tick after (a file with it keeps its casts going until `cast:Finish()` or the limit);
-  - `OnHit(cast, target, payload, point)` when a missile of the cast lands (`target` nil when the unit is gone,
-    `payload` what `cast:Missile` was given, `point` where it ended);
-  - `OnEnd(cast, reason)` once, at the end: `"finished"`, `"idle"`, `"limit"` or `"error"`;
-  - `OnResume(cast, old)` for a save made before a game's spell moved onto this file, when it held a cast of it in
-    flight (`old.state` `"missile"`) or lingering (`"lasting"`), `old.ticks` left on the game's own count: the cast's
-    objects are already its own (a missile still lands in `OnHit`, with a nil payload; `old.visual`, `old.sound` and
-    `old.light` are their handles, for `cast:Release` later; `old.direction` the direction of its wall or bolt); set
-    its timers and data here (the world methods are off in this hook, but `cast:Block`). Without it such a cast ends at
-    once;
-  - a function you name in `cast:After(ticks, "Name", payload)`: `spell.Name(cast, payload)` that many ticks later.
-- **No waits.** `Sleep` and the other waits are errors in a hook; pace the spell with `cast:After` and `OnTick`.
-- **The cast value**: `cast.id`, `cast.code`, `cast.caster` and `cast.target` (units or nil), `cast.from` and
-  `cast.point` (`{x, y, z}`), `cast.tick` (ticks since the cast), the spell's built numbers (runes included):
-  `cast.damage`, `cast.range`, `cast.radius`, `cast.duration`, `cast.targetCount`, `cast.speed`, `cast.mana`,
-  `cast.power` (the game's power curve of its damage, about 0.8 to 1.8), `cast.areaPower` (the same curve of its area
-  over the record's: the fireball's blast is the larger of the two), `cast.lightRise` (how fast the game's spell
-  lights rise away: the record's `light_range / max(light_rise_divisor, 1)` a tick), `cast.lightRange` (the record's
-  `light_range`), `cast.school` (its school's name), `cast.silent` (an item's own periodic cast: the game's buffs end
-  without their sound and its healing makes no sound or light on a unit at full health); and
-  `cast.data`, a table of your own that is kept with the cast (and in saves): numbers, strings, booleans, units,
-  tables. The cast value is the same table at every hook of a cast, its fields brought up to date before each one:
-  read them, but keep your own values in `cast.data` (what you set on the cast value itself is not saved).
-- **The methods.** Positions are `{x, y, z}` tables or units (where the unit stands). Each does what the game's own
-  spells do:
+- **The hooks.** The file returns a table of them, each optional; a function of another name is a timer:
+  `cast:After(ticks, "Name", payload)` runs `spell.Name(cast, payload)` that many ticks later.
 
-| Method | What it does |
+<!-- lua-api: hooks -->
+
+| Hook | When it runs |
 |---|---|
-| `cast:FindUnits(at, radius, filter)` | the units within `radius` of `at`, nearest first. `filter` keys: `enemies` / `friends` (of the caster; with no caster every unit is an enemy), `alive`, `area` (those area spells hit), `sight` (in the line of sight the spell needs from `at`), `affect` (the rune filters let the spell hit them), `exclude` (a set of ids: `{[GetObjectID(unit)] = true}`), `along` (a direction `{x, y, z}`: only those within 0.5 of the upright plane through `at` along it, as the game's walls hit), `unsorted` (in the map's own order, the order the game's area spells hit in, not nearest first) |
-| `cast:CanAffect(unit)` | the spell's hits would hit the unit (its rune filters) |
-| `cast:Damage(unit, amount, type, {area, noCredit, split})` | a spell's hit of `amount` of a damage type (`fire`, `lightning`, `acid`, `piercing`, `slashing`, `crushing`, `general`) on a unit (other objects are not hit): armour and protections count, the caster is the attacker unless `noCredit`; `area` hits have no direction, as the walls' and clouds'; `split = n` shares the hit between n targets as the game's area spells do (n above 1: the amount and the hit's strength x 4 / n; they pass `cast.duration`). Gives the hit points lost |
-| `cast:Heal(unit, amount)` | heals as the healing spell does; gives the hit points gained |
-| `cast:Apply(unit, kind, {ticks, power, value, strength})` | an active effect on the unit: `kind` a spell's code (`slow`, `stun`, `weak`, `prot_fire`, ...: that spell's effect and look) or `"own"` (this spell's, with its icon, doing what its `effect` says: nothing unless given). The values default to the cast's (duration, power, damage, radius) |
-| `cast:Remove(unit, kind)`, `cast:Has(unit, kind)` | the unit's effects of that kind removed (how many) / whether it has one |
-| `cast:Move(unit, to, {check = true})` | the unit moved to the point (at its own height) unless it cannot stand there; true when it moved. A push is a small move each tick |
-| `cast:Bolt(from, to, {width, lifetime, demon})` | a lightning bolt; an end that is a unit follows it; `demon` the curse magic's look |
-| `cast:Missile{to, from, effect, size, sound, payload}` | a spell missile flying at the unit `to` (at the game's missile speed) from `from` (default the caster), showing `effect` (default `FireArrow`) with the spell's light; `OnHit` runs when it lands |
-| `cast:Effect(name, {at, attach, size, alpha, param, velocity, target, unit, direction, lifetime, free})` | a particle effect: one of yours (`Res\effects`, [Effects](#effects)) or a game's by its script name (`Sparks`, `LightningBlast`, `FireBlast`, `FireBall`, `Nuke`, `Healing`, ...); at `at` (default the cast's point) or on the unit `attach`; `param` its source's parameter (the fire blast's spread: the fireball passes its radius); one flying by `velocity` heads for the point `target` and starts on the players' screens at the hand of the unit `unit` (the fireball); a wall's (`Tendril`, `Link`) `direction` is its extent from its middle to an end (the fire wall's). A `free` one (a flash that plays once) is not the cast's: it lives its own life, also after the cast ends |
-| `cast:Sound(name, at, volume, hearing)`, `cast:Sound(name, at, {volume, hearing, velocity})` | a sound played once (`magic\...\x.wav`), moving with `velocity` |
-| `cast:SoundLoop(at, loop, {first, volume, hearing, velocity, lifetime})` | sounds that go on while the cast holds them: `first` once, then `loop` (a name, or a list played in random order) over and over, as the fireball's flight and the walls sound. Gives a handle |
-| `cast:Light(at, {color, range, rise, velocity, lifetime})` | a point light, by default in the record's `light_color` and `light_range`, rising by `rise` a tick or moving by `velocity` |
-| `cast:SetVelocity(handle, {x, y, z})` | the cast's bolt, missile, effect or light of that handle moves by so much a tick from now on (a light sent up as it fades); false when it is gone |
-| `cast:Eye(unit)` | the point `{x, y, z}` a unit's spells start from (its eye), where the game's lightning puts its light |
-| `cast:HitPoint(unit)` | the point `{x, y, z}` where a hit on the unit shows, as the game's missiles splash: the ground below it plus its height as it stands (lower crawling, lying or dead, so ask after the damage); another object's position |
-| `cast:IsUnit(object)` | whether it is a unit (false for nil, a unit that is gone, or another object) |
-| `cast:Ground(at, {above, water})` | the point `{x, y, z}` on the ground at that place, `above` higher; `water`: on the water's surface where there is water, as the game's area spells aim |
-| `cast:Flight(from, to, speed)` | a flight along the ground at `speed` a second (default the spell's; 5 without one): `{ticks, distance, speed, velocity}`, the ticks it takes and the velocity a tick for `Effect`'s `velocity` |
-| `cast:Release(handle)` | the cast's bolt, missile, effect, light or sound loop of that handle goes now (a missile's `OnHit` never runs); false when it is gone or the handle is nil |
-| `cast:Noise(at, loudness, delay)` | the caster (a unit; nothing otherwise) makes a noise there that hostile units near it hear and come looking for the caster, as the fireball's blast does (`delay` the AI's call delay, 26 unless given) |
-| `cast:Across(from, to, length)` | the vector `{x, y, 0}` `length` long square to the ground line from `from` to `to` (to its left; along x when the two stand on one spot), as the game's walls stand across the line from their caster to their point: the wall's half from its middle to an end |
-| `cast:Position(object)` | the point `{x, y, z}` where the object is (its own position, not the ground below it), where the teleport's departure shows |
-| `cast:IsDead(unit)`, `cast:IsHurt(unit)` | whether the unit is dead, as the game's spells test it / whether its hit points as the players see them are not its maximum (the healing's test); false for nil or another object |
-| `cast:Shout(unit, ack)` | the unit says an ack to its player, by acks.db's names (`"cant_teleport"`, `"link_ended"`, ...), as the teleport's caster says it cannot go |
-| `cast:Reveal(unit)` | the caster's player sees the unit this tick, as clairvoyance shows the units around its point (call it every tick) |
-| `cast:Wake(at, radius)` | the units within `radius` of the position wake, as fireworks and clairvoyance wake those around them |
-| `cast:Notice(unit, at, level)` | the unit's AI notices the position at `level` (a whole number) when that is above what it noticed last: fireworks frighten with 300 falling to 50 over their duration |
-| `cast:Vision(seer, observer, {lifetime})` | the fog of war shows what the unit `seer` sees with the unit `observer`'s senses, as vision fog shows its caster what its target sees. Gives a handle |
-| `cast:Block(at, {along})`, `cast:Block(at, {radius})`, `cast:Unblock()` | the ground under a wall from `at - along` to `at + along`, or a disc of `radius` around `at`, counts as blocked for the units' paths (they go round it, as round the game's walls and clouds) until `Unblock` or the cast's end; one at a time (a second `Block` replaces the first). `Block` also works in `OnResume` |
-| `cast:After(ticks, "Name", payload)`, `cast:Finish()` | a timer; the end of the cast after this hook |
+| `OnCast(cast)` | once, when the cast starts |
+| `OnTick(cast)` | every tick after `OnCast` (a file with it keeps its casts going until `cast:Finish()` or the limit) |
+| `OnHit(cast, target, payload, point)` | a missile of the cast landed: `target` nil when the unit is gone, `payload` what `cast:Missile` was given, `point` where it ended |
+| `OnEnd(cast, reason)` | once, at the end of the cast: `reason` `"finished"`, `"idle"`, `"limit"` or `"error"` |
+| `OnResume(cast, old)` | a save made before a game's spell moved onto this file held a cast of it in flight (`old.state` `"missile"`) or lingering (`"lasting"`), `old.ticks` left on the game's own count: the cast's objects are already its own (a missile still lands in `OnHit`, with a nil payload; `old.visual`, `old.sound` and `old.light` are their handles, for `cast:Release` later; `old.direction` the direction of its wall or bolt); set its timers and data here (the world methods are off in this hook, but `cast:Block`). Without it such a cast ends at once |
+| `OnStats(effect, stats)` | the effect's kind on a unit works out its stats ([Active effects](#active-effects)); the world's functions are off in it |
+
+<!-- /lua-api -->
+
+- **No waits.** `Sleep` and the other waits are errors in a hook; pace the spell with `cast:After` and `OnTick`.
+- **The cast value** holds the cast and the spell's built numbers (runes included). It is the same table at every
+  hook of a cast, its fields brought up to date before each one: read them, but keep your own values in `cast.data`
+  (what you set on the cast value itself is not saved).
+
+<!-- lua-api: cast-fields -->
+
+| Field | Type | What it holds |
+|---|---|---|
+| `cast.id` | `integer` | the cast's number |
+| `cast.code` | `string` | the spell's code |
+| `cast.caster` | `object` | the unit that cast it, or nil |
+| `cast.target` | `object` | the unit it was cast at, or nil (also once it is gone) |
+| `cast.from` | `point` | where the cast started |
+| `cast.point` | `point` | the point it was cast at |
+| `cast.tick` | `integer` | ticks since the cast |
+| `cast.damage` | `number` | the spell's damage (runes included, as every number here) |
+| `cast.range` | `number` | its range |
+| `cast.radius` | `number` | its radius |
+| `cast.duration` | `integer` | its duration in ticks |
+| `cast.targetCount` | `integer` | its number of targets |
+| `cast.speed` | `number` | its speed |
+| `cast.mana` | `number` | its mana cost |
+| `cast.power` | `number` | the game's power curve of its damage, about 0.8 to 1.8 |
+| `cast.areaPower` | `number` | the same curve of its area over the record's (the fireball's blast is the larger of the two) |
+| `cast.lightRise` | `number` | how fast the game's spell lights rise away: the record's `light_range / max(light_rise_divisor, 1)` a tick |
+| `cast.lightRange` | `number` | the record's `light_range` |
+| `cast.school` | `string` | its school's name |
+| `cast.silent` | `boolean` | an item's own periodic cast: the game's buffs end without their sound and its healing makes no sound or light on a unit at full health |
+| `cast.data` | `table` | a table of your own, kept with the cast and in saves: numbers, strings, booleans, units, tables |
+
+<!-- /lua-api -->
+
+- **The methods.** A `position` is a `{x, y, z}` table or a unit (where the unit stands); a `point` is a
+  `{x, y, z}` table. Each does what the game's own spells do:
+
+<!-- lua-api: cast-methods -->
+
+| Method | Gives | What it does |
+|---|---|---|
+| `cast:FindUnits(at: position, radius: number, filter?: FindUnitsFilter)` | `object[]` | the units within `radius` of `at`, nearest first (`filter`: FindUnitsFilter below) |
+| `cast:CanAffect(unit: object)` | `boolean` | the spell's hits would hit the unit (its rune filters) |
+| `cast:Damage(unit: object, amount: number, type: string, options?: DamageOptions)` | `number` | a spell's hit of `amount` of a damage type (`fire`, `lightning`, `acid`, `piercing`, `slashing`, `crushing`, `general`) on a unit (other objects are not hit): armour and protections count, the caster is the attacker unless `noCredit`. Gives the hit points lost |
+| `cast:Heal(unit: object, amount: number)` | `number` | heals as the healing spell does; gives the hit points gained |
+| `cast:Apply(unit: object, kind: string, options?: ApplyOptions)` |  | an active effect on the unit: `kind` a spell's code (`slow`, `stun`, `weak`, `prot_fire`, ...: that spell's effect and look) or `"own"` (this spell's, with its icon, doing what its `effect` says: nothing unless given). The values default to the cast's (duration, power, damage, radius) |
+| `cast:Remove(unit: object, kind: string)` | `integer` | the unit's effects of that kind removed; how many |
+| `cast:Has(unit: object, kind: string)` | `boolean` | whether the unit has an effect of that kind |
+| `cast:Move(unit: object, to: position, options?: MoveOptions)` | `boolean` | the unit moved to the point (at its own height) unless it cannot stand there; true when it moved. A push is a small move each tick |
+| `cast:Bolt(from: position, to: position, options?: BoltOptions)` | `integer` | a lightning bolt; an end that is a unit follows it. Gives a handle |
+| `cast:Missile(options: MissileOptions)` | `integer` | a spell missile flying at the unit `to` (at the game's missile speed) with the spell's light; `OnHit` runs when it lands. Gives a handle |
+| `cast:Effect(name: string, options?: EffectOptions)` | `integer` | a particle effect: one of yours (`Res\effects`, [Effects](#effects)) or a game's by its script name (`Sparks`, `LightningBlast`, `FireBlast`, `FireBall`, `Nuke`, `Healing`, ...). A `free` one (a flash that plays once) is not the cast's: it lives its own life, also after the cast ends. Gives a handle |
+| `cast:Sound(name: string, at: position, volume?: number, hearing?: number)`<br>`cast:Sound(name: string, at: position, options: SoundOptions)` |  | a sound played once (`magic\...\x.wav`), moving with `velocity` |
+| `cast:SoundLoop(at: position, loop: string\|string[], options?: SoundLoopOptions)` | `integer` | sounds that go on while the cast holds them: `first` once, then `loop` (a name, or a list played in random order) over and over, as the fireball's flight and the walls sound. Gives a handle |
+| `cast:Light(at: position, options?: LightOptions)` | `integer` | a point light, by default in the record's `light_color` and `light_range`, rising by `rise` a tick or moving by `velocity`. Gives a handle |
+| `cast:SetVelocity(handle: integer, velocity: point)` | `boolean` | the cast's bolt, missile, effect or light of that handle moves by so much a tick from now on (a light sent up as it fades); false when it is gone |
+| `cast:Eye(unit: object)` | `point` | the point a unit's spells start from (its eye), where the game's lightning puts its light |
+| `cast:HitPoint(unit: object)` | `point` | the point where a hit on the unit shows, as the game's missiles splash: the ground below it plus its height as it stands (lower crawling, lying or dead, so ask after the damage); another object's position |
+| `cast:IsUnit(object: object)` | `boolean` | whether it is a unit (false for nil, a unit that is gone, or another object) |
+| `cast:Ground(at: position, options?: GroundOptions)` | `point` | the point on the ground at that place, `above` higher; `water`: on the water's surface where there is water, as the game's area spells aim |
+| `cast:Flight(from: position, to: position, speed?: number)` | `Flight` | a flight along the ground at `speed` a second (default the spell's; 5 without one): the ticks it takes and the velocity a tick for `Effect`'s `velocity` |
+| `cast:Release(handle?: integer)` | `boolean` | the cast's bolt, missile, effect, light or sound loop of that handle goes now (a missile's `OnHit` never runs); false when it is gone or the handle is nil |
+| `cast:Noise(at: position, loudness: number, delay?: integer)` |  | the caster (a unit; nothing otherwise) makes a noise there that hostile units near it hear and come looking for the caster, as the fireball's blast does (`delay` the AI's call delay, 26 unless given) |
+| `cast:Across(from: position, to: position, length: number)` | `point` | the vector `{x, y, 0}` `length` long square to the ground line from `from` to `to` (to its left; along x when the two stand on one spot), as the game's walls stand across the line from their caster to their point: the wall's half from its middle to an end |
+| `cast:Position(object: object)` | `point` | the point where the object is (its own position, not the ground below it), where the teleport's departure shows |
+| `cast:IsDead(unit: object)` | `boolean` | whether the unit is dead, as the game's spells test it; false for nil or another object |
+| `cast:IsHurt(unit: object)` | `boolean` | whether the unit's hit points as the players see them are not its maximum (the healing's test); false for nil or another object |
+| `cast:Shout(unit: object, ack: string)` |  | the unit says an ack to its player, by acks.db's names (`"cant_teleport"`, `"link_ended"`, ...), as the teleport's caster says it cannot go |
+| `cast:Reveal(unit: object)` |  | the caster's player sees the unit this tick, as clairvoyance shows the units around its point (call it every tick) |
+| `cast:Wake(at: position, radius: number)` |  | the units within radius of the position wake, as fireworks and clairvoyance wake those around them |
+| `cast:Notice(unit: object, at: position, level: integer)` |  | the unit's AI notices the position at `level` when that is above what it noticed last: fireworks frighten with 300 falling to 50 over their duration |
+| `cast:Vision(seer: object, observer: object, options?: VisionOptions)` | `integer` | the fog of war shows what the unit `seer` sees with the unit `observer`'s senses, as vision fog shows its caster what its target sees. Gives a handle |
+| `cast:Block(at: position, options: BlockOptions)` |  | the ground under a wall from `at - along` to `at + along`, or a disc of `radius` around `at`, counts as blocked for the units' paths (they go round it, as round the game's walls and clouds) until `Unblock` or the cast's end; one at a time (a second `Block` replaces the first). `Block` also works in `OnResume` |
+| `cast:Unblock()` | `boolean` | the ground `Block` blocked is free again; whether there was one |
+| `cast:After(ticks: number, name: string, payload?: any)` |  | a timer: the spell file's function of that name runs that many ticks later: `spell.Name(cast, payload)` |
+| `cast:Finish()` |  | the cast ends after this hook (its bolts, effects and lights go with it) |
+
+<!-- /lua-api -->
+
+- **The methods' tables**: the keys their options (and `cast:Flight`'s result) take, each optional:
+
+<!-- lua-api: options -->
+
+| Table | Key | Type | What it does |
+|---|---|---|---|
+| `FindUnitsFilter` | `enemies` | `boolean` | only the caster's enemies (with no caster every unit is an enemy) |
+|  | `friends` | `boolean` | only the caster's friends |
+|  | `alive` | `boolean` | only living units |
+|  | `area` | `boolean` | only those area spells hit |
+|  | `sight` | `boolean` | only those in the line of sight the spell needs from at |
+|  | `affect` | `boolean` | only those the rune filters let the spell hit |
+|  | `exclude` | `table<integer, boolean>` | a set of ids to leave out: `{[GetObjectID(unit)] = true}` |
+|  | `along` | `point` | a direction: only those within 0.5 of the upright plane through at along it, as the game's walls hit |
+|  | `unsorted` | `boolean` | in the map's own order (the order the game's area spells hit in), not nearest first |
+| `DamageOptions` | `area` | `boolean` | a hit with no direction, as the walls' and clouds' |
+|  | `noCredit` | `boolean` | the caster is not the attacker |
+|  | `split` | `number` | shares the hit between n targets as the game's area spells do (n above 1: the amount and the hit's strength x 4 / n; they pass `cast.duration`) |
+| `ApplyOptions` | `ticks` | `integer` | how long it lasts (the cast's duration) |
+|  | `power` | `number` | its look's size (the cast's power) |
+|  | `value` | `number` | its value, `effect.value` in `OnStats` (the cast's damage) |
+|  | `strength` | `number` | its strength (the cast's radius) |
+| `MoveOptions` | `check` | `boolean` | only to a place the unit can stand on (true) |
+| `BoltOptions` | `width` | `number` | the bolt's width |
+|  | `lifetime` | `integer` | ticks it lasts (else as long as the cast) |
+|  | `demon` | `boolean` | the curse magic's look |
+| `MissileOptions` | `to` | `object` | the unit it flies at |
+|  | `from` | `position` | where it starts (the caster) |
+|  | `effect` | `string` | its particle effect (FireArrow) |
+|  | `size` | `number` | the effect's size (the cast's power) |
+|  | `sound` | `string` | the sound it makes in flight |
+|  | `payload` | `any` | given to OnHit |
+| `EffectOptions` | `at` | `position` | where it shows (the cast's point) |
+|  | `attach` | `object` | the unit it shows on |
+|  | `size` | `number` | its size (1) |
+|  | `alpha` | `number` | its opacity (1) |
+|  | `param` | `number` | its source's parameter (the fire blast's spread: the fireball passes its radius) |
+|  | `velocity` | `point` | it flies by so much a tick |
+|  | `target` | `position` | a flying one heads for this point |
+|  | `unit` | `object` | a flying one starts on the players' screens at this unit's hand (the fireball) |
+|  | `direction` | `point` | a wall's (Tendril, Link) extent from its middle to an end (the fire wall's) |
+|  | `lifetime` | `integer` | ticks it lasts (else as long as the cast) |
+|  | `free` | `boolean` | not the cast's: it lives its own life |
+| `SoundOptions` | `volume` | `number` | its volume |
+|  | `hearing` | `number` | how far it is heard |
+|  | `velocity` | `point` | it moves by so much a tick |
+| `SoundLoopOptions` | `first` | `string` | the sound played once before the loop |
+|  | `volume` | `number` | their volume |
+|  | `hearing` | `number` | how far they are heard |
+|  | `velocity` | `point` | they move by so much a tick |
+|  | `lifetime` | `integer` | ticks they last (else as long as the cast) |
+| `LightOptions` | `color` | `number[]` | {r, g, b} (the record's light_color) |
+|  | `range` | `number` | its range (the record's light_range) |
+|  | `rise` | `number` | it rises by so much a tick |
+|  | `velocity` | `point` | it moves by so much a tick |
+|  | `lifetime` | `integer` | ticks it lasts (else as long as the cast) |
+| `GroundOptions` | `above` | `number` | so much higher |
+|  | `water` | `boolean` | on the water's surface where there is water |
+| `VisionOptions` | `lifetime` | `integer` | ticks it lasts (else as long as the cast) |
+| `BlockOptions` | `along` | `point` | the wall's half: from `at - along` to `at + along` |
+|  | `radius` | `number` | a disc of that radius instead |
+| `Flight` | `ticks` | `integer` | the ticks the flight takes |
+|  | `distance` | `number` | its length along the ground |
+|  | `speed` | `number` | its speed a second |
+|  | `velocity` | `point` | its velocity a tick, for Effect's velocity |
+
+<!-- /lua-api -->
 
 - **Handles.** `Bolt`, `Missile`, `Effect`, `Light`, `SoundLoop` and `Vision` give a handle (a number) for `SetVelocity` and
   `Release`; keep it in `cast.data` to use it in a later hook.
@@ -1002,26 +1496,57 @@ return spell
   and `Random` are errors in it, as at a file's top level. An error ends that kind's part (it adds nothing), says
   `Script error: ...` on the console, and the game goes on. A file holding several kinds (Buff.lua) looks at
   `effect.kind`.
+- **The effect**: its kind and value.
+
+<!-- lua-api: effect-fields -->
+
+| Field | Type | What it holds |
+|---|---|---|
+| `effect.kind` | `string` | its spell's code (lower case) |
+| `effect.value` | `number` | the strongest value of its kind's effects on the unit (from 0; the spell's damage unless `cast:Apply` gave one) |
+
+<!-- /lua-api -->
+
 - **The stats** are totals the effects add up to, each starting at 0, that the game then applies where it did for its
-  own buffs. `stats:Add(name, x)`, `stats:Subtract(name, x)`, `stats:Larger(name, x)` (the larger of the total and
-  `x`: how a protection and antimagic's take the larger of the two) and `stats:Multiply(name, x)` are one float
-  operation each on the total, with `x` rounded to a float; as for spells, pass a value on or put it through one
-  operation (`effect.value * 0.009999999776482582`, the float 0.01), never a chain, and the numbers are the game's.
+  own buffs. Each method is one float operation on the total, with `x` rounded to a float; as for spells, pass a value
+  on or put it through one operation (`effect.value * 0.009999999776482582`, the float 0.01), never a chain, and the
+  numbers are the game's.
+
+<!-- lua-api: stats-methods -->
+
+| Method | Gives | What it does |
+|---|---|---|
+| `stats:Add(name: stat, x: number)` |  | the total plus `x` |
+| `stats:Subtract(name: stat, x: number)` |  | the total minus `x` |
+| `stats:Larger(name: stat, x: number)` |  | the larger of the total and `x`: how a protection and antimagic's take the larger of the two |
+| `stats:Multiply(name: stat, x: number)` |  | the total times `x` |
+
+<!-- /lua-api -->
+
+<!-- lua-api: stats -->
 
 | Stat | What the game does with it |
 |---|---|
-| `FireProtection`, `LightningProtection`, `AcidProtection` | added to the unit's protection from that damage (the protection spells and antimagic: `Larger`) |
+| `FireProtection` | added to the unit's protection from fire (the protection spells and antimagic: `Larger`) |
+| `LightningProtection` | added to the unit's protection from lightning |
+| `AcidProtection` | added to the unit's protection from acid |
 | `Sight` | added to the sight range (eagle sight) |
 | `DaySight` | added to the sight's percentage by day (infravision) |
 | `NearSense` | added to the range sensed whatever the light (detect life) |
-| `SightConspicuity`, `HearingConspicuity`, `NearConspicuity` | added to how visible, how loud, how near sensed the unit is, which stays at least 0 (invisibility subtracts its value in percent, silence and lichdom their value) |
+| `SightConspicuity` | added to how visible the unit is, which stays at least 0 (invisibility subtracts its value in percent) |
+| `HearingConspicuity` | added to how loud the unit is, at least 0 (silence subtracts its value) |
+| `NearConspicuity` | added to how near the unit is sensed, at least 0 (lichdom subtracts its value) |
 | `SmellConspicuity` | added to how the unit smells (stench) |
 | `Haste` | added to the action rate, which stays at least 1 (speed adds its value, slow subtracts its) |
-| `Might`, `Frailty` | hit points times (1 + Might x 0.005) / (1 + Frailty x 0.005), at least 1, and the unit's damage the same with 0.003 (strength and weak) |
+| `Might` | hit points times (1 + `Might` x 0.005) / (1 + `Frailty` x 0.005), at least 1, and the unit's damage the same with 0.003 (strength) |
+| `Frailty` | the divisor of `Might`'s formula (weak) |
 | `Regeneration` | while above 0, the hit points regenerate that many times as fast (regeneration) |
-| `Girth`, `Size` | the figure grows by 0.4 a step: with `Size` 0, `Girth` steps wider (for the hero only in width), else `Size` + `Girth` steps on every axis (strength and weak 1 and -1 `Girth`, enlarge and shrink 1 and -1 `Size`) |
+| `Girth` | the figure grows by 0.4 a step: with `Size` 0, `Girth` steps wider (for the hero only in width), else `Size` + `Girth` steps on every axis (strength and weak 1 and -1) |
+| `Size` | steps of the figure's size on every axis (enlarge and shrink 1 and -1) |
 | `Stunned` | while above 0 the unit is stunned: no actions (stun; the teleport's arrival) |
 | `NoCasting` | while above 0 the unit casts no spells, unless its natural weapon is spells only (feeblemind) |
+
+<!-- /lua-api -->
 
 **How it shows.** The players' screens show an effect by fields of its kind's record (the spell its `effect` names,
 or the spell itself for `own`), since they have the effects' kinds but not their stats. The game's twenty buffs have

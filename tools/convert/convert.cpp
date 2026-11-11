@@ -4,6 +4,9 @@
 //        ei-convert --check <install or archive>...        only the round trips
 //        ei-convert --scripts <install>... [options]       the script survey and Lua check (convert_scripts.cpp)
 //        ei-convert --lua-check                             the scripts' Lua bindings on a small world (lua_check.cpp)
+//        ei-convert --lua-api <file>                        the Lua API's LuaLS definition file (lua_api.h)
+//        ei-convert --lua-api-docs <repository> [--check]   the same and docs/modding.md's API tables written into the
+//                                                           repository, or compared with it (lua_api.h)
 //        ei-convert --effect-check [--record <file>] [--dump <file>]
 //                                                           the original particle types against their recorded C++
 //                                                           (effect_check.h)
@@ -42,6 +45,7 @@
 #include "convert_mobs.h"
 #include "convert_models.h"
 #include "convert_scripts.h"
+#include "lua_api.h"
 #include "lua_check.h"
 #include "convert_textures.h"
 #include "effect_check.h"
@@ -649,7 +653,9 @@ int Usage() {
                 "       ei-convert --check <install or archive>...\n"
                 "       ei-convert --scripts <install>... [--scenarios <folder>] [--dump <folder>] [--lua <folder>]\n"
                 "                  [--quiet]\n"
-                "       ei-convert --lua-check\n");
+                "       ei-convert --lua-check\n"
+                "       ei-convert --lua-api <file>\n"
+                "       ei-convert --lua-api-docs <repository> [--check]\n");
     return 2;
 }
 
@@ -675,6 +681,8 @@ int main(int argc, char** argv) {
     std::vector<fs::path> sources;
     if (argc >= 2 && std::strcmp(argv[1], "--scripts") == 0) return convert_scripts::Main({argv + 2, argv + argc});
     if (argc == 2 && std::strcmp(argv[1], "--lua-check") == 0) return lua_check::Main();
+    if (argc >= 2 && std::strcmp(argv[1], "--lua-api") == 0) return lua_api::WriteDefinitions({argv + 2, argv + argc});
+    if (argc >= 2 && std::strcmp(argv[1], "--lua-api-docs") == 0) return lua_api::WriteDocs({argv + 2, argv + argc});
     if (argc >= 2 && std::strcmp(argv[1], "--effect-check") == 0) {
         std::string record, dump;
         for (int i = 2; i < argc; ++i) {

@@ -21,8 +21,8 @@ namespace scriptlua {
 struct ObjectValue;
 struct GroupValue;
 
-// The Lua name of a keyword of the table (KeywordTable()'s name, as written there); null for a punctuation or section
-// keyword. The rule: docs/notes/lua-scripting.md, "Bindings".
+// The Lua name of a keyword of the table (KeywordTable()'s name, as written there), its declaration's
+// (script_lua_api.inc); null for a punctuation or section keyword. The rule: docs/notes/lua-scripting.md, "Bindings".
 const char* LuaName(std::string_view keyword);
 
 // A keyword's binding: its id, its name in the table and in Lua.

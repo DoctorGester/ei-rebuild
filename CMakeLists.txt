@@ -407,6 +407,7 @@ target_link_libraries(ei-rebuild PRIVATE imgui)
 add_executable(ei-convert tools/convert/convert.cpp tools/convert/convert_databases.cpp tools/convert/convert_maps.cpp
                tools/convert/convert_textures.cpp tools/convert/convert_mobs.cpp
                tools/convert/convert_models.cpp tools/convert/convert_scripts.cpp tools/convert/lua_check.cpp
+               tools/convert/lua_api.cpp
                tools/convert/lua_globals.cpp tools/convert/example_mod.cpp tools/convert/effect_check.cpp
                ${CMAKE_BINARY_DIR}/effect_files/reference.h ${EI_GAME_CALLS} ${EI_SDL_CALLS})
 target_include_directories(ei-convert PRIVATE src third_party ${CMAKE_BINARY_DIR})
@@ -551,6 +552,8 @@ else()
     add_test(NAME port_platform COMMAND ei_port_check)
     # The mission scripts' Lua bindings on a small world of their own (tools/convert/lua_check.cpp).
     add_test(NAME port_lua COMMAND ei-convert --lua-check)
+    # docs/modding.md's Lua API tables and examples/lua_api/ei_api.lua against the declarations (tools/convert/lua_api.h).
+    add_test(NAME port_lua_api COMMAND ei-convert --lua-api-docs ${CMAKE_SOURCE_DIR} --check)
     # The original particle types against their recorded C++ runs (tools/convert/effect_check.cpp).
     add_test(NAME port_effects COMMAND ei-convert --effect-check)
     add_executable(ei_render_check tests/port/render_check.cpp tests/render/glyph_cases.cpp ${EI_PROGRAM_SOURCES}

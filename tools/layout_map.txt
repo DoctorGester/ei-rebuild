@@ -514,6 +514,8 @@ script_lua_resume.cpp       script/script_lua_resume.cpp
 script_lua_mission.cpp      script/script_lua_mission.cpp
 script_spell_host.h         script/script_spell_host.h
 script_spell_host.cpp       script/script_spell_host.cpp
+script_lua_api.h            script/script_lua_api.h     new   # the Lua API's declarations as data (MF17i)
+script_lua_api.inc          script/script_lua_api.inc   new
 script_addon_handlers.h     script/script_addon_handlers.h
 script_addon_commands.cpp   script/script_addon_commands.cpp
 script_addon_math.cpp       script/script_addon_math.cpp

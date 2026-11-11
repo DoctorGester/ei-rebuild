@@ -40,6 +40,9 @@ def checks(out):
         # The scripts' Lua bindings on a small world of their own (tools/convert/lua_check.cpp; docs/notes/
         # lua-scripting.md, "Bindings").
         [os.path.join(out, 'ei-convert.exe'), '--lua-check'],
+        # docs/modding.md's Lua API tables and examples/lua_api/ei_api.lua against the API's declarations
+        # (src/game/script/script_lua_api.inc; tools/convert/lua_api.h).
+        [os.path.join(out, 'ei-convert.exe'), '--lua-api-docs', ROOT, '--check'],
         # The original particle types' sources against the runs recorded from their C++ emitters, tick by tick
         # (tools/convert/effect_check.cpp; docs/notes/effects.md, "Checks").
         [os.path.join(out, 'ei-convert.exe'), '--effect-check'],

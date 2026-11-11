@@ -1,6 +1,8 @@
 // ei-convert --lua-check: see lua_check.h.
 #include "lua_check.h"
 
+#include "lua_api.h"
+
 #include "game/app/singletons.h"
 #include "engine/core/core_streams.h"
 #include "engine/core/random.h"
@@ -11,9 +13,11 @@
 #include "game/players/player_manager.h"
 #include "game/world/camera.h"
 #include "game/script/script.h"
+#include "game/spells/effect_stats.h"
 #include "game/spells/spell.h"
 #include "game/spells/spell_effect_internal.h"
 #include "game/script/script_lua.h"
+#include "game/script/script_lua_api.h"
 #include "game/script/script_lua_scheduler.h"
 #include "game/script/script_lua_number.h"
 #include "game/script/script_lua_writer.h"
@@ -21,9 +25,11 @@
 
 #include "eris/lauxlib.h"
 #include "eris/lua.h"
+#include "eris/lualib.h"
 
 #include <algorithm>
 #include <bit>
+#include <cctype>
 #include <cstdint>
 #include <cstdio>
 #include <format>
@@ -118,6 +124,138 @@ void CheckNames(ScriptLua& lua) {
             Expect(false, lua_tostring(L, -1));
     }
     lua_pop(L, 1);
+}
+
+// ---- The API's declarations (script_lua_api.inc) against what the runtime registers ---------------------------
+
+// The string keys of the table at `index`: all its own (raw) keys, or with `functions` those whose value is a function.
+std::set<std::string> KeysOf(lua_State* L, int index, bool functions) {
+    std::set<std::string> keys;
+    index = lua_absindex(L, index);
+    lua_pushnil(L);
+    while (lua_next(L, index)) {
+        if (lua_type(L, -2) == LUA_TSTRING && (!functions || lua_type(L, -1) == LUA_TFUNCTION))
+            keys.insert(lua_tostring(L, -2));
+        lua_pop(L, 1);
+    }
+    return keys;
+}
+
+std::set<std::string> Declared(luaapi::Kind kind, const char* owner = nullptr) {
+    std::set<std::string> names;
+    for (const luaapi::Row& row : luaapi::kRows)
+        if (row.kind == kind && (!owner || std::string_view(owner) == row.owner)) names.insert(row.name);
+    return names;
+}
+
+// Each name of one set missing from the other, as a failure.
+void ExpectSame(const std::set<std::string>& registered, const std::set<std::string>& declared, const char* what) {
+    for (const std::string& name : registered)
+        if (!declared.contains(name)) Expect(false, std::format("{}: {} registered, not declared", what, name).c_str());
+    for (const std::string& name : declared)
+        if (!registered.contains(name))
+            Expect(false, std::format("{}: {} declared, not registered", what, name).c_str());
+}
+
+// A declared type's letter in a keyword's signature (its first alternative's): 0 for none of the four.
+char SignatureLetter(const std::string& type) {
+    const std::vector<std::string> alternatives = lua_api::SplitTop(type, '|');
+    const std::string first = alternatives.empty() ? "" : alternatives[0];
+    return first == "number" ? 'f' : first == "string" ? 's' : first == "object" ? 'o' : first == "group" ? 'g' : 0;
+}
+
+// The keywords whose Lua shapes are their own (no signature to hold them to): the loops and Every / Any / Sum.
+bool IsSpecial(std::string_view keyword) {
+    for (const char* special : {"For", "ForIf", "Every", "Any", "Sum"})
+        if (keyword == special) return true;
+    return false;
+}
+
+// Every keyword with a signature declared once, its arguments and result as the signature says; every global function
+// of the state a declared one (beside Lua's own), every declared one there; the stats' names EffectStat's.
+void CheckDeclarations(ScriptLua& lua) {
+    std::map<std::string, std::string> signatures;   // keyword -> result letter (' ' for a command), parameter letters
+    for (const ScriptKeyword* k = KeywordTable(); k->name; ++k)
+        if (k->function || k->command) signatures[k->name] = k->function ? k->function : std::string(" ") + k->command;
+    std::set<std::string> keywords, names;
+    for (const luaapi::Row& row : luaapi::kRows) {
+        const bool global = row.kind == luaapi::Kind::Binding || row.kind == luaapi::Kind::Global ||
+                            row.kind == luaapi::Kind::Helper;
+        if (global && !names.insert(row.name).second)
+            Expect(false, std::format("{}: declared twice", row.name).c_str());
+        if (row.kind != luaapi::Kind::Field)
+            for (const std::vector<lua_api::Param>& form : lua_api::Forms(row.params))
+                for (const lua_api::Param& param : form)
+                    if (param.name.empty() || param.type.empty())
+                        Expect(false, std::format("{}: an argument without a name or a type", row.name).c_str());
+        if (row.kind != luaapi::Kind::Binding) continue;
+        if (!keywords.insert(row.owner).second) Expect(false, std::format("{}: two declarations", row.owner).c_str());
+        const auto found = signatures.find(row.owner);
+        if (found == signatures.end()) {
+            Expect(false, std::format("{}: declared, no keyword with a signature", row.owner).c_str());
+            continue;
+        }
+        if (IsSpecial(row.owner)) continue;
+        std::string letters;
+        bool optional = false;
+        const std::vector<std::vector<lua_api::Param>> forms = lua_api::Forms(row.params);
+        for (const lua_api::Param& param : forms[0]) {
+            if (param.vararg) {
+                letters += '+';
+                continue;
+            }
+            if (param.optional && !optional) letters += '?';
+            optional = optional || param.optional;
+            letters += SignatureLetter(param.type);
+        }
+        const std::string result = row.returns;
+        const char resultLetter = result.empty() ? ' ' : static_cast<char>(std::toupper(SignatureLetter(result)));
+        if (std::string(1, resultLetter) + letters != found->second)
+            Expect(false, std::format("{}: declared ({}) -> {}, the signature is {}", row.name, row.params,
+                                      result.empty() ? "nothing" : result, found->second).c_str());
+    }
+    for (const auto& [keyword, signature] : signatures)
+        if (!keywords.contains(keyword))
+            Expect(false, std::format("{}: a keyword without a declaration", keyword).c_str());
+
+    // The state's global functions but Lua's own (every library's, the sandbox's replacements among them).
+    lua_State* plain = luaL_newstate();
+    luaL_openlibs(plain);
+    lua_pushglobaltable(plain);
+    const std::set<std::string> luaOwn = KeysOf(plain, -1, false);
+    lua_close(plain);
+    lua_State* L = lua.State();
+    lua_pushglobaltable(L);
+    std::set<std::string> registered;
+    for (const std::string& name : KeysOf(L, -1, true))
+        if (!luaOwn.contains(name)) registered.insert(name);
+    lua_pop(L, 1);
+    std::set<std::string> declared = Declared(luaapi::Kind::Binding);
+    declared.merge(Declared(luaapi::Kind::Global));
+    declared.merge(Declared(luaapi::Kind::Helper));
+    ExpectSame(registered, declared, "global");
+
+    std::vector<std::string> stats;
+    for (const luaapi::Row& row : luaapi::kRows)
+        if (row.kind == luaapi::Kind::Stat) stats.emplace_back(row.name);
+    Expect(std::ranges::equal(stats, kEffectStatNames), "the declared stats are EffectStat's, in its order");
+}
+
+// The cast value `_G.kept.value` (kept.lua): its methods the declared ones, its fields declared (an object field may be
+// nil, so absent).
+void CheckCastDeclarations(lua_State* L) {
+    lua_getglobal(L, "kept");
+    lua_getfield(L, -1, "value");
+    std::set<std::string> fields = KeysOf(L, -1, false);
+    for (const luaapi::Row& row : luaapi::kRows)
+        if (row.kind == luaapi::Kind::Field && std::string_view(row.owner) == "Cast" &&
+            std::string_view(row.params) == "object")
+            fields.insert(row.name);
+    ExpectSame(fields, Declared(luaapi::Kind::Field, "Cast"), "cast field");
+    lua_getmetatable(L, -1);
+    lua_getfield(L, -1, "__index");
+    ExpectSame(KeysOf(L, -1, true), Declared(luaapi::Kind::CastMethod), "cast method");
+    lua_pop(L, 4);
 }
 
 constexpr const char* kChunk = R"lua(
@@ -1044,6 +1182,7 @@ void CheckSpellHost(TestWorld& world) {
         SpellEffect kept;
         cast(kept, "kept.lua", 0);
         Expect(host.Cast(kept), "a cast keeping its first cast value");
+        CheckCastDeclarations(scheduler.lua.State());
         kept.targetPoint = {7.0f, 0.0f, 0.0f};
         Expect(host.Tick(kept) && SpellEnd(scheduler) == "true false true true 7 1",
                "the next hook's cast value is the same table, its moved point a new one");
@@ -1193,6 +1332,7 @@ function spell.OnStats(effect, stats)
         stats:Subtract("Sight", 0.1)
         stats:Larger("NearSense", effect.value)
         _G.kept = stats
+        _G.keptEffect = effect
     end
 end
 return spell
@@ -1278,6 +1418,14 @@ return spell
             for (const std::string& message : reported) std::printf("lua_check: reported: %s\n", message.c_str());
     }
     lua_State* L = scheduler.lua.State();
+    lua_getglobal(L, "keptEffect");
+    ExpectSame(KeysOf(L, -1, false), Declared(luaapi::Kind::Field, "Effect"), "effect field");
+    lua_pop(L, 1);
+    lua_getglobal(L, "kept");
+    lua_getmetatable(L, -1);
+    lua_getfield(L, -1, "__index");
+    ExpectSame(KeysOf(L, -1, true), Declared(luaapi::Kind::StatsMethod), "stats method");
+    lua_pop(L, 3);
     lua_getglobal(L, "kept");
     lua_getfield(L, -1, "Add");
     lua_insert(L, -2);
@@ -1334,6 +1482,7 @@ int Main() {
         {
             ScriptLua lua(&script);
             CheckNames(lua);
+            CheckDeclarations(lua);
             lua_register(lua.State(), "check", LuaCheck);
             Run(lua, kSandbox);
             CheckChunk(lua, world);
