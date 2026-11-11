@@ -6,10 +6,11 @@
 #   the magic page draws them with the mod's pictures (Res\textures\spell0100.png, prototype0100.png) and puts the
 #   container on the hero (campputon, as in spells_hero), so the HUD's spell column holds healing, 0x0C and the mod's
 #   spell (hudstate: prototype 42 in slot 2).
-# - The HUD: its key (3) and a click on a wolf at +3 cast it as the hero's spells are cast (OrderCast, mana, the cast
-#   animation, CastSpell); the zone's server state runs the file: OnCast's line, the caster and the target in game
-#   variables, the wolf's blow; the cast ends after 60 ticks. (The use at once, Ctrl and the key, aims an offensive
-#   spell at the nearest unit the hero sees: here it finds none for the game's lightning either, so it is not used.)
+# - The HUD: the use at once (Ctrl and its key, 3) casts it as the hero's spells are cast (OrderCast, mana, the cast
+#   animation, CastSpell) at the nearest enemy the hero sees (the record's offensive): a wolf at +3, made an enemy by
+#   SetPlayer (AddUnitToServer's units are on side 0, the hero's, so none of them is hostile to it). The zone's server
+#   state runs the file: OnCast's line, the caster and the target in game variables, the wolf's blow; the cast ends
+#   after 60 ticks.
 # prepare: make_spell_mod.py
 mod harness_saves\spell_mod
 reject Script error
@@ -60,14 +61,13 @@ hudstate
 console @AddUnitToServer("BoltWolf","WolfTutor","BoltWolf",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
 waitfor 10 IsAlive(GetObjectByName("BoltWolf"))
 console @BlockUnit(GetObjectByName("BoltWolf"),1)
+console @SetPlayer(GetObjectByName("BoltWolf"),6)
 wait 500
 
-# The mod's spell key, then the wolf.
+# The mod's spell cast at once: Ctrl and its key.
 waitunit 10 BoltWolf
 check Not(IsUnitBlocked(GetLeader()))
-key 3
-frames 2
-clickunit BoltWolf
+key 3 ctrl
 waitline 15 MF17d: OnCast mf17d_bolt by
 check IsEqual(GSGetVar(0,"mf17d.caster"),GetObjectID(GetLeader()))
 check IsEqual(GSGetVar(0,"mf17d.target"),GetObjectID(GetObjectByName("BoltWolf")))

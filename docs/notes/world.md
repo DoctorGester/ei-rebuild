@@ -112,7 +112,9 @@ map and its lights without them (R61; scenario `render_menu_return`). The menu's
   message (the .mob record `mapspec::UnitSpec`), gives heroes figure parts ("hr" -> "hr.NN"), places units from the
   placement array or a line along the heading, creates them (per kind ObjectSpec, UnitSpec, FlameSpec, TrapSpec,
   LeverSpec, SoundSpec, LightSpec, ParticleSpec) and sets up AI, free cell, controller, items, spells and the
-  "WorldScript( AddObject( Heroes, ... ) )" line.
+  "WorldScript( AddObject( Heroes, ... ) )" line. Every unit it makes is on side 0, the hero's, with side 0's hostile
+  mask: no such unit is hostile to the party until `SetPlayer(unit, <side>)` (the scenarios use 6), so the HUD's
+  map draws it neutral and the use at once (Ctrl and a spell key, `WorldClient::NearestVisibleUnit`) passes it over.
 - **A record's texture names.** The creation message's primary and secondary textures are the record's texts 3 and 4,
   which only a save fills: a record made by `AddMember` (AddUnitToServer, AddUnitToParty) has them empty, as the
   original's had (its record constructor 0065F5F0 sets every text empty, FillFromPrototype 006621F0 writes texts 2 and
