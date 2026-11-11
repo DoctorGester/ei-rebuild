@@ -67,7 +67,9 @@ exit code: 0 when every run passed
 A run that outlives the scenario's time limit ("timeout <seconds>", default 60 s) is reported as TIMEOUT: the
 game's watchdog ends it at the limit, launch() LIMIT_MARGIN_S later if the watchdog could not.
 A scenario with a line "# expect: TIMEOUT" passes when it times out (tests/scenarios/watchdog_*.txt check this).
-A line "# arguments: <words>" starts the exe with those arguments (effect_viewer_standalone.txt: --effects).
+A line "# arguments: <words>" starts the exe with those arguments (effect_viewer_standalone.txt: an effect's name).
+A line "# exe: ei-effects" plays the scenario with the effect viewer's exe instead of the game's (effect_viewer*.txt;
+tests/verify/effects/effects_harness.cpp): its log is ei-effects.log, and it writes no digest (no world).
 """
 import argparse, atexit, functools, collections, concurrent.futures, contextlib, glob, hashlib, json, os, re, shutil, struct, subprocess, sys, tempfile, threading, time
 
@@ -324,7 +326,7 @@ ARGUMENTS_PREFIX = '# arguments:'
 
 
 def scenario_arguments(scenario):
-    """The exe's arguments a scenario's line "# arguments: <words>" gives (effect_viewer_standalone.txt: --effects), else
+    """The exe's arguments a scenario's line "# arguments: <words>" gives (effect_viewer_standalone.txt: the effect), else
     none: [words]."""
     with contextlib.suppress(OSError):
         with open(scenario, encoding='utf-8', errors='replace') as f:
@@ -332,6 +334,30 @@ def scenario_arguments(scenario):
                 if text.startswith(ARGUMENTS_PREFIX):
                     return text[len(ARGUMENTS_PREFIX):].split()
     return []
+
+
+EXE_PREFIX = '# exe:'
+GAME_PROGRAM, EFFECTS_PROGRAM = 'ei-rebuild', 'ei-effects'
+
+
+def scenario_program(scenario):
+    """The program a scenario plays: its line "# exe: <name>" (ei-effects, the effect viewer), else the game's."""
+    with contextlib.suppress(OSError):
+        with open(scenario, encoding='utf-8', errors='replace') as f:
+            for text in f:
+                if text.startswith(EXE_PREFIX):
+                    return text[len(EXE_PREFIX):].strip()
+    return GAME_PROGRAM
+
+
+def program_exe(program):
+    """The program's file in a build folder (the game's an application bundle's on macOS)."""
+    return EXE if program == GAME_PROGRAM else program + ('.exe' if os.name == 'nt' else '')
+
+
+def program_log(program):
+    """The log the program writes into its run folder."""
+    return program + '.log'
 
 
 INSTALLS_PREFIX = '# installs:'
@@ -498,6 +524,7 @@ class Game:
     def __init__(self, scenario, out, label='', environ=None):
         self.scenario, self.out, self.label = scenario, out, label
         self.limit = scenario_limit(scenario, environ)
+        self.program = scenario_program(scenario)
         self.report = os.path.join(out, 'harness_report.txt')
         self.quit = os.path.join(out, 'harness_quit')   # the harness writes it when its scenario quits, after the report
         self.proc = None
@@ -536,13 +563,14 @@ def launch(scenario, out, data, build, env=None, command=None):
             if len(games) > 1:
                 game_env['EI_PAIR'] = f'{pair},{side}'
             outputs.append(open(os.path.join(game.out, 'launch.txt'), 'wb'))
+            exe = program_exe(game.program)
             try:
-                game.proc = group.start(command or [os.path.join(build, EXE), *scenario_arguments(game.scenario)],
+                game.proc = group.start(command or [os.path.join(build, exe), *scenario_arguments(game.scenario)],
                                         game_root, game_env, outputs[-1])
             except OSError as e:
-                said.append(f'cannot start {game.label}{os.path.join(build, EXE)}: {e}')
+                said.append(f'cannot start {game.label}{os.path.join(build, exe)}: {e}')
                 break
-            said.append(f'started {game.label}{EXE} (pid {game.proc.pid})')
+            said.append(f'started {game.label}{exe} (pid {game.proc.pid})')
         else:
             timed_out, unkillable = watch(games, group, said.append)
     finally:
@@ -667,7 +695,7 @@ def exit_failures(game, say):
     if code not in (0, None):
         failures.append(f'{game.label}the game ended with exit code {code & 0xFFFFFFFF:08X} after its scenario quit')
     stamps = {}
-    for line in read_lines(os.path.join(game.out, 'ei-rebuild.log')) or []:
+    for line in read_lines(os.path.join(game.out, program_log(game.program))) or []:
         m = EXIT_STAMP.match(line.decode('utf8', 'replace'))
         if m:
             h, mi, s, ms = (int(v) for v in m.groups()[:4])
@@ -892,7 +920,7 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
         if result == 'PASS':
             result = 'FAIL'
     expected = expected_result(scenario)
-    if not expected and (lost := missing_digest(result, environ, out)):
+    if not expected and scenario_program(scenario) == GAME_PROGRAM and (lost := missing_digest(result, environ, out)):
         failures.append(lost)
         result = 'FAIL'
         add_failures(path, [lost])
@@ -948,7 +976,7 @@ def console_of(folder, build=BUILD):
     return [l for l in lines if l.startswith('  ')]
 
 
-ATTEMPT_FILES = ('ei-rebuild.log', 'harness_report.txt')
+ATTEMPT_FILES = ('ei-rebuild.log', 'ei-effects.log', 'harness_report.txt')
 
 
 def keep_attempt(folder, attempt, build=BUILD):

@@ -109,7 +109,8 @@ all three: `ei-rebuild.exe` (alone, or in a zip), the Linux archive and a univer
 clear its quarantine flag once (`xattr -dr com.apple.quarantine ei-rebuild.app ei-convert`, or Control-click > Open),
 then open it inside the game folder or choose the folder when it asks (the zip's README.txt). Each archive also holds
 `ei-convert` and the `examples` folder: `ei-convert --example-mod "<game folder>"` makes the example mod of
-[the modding guide](docs/modding.md) from your own install.
+[the modding guide](docs/modding.md) from your own install. `ei-effects`, the effect viewer, plays and edits the
+game's particle effects and a mod's (the guide's "The effect viewer").
 
 ## Play
 
@@ -175,7 +176,7 @@ installs' (`tools/exe_path.py`).
 - `src/lib/` small shared pieces: the CRT parts behaviour depends on (formatting, the game CRT's pow / acos / asin / hypot), file and text helpers, byte copies.
 - `src/render/` the renderer (SDL3's GPU API through `src/render/gpu.h`; `docs/notes/renderer.md`).
 - `src/platform/` the window, input, files and threads on SDL3 (`docs/notes/platform.md`); `src/audio/` the mixer;
-  `src/video/` the movie player; `src/main.cpp` the exe's start.
+  `src/video/` the movie player; `src/main.cpp` the exe's start; `src/tools/` ei-effects, the effect viewer.
 - `tests/verify/` the harness; `tests/unit/` checks of our code without the game; `tests/port/` the Linux and macOS
   checks; `tests/scenarios/` and their goldens in `tests/golden/`.
 - `tools/` the build checks, test runner, ticket and progress tools; `tools/convert/` ei-convert.

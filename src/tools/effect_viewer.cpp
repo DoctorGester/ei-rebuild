@@ -1,21 +1,15 @@
-// The effect viewer's playing side (effect_viewer.h): the effects listed, the source made in the client world's particle
+// The effect viewer's playing side (effect_viewer.h): the effects listed, the source made in the scene's particle
 // manager but ticked by the viewer (its own generator, so every replay draws the same), its place, its timeline of
-// changes, the hooks into the main loop and the harness's commands. docs/notes/effects.md, "The effect viewer".
+// changes, the frame's windows and the scenarios' commands. docs/notes/effects.md, "The effect viewer".
 #include "tools/effect_viewer.h"
 
 #include "tools/effect_viewer_internal.h"
+#include "tools/effect_viewer_scene.h"
 #include "tools/imgui_layer.h"
 
-#include "game/app/app.h"
-#include "game/app/singletons.h"
-#include "game/app/tool_hooks.h"
-#include "game/effects/effects.h"
+#include "engine/models/figure_instance.h"
 #include "engine/particles/particle_data.h"
-#include "engine/models/texture.h"
-#include "game/objects/map_object.h"
-#include "game/world/camera.h"
-#include "game/units/unit.h"
-#include "game/world/world.h"
+#include "engine/particles/particle_source.h"
 
 #include "lib/maths.h"
 #include "lib/bit_flags.h"
@@ -40,9 +34,7 @@ constexpr int kFirstType = static_cast<int>(ParticleType::FireBall);
 constexpr int kLastType = static_cast<int>(ParticleType::Transform);
 constexpr std::string_view kEffectsFolder = "Res\\effects";
 constexpr std::string_view kExtension = ".effect.toml";
-constexpr int kLoopPause = 15;            // client ticks between an ended effect and its start again
-constexpr float kNearbyRange = 40.0f;     // the units listed around the camera's focus
-constexpr std::size_t kMostUnits = 24;
+constexpr int kLoopPause = 15;            // ticks between an ended effect and its start again
 constexpr float kDegrees = kPi / 180.0f;
 
 // A new effect's file (NewEffect): docs/modding.md's first example, which every install's textures can show.
@@ -95,7 +87,7 @@ bool Number(std::string_view text, float* value) {
 
 std::string DefaultSaveFolder() {
     const std::string mod = platform::ModFolder();
-    const std::string game = app::GameFolder();
+    const std::string& game = g_viewer.gameFolder;
     if (!mod.empty() && (game.empty() || !SameText(std::string_view(mod).substr(0, game.size()), game))) return mod;
     const std::string user = platform::UserDataFolder();
     return user.empty() ? std::string() : user + "ei-rebuild-effects";
@@ -112,32 +104,6 @@ bool FileStem(std::string_view name) {
 
 // effectdata::g_startOwnClock while the viewer is open: its source's sub-effects.
 ParticleSource* StartOwnClock(ParticleManager& manager, int type) { return g_viewer.StartChild(manager, type); }
-
-// ---- The hooks (app/tool_hooks.h) ------------------------------------------------------------------------------------
-
-bool TakeEvent(const platform::Event& event) { return g_viewer.open && imgui_layer::Feed(event); }
-
-void ClientTicked() { g_viewer.ClientTicked(); }
-
-void WorldsEnding() {
-    g_viewer.Drop();
-    g_viewer.manager = nullptr;
-}
-
-void DrawOverlay() {
-    Viewer& v = g_viewer;
-    if (!v.open) return;
-    if (v.entries.empty()) v.Scan();
-    if (!v.pendingPick.empty() && g_clientWorld.ClientParticleManager()) {
-        const std::string name = std::exchange(v.pendingPick, std::string());
-        const int index = v.Find(name);
-        if (index >= 0) v.Pick(index);
-        else v.status = "no effect named " + name;
-    }
-    if (!imgui_layer::BeginFrame()) return;
-    DrawPanel(v);
-    imgui_layer::EndFrame();
-}
 
 } // namespace
 
@@ -188,15 +154,6 @@ void Viewer::Pick(int index) {
         hasDocument = document.Load(entry.name, entry.id);
     }
     if (hasDocument && document.record) effectdata::g_effects.Put(entry.name, document.record);
-    if (!placed) {
-        placed = true;
-        if (Unit* unit = PartyUnit()) {
-            onUnit = true;
-            unitId = unit->id;
-        } else {
-            freeAt = g_camera.focus;
-        }
-    }
     Restart(0);
     status.clear();
     ei::Log("effect viewer: %s (0x%X, %s)", entry.name, static_cast<unsigned>(entry.id),
@@ -228,7 +185,7 @@ bool Viewer::NewEffect(std::string_view name) {
 
 namespace {
 
-// A source of the viewer's let go: it goes back to the manager's spares for the game's sources.
+// A source of the viewer's let go: it goes back to the manager's spares for the next ones.
 void LetGo(ParticleSource* s) {
     s->StopAndClear();
     s->flags &= ~ParticleSourceFlag::OwnClock;
@@ -265,7 +222,7 @@ ParticleSource* Viewer::StartChild(ParticleManager& owner, int type) {
 
 void Viewer::Restart(int target) {
     Drop();
-    manager = g_clientWorld.ClientParticleManager();
+    manager = g_scene.particles.get();
     tick = 0;
     sourceEnded = false;
     ended = false;
@@ -286,7 +243,7 @@ void Viewer::Restart(int target) {
     source->AddRef();
     // The viewer's clock ticks it (Step), never the manager's TickSources.
     source->flags |= ParticleSourceFlag::OwnClock;
-    Unit* carrier = onUnit ? Carrier() : nullptr;
+    FigureInstance* carrier = Carrier();
     source->localPosition = carrier ? Vector3{} : freeAt;
     source->ScaleSize(size / source->baseSize);
     source->Attach(nullptr);
@@ -362,8 +319,8 @@ void Viewer::Freeze() {
     for (ParticleSource* child : children) hold(*child);
 }
 
-void Viewer::ClientTicked() {
-    if (!open || !source || !playing || g_clientWorld.paused) return;
+void Viewer::SceneTicked() {
+    if (!open || !source || !playing) return;
     if (ended) {
         if (loop && ++endedTicks >= kLoopPause) Restart(0);
         return;
@@ -373,50 +330,15 @@ void Viewer::ClientTicked() {
 
 // ---- The place -------------------------------------------------------------------------------------------------------
 
-Unit* Viewer::Carrier() const {
-    if (!onUnit || unitId < 0) return nullptr;
-    Unit* unit = UnitOrNull(g_clientWorld.ObjectWithId(unitId));
-    return unit && !(unit->flags & MapObjectFlag::Removed) ? unit : nullptr;
-}
+FigureInstance* Viewer::Carrier() const { return onFigure ? g_scene.figure : nullptr; }
 
-std::vector<Unit*> Viewer::NearbyUnits() const {
-    std::vector<std::pair<float, Unit*>> found;
-    const Vector3 focus = g_camera.focus;
-    for (MapObject* object : g_clientWorld.objects) {
-        Unit* unit = UnitOrNull(object);
-        if (!unit || (unit->flags & MapObjectFlag::Removed)) continue;
-        const bool party = (unit->flags & MapObjectFlag::InParty) != 0;
-        const float distance = Length(unit->localPosition - focus);
-        if (!party && !(distance < kNearbyRange)) continue;
-        found.emplace_back(party ? -1.0f : distance, unit);
-    }
-    std::stable_sort(found.begin(), found.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
-    std::vector<Unit*> units;
-    for (const auto& [distance, unit] : found) {
-        if (units.size() == kMostUnits) break;
-        units.push_back(unit);
-    }
-    return units;
-}
-
-Unit* Viewer::PartyUnit() const {
-    for (MapObject* object : g_clientWorld.objects) {
-        Unit* unit = UnitOrNull(object);
-        if (unit && (unit->flags & MapObjectFlag::InParty) && !(unit->flags & MapObjectFlag::Removed)) return unit;
-    }
-    return nullptr;
-}
-
-void Viewer::PlaceOnUnit(int id) {
-    placed = true;
-    onUnit = true;
-    unitId = id;
+void Viewer::PlaceOnFigure() {
+    onFigure = true;
     Restart(tick);
 }
 
 void Viewer::PlaceFree(const Vector3& at) {
-    placed = true;
-    onUnit = false;
+    onFigure = false;
     freeAt = at;
     Restart(tick);
 }
@@ -447,20 +369,40 @@ void Viewer::Save() {
 
 // ---- The viewer from outside -----------------------------------------------------------------------------------------
 
-void Open(std::string_view effect) {
+void Open(std::string_view effect, const std::string& gameFolder) {
     Viewer& v = g_viewer;
-    if (!v.open) {
-        imgui_layer::Start();
-        app::g_toolHooks = {&TakeEvent, &ClientTicked, &DrawOverlay, &WorldsEnding};
-        effectdata::g_startOwnClock = &StartOwnClock;
-        IsaacRandom seed;
-        for (int i = 0; i < 256; ++i) seed.memory[i] = static_cast<std::uint32_t>(i) * 0x9E3779B9u;
-        v.start.InitFrom(seed);
-        v.saveFolder = DefaultSaveFolder();
-        v.open = true;
-        ei::Log("effect viewer: open; edited effects are saved into %s", v.saveFolder);
-    }
-    if (!effect.empty()) v.pendingPick = std::string(effect);
+    v.gameFolder = gameFolder;
+    effectdata::g_startOwnClock = &StartOwnClock;
+    IsaacRandom seed;
+    for (int i = 0; i < 256; ++i) seed.memory[i] = static_cast<std::uint32_t>(i) * 0x9E3779B9u;
+    v.start.InitFrom(seed);
+    v.saveFolder = DefaultSaveFolder();
+    v.open = true;
+    v.Scan();
+    ei::Log("effect viewer: open; edited effects are saved into %s", v.saveFolder);
+    if (effect.empty()) return;
+    const int index = v.Find(effect);
+    if (index >= 0) v.Pick(index);
+    else v.status = "no effect named " + std::string(effect);
+}
+
+void SceneTicked() { g_viewer.SceneTicked(); }
+
+const std::string& SaveFolder() { return g_viewer.saveFolder; }
+
+bool TakeEvent(const platform::Event& event) { return g_viewer.open && imgui_layer::Feed(event); }
+
+void DrawFrame() {
+    if (!g_viewer.open || !imgui_layer::BeginFrame()) return;
+    DrawPanel(g_viewer);
+    imgui_layer::EndFrame();
+}
+
+void Close() {
+    g_viewer.Drop();
+    g_viewer.manager = nullptr;
+    g_viewer.open = false;
+    effectdata::g_startOwnClock = nullptr;
 }
 
 namespace {
@@ -554,10 +496,6 @@ std::string Command(std::string_view line) {
     if (w.empty()) return "effectviewer needs a command";
     ei::Log("effect viewer: command %s", std::string(line));
     const std::string& verb = w[0];
-    if (verb == "open") {
-        Open(w.size() > 1 ? w[1] : std::string());
-        return "";
-    }
     if (!v.open) return "effectviewer: not open";
     float a = 0.0f, b = 0.0f, c = 0.0f;
     if (verb == "pick" && w.size() > 1) {
@@ -583,20 +521,17 @@ std::string Command(std::string_view line) {
         return "";
     }
     if (verb == "place" && w.size() > 1) {
-        if (w[1] == "party") {
-            Unit* unit = v.PartyUnit();
-            if (!unit) return "effectviewer: no unit of the party";
-            v.PlaceOnUnit(unit->id);
-        } else if (w[1] == "unit" && w.size() > 2 && Number(w[2], &a)) {
-            v.PlaceOnUnit(static_cast<int>(a));
+        if (w[1] == "figure") {
+            if (!g_scene.figure) return "effectviewer: no figure";
+            v.PlaceOnFigure();
         } else if (w[1] == "focus") {
-            Vector3 at = g_camera.focus;
+            Vector3 at = g_scene.camera.focus;
             if (w.size() > 4 && Number(w[2], &a) && Number(w[3], &b) && Number(w[4], &c)) at += Vector3{a, b, c};
             v.PlaceFree(at);
         } else if (w[1] == "free" && w.size() > 4 && Number(w[2], &a) && Number(w[3], &b) && Number(w[4], &c)) {
             v.PlaceFree({a, b, c});
         } else {
-            return "effectviewer place: party | unit <id> | focus [dx dy dz] | free <x> <y> <z>";
+            return "effectviewer place: figure | focus [dx dy dz] | free <x> <y> <z>";
         }
         return "";
     }
@@ -680,6 +615,33 @@ std::string Command(std::string_view line) {
     if (verb == "save") {
         v.Save();
         return v.status.starts_with("error: ") ? v.status : "";
+    }
+    if (verb == "figure" && w.size() > 2) {
+        // The scene's figure: "walk on|off" (a circle), "run on|off" (what the effects take it for), "animation <name>".
+        ViewerScene& scene = g_scene;
+        if (w[1] == "walk") {
+            scene.SetGait(w[2] == "on", scene.host.running);
+        } else if (w[1] == "run") {
+            scene.SetGait(scene.walking, w[2] == "on");
+        } else if (w[1] == "animation") {
+            const std::vector<std::string> names = scene.AnimationNames();
+            const auto found = std::find_if(names.begin(), names.end(), [&w](const std::string& n) { return SameText(n, w[2]); });
+            if (found == names.end()) {
+                // The names that hold the word asked for (else the first few), so a scenario's author sees them.
+                std::string near;
+                int listed = 0;
+                for (int pass = 0; pass < 2 && !listed; ++pass)
+                    for (const std::string& name : names)
+                        if (listed < 12 && (pass || name.find(w[2]) != std::string::npos)) {
+                            near += (listed++ ? ", " : "") + name;
+                        }
+                return "effectviewer: the figure has no animation " + w[2] + " (it has " + near + ", ...)";
+            }
+            scene.PlayAnimation(static_cast<int>(found - names.begin()));
+        } else {
+            return "effectviewer figure: walk on|off | run on|off | animation <name>";
+        }
+        return "";
     }
     if (verb == "expect") return ExpectStep(v, w);
     return "effectviewer: unknown command " + verb;

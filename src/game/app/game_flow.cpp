@@ -8,7 +8,6 @@
 #include "engine/core/core_streams.h"
 #include "game/app/game_flow.h"
 #include "game/app/singletons.h"
-#include "game/app/tool_hooks.h"
 #include "game/items/item_db.h"
 #include "game/spells/spell_db.h"
 #include "game/saves/save_file.h"
@@ -934,10 +933,6 @@ void GameFlow::StartNewGame() {
     ClearSaveFolder(folder);
     Party records;
     g_partyManager.records.EndRedeploy(&records);
-    if (!app::g_toolScene.zone.empty()) {
-        records.zone = app::g_toolScene.zone;
-        g_partyManager.records.BeginRedeploy(&records);
-    }
     StartZone(records.zone, ZoneMode::None);
 }
 

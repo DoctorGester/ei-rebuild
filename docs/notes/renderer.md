@@ -2464,8 +2464,8 @@ the harness build never draws it.
 
 ### render_overlay.cpp: the tools' overlay
 
-The tools built into ei-rebuild (src/tools: the effect viewer, effects.md "The effect viewer") draw their dear imgui
-panels through `render::OverlayTriangles`, once a frame from the main loop's `drawOverlay` hook.
+The effect viewer (ei-effects, src/tools; effects.md "The effect viewer") draws its dear imgui windows through
+`render::OverlayTriangles`, once a frame after its scene. The game draws none.
 
 - **Input**: imgui's triangles, with positions in frame pixels, an RGBA8 colour per vertex and 32-bit indices, plus
   draws that name a texture (0: white) and a clip rectangle.

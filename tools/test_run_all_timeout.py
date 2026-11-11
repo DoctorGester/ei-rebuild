@@ -40,8 +40,14 @@ class Limits(unittest.TestCase):
     def test_scenario_arguments(self):
         with tempfile.TemporaryDirectory() as d:
             self.assertEqual(run_all.scenario_arguments(scenario_file(d, 'quit\n')), [])
-            self.assertEqual(run_all.scenario_arguments(scenario_file(d, '# x\n# arguments: --effects Portal\nquit\n')),
-                             ['--effects', 'Portal'])
+            self.assertEqual(run_all.scenario_arguments(scenario_file(d, '# x\n# arguments: Portal --mod m\nquit\n')),
+                             ['Portal', '--mod', 'm'])
+
+    def test_scenario_program(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(run_all.scenario_program(scenario_file(d, 'quit\n')), 'ei-rebuild')
+            self.assertEqual(run_all.scenario_program(scenario_file(d, '# x\n# exe: ei-effects\nquit\n')), 'ei-effects')
+            self.assertEqual(run_all.program_log('ei-effects'), 'ei-effects.log')
 
 
 class Run(unittest.TestCase):

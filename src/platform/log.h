@@ -7,8 +7,8 @@
 
 namespace ei {
 
-// Appends a line, after the local time of day, to ei-rebuild.log in the output folder; lines of several threads do not
-// mix.
+// Appends a line, after the local time of day, to ei-rebuild.log (ei-effects.log in the effect viewer) in the output
+// folder; lines of several threads do not mix.
 EI_PRINTF_FORMAT(1, 2) void Log(const char* format, ...);
 // With a std::string or std::string_view among the arguments: its text is passed for the %s.
 template <class... Args>

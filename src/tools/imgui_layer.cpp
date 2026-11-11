@@ -24,6 +24,7 @@ constexpr float kSmallestScale = 0.85f;
 constexpr float kLargestScale = 4.0f;
 
 bool g_started = false;
+std::string g_layoutFile;                      // imgui keeps the pointer: it lives as long as the context
 std::uint32_t g_lastClock = 0;
 float g_scale = 0.0f;                          // the style's scale, applied when the frame's height changes it
 ImGuiStyle g_baseStyle;                        // the style at scale 1
@@ -138,14 +139,16 @@ void ScaleFor(int height) {
 
 } // namespace
 
-void Start() {
+void Start(const std::string& layoutFile) {
     if (g_started) return;
     g_started = true;
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
-    io.IniFilename = nullptr;
+    g_layoutFile = layoutFile;
+    io.IniFilename = g_layoutFile.empty() ? nullptr : g_layoutFile.c_str();
     io.LogFilename = nullptr;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     io.BackendPlatformName = "ei-rebuild platform layer";
     io.BackendRendererName = "ei-rebuild overlay";
     io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
@@ -157,6 +160,10 @@ void Start() {
     style.Colors[ImGuiCol_WindowBg].w = 0.9f;
     g_baseStyle = style;
     g_lastClock = platform::FrameClock();
+}
+
+void SaveLayout() {
+    if (g_started && !g_layoutFile.empty()) ImGui::SaveIniSettingsToDisk(g_layoutFile.c_str());
 }
 
 bool Feed(const platform::Event& event) {

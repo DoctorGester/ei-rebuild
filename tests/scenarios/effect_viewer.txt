@@ -1,29 +1,17 @@
-# The effect viewer (ei-rebuild --effects; docs/modding.md, "The effect viewer"; MF15i), opened over a new game of the
-# showcase mod and driven by its commands (src/tools/effect_viewer.cpp, Command). Checked:
+# The effect viewer (ei-effects; docs/modding.md, "The effect viewer"; MF15i, MF15k4) on the showcase mod, driven by
+# its commands (src/tools/effect_viewer.cpp, Command; tests/verify/effects/effects_harness.cpp). Checked:
 # - an original type on data (Portal, its built-in file) plays at a free point by the camera's focus: particles;
 #   pause, scrub and step land on the ticks asked for;
-# - a field edited (emit.rate, the panel's Fields tab) plays again from the start up to the same tick, and the file is
+# - a field edited (emit.rate, the Fields window) plays again from the start up to the same tick, and the file is
 #   saved into the run's output folder (never the install): `replace = true` and the edited rate in it;
-# - a mod's data effect (showcase_aura, from the mod's Res\effects) on the hero, driven through its typed inputs (the
+# - a mod's data effect (showcase_aura, from the mod's Res\effects) on the figure, driven through its typed inputs (the
 #   enum `mode` by its value's name, the float `charge`, the event `pulse`): stepped through its first stages;
-# - an original type with a carrier's motion (Tornado, its built-in file) plays on the hero;
-# - captures: the viewer's panel over each.
+# - an original type with a carrier's motion (Tornado, its built-in file) plays on the figure walking its circle;
+# - captures: the docked windows over each.
+# exe: ei-effects
 # prepare: make_showcase_mod.py
 mod harness_saves\showcase_mod
-reject Script error
-waitmenu
-console thingamabob
-
-newgame
-waitfor 15 IsGreater(HP(GetLeader()),0)
-waitwindow 15 battle
-zone showcase 0
-waitzone 30 showcase
-waitline 20 Showcase mod: the island loads
-waitfor 15 IsGreater(HP(GetLeader()),0)
-console @GodMode(0,1)
-console @BlockUnit(GetLeader(),0)
-effectviewer open
+frames 5
 effectviewer pick Portal
 effectviewer place focus 3 0 0
 wait 1500
@@ -51,7 +39,7 @@ effectviewer expect status saved
 effectviewer tab fields
 
 effectviewer pick showcase_aura
-effectviewer place party
+effectviewer place figure
 effectviewer pause
 effectviewer step 5
 effectviewer expect stage rise
@@ -68,12 +56,16 @@ capture viewer_aura
 frames 3
 
 effectviewer pick Tornado
-effectviewer place party
+effectviewer place figure
+effectviewer figure walk on
+effectviewer figure run on
 wait 800
 effectviewer expect particles 5
 effectviewer expect problems 0
 capture viewer_tornado
 frames 3
+effectviewer figure walk off
+effectviewer figure run off
 
 effectviewer new viewer_new
 effectviewer expect problems 0

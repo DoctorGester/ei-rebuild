@@ -42,13 +42,6 @@ arguments...)`) sit at the loop's calls: the frame capture between the interface
 (the camera's update), "speed" (the server and client updates), the frame step, and the loop's message peeks and
 clock reads named in `ei::mainloop::g_site`.
 
-The tools built into the exe (src/tools; `ei-rebuild --effects`, effects.md "The effect viewer") join the loop
-through `app::g_toolHooks` (src/game/app/tool_hooks.h). They are empty unless a tool was opened. There are four:
-- `takeEvent`: an event before the interface gets it. The tool keeps it when its panel is under the mouse or typed
-  into.
-- `clientTicked`: after each client tick.
-- `drawOverlay`: in the frame step, after the interface and before the harness's capture.
-- `worldsEnding`: at the start of StopGame.
 
 Dropped on purpose: the original chose the interface or the window procedure for an event waiting before the first
 pass by the top byte of a reused stack slot (it hung depending on where a string lay); ours always gives it to the

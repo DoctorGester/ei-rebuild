@@ -1251,12 +1251,17 @@ stain on the ground (`red` to `brown` leave one, the sprays none).
 
 ### The effect viewer
 
-`ei-rebuild --effects [<effect>] [--zone <zone>]` starts straight in a new game, with a panel on its left. There are
-no start movies and no main menu. The game folder and your mod are loaded as the game loads them. The scene is the
-campaign's first island with your hero, or the battle zone you name (`--zone zone3`, a name from the map list). The
-hero is the unit effects go on. The camera is the game's, so you can scroll, turn and zoom it freely. `<effect>`, when
-you give one, plays at once. This game never autosaves, so your `savea` stays as it was. The game's menu (Esc) still
-works: load a save there to play effects in its world. The panel lists:
+`ei-effects [<effect>] [--mod <folder>]` is a program of its own, shipped beside ei-rebuild: copy it into the game
+folder and start it there (or name the folder with `EI_GAME_ROOT`). It loads the install's files and, with `--mod`,
+your mod's over them (a folder or a .zip, as the settings' `Mod` names it). `<effect>`, when you give one, plays at
+once.
+
+The scene is a flat checkered ground with a hero on it, the figure effects go on. In the Figure section it plays any
+animation of its database, walks a circle and runs (what an effect takes its carrier for). The camera turns with the
+right mouse button, pans with the middle one, zooms with the wheel and moves with W A S D or the arrows.
+
+Its windows (Effects, Timeline, Inputs, Fields, Text) dock where you drag them, or float; the layout is kept in
+`ei-rebuild-effects\layout.ini` in your user data folder. The Effects window lists:
 - the 83 original effect types, marked `data`: each runs from its built-in file;
 - your mod's `Res\effects` files, marked `mod`.
 
@@ -1267,8 +1272,7 @@ Pick one and it plays. Its textures and figures are your install's, as the game 
   - The Tick slider scrubs back and forth: the effect is played again from its start to that tick, and every replay
     draws the same particles.
   - Size is the effect's size, as a script's `CreateParticleSource` gives it.
-- **Place**: on a unit (your party's, or one near the camera) or free at a point. "At the camera's focus" puts it where
-  you look.
+- **Place**: on the figure or free at a point. "At the camera's focus" puts it where you look.
 - **Drive**:
   - Start emitting, Stop emitting and Stop, as the game calls them.
   - The source's alpha, param and extent.
@@ -1277,7 +1281,7 @@ Pick one and it plays. Its textures and figures are your install's, as the game 
   - Everything you change goes on the Timeline at its tick, and the replays make it again there.
 - **File** (data effects):
   - The effect's top file: your mod's, else the built-in one.
-  - The Fields tab edits it value by value. The Text tab edits it as text.
+  - The Fields window edits it value by value. The Text window edits it as text.
   - Every change plays at once, from the start up to the tick you were at. Problems are listed under it.
   - Fields drops the text's comments; Text keeps them.
   - A variant (`like`) plays as it resolves over its base; Fields and Text show its own file, the fields it names.
@@ -1290,7 +1294,8 @@ Pick one and it plays. Its textures and figures are your install's, as the game 
   and is saved like any other.
 - **Sub-effects**: effects that a data effect starts itself (its `effect` actions) play on the viewer's clock, so
   they pause, step and scrub with it.
-- **Limits**: the viewer is part of the game and is not in saves or network games.
+- **Limits**: the viewer plays its effect alone, in a world of its own; the game's saves and network games never see
+  it. The log is `ei-effects.log` beside the program.
 
 ## Spells
 

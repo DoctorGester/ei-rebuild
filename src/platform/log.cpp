@@ -1,4 +1,4 @@
-// ei-rebuild.log and the output folder (log.h).
+// ei-rebuild.log (ei-effects.log in the effect viewer) and the output folder (log.h).
 #include "log.h"
 
 #include "lib/calendar.h"
@@ -32,11 +32,18 @@ std::string OutputFolder() {
     return folder.empty() ? platform::DefaultOutputFolder() : folder;
 }
 
+// The log's name: ei-rebuild.log, or the one the program's build gives (EI_LOG_NAME; ei-effects: ei-effects.log).
+#ifdef EI_LOG_NAME
+constexpr const char* kLogName = EI_LOG_NAME;
+#else
+constexpr const char* kLogName = "ei-rebuild.log";
+#endif
+
 // The file stays open for the whole run and each line is flushed as it is written (a crash loses
 // nothing). Opening and closing it per line made the antivirus scan it on every close: about 10,000
 // scans per harness run, most of its scanning during the suite.
 std::ofstream& LogFile() {
-    static std::ofstream& file = *new std::ofstream(SystemPath(OutputPath("ei-rebuild.log")), std::ios::app);
+    static std::ofstream& file = *new std::ofstream(SystemPath(OutputPath(kLogName)), std::ios::app);
     return file;
 }
 

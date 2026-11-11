@@ -2,10 +2,10 @@
 # x64 (build.cmd release, the build checks included; the bare exe and ei-rebuild-windows-x64.zip), the Linux build
 # (ei-rebuild-linux-x64.tar.gz: built in an Ubuntu 22.04 container for an old glibc, its port checks run) and the macOS
 # app (ei-rebuild-macos.zip: a universal arm64 + x86_64 ei-rebuild.app, ad-hoc signed only, its port checks run), then
-# tags the chosen commit, pushes the tag and publishes a GitHub release with the four. Each archive holds ei-convert
-# and the examples folder beside the game: the build's copy of the repository's examples, which ei-convert
-# --example-mod reads from beside itself (a mod added under examples ships with no change here). The goldens need the
-# game's data and are not run here.
+# tags the chosen commit, pushes the tag and publishes a GitHub release with the four. Each archive holds ei-convert,
+# ei-effects (the effect viewer) and the examples folder beside the game: the build's copy of the repository's
+# examples, which ei-convert --example-mod reads from beside itself (a mod added under examples ships with no change
+# here). The goldens need the game's data and are not run here.
 name: Release
 
 on:
@@ -69,7 +69,8 @@ jobs:
         shell: cmd
         run: build.cmd release
 
-      # The bare exe (dropped into the game folder) and the zip: the exe, ei-convert.exe and the examples folder.
+      # The bare exe (dropped into the game folder) and the zip: the exe, ei-convert.exe, ei-effects.exe and the examples
+      # folder.
       - name: Package
         shell: pwsh
         run: |
@@ -79,7 +80,7 @@ jobs:
           $dir = "$out/ei-rebuild-windows-x64"
           New-Item -ItemType Directory -Force $dir | Out-Null
           Copy-Item build/release/ei-rebuild.exe $out/
-          Copy-Item build/release/ei-rebuild.exe, build/release/ei-convert.exe, build/release/third_party_notices.txt $dir/
+          Copy-Item build/release/ei-rebuild.exe, build/release/ei-convert.exe, build/release/ei-effects.exe, build/release/third_party_notices.txt $dir/
           Copy-Item -Recurse build/release/examples $dir/examples
           $readme = @"
           Evil Islands rebuild $version for Windows (x64)
@@ -99,6 +100,10 @@ jobs:
 
           writes all of the game's data as such files into the folder converted (about 350 MB; it only reads the
           install). The modding guide: $guide
+
+          ei-effects.exe, the effect viewer, plays the game's particle effects and a mod's on a figure and edits
+          them live. Copy it into the game folder too and start it there; ei-effects.exe --mod <folder> plays a
+          mod's effects (the guide's "The effect viewer").
 
           third_party_notices.txt holds the licences of the code and fonts built in.
           "@
@@ -189,14 +194,15 @@ jobs:
         run: |
           exe=build/linux/ei-rebuild
           convert=build/linux/ei-convert
-          for program in $exe $convert; do
+          effects=build/linux/ei-effects
+          for program in $exe $convert $effects; do
             strip $program
             if objdump -T $program | grep -q GLIBCXX_; then echo "$program: libstdc++ is linked dynamically"; exit 1; fi
           done
           glibc=$(objdump -T $exe $convert | grep -o 'GLIBC_[0-9.]*' | sed 's/GLIBC_//' | sort -uV | tail -1)
           echo "ei-rebuild needs glibc $glibc; libraries: $(readelf -d $exe | grep -o 'NEEDED.*' | grep -o '\[.*\]' | tr '\n' ' ')" | tee -a $GITHUB_STEP_SUMMARY
           mkdir -p dist/ei-rebuild-linux-x64
-          cp $exe $convert build/linux/third_party_notices.txt dist/ei-rebuild-linux-x64/
+          cp $exe $convert $effects build/linux/third_party_notices.txt dist/ei-rebuild-linux-x64/
           cp -R build/linux/examples dist/ei-rebuild-linux-x64/
           cat > dist/ei-rebuild-linux-x64/README.txt <<EOF
           Evil Islands rebuild ${{ inputs.version }} for Linux (x86-64)
@@ -226,6 +232,9 @@ jobs:
           ./ei-convert "/path/to/Evil Islands" converted writes all of the game's data as such files into the folder
           converted (about 350 MB; it only reads the install). The modding guide:
           ${{ github.server_url }}/${{ github.repository }}/blob/${{ inputs.version }}/docs/modding.md
+
+          ei-effects, the effect viewer, plays the game's particle effects and a mod's on a figure and edits them
+          live: run it as ei-rebuild (in the game folder, or with EI_GAME_ROOT); --mod <folder> plays a mod's effects.
 
           third_party_notices.txt holds the licences of the code and fonts built in.
           EOF
@@ -309,7 +318,8 @@ jobs:
           app=build/macos/ei-rebuild.app
           exe=$app/Contents/MacOS/ei-rebuild
           convert=build/macos/ei-convert
-          for program in $exe $convert; do
+          effects=build/macos/ei-effects
+          for program in $exe $convert $effects; do
             archs=$(lipo -archs $program)
             for a in arm64 x86_64; do
               case " $archs " in *" $a "*) ;; *) echo "$program not universal: $archs"; exit 1;; esac
@@ -326,9 +336,11 @@ jobs:
           codesign --verify --deep --strict $app
           codesign --force --sign - $convert
           codesign --verify --strict $convert
+          codesign --force --sign - $effects
+          codesign --verify --strict $effects
           echo "ei-rebuild.app: $archs, macOS $MACOSX_TARGET or newer" | tee -a $GITHUB_STEP_SUMMARY
           mkdir -p dist/ei-rebuild-macos
-          cp -R $app $convert build/macos/examples build/macos/third_party_notices.txt dist/ei-rebuild-macos/
+          cp -R $app $convert $effects build/macos/examples build/macos/third_party_notices.txt dist/ei-rebuild-macos/
           cat > dist/ei-rebuild-macos/README.txt <<EOF
           Evil Islands rebuild ${{ inputs.version }} for macOS (Apple silicon and Intel, macOS $MACOSX_TARGET or newer)
 
@@ -364,6 +376,10 @@ jobs:
           ./ei-convert "/path/to/Evil Islands" converted writes all of the game's data as such files into the folder
           converted (about 350 MB; it only reads the install). The modding guide:
           ${{ github.server_url }}/${{ github.repository }}/blob/${{ inputs.version }}/docs/modding.md
+
+          ei-effects, the effect viewer, plays the game's particle effects and a mod's on a figure and edits them
+          live: EI_GAME_ROOT="/path/to/Evil Islands" ./ei-effects (clear its quarantine flag as the app's);
+          --mod <folder> plays a mod's effects.
 
           third_party_notices.txt holds the licences of the code and fonts built in.
           EOF
