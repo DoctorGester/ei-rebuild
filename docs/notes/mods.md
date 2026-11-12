@@ -83,6 +83,11 @@ side.
 macOS the app's MacOS folder, so give it in full there), or in full. Read at the start, after EI_Plugin's values
 (the settings' first use writes the defaults); a switch of mods writes it. A folder that is not there is logged
 ("mod: no folder ...") and the game runs without a mod. The log names the mod and its saves' folder.
+The file reads the same on every system: the game's path language has `\` between names (a `/` is read as one too), and a
+switch writes the setting that way: relative to the exe's folder (`starter\Mods\X`) when below it, else the full path with
+every `/` a `\` (`\home\user\mods\X` on Linux and macOS, which `UseMod` reads back as a full path). A relative setting
+written on Windows loads on Linux and the other way round; a full path names a place on its own system only.
+`run_all`'s settings-file check writes the install's full path in that form as `{install-game}`.
 
 ## The layered path map
 
