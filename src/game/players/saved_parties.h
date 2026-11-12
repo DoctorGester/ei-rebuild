@@ -46,17 +46,31 @@ struct SavedParties {
 
     // Ours. Whether `hero` is in the running game: the hero played (outsideGame's file) or a companion.
     bool InUse(const MpHeroRecord* hero) const;
+    // The entry of saved hero file `file`, null for none.
+    MpHeroRecord* Entry(const std::string& file);
     // The party's records after the first are companions: each goes back to the entry of its file (the first
     // companion file whose hero has the record's name and prototype; the entry's record becomes a copy) and that
     // file is written; then the party keeps its first record only. False (nothing written) for a party of one.
     bool ReturnCompanions(Party* party);
+    // The party's record of companion file `file` goes back to that file as above (written); its unit id, -1 when the
+    // party holds no record of it.
+    int ReturnCompanion(const Party& party, const std::string& file);
+    // Each companion's record (the files of `companions` in order) is appended to the party, a hero alone: a copy of
+    // its file's, following the hero, its unit id the next after the hero's.
+    void JoinCompanions(Party* party);
 
     std::string folder;
     std::vector<MpHeroRecord> entries;
     MpHeroRecord outsideGame;
     // Ours: the files of the heroes picked as companions in the multiplayer base (the companions window), in the order
-    // picked, asked for in each network zone (PlayerClient::RestoreCompanions); emptied when a multiplayer game begins.
+    // picked: party members in the base (JoinCompanions), asked for in each network zone
+    // (PlayerClient::RestoreCompanions); emptied when a multiplayer game begins.
     std::vector<std::string> companions;
+
+private:
+    // The entry of each of the party's records after the first (record i's at i - 1): the first companion file not
+    // taken by an earlier record whose hero has the record's name and prototype, null for none.
+    std::vector<MpHeroRecord*> CompanionEntries(const Party& party);
 };
 extern SavedParties g_savedParties;
 // The party of the record kept outside a running game (the multiplayer hero).

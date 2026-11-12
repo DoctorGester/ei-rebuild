@@ -77,7 +77,15 @@ std::vector<std::string> GraphThreads(const std::vector<std::string>& zones, std
 // companion `index` (from 0, -1 none); the nearest living unit hostile to unit `id` (-1 none); the saved hero of the
 // heroes' list named `name` (its file), read from the disk (false without one or when it does not read).
 int ServerPartyRecords(int player);
+// The units of the server world's player (Player::units), -1 without the player.
+int ServerPartyUnits(int player);
 int CompanionUnit(int index);
+// The items of item type `type` (Item::type) that server player 0's companion `index` (from 0) holds in its slots
+// (weapons, armour, quick items, spells); -1 without the companion's unit.
+int CompanionItems(int index, unsigned type);
+// The items of item type `type` the saved hero named `name` holds, its file read from the disk: its party's backpack
+// and its record's four lists; -1 when there is no such hero or its file does not read.
+int SavedHeroItems(const char* name, unsigned type);
 int NearestEnemy(int id);
 // The companions picked in the base (SavedParties::companions); the add of the saved hero `name` sent from the
 // local client as a mid-game add (restore 0; false when there is no such hero or client).
@@ -159,6 +167,7 @@ int ConnectionState(void* connection);          // its state
 // their types (EngineObject::type); false without a source.
 bool CampItems(void* camp, int* page, std::vector<void*>* items, std::vector<unsigned>* types);
 void CampTakeItem(void* camp, void* item, int mode);   // CampPages::TakeItem (slot 42, MoveItem)
+std::string CampNextHero(void* camp);   // CampPages::NextHero (the camp's next hero arrow); the hero's script name
 // The magic stock of trader class `type` (its class template's spells party): each item as "scroll <spell code>",
 // "prototype <spell code>" or "other"; false without such a template.
 bool TraderMagic(int type, std::vector<std::string>* items);

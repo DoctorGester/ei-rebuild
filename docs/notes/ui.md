@@ -624,18 +624,21 @@ left for the titles stays the state's.
 ## Companions window
 
 Ours (`ui_companions.cpp`; network.md, "Companions"). The list of companions is picked only in the multiplayer base,
-the briefing screen of a multiplayer game (a local zone: no server link, no HUD). `BriefingScreen::CreateScreen` adds
+the briefing screen of a multiplayer game (a local zone served by the player's own game: no server link, no HUD). `BriefingScreen::CreateScreen` adds
 `CompanionButton` next to the chat window when `CompanionsOffered` (a multiplayer client; a host only with its
 companions option on): a framed "+" on a shade, 30 x 30 at (762, 562) in the 800 x 600 layout (bottom right), tip
 "Companions (F3)"; F3 (`BriefingScreen::KeyDown`) opens the same window. A joined game does not know its host's option
-in the base (it learns the limit with the first network zone), so it always offers; `SavedParties::companions` past the
-host's limit are dropped when a zone asks for them. The battle screen has no button and no F3.
+in the base (it learns the limit with the first network zone), so it always offers (`net::BaseCompanionLimit`);
+`SavedParties::companions` past the host's limit are dropped when a zone asks for them. The battle screen has no button and no F3.
 The window is a shaded box over (200, 150)-(600, 412): the title, one row per picked companion ("(with you)") and then
 per saved hero neither played nor picked (at most 8 in all), the picked one framed (the first at first), below them what
 OK does ("OK: add", "OK: send away", or why nothing); regions 0 OK (the OK button's picture), 1 Close (cancel's), 2 on
-the rows. OK (or Enter) takes the picked companion off `SavedParties::companions` or puts the picked hero on it while
-there is room (the host's limit, `net::kMostCompanions` for a joined game), and closes; nothing is sent. Close or Esc
-closes. It leaves a value no screen takes.
+the rows. OK (or Enter) sends the picked companion away (its record from the local party back to its file,
+`SavedParties::ReturnCompanion`, then off `SavedParties::companions` and `ClientMessage::RemoveCompanion` to the base's
+server) or puts the picked hero on the list while there is room (`net::BaseCompanionLimit`: the host's option,
+`net::kMostCompanions` for a joined game) and asks the base's server to join it (`ClientMessage::AddCompanion`), and
+closes. Close or Esc closes. It leaves a value no screen takes. In the base the companions are party members, so the
+camp lists and edits them like any member (its hero arrows step through them).
 The battle screen's client party puts the hero's companions (its party's records after the first, with a unit) right after
 the camera's hero (`companionPortraits`), so the HUD shows their portraits with health bars beside the other players'
 faces (AddPortrait centres the hero, its companions and the players); ToggleMember (portrait clicks, the member keys) then

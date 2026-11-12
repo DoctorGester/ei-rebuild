@@ -107,11 +107,11 @@ enum class ClientMessage : std::uint8_t {
     FightAtWill = 0x3B,
     LastPosition = 0x40,
     PartyUpdate = 0x50,
-    // Ours: a dword (1 for the client's list asked for again in a new zone; an add with 0 is refused), then a saved
-    // hero to walk with the player's hero, a sized block (Party::SaveParty without variables); sent only to a server
-    // that sent ServerMessage::Companions.
+    // Ours: a dword (1 for the client's list asked for again in a new zone; 0 a pick in the base, which a network
+    // zone refuses), then a saved hero to walk with the player's hero, a sized block (Party::SaveParty without
+    // variables); sent only to the base's own server and to a server that sent ServerMessage::Companions.
     AddCompanion = 0x51,
-    // Ours: a companion leaves the party, a dword (its unit's id); refused (the list changes in the base zone only).
+    // Ours: a companion sent away in the base, a dword (its unit's id); a network zone refuses it.
     RemoveCompanion = 0x52,
 };
 
@@ -294,14 +294,15 @@ public:
     // Message 0x50: a sized block loaded into the party (no variables); one naming items or spells this game's
     // databases lack empties the party, and the player leaves as for OnNewParty.
     bool OnPartyUpdate();
-    // Ours. Message 0x51: the client's saved companions asked for again at a zone's start (the leading dword is 1; the
-    // list itself changes only in the base zone, on the client): a saved hero joins the party as a companion when the
-    // host allows companions (ServerSession::companions) and the player is joined in a network zone with a living
-    // leader and room for one more: its record (items copied into the party, a fresh object id, following the
-    // leader) is appended, its unit made beside the leader and the party sent. Anything else, an add with the dword
-    // 0 too, is read and dropped (logged). Returns true.
+    // Ours. Message 0x51: a saved hero joins the party as a companion. In the multiplayer base (a local zone served
+    // by the player's own game) a pick (any leading dword) within the base's limit (net::BaseCompanionLimit); in a
+    // network zone only the client's list asked for again at its start (the dword 1) within the host's limit
+    // (ServerSession::companions). Either needs the player joined with a living leader and room for one more: its
+    // record (items copied into the party, a fresh object id, following the leader) is appended, its unit made beside
+    // the leader and the party sent. Anything else is read and dropped (logged). Returns true.
     bool OnAddCompanion();
-    // Ours. Message 0x52 (nothing sends it any more): read and dropped (logged). Returns true.
+    // Ours. Message 0x52: in the multiplayer base the companion of the unit id leaves: its record and its unit go and
+    // the party is sent; elsewhere read and dropped (logged). Returns true.
     bool OnRemoveCompanion();
     // "Able" units below: present, not blocked (flag 0x800000) and not dead.
     bool OnLeave();             // Message 0x01: the connection's Leave

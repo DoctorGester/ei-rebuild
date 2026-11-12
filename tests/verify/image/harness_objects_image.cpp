@@ -308,6 +308,11 @@ bool CampItems(void* camp, int* page, std::vector<void*>* items, std::vector<uns
 void CampTakeItem(void* camp, void* item, int mode) {
     static_cast<CampPages*>(static_cast<UiWindow*>(camp))->TakeItem(static_cast<Item*>(item), mode);
 }
+std::string CampNextHero(void* camp) {
+    auto* pages = static_cast<CampPages*>(static_cast<UiWindow*>(camp));
+    pages->NextHero();
+    return pages->HeroRecord()->scriptName;
+}
 bool TraderMagic(int type, std::vector<std::string>* items) {
     ClassTemplate* trader = g_partyManager.templates.Find(type);
     if (!trader) return false;

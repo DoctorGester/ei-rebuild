@@ -189,10 +189,12 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   a scenario drags the player slider (`layout ldown` / `move` / `lup`, `net_pair_portraits`) or clicks the pause
   mode's region (29) with the new game's row selected; `checklimit <n>` requires the client session's player limit
   (`ClientSession::PlayerLimit`), `checkpaused 0|1` the server world's pause flag. Companions (network.md): the
-  create-server screen's region 30 turns them on; `companions <n>` requires server player 0's party records, `companionlist <n>` the companions picked in the base
-  (`SavedParties::companions`), `askcompanion <hero>` sends a mid-game add of that saved hero (the server refuses it),
-  `heroxp <name> [more]` reads the saved hero's file from the disk and logs its experience (`more`: above the last
-  heroxp of that hero); the `hit` step's units take `companion` (server player 0's first) and, as a target, `enemy`
+  create-server screen's region 30 turns them on; `companions <n>` requires server player 0's party records and units, `companionlist <n>` the companions picked in
+  the base (`SavedParties::companions`), `askcompanion <hero>` sends a mid-game add of that saved hero (a network
+  zone's server refuses it), `heroxp <name> [more]` reads the saved hero's file from the disk and logs its experience
+  (`more`: above the last heroxp of that hero), `heroitems <name> <type> <n>` requires that many items of a type (hex,
+  as campputon's) in the file (backpack and record), `companionitems <type> <n>` in server player 0's first
+  companion's unit, and `campnexthero` presses the camp's next hero arrow; the `hit` step's units take `companion` (server player 0's first) and, as a target, `enemy`
   (the living unit nearest the attacker that is hostile to it; `net_pair_companion`). `folderprofile` checks the drop-in start-up (harness_folder_profile.h,
   `dropin_profile.txt`).
 - Mod folders (S19d; standalone.md, "Mod folders"): `mod <folder>` answers the settings' `[game] Mod` with a mod folder

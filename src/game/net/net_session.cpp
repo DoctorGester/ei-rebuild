@@ -246,6 +246,11 @@ void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rat
     added->sendInterval = 250.0f / static_cast<float>(rate);
 }
 
+int BaseCompanionLimit() {
+    const ServerSession* server = g_gameServer.Get();
+    return server ? static_cast<int>(server->companions) : kMostCompanions;
+}
+
 } // namespace net
 
 // --- Pump --------------------------------------------------------------------------------------------

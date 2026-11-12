@@ -106,6 +106,11 @@ int HostCompanions() {
     return IsLive(server) ? static_cast<int>(server->companions) : 0;
 }
 
+// The multiplayer base: a local zone of a multiplayer game, served by the player's own game.
+bool InMultiplayerBase() {
+    return IsMultiplayerClient() && g_serverWorld.gameState == GameState::Playing && g_serverWorld.zoneMode == ZoneMode::Base;
+}
+
 // A dead hero's experience penalty: lostXp of its experience above its class's floor (a NaN kept), taken from the
 // pending experience.
 void TakeDeathPenalty(UnitStats* stats, std::string_view prototype) {
@@ -440,8 +445,10 @@ bool PlayerServer::OnPartyUpdate() {
     return DropForOtherDatabase(this);
 }
 
-// The list of companions changes only in the multiplayer base zone, a local zone without a server: here a client
-// only asks for its list again at a zone's start (`restore`); every other add is read and dropped (logged).
+// The list of companions changes only in the multiplayer base zone, a local zone served by the player's own game:
+// there a pick joins (any `restore`) within the base's limit (net::BaseCompanionLimit); a network zone only takes the
+// client's list asked for again at its start (`restore`), within the host's limit; every other add is read and dropped
+// (logged).
 bool PlayerServer::OnAddCompanion() {
     std::uint32_t restore = 0;
     in.ReadValue(restore);
@@ -449,7 +456,8 @@ bool PlayerServer::OnAddCompanion() {
     in.ReadSized(&block);
     block.MemoryStream::Seek(0);
     if (!in.ok) return true;
-    if (!restore) {
+    const bool base = InMultiplayerBase();
+    if (!restore && !base) {
         console::EndLine(console::g_netLogOut << "player " << player->playerId
                                               << ": companion refused outside the base zone");
         return true;
@@ -458,9 +466,10 @@ bool PlayerServer::OnAddCompanion() {
     companion.LoadParty(&block, false);
     Party* party = player->GetParty();
     Unit* leader = party->members.empty() ? nullptr : g_serverWorld.FindUnit(static_cast<int>(party->members[0].unitId));
-    const bool room = std::ssize(party->members) <= HostCompanions();
-    if (state != State::Joined || g_serverWorld.gameState != GameState::Network || !room || !leader || leader->IsDead() ||
-        std::ssize(companion.members) != 1 || !HasEveryRecord(&companion)) {
+    const int limit = base ? net::BaseCompanionLimit() : g_serverWorld.gameState == GameState::Network ? HostCompanions() : 0;
+    const bool room = std::ssize(party->members) <= limit;
+    if (state != State::Joined || !room || !leader || leader->IsDead() || std::ssize(companion.members) != 1 ||
+        !HasEveryRecord(&companion)) {
         console::EndLine(console::g_netLogOut << "player " << player->playerId << ": companion refused");
         return true;
     }
@@ -479,13 +488,26 @@ bool PlayerServer::OnAddCompanion() {
     return true;
 }
 
-// Nothing sends it any more (the list changes in the base zone only): read and dropped (logged).
+// A companion sent away in the multiplayer base: its record and its unit go (the client has written the record
+// into its file). Elsewhere read and dropped (logged).
 bool PlayerServer::OnRemoveCompanion() {
     int unitId = 0;
     in.ReadValue(unitId);
-    if (in.ok)
-        console::EndLine(console::g_netLogOut << "player " << player->playerId
-                                              << ": companion removal refused outside the base zone");
+    if (!in.ok) return true;
+    std::vector<PartyUnitRecord>& members = player->GetParty()->members;
+    if (state == State::Joined && InMultiplayerBase()) {
+        for (int i = 1; i < std::ssize(members); ++i) {
+            if (static_cast<int>(members[i].unitId) != unitId) continue;
+            members.erase(members.begin() + i);
+            g_serverWorld.RemoveObject(static_cast<unsigned>(unitId));
+            console::EndLine(console::g_netLogOut << "player " << player->playerId << ": companion " << unitId
+                                                  << " sent away");
+            SendParty();
+            return true;
+        }
+    }
+    console::EndLine(console::g_netLogOut << "player " << player->playerId
+                                          << ": companion removal refused outside the base zone");
     return true;
 }
 

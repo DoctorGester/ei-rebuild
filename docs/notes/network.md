@@ -74,8 +74,8 @@ Files: `net/net_session.h` (sessions, lobby, message base), `net_session*.cpp`, 
 
 A player may take its other saved heroes (the .mp files of the hero list) into a network game as companions: one hero
 to start; the list is picked in the multiplayer base (the briefing screen's companions button or F3, ui.md "Companions
-window") and only there: the base is a local zone with no server link, and a network zone only asks for the picked
-list again. Scenario `net_pair_companion`.
+window") and only there: the base is a local zone served by the player's own game, with no server link, where the
+picked heroes are party members; a network zone only asks for the picked list again. Scenario `net_pair_companion`.
 - **The host's option**: the create-server screen's region 30 ("Companions: off / two", `net::kMostCompanions`) into
   `ServerSession::companions`. Off is the default and changes nothing: no message below is sent.
 - **Who knows it**: our client writes `kCompanionLoginMark` into its world login's password field past the
@@ -86,16 +86,32 @@ list again. Scenario `net_pair_companion`.
   original client never marks its login, so it never gets 0x84. **A mixed game**: original clients play one hero as
   before and see the others' companions as units of those players (the party state's other units); our clients add
   companions.
-- **The join** (`PlayerServer::OnAddCompanion`): a dword (1: the client's list asked for again at the zone's start; a 0
-  is read and dropped, logged: nothing in a zone changes the list; the harness's `askcompanion` sends one), then a sized
-  block, the hero's party saved without variables. Taken when the option is on, the player is joined in a network zone, its hero lives, the party has room (1 + companions) and the
-  block is one record of known items and spells; else read and dropped (logged). The record is appended
-  (`PartyUnitRecord::CopyFrom`: every field, the items copied into the player's party), gets the next free object id
-  (as OnNewParty's), follows the hero (`leaderId`), and its unit is made beside the hero (`WorldServer::CreateUnits`,
-  a Player mode, the Heroes group); the party is sent. Orders need nothing new: the walk / attack / cast / use handlers
-  take any unit id with a Player mode (they never checked the owner; nor do they now).
-- **Taken off the list**: in the base only, on the client (`SavedParties::companions`); the zone's records go home
-  with the party. `ClientMessage::RemoveCompanion` (0x52) is no longer sent; the server reads and drops it (logged).
+- **The join** (`PlayerServer::OnAddCompanion`): a dword (1: the client's list asked for again at a network zone's
+  start; 0: a pick in the base), then a sized block, the hero's party saved without variables. A network zone takes
+  only the 1 (a 0 is read and dropped, logged: nothing there changes the list; the harness's `askcompanion` sends one)
+  within the host's option; the base (`InMultiplayerBase`: a multiplayer client's own game playing a zone of kind
+  Base) takes either within `net::BaseCompanionLimit` (the host's option, `kMostCompanions` in a joined game). Taken
+  when the player is joined, its hero lives, the party has room (1 + companions) and the block is one record of known
+  items and spells; else read and dropped (logged). The record is appended (`PartyUnitRecord::CopyFrom`: every field,
+  the items copied into the player's party), gets the next free object id (as OnNewParty's), follows the hero
+  (`leaderId`), and its unit is made beside the hero (`WorldServer::CreateUnits`, a Player mode, the Heroes group); the
+  party is sent. Orders need nothing new: the walk / attack / cast / use handlers take any unit id with a Player mode
+  (they never checked the owner; nor do they now).
+- **In the base**: picked in the window, the hero joins at once (the window sends the 0x51 with 0 to the base's
+  server). Entering the base (each party message's `GameFlow::ReturnLocalParty`, below) the party records the base
+  deploys are the hero and a copy of each picked companion's record from its file (`SavedParties::JoinCompanions`,
+  unit ids following the hero's), so the base's login deploys them all. The camp then lists and
+  edits them like any party member (equipment, spells and skills, the trader, the hero arrows); closing it rejoins
+  (`PlayerClient::Rejoin`), and its `ReturnLocalParty` writes each companion's record into its file and the hero
+  (with the backpack and the money: the hero's) alone into the hero's, so an item moved between them lands in the
+  right file. The base's gate waits for the hero only (`BriefingScreen::LeaveIfExitOpen`, unchanged); leaving
+  (`GameFlow::SwitchMultiplayerZone`) hands the companions' records home again and takes the hero alone to the network
+  zone, whose client asks for them anew. A joined game's list trimmed to its host's limit there comes back trimmed.
+- **Sent away**: in the base only, on the client: the window hands the companion's record from the local party back
+  to its file (`SavedParties::ReturnCompanion`), takes it off `SavedParties::companions` and sends
+  `ClientMessage::RemoveCompanion` (0x52, its unit id) to the base's server, which drops its record and its unit
+  (`WorldServer::RemoveObject`) and sends the party. A network zone reads and drops a 0x52 (logged); the zone's
+  records go home with the party.
 - **Death**: a companion's death (`PlayerServer::CompanionDied`, from the unit's death report when it is not the
   leader) takes the hero's experience penalty at once, on the unit and on its record; it lies dead, nothing dropped
   (money and backpack are the hero's). The hero's death keeps the rule above for the hero; the living companions are
@@ -104,9 +120,10 @@ list again. Scenario `net_pair_companion`.
 - **Back to the files**: at the zone's end (`LeaveToZone`, `Leave`) the living companions are synced and the party is
   sent; the client's `GameFlow::ReturnLocalParty` hands each record after the first to its hero's file
   (`SavedParties::ReturnCompanions`: the first companion file asked for whose hero has the record's name and
-  prototype; the entry's record becomes a copy, the file written) and keeps the hero alone in its own file and in the
-  party records. Every party message does this (the add's answer, a death's resend), so a lost game keeps the last one.
-- **The whole game**: `SavedParties::companions` (the files picked in the base) lasts until they are taken off or a
+  prototype; the entry's record becomes a copy, the file written) and keeps the hero alone in its own file; the party
+  records take the companions again from their files (above). Every party message does this (the add's answer, a
+  death's resend, the base's login and each camp's rejoin), so a lost game keeps the last one.
+- **The whole game**: `SavedParties::companions` (the files picked in the base) lasts until they are sent away or a
   multiplayer game begins (leaving a game and joining or hosting another). In each network zone of the game the 0x84
   answer sets `PlayerClient::restoreCompanions`; once the hero's unit stands (the in-zone tick, `RestoreCompanions`)
   every file is asked for (restore dword 1; files past this host's limit dropped). A joined game does not know the

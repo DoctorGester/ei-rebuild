@@ -102,6 +102,9 @@ enum class PauseMode : std::uint8_t { Original, Announced, AnyPlayer, Off };
 inline constexpr int kMostPlayers = 14;
 // Ours: the companions the create-server screen's switch offers: a hero and two make a party of three.
 inline constexpr int kMostCompanions = 2;
+// Ours: the companions a player takes in the multiplayer base: the host's own option (ServerSession::companions), or
+// kMostCompanions in a joined game, whose host's option a network zone's start tells (ServerMessage::Companions).
+int BaseCompanionLimit();
 
 enum class AwardKind : std::uint32_t {
     Experience = 0,

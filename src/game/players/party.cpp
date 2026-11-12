@@ -189,28 +189,71 @@ bool SavedParties::InUse(const MpHeroRecord* hero) const {
     return false;
 }
 
-bool SavedParties::ReturnCompanions(Party* party) {
-    const std::vector<std::string>& files = companions;
-    std::vector<bool> taken(files.size(), false);
-    for (int i = 1; i < std::ssize(party->members); ++i) {
-        const PartyUnitRecord& record = party->members[i];
-        for (int c = 0; c < std::ssize(files); ++c) {
-            if (taken[c]) continue;
-            MpHeroRecord* hero = nullptr;
-            for (MpHeroRecord& entry : entries)
-                if (entry.file == files[c]) hero = &entry;
-            if (!hero || hero->party.members.size() != 1) continue;
-            PartyUnitRecord& saved = hero->party.members[0];
+MpHeroRecord* SavedParties::Entry(const std::string& file) {
+    for (MpHeroRecord& entry : entries)
+        if (entry.file == file) return &entry;
+    return nullptr;
+}
+
+std::vector<MpHeroRecord*> SavedParties::CompanionEntries(const Party& party) {
+    std::vector<MpHeroRecord*> found;
+    std::vector<bool> taken(companions.size(), false);
+    for (int i = 1; i < std::ssize(party.members); ++i) {
+        const PartyUnitRecord& record = party.members[i];
+        MpHeroRecord* match = nullptr;
+        for (int c = 0; c < std::ssize(companions) && !match; ++c) {
+            MpHeroRecord* hero = Entry(companions[c]);
+            if (taken[c] || !hero || hero->party.members.size() != 1) continue;
+            const PartyUnitRecord& saved = hero->party.members[0];
             if (saved.scriptName != record.scriptName || saved.prototype != record.prototype) continue;
             taken[c] = true;
-            saved.CopyFrom(record, &hero->party);
-            hero->WriteFile(folder);
-            break;
+            match = hero;
         }
+        found.push_back(match);
     }
+    return found;
+}
+
+namespace {
+
+void ReturnRecord(MpHeroRecord* hero, const PartyUnitRecord& record, const std::string& folder) {
+    hero->party.members[0].CopyFrom(record, &hero->party);
+    hero->WriteFile(folder);
+}
+
+} // namespace
+
+bool SavedParties::ReturnCompanions(Party* party) {
+    const std::vector<MpHeroRecord*> heroes = CompanionEntries(*party);
+    for (int i = 0; i < std::ssize(heroes); ++i)
+        if (heroes[i]) ReturnRecord(heroes[i], party->members[i + 1], folder);
     if (std::ssize(party->members) < 2) return false;
     party->members.erase(party->members.begin() + 1, party->members.end());
     return true;
+}
+
+int SavedParties::ReturnCompanion(const Party& party, const std::string& file) {
+    const std::vector<MpHeroRecord*> heroes = CompanionEntries(party);
+    for (int i = 0; i < std::ssize(heroes); ++i) {
+        if (!heroes[i] || heroes[i]->file != file) continue;
+        ReturnRecord(heroes[i], party.members[i + 1], folder);
+        return static_cast<int>(party.members[i + 1].unitId);
+    }
+    return -1;
+}
+
+void SavedParties::JoinCompanions(Party* party) {
+    if (party->members.empty()) return;
+    for (const std::string& file : companions) {
+        MpHeroRecord* hero = Entry(file);
+        if (!hero || hero->party.members.size() != 1) continue;
+        const std::uint32_t heroId = party->members[0].unitId;
+        const std::uint32_t id = heroId + static_cast<std::uint32_t>(party->members.size());
+        PartyUnitRecord& record = party->members.emplace_back();
+        record.CopyFrom(hero->party.members[0], party);
+        record.unitId = id;
+        record.leaderId = static_cast<int>(heroId);
+    }
 }
 
 void SavedParties::ReserveOne() {

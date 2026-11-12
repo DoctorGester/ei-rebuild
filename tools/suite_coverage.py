@@ -60,7 +60,7 @@ ACTION_VERBS = {
     'droplist', 'walkto', 'msaa', 'anisotropy', 'clock', 'event', 'hit', 'save', 'plugin', 'widescreen', 'waitpresent',
     'losedevice', 'gputiming', 'frametime', 'camtrace', 'objtrace', 'reject', 'talk', 'rdown', 'rup', 'hold', 'release',
     'rclick', 'rdblclick', 'dblclick', 'dblclickregion', 'ldown', 'lup', 'typeunicode', 'logmark', 'allow', 'giveitem',
-    'chat', 'askcompanion', 'record'}
+    'chat', 'askcompanion', 'campnexthero', 'record'}
 # Steps that leave the state a scenario's start made: such a body can only end a merged run.
 STATE_VERBS = {'zone', 'load', 'newgame', 'windowsize', 'resolution', 'fullscreen', 'mod', 'modfile', 'modarchive',
                'skin', 'render', 'msaa', 'anisotropy', 'losedevice', 'peer', 'peersignal', 'peerwait', 'screen',
