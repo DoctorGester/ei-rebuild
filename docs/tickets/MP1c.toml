@@ -6,5 +6,6 @@ model = "opus"
 files = ["src/game/ui/ui_battle.cpp src/game/ui/ui_battle.h"]
 note = "User 2026-11-12: 'is there no box select in multiplayer?' The original turns it off on a multiplayer client (ui_battle.cpp: MouseMove's box needs !IsMultiplayerClient(), LeftUp takes the single-click path when IsMultiplayerClient()): a player had one hero then. With companions (MP1/MP1b) a player has up to three units, so a drag should box-select the player's own units (the hero and its companions: the client party RebuildClientParty builds), never another player's, with the portraits' frames and the selection ack as in a single-player game. Keep the original's single-click path when no box was dragged. Check in a net_pair scenario with companions (a drag over the hero and a companion selects both, then a move order moves both; another player's unit inside the box is not selected), plus the single-player box select unchanged. Note it in ui.md / network.md as our change."
 order = 1418
-status = "running"
+status = "done"
 started = "2026-11-12"
+done = "2026-11-12"
