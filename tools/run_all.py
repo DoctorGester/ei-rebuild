@@ -773,7 +773,7 @@ def merge_peer_report(report, peer_report, say):
 
 # The image's settings file after the run (ST1a): a scenario line "# settings-file: <expected>" (a path from the
 # scenario's folder) says the run leaves an ei_settings.ini in its folder that must equal the expected file line by line
-# (line breaks apart; "{install}" in it stands for the run's install folder): what the game saved on exit in a "settingsfile writable|import" run
+# (line breaks apart; "{install}" in it stands for the run's install folder, "{install-game}" for it in the game's own separators): what the game saved on exit in a "settingsfile writable|import" run
 # (tests/verify/harness_settings.h). On the Rebirth install the expected file is <name>.rebirth<ext> (none: not
 # checked). The exit save comes after the report, so the check is here, once the game has ended.
 SETTINGS_FILE_PREFIX = '# settings-file:'
@@ -811,8 +811,11 @@ def check_settings_file(report, scenario, out, rebirth, install, say):
         failures.append(f'settings file: cannot read the expected file ({expected_path})')
     else:
         a = [l.rstrip(b'\r\n').decode('utf8', 'replace') for l in actual]
-        # "{install}" in the expected file: the run's install folder (the game writes its own folder's paths).
-        e = [l.rstrip(b'\r\n').decode('utf8', 'replace').replace('{install}', install) for l in expected]
+        # "{install}" in the expected file: the run's install folder as the game was given it (Work path keeps it);
+        # "{install-game}": the same in the game's own separators (every "/" a "\"): the Mod setting's full path is
+        # FullGamePath's, "\home\user\..." on Linux and macOS, which reads back as a full path on any system (H75a).
+        e = [l.rstrip(b'\r\n').decode('utf8', 'replace').replace('{install}', install)
+              .replace('{install-game}', install.replace('/', '\\')) for l in expected]
         shown = lambda lines, i: '(none)' if i >= len(lines) else '"' + lines[i][:150] + ('...' if len(lines[i]) > 150 else '') + '"'
         differing = [i for i in range(max(len(a), len(e))) if a[i:i + 1] != e[i:i + 1]]
         for i in differing[:6]:
