@@ -3,3 +3,5 @@ title = "Linux CI: mod_menu_list (Rebirth) fails its settings-file check on ever
 group = "harness"
 note = "Seen on every Linux CI run since at least 2026-11-11 (no Rebirth golden, so the job stays green): settings file line 83: expected 'Mod = /home/runner/work/_temp/ei-data/rebirth\\starter\\Mods\\LostInAstral', got 'Mod = \\home\\runner\\work\\_temp\\ei-data\\rebirth\\starter\\Mods\\LostInAstral'. Either run_all.check_settings_file builds the expected line with mixed separators or the game writes the Mod path with every / turned into \\ on POSIX; find which and fix it there. tools/ci_times.py --runs 5 lists it."
 order = 1421
+status = "running"
+started = "2026-11-12"
