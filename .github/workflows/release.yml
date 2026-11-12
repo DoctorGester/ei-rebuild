@@ -417,7 +417,7 @@ jobs:
           # The downloads' notes, above GitHub's generated list of changes.
           cat > notes.md <<'EOF'
           - **Windows** (x64): `ei-rebuild.exe`, copied into the game folder (GOG or Rebirth, 1.06), or
-            `ei-rebuild-windows-x64.zip`: the exe with `ei-convert.exe` and the examples folder.
+            `ei-rebuild-windows-x64.zip`: the exe with `ei-convert.exe`, `ei-effects.exe` (the effect viewer) and the examples folder.
           - **Linux** (x86-64): `ei-rebuild-linux-x64.tar.gz`; its README.txt says how to name the game folder.
           - **macOS** (Apple silicon and Intel): `ei-rebuild-macos.zip`, an app neither Developer ID signed nor
             notarised: clear the quarantine flag once (`xattr -dr com.apple.quarantine ei-rebuild.app`, or
