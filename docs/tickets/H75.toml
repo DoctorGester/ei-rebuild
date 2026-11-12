@@ -4,5 +4,5 @@ group = "harness"
 size = 1
 model = "opus"
 files = [".github/workflows/suites-linux.yml tests/scenarios/batch_spells.txt"]
-note = "Seen on Linux CI shard 2: 2026-11-12 at c32e75f7a (batch_spells TIMEOUT 213 s at step 251 of 255; effect_viewer NO REPORT 0 s) and 2026-11-11 at 76318868c (batch_spells ended at console line 159). The next commits' Linux runs passed. Find why batch_spells runs long on the runner (lavapipe; which steps take the time) and why effect_viewer starts no report there; raise the limit only if the run is honestly that slow, else fix the stall."
+note = "Seen on Linux CI shard 2: 2026-11-12 at c32e75f7a (batch_spells TIMEOUT 213 s at step 251 of 255; effect_viewer NO REPORT 0 s) and 2026-11-11 at 76318868c (batch_spells ended at console line 159). The next commits' Linux runs passed. Find why batch_spells runs long on the runner (lavapipe; which steps take the time) and why effect_viewer starts no report there; raise the limit only if the run is honestly that slow, else fix the stall. User 2026-11-12: Linux runs started timing out after H74 merged scenarios into batches (batch_*), so a batch's time limit on the slow runner is the likely cause. Measure each batch's Linux time (CI logs, run_all's per-run times) against its limit; fix how the limit is set for batches or split the slow ones, keeping the local suite time."
 order = 1420
