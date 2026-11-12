@@ -2,7 +2,8 @@
 # (section names as before: the notes name them); a section after the first starts again from the main menu with a new game.
 # Sections: spells, party_leader_switch, levers_key, rebirth_fixes.
 # installs: vanilla
-timeout 71
+# Linux CI takes up to 217 s: its limit there (timeout times EI_TIME_SCALE) is twice that (linux.md, "The CI job").
+timeout 145
 reject Script error
 waitmenu
 console thingamabob

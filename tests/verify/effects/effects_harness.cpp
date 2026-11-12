@@ -131,13 +131,15 @@ bool WriteBmp(const std::string& path, const render::FrameImage& image) {
 // The "write" step: false (with the reason) for a path outside the run's output folder.
 bool WriteStep(const std::string& argument, std::string* why) {
     const std::size_t space = argument.find(' ');
-    const std::string file = argument.substr(0, space);
+    std::string file = argument.substr(0, space);
     std::string text = space == std::string::npos ? std::string() : argument.substr(space + 1);
     if (file.empty() || file[0] == '\\' || file[0] == '/' || file.find(':') != std::string::npos ||
         file.find("..") != std::string::npos) {
         *why = "write: " + file + " is not a file in the run's output folder";
         return false;
     }
+    // The scenario's `\` separators as `/`, which every system takes (on POSIX a `\` is part of a file's name).
+    std::replace(file.begin(), file.end(), '\\', '/');
     for (std::size_t at = text.find("\\n"); at != std::string::npos; at = text.find("\\n", at + 1)) text.replace(at, 2, "\n");
     std::ofstream out(ei::OutputPath(file.c_str()), std::ios::binary);
     out << text << '\n';

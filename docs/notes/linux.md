@@ -290,16 +290,18 @@ limit; the next addition to Rebirth's set may need the split parts the CI job un
 
 `.github/workflows/suites-linux.yml` ("Linux") has two parts. Its build job builds the game and the harness with
 warnings as errors and runs ctest (above), with no game data; it saves its compiler cache under the commit. Then eight
-suites jobs in parallel each restore that cache (the harness build is all hits and a link), check out the private
-repository with a read-only token, unpack the stub set into the runner's temp folder, remove the checkout and play
-every eighth scenario of the sorted list (both suites, one game at a time) under xvfb on llvmpipe, less every
-render_*, net_*, camera_* and mod_lost_in_astral_* scenario (the user: the renderer's looks, the two-game, camera and
-Lost in Astral runs were most of the time and the failures; named in the `scenarios` input they still run) and
-`LINUX_SKIP` (ui_minimap_edges, the Rebirth widescreen layouts, unit_ai_bridge, zone_gz15h_tornado_client: they cannot
-match on llvmpipe or take more than three times their limit there); a job fails when a golden differs. It runs on
-pushes to main and `claude/**` (not docs-only ones), on pull requests from this repository's own branches (a fork's
-gets no secrets and the suites are skipped) and by hand; it uploads nothing but the build job's two shader files, and
-the data is outside every cached path. The suites are off until the variable below is set.
+suites jobs in parallel each restore that cache (the harness build of the game, ei-convert and ei-effects, which the
+effect_viewer_* scenarios play, is all hits and links; a program left out of it makes its scenarios NO REPORT in 0 s,
+as effect_viewer_* were), check out the private repository with a read-only token, unpack the stub set into the
+runner's temp folder, remove the checkout and play every eighth scenario of the sorted list (both suites, one game at
+a time) under xvfb on llvmpipe, less every render_*, net_*, camera_* and mod_lost_in_astral_* scenario (the user: the
+renderer's looks, the two-game, camera and Lost in Astral runs were most of the time and the failures; named in the
+`scenarios` input they still run) and `LINUX_SKIP` (ui_minimap_edges, the Rebirth widescreen layouts, unit_ai_bridge,
+zone_gz15h_tornado_client, the Lua hooks' cost study effect_hooks_cost: they cannot match on llvmpipe or take more
+than three times their limit there); a job fails when a golden differs. It runs on pushes to main and `claude/**` (not
+docs-only ones), on pull requests from this repository's own branches (a fork's gets no secrets and the suites are
+skipped) and by hand; it uploads nothing but the build job's two shader files, and the data is outside every cached
+path. The suites are off until the variable below is set.
 
 A third part, the gcc-latest job, compiles the game and the harness (no checks, warnings not errors) in the unpinned
 `gcc:latest` image with the build job's shaders (EI_PREBUILT_SHADERS): every gcc release drops some of libstdc++'s
@@ -320,6 +322,14 @@ never converged; a cut frames step also changes the digest after it ("The harnes
 drawn, so on llvmpipe a scenario's real time follows its waits (about 0.2 s a frame on 4 cores whatever the window's
 size: the game's updates, vertex work and uploads); a scenario that needs more gets a `timeout` line of its own, which
 the scale multiplies.
+
+A `timeout` is sized by the runner, not the desktop: the runner takes 10 to 25 times a desktop's time (a merged run's
+sections each start a game, so its share is the high end), and its speed comes in classes, the slowest about 1.8 times
+the fastest (batch_spells 117 s to 217 s, the runs beside it alike). A run's slowest time there stays at most half its
+limit there (timeout times the scale); `python tools/ci_times.py --runs 20` lists the runs past half (and every one
+that did not pass) from the workflow's logs (gh CLI). A merged run (harness.md, "Merged scenarios") takes about the
+sum of its members' times there, 100 to 220 s against 5 to 10 s on a desktop, so its timeout comes from that sum,
+never from its desktop time: batch_spells' 71 s (213 s there) timed out on every slow runner at 217 s.
 
 One-time setup (the user's; nothing here creates repositories or tokens):
 1. Build and pack on the machine with the installs:

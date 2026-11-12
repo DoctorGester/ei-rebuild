@@ -53,7 +53,8 @@ and camera_ filter on their sections) play several scenarios as sections in one 
 undoes what the ones before set (`frametime 0`, `speed 0`, `unfreeze`), goes back to the main menu (Esc unless the
 escape menu is up already, its exit, Enter) and starts its own new game (or, for the menu ones, starts at the main
 menu). A `# ---- section <name>` line keeps the section's name, which the notes use, and its `reject` lines start with
-the section (sections that allow script errors come first).
+the section (sections that allow script errors come first). Its `timeout` is sized by the Linux CI runner's time (about
+the sum of its members' there; linux.md, "The CI job"), not by the desktop's 5 to 10 s.
 
 **How a run starts** (run_all.launch, tools/game_process.py): the exe itself, with the working directory and
 `EI_GAME_ROOT` the install, `EI_HARNESS` the scenario, `EI_OUT_DIR` the run folder and `EI_INSTALL_ROOTS` both installs.

@@ -1,7 +1,8 @@
 # A merged run (H74): items, the save and load windows, units, key remapping. Each section below was a scenario of its own that started the same way
 # (section names as before: the notes name them); a section after the first starts again from the main menu with a new game.
 # Sections: items, ui_saveload, units, ui_saveload_delete, ui_options_remap.
-timeout 68
+# Linux CI takes up to 142 s: its limit there (timeout times EI_TIME_SCALE) is twice that (linux.md, "The CI job").
+timeout 95
 reject Script error
 waitmenu
 console thingamabob
