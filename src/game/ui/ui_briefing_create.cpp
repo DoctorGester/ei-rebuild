@@ -55,6 +55,11 @@ constexpr std::uint32_t kTextBackdrop = 0xA0000000;
 constexpr int kTopicBarChild = 0;
 constexpr int kTextChild = 1;
 constexpr int kTopicsSurface = 0;
+// The topic rows' regions (layout): x 210..570 from y 440, 24 high.
+constexpr int kRowRegionLeft = 0xD2;
+constexpr int kRowRegionRight = 0x23A;
+constexpr int kRowRegionTop = 0x1B8;
+constexpr int kRowHeight = 0x18;
 
 
 // The states (BriefingScreen::state).
@@ -142,6 +147,13 @@ void BriefingScreen::CreateScreen() {
         ->PaintWith([this](UiSurface& out) { PaintLabels(out, topicLabels); });
     AddSurface(std::make_unique<UiSurface>(Rect{0, 0, 250, 30}, SurfaceBlend::Keyed, true))
         ->PaintWith([this](UiSurface& out) { PaintLabels(out, personLabel); });
+
+    // The topic rows, the screen's only regions: made once and read in state 1 only, so no way out of the topics
+    // leaves rows behind to catch the next list's hits (docs/notes/ui.md, "Briefing / base screen").
+    for (int row = 0, top = kRowRegionTop; row < kTopicRows; ++row, top += kRowHeight) {
+        topicRows[row] = AddRegion();
+        topicRows[row]->SetRect(kRowRegionLeft, top, kRowRegionRight, top + kRowHeight);
+    }
 
     topicBar = AddChild(std::make_unique<UiScrollbar>(Rect{584, 440, 594, 560}, 3.0f, 0, 1.0f));
     text = AddChild(std::make_unique<UiScrollText>("", Rect{165, 426, 635, 570}, 10.0f));

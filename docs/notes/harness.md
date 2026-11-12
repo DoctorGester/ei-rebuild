@@ -118,7 +118,8 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   - `serverscript <command>` runs a world script command on the server world (`WorldScript(<command>)`), also in a
     network game; a script error fails the step (`net_pair_mod_effect.txt`).
 - On the base screen: `waitdialogue <seconds> <state>` waits for its dialogue state (1 a person's topics open:
-  `clickregion` picks one); `talk <seconds>` clicks through the dialogue's phrases and rewards until it is over, or until
+  `clickregion` picks one); `topichover <n>` requires topic `<n>` lit under the mouse (after a `moveregion` over its row;
+  `net_companion_dialogue`); `talk <seconds>` clicks through the dialogue's phrases and rewards until it is over, or until
   the base is left for a battle zone (a cut-scene base whose briefing ends in LeaveToZone:
   `mod_lost_in_astral_cz_ingos.txt`; `net_pair_leave.txt`).
 - `key <key>` and `click/rclick/move <x> <y>` send keyboard and mouse input to the game window (coordinates in the

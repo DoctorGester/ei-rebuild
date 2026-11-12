@@ -297,8 +297,8 @@ Screen 3 of a "brief" zone. States: 0 walking, 1 topic choice, 2 dialogue starti
 through the phrases, Esc, a second Esc takes the rewards. A person
 can talk when its server controller's command is 0 or 0xB and the next one 9 (or it has none).
 
-`ShowBriefing` is "briefing <name>"; `SaveState` writes one zero dword; `OpenTopics` makes five rows 210..570 x 440.. with
-"goodbye" appended; `FindTopics`: "b.<person>.<topic>" = 1 by bit compare, a network client sorts them, the last "constr..."
+`ShowBriefing` is "briefing <name>"; `SaveState` writes one zero dword; `OpenTopics` lists the topics with "goodbye"
+appended; `FindTopics`: "b.<person>.<topic>" = 1 by bit compare, a network client sorts them, the last "constr..."
 topic last; `TopicTitle` maps "constr..." to "briefing constr"; the "constr" topic's number is `Mid(7)`. `OnUnitJoined`: the
 leader's "b.<zone>" topic starts at once. `PersonTextMap::Load` serves the battle screen too. The rewards are the quest
 database's `QuestBriefingRecord` (quest_records.h). Per-function detail: section 11.
@@ -307,6 +307,16 @@ database's `QuestBriefingRecord` (quest_records.h). Per-function detail: section
 figure lit, MapObjectFlag::BoxMarked; a selected one is left alone) on the local view directly, only where the game is
 served (player 0 has a server half); the original sent each mark as message 0x19 kind 1 / 2 through the server's player
 0, which reached the view a tick or two after the screen's first frame (the people lit up late).
+
+- **The topic rows are made once (ours, MP1d; GitHub issue #2).** `CreateScreen` adds the five row regions
+  (`topicRows`, 210..570 x 440.., 24 high: the screen's only regions, so `clickregion 0..4` are the rows) and only
+  state 1 reads them (the hover, the click). The original made five more with each `OpenTopics` and cleared them only
+  when a row was clicked; its `RegionAt` took a region's index in the screen's list, so rows left behind by an Esc
+  (state 1 to 0, nothing cleared) still had the first five indices and the same rectangles. Ours named the rows
+  (C96a) and matched the hit against them: the left-behind rows were hit first, so after one Esc on a topic list no
+  later list lit a line or took a click (seen as "after the companions window": the window itself changed nothing).
+  Any other way out of state 1 (a zone topic started by UnitJoined while the list shows) left them too. Scenario
+  `net_companion_dialogue` (`topichover`: the window closed with and without a change, Esc, the window over the list).
 
 Meshes: 0 / 1 the topics' backdrop and frame (shown in state 1 only), 2 / 3 the text's backdrop and frame, then the people's
 slots. Update hides them all each frame, then state 1 shows 0 and 1 and states 3 / 4 show 2 onwards (showing every mesh drew
@@ -645,7 +655,9 @@ the rows. OK (or Enter) sends the picked companion away (its record from the loc
 server) or puts the picked hero on the list while there is room (`net::BaseCompanionLimit`: the host's option,
 `net::kMostCompanions` for a joined game) and asks the base's server to join it (`ClientMessage::AddCompanion`), and
 closes. Close or Esc closes. It leaves a value no screen takes. In the base the companions are party members, so the
-camp lists and edits them like any member (its hero arrows step through them).
+camp lists and edits them like any member (its hero arrows step through them). Closing it leaves the base screen as it
+was (its dialogue state, topics and regions); issue #2's dead topic lines came from an Esc on a topic list ("Briefing / base
+screen", MP1d).
 The battle screen's client party puts the hero's companions (its party's records after the first, with a unit) right after
 the camera's hero (`companionPortraits`), so the HUD shows their portraits with health bars beside the other players'
 faces (AddPortrait centres the hero, its companions and the players); ToggleMember (portrait clicks, the member keys) then

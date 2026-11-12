@@ -6,3 +6,5 @@ model = "opus"
 files = ["src/game/ui/ui_companions.cpp src/game/ui"]
 note = "GitHub issue DoctorGester/ei-rebuild#2 (v1.2.1, Windows 11), reported 2026-11-12: in a network game with companions, after doing a quest and handing it in, then pressing the '+' button at the bottom right (the companions window) and then clicking a quest giver or trader: the dialogue lines do not highlight under the mouse and clicking them does nothing. Expected: lines highlight and start the dialogue. Reproduce in a net scenario (companions on, a quest taken and handed in, the companions window opened (and closed, with and without a change), then a quest giver's dialogue: hover and click a line). Suspects: the window leaving a modal / input capture or focus state behind (MP1b now sends adds/removes from it in the base and rejoins), or the party/rejoin after a companions change resetting the dialogue's speaker / talking unit. Fix the cause, add the scenario (dialogue line hovered and clicked after the window), note it in ui.md."
 order = 1419
+status = "review"
+started = "2026-11-12"

@@ -20,6 +20,8 @@
 //                             wait until the base screen (briefing) is on top with its dialogue in <state>
 //                             (BriefingScreen::state: 0 walking, 1 a person's topics open, 2 the dialogue
 //                             starting, 3 phrases, 4 rewards), in a main loop pass (input steps follow)
+//   topichover <n>            require the base screen on top with its topics open and topic <n> under the mouse
+//                             (BriefingScreen::hoveredTopic, drawn white; -1 none): after a moveregion over its row
 //   talk <seconds>            click through the base screen's dialogue: a click at the layout's centre in
 //                             states 3 and 4 (the next phrase, then the rewards taken), two frames apart,
 //                             until it is back in state 0 (a topic without phrases at once) or the game
@@ -3437,6 +3439,15 @@ void RunSteps() {
                 const std::string name = image::CampNextHero(camp);
                 Log("harness: campnexthero: the camp shows %s", name.c_str());
             }
+        } else if (s.verb == "topichover") {
+            const int want = std::atoi(s.argument.c_str());
+            void* top = TopWindow();
+            const int state = top ? image::DialogueState(top) : -1;
+            const int hovered = top ? image::HoveredTopic(top) : -2;
+            Log("harness: topichover: topic %d under the mouse, dialogue state %d (wanted topic %d)", hovered, state, want);
+            if (state != 1 || hovered != want)
+                g_failures.push_back("topichover: topic " + std::to_string(hovered) + " under the mouse in dialogue state " +
+                                     std::to_string(state) + ", not topic " + std::to_string(want));
         } else if (s.verb == "companionlist") {
             const int want = std::atoi(s.argument.c_str());
             const int picked = image::CompanionList();

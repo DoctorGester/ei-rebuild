@@ -74,6 +74,11 @@ int DialogueState(void* window) {
     return briefing ? briefing->state : -1;
 }
 
+int HoveredTopic(void* window) {
+    auto* briefing = dynamic_cast<BriefingScreen*>(static_cast<UiWindow*>(window));
+    return briefing ? briefing->hoveredTopic : -2;
+}
+
 bool IsWindowName(const std::string& name) {
     for (const Named& named : NamedWindows())
         if (name == named.name) return true;
