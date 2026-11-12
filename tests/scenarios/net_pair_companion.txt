@@ -15,6 +15,8 @@
 # - comp is asked for by the client (ClientMessage::AddCompanion with the restore dword): the party holds two
 #   records and the companion stands beside the hero with the camp's axe. The HUD has no companions button, F3 opens
 #   nothing and an add sent past the list (askcompanion) is refused by the server: the party keeps its two records.
+# - Box select (ours, MP1c): a drag over the hero, the companion and the peer's hero selects the host's two only;
+#   a click on the ground walks both.
 # - The companion fights: it kills the hostile unit nearest it (the harness's hit), so the kill's experience is
 #   shared among the zone's heroes, the companion's share among them; then it is killed itself (the hero's death
 #   penalty on its experience, PlayerServer::CompanionDied). Then the hero dies (as net_host_death): the hero's rule,
@@ -137,6 +139,20 @@ peerwait 120 peerin
 frames 60
 companions 2
 companionitems 3004 2
+
+# Box select in a network game (ours, MP1c): a drag over the hero, the companion and the peer's hero selects the
+# host's two (BattleScreen::BoxMembers: the client party's hero and companions), never the peer's, which stands
+# beside them at the zone's entrance; a click on the ground then walks both and leaves the peer's hero.
+selected leader
+boxselect leader companion player1
+frames 5
+selected leader companion
+capture companion_box
+clickground 31 138
+frames 80
+unitnear leader 31 138 4
+unitnear companion 31 138 4
+unitnear player1 24.2 138.8 1
 
 # Outside the base the list stays as it is: the HUD has no companions button, F3 opens no window (the battle
 # screen stays on top) and the server refuses an add sent past the list.

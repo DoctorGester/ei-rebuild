@@ -580,13 +580,14 @@ void BattleScreen::Update() {
         }
     }
 
-    // The selection box: party units inside it are marked (MapObjectFlag::BoxMarked and their figure's select virtual
-    // with 1), the others unmarked (with 0); selected ones are left alone.
+    // The selection box: the party units it may select (BoxMembers) inside it are marked (MapObjectFlag::BoxMarked and
+    // their figure's select virtual with 1), the others unmarked (with 0); selected ones are left alone.
     if (boxSelecting) {
         std::vector<MapObject*> units = g_clientWorld.UnitsInBox(&selectionBox);
         std::vector<std::uintptr_t> inside;
+        const int selectable = BoxMembers();
         for (MapObject* unit : units) {
-            for (int i = 0; i < std::ssize(*currentParty); ++i) {
+            for (int i = 0; i < selectable; ++i) {
                 if ((*currentParty)[i] != unit) continue;
                 inside.push_back(static_cast<std::uintptr_t>(i));
             }
@@ -652,7 +653,7 @@ void BattleScreen::LeftUp(UiEvent& event) {
     }
     viewPressed = false;
     WorldClient* world = &g_clientWorld;
-    if (!boxSelecting || IsMultiplayerClient()) {
+    if (!boxSelecting) {
         Unit* unit = world->UnitAt(event.at);
         if (unit && !(unit->flags & MapObjectFlag::InParty)) unit = nullptr;
         SelectUnit(unit, event.at);
@@ -664,9 +665,10 @@ void BattleScreen::LeftUp(UiEvent& event) {
     int first = -1;
     std::vector<MapObject*> units = world->UnitsInBox(&selectionBox);
     std::vector<std::uintptr_t> inside;
+    const int selectable = BoxMembers();
     if (!units.empty()) {
         for (MapObject* unit : units) {
-            for (int i = 0; i < std::ssize(*currentParty); ++i) {
+            for (int i = 0; i < selectable; ++i) {
                 if ((*currentParty)[i] != unit) continue;
                 inside.push_back(static_cast<std::uintptr_t>(i));
                 if (first < 0) first = i;
@@ -1051,7 +1053,7 @@ void BattleScreen::MouseMove(UiEvent& event) {
         return;
     }
     g_cursor.SetShape(CursorShape::Default);
-    if (viewPressed && options::g_options.cameraFrameSelectionArea > 0 && !IsMultiplayerClient()) {
+    if (viewPressed && options::g_options.cameraFrameSelectionArea > 0) {
         int threshold = options::g_options.cameraFrameSelectionArea;
         if (Distance(event.at.x, press.x) > threshold || Distance(event.at.y, press.y) > threshold) boxSelecting = true;
         if (boxSelecting) {
@@ -1341,6 +1343,13 @@ std::vector<int> BattleScreen::SelectedIndexes() const {
         if (member && (member->flags & MapObjectFlag::Selected)) indexes.push_back(i);
     }
     return indexes;
+}
+
+int BattleScreen::BoxMembers() const {
+    const int members = lib::Count(party);
+    if (!IsMultiplayerClient()) return members;
+    const bool heroFirst = members > 0 && party[0]->id == clientParty.camera;
+    return std::min(members, companionPortraits + (heroFirst ? 1 : 0));
 }
 
 void BattleScreen::AttackUnit(Unit* target, bool ctrl) {

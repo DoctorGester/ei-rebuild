@@ -80,6 +80,10 @@ int ServerPartyRecords(int player);
 // The units of the server world's player (Player::units), -1 without the player.
 int ServerPartyUnits(int player);
 int CompanionUnit(int index);
+// MP1c: the unit id of server player `player`'s first party record (its hero; -1 without the player or a record), and
+// the client world's selected objects (WorldClient::selectedIds).
+int PlayerLeaderUnit(int player);
+std::vector<int> ClientSelection();
 // The items of item type `type` (Item::type) that server player 0's companion `index` (from 0) holds in its slots
 // (weapons, armour, quick items, spells); -1 without the companion's unit.
 int CompanionItems(int index, unsigned type);

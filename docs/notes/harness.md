@@ -210,7 +210,10 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
     as campputon's) in the file (backpack and record), `companionitems <type> <n>` in server player 0's first
     companion's unit, and `campnexthero` presses the camp's next hero arrow; the `hit`
     step's units take `companion` (server player 0's first) and, as a target, `enemy` (the living unit nearest the
-    attacker that is hostile to it; `net_pair_companion`).
+    attacker that is hostile to it; `net_pair_companion`) and `player<n>` (server player <n>'s hero). Box select
+    (MP1c): `boxselect <unit> ...` drags a box over the rectangles the units are drawn in (press, move and release in
+    one frame), `selected <unit> ... | none` requires the client world's selection to be exactly those units, and
+    `unitnear <unit> <x> <y> <distance>` a server unit within the distance of a map point.
 - `graphthreads <zone> ...` loads each zone (NewZone) and builds its AI region graph twice, on the processors
   (`AIMap::BuildRegionGraph`) and with one local search measuring every block in order; a console line per zone says
   whether SaveBlocks' bytes are the same (a difference fails the run; the log has both times), then the main menu
