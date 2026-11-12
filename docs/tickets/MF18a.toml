@@ -1,0 +1,8 @@
+id = "MF18a"
+title = "Map Pro100's raw game.exe addresses to our code and re-size its holes"
+group = "mods"
+size = 2
+model = "opus"
+files = ["build/mf18a_pro100_map.md"]
+note = "User 2026-11-12: goal is making a port of Pro100 possible, not shipping it. Before work on holes A1-C7 (build/mf18_pro100.md): use the earlier address investigation (build/spelladdon, mapped through commit e3f76656b where every function still has its game.exe address) to map every Memory.Read/Write offset and call address in Pro100's main.lua (build/pro100), and addon.dll's Lua rule sites (LuaRecalcUnitStats, LuaGetModifiedDamage, ...), to our functions and fields. Report per hole: the sites, what each touches in our code, and a revised size and scope."
+order = 1423
