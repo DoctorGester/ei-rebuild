@@ -1,7 +1,8 @@
 # A merged run (H74): the scripts parsed and run, map objects, the world's client, a save in flight. Each section below was a scenario of its own that started the same way
 # (section names as before: the notes name them); a section after the first starts again from the main menu with a new game.
 # Sections: script_parse, script_exec, map_objects, world_client, save_flight.
-timeout 81
+# Linux CI takes up to 172 s: its limit there (timeout times EI_TIME_SCALE) is twice that (linux.md, "The CI job").
+timeout 115
 waitmenu
 console thingamabob
 newgame

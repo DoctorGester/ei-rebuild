@@ -78,10 +78,11 @@ jobs:
           cmake -S . -B build/linux -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           cmake --build build/linux
+      # The three programs the suites play (the game, ei-convert's records check, ei-effects' effect_viewer_*).
       - name: Build the harness
         run: |
           $HARNESS_CONFIGURE
-          cmake --build build/linux-harness --target ei-rebuild
+          cmake --build build/linux-harness --target ei-rebuild ei-convert ei-effects
           ccache --show-stats
       - name: Checks
         run: |
@@ -159,10 +160,11 @@ jobs:
       # not of the game. The game's rest (menus, interface, zones, units, items, saves, spells, the records) is the set.
       # Named in the `scenarios` input they still run. LINUX_SKIP are the others that cannot match on llvmpipe or take
       # more than 3x their limit there (linux.md, "The harness" and "The CI job"): the minimap's edges, the Rebirth
-      # widescreen layouts, the AI bridge, the tornado client.
+      # widescreen layouts, the AI bridge, the tornado client, the Lua hooks' cost study (840 frames of 2,100 hook
+      # calls: past its limit at step 35 of 55 on every runner, and it only times the main thread).
       LINUX_SKIP: >-
         ui_minimap_edges ui_widescreen ui_widescreen_hud ui_widescreen_more ui_widescreen_screens unit_ai_bridge
-        zone_gz15h_tornado_client
+        zone_gz15h_tornado_client effect_hooks_cost
     steps:
       - uses: actions/checkout@v5
       - name: Packages
@@ -183,7 +185,7 @@ jobs:
       - name: Build the harness
         run: |
           $HARNESS_CONFIGURE
-          cmake --build build/linux-harness --target ei-rebuild ei-convert
+          cmake --build build/linux-harness --target ei-rebuild ei-convert ei-effects
           ccache --show-stats
 
       # The private repository's files: ei-stub-data.tar.zst (or its parts, .tar.zst.00, .01, ..., when split under

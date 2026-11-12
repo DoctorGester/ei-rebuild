@@ -6,6 +6,8 @@
 # strength); loaded now, each one does what it did (its record's `effect`) and counts down and ends as before, as the
 # pre-port build's run of this scenario did.
 # prepare: copy_save.py tests/saves/buff_old save2
+# Linux CI takes up to 137 s: its limit there (timeout times EI_TIME_SCALE) is twice that (linux.md, "The CI job").
+timeout 95
 reject Script error
 waitmenu
 console thingamabob

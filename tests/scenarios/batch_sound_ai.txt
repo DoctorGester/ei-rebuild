@@ -2,7 +2,8 @@
 # (section names as before: the notes name them); a section after the first starts again from the main menu with a new game.
 # Sections: sound, unit_ai_corpse, unit_hit_turning, sandbox_map, unit_ai, party_records.
 # installs: vanilla
-timeout 87
+# Linux CI takes up to 221 s: its limit there (timeout times EI_TIME_SCALE) is twice that (linux.md, "The CI job").
+timeout 150
 reject Script error
 waitmenu
 console thingamabob

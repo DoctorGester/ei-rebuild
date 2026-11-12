@@ -1572,7 +1572,7 @@ D3D12_ONLY_PREFIX = 'render_device_lost_'
 
 LINUX_LEFT_OUT = {
     'system': ('net_pair_kick', 'net_pair_leave', 'net_pair_master', 'net_pair_quest', 'net_pair_speed',
-               'render_batch', 'camera_batch', 'render_stats', 'zone_gz15h_tornado'),
+               'render_batch', 'camera_batch', 'render_stats', 'zone_gz15h_tornado', 'effect_hooks_cost'),
     'gpu': ('net_pair_master',),
 }
 

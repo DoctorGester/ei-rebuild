@@ -2,7 +2,8 @@
 # (section names as before: the notes name them); a section after the first starts again from the main menu with a new game.
 # Sections: combat_more, unit_ai_cast, unit_ai_heal, unit_steal_item, combat.
 # installs: vanilla
-timeout 75
+# Linux CI takes up to 210 s: its limit there (timeout times EI_TIME_SCALE) is twice that (linux.md, "The CI job").
+timeout 140
 reject Script error
 waitmenu
 console thingamabob
