@@ -1,0 +1,12 @@
+{
+  "scenario": "net_companion_dialogue",
+  "install": "vanilla",
+  "recorded": "2026-11-12",
+  "commit": "768039317",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "MP1d: new scenario, the base's topic lines after the companions window and after an Esc",
+  "source": "image"
+}

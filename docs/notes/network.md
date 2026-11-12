@@ -69,7 +69,8 @@ Files: `net/net_session.h` (sessions, lobby, message base), `net_session*.cpp`, 
 A player may take its other saved heroes (the .mp files of the hero list) into a network game as companions: one hero
 to start; the list is picked in the multiplayer base (the briefing screen's companions button or F3, ui.md "Companions
 window") and only there: the base is a local zone served by the player's own game, with no server link, where the
-picked heroes are party members; a network zone only asks for the picked list again. Scenario `net_pair_companion`.
+picked heroes are party members; a network zone only asks for the picked list again. Scenario `net_pair_companion`;
+`net_companion_dialogue` the base's topic lines after the window (MP1d, ui.md "Briefing / base screen").
 - **The host's option**: the create-server screen's region 30 ("Companions: off / two", `net::kMostCompanions`) into
   `ServerSession::companions`. Off is the default and changes nothing: no message below is sent.
 - **Who knows it**: our client writes `kCompanionLoginMark` into its world login's password field past the

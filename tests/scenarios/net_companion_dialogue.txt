@@ -1,0 +1,130 @@
+# MP1d (issue #2): a base dialogue's topic lines after the companions window. This game makes two heroes, "comp"
+# and then "host" (the one it plays), and hosts alone with the create-server screen's companions switch on
+# (region 30), as net_pair_companion. In the base, by the sheriff:
+# - The window closed with no change (F3, Close): the sheriff's topics open, the second line lights under the mouse
+#   (topichover: BriefingScreen::hoveredTopic) and its click starts the dialogue (z3q2_1, the map picked).
+# - The window with a change (the "+" button, comp's row, OK: comp joins the base's party, which is sent again):
+#   the topics open, the line lights; Esc closes the topics.
+# - Esc closed the topics: opened again, they light and click as before (before MP1d the closed topics' rows stayed
+#   among the screen's regions and caught the new rows' hits: no line lit and no click started anything).
+# - The topics open under the window (the "+" pressed while they show, comp sent away): they still light and click.
+# Only on the vanilla data: the Rebirth run reaches no code and checks nothing the vanilla run does not.
+# installs: vanilla
+timeout 60
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key c
+frames 3
+key o
+frames 3
+key m
+frames 3
+key p
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key h
+frames 3
+key o
+frames 3
+key s
+frames 3
+key t
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 mpconnect
+
+clickregion 14
+frames 5
+clickregion 30
+frames 3
+clickregion 0
+waitwindow 25 briefing
+frames 20
+
+# To the sheriff.
+clickground 63 64 dblclick
+frames 60
+waitunit 10 Nsheriff
+
+# The window closed with no change, then the sheriff's second line: lit under the mouse, its click starts it.
+key f3
+frames 10
+capture window_open
+clickregion 1
+frames 10
+waitwindow 5 briefing
+clickunit Nsheriff
+waitdialogue 10 1
+moveregion 1
+frames 3
+topichover 1
+capture dialogue_unchanged
+clickregion 1
+talk 30
+
+# The window with a change: comp joins, the party is sent again; the line lights. Esc closes the topics.
+layout click 777 577
+frames 10
+clickregion 2
+frames 3
+clickregion 0
+frames 30
+companionlist 1
+companions 2
+waitunit 10 Nsheriff
+clickunit Nsheriff
+waitdialogue 10 1
+moveregion 1
+frames 3
+topichover 1
+capture dialogue_changed
+key esc
+waitdialogue 10 0
+
+# Opened again after the Esc: the lines light and click.
+clickunit Nsheriff
+waitdialogue 10 1
+moveregion 0
+frames 3
+topichover 0
+capture dialogue_after_esc
+moveregion 1
+frames 3
+topichover 1
+
+# The "+" pressed while the topics show: comp sent away (its row is the first); the topics still light and click.
+layout click 777 577
+frames 10
+clickregion 2
+frames 3
+clickregion 0
+frames 30
+companionlist 0
+companions 1
+waitdialogue 5 1
+moveregion 0
+frames 3
+topichover 0
+capture dialogue_under_window
+clickregion 0
+talk 30
+report
+quit

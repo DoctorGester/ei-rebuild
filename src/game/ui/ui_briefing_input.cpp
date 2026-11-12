@@ -40,12 +40,7 @@ constexpr const char* kTopicSeparator = " ";
 
 
 
-// The topic rows (layout): regions at x 210..570 from y 440, 24 high; text rows on surface 0 at
-// x 15..380 with their bottoms from 34, 24 apart, up to 154.
-constexpr int kRowRegionLeft = 0xD2;
-constexpr int kRowRegionRight = 0x23A;
-constexpr int kRowRegionTop = 0x1B8;
-
+// The topic rows' text on surface 0 (layout): x 15..380 with their bottoms from 34, 24 apart, up to 154.
 constexpr int kRowHeight = 0x18;
 constexpr int kRowTextLeft = 0xF;
 constexpr int kRowTextRight = 0x17C;
@@ -121,8 +116,6 @@ void BriefingScreen::LeftDown(UiEvent& event) {
         if (row < 0 || row + topicTop >= std::ssize(topics)) return;
         g_interface.PlayInterfaceSound(kClickSound);
         topic = topics[row + topicTop];
-        ClearRegions();
-        std::ranges::fill(topicRows, nullptr);
         StartDialogue(false, true);
         return;
     }
@@ -216,10 +209,6 @@ void BriefingScreen::OpenTopics(EngineObject* speaker) {
     if (leader && !noWalk) {
         Unit* unit = g_serverWorld.FindUnit(leader->id);
         if (unit && !(unit->flags & MapObjectFlag::Blocked)) unit->ServerController()->brain.StopAction();
-    }
-    for (int row = 0, top = kRowRegionTop; row < kTopicRows; ++row, top += kRowHeight) {
-        topicRows[row] = AddRegion();
-        topicRows[row]->SetRect(kRowRegionLeft, top, kRowRegionRight, top + kRowHeight);
     }
     topics.push_back(kGoodbyeTopic);
     const int count = lib::Count(topics);

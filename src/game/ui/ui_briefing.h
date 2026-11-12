@@ -224,7 +224,7 @@ public:
     UiScrollbar* topicBar = nullptr;
     int topicTop = 0;                    // first topic row shown
     static constexpr int kTopicRows = 5;
-    UiRegion* topicRows[kTopicRows] = {};   // the shown topics' rows while choosing (null otherwise)
+    UiRegion* topicRows[kTopicRows] = {};   // the topic rows' regions (CreateScreen), read in state 1 only
     UiMesh* topicBackdrop = nullptr;     // behind the topics, with its frame
     UiMesh* topicFrame = nullptr;
     float savedEdgeFade = 0.0f;             // the map edge fade Create replaced

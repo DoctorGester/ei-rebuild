@@ -215,6 +215,7 @@ bool DropListEntry(void* window, int index, Point* centre);
 bool SaveLoadSliding(void* window);
 bool OptionsSliding(void* window);
 int DialogueState(void* window);                // the base screen's dialogue state (BriefingScreen::state), else -1
+int HoveredTopic(void* window);                 // the base screen's topic under the mouse (BriefingScreen::hoveredTopic), else -2
 bool HasChatOverlay();
 void ChatKeyEnter();
 void CloseChat();
