@@ -1,24 +1,30 @@
-# Companions: a player's other saved hero walks with its hero as a companion. The list is picked only in the
-# multiplayer base (the briefing screen: a local zone with no server; the companions button or F3) and kept for the
-# whole game; each network zone only asks for it again (PlayerClient::RestoreCompanions). This game makes two heroes,
-# "comp" and then "host" (the one it plays), hosts with the create-server screen's companions switch on (region 30)
-# and the peer (peer/net_pair_companion.txt) joins. In the base:
+# Companions: a player's other saved heroes walk with its hero as companions. The list is picked only in the
+# multiplayer base (the briefing screen: a local zone served by the player's own game; the companions button or F3),
+# where the picked heroes are party members, and kept for the whole game; each network zone only asks for it again
+# (PlayerClient::RestoreCompanions). This game makes two heroes, "comp" and then "host" (the one it plays), hosts with
+# the create-server screen's companions switch on (region 30) and the peer (peer/net_pair_companion.txt) joins. In the
+# base:
 # - The base screen's companions button opens the companions window; its first row is "comp" (region 2), OK
-#   (region 0) puts it on the list (SavedParties::companions), nothing is sent. The sheriff's second topic (z3q2_1,
-#   as net_pair_speed) picks the map; out through the gate into z3q2.
+#   (region 0) puts it on the list (SavedParties::companions) and it joins the base's party: its unit stands beside the
+#   hero (OnAddCompanion in the base).
+# - The camp edits it: an axe given to the party (its backpack, the hero's) goes on comp (the camp's next hero arrow,
+#   campnexthero). Closing the camp hands comp's record back to its file: comp's file holds one axe more, the hero's
+#   the same (heroitems reads the files from the disk). The sheriff's second topic (z3q2_1, as net_pair_speed) picks
+#   the map; out through the gate into z3q2, comp's record goes home first and the hero leaves alone.
 # In z3q2 (a network zone):
 # - comp is asked for by the client (ClientMessage::AddCompanion with the restore dword): the party holds two
-#   records and the companion stands beside the hero. The HUD has no companions button, F3 opens nothing and an add
-#   sent past the list (askcompanion) is refused by the server: the party keeps its two records.
+#   records and the companion stands beside the hero with the camp's axe. The HUD has no companions button, F3 opens
+#   nothing and an add sent past the list (askcompanion) is refused by the server: the party keeps its two records.
 # - The companion fights: it kills the hostile unit nearest it (the harness's hit), so the kill's experience is
 #   shared among the zone's heroes, the companion's share among them; then it is killed itself (the hero's death
 #   penalty on its experience, PlayerServer::CompanionDied). Then the hero dies (as net_host_death): the hero's rule,
 #   and the party, the dead companion standing again, comes back together at the zone's entrance.
 # - The peer quits (the exits stay closed while another player is in the game). Back out through exit 1 (as
-#   net_host_death), the hero and the companion selected: the party goes home and the client writes the companion's record
-#   into comp's own file (SavedParties::ReturnCompanions); heroxp reads that file from the disk.
-# Back in the base the list still holds comp: out through the gate again, comp comes back by itself (companions last
-# the game) and kills; home again, F3 and OK on its row take it off the list.
+#   net_host_death), the hero and the companion selected: the party goes home and the client writes the companion's
+#   record into comp's own file (SavedParties::ReturnCompanions); heroxp reads that file from the disk.
+# Back in the base the list still holds comp and comp stands in the party again (from its file): out through the gate
+# again, comp comes back by itself (companions last the game) and kills; home again, in the party again, F3 and OK on
+# its row send it away: its unit leaves the party, its file keeps the axe.
 # Only on the vanilla data: the Rebirth run reaches no code and checks nothing the vanilla run does not.
 # installs: vanilla
 rebirth resolution desktop
@@ -91,6 +97,26 @@ frames 30
 companionlist 1
 capture companion_base
 
+# Picked, comp joins the base's party: its unit stands beside the hero. The camp edits it: an axe given to the party
+# (the backpack, the hero's) goes on comp (the camp's next hero arrow). Closing the camp writes both files: comp's
+# holds the axe, the hero's does not.
+companions 2
+heroitems host 3004 1
+heroitems comp 3004 1
+giveitem 0 Axe.steel
+frames 10
+screen 5
+waitwindow 15 camp
+campnexthero
+campputon 3004 1
+capture companion_camp
+frames 3
+key esc
+waitwindow 15 briefing
+frames 20
+heroitems host 3004 1
+heroitems comp 3004 2
+
 # The sheriff's second topic (z3q2_1) picks the map.
 clickground 63 64 dblclick
 frames 60
@@ -110,6 +136,7 @@ peersignal entered
 peerwait 120 peerin
 frames 60
 companions 2
+companionitems 3004 2
 
 # Outside the base the list stays as it is: the HUD has no companions button, F3 opens no window (the battle
 # screen stays on top) and the server refuses an add sent past the list.
@@ -156,6 +183,7 @@ key enter
 waitwindow 60 briefing
 frames 40
 heroxp comp more
+companions 2
 
 # Companions last the game: out through the gate again, comp is asked for once the hero stands in the zone
 # (PlayerClient::RestoreCompanions); it kills, and goes home with the party.
@@ -179,9 +207,10 @@ key enter
 waitwindow 60 briefing
 frames 40
 heroxp comp more
+companions 2
 companionlist 1
 
-# Taken off the list in the base (F3, the first row is the companion, OK).
+# Sent away in the base (F3, the first row is the companion, OK): its unit leaves the party, its file keeps the axe.
 key f3
 frames 10
 clickregion 2
@@ -190,7 +219,9 @@ capture companion_send_away
 clickregion 0
 frames 30
 companionlist 0
+companions 1
 heroxp comp
+heroitems comp 3004 2
 frames 20
 report
 quit

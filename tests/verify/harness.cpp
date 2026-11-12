@@ -243,12 +243,19 @@
 //   checktick <ms>            require the world update period to be <ms> now (the speed keys' effect)
 //   checklimit <n>            require the client session's player limit (ClientSession::PlayerLimit) to be <n>
 //   checkpaused 0|1           require the server world's pause flag to be off / on (the host's pause mode)
-//   companions <n>            require server player 0's party to hold <n> records (its hero and companions)
+//   companions <n>            require server player 0's party to hold <n> records (its hero and companions) and
+//                             the player <n> units
 //   companionlist <n>         require the companions picked in the base (SavedParties::companions) to number <n>
-//   askcompanion <name>       send the add of saved hero <name> from the local client as a mid-game add (the server
-//                             refuses it: the list changes in the base only)
+//   askcompanion <name>       send the add of saved hero <name> from the local client as a mid-game add (a network
+//                             zone's server refuses it: the list changes in the base only)
 //   heroxp <name> [more]      log the experience of the saved hero <name>, its file read from the disk; with
 //                             "more" require it above what the previous heroxp of <name> logged
+//   heroitems <name> <type> <n>
+//                             require the saved hero <name>'s file (read from the disk) to hold <n> items of item
+//                             type <type> (hex, as campputon's): its backpack and its record's four lists
+//   companionitems <type> <n> require server player 0's first companion's unit to hold <n> items of item type <type>
+//                             (hex) in its slots
+//   campnexthero              with the camp on top: its next hero arrow (CampPages::NextHero); logs the hero
 //   waitfor <seconds> <expression>
 //                             evaluate the expression every 250 ms until it is nonzero; fail if
 //                             that takes longer than <seconds>
@@ -3315,10 +3322,31 @@ void RunSteps() {
         } else if (s.verb == "companions") {
             const int want = std::atoi(s.argument.c_str());
             const int records = image::ServerPartyRecords(0);
-            Log("harness: companions: server player 0's party has %d records (wanted %d)", records, want);
-            if (records != want)
+            const int units = image::ServerPartyUnits(0);
+            Log("harness: companions: server player 0's party has %d records and %d units (wanted %d)", records, units,
+                want);
+            if (records != want || units != want)
                 g_failures.push_back("companions: server player 0's party has " + std::to_string(records) +
-                                     " records, not " + std::to_string(want));
+                                     " records and " + std::to_string(units) + " units, not " + std::to_string(want));
+        } else if (s.verb == "heroitems" || s.verb == "companionitems") {
+            char name[64] = {};
+            unsigned type = 0;
+            int want = 0;
+            const bool hero = s.verb == "heroitems";
+            const bool read = hero ? std::sscanf(s.argument.c_str(), "%63s %x %d", name, &type, &want) == 3
+                                   : std::sscanf(s.argument.c_str(), "%x %d", &type, &want) == 2;
+            const int held = !read ? -1 : hero ? image::SavedHeroItems(name, type) : image::CompanionItems(0, type);
+            Log("harness: %s %s: %d items of type %04X (wanted %d)", s.verb.c_str(), s.argument.c_str(), held, type, want);
+            if (held != want)
+                g_failures.push_back(s.verb + " " + s.argument + ": " + std::to_string(held) + " items of the type");
+        } else if (s.verb == "campnexthero") {
+            void* camp = TopWindow();
+            if (!camp || WindowKind(camp) != "camp") {
+                g_failures.push_back("campnexthero: the camp is not on top");
+            } else {
+                const std::string name = image::CampNextHero(camp);
+                Log("harness: campnexthero: the camp shows %s", name.c_str());
+            }
         } else if (s.verb == "companionlist") {
             const int want = std::atoi(s.argument.c_str());
             const int picked = image::CompanionList();

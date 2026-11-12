@@ -560,8 +560,17 @@ void GameFlow::ReturnLocalParty() {
     Player* player = g_clientWorld.LocalView()->player;
     Party* party = player->GetParty();
     GlobalParty()->Assign(party);
-    // Companions go back to their own files; the hero's file and the party records keep the hero alone.
-    g_partyManager.records.BeginRedeploy(g_savedParties.ReturnCompanions(GlobalParty()) ? GlobalParty() : party);
+    // Companions go back to their own files; the hero's file keeps the hero alone. The party records (what the
+    // multiplayer base deploys) take the hero and each picked companion from its file.
+    const bool returned = g_savedParties.ReturnCompanions(GlobalParty());
+    if (g_savedParties.companions.empty()) {
+        g_partyManager.records.BeginRedeploy(returned ? GlobalParty() : party);
+    } else {
+        Party records;
+        records.Assign(GlobalParty());
+        g_savedParties.JoinCompanions(&records);
+        g_partyManager.records.BeginRedeploy(&records);
+    }
     // The global party record written into the heroes' folder.
     g_savedParties.outsideGame.WriteFile(g_savedParties.folder);
     UpdateFromServer();
@@ -774,6 +783,9 @@ void GameFlow::SwitchMultiplayerZone() {
     } else {
         records.Assign(GlobalParty());
     }
+    // The base's companions take the camp's edits home; a network zone's server takes the hero alone and the client
+    // asks for them again (PlayerClient::RestoreCompanions).
+    g_savedParties.ReturnCompanions(&records);
     records.zone = multiplayerZone;
     ReportStatus(net::PlayerStatus::Connecting);
     if (IsLive(net::g_gameServer)) {

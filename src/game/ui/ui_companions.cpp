@@ -3,6 +3,7 @@
 
 #include "game/app/singletons.h"
 #include "game/players/party.h"
+#include "game/players/player_client.h"
 #include "game/net/net_session.h"
 #include "game/players/saved_parties.h"
 #include "game/ui/ui_battle.h"
@@ -51,29 +52,16 @@ std::string HeroName(const MpHeroRecord& hero) {
     return name.substr(0, name.find('|'));
 }
 
-// The most companions: the host's own option; a joined game's is unknown until a zone (kMostCompanions, which the
-// zone's start trims).
-int Limit() {
-    const net::ServerSession* server = net::g_gameServer.Get();
-    return server ? static_cast<int>(server->companions) : net::kMostCompanions;
-}
-
-bool Room() { return std::ssize(g_savedParties.companions) < Limit(); }
-
-MpHeroRecord* Entry(const std::string& file) {
-    for (MpHeroRecord& hero : g_savedParties.entries)
-        if (hero.file == file) return &hero;
-    return nullptr;
-}
+bool Room() { return std::ssize(g_savedParties.companions) < net::BaseCompanionLimit(); }
 
 } // namespace
 
-bool CompanionsOffered() { return IsMultiplayerClient() && Limit() > 0; }
+bool CompanionsOffered() { return IsMultiplayerClient() && net::BaseCompanionLimit() > 0; }
 
 void CompanionWindow::CreateScreen() {
     LoadTexture("saveload", TextureKind::Interface);
     for (const std::string& file : g_savedParties.companions) {
-        const MpHeroRecord* hero = Entry(file);
+        const MpHeroRecord* hero = g_savedParties.Entry(file);
         if (!hero || hero->party.members.size() != 1) continue;
         files.push_back(file);
         names.push_back(HeroName(*hero) + " " + Shown(kWithYou));
@@ -119,9 +107,17 @@ void CompanionWindow::Paint(UiSurface& out) const {
 }
 
 void CompanionWindow::Act() {
-    const MpHeroRecord* hero = picked >= 0 && picked < std::ssize(files) ? Entry(files[picked]) : nullptr;
-    if (hero && picked < companionRows) std::erase(g_savedParties.companions, hero->file);
-    else if (hero && Room()) g_savedParties.companions.push_back(hero->file);
+    MpHeroRecord* hero = picked >= 0 && picked < std::ssize(files) ? g_savedParties.Entry(files[picked]) : nullptr;
+    PlayerClient* client = g_clientWorld.LocalView();
+    if (hero && picked < companionRows) {
+        // Sent away: its record (the camp's edits) goes back to its file first, then its unit leaves the party.
+        const int unitId = g_savedParties.ReturnCompanion(*LocalPlayerData(), hero->file);
+        std::erase(g_savedParties.companions, hero->file);
+        if (unitId >= 0) client->SendRemoveCompanion(unitId);
+    } else if (hero && Room()) {
+        g_savedParties.companions.push_back(hero->file);
+        client->SendAddCompanion(hero->GetParty(), false);
+    }
     g_interface.PlayInterfaceSound(kMessageBoxOkSound);
     g_interface.SetPendingValue(kClosed);
 }

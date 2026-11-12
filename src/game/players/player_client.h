@@ -70,8 +70,10 @@ public:
     // a sized block.
     void SendPartyUpdate();
     // Ours. 0x51: the saved hero `companion` (its party without variables, a sized block) joins the hero; `restore`
-    // is the list asked for again at a zone's start, the only add the server takes (the list changes in the base).
+    // is the list asked for again at a zone's start, the only add a network zone takes (a pick joins in the base).
     void SendAddCompanion(Party* companion, bool restore);
+    // Ours. 0x52: the companion of unit `unitId` sent away in the base.
+    void SendRemoveCompanion(int unitId);
     // Ours: the saved companions (SavedParties::companions) asked for again once the hero stands in a zone whose
     // host takes companions; set by OnCompanions, done by RunTick.
     void RestoreCompanions();

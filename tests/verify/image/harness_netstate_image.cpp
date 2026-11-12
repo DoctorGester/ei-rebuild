@@ -3,6 +3,7 @@
 
 #include "../harness_netstate_read.h"
 
+#include "game/items/item.h"
 #include "game/net/mod_identity.h"
 #include "game/net/net_session.h"
 #include "game/players/player.h"
@@ -85,6 +86,51 @@ int ServerPartyRecords(int playerId) {
     return player ? static_cast<int>(player->GetParty()->members.size()) : -1;
 }
 
+int ServerPartyUnits(int playerId) {
+    Player* player = g_serverWorld.GetPlayer(playerId);
+    if (!player) return -1;
+    int count = 0;
+    for (auto node = player->units.begin(); node != player->units.end() && node->second; ++node) ++count;
+    return count;
+}
+
+namespace {
+
+template <typename List>
+int CountOfType(const List& items, unsigned type) {
+    int count = 0;
+    for (const Item* item : items)
+        if (item && static_cast<unsigned>(item->type) == type) ++count;
+    return count;
+}
+
+// The saved hero of the heroes' list named `name` (the script name up to the '|'), its file read from the disk into
+// `hero`; false without one or when it does not read.
+bool ReadSavedHero(const char* name, MpHeroRecord* hero) {
+    for (MpHeroRecord& entry : g_savedParties.entries) {
+        const std::string& script = entry.party.members.empty() ? std::string() : entry.party.members[0].scriptName;
+        if (script.substr(0, script.find('|')) == name) hero->file = entry.file;
+    }
+    return !hero->file.empty() && hero->ReadFile(g_savedParties.folder) && !hero->party.members.empty();
+}
+
+} // namespace
+
+int CompanionItems(int index, unsigned type) {
+    Unit* unit = g_serverWorld.FindUnit(CompanionUnit(index));
+    if (!unit) return -1;
+    return CountOfType(unit->weapons, type) + CountOfType(unit->armor, type) + CountOfType(unit->quickItems, type) +
+           CountOfType(unit->spells, type);
+}
+
+int SavedHeroItems(const char* name, unsigned type) {
+    MpHeroRecord hero;
+    if (!ReadSavedHero(name, &hero)) return -1;
+    const PartyUnitRecord& record = hero.party.members[0];
+    return CountOfType(hero.party.items, type) + CountOfType(record.weapons, type) + CountOfType(record.armor, type) +
+           CountOfType(record.quickItems, type) + CountOfType(record.spells, type);
+}
+
 int CompanionUnit(int index) {
     Player* player = g_serverWorld.GetPlayer(0);
     if (!player) return -1;
@@ -124,15 +170,10 @@ bool AskCompanion(const char* name) {
 }
 
 bool SavedHero(const char* name, std::string* file, float* experience) {
-    file->clear();
-    for (MpHeroRecord& entry : g_savedParties.entries) {
-        const std::string& script = entry.party.members.empty() ? std::string() : entry.party.members[0].scriptName;
-        if (script.substr(0, script.find('|')) == name) *file = entry.file;
-    }
-    if (file->empty()) return false;
     MpHeroRecord hero;
-    hero.file = *file;
-    if (!hero.ReadFile(g_savedParties.folder) || hero.party.members.empty()) return false;
+    const bool read = ReadSavedHero(name, &hero);
+    *file = hero.file;
+    if (!read) return false;
     *experience = hero.party.members[0].stats.experience + hero.party.members[0].stats.pendingExperience;
     return true;
 }

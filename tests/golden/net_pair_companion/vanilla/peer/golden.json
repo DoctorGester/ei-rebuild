@@ -1,21 +1,28 @@
 {
   "scenario": "net_pair_companion",
   "install": "vanilla",
-  "recorded": "2026-11-11",
-  "commit": "da6e624e0",
+  "recorded": "2026-11-12",
+  "commit": "406927430",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MF17g4a: the campfire runs on Campfire.lua (its missile records are the scripted cast's, its entry in the Lua state's casts), the casts carry over a base's script reset; outcomes and units the same.",
+  "reason": "MP1b: companions join the multiplayer base's party (picked there, restored from their files on each entry), the camp edits a companion (an axe from the backpack onto comp) and sending it away removes its unit; the base's party, ids and the files change from the base on",
   "side": "peer",
   "source": "image",
   "change": [
-    "digest: 120 of 213 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; no unit position differs",
-    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 1 fields",
-    "    missile0 (spell 39) #: FEC14634 in the old golden, 32FA1123 in the new run",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  missiles: 1 of 1 differ",
-    "    #: 1 missile, 120 records, from 0; hash only (no numbers kept)"
+    "digest: 110 of 213 records differ, first at record 103 (world update 2080, tick 1377, frame 415, zone bz1mpg); outcomes CHANGED: zone, spawns, game result, script; max unit move 6.92 (obj1000011214, record 119); the digests have different numbers of records",
+    "  digest: the new run has more records; the other ends before its record 213 (world update 4280, frame 855, tick 3577, zone -)",
+    "  first difference at record 103 (world update 2080, tick 1377, frame 415, zone bz1mpg): 7 fields",
+    "    obj1000011214 (80 unhuma \"peer\") pos.x: 60.4154739 in the old golden, 59.25 in the new run (d 1.17)",
+    "    obj1000011214 (80 unhuma \"peer\") pos.y: 52.1649323 in the old golden, 54.25 in the new run (d 2.09)",
+    "    obj1000011214 (80 unhuma \"peer\") #ai: 8BA50468 in the old golden, B27BCA8B in the new run",
+    "    ... 4 more",
+    "  outcomes: CHANGED zone, spawns, game result, script; same: deaths, money, quest variables, party and items",
+    "    zone: record 121: - in the old golden, bz1mpg in the new run (+9 more)",
+    "    spawns: obj1646 (87 stto5) only in the new run, from record 120 (+13379 more)",
+    "    game result: world gameResult: 0 in the old golden, 1 in the new run, from record 120 (+9 more)",
+    "    script: script #files differs (hashes only), from record 120 (+69 more)",
+    "... 31 more lines"
   ]
 }

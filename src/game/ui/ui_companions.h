@@ -2,8 +2,9 @@
 
 // Ours: the companions window of the multiplayer base (the base screen's companions button or F3): the heroes picked
 // as companions (SavedParties::companions), then the player's other saved heroes; the picked one is removed from the
-// list or added to it. The list changes only here: the base is a local zone, and each network zone only asks for the
-// list again (PlayerClient::RestoreCompanions). See docs/notes/ui.md ("Companions window").
+// list or added to it, and its unit leaves or joins the base's party. The list changes only here: the base is a local
+// zone, and each network zone only asks for the list again (PlayerClient::RestoreCompanions). See docs/notes/ui.md
+// ("Companions window").
 
 #include "game/ui/ui.h"
 
@@ -21,7 +22,8 @@ public:
     void CloseScreen() override;
     void OnEvent(UiEvent& event) override;
 
-    // The picked hero added to the list while there is room, or the picked companion taken off it; the window closes.
+    // The picked hero added to the list while there is room and joined, or the picked companion's record handed back
+    // to its file and the companion taken off the list and out of the party; the window closes.
     void Act();
     void Close();
 
