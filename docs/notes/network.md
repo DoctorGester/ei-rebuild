@@ -125,6 +125,11 @@ picked heroes are party members; a network zone only asks for the picked list ag
   (above). The leave box waits for every living unit of the party in the exit, the companions too
   (`WorldClient::PartyInExit`); the exits stay closed while another player is in the game
   (`GameFlow::UpdateMultiplayerVariable`: "z.MPGame1" at 1 while the server counts more than one). A hero cannot be two at once: the window offers only heroes that are neither the played one nor a companion.
+- **Selection**: the HUD's member keys toggle the hero and its companions only (`ToggleMember`), and a drag selects
+  them as in a single-player game (ours, MP1c; `BattleScreen::BoxMembers`, ui.md "Box select in a network game"):
+  never another player's unit, which the server would take orders for (its handlers do not check the owner). An order
+  with several selected sends one message naming them all (Walk, GoTo, Attack, a dead unit's use) or one per unit
+  (each cast, Follow).
 - **Experience and awards**: a kill's experience (`ShareAmongSoloPlayers`, the multiplayer share) is split per player
   first, as the original did among players of one hero: each player whose hero stands gets a part in proportion to the
   square root of its hero's experience; the player's heroes (the hero and its companions) then share that part in

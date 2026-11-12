@@ -98,6 +98,10 @@ public:
     void ToggleMember(int index);
     // The party indexes of the selected members (flag 0x10), in order.
     std::vector<int> SelectedIndexes() const;
+    // Ours: how many members from the party's first a selection box may select: all in a single-player game; on a
+    // multiplayer client the local hero and its companions (RebuildClientParty puts them first), never another
+    // player's unit.
+    int BoxMembers() const;
     // The order kind is the first order key held (6 for none); a member more than five levels below the
     // target speaks (speech event 10).
     void AttackUnit(Unit* target, bool ctrl);

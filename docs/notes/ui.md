@@ -328,6 +328,13 @@ top panel. `UseNow` (`ui_hud_slots.cpp`) casts at once on the unit, or for an at
 - **Button release**: without a press on the view (set when no panel took the press) the container's handler; a drag (the
   mouse moved past the threshold option; 0 or less = no boxes) selects the party units inside the box; otherwise the unit
   at the point (kept only with flag 0x400000) goes to SelectUnit.
+- **Box select in a network game (ours, MP1c)**: the original drew no box on a multiplayer client (a player had one
+  hero). Ours does: `BattleScreen::BoxMembers` limits the box (its marks and its selection) to the party's first
+  members, all of them in a single-player game, on a client the local hero and its companions (RebuildClientParty puts
+  them first; network.md, "Companions"), never another player's unit; the portraits' frames and the selected ack as in
+  a single-player game. A click without a drag keeps the original's path. The orders already send every selected
+  unit (OrderAt, AttackUnit, UseOnUnit / UseAtPoint loop over them). Scenario `net_pair_companion` (`boxselect`,
+  `selected`, `unitnear`).
 - **Pending action** (`BattleScreen::SetPendingAction(mode, slot, item)`; a cancel is (PendingAction::None, -1, -1)): every
   highlight off, then the slot's button highlighted in the mode's panel. Modes: 1 / 2 a spell on a unit / at a point (spell
   data flag 0x10000000 or not), 3 / 4 a quick item's spell likewise, 6 a player's item, 7 follow, 8 an order on an object
@@ -803,8 +810,9 @@ Long header comments of ui.h, ui_camp.h, ui_battle.h and the other UI headers; t
 ### BattleScreen::LeftUp
 
 Input (ui_battle.cpp). The left button released: nothing while a portrait click picks a player; without a press on the
-view the container's handler; a press without a drag, or on a network client, is a click on the unit under the point (units
-with flag 0x400000 only) through SelectUnit; a drag selects the party units inside the box: the world's selection cleared,
+view the container's handler; a press without a drag is a click on the unit under the point (units
+with flag 0x400000 only) through SelectUnit; a drag selects the party units inside the box (on a network client only the
+local hero and its companions: BoxMembers, ours): the world's selection cleared,
 the box marks and portraits' markers reset, each unit inside controlled with its portrait marked and its face turned (about
 -x by kHudQuarterTurn / 7), then the speech event with the first one's id; then RefreshSelection.
 
@@ -812,7 +820,7 @@ the box marks and portraits' markers reset, each unit inside controlled with its
 
 Input (ui_battle.cpp). The mouse moved (also every frame from Draw, at the current position): while a portrait
 click picks a player the cursor shape 0xD and the portraits' own mouse move; otherwise shape 0, then with a press on the
-view, a positive BoxSelectThreshold and not a network client: a move farther than the threshold from the press point in x or
+view and a positive BoxSelectThreshold (the original also required no network client): a move farther than the threshold from the press point in x or
 y starts the selection box, which empties the unit panel's hover unit and spans the press point and (x, y); before that the
 unit under the point is hovered at once. Without a press the container's handler first, and when no panel took the move the
 unit under the point (any flags) goes to HoverUnit.

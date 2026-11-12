@@ -175,12 +175,12 @@ StepKind Classify(const std::string& verb) {
     static const std::set<std::string> kInput = {
         "key", "keydown", "keyup", "click", "rclick", "move", "wheel", "dblclick", "rdblclick", "ldown", "lup", "rdown",
         "rup", "clickregion", "rclickregion", "dblclickregion", "moveregion", "clickunit", "clickground", "lookat", "hold",
-        "release", "typeunicode", "mousedrag", "realinput"};
+        "release", "typeunicode", "mousedrag", "realinput", "boxselect"};
     static const std::set<std::string> kSkip = {
         "wait", "frames", "waitmenu", "waitwindow", "waitdialogue", "talk", "waitunit", "waitidle", "walkto", "waitdead",
         "waitaward", "awardfrom", "waitline", "waitexpect", "waitfor", "waitzone", "waitpresent", "check", "expect",
         "reject", "allow", "report", "groundview", "hudstate", "campstock", "clientbolts", "clienthurt", "unitpart",
-        "figurealone", "minimap", "consoleline", "recordcut", "recordpart", "origin"};
+        "figurealone", "minimap", "consoleline", "recordcut", "recordpart", "origin", "selected", "unitnear"};
     static const std::set<std::string> kKept = {
         "newgame", "load", "console", "zone", "screen", "speed", "frametime", "focus", "windowsize", "chat", "campputon",
         "freeze", "unfreeze", "digest", "dump", "quit", "shadows", "masterhost", "hit",

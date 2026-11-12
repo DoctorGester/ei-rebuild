@@ -55,6 +55,7 @@
 //                             attacker gives the hit a side (HitDirection) and the game's own rules decide what it
 //                             does, also in a network game where "@" commands do nothing. A unit is "leader" (the
 //                             local player's first party member), "companion" (server player 0's first companion),
+//                             "player<n>" (server player <n>'s hero, its first party record),
 //                             "enemy" (as a target: the living unit nearest the attacker, or the leader, that
 //                             is hostile to it), "#<id>" or a script name (as GetObjectByName)
 //   giveitem <player> <item>  the server world's player <player> (its id: 0 the host's own) is given a new item
@@ -245,6 +246,16 @@
 //   checkpaused 0|1           require the server world's pause flag to be off / on (the host's pause mode)
 //   companions <n>            require server player 0's party to hold <n> records (its hero and companions) and
 //                             the player <n> units
+//   boxselect <unit> ...      drag a selection box over the units (named as hit's): the left button pressed past
+//                             the top left of the rectangles they are drawn in this frame, moved to past the bottom
+//                             right and released there, all in one frame (MP1c: box select in a network game).
+//                             Fails when a unit is not drawn
+//   selected <unit> ... | none
+//                             require the client world's selection (WorldClient::selectedIds) to be exactly the
+//                             units (named as hit's), in any order
+//   unitnear <unit> <x> <y> <distance>
+//                             require the server world's unit (named as hit's) to stand within <distance> of map point
+//                             (x, y)
 //   companionlist <n>         require the companions picked in the base (SavedParties::companions) to number <n>
 //   askcompanion <name>       send the add of saved hero <name> from the local client as a mid-game add (a network
 //                             zone's server refuses it: the list changes in the base only)
@@ -825,6 +836,7 @@ int HitUnitId(const std::string& name, bool none) {
     if (none && name == "none") return 0;
     if (name == "leader") return digest::LocalLeader();
     if (name == "companion") return image::CompanionUnit(0);
+    if (name.starts_with("player")) return image::PlayerLeaderUnit(std::atoi(name.c_str() + 6));
     if (!name.empty() && name[0] == '#') return std::atoi(name.c_str() + 1);
     const int id = image::TextKey(name.c_str());
     return id ? id : -1;
@@ -1866,6 +1878,67 @@ std::string FindUnitPoint(const char* name, const char* what, Point* point, void
     return label + ": the game's pick (00565E40) finds another object everywhere in its rectangle";
 }
 
+// --- boxselect <unit> ... (MP1c) ------------------------------------------------------------------------------
+// The rectangles of the units drawn this frame (as clickunit finds them) joined and widened by kBoxMargin on each side;
+// the press at the top left, a move to and the release at the bottom right go to the window in one frame, so the
+// battle screen's LeftDown, MouseMove (past the drag threshold) and LeftUp see a box over them.
+constexpr int kBoxMargin = 12;
+// The words of a step's argument (split at spaces).
+std::vector<std::string> ArgumentWords(const std::string& argument) {
+    std::vector<std::string> words;
+    std::size_t at = 0;
+    while ((at = argument.find_first_not_of(' ', at)) != std::string::npos) {
+        const std::size_t end = argument.find(' ', at);
+        words.push_back(argument.substr(at, end == std::string::npos ? std::string::npos : end - at));
+        at = end;
+    }
+    return words;
+}
+std::string BoxSelect(const std::string& argument) {
+    Rect box{};
+    bool any = false;
+    void* world = HarnessClientWorld();
+    for (const std::string& name : ArgumentWords(argument)) {
+        const int id = HitUnitId(name, false);
+        Rect rect{};
+        if (id <= 0 || ScreenRect(world, id, &rect) != 1) return "boxselect: " + name + " is not drawn this frame";
+        box = any ? Rect{std::min(box.left, rect.left), std::min(box.top, rect.top), std::max(box.right, rect.right),
+                         std::max(box.bottom, rect.bottom)}
+                  : rect;
+        any = true;
+    }
+    if (!any) return "boxselect needs <unit> ...";
+    box = Rect{box.left - kBoxMargin, box.top - kBoxMargin, box.right + kBoxMargin, box.bottom + kBoxMargin};
+    Log("harness: boxselect %s: (%d,%d)-(%d,%d)", argument.c_str(), box.left, box.top, box.right, box.bottom);
+    const Point from = ToWindow(box.left, box.top);
+    const Point to = ToWindow(box.right, box.bottom);
+    input::MoveMouse(from);
+    input::PressButton(MouseButton::Left, from);
+    input::MoveMouse(to);
+    input::ReleaseButton(MouseButton::Left, to);
+    g_mouseX = to.x;
+    g_mouseY = to.y;
+    return "";
+}
+
+// --- selected <unit> ... | none (MP1c) ---------------------------------------------------------------------------
+std::string CheckSelected(const std::string& argument) {
+    std::vector<int> wanted;
+    for (const std::string& name : ArgumentWords(argument)) {
+        if (name == "none") continue;
+        const int id = HitUnitId(name, false);
+        if (id <= 0) return "selected: no unit " + name;
+        wanted.push_back(id);
+    }
+    std::vector<int> selection = image::ClientSelection();
+    std::sort(wanted.begin(), wanted.end());
+    std::sort(selection.begin(), selection.end());
+    std::string ids;
+    for (int id : selection) ids += " " + std::to_string(id);
+    Log("harness: selected %s: the client's selection is%s", argument.c_str(), ids.empty() ? " empty" : ids.c_str());
+    return selection == wanted ? "" : "selected " + argument + ": the client's selection is" + (ids.empty() ? " empty" : ids);
+}
+
 std::string PostUnitMouse(const std::string& argument) {
     char name[64] = "", button[8] = "l";
     if (std::sscanf(argument.c_str(), "%63s %7s", name, button) < 1)
@@ -2341,7 +2414,7 @@ bool IsInputStep(const std::string& verb) {
            verb == "clickregion" || verb == "rclickregion" || verb == "dblclickregion" || verb == "moveregion" ||
            verb == "clickunit" || verb == "droplist" ||
            verb == "clickground" || verb == "lookat" || verb == "hold" || verb == "release" || verb == "focus" || verb == "windowsize" ||
-           verb == "typeunicode";
+           verb == "typeunicode" || verb == "boxselect";
 }
 
 // "expectcrash <text>": the crash the scenario is about (its failure line contains <text>, or one of the texts
@@ -3147,6 +3220,23 @@ void RunSteps() {
             }
         } else if (s.verb == "lookat") {
             std::string error = LookAt(s.argument);
+            if (!error.empty()) {
+                Log("harness: %s", error.c_str());
+                g_failures.push_back(error);
+            }
+        } else if (s.verb == "unitnear") {
+            char name[64] = {};
+            float x = 0, y = 0, distance = 0;
+            const bool read = std::sscanf(s.argument.c_str(), "%63s %f %f %f", name, &x, &y, &distance) == 4;
+            const digest::UnitNow unit = digest::UnitNowOf(read ? HitUnitId(name, false) : -1);
+            const float away = std::hypot(unit.x - x, unit.y - y);
+            Log("harness: unitnear %s: the unit stands at %.1f %.1f, %.1f away", s.argument.c_str(), unit.x, unit.y, away);
+            if (!read || !unit.found || away > distance)
+                g_failures.push_back("unitnear " + s.argument + ": " +
+                                     (!read ? "needs <unit> <x> <y> <distance>" : !unit.found ? "no such unit"
+                                                                                : "it stands " + std::to_string(away) + " away"));
+        } else if (s.verb == "boxselect" || s.verb == "selected") {
+            const std::string error = s.verb == "boxselect" ? BoxSelect(s.argument) : CheckSelected(s.argument);
             if (!error.empty()) {
                 Log("harness: %s", error.c_str());
                 g_failures.push_back(error);

@@ -138,6 +138,14 @@ int CompanionUnit(int index) {
     return index + 1 < std::ssize(members) ? static_cast<int>(members[index + 1].unitId) : -1;
 }
 
+int PlayerLeaderUnit(int playerId) {
+    Player* player = g_serverWorld.GetPlayer(playerId);
+    if (!player || player->GetParty()->members.empty()) return -1;
+    return static_cast<int>(player->GetParty()->members[0].unitId);
+}
+
+std::vector<int> ClientSelection() { return g_clientWorld.selectedIds; }
+
 int NearestEnemy(int id) {
     Unit* from = g_serverWorld.FindUnit(id);
     if (!from) return -1;
