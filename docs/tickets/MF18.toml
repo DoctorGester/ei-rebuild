@@ -6,5 +6,6 @@ model = "opus"
 files = ["docs/modding.md docs/notes/mods.md"]
 note = "User 2026-11-12: look at https://github.com/SolarGuru/Pro100-Mod (main) and figure out whether the changes it makes can be represented through our own modding API, and how many holes we would have to close to support it. Output: a report (build/mf18_pro100.md) listing each kind of change the mod makes (files it replaces, records, scripts, exe/plugin patches, assets), how each maps onto our API (loose files, TOML merge, map.toml, mob.toml, Lua spells/effects/hooks, ei-convert), which do not map, and for each hole a sized proposal (a ticket draft). Count the holes by size. Clone into build/pro100 (data only: never run its code or binaries); never write into F:\\games. Study done: build/mf18_pro100.md. Data works as is (probe hosted to z3q2); rules (main.lua + [Addon] switches) need 11 holes: 1 x size 1, 8 x size 2, 2 x size 3, plus the port."
 order = 1422
-status = "review"
+status = "done"
 started = "2026-11-12"
+done = "2026-11-12"
