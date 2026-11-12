@@ -7,5 +7,6 @@ depends = ["MF18a"]
 files = ["build/mf18b_api_proposal.md"]
 note = "User 2026-11-12: before filing hole tickets, write a concrete proposal of the modding API and data support changes for all holes (A1, B1-B3, C1-C7, C1a) so the user can judge whether the structure makes sense. Inputs: build/mf18_pro100.md, build/mf18a_pro100_map.md, build/mf18a/*.tsv, docs/modding.md, lua_api/ei_api.lua. Proposal only, no code. Proposal in build/mf18b_api_proposal.md: one Res\\rules\\rules.lua (19 hooks: formula hooks prefilled with the game's result, server and client twins; event hooks with unit.data / ModData / replicated values), Rebirth's [Addon*] keys and a new [Shops] in ai.reg; 16 tickets (8 of size 1, 7 of size 2, 1 of size 3), 12 open questions with recommendations."
 order = 1424
-status = "review"
+status = "done"
 started = "2026-11-12"
+done = "2026-11-12"
