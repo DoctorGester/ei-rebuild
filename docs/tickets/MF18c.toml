@@ -1,0 +1,9 @@
+id = "MF18c"
+title = "Proposal: what else modders want, and how the API allows it"
+group = "mods"
+size = 2
+model = "opus"
+depends = ["MF18b"]
+files = ["build/mf18c_modder_wants.md"]
+note = "User 2026-11-13: think about other things modders would want to do and how we can allow them. Extends the MF18b rules API proposal (build/mf18b_api_proposal.md). Evidence: SpellAddonX's 160 switches (build/spelladdon), Rebirth addon patches (config/rebirth_patches.csv, docs/notes/rebirth.md), Pro100, the Erlang and Lost in Astral mods. Proposal only."
+order = 1425
